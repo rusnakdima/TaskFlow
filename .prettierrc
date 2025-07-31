@@ -1,0 +1,13 @@
+{
+  "overrides": [
+    {
+      "files": "*.html",
+      "options": {
+        "parser": "angular"
+      }
+    }
+  ],
+  "trailingComma": "es5",
+  "tabWidth": 2,
+  "printWidth": 100
+}

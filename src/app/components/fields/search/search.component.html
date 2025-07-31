@@ -1,0 +1,26 @@
+@if (isShowSearchField) {
+  <div class="absolute flex flex-col -top-2 left-0 w-full">
+    <div
+      class="flex flex-row items-center gap-x-2 p-2 mx-auto styleElem w-[95%]"
+    >
+      <input
+        type="text"
+        class="styleField !border-none w-full"
+        placeholder="Search..."
+        id="searchField"
+        [(ngModel)]="searchField"
+        (keyup)="searchFunc()"
+      />
+      <mat-icon
+        class="cursor-pointer"
+        fontIcon="close"
+        (click)="isShowSearchField = false"
+      />
+    </div>
+  </div>
+} @else {
+  <button class="styleFloatBut !p-1 min-w-10 h-10" (click)="setFocusField()">
+    <mat-icon fontIcon="search" />
+    <span class="hidden sm:block">Search</span>
+  </button>
+}

@@ -1,0 +1,10 @@
+<div class="flex flex-row items-center gap-x-2">
+  <span>Show</span>
+  <select name="perItem" class="styleSelect" [(ngModel)]="perItem" (change)="changePerItem()">
+    <option value="10" selected>10</option>
+    <option value="25">25</option>
+    <option value="50">50</option>
+    <option value="100">100</option>
+  </select>
+  <span>entries</span>
+</div>

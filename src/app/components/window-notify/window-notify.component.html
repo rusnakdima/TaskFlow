@@ -1,0 +1,50 @@
+<div class="fixed flex flex-col-reverse gap-4 top-4 right-4 z-[9999] w-[320px] max-w-md">
+  @for (notification of notifications; track notification.id) {
+    <div
+      class="flex flex-col rounded-lg w-full animate-slideInRight shadow-lg overflow-hidden notification-item"
+      [ngClass]="[notification.color]"
+      data-id="{{ notification.id }}"
+      (click)="closeNotification(notification.id)"
+    >
+      <div class="flex flex-row justify-between p-1">
+        <div class="flex flex-row gap-x-1 items-center">
+          <div class="flex flex-col justify-center">
+            <mat-icon
+              class="text-white !w-[40px] !h-[40px] !text-4xl"
+              [fontIcon]="notification.icon"
+            />
+          </div>
+
+          <div class="flex flex-col gap-y-1">
+            <span class="text-lg font-medium text-white">
+              {{ getNotificationTitle(notification.status) }}
+            </span>
+            @if (notification.message != "") {
+              <span class="text-white">{{ notification.message }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="flex flex-col justify-start items-center">
+          <mat-icon
+            (click)="closeNotification(notification.id)"
+            class="!w-[28px] !h-[28px] font-bold !text-xl text-gray-300 cursor-pointer"
+            fontIcon="close"
+          />
+        </div>
+      </div>
+
+      <div class="h-1 bg-white/30 w-full">
+        <div
+          class="h-1 bg-white transition-all duration-75 origin-left"
+          [style.width.%]="notification.width"
+        ></div>
+      </div>
+    </div>
+  }
+</div>
+
+<span class="hidden bg-blue-500"></span>
+<span class="hidden bg-green-700"></span>
+<span class="hidden bg-yellow-500"></span>
+<span class="hidden bg-red-700"></span>

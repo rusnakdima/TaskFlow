@@ -1,0 +1,426 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.textNormal {
+  @apply text-black dark:text-white
+}
+
+.textMuted {
+  @apply text-gray-600 dark:text-gray-300
+}
+
+.theme {
+  @apply textNormal bg-white dark:bg-zinc-900
+}
+
+.styleBody {
+  @apply block top-0 left-0 m-0 theme w-full text-base
+}
+
+.styleHeader {
+  @apply sticky flex flex-row justify-between items-center top-0 p-3 mx-auto z-40 theme w-full
+}
+
+.styleBottomNav {
+  @apply fixed min-[480px]:hidden grid grid-cols-4 bottom-0 m-0 p-3 theme w-full
+}
+
+.styleBackWind {
+  @apply fixed flex flex-col items-center left-0 top-0 m-0 z-30 bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto
+}
+
+.styleWind {
+  @apply absolute top-1 p-4 m-auto z-50 rounded-xl styleBorderSolid border bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2
+}
+
+.styleWindNotify {
+  @apply fixed flex flex-col top-1 right-1 z-[999] rounded-lg styleBorderSolid border !border-white text-white
+}
+
+.styleBorderSolid {
+  @apply border-solid border-black dark:border-white
+}
+
+.styleBorderSolidLite {
+  @apply rounded-lg border-solid border-zinc-600 dark:border-zinc-500
+}
+
+.styleLinkAside {
+  @apply flex flex-row gap-x-2 items-center px-2 py-1 w-full font-semibold text-left text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer
+}
+
+.styleLinkNav {
+  @apply font-semibold text-center text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer
+}
+
+.styleLinkMenuUser {
+  @apply block px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-900 dark:text-white text-xl text-black cursor-pointer
+}
+
+.styleLinkMenu {
+  @apply flex flex-row gap-x-4 items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white
+}
+
+.styleLinkRedir {
+  @apply !text-blue-600 dark:!text-lime-500 !decoration-blue-600 dark:!decoration-lime-500 underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer
+}
+
+.styleBottomNavItems {
+  @apply flex flex-col items-center text-center cursor-pointer
+}
+
+.styleBut {
+  @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center
+}
+
+button:disabled {
+  @apply hover:!bg-red-500 dark:hover:!bg-red-500 cursor-not-allowed
+}
+
+.styleButInfo {
+  @apply styleBut border-blue-900 bg-blue-600
+}
+
+.styleButWarn {
+  @apply styleBut border-yellow-900 bg-yellow-500
+}
+
+.styleButDanger {
+  @apply styleBut border-red-900 bg-red-600
+}
+
+.styleButSuccess {
+  @apply styleBut border-green-900 bg-green-600
+}
+
+.styleFloatBut {
+  @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl styleBorderSolidLite border hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer
+}
+
+.styleTR {
+  @apply hover:bg-slate-300 dark:hover:bg-neutral-700
+}
+
+.styleTD {
+  @apply p-1 styleBorderSolid border-2 !border-gray-500 dark:!border-gray-600
+}
+
+.styleLI {
+  @apply inline-flex p-4 rounded-t-lg border-b-2 hover:border-gray-300 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer
+}
+
+.styleUL {
+  @apply flex flex-wrap -mb-px border-b border-gray-200 dark:border-gray-700 font-medium text-center text-sm text-gray-500 dark:text-gray-400
+}
+
+.styleLabel {
+  @apply block mt-2 text-gray-900 dark:text-white font-medium
+}
+
+.styleElem {
+  @apply rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg
+}
+
+.styleField {
+  @apply p-2.5 styleElem
+}
+
+.styleTextarea {
+  @apply block p-2.5 styleElem w-full
+}
+
+.styleFileInput {
+  @apply p-2.5 styleElem
+}
+
+.styleCheckbox {
+  @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-300 dark:bg-gray-800 w-5 h-5 text-blue-600 dark:text-red-600
+}
+
+.styleToggle {
+  @apply relative after:absolute after:top-[2px] rounded-full after:rounded-full after:border after:border-gray-300 dark:border-gray-600 peer-checked:after:border-white bg-gray-200 dark:bg-gray-700 after:bg-white peer-checked:bg-blue-600 w-11 h-6 after:w-5 after:h-5 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-focus:outline-none after:content-[''] after:start-[2px] after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+}
+
+.styleRadio{
+  @apply w-6 h-6 text-blue-600 dark:text-green-500 bg-gray-300 dark:bg-gray-700 border-gray-500 dark:border-gray-600 focus:ring-blue-600 dark:focus:ring-green-500 dark:ring-offset-gray-800 focus:ring-2
+}
+
+.styleRadio:disabled {
+  @apply !bg-red-700 !border-red-700 focus:!ring-red-700
+}
+
+.styleSelect {
+  @apply block px-3 py-2 styleElem w-full
+}
+
+.styleDetails {
+  @apply mx-1
+}
+
+@layer components {
+  .styleSummary {
+    list-style: none;
+  }
+  .styleDetails .styleSummary:before {
+    /* content: url("/assets/svg/cross.svg"); */
+    content: '+';
+    font-size: 40px;
+    font-weight: bold;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+  .styleDetails[open] .styleSummary:before {
+    content: "–";
+    font-size: 40px;
+    font-weight: bold;
+    margin-right: 5px;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+mat-icon {
+  @apply !w-[30px] !h-[30px] !text-3xl
+}
+
+pre {
+  @apply p-5 rounded-lg styleBorderSolidLite border bg-transparent w-full
+}
+
+.dividerIcon > div {
+  @apply hidden
+}
+.dividerIcon:hover > div {
+  @apply flex
+}
+
+::-webkit-scrollbar {
+  @apply bg-transparent w-2 h-2
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-2xl bg-gray-600
+}
+
+@keyframes slide {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 113px;
+  }
+}
+
+.ngx-pagination {
+  @apply inline-flex items-center -space-x-px !mb-0
+}
+
+.ngx-pagination .pagination-previous,
+.ngx-pagination .pagination-previous a,
+.ngx-pagination .pagination-previous .disabled {
+  @apply block rounded-l-lg 
+}
+
+.ngx-pagination .pagination-next,
+.ngx-pagination .pagination-next a,
+.ngx-pagination .pagination-next .disabled {
+  @apply block rounded-r-lg
+}
+
+.ngx-pagination .pagination-previous {
+  margin-right: calc(-1px * var(--tw-space-x-reverse));
+  margin-left: calc(-1px * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.ngx-pagination .pagination-previous.disabled:before, .ngx-pagination .pagination-previous a:before {
+  @apply !content-['<'] !mr-0
+}
+
+.ngx-pagination .pagination-next.disabled:after, .ngx-pagination .pagination-next a:after {
+  @apply !content-['>'] !ml-0
+}
+
+.ngx-pagination a, .ngx-pagination .disabled {
+  @apply !px-4 !py-2 text-xl !text-gray-500 dark:!text-zinc-400 hover:!text-gray-700 dark:hover:!text-white !bg-white dark:!bg-zinc-800 hover:!bg-gray-100 dark:hover:!bg-zinc-700 border !border-gray-300 dark:!border-zinc-600
+}
+
+.ngx-pagination .current {
+  @apply !px-4 !py-2 z-0 text-xl !text-blue-600 dark:!text-white hover:!text-blue-700 !bg-blue-50 dark:!bg-zinc-600 hover:!bg-blue-100 border border-blue-300 dark:!border-zinc-400 dark:hover:!bg-zinc-700
+}
+
+.mat-calendar,
+.mat-datepicker-content,
+.mat-mdc-select-panel,
+.mat-mdc-menu-panel,
+.mat-datepicker-actions,
+.mat-expansion-panel {
+  @apply !rounded-xl styleBorderSolidLite !border
+}
+
+.mat-calendar,
+.mat-mdc-select-panel,
+.mat-mdc-menu-panel,
+.mat-expansion-panel,
+.mat-expansion-panel:hover,
+.mat-datepicker-actions,
+.mat-datepicker-content,
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  @apply !bg-slate-100 dark:!bg-neutral-800
+}
+
+.mat-calendar-table-header>tr>*,
+.mat-calendar-body-label,
+.mat-calendar-body-cell:not(.mat-calendar-body-disabled)>*,
+.mat-datepicker-content,
+.mat-datepicker-actions,
+.mat-mdc-icon-button,
+.mdc-button-label,
+.mat-mdc-button:not(:disabled),
+.mat-mdc-icon-button:not(.mat-mdc-button-disabled),
+.mdc-floating-label,
+.mdc-text-field--filled:not(.mdc-text-field--disabled),
+.mdc-text-field__input,
+.mat-mdc-input-element,
+.mat-mdc-select,
+.mat-mdc-option,
+.mat-expansion-panel,
+.mat-expansion-indicator::after,
+.mat-expansion-panel-header-title,
+.mdc-tab__text-label {
+  @apply !text-black dark:!text-white
+}
+
+.mat-expansion-indicator::after {
+  @apply !border-black dark:!border-white
+}
+
+.mat-mdc-form-field-required-marker {
+  @apply ml-2 text-red-500
+}
+
+.mat-mdc-input-element {
+  @apply !caret-blue-500 dark:!caret-green-500
+}
+
+.mat-mdc-input-element::placeholder {
+  @apply !text-gray-500 dark:!text-gray-400
+}
+
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mdc-list-item__primary-text,
+.mat-mdc-option-pseudo-checkbox::after {
+  @apply !text-blue-600 dark:!text-lime-500
+}
+
+.mat-calendar-body-disabled>* {
+  @apply !text-gray-400 dark:!text-zinc-500
+}
+
+.mat-expansion-panel-header {
+  @apply !px-3 !h-[40px]
+}
+
+.mat-expansion-panel-header-title {
+  @apply font-bold
+}
+
+.mat-expansion-panel-body {
+  @apply !p-1
+}
+
+.mat-mdc-form-field-subscript-wrapper {
+  @apply !h-0
+}
+
+.mat-mdc-text-field-wrapper {
+  @apply !rounded-lg border !border-gray-400 dark:!border-gray-600 focus:!ring-blue-500 dark:focus:!ring-blue-500 focus:!border-blue-500 dark:focus:!border-blue-500 !bg-slate-300 dark:!bg-neutral-800 placeholder:!text-lg !text-gray-900 dark:!text-white dark:placeholder:!text-gray-100
+}
+
+.mdc-line-ripple {
+  @apply hidden
+}
+
+.mdc-tab-indicator__content--underline {
+  @apply !border-black dark:!border-white
+}
+
+.fc-theme-standard .fc-popover,
+.fc-multimonth-header {
+  @apply theme
+}
+
+.fc .fc-multimonth {
+  @apply styleTD !p-0
+}
+
+.fc-theme-standard .fc-scrollgrid {
+  @apply styleTD !p-0 rounded-xl
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+  @apply styleTD !p-0
+}
+
+.fc-day-disabled,
+.fc .fc-multimonth-daygrid,
+.fc-daygrid-week-number {
+  @apply !bg-transparent
+}
+
+th[role="presentation"],
+td[role="presentation"] {
+  @apply !border-b-0 !border-r-0
+}
+
+.fc-prev-button {
+  @apply !rounded-r-none styleBorderSolidLite !border
+}
+
+.fc-next-button {
+  @apply !rounded-l-none styleBorderSolidLite !border
+}
+
+.fc-button {
+  @apply flex flex-col justify-center px-4 !border-zinc-600 dark:!border-zinc-500 !text-black dark:!text-white cursor-pointer
+}
+
+.fc-button:not(.fc-button-active) {
+  @apply !bg-transparent
+}
+
+.fc-button-active {
+  @apply fc-button !bg-gray-400 dark:!bg-zinc-700
+}
+
+.fc-button-group {
+  @apply !rounded-xl
+}
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
