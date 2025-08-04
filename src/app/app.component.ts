@@ -1,24 +1,23 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
-import { invoke } from "@tauri-apps/api/core";
+/* sys lib */
+import { Component } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterOutlet } from "@angular/router";
+
+/* components */
+import { HeaderComponent } from "@components/header/header.component";
+import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
 
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent],
+  templateUrl: "./app.component.html",
 })
 export class AppComponent {
-  greetingMessage = "";
+  constructor() {}
 
-  greet(event: SubmitEvent, name: string): void {
-    event.preventDefault();
-
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    invoke<string>("greet", { name }).then((text) => {
-      this.greetingMessage = text;
-    });
+  ngOnInit(): void {
+    const theme = localStorage.getItem("theme") ?? "";
+    document.querySelector("html")!.setAttribute("class", theme);
   }
 }
