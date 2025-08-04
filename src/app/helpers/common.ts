@@ -2,6 +2,7 @@ export class Common {
   static isJson(data: Object): boolean {
     return typeof data === "object";
   }
+
   static isJsonAsString(data: string): boolean {
     try {
       const parsed = JSON.parse(data);
