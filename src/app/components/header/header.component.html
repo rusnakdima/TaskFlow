@@ -1,0 +1,18 @@
+<div class="styleHeader">
+  <div class="flex flex-col">
+    @if (prevTitle != "") {
+      <span class="styleLinkRedir text-sm" (click)="goBack()">{{ prevTitle }}</span>
+    }
+    <span class="text-xl">{{ title }}</span>
+  </div>
+
+  <div class="flex flex-row gap-x-2 justify-center items-center">
+    <button class="styleFloatBut" [routerLink]="['/login']">Login</button>
+
+    @if (themeVal == "") {
+      <mat-icon class="cursor-pointer" fontIcon="light_mode" (click)="setTheme('dark')" />
+    } @else if (themeVal == "dark") {
+      <mat-icon class="cursor-pointer" fontIcon="dark_mode" (click)="setTheme('')" />
+    }
+  </div>
+</div>
