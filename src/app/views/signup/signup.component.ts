@@ -115,7 +115,7 @@ export class SignupComponent {
         })
         .catch((err: any) => {
           console.error(err);
-          this.notifyService.showError(err.status + " — " + err.statusText);
+          this.notifyService.showError(err.message);
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
