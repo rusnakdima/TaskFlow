@@ -1,0 +1,30 @@
+/* services */
+use crate::services::auth_service;
+
+/* models */
+use crate::models::{
+  login_form_model::LoginForm, response::ResponseModel, signup_form_model::SignupForm,
+};
+
+#[allow(non_snake_case)]
+pub struct AuthController {
+  pub authService: auth_service::AuthService,
+}
+
+impl AuthController {
+  pub fn new() -> Self {
+    return Self {
+      authService: auth_service::AuthService::new(),
+    };
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
+    return self.authService.login(loginForm).await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn register(&self, signupForm: SignupForm) -> Result<ResponseModel, ResponseModel> {
+    return self.authService.register(signupForm).await;
+  }
+}
