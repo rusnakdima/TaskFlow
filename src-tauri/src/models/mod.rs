@@ -1,13 +1,12 @@
 pub mod response;
 
-pub mod mongo_config;
 pub mod list_models;
 
-pub mod login_form;
-pub mod signup_form;
-pub mod user;
-pub mod profile;
-pub mod todo;
-pub mod task;
-pub mod subtask;
-pub mod task_shares;
+pub mod login_form_model;
+pub mod signup_form_model;
+pub mod user_model;
+pub mod profile_model;
+pub mod todo_model;
+pub mod task_model;
+pub mod subtask_model;
+pub mod task_shares_model;

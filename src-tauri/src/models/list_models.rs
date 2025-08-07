@@ -1,9 +1,6 @@
-/* sys lib */
-use mongodb::{bson::Document, Collection, Database};
-
 use crate::models::{
-  profile::ProfileModel, subtask::SubtaskModel, task::TaskModel, task_shares::TaskSharesModel,
-  todo::TodoModel, user::UserModel,
+  profile_model::ProfileModel, subtask_model::SubtaskModel, task_model::TaskModel,
+  task_shares_model::TaskSharesModel, todo_model::TodoModel, user_model::UserModel,
 };
 
 #[derive(Debug, Clone)]
