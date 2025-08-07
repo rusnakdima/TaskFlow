@@ -1,3 +1,3 @@
 pub mod common;
 
-pub mod mongodb;
+pub mod mongodb_provider;
