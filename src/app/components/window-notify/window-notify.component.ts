@@ -9,12 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
-import {
-  ActiveNotification,
-  INotify,
-  ResponseStatus,
-  ResponseStatusIcon,
-} from "@models/response";
+import { ActiveNotification, INotify, ResponseStatus, ResponseStatusIcon } from "@models/response";
 
 @Component({
   selector: "app-window-notify",
@@ -29,7 +24,8 @@ export class WindowNotifyComponent implements OnInit {
   private nextId = 1;
   private readonly NOTIFICATION_DURATION = 3000;
   private readonly ANIMATION_DURATION = 300;
-  private readonly PROGRESS_INTERVAL = 60;
+
+  isHover: boolean = false;
 
   ngOnInit() {
     this.notifyService.notify.subscribe((value: INotify) => {
@@ -40,19 +36,14 @@ export class WindowNotifyComponent implements OnInit {
   }
 
   addNotification(notification: INotify) {
-    const color = this.getColorForStatus(notification.status);
-    if (!color) return;
-
     if (this.notifications.length >= 5) {
-      this.removeNotification(this.notifications[0].id);
+      this.prepareToRemove(this.notifications[0].id);
     }
 
     const id = this.nextId++;
     const newNotification: ActiveNotification = {
       ...notification,
       id,
-      color,
-      width: 100,
       icon: this.getIconForStatus(notification.status),
     };
 
@@ -67,23 +58,10 @@ export class WindowNotifyComponent implements OnInit {
     const notification = this.notifications.find((n) => n.id === id);
     if (!notification) return;
 
-    const steps = this.NOTIFICATION_DURATION / this.PROGRESS_INTERVAL;
-    const decrementValue = 100 / steps;
-
-    const intervalId = setInterval(() => {
-      notification.width -= decrementValue;
-
-      if (notification.width <= 0) {
-        clearInterval(intervalId);
-        this.prepareToRemove(id);
-      }
-    }, this.PROGRESS_INTERVAL);
-
     const timeoutId = setTimeout(() => {
       this.prepareToRemove(id);
     }, this.NOTIFICATION_DURATION);
 
-    notification.intervalId = intervalId;
     notification.timeoutId = timeoutId;
   }
 
@@ -91,14 +69,13 @@ export class WindowNotifyComponent implements OnInit {
     const notification = this.notifications.find((n) => n.id === id);
     if (!notification) return;
 
-    const element = document.querySelector(
-      `.notification-item[data-id="${id}"]`,
-    ) as HTMLElement;
+    const element = document.querySelector(`.notification-item[id="${id}"]`) as HTMLElement;
     if (element) {
       element.classList.add("animate-fadeOut");
     }
 
     setTimeout(() => {
+      element?.classList.remove("animate-slideInRight", "animate-fadeOut");
       this.removeNotification(id);
     }, this.ANIMATION_DURATION);
   }
@@ -131,16 +108,24 @@ export class WindowNotifyComponent implements OnInit {
     this.prepareToRemove(id);
   }
 
-  getColorForStatus(status: ResponseStatus): string {
+  getColorForStatus(status: ResponseStatus, type: "border" | "color"): string {
     switch (status) {
       case ResponseStatus.INFO:
-        return "bg-blue-500";
+        if (type === "border") return "!border-blue-500";
+        else if (type === "color") return "!text-blue-500";
+        else return "";
       case ResponseStatus.SUCCESS:
-        return "bg-green-700";
+        if (type === "border") return "!border-green-700";
+        else if (type === "color") return "!text-green-700";
+        else return "";
       case ResponseStatus.WARNING:
-        return "bg-yellow-500";
+        if (type === "border") return "!border-yellow-600";
+        else if (type === "color") return "!text-yellow-600";
+        else return "";
       case ResponseStatus.ERROR:
-        return "bg-red-700";
+        if (type === "border") return "!border-red-700";
+        else if (type === "color") return "!text-red-700";
+        else return "";
       default:
         return "";
     }
