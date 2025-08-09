@@ -11,6 +11,9 @@ use std::sync::Arc;
 /* routes */
 use routes::about_route::{download_update, get_binary_name_file};
 use routes::auth_route::{login, register};
+use routes::category_route::{
+  category_create, category_delete, category_get, category_get_all, category_update,
+};
 use routes::profile_route::{
   profile_create, profile_delete, profile_get, profile_get_all, profile_update,
 };
@@ -26,6 +29,7 @@ use routes::todo_route::{todo_create, todo_delete, todo_get, todo_get_all, todo_
 /* controllers */
 use controllers::about_controller::AboutController;
 use controllers::auth_controller::AuthController;
+use controllers::category_controller::CategoriesController;
 use controllers::profile_controller::ProfileController;
 use controllers::subtask_controller::SubtaskController;
 use controllers::task_controller::TaskController;
@@ -37,6 +41,7 @@ pub struct AppState {
   aboutController: Arc<AboutController>,
   authController: Arc<AuthController>,
   profileController: Arc<ProfileController>,
+  categoriesController: Arc<CategoriesController>,
   todoController: Arc<TodoController>,
   taskController: Arc<TaskController>,
   subtaskController: Arc<SubtaskController>,
@@ -51,6 +56,7 @@ pub fn run() {
       aboutController: Arc::new(AboutController::new()),
       authController: Arc::new(AuthController::new()),
       profileController: Arc::new(ProfileController::new()),
+      categoriesController: Arc::new(CategoriesController::new()),
       todoController: Arc::new(TodoController::new()),
       taskController: Arc::new(TaskController::new()),
       subtaskController: Arc::new(SubtaskController::new()),
@@ -66,11 +72,16 @@ pub fn run() {
       profile_create,
       profile_update,
       profile_delete,
-      todo_create,
-      todo_delete,
-      todo_get,
+      category_get_all,
+      category_get,
+      category_create,
+      category_update,
+      category_delete,
       todo_get_all,
+      todo_get,
+      todo_create,
       todo_update,
+      todo_delete,
       task_get_all,
       task_get,
       task_create,
