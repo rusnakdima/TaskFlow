@@ -104,8 +104,8 @@ export class SignupComponent {
         password: this.f["password"].value,
       };
       await this.authService
-        .signup(authData)
-        .then((response: Response) => {
+        .signup<string>(authData)
+        .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             setTimeout(() => {
@@ -113,7 +113,7 @@ export class SignupComponent {
             }, 500);
           }
         })
-        .catch((err: Response) => {
+        .catch((err: any) => {
           console.error(err);
           this.notifyService.showError(err.message);
         });

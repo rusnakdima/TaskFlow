@@ -31,8 +31,8 @@ export class AboutService {
     );
   }
 
-  async getBinaryNameFile(): Promise<Response> {
-    return await invoke<Response>("get_binary_name_file");
+  async getBinaryNameFile<R>(): Promise<Response<R>> {
+    return await invoke<Response<R>>("get_binary_name_file");
   }
 
   checkUpdate(): Observable<any> {
@@ -42,14 +42,14 @@ export class AboutService {
     );
   }
 
-  async downloadUpdate(version: string, nameFile: string): Promise<Response> {
-    return await invoke<Response>("download_update", {
+  async downloadUpdate<R>(version: string, nameFile: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("download_update", {
       url: `https://github.com/rusnakdima/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
       fileName: nameFile,
     });
   }
 
-  async openFile(path: string): Promise<Response> {
-    return await invoke<Response>("open_file", { path: path });
+  async openFile<R>(path: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("open_file", { path: path });
   }
 }

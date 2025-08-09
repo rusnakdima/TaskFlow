@@ -16,12 +16,28 @@ export class AuthService {
 
   constructor() {}
 
-  async login(loginData: LoginForm): Promise<Response> {
-    return await invoke<Response>("login", { loginForm: loginData });
+  async login<R>(loginData: LoginForm): Promise<Response<R>> {
+    return await invoke<Response<R>>("login", { loginForm: loginData });
   }
 
-  async signup(signupData: SignupForm): Promise<Response> {
-    return await invoke<Response>("register", { signupForm: signupData });
+  async signup<R>(signupData: SignupForm): Promise<Response<R>> {
+    return await invoke<Response<R>>("register", { signupForm: signupData });
+  }
+
+  async resetPassword<R>(email: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("reset_password", { email: email });
+  }
+
+  async checkToken<R>(data: { username: string; token: string }): Promise<Response<R>> {
+    return await invoke<Response<R>>("check_token", data);
+  }
+
+  async changePassword<R>(data: {
+    username: string;
+    password: string;
+    token: string;
+  }): Promise<Response<R>> {
+    return await invoke<Response<R>>("change_password", data);
   }
 
   logout() {

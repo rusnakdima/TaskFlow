@@ -18,7 +18,6 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { ChangePasswordService } from "@services/change-password.service";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
@@ -28,7 +27,7 @@ import { Response, ResponseStatus } from "@models/response";
   selector: "app-change-password",
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  providers: [ChangePasswordService, AuthService],
+  providers: [AuthService],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule],
   templateUrl: "./change-password.component.html",
 })
@@ -40,7 +39,6 @@ export class ChangePasswordComponent {
     private route: ActivatedRoute,
     private location: Location,
     private authService: AuthService,
-    private changePasswordService: ChangePasswordService,
     private notifyService: NotifyService
   ) {
     this.resetForm = fb.group({
@@ -84,19 +82,19 @@ export class ChangePasswordComponent {
   }
 
   checkToken() {
-    this.changePasswordService
-      .checkToken({
+    this.authService
+      .checkToken<string>({
         username: this.f["username"].value,
         token: this.f["token"].value,
       })
-      .then((response: Response) => {
+      .then((response: Response<string>) => {
         if (response.status == ResponseStatus.SUCCESS) {
           this.isExpired = false;
         } else {
           this.errorText = response.message;
         }
       })
-      .catch((err: Response) => {
+      .catch((err: any) => {
         console.log(err);
         this.notifyService.showError(err.message);
       });
@@ -124,15 +122,15 @@ export class ChangePasswordComponent {
     }
 
     if (this.resetForm.valid) {
-      this.changePasswordService
-        .sendRequest(this.resetForm.value)
-        .then((response: Response) => {
+      this.authService
+        .changePassword<string>(this.resetForm.value)
+        .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             document.location.href = "/login";
           }
         })
-        .catch((err: Response) => {
+        .catch((err: any) => {
           console.log(err);
           this.notifyService.showError(err.message);
         });

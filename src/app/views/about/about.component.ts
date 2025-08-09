@@ -70,8 +70,8 @@ export class AboutComponent {
 
   getDate() {
     this.aboutService
-      .getBinaryNameFile()
-      .then((data: Response) => {
+      .getBinaryNameFile<string>()
+      .then((data: Response<string>) => {
         if (data.status == ResponseStatus.SUCCESS) {
           if (data.data != "Unknown") {
             this.nameFile = data.data;
@@ -136,8 +136,8 @@ export class AboutComponent {
       this.notifyService.showWarning("Wait until the program update is downloaded!");
 
       this.aboutService
-        .downloadUpdate(this.lastVersion, this.nameFile)
-        .then((data: Response) => {
+        .downloadUpdate<string>(this.lastVersion, this.nameFile)
+        .then((data: Response<string>) => {
           if (data.status == ResponseStatus.SUCCESS) {
             this.notifyService.showSuccess(
               "The new version of the program has been successfully downloaded!"
@@ -162,8 +162,8 @@ export class AboutComponent {
 
   openFile() {
     this.aboutService
-      .openFile(this.pathUpdate)
-      .then((data: Response) => {
+      .openFile<string>(this.pathUpdate)
+      .then((data: Response<string>) => {
         this.notifyService.showNotify(data.status, data.message);
       })
       .catch((err: any) => {

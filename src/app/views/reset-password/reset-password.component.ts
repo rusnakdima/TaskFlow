@@ -11,7 +11,6 @@ import {
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { ResetPasswordService } from "@services/reset-password.service";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
@@ -20,7 +19,7 @@ import { Response, ResponseStatus } from "@models/response";
 @Component({
   selector: "app-reset-password",
   standalone: true,
-  providers: [AuthService, ResetPasswordService],
+  providers: [AuthService],
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: "./reset-password.component.html",
 })
@@ -31,7 +30,6 @@ export class ResetPasswordComponent {
     private fb: FormBuilder,
     private location: Location,
     private authService: AuthService,
-    private resetPasswordService: ResetPasswordService,
     private notifyService: NotifyService
   ) {
     this.resetForm = fb.group({
@@ -72,15 +70,15 @@ export class ResetPasswordComponent {
     }
 
     if (this.resetForm.valid) {
-      this.resetPasswordService
-        .sendRequest(this.resetForm.controls["email"].value)
-        .then((response: Response) => {
+      this.authService
+        .resetPassword<string>(this.resetForm.controls["email"].value)
+        .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             document.location.href = "/";
           }
         })
-        .catch((err: Response) => {
+        .catch((err: any) => {
           console.log(err);
           this.notifyService.showError(err.message);
         });
