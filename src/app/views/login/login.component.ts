@@ -77,8 +77,8 @@ export class LoginComponent {
         remember: this.f["remember"].value,
       };
       await this.authService
-        .login(authData)
-        .then((response: Response) => {
+        .login<string>(authData)
+        .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             localStorage.setItem("token", response.data);
@@ -89,7 +89,7 @@ export class LoginComponent {
             }, 500);
           }
         })
-        .catch((err: Response) => {
+        .catch((err: any) => {
           console.error(err);
           this.notifyService.showError(err.message);
         });
