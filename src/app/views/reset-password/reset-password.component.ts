@@ -80,11 +80,9 @@ export class ResetPasswordComponent {
             document.location.href = "/";
           }
         })
-        .catch((err: any) => {
+        .catch((err: Response) => {
           console.log(err);
-          this.notifyService.showError(
-            `${this.role == "admin" ? err.status + " — " + err.message : "Server error!"}`
-          );
+          this.notifyService.showError(err.message);
         });
     }
   }

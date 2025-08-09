@@ -96,11 +96,9 @@ export class ChangePasswordComponent {
           this.errorText = response.message;
         }
       })
-      .catch((err: any) => {
+      .catch((err: Response) => {
         console.log(err);
-        this.notifyService.showError(
-          `${this.role == "admin" ? err.status + " — " + err.message : "Server error!"}`
-        );
+        this.notifyService.showError(err.message);
       });
   }
 
@@ -134,11 +132,9 @@ export class ChangePasswordComponent {
             document.location.href = "/login";
           }
         })
-        .catch((err: any) => {
+        .catch((err: Response) => {
           console.log(err);
-          this.notifyService.showError(
-            `${this.role == "admin" ? err.status + " — " + err.message : "Server error!"}`
-          );
+          this.notifyService.showError(err.message);
         });
     }
   }

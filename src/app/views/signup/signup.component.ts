@@ -113,7 +113,7 @@ export class SignupComponent {
             }, 500);
           }
         })
-        .catch((err: any) => {
+        .catch((err: Response) => {
           console.error(err);
           this.notifyService.showError(err.message);
         });
