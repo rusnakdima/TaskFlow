@@ -1,0 +1,12 @@
+<div class="styleBottomNav items-center">
+  @for (nav of listNavs; track $index) {
+    <div class="flex flex-col items-center justify-center">
+      <mat-icon
+        class="cursor-pointer"
+        [routerLink]="[nav.url]"
+        [fontIcon]="nav.icon"
+        [ngClass]="[url == nav.url ? '!text-blue-500 dark:!text-green-500' : '']"
+      />
+    </div>
+  }
+</div>

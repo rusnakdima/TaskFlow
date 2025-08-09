@@ -23,7 +23,7 @@
 }
 
 .styleBottomNav {
-  @apply fixed min-[480px]:hidden grid grid-cols-4 bottom-0 m-0 p-3 theme w-full
+  @apply fixed min-[480px]:hidden grid grid-cols-5 bottom-0 m-0 p-3 theme w-full
 }
 
 .styleBackWind {
