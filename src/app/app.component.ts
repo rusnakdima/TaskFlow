@@ -57,13 +57,13 @@ export class AppComponent {
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     await this.profileService
-      .get_by_user_id(userId)
-      .then((response: Response) => {
+      .get_by_user_id<string>(userId)
+      .then((response: Response<string>) => {
         if (response.status === ResponseStatus.ERROR) {
           this.router.navigate(["/create_profile"]);
         }
       })
-      .catch((err: Response) => {
+      .catch((err: Response<string>) => {
         console.log(err);
         this.notifyService.showError(err.message);
       });
