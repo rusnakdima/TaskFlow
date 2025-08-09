@@ -1,17 +1,7 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import {
-  Component,
-  CUSTOM_ELEMENTS_SCHEMA,
-  EventEmitter,
-  Output,
-} from "@angular/core";
-import {
-  ActivatedRoute,
-  NavigationEnd,
-  Router,
-  RouterModule,
-} from "@angular/router";
+import { Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Output } from "@angular/core";
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { filter, map } from "rxjs";
 
 /* materials */
@@ -27,13 +17,12 @@ import { MatIconModule } from "@angular/material/icon";
 export class HeaderComponent {
   constructor(
     private router: Router,
-    private location: Location,
+    private location: Location
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
   themeVal: string = "";
-  prevTitle: string = "";
   title: string = "";
   iconUrl: string = "";
 
@@ -42,32 +31,22 @@ export class HeaderComponent {
 
     this.router.events
       .pipe(
-        filter(
-          (event): event is NavigationEnd => event instanceof NavigationEnd
-        ),
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         map(() => {
           let route: ActivatedRoute = this.router.routerState.root;
-          let prevRouteTitle: string = "";
           let routeTitle: string = "";
 
           while (route!.firstChild) {
             route = route.firstChild;
           }
           routeTitle = route.snapshot.data["breadcrumbs"];
-          prevRouteTitle = route.parent!.snapshot.data["breadcrumbs"];
 
-          return { prevRouteTitle, routeTitle };
+          return { routeTitle };
         })
       )
-      .subscribe(
-        (data: {
-          prevRouteTitle: string;
-          routeTitle: string;
-        }) => {
-          this.title = data.routeTitle;
-          this.prevTitle = data.prevRouteTitle;
-        }
-      );
+      .subscribe((data: { routeTitle: string }) => {
+        this.title = data.routeTitle;
+      });
   }
 
   goBack() {
