@@ -22,6 +22,11 @@ impl ProfileController {
   }
 
   #[allow(non_snake_case)]
+  pub async fn get_by_user_id(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    return self.profileService.get_by_user_id(userId).await;
+  }
+
+  #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     return self.profileService.get(id).await;
   }

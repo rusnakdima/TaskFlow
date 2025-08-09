@@ -17,6 +17,17 @@ pub async fn profile_get_all(state: State<'_, AppState>) -> Result<ResponseModel
 
 #[allow(non_snake_case)]
 #[tauri::command]
+pub async fn profile_get_by_user_id(
+  state: State<'_, AppState>,
+  userId: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let profileController = state.profileController.clone();
+  let result = profileController.get_by_user_id(userId).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
 pub async fn profile_get(
   state: State<'_, AppState>,
   id: String,

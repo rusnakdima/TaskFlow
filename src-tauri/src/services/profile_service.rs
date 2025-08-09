@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::Document;
+use mongodb::bson::{doc, Document};
 use serde_json::Value;
 
 /* helpers */
@@ -45,6 +45,36 @@ impl ProfileService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Couldn't get a list of profiles! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn get_by_user_id(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    let profile = self
+      .mongodbProvider
+      .get_by_field::<ProfileFullModel>(
+        "profiles",
+        Some(doc! {"userId": userId}),
+        None,
+        &"",
+      )
+      .await;
+    match profile {
+      Ok(profile) => {
+        let profile: Value = serde_json::to_value(&profile).unwrap();
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: DataValue::Object(profile),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a profile! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }

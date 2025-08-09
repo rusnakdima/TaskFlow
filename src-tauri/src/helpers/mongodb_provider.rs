@@ -168,10 +168,12 @@ impl MongodbProvider {
     T: DeserializeOwned + Unpin + Send + Sync,
   {
     let collection = self.get_collection::<T>(collection_name).await?;
-    let uuid_id = Uuid::parse_str(id)?;
     let filter = match filter {
       Some(filter) => filter,
-      None => doc! { "id": uuid_id },
+      None => {
+        let uuid_id = Uuid::parse_str(id)?;
+        doc! { "id": uuid_id }
+      }
     };
 
     let mut result = match collection.find_one(filter).await {
