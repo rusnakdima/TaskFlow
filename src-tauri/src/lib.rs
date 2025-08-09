@@ -15,7 +15,8 @@ use routes::category_route::{
   category_create, category_delete, category_get, category_get_all, category_update,
 };
 use routes::profile_route::{
-  profile_create, profile_delete, profile_get, profile_get_all, profile_update,
+  profile_create, profile_delete, profile_get, profile_get_all, profile_get_by_user_id,
+  profile_update,
 };
 use routes::subtask_route::{
   subtask_create, subtask_delete, subtask_get, subtask_get_all, subtask_update,
@@ -69,6 +70,7 @@ pub fn run() {
       register,
       profile_get_all,
       profile_get,
+      profile_get_by_user_id,
       profile_create,
       profile_update,
       profile_delete,
