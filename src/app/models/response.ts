@@ -20,17 +20,15 @@ export interface INotify {
 
 export interface ActiveNotification extends INotify {
   id: number;
-  width: number;
-  color: string;
   icon: ResponseStatusIcon;
   intervalId?: number;
   timeoutId?: number;
 }
 
-export class Response {
+export class Response<T> {
   constructor(
     public status: ResponseStatus,
     public message: string,
-    public data: any
+    public data: T
   ) {}
 }
