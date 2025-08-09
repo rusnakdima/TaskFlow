@@ -5,10 +5,11 @@ use serde_json::Value;
 /* helpers */
 use crate::helpers::mongodb_provider::MongodbProvider;
 
+use crate::models::task_model::{TaskFullModel, TaskModel};
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  subtask_model::SubtaskModel,
+  subtask_model::{SubtaskFullModel, SubtaskModel},
 };
 
 #[allow(non_snake_case)]
@@ -25,7 +26,10 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_subtasks = self.mongodbProvider.get_all("subtasks").await;
+    let list_subtasks = self
+      .mongodbProvider
+      .get_all::<SubtaskFullModel>("subtasks", None, None)
+      .await;
     match list_subtasks {
       Ok(subtasks) => {
         let subtasks: Vec<Value> = subtasks
@@ -52,7 +56,7 @@ impl SubtaskService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let subtask = self
       .mongodbProvider
-      .get_by_id("subtasks", &id.as_str())
+      .get_by_field::<TaskFullModel>("subtasks", None, None, &id.as_str())
       .await;
     match subtask {
       Ok(subtask) => {
@@ -76,7 +80,10 @@ impl SubtaskService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskModel) -> Result<ResponseModel, ResponseModel> {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let subtask = self.mongodbProvider.create("subtasks", data).await;
+    let subtask = self
+      .mongodbProvider
+      .create::<TaskModel>("subtasks", data)
+      .await;
     match subtask {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -104,7 +111,7 @@ impl SubtaskService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let subtask = self
       .mongodbProvider
-      .update("subtasks", &id.as_str(), data)
+      .update::<TaskModel>("subtasks", &id.as_str(), data)
       .await;
     match subtask {
       Ok(_) => {
@@ -126,7 +133,10 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let subtask = self.mongodbProvider.delete("subtasks", &id.as_str()).await;
+    let subtask = self
+      .mongodbProvider
+      .delete::<TaskModel>("subtasks", &id.as_str())
+      .await;
     match subtask {
       Ok(_) => {
         return Ok(ResponseModel {

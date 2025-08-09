@@ -3,7 +3,7 @@ use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use mongodb::{
-  bson::{doc, Document},
+  bson::{doc, oid::ObjectId, Document, Uuid},
   Collection,
 };
 use serde::{Deserialize, Serialize};
@@ -201,7 +201,8 @@ impl AuthService {
     }
 
     let user: UserModel = UserModel {
-      id: None,
+      _id: ObjectId::new(),
+      id: Uuid::new(),
       email: signupForm.email.clone(),
       username: signupForm.username.clone(),
       password: match hash(signupForm.password.clone(), 10) {

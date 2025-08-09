@@ -8,7 +8,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  task_model::TaskModel,
+  task_model::{TaskFullModel, TaskModel},
 };
 
 #[allow(non_snake_case)]
@@ -25,7 +25,10 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_tasks = self.mongodbProvider.get_all("tasks").await;
+    let list_tasks = self
+      .mongodbProvider
+      .get_all::<TaskFullModel>("tasks", None, None)
+      .await;
     match list_tasks {
       Ok(tasks) => {
         let tasks: Vec<Value> = tasks
@@ -50,7 +53,10 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task = self.mongodbProvider.get_by_id("tasks", &id.as_str()).await;
+    let task = self
+      .mongodbProvider
+      .get_by_field::<TaskFullModel>("tasks", None, None, &id.as_str())
+      .await;
     match task {
       Ok(task) => {
         let task: Value = serde_json::to_value(&task).unwrap();
@@ -73,7 +79,10 @@ impl TaskService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let task = self.mongodbProvider.create("tasks", data).await;
+    let task = self
+      .mongodbProvider
+      .create::<TaskModel>("tasks", data)
+      .await;
     match task {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -97,7 +106,7 @@ impl TaskService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let task = self
       .mongodbProvider
-      .update("tasks", &id.as_str(), data)
+      .update::<TaskModel>("tasks", &id.as_str(), data)
       .await;
     match task {
       Ok(_) => {
@@ -119,7 +128,10 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task = self.mongodbProvider.delete("tasks", &id.as_str()).await;
+    let task = self
+      .mongodbProvider
+      .delete::<TaskModel>("tasks", &id.as_str())
+      .await;
     match task {
       Ok(_) => {
         return Ok(ResponseModel {

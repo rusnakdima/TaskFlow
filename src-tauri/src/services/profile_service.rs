@@ -7,7 +7,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
 use crate::models::{
-  profile_model::ProfileModel,
+  profile_model::{ProfileFullModel, ProfileModel},
   response::{DataValue, ResponseModel, ResponseStatus},
 };
 
@@ -25,7 +25,10 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_profiles = self.mongodbProvider.get_all("profiles").await;
+    let list_profiles = self
+      .mongodbProvider
+      .get_all::<ProfileFullModel>("profiles", None, None)
+      .await;
     match list_profiles {
       Ok(profiles) => {
         let profiles: Vec<Value> = profiles
@@ -52,7 +55,7 @@ impl ProfileService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .mongodbProvider
-      .get_by_id("profiles", &id.as_str())
+      .get_by_field::<ProfileFullModel>("profiles", None, None, &id.as_str())
       .await;
     match profile {
       Ok(profile) => {
@@ -76,7 +79,10 @@ impl ProfileService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileModel) -> Result<ResponseModel, ResponseModel> {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let profile = self.mongodbProvider.create("profiles", data).await;
+    let profile = self
+      .mongodbProvider
+      .create::<ProfileModel>("profiles", data)
+      .await;
     match profile {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -104,7 +110,7 @@ impl ProfileService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let profile = self
       .mongodbProvider
-      .update("profiles", &id.as_str(), data)
+      .update::<ProfileModel>("profiles", &id.as_str(), data)
       .await;
     match profile {
       Ok(_) => {
@@ -126,7 +132,10 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let profile = self.mongodbProvider.delete("profiles", &id.as_str()).await;
+    let profile = self
+      .mongodbProvider
+      .delete::<ProfileModel>("profiles", &id.as_str())
+      .await;
     match profile {
       Ok(_) => {
         return Ok(ResponseModel {

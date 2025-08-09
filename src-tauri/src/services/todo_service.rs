@@ -8,7 +8,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  todo_model::TodoModel,
+  todo_model::{TodoFullModel, TodoModel},
 };
 
 #[allow(non_snake_case)]
@@ -25,7 +25,10 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_todos = self.mongodbProvider.get_all("todos").await;
+    let list_todos = self
+      .mongodbProvider
+      .get_all::<TodoFullModel>("todos", None, None)
+      .await;
     match list_todos {
       Ok(todos) => {
         let todos: Vec<Value> = todos
@@ -50,7 +53,10 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todo = self.mongodbProvider.get_by_id("todos", &id.as_str()).await;
+    let todo = self
+      .mongodbProvider
+      .get_by_field::<TodoFullModel>("todos", None, None, &id.as_str())
+      .await;
     match todo {
       Ok(todo) => {
         let todo: Value = serde_json::to_value(&todo).unwrap();
@@ -73,7 +79,10 @@ impl TodoService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let todo = self.mongodbProvider.create("todos", data).await;
+    let todo = self
+      .mongodbProvider
+      .create::<TodoModel>("todos", data)
+      .await;
     match todo {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -97,7 +106,7 @@ impl TodoService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let todo = self
       .mongodbProvider
-      .update("todos", &id.as_str(), data)
+      .update::<TodoModel>("todos", &id.as_str(), data)
       .await;
     match todo {
       Ok(_) => {
@@ -119,7 +128,10 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todo = self.mongodbProvider.delete("todos", &id.as_str()).await;
+    let todo = self
+      .mongodbProvider
+      .delete::<TodoModel>("todos", &id.as_str())
+      .await;
     match todo {
       Ok(_) => {
         return Ok(ResponseModel {

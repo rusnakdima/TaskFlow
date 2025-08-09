@@ -1,6 +1,9 @@
 /* sys lib */
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
+
+/* models */
+use crate::models::todo_model::TodoFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -13,9 +16,23 @@ pub enum PriorityTask {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TaskModel {
-  #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-  pub id: Option<ObjectId>,
+  pub _id: ObjectId,
+  pub id: Uuid,
   pub todoId: String,
+  pub title: String,
+  pub description: String,
+  pub isCompleted: bool,
+  pub priority: PriorityTask,
+  pub createdAt: String,
+  pub updatedAt: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct TaskFullModel {
+  pub _id: ObjectId,
+  pub id: Uuid,
+  pub todo: TodoFullModel,
   pub title: String,
   pub description: String,
   pub isCompleted: bool,
