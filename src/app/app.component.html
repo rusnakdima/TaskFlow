@@ -1,9 +1,13 @@
 <div class="sticky h-screen">
-  <app-header />
+  @if (showComponents) {
+    <app-header />
+  }
 
   <router-outlet />
 
-  <app-bottom-nav />
+  @if (showComponents) {
+    <app-bottom-nav />
+  }
 </div>
 
 <app-window-notify />

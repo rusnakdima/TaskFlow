@@ -1,7 +1,16 @@
 /* sys lib */
 import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Router, RouterOutlet } from "@angular/router";
+import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
+import { filter } from "rxjs";
+
+/* models */
+import { Response, ResponseStatus } from "@models/response";
+
+/* services */
+import { AuthService } from "@services/auth.service";
+import { ProfileService } from "@services/profile.service";
+import { NotifyService } from "@services/notify.service";
 
 /* components */
 import { HeaderComponent } from "@components/header/header.component";
@@ -11,11 +20,19 @@ import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component"
 @Component({
   selector: "app-root",
   standalone: true,
+  providers: [AuthService, ProfileService],
   imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent, BottomNavComponent],
   templateUrl: "./app.component.html",
 })
 export class AppComponent {
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private profileService: ProfileService,
+    private notifyService: NotifyService
+  ) {}
+
+  url: string = "";
 
   ngOnInit(): void {
     const theme = localStorage.getItem("theme") ?? "";
@@ -24,6 +41,43 @@ export class AppComponent {
     const token = localStorage.getItem("token") ?? "";
     if (!token) {
       this.router.navigate(["/login"]);
+    }
+
+    this.checkUserProfile();
+
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
+      let lastIndex =
+        this.router.url.lastIndexOf("?") > -1
+          ? this.router.url.lastIndexOf("?")
+          : this.router.url.length;
+      this.url = this.router.url.slice(0, lastIndex);
+    });
+  }
+
+  async checkUserProfile() {
+    const userId = this.authService.getValueByKey("id");
+    await this.profileService
+      .get_by_user_id(userId)
+      .then((response: Response) => {
+        if (response.status === ResponseStatus.ERROR) {
+          this.router.navigate(["/create_profile"]);
+        }
+      })
+      .catch((err: Response) => {
+        console.log(err);
+        this.notifyService.showError(err.message);
+      });
+  }
+
+  get showComponents(): boolean {
+    if (
+      ["/login", "/signup", "/reset_password", "/change_password", "/create_profile"].includes(
+        this.url
+      )
+    ) {
+      return false;
+    } else {
+      return true;
     }
   }
 }
