@@ -7,11 +7,11 @@ import { Response, ResponseStatus } from '@models/response';
   providedIn: 'root'
 })
 export class NotifyService {
-  public notify = new Subject<Response>();
+  public notify = new Subject<Response<any>>();
 
   showNotify(status: ResponseStatus, message: string) {
     try {
-      this.notify.next(new Response(status, message, null));
+      this.notify.next(new Response<any>(status, message, null));
     } catch (error) {
       console.error('Error in showNotify:', error);
     }
