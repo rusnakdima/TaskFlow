@@ -78,6 +78,11 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskModel) -> Result<ResponseModel, ResponseModel> {
+    data = {
+      ..data;
+      _id = ObjectId::new();
+      id = Uuid::new().to_string();
+    };
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let subtask = self
       .mongodbProvider

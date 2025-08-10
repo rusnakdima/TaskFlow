@@ -78,6 +78,11 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
+    data = {
+      ..data;
+      _id = ObjectId::new();
+      id = Uuid::new().to_string();
+    };
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let task = self
       .mongodbProvider

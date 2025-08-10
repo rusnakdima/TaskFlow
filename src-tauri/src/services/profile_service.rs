@@ -55,12 +55,7 @@ impl ProfileService {
   pub async fn get_by_user_id(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .mongodbProvider
-      .get_by_field::<ProfileFullModel>(
-        "profiles",
-        Some(doc! {"userId": userId}),
-        None,
-        &"",
-      )
+      .get_by_field::<ProfileFullModel>("profiles", Some(doc! {"userId": userId}), None, &"")
       .await;
     match profile {
       Ok(profile) => {
@@ -108,6 +103,11 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileModel) -> Result<ResponseModel, ResponseModel> {
+    data = {
+      ..data;
+      _id = ObjectId::new();
+      id = Uuid::new().to_string();
+    };
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let profile = self
       .mongodbProvider
