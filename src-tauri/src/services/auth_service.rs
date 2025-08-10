@@ -75,7 +75,7 @@ impl AuthService {
 
         match verify(loginForm.password, stored_hash) {
           Ok(_) => {
-            let user_id = match user_doc.get_object_id("_id") {
+            let user_id = match user_doc.get_str("id") {
               Ok(id) => id.to_string(),
               Err(_) => {
                 return Err(ResponseModel {
@@ -202,7 +202,7 @@ impl AuthService {
 
     let user: UserModel = UserModel {
       _id: ObjectId::new(),
-      id: Uuid::new(),
+      id: Uuid::new().to_string(),
       email: signupForm.email.clone(),
       username: signupForm.username.clone(),
       password: match hash(signupForm.password.clone(), 10) {
