@@ -96,7 +96,7 @@ export class ChangePasswordComponent {
       })
       .catch((err: any) => {
         console.log(err);
-        this.notifyService.showError(err.message);
+        this.notifyService.showError(err.message ?? err.toString());
       });
   }
 
@@ -132,7 +132,7 @@ export class ChangePasswordComponent {
         })
         .catch((err: any) => {
           console.log(err);
-          this.notifyService.showError(err.message);
+          this.notifyService.showError(err.message ?? err.toString());
         });
     }
   }

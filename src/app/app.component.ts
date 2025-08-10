@@ -65,7 +65,7 @@ export class AppComponent {
       })
       .catch((err: Response<string>) => {
         console.log(err);
-        this.notifyService.showError(err.message);
+        this.notifyService.showError(err.message ?? err.toString());
       });
   }
 

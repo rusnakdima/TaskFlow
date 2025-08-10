@@ -80,7 +80,7 @@ export class ResetPasswordComponent {
         })
         .catch((err: any) => {
           console.log(err);
-          this.notifyService.showError(err.message);
+          this.notifyService.showError(err.message ?? err.toString());
         });
     }
   }
