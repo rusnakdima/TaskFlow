@@ -7,40 +7,53 @@ import { filter } from "rxjs";
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
+/* services */
+import { AuthService } from "@services/auth.service";
+
 /* models */
 import { BottomNavLink } from "@models/bottome-nav";
 
 @Component({
   selector: "app-bottom-nav",
   standalone: true,
+  providers: [AuthService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./bottom-nav.component.html",
 })
 export class BottomNavComponent implements OnInit {
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   url: string = "";
+  userId: string = "";
 
   listNavs: Array<BottomNavLink> = [
     {
       url: "/home",
       icon: "home",
+      query: {},
     },
     {
       url: "/tasks",
       icon: "list_alt",
+      query: {},
     },
     {
       url: "/create",
       icon: "add",
+      query: {},
     },
     {
       url: "/stats",
       icon: "bar_chart",
+      query: {},
     },
     {
-      url: "/profile",
+      url: `/profile`,
       icon: "person",
+      query: { id: this.userId },
     },
   ];
 
@@ -52,5 +65,10 @@ export class BottomNavComponent implements OnInit {
           : this.router.url.length;
       this.url = this.router.url.slice(0, lastIndex);
     });
+    this.getUserId();
+  }
+
+  getUserId() {
+    this.userId = this.authService.getValueByKey("id");
   }
 }

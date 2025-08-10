@@ -3,7 +3,8 @@
     <div class="flex flex-col items-center justify-center">
       <mat-icon
         class="cursor-pointer"
-        [routerLink]="[nav.url]"
+        [routerLink]="nav.url"
+        [queryParams]="nav.query"
         [fontIcon]="nav.icon"
         [ngClass]="[url == nav.url ? '!text-blue-500 dark:!text-green-500' : '']"
       />
