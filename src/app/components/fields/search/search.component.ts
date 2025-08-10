@@ -57,66 +57,48 @@ export class SearchComponent implements OnInit {
                     .toLowerCase()
                     .includes(term.toLowerCase());
                 } else if (Array.isArray(this.getValueObj(item, field))) {
-                  (this.getValueObj(item, field) as Array<any>).some(
-                    (value: any) => {
-                      if (typeof value !== "object") {
-                        return String(value)
-                          .toLowerCase()
-                          .includes(term.toLowerCase());
-                      }
-                      return false;
-                    },
-                  );
+                  (this.getValueObj(item, field) as Array<any>).some((value: any) => {
+                    if (typeof value !== "object") {
+                      return String(value).toLowerCase().includes(term.toLowerCase());
+                    }
+                    return false;
+                  });
                 } else if (typeof this.getValueObj(item, field) === "object") {
-                  return Object.values(this.getValueObj(item, field)).some(
-                    (value: any) => {
-                      if (typeof value !== "object") {
-                        return String(value)
-                          .toLowerCase()
-                          .includes(term.toLowerCase());
-                      } else if (Array.isArray(value)) {
-                        (value as Array<any>).some((value: any) => {
-                          if (typeof value !== "object") {
-                            return String(value)
-                              .toLowerCase()
-                              .includes(term.toLowerCase());
-                          }
-                          return false;
-                        });
-                      }
-                      return false;
-                    },
-                  );
+                  return Object.values(this.getValueObj(item, field)).some((value: any) => {
+                    if (typeof value !== "object") {
+                      return String(value).toLowerCase().includes(term.toLowerCase());
+                    } else if (Array.isArray(value)) {
+                      (value as Array<any>).some((value: any) => {
+                        if (typeof value !== "object") {
+                          return String(value).toLowerCase().includes(term.toLowerCase());
+                        }
+                        return false;
+                      });
+                    }
+                    return false;
+                  });
                 }
                 return false;
               });
             } else {
               return Object.values(item).some((value: any) => {
                 if (typeof value !== "object") {
-                  return String(value)
-                    .toLowerCase()
-                    .includes(term.toLowerCase());
+                  return String(value).toLowerCase().includes(term.toLowerCase());
                 } else if (Array.isArray(value)) {
                   (value as Array<any>).some((value: any) => {
                     if (typeof value !== "object") {
-                      return String(value)
-                        .toLowerCase()
-                        .includes(term.toLowerCase());
+                      return String(value).toLowerCase().includes(term.toLowerCase());
                     }
                     return false;
                   });
                 } else if (typeof value === "object") {
                   return Object.values(value).some((value: any) => {
                     if (typeof value !== "object") {
-                      return String(value)
-                        .toLowerCase()
-                        .includes(term.toLowerCase());
+                      return String(value).toLowerCase().includes(term.toLowerCase());
                     } else if (Array.isArray(value)) {
                       (value as Array<any>).some((value: any) => {
                         if (typeof value !== "object") {
-                          return String(value)
-                            .toLowerCase()
-                            .includes(term.toLowerCase());
+                          return String(value).toLowerCase().includes(term.toLowerCase());
                         }
                         return false;
                       });
@@ -130,7 +112,7 @@ export class SearchComponent implements OnInit {
           });
         }
         return true;
-      }),
+      })
     );
   }
 

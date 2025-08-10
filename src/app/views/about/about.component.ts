@@ -1,7 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { HttpClientModule } from "@angular/common/http";
 
 /* env */
 import { environment } from "@env/environment";
@@ -18,7 +17,7 @@ import { NotifyService } from "@services/notify.service";
   selector: "app-about",
   standalone: true,
   providers: [AboutService],
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule],
   templateUrl: "./about.component.html",
 })
 export class AboutComponent {

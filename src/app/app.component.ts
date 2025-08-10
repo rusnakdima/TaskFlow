@@ -56,17 +56,18 @@ export class AppComponent {
 
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
-    await this.profileService
-      .get_by_user_id<string>(userId)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.ERROR) {
-          this.router.navigate(["/create_profile"]);
-        }
-      })
-      .catch((err: Response<string>) => {
-        console.log(err);
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    if (userId && userId != "") {
+      await this.profileService
+        .get_by_user_id<string>(userId)
+        .then()
+        .catch((err: Response<string>) => {
+          if (err.status === ResponseStatus.ERROR) {
+            this.router.navigate(["/create_profile"]);
+          }
+          console.log(err);
+          this.notifyService.showError(err.message ?? err.toString());
+        });
+    }
   }
 
   get showComponents(): boolean {
