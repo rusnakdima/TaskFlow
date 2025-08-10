@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 /* models */
@@ -9,7 +9,7 @@ use crate::models::{task_model::TaskFullModel, user_model::UserFullModel};
 #[allow(non_snake_case)]
 pub struct TaskSharesModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub taskId: String,
   pub userId: String,
 }
@@ -18,7 +18,7 @@ pub struct TaskSharesModel {
 #[allow(non_snake_case)]
 pub struct TaskSharesFullModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub task: TaskFullModel,
   pub user: UserFullModel,
 }

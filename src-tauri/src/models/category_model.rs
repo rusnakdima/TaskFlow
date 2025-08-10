@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 /* models */
@@ -9,7 +9,7 @@ use crate::models::user_model::UserFullModel;
 #[allow(non_snake_case)]
 pub struct CategoryModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub title: String,
   pub userId: String,
 }
@@ -18,7 +18,7 @@ pub struct CategoryModel {
 #[allow(non_snake_case)]
 pub struct CategoryFullModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub title: String,
   pub user: UserFullModel,
 }

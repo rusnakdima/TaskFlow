@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 /* models */
@@ -9,7 +9,7 @@ use crate::models::profile_model::ProfileFullModel;
 #[allow(non_snake_case)]
 pub struct UserModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub email: String,
   pub username: String,
   pub password: String,
@@ -24,7 +24,7 @@ pub struct UserModel {
 #[allow(non_snake_case)]
 pub struct UserFullModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub email: String,
   pub username: String,
   pub password: String,

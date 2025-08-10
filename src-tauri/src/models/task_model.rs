@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 /* models */
@@ -17,7 +17,7 @@ pub enum PriorityTask {
 #[allow(non_snake_case)]
 pub struct TaskModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub todoId: String,
   pub title: String,
   pub description: String,
@@ -31,7 +31,7 @@ pub struct TaskModel {
 #[allow(non_snake_case)]
 pub struct TaskFullModel {
   pub _id: ObjectId,
-  pub id: Uuid,
+  pub id: String,
   pub todo: TodoFullModel,
   pub title: String,
   pub description: String,
