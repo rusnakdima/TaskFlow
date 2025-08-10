@@ -1,0 +1,87 @@
+<div
+  class="flex w-full"
+  [ngClass]="direction == 'vertical' ? 'flex-col gap-y-3' : 'flex-row flex-wrap gap-3'"
+>
+  @for (field of formFields; track field) {
+    @if (field.isShow(parentForm, index)) {
+      @if (field.type == "menu") {
+        <div class="flex flex-col w-full" [formGroup]="form">
+          <label>{{ field.label }}</label>
+          <input
+            type="text"
+            class="styleField"
+            placeholder="Select data"
+            [value]="form.get(field.value)?.value"
+            [matMenuTriggerFor]="menu"
+            [readonly]="true"
+          />
+          <mat-menu #menu="matMenu">
+            <div class="flex flex-col p-2 !max-w-max" (click)="$event.stopPropagation()">
+              <app-template-form
+                [parentForm]="parentForm"
+                [form]="formGroup(field.name)"
+                [formFields]="field.subGroup"
+                [index]="index"
+                [direction]="direction"
+              />
+            </div>
+          </mat-menu>
+        </div>
+      } @else if (field.type == "subgroup") {
+        <div class="flex flex-col gap-y-2 p-3 styleBorderSolidLite border" [formGroup]="form">
+          <span>{{ field.label }}</span>
+          <app-template-form
+            [parentForm]="parentForm"
+            [form]="formGroup(field.name)"
+            [formFields]="field.subGroup"
+            [index]="index"
+            [direction]="field.direction"
+          />
+        </div>
+      } @else if (field.type == "sublist") {
+        <div class="flex flex-col gap-y-2 p-3 styleBorderSolidLite border">
+          <div class="flex flex-row justify-between items-center">
+            <span>{{ field.label }}</span>
+            <button class="flex flcol items-center justify-center" (click)="onAddRecord()">
+              <mat-icon class="!w-[25px] !h-[25px]" fontIcon="add" />
+            </button>
+          </div>
+          @for (fg of formArray(field.name).controls; track fg; let i = $index) {
+            <div class="group relative">
+              <details class="styleDetails" #detail (toggle)="openStates[i] = detail.open">
+                <summary class="list-none">
+                  <div class="flex flex-row justify-between items-center w-full">
+                    <div class="flex flex-row gap-x-1">
+                      <mat-icon>
+                        {{ openStates[i] ? "keyboard_arrow_down" : "chevron_right" }}
+                      </mat-icon>
+                      <span>Record {{ i + 1 }}</span>
+                    </div>
+                    <button (click)="onRemoveRecord(i)">
+                      <mat-icon fontIcon="remove" />
+                    </button>
+                  </div>
+                </summary>
+                <app-template-form
+                  [parentForm]="parentForm"
+                  [form]="formGroupForArray(field.name, i)"
+                  [index]="i"
+                  [formFields]="field.subList"
+                />
+              </details>
+              <div
+                class="absolute flex flex-col items-end right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <button (click)="onInsertRecord(i + 1)">
+                  <mat-icon fontIcon="add" />
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <app-block-fields [parentForm]="parentForm" [formG]="form" [field]="field" />
+      }
+    }
+  }
+</div>
