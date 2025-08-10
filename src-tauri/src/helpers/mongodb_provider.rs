@@ -209,7 +209,8 @@ impl MongodbProvider {
     T: DeserializeOwned + Unpin + Send + Sync,
   {
     let collection = self.get_collection::<Document>(collection_name).await?;
-    let _result = collection.insert_one(data).await?;
+    collection.insert_one(data).await?;
+
     Ok(true)
   }
 
@@ -226,7 +227,8 @@ impl MongodbProvider {
     let uuid_id = Uuid::parse_str(id)?;
     let filter = doc! { "id": uuid_id };
     let update = doc! { "$set": data };
-    let _result = collection.update_one(filter, update).await?;
+    collection.update_one(filter, update).await?;
+
     Ok(true)
   }
 
@@ -241,7 +243,8 @@ impl MongodbProvider {
     let collection = self.get_collection::<T>(collection_name).await?;
     let uuid_id = Uuid::parse_str(id)?;
     let filter = doc! { "id": uuid_id };
-    let _result = collection.delete_one(filter).await?;
+    collection.delete_one(filter).await?;
+
     Ok(true)
   }
 }
