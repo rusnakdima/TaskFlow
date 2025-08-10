@@ -5,7 +5,6 @@ use serde_json::Value;
 /* helpers */
 use crate::helpers::mongodb_provider::MongodbProvider;
 
-use crate::models::task_model::{TaskFullModel, TaskModel};
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
@@ -56,7 +55,7 @@ impl SubtaskService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let subtask = self
       .mongodbProvider
-      .get_by_field::<TaskFullModel>("subtasks", None, None, &id.as_str())
+      .get_by_field::<SubtaskFullModel>("subtasks", None, None, &id.as_str())
       .await;
     match subtask {
       Ok(subtask) => {
@@ -82,7 +81,7 @@ impl SubtaskService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let subtask = self
       .mongodbProvider
-      .create::<TaskModel>("subtasks", data)
+      .create::<SubtaskModel>("subtasks", data)
       .await;
     match subtask {
       Ok(_) => {
@@ -111,7 +110,7 @@ impl SubtaskService {
     let data: Document = mongodb::bson::to_document(&data).unwrap();
     let subtask = self
       .mongodbProvider
-      .update::<TaskModel>("subtasks", &id.as_str(), data)
+      .update::<SubtaskModel>("subtasks", &id.as_str(), data)
       .await;
     match subtask {
       Ok(_) => {
@@ -135,7 +134,7 @@ impl SubtaskService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let subtask = self
       .mongodbProvider
-      .delete::<TaskModel>("subtasks", &id.as_str())
+      .delete::<SubtaskModel>("subtasks", &id.as_str())
       .await;
     match subtask {
       Ok(_) => {
