@@ -1,0 +1,22 @@
+<div class="flex flex-col w-full" [formGroup]="form">
+  <mat-form-field class="flex flex-col">
+    <mat-label>{{ label }}</mat-label>
+    <input
+      matInput
+      type="text"
+      placeholder="URL to image"
+      formControlName="{{ field.name }}"
+      [readonly]="field.readonly ? true : false"
+    />
+    @if (isInvalid(field.name)) {
+      @if (form.get(field.name)?.errors?.["required"]) {
+        <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
+      }
+    }
+    @if (form.get(field.name)?.value && form.get(field.name)?.value != "") {
+      <div class="my-3"></div>
+      <span>Preview</span>
+      <img class="h-[300px]" [src]="form.get(field.name)?.value" alt="img" />
+    }
+  </mat-form-field>
+</div>

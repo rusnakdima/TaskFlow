@@ -1,0 +1,17 @@
+<div class="flex flex-col w-full" [formGroup]="form">
+  <mat-form-field class="flex flex-col">
+    <mat-label>{{ label }}</mat-label>
+    <mat-slider
+      formControlName="{{ field.name }}"
+      min="{{ field.min }}"
+      max="{{ field.max }}"
+    >
+      <input type="number" value="{{ field.min }}" />
+    </mat-slider>
+  </mat-form-field>
+  @if (isInvalid(field.name)) {
+    @if (form.get(field.name)?.errors?.["required"]) {
+      <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
+    }
+  }
+</div>

@@ -1,0 +1,17 @@
+<div class="flex flex-col w-full" [formGroup]="form">
+  <mat-form-field class="flex flex-col">
+    <mat-label>{{ label }}</mat-label>
+    <mat-select formControlName="{{ field.name }}">
+      @for (option of field.options; track $index) {
+        @if (option.isShow(parentForm)) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      }
+    </mat-select>
+    @if (isInvalid(field.name)) {
+      @if (form.get(field.name)?.errors?.["required"]) {
+        <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
+      }
+    }
+  </mat-form-field>
+</div>
