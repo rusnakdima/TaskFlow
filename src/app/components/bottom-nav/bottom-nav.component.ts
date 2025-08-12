@@ -41,8 +41,8 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/create",
-      icon: "add",
+      url: "/calendar",
+      icon: "calendar_month",
       query: {},
     },
     {
