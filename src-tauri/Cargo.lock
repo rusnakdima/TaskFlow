@@ -2151,15 +2151,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "javascriptcore-sys"
-version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cb51ed1fdf76de7e841e8e934700f9587ee827285696d50357262209dcc5850"
-dependencies = [
- "pkg-config",
-]
-
-[[package]]
 name = "jni"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4481,7 +4472,6 @@ dependencies = [
  "chrono",
  "dotenv",
  "futures",
- "javascriptcore-sys",
  "jsonwebtoken",
  "mongodb",
  "serde",
@@ -4490,7 +4480,6 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-http",
  "tauri-plugin-opener",
- "webkit2gtk-sys",
 ]
 
 [[package]]
