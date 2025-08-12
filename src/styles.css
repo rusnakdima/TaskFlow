@@ -330,6 +330,10 @@ pre {
   @apply ml-2 text-red-500;
 }
 
+.mat-mdc-form-field-error {
+  @apply !text-red-500;
+}
+
 .mat-mdc-input-element {
   @apply !caret-blue-500 dark:!caret-green-500;
 }
