@@ -19,6 +19,11 @@ impl AuthController {
   }
 
   #[allow(non_snake_case)]
+  pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    return self.authService.checkToken(token).await;
+  }
+
+  #[allow(non_snake_case)]
   pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
     return self.authService.login(loginForm).await;
   }

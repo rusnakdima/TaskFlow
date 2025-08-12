@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /* routes */
 use routes::about_route::{download_update, get_binary_name_file};
-use routes::auth_route::{login, register};
+use routes::auth_route::{check_token, login, register};
 use routes::category_route::{
   category_create, category_delete, category_get, category_get_all, category_update,
 };
@@ -66,6 +66,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       get_binary_name_file,
       download_update,
+      check_token,
       login,
       register,
       profile_get_all,

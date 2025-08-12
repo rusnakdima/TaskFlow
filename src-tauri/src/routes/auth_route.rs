@@ -9,6 +9,17 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
+pub async fn check_token(
+  state: State<'_, AppState>,
+  token: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let authController = state.authController.clone();
+  let result = authController.checkToken(token).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
 pub async fn login(
   state: State<'_, AppState>,
   loginForm: LoginForm,

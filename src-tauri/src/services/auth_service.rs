@@ -1,7 +1,9 @@
 /* sys lib */
 use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{
+  decode, decode_header, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation,
+};
 use mongodb::{
   bson::{doc, oid::ObjectId, Document, Uuid},
   Collection,
@@ -38,6 +40,81 @@ impl AuthService {
     Self {
       mongodbProvider: MongodbProvider::new(),
     }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    match decode::<Claims>(
+      &token,
+      &DecodingKey::from_secret(secret.as_ref()),
+      &Validation::new(Algorithm::HS256),
+    ) {
+      Ok(decoded) => {
+        if decoded.claims.exp < Utc::now().timestamp() as usize {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Token has expired".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
+
+        let user_id = decoded.claims.id.clone();
+
+        let collection_name = "users".to_string();
+        let collection_users = match self
+          .mongodbProvider
+          .get_collection(collection_name.as_str())
+          .await
+        {
+          Ok(coll) => coll,
+          Err(e) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: format!("Error getting collection: {}", e),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let filter = doc! { "id": user_id };
+        match collection_users.find_one(filter).await {
+          Ok(Some(user_doc)) => {
+            let user: UserModel = mongodb::bson::from_document(user_doc).unwrap();
+            return Ok(ResponseModel {
+              status: ResponseStatus::Success,
+              message: "Token is valid".to_string(),
+              data: DataValue::Object(serde_json::json!({
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+              })),
+            });
+          }
+          Ok(None) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "User not found in the system".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+          Err(e) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: format!("Database error: {}", e),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        }
+      }
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Invalid token".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
   }
 
   #[allow(non_snake_case)]
@@ -217,7 +294,7 @@ impl AuthService {
       },
       role: "user".to_string(),
       resetToken: "".to_string(),
-      prodileId: "".to_string(),
+      profileId: "".to_string(),
       createdAt: chrono::Utc::now().to_string(),
       updatedAt: chrono::Utc::now().to_string(),
     };
