@@ -24,3 +24,7 @@ pub fn convert_data_to_object<T: Serialize>(data: &T) -> DataValue {
 
   DataValue::Object(serialized_object)
 }
+
+pub fn type_of<T>(_: T) -> &'static str {
+  std::any::type_name::<T>()
+}
