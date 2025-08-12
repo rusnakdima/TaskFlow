@@ -2,7 +2,10 @@
 use crate::services::subtask_service;
 
 /* models */
-use crate::models::{response::ResponseModel, subtask_model::SubtaskModel};
+use crate::models::{
+  response::ResponseModel,
+  subtask_model::{SubtaskCreateModel, SubtaskModel},
+};
 
 #[allow(non_snake_case)]
 pub struct SubtaskController {
@@ -27,7 +30,7 @@ impl SubtaskController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: SubtaskModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.subtaskService.create(data).await;
   }
 

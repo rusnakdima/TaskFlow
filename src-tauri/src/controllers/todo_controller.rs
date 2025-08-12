@@ -2,7 +2,10 @@
 use crate::services::todo_service;
 
 /* models */
-use crate::models::{response::ResponseModel, todo_model::TodoModel};
+use crate::models::{
+  response::ResponseModel,
+  todo_model::{TodoCreateModel, TodoModel},
+};
 
 #[allow(non_snake_case)]
 pub struct TodoController {
@@ -27,7 +30,7 @@ impl TodoController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.todoService.create(data).await;
   }
 

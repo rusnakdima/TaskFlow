@@ -1,6 +1,7 @@
 /* sys lib */
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /* models */
 use crate::models::todo_model::TodoFullModel;
@@ -13,6 +14,26 @@ pub enum PriorityTask {
   High,
 }
 
+impl Display for PriorityTask {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match self {
+      PriorityTask::Low => write!(f, "Low"),
+      PriorityTask::Medium => write!(f, "Medium"),
+      PriorityTask::High => write!(f, "High"),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct TaskCreateModel {
+  pub todoId: String,
+  pub title: String,
+  pub description: String,
+  pub isCompleted: bool,
+  pub priority: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TaskModel {
@@ -22,9 +43,28 @@ pub struct TaskModel {
   pub title: String,
   pub description: String,
   pub isCompleted: bool,
-  pub priority: PriorityTask,
+  pub priority: String,
   pub createdAt: String,
   pub updatedAt: String,
+}
+
+impl From<TaskCreateModel> for TaskModel {
+  fn from(value: TaskCreateModel) -> Self {
+    let now = chrono::Local::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+
+    TaskModel {
+      _id: ObjectId::new(),
+      id: Uuid::new().to_string(),
+      todoId: value.todoId,
+      title: value.title,
+      description: value.description,
+      isCompleted: value.isCompleted,
+      priority: value.priority.to_string(),
+      createdAt: formatted.clone(),
+      updatedAt: formatted.clone(),
+    }
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,7 +2,10 @@
 use crate::services::category_service;
 
 /* models */
-use crate::models::{category_model::CategoryModel, response::ResponseModel};
+use crate::models::{
+  category_model::{CategoryCreateModel, CategoryModel},
+  response::ResponseModel,
+};
 
 #[allow(non_snake_case)]
 pub struct CategoriesController {
@@ -27,7 +30,7 @@ impl CategoriesController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: CategoryModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(&self, data: CategoryCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.categoriesService.create(data).await;
   }
 

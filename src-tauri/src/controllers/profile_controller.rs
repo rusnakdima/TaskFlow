@@ -2,7 +2,10 @@
 use crate::services::profile_service;
 
 /* models */
-use crate::models::{profile_model::ProfileModel, response::ResponseModel};
+use crate::models::{
+  profile_model::{ProfileCreateModel, ProfileModel},
+  response::ResponseModel,
+};
 
 #[allow(non_snake_case)]
 pub struct ProfileController {
@@ -32,7 +35,7 @@ impl ProfileController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: ProfileModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.profileService.create(data).await;
   }
 

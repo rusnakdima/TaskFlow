@@ -3,7 +3,10 @@ use tauri::State;
 
 /* models */
 use crate::{
-  models::{response::ResponseModel, todo_model::TodoModel},
+  models::{
+    response::ResponseModel,
+    todo_model::{TodoCreateModel, TodoModel},
+  },
   AppState,
 };
 
@@ -30,7 +33,7 @@ pub async fn todo_get(
 #[tauri::command]
 pub async fn todo_create(
   state: State<'_, AppState>,
-  data: TodoModel,
+  data: TodoCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
   let todoController = state.todoController.clone();
   let result = todoController.create(data).await;

@@ -2,7 +2,10 @@
 use crate::services::task_shares_service;
 
 /* models */
-use crate::models::{response::ResponseModel, task_shares_model::TaskSharesModel};
+use crate::models::{
+  response::ResponseModel,
+  task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
+};
 
 #[allow(non_snake_case)]
 pub struct TaskSharesController {
@@ -27,7 +30,7 @@ impl TaskSharesController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TaskSharesModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(&self, data: TaskSharesCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.taskSharesService.create(data).await;
   }
 

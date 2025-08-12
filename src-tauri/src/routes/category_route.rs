@@ -3,7 +3,10 @@ use tauri::State;
 
 /* models */
 use crate::{
-  models::{category_model::CategoryModel, response::ResponseModel},
+  models::{
+    category_model::{CategoryCreateModel, CategoryModel},
+    response::ResponseModel,
+  },
   AppState,
 };
 
@@ -30,7 +33,7 @@ pub async fn category_get(
 #[tauri::command]
 pub async fn category_create(
   state: State<'_, AppState>,
-  data: CategoryModel,
+  data: CategoryCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
   let categoriesController = state.categoriesController.clone();
   let result = categoriesController.create(data).await;

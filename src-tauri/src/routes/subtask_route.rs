@@ -3,7 +3,10 @@ use tauri::State;
 
 /* models */
 use crate::{
-  models::{response::ResponseModel, subtask_model::SubtaskModel},
+  models::{
+    response::ResponseModel,
+    subtask_model::{SubtaskCreateModel, SubtaskModel},
+  },
   AppState,
 };
 
@@ -30,7 +33,7 @@ pub async fn subtask_get(
 #[tauri::command]
 pub async fn subtask_create(
   state: State<'_, AppState>,
-  data: SubtaskModel,
+  data: SubtaskCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
   let subtaskController = state.subtaskController.clone();
   let result = subtaskController.create(data).await;
