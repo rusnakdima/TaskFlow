@@ -3,11 +3,11 @@ use mongodb::bson::{doc, Document};
 use serde_json::Value;
 
 /* helpers */
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
 
 /* models */
 use crate::models::{
-  profile_model::{ProfileFullModel, ProfileModel},
+  profile_model::{ProfileCreateModel, ProfileModel},
   response::{DataValue, ResponseModel, ResponseStatus},
 };
 
@@ -25,9 +25,17 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
+    let relations: Vec<RelationObj> = vec![RelationObj {
+      collection_name: "users".to_string(),
+      typeField: TypesField::One,
+      nameField: "userId".to_string(),
+      newNameField: "user".to_string(),
+      relations: None,
+    }];
+
     let list_profiles = self
       .mongodbProvider
-      .get_all::<ProfileFullModel>("profiles", None, None)
+      .get_all("profiles", None, Some(relations))
       .await;
     match list_profiles {
       Ok(profiles) => {
@@ -53,9 +61,22 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn get_by_user_id(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    let relations: Vec<RelationObj> = vec![RelationObj {
+      collection_name: "users".to_string(),
+      typeField: TypesField::One,
+      nameField: "userId".to_string(),
+      newNameField: "user".to_string(),
+      relations: None,
+    }];
+
     let profile = self
       .mongodbProvider
-      .get_by_field::<ProfileFullModel>("profiles", Some(doc! {"userId": userId}), None, &"")
+      .get_by_field(
+        "profiles",
+        Some(doc! {"userId": userId}),
+        Some(relations),
+        &"",
+      )
       .await;
     match profile {
       Ok(profile) => {
@@ -78,9 +99,17 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let relations: Vec<RelationObj> = vec![RelationObj {
+      collection_name: "users".to_string(),
+      typeField: TypesField::One,
+      nameField: "userId".to_string(),
+      newNameField: "user".to_string(),
+      relations: None,
+    }];
+
     let profile = self
       .mongodbProvider
-      .get_by_field::<ProfileFullModel>("profiles", None, None, &id.as_str())
+      .get_by_field("profiles", None, Some(relations), &id.as_str())
       .await;
     match profile {
       Ok(profile) => {
@@ -102,17 +131,19 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: ProfileModel) -> Result<ResponseModel, ResponseModel> {
-    data = {
-      ..data;
-      _id = ObjectId::new();
-      id = Uuid::new().to_string();
-    };
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let profile = self
-      .mongodbProvider
-      .create::<ProfileModel>("profiles", data)
-      .await;
+  pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let find_by_user_id = self.get_by_user_id(data.userId.clone()).await;
+    if find_by_user_id.is_ok() {
+      return Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Profile already exists!".to_string(),
+        data: DataValue::String("".to_string()),
+      });
+    }
+
+    let model_data: ProfileModel = data.into();
+    let doc: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let profile = self.mongodbProvider.create("profiles", doc).await;
     match profile {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -137,10 +168,10 @@ impl ProfileService {
     id: String,
     data: ProfileModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
+    let document: Document = mongodb::bson::to_document(&data).unwrap();
     let profile = self
       .mongodbProvider
-      .update::<ProfileModel>("profiles", &id.as_str(), data)
+      .update("profiles", &id.as_str(), document)
       .await;
     match profile {
       Ok(_) => {
@@ -162,10 +193,7 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let profile = self
-      .mongodbProvider
-      .delete::<ProfileModel>("profiles", &id.as_str())
-      .await;
+    let profile = self.mongodbProvider.delete("profiles", &id.as_str()).await;
     match profile {
       Ok(_) => {
         return Ok(ResponseModel {
