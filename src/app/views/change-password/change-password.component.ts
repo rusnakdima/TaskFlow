@@ -83,7 +83,7 @@ export class ChangePasswordComponent {
 
   checkToken() {
     this.authService
-      .checkToken<string>({
+      .checkResetToken<string>({
         username: this.f["username"].value,
         token: this.f["token"].value,
       })
