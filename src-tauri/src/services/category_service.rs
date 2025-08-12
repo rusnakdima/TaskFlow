@@ -1,8 +1,8 @@
 /* sys lib */
 use mongodb::bson::Document;
-use serde_json::Value;
 
 /* helpers */
+use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
@@ -28,14 +28,10 @@ impl CategoriesService {
     let list_categories = self.mongodbProvider.get_all("categories", None, None).await;
     match list_categories {
       Ok(categories) => {
-        let categories: Vec<Value> = categories
-          .into_iter()
-          .map(|category| serde_json::to_value(&category).unwrap())
-          .collect();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Array(categories),
+          data: convert_data_to_array(&categories),
         });
       }
       Err(error) => {
@@ -56,11 +52,10 @@ impl CategoriesService {
       .await;
     match category {
       Ok(category) => {
-        let category: Value = serde_json::to_value(&category).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(category),
+          data: convert_data_to_object(&category),
         });
       }
       Err(error) => {

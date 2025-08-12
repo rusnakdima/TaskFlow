@@ -1,8 +1,8 @@
 /* sys lib */
 use mongodb::bson::Document;
-use serde_json::Value;
 
 /* helpers */
+use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
@@ -31,14 +31,10 @@ impl TaskSharesService {
       .await;
     match list_task_shares {
       Ok(task_shares) => {
-        let task_shares: Vec<Value> = task_shares
-          .into_iter()
-          .map(|task_share| serde_json::to_value(&task_share).unwrap())
-          .collect();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Array(task_shares),
+          data: convert_data_to_array(&task_shares),
         });
       }
       Err(error) => {
@@ -59,11 +55,10 @@ impl TaskSharesService {
       .await;
     match task_share {
       Ok(task_share) => {
-        let task_share: Value = serde_json::to_value(&task_share).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(task_share),
+          data: convert_data_to_object(&task_share),
         });
       }
       Err(error) => {

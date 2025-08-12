@@ -1,7 +1,7 @@
 /* sys lib */
 use mongodb::bson::Document;
-use serde_json::Value;
 
+use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 /* helpers */
 use crate::helpers::mongodb_provider::MongodbProvider;
 
@@ -28,14 +28,10 @@ impl TodoService {
     let list_todos = self.mongodbProvider.get_all("todos", None, None).await;
     match list_todos {
       Ok(todos) => {
-        let todos: Vec<Value> = todos
-          .into_iter()
-          .map(|todo| serde_json::to_value(&todo).unwrap())
-          .collect();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Array(todos),
+          data: convert_data_to_array(&todos),
         });
       }
       Err(error) => {
@@ -56,11 +52,10 @@ impl TodoService {
       .await;
     match todo {
       Ok(todo) => {
-        let todo: Value = serde_json::to_value(&todo).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(todo),
+          data: convert_data_to_object(&todo),
         });
       }
       Err(error) => {

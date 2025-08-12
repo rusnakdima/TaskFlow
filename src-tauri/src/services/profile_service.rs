@@ -1,8 +1,8 @@
 /* sys lib */
 use mongodb::bson::{doc, Document};
-use serde_json::Value;
 
 /* helpers */
+use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
 
 /* models */
@@ -39,14 +39,10 @@ impl ProfileService {
       .await;
     match list_profiles {
       Ok(profiles) => {
-        let profiles: Vec<Value> = profiles
-          .into_iter()
-          .map(|profile| serde_json::to_value(&profile).unwrap())
-          .collect();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Array(profiles),
+          data: convert_data_to_array(&profiles),
         });
       }
       Err(error) => {
@@ -80,11 +76,10 @@ impl ProfileService {
       .await;
     match profile {
       Ok(profile) => {
-        let profile: Value = serde_json::to_value(&profile).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(profile),
+          data: convert_data_to_object(&profile),
         });
       }
       Err(error) => {
@@ -113,11 +108,10 @@ impl ProfileService {
       .await;
     match profile {
       Ok(profile) => {
-        let profile: Value = serde_json::to_value(&profile).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(profile),
+          data: convert_data_to_object(&profile),
         });
       }
       Err(error) => {

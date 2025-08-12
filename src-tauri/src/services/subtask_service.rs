@@ -1,8 +1,8 @@
 /* sys lib */
 use mongodb::bson::Document;
-use serde_json::Value;
 
 /* helpers */
+use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
@@ -28,14 +28,10 @@ impl SubtaskService {
     let list_subtasks = self.mongodbProvider.get_all("subtasks", None, None).await;
     match list_subtasks {
       Ok(subtasks) => {
-        let subtasks: Vec<Value> = subtasks
-          .into_iter()
-          .map(|subtask| serde_json::to_value(&subtask).unwrap())
-          .collect();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Array(subtasks),
+          data: convert_data_to_array(&subtasks),
         });
       }
       Err(error) => {
@@ -56,11 +52,10 @@ impl SubtaskService {
       .await;
     match subtask {
       Ok(subtask) => {
-        let subtask: Value = serde_json::to_value(&subtask).unwrap();
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: DataValue::Object(subtask),
+          data: convert_data_to_object(&subtask),
         });
       }
       Err(error) => {
