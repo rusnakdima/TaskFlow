@@ -6,6 +6,7 @@ import { filter } from "rxjs";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
+import { User } from "@models/user";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -43,6 +44,18 @@ export class AppComponent {
       this.router.navigate(["/login"]);
     }
 
+    this.authService
+      .checkToken<User>(token)
+      .then((response: Response<User>) => {
+        if (response.status !== ResponseStatus.SUCCESS) {
+          this.notifyService.showNotify(response.status, response.message);
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
+        this.router.navigate(["/login"]);
+      });
+
     this.checkUserProfile();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
@@ -59,14 +72,18 @@ export class AppComponent {
     if (userId && userId != "") {
       await this.profileService
         .get_by_user_id<string>(userId)
-        .then()
+        .then((response: Response<string>) => {
+          if (response.status !== ResponseStatus.SUCCESS) {
+            this.router.navigate(["/create_profile"]);
+          }
+        })
         .catch((err: Response<string>) => {
           if (err.status === ResponseStatus.ERROR) {
             this.router.navigate(["/create_profile"]);
           }
-          console.log(err);
-          this.notifyService.showError(err.message ?? err.toString());
         });
+    } else {
+      this.router.navigate(["/login"]);
     }
   }
 
