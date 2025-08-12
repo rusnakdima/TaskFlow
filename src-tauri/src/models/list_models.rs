@@ -9,7 +9,7 @@ use crate::models::{
 };
 
 #[derive(Debug, Clone)]
-pub enum ListModels {
+pub enum _ListModels {
   User(UserModel),
   Profile(ProfileModel),
   Category(CategoryModel),
@@ -20,7 +20,7 @@ pub enum ListModels {
 }
 
 #[derive(Debug, Clone)]
-pub enum ListFullModels {
+pub enum _ListFullModels {
   User(UserFullModel),
   Profile(ProfileFullModel),
   Category(CategoryFullModel),
