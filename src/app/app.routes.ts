@@ -8,6 +8,9 @@ import { SignupComponent } from "@views/signup/signup.component";
 import { ChangePasswordComponent } from "@views/change-password/change-password.component";
 import { ResetPasswordComponent } from "@views/reset-password/reset-password.component";
 
+import { ProfileComponent } from "@views/profile/profile.component";
+import { CreateProfileComponent } from "@views/create-profile/create-profile.component";
+
 import { NotFoundComponent } from "@views/not-found/not-found.component";
 
 export const routes: Routes = [
@@ -25,13 +28,26 @@ export const routes: Routes = [
     path: "reset_password",
     component: ResetPasswordComponent,
     title: "Reset Password",
-    data: { breadcrumb: "Reset Password" },
+    data: { breadcrumbs: "Reset Password" },
   },
   {
     path: "change_password",
     component: ChangePasswordComponent,
     title: "Change Password",
-    data: { breadcrumb: "Change Password" },
+    data: { breadcrumbs: "Change Password" },
+  },
+
+  {
+    path: "create_profile",
+    component: CreateProfileComponent,
+    title: "Create Profile",
+    data: { breadcrumbs: "Create Profile" },
+  },
+  {
+    path: "profile/:userId",
+    component: ProfileComponent,
+    title: "Profile",
+    data: { breadcrumbs: "Profile" },
   },
 
   {
