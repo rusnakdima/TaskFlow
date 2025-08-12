@@ -44,7 +44,7 @@ export const routes: Routes = [
     data: { breadcrumbs: "Create Profile" },
   },
   {
-    path: "profile/:userId",
+    path: "profile",
     component: ProfileComponent,
     title: "Profile",
     data: { breadcrumbs: "Profile" },
