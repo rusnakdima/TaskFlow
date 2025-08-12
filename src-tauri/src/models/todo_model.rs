@@ -3,9 +3,7 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::{
-  category_model::CategoryFullModel, task_model::TaskFullModel, user_model::UserFullModel,
-};
+use crate::models::{category_model::CategoryFullModel, user_model::UserFullModel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -14,7 +12,6 @@ pub struct TodoCreateModel {
   pub title: String,
   pub description: String,
   pub categories: Vec<String>,
-  pub isCompleted: bool,
   pub assignees: Vec<String>,
 }
 
@@ -27,8 +24,6 @@ pub struct TodoModel {
   pub title: String,
   pub description: String,
   pub categories: Vec<String>,
-  pub isCompleted: bool,
-  pub tasks: Vec<String>,
   pub assignees: Vec<String>,
   pub createdAt: String,
   pub updatedAt: String,
@@ -46,8 +41,6 @@ impl From<TodoCreateModel> for TodoModel {
       title: value.title,
       description: value.description,
       categories: value.categories,
-      isCompleted: value.isCompleted,
-      tasks: vec![],
       assignees: value.assignees,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
@@ -64,8 +57,6 @@ pub struct TodoFullModel {
   pub title: String,
   pub description: String,
   pub categories: Vec<CategoryFullModel>,
-  pub isCompleted: bool,
-  pub tasks: Vec<TaskFullModel>,
   pub assignees: Vec<UserFullModel>,
   pub createdAt: String,
   pub updatedAt: String,
