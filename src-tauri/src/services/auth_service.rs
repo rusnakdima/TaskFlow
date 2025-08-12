@@ -183,7 +183,7 @@ impl AuthService {
               }
             };
 
-            let expiration = Utc::now() + Duration::hours(1);
+            let expiration = Utc::now() + Duration::hours(24);
             let claims = Claims {
               id: user_id,
               username,
