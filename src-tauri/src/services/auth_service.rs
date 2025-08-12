@@ -1,9 +1,7 @@
 /* sys lib */
 use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{
-  decode, decode_header, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation,
-};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::{
   bson::{doc, oid::ObjectId, Document, Uuid},
   Collection,
