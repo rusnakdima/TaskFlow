@@ -8,7 +8,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  todo_model::{TodoFullModel, TodoModel},
+  todo_model::{TodoCreateModel, TodoModel},
 };
 
 #[allow(non_snake_case)]
@@ -25,10 +25,7 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_todos = self
-      .mongodbProvider
-      .get_all::<TodoFullModel>("todos", None, None)
-      .await;
+    let list_todos = self.mongodbProvider.get_all("todos", None, None).await;
     match list_todos {
       Ok(todos) => {
         let todos: Vec<Value> = todos
@@ -55,7 +52,7 @@ impl TodoService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let todo = self
       .mongodbProvider
-      .get_by_field::<TodoFullModel>("todos", None, None, &id.as_str())
+      .get_by_field("todos", None, None, &id.as_str())
       .await;
     match todo {
       Ok(todo) => {
@@ -77,17 +74,10 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
-    data = {
-      ..data;
-      _id = ObjectId::new();
-      id = Uuid::new().to_string();
-    };
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let todo = self
-      .mongodbProvider
-      .create::<TodoModel>("todos", data)
-      .await;
+  pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let model_data: TodoModel = data.into();
+    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let todo = self.mongodbProvider.create("todos", document).await;
     match todo {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -108,10 +98,10 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn update(&self, id: String, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
+    let document: Document = mongodb::bson::to_document(&data).unwrap();
     let todo = self
       .mongodbProvider
-      .update::<TodoModel>("todos", &id.as_str(), data)
+      .update("todos", &id.as_str(), document)
       .await;
     match todo {
       Ok(_) => {
@@ -133,10 +123,7 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todo = self
-      .mongodbProvider
-      .delete::<TodoModel>("todos", &id.as_str())
-      .await;
+    let todo = self.mongodbProvider.delete("todos", &id.as_str()).await;
     match todo {
       Ok(_) => {
         return Ok(ResponseModel {

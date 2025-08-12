@@ -8,7 +8,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  task_model::{TaskFullModel, TaskModel},
+  task_model::{TaskCreateModel, TaskModel},
 };
 
 #[allow(non_snake_case)]
@@ -25,10 +25,7 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_tasks = self
-      .mongodbProvider
-      .get_all::<TaskFullModel>("tasks", None, None)
-      .await;
+    let list_tasks = self.mongodbProvider.get_all("tasks", None, None).await;
     match list_tasks {
       Ok(tasks) => {
         let tasks: Vec<Value> = tasks
@@ -55,7 +52,7 @@ impl TaskService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let task = self
       .mongodbProvider
-      .get_by_field::<TaskFullModel>("tasks", None, None, &id.as_str())
+      .get_by_field("tasks", None, None, &id.as_str())
       .await;
     match task {
       Ok(task) => {
@@ -77,17 +74,10 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
-    data = {
-      ..data;
-      _id = ObjectId::new();
-      id = Uuid::new().to_string();
-    };
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let task = self
-      .mongodbProvider
-      .create::<TaskModel>("tasks", data)
-      .await;
+  pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let model_data: TaskModel = data.into();
+    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let task = self.mongodbProvider.create("tasks", document).await;
     match task {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -108,10 +98,10 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn update(&self, id: String, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
+    let document: Document = mongodb::bson::to_document(&data).unwrap();
     let task = self
       .mongodbProvider
-      .update::<TaskModel>("tasks", &id.as_str(), data)
+      .update("tasks", &id.as_str(), document)
       .await;
     match task {
       Ok(_) => {
@@ -133,10 +123,7 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task = self
-      .mongodbProvider
-      .delete::<TaskModel>("tasks", &id.as_str())
-      .await;
+    let task = self.mongodbProvider.delete("tasks", &id.as_str()).await;
     match task {
       Ok(_) => {
         return Ok(ResponseModel {

@@ -7,7 +7,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
 use crate::models::{
-  category_model::{CategoryFullModel, CategoryModel},
+  category_model::{CategoryCreateModel, CategoryModel},
   response::{DataValue, ResponseModel, ResponseStatus},
 };
 
@@ -25,10 +25,7 @@ impl CategoriesService {
 
   #[allow(non_snake_case)]
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_categories = self
-      .mongodbProvider
-      .get_all::<CategoryFullModel>("categories", None, None)
-      .await;
+    let list_categories = self.mongodbProvider.get_all("categories", None, None).await;
     match list_categories {
       Ok(categories) => {
         let categories: Vec<Value> = categories
@@ -55,7 +52,7 @@ impl CategoriesService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let category = self
       .mongodbProvider
-      .get_by_field::<CategoryFullModel>("categories", None, None, &id.as_str())
+      .get_by_field("categories", None, None, &id.as_str())
       .await;
     match category {
       Ok(category) => {
@@ -77,17 +74,10 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: CategoryModel) -> Result<ResponseModel, ResponseModel> {
-    data = {
-      ..data;
-      _id = ObjectId::new();
-      id = Uuid::new().to_string();
-    };
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let category = self
-      .mongodbProvider
-      .create::<CategoryModel>("categories", data)
-      .await;
+  pub async fn create(&self, data: CategoryCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let model_data: CategoryModel = data.into();
+    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let category = self.mongodbProvider.create("categories", document).await;
     match category {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -112,10 +102,10 @@ impl CategoriesService {
     id: String,
     data: CategoryModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
+    let document: Document = mongodb::bson::to_document(&data).unwrap();
     let category = self
       .mongodbProvider
-      .update::<CategoryModel>("categories", &id.as_str(), data)
+      .update("categories", &id.as_str(), document)
       .await;
     match category {
       Ok(_) => {
@@ -139,7 +129,7 @@ impl CategoriesService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let category = self
       .mongodbProvider
-      .delete::<CategoryModel>("categories", &id.as_str())
+      .delete("categories", &id.as_str())
       .await;
     match category {
       Ok(_) => {

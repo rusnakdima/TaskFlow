@@ -8,7 +8,7 @@ use crate::helpers::mongodb_provider::MongodbProvider;
 /* models */
 use crate::models::{
   response::{DataValue, ResponseModel, ResponseStatus},
-  task_shares_model::{TaskSharesFullModel, TaskSharesModel},
+  task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
 };
 
 #[allow(non_snake_case)]
@@ -27,7 +27,7 @@ impl TaskSharesService {
   pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
     let list_task_shares = self
       .mongodbProvider
-      .get_all::<TaskSharesFullModel>("task_shares", None, None)
+      .get_all("task_shares", None, None)
       .await;
     match list_task_shares {
       Ok(task_shares) => {
@@ -55,7 +55,7 @@ impl TaskSharesService {
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let task_share = self
       .mongodbProvider
-      .get_by_field::<TaskSharesFullModel>("task_shares", None, None, &id.as_str())
+      .get_by_field("task_shares", None, None, &id.as_str())
       .await;
     match task_share {
       Ok(task_share) => {
@@ -77,17 +77,10 @@ impl TaskSharesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TaskSharesModel) -> Result<ResponseModel, ResponseModel> {
-    data = {
-      ..data;
-      _id = ObjectId::new();
-      id = Uuid::new().to_string();
-    };
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
-    let task_share = self
-      .mongodbProvider
-      .create::<TaskSharesModel>("task_shares", data)
-      .await;
+  pub async fn create(&self, data: TaskSharesCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let model_data: TaskSharesModel = data.into();
+    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let task_share = self.mongodbProvider.create("task_shares", document).await;
     match task_share {
       Ok(_) => {
         return Ok(ResponseModel {
@@ -112,10 +105,10 @@ impl TaskSharesService {
     id: String,
     data: TaskSharesModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data: Document = mongodb::bson::to_document(&data).unwrap();
+    let document: Document = mongodb::bson::to_document(&data).unwrap();
     let task_share = self
       .mongodbProvider
-      .update::<TaskSharesModel>("task_shares", &id.as_str(), data)
+      .update("task_shares", &id.as_str(), document)
       .await;
     match task_share {
       Ok(_) => {
@@ -139,7 +132,7 @@ impl TaskSharesService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let task_share = self
       .mongodbProvider
-      .delete::<TaskSharesModel>("task_shares", &id.as_str())
+      .delete("task_shares", &id.as_str())
       .await;
     match task_share {
       Ok(_) => {
