@@ -5,7 +5,7 @@ use serde::Serialize;
 /* models */
 use crate::models::response::DataValue;
 
-pub fn get_current_date() -> String {
+pub fn _get_current_date() -> String {
   let current_datetime = Local::now();
   format!("{}", current_datetime.format("%Y_%m_%d_%H_%M_%S"))
 }
@@ -25,6 +25,6 @@ pub fn convert_data_to_object<T: Serialize>(data: &T) -> DataValue {
   DataValue::Object(serialized_object)
 }
 
-pub fn type_of<T>(_: T) -> &'static str {
+pub fn _type_of<T>(_: T) -> &'static str {
   std::any::type_name::<T>()
 }
