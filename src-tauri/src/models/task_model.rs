@@ -30,7 +30,6 @@ pub struct TaskCreateModel {
   pub todoId: String,
   pub title: String,
   pub description: String,
-  pub isCompleted: bool,
   pub priority: String,
 }
 
@@ -59,7 +58,7 @@ impl From<TaskCreateModel> for TaskModel {
       todoId: value.todoId,
       title: value.title,
       description: value.description,
-      isCompleted: value.isCompleted,
+      isCompleted: false,
       priority: value.priority.to_string(),
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
