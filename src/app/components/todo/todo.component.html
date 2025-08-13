@@ -1,0 +1,41 @@
+<div
+  class="flex flex-row items-start justify-between p-5 styleBorderSolidLite border hover:bg-slate-200 dark:hover:bg-zinc-700 cursor-pointer"
+  [routerLink]="['tasks/' + (todo?.id ?? '')]"
+>
+  <div class="flex flex-col gap-y-3">
+    <div class="flex flex-col gap-y-1">
+      <span>{{ todo?.title ?? "No title" }}</span>
+      <span class="textMuted">{{ truncateString(todo?.description ?? "No description") }}</span>
+    </div>
+
+    <div class="flex flex-col gap-y-1">
+      <span>Team</span>
+      <div class="flex flex-row gap-x-1">
+        @for ((assignee of todo?.assignees ?? []); track $index) {
+          <img class="rounded-full w-7 h-7" [src]="assignee?.profile?.imageUrl ?? ''" alt="" />
+        }
+        <img
+          class="rounded-full w-7 h-7"
+          src="https://cdn-icons-png.flaticon.com/512/7887/7887095.png"
+          alt=""
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="relative flex flex-col items-center justify-center rounded-[50%] w-[130px] h-[130px]">
+    <!-- fix circle -->
+    <!-- <svg class="absolute w-full h-full" viewBox="0 0 100 100">
+      <circle class="fill-none stroke-gray-300 stroke-[7]" cx="50" cy="50" r="45"></circle>
+      <circle
+        class="fill-none stroke-blue-500 stroke-[7] -rotate-90 origin-center"
+        style="stroke-dasharray: 150; stroke-dashoffset: 150"
+        cx="50"
+        cy="50"
+        r="45"
+      ></circle>
+    </svg> -->
+    <span class="text-xl">{{ percentCompletedTasks }}%</span>
+    <span class="text-base">{{ countCompletedTasks }}/{{ countTasks }} tasks</span>
+  </div>
+</div>
