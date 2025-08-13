@@ -8,13 +8,25 @@ import { SignupComponent } from "@views/signup/signup.component";
 import { ChangePasswordComponent } from "@views/change-password/change-password.component";
 import { ResetPasswordComponent } from "@views/reset-password/reset-password.component";
 
+import { DashboardComponent } from "@views/dashboard/dashboard.component";
+
+import { TasksComponent } from "@views/tasks/tasks.component";
+
 import { ProfileComponent } from "@views/profile/profile.component";
 import { CreateProfileComponent } from "@views/create-profile/create-profile.component";
 
 import { NotFoundComponent } from "@views/not-found/not-found.component";
+import { TodosComponent } from "@views/todos/todos.component";
+import { CreateTodoComponent } from "@views/todos/create-todo/create-todo.component";
 
 export const routes: Routes = [
-  { path: "", pathMatch: "full", redirectTo: "home" },
+  { path: "", pathMatch: "full", redirectTo: "dashboard" },
+  {
+    path: "dashboard",
+    component: DashboardComponent,
+    title: "Dashboard",
+    data: { breadcrumbs: "Dashboard" },
+  },
   { path: "about", component: AboutComponent, title: "About", data: { breadcrumbs: "About" } },
 
   { path: "login", component: LoginComponent, title: "Login", data: { breadcrumbs: "Login" } },
@@ -40,14 +52,39 @@ export const routes: Routes = [
   {
     path: "create_profile",
     component: CreateProfileComponent,
-    title: "Create Profile",
-    data: { breadcrumbs: "Create Profile" },
+    title: "Create Profile for New User",
+    data: { breadcrumbs: "Create Profile for New User" },
   },
   {
     path: "profile",
     component: ProfileComponent,
     title: "Profile",
     data: { breadcrumbs: "Profile" },
+  },
+
+  {
+    path: "todos",
+    component: TodosComponent,
+    title: "Todos",
+    data: { breadcrumbs: "Todos" },
+  },
+  {
+    path: "create_todo",
+    component: CreateTodoComponent,
+    title: "Create Todo",
+    data: { breadcrumbs: "Create Todo" },
+  },
+  {
+    path: "tasks/:todoId",
+    component: TasksComponent,
+    title: "Tasks",
+    data: { breadcrumbs: "Tasks" },
+  },
+  {
+    path: "task/:taskId",
+    component: TasksComponent,
+    title: "Task",
+    data: { breadcrumbs: "Task" },
   },
 
   {
