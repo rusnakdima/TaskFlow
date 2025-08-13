@@ -51,6 +51,6 @@ export class TodosComponent implements OnInit {
   }
 
   searchFunc(data: Array<any>) {
-    this.tempListTodos = data;
+    this.listTodos = data;
   }
 }
