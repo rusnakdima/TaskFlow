@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::Document;
+use mongodb::bson::{doc, Document};
 
 /* helpers */
 use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
@@ -24,8 +24,8 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_subtasks = self.mongodbProvider.get_all("subtasks", None, None).await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    let list_subtasks = self.mongodbProvider.getAll("subtasks", None, None).await;
     match list_subtasks {
       Ok(subtasks) => {
         return Ok(ResponseModel {
@@ -45,10 +45,43 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let subtask = self
+      .mongodbProvider
+      .getByField(
+        "subtasks",
+        Some(doc! { nameField: value }),
+        None,
+        "",
+      )
+      .await;
+    match subtask {
+      Ok(subtask) => {
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: convert_data_to_object(&subtask),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a subtask! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let subtask = self
       .mongodbProvider
-      .get_by_field("subtasks", None, None, &id.as_str())
+      .getByField("subtasks", None, None, &id.as_str())
       .await;
     match subtask {
       Ok(subtask) => {

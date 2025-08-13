@@ -6,7 +6,7 @@ use crate::{models::response::ResponseModel, AppState};
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn download_update(
+pub async fn downloadUpdate(
   state: State<'_, AppState>,
   app_handle: tauri::AppHandle,
   url: String,
@@ -14,17 +14,17 @@ pub async fn download_update(
 ) -> Result<ResponseModel, ResponseModel> {
   let aboutController = state.aboutController.clone();
   let result = aboutController
-    .download_update(app_handle, url, file_name)
+    .downloadUpdate(app_handle, url, file_name)
     .await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn get_binary_name_file(
+pub async fn getBinaryNameFile(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
   let aboutController = state.aboutController.clone();
-  let result = aboutController.get_binary_name_file().await;
+  let result = aboutController.getBinaryNameFile().await;
   result
 }

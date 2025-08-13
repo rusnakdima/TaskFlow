@@ -12,15 +12,27 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todo_get_all(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn todoGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let todoController = state.todoController.clone();
-  let result = todoController.get_all().await;
+  let result = todoController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todo_get(
+pub async fn todoGetByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let todoController = state.todoController.clone();
+  let result = todoController.getByField(nameField, value).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn todoGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -31,7 +43,7 @@ pub async fn todo_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todo_create(
+pub async fn todoCreate(
   state: State<'_, AppState>,
   data: TodoCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -42,7 +54,7 @@ pub async fn todo_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todo_update(
+pub async fn todoUpdate(
   state: State<'_, AppState>,
   id: String,
   data: TodoModel,
@@ -54,7 +66,7 @@ pub async fn todo_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todo_delete(
+pub async fn todoDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

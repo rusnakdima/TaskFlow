@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::Document;
+use mongodb::bson::{doc, Document};
 
 use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 /* helpers */
@@ -24,8 +24,8 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_todos = self.mongodbProvider.get_all("todos", None, None).await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    let list_todos = self.mongodbProvider.getAll("todos", None, None).await;
     match list_todos {
       Ok(todos) => {
         return Ok(ResponseModel {
@@ -45,10 +45,38 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let todo = self
+      .mongodbProvider
+      .getByField("todos", Some(doc! { nameField: value }), None, "")
+      .await;
+    match todo {
+      Ok(todo) => {
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: convert_data_to_object(&todo),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a todo! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let todo = self
       .mongodbProvider
-      .get_by_field("todos", None, None, &id.as_str())
+      .getByField("todos", None, None, &id.as_str())
       .await;
     match todo {
       Ok(todo) => {

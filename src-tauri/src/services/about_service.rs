@@ -17,7 +17,8 @@ impl AboutService {
     Self
   }
 
-  pub async fn download_file(
+  #[allow(non_snake_case)]
+  pub async fn downloadFile(
     &self,
     app_handle: tauri::AppHandle,
     url: String,
@@ -67,7 +68,8 @@ impl AboutService {
     });
   }
 
-  pub async fn get_binary_name_file(&self) -> Result<ResponseModel, ResponseModel> {
+  #[allow(non_snake_case)]
+  pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
     dotenv().ok();
 
     let mut _name_app = env::var("NAME_APP").expect("NAME_APP not set");

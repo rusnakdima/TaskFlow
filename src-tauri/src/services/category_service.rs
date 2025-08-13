@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::Document;
+use mongodb::bson::{doc, Document};
 
 /* helpers */
 use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
@@ -24,8 +24,8 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_categories = self.mongodbProvider.get_all("categories", None, None).await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    let list_categories = self.mongodbProvider.getAll("categories", None, None).await;
     match list_categories {
       Ok(categories) => {
         return Ok(ResponseModel {
@@ -45,10 +45,43 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let category = self
+      .mongodbProvider
+      .getByField(
+        "categories",
+        Some(doc! { nameField: value }),
+        None,
+        "",
+      )
+      .await;
+    match category {
+      Ok(category) => {
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: convert_data_to_object(&category),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a category! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let category = self
       .mongodbProvider
-      .get_by_field("categories", None, None, &id.as_str())
+      .getByField("categories", None, None, &id.as_str())
       .await;
     match category {
       Ok(category) => {

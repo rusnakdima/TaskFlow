@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::Document;
+use mongodb::bson::{doc, Document};
 
 /* helpers */
 use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
@@ -24,8 +24,8 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_tasks = self.mongodbProvider.get_all("tasks", None, None).await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    let list_tasks = self.mongodbProvider.getAll("tasks", None, None).await;
     match list_tasks {
       Ok(tasks) => {
         return Ok(ResponseModel {
@@ -45,10 +45,38 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let task = self
+      .mongodbProvider
+      .getByField("tasks", Some(doc! { nameField: value }), None, "")
+      .await;
+    match task {
+      Ok(task) => {
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: convert_data_to_object(&task),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a task! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let task = self
       .mongodbProvider
-      .get_by_field("tasks", None, None, &id.as_str())
+      .getByField("tasks", None, None, &id.as_str())
       .await;
     match task {
       Ok(task) => {

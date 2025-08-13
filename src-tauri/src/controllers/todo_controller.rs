@@ -20,8 +20,17 @@ impl TodoController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.get_all().await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    return self.todoService.getAll().await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.todoService.getByField(nameField, value).await;
   }
 
   #[allow(non_snake_case)]

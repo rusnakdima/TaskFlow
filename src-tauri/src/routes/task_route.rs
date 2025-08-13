@@ -12,15 +12,27 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_get_all(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn taskGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let taskController = state.taskController.clone();
-  let result = taskController.get_all().await;
+  let result = taskController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_get(
+pub async fn taskGetByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let taskController = state.taskController.clone();
+  let result = taskController.getByField(nameField, value).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn taskGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -31,7 +43,7 @@ pub async fn task_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_create(
+pub async fn taskCreate(
   state: State<'_, AppState>,
   data: TaskCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -42,7 +54,7 @@ pub async fn task_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_update(
+pub async fn taskUpdate(
   state: State<'_, AppState>,
   id: String,
   data: TaskModel,
@@ -54,7 +66,7 @@ pub async fn task_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_delete(
+pub async fn taskDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

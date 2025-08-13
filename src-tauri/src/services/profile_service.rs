@@ -24,7 +24,7 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
     let relations: Vec<RelationObj> = vec![RelationObj {
       collection_name: "users".to_string(),
       typeField: TypesField::One,
@@ -35,7 +35,7 @@ impl ProfileService {
 
     let list_profiles = self
       .mongodbProvider
-      .get_all("profiles", None, Some(relations))
+      .getAll("profiles", None, Some(relations))
       .await;
     match list_profiles {
       Ok(profiles) => {
@@ -56,7 +56,11 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_by_user_id(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
     let relations: Vec<RelationObj> = vec![RelationObj {
       collection_name: "users".to_string(),
       typeField: TypesField::One,
@@ -67,9 +71,9 @@ impl ProfileService {
 
     let profile = self
       .mongodbProvider
-      .get_by_field(
+      .getByField(
         "profiles",
-        Some(doc! {"userId": userId}),
+        Some(doc! { nameField: value }),
         Some(relations),
         &"",
       )
@@ -104,7 +108,7 @@ impl ProfileService {
 
     let profile = self
       .mongodbProvider
-      .get_by_field("profiles", None, Some(relations), &id.as_str())
+      .getByField("profiles", None, Some(relations), &id.as_str())
       .await;
     match profile {
       Ok(profile) => {
@@ -126,7 +130,7 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let find_by_user_id = self.get_by_user_id(data.userId.clone()).await;
+    let find_by_user_id = self.getByField("userId".to_string(), data.userId.clone()).await;
     if find_by_user_id.is_ok() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,

@@ -12,17 +12,29 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_shares_get_all(
+pub async fn taskSharesGetAll(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
   let taskSharesController = state.taskSharesController.clone();
-  let result = taskSharesController.get_all().await;
+  let result = taskSharesController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_shares_get(
+pub async fn taskSharesGetByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let taskSharesController = state.taskSharesController.clone();
+  let result = taskSharesController.getByField(nameField, value).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn taskSharesGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -33,7 +45,7 @@ pub async fn task_shares_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_shares_create(
+pub async fn taskSharesCreate(
   state: State<'_, AppState>,
   data: TaskSharesCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -44,7 +56,7 @@ pub async fn task_shares_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_shares_update(
+pub async fn taskSharesUpdate(
   state: State<'_, AppState>,
   id: String,
   data: TaskSharesModel,
@@ -56,7 +68,7 @@ pub async fn task_shares_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn task_shares_delete(
+pub async fn taskSharesDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

@@ -12,15 +12,27 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn subtask_get_all(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn subtaskGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.get_all().await;
+  let result = subtaskController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn subtask_get(
+pub async fn subtaskGetByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let subtaskController = state.subtaskController.clone();
+  let result = subtaskController.getByField(nameField, value).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn subtaskGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -31,7 +43,7 @@ pub async fn subtask_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn subtask_create(
+pub async fn subtaskCreate(
   state: State<'_, AppState>,
   data: SubtaskCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -42,7 +54,7 @@ pub async fn subtask_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn subtask_update(
+pub async fn subtaskUpdate(
   state: State<'_, AppState>,
   id: String,
   data: SubtaskModel,
@@ -54,7 +66,7 @@ pub async fn subtask_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn subtask_delete(
+pub async fn subtaskDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

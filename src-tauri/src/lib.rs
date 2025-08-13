@@ -9,23 +9,23 @@ mod services;
 use std::sync::Arc;
 
 /* routes */
-use routes::about_route::{download_update, get_binary_name_file};
-use routes::auth_route::{check_token, login, register};
+use routes::about_route::{downloadUpdate, getBinaryNameFile};
+use routes::auth_route::{checkToken, login, register};
 use routes::category_route::{
-  category_create, category_delete, category_get, category_get_all, category_update,
+  categoryCreate, categoryDelete, categoryGet, categoryGetAll, categoryGetByField, categoryUpdate,
 };
 use routes::profile_route::{
-  profile_create, profile_delete, profile_get, profile_get_all, profile_get_by_user_id,
-  profile_update,
+  profileCreate, profileDelete, profileGet, profileGetAll, profileGetByField, profileUpdate,
 };
 use routes::subtask_route::{
-  subtask_create, subtask_delete, subtask_get, subtask_get_all, subtask_update,
+  subtaskCreate, subtaskDelete, subtaskGet, subtaskGetAll, subtaskGetByField, subtaskUpdate,
 };
-use routes::task_route::{task_create, task_delete, task_get, task_get_all, task_update};
+use routes::task_route::{taskCreate, taskDelete, taskGet, taskGetAll, taskGetByField, taskUpdate};
 use routes::task_shares_route::{
-  task_shares_create, task_shares_delete, task_shares_get, task_shares_get_all, task_shares_update,
+  taskSharesCreate, taskSharesDelete, taskSharesGet, taskSharesGetAll, taskSharesGetByField,
+  taskSharesUpdate,
 };
-use routes::todo_route::{todo_create, todo_delete, todo_get, todo_get_all, todo_update};
+use routes::todo_route::{todoCreate, todoDelete, todoGet, todoGetAll, todoGetByField, todoUpdate};
 
 /* controllers */
 use controllers::about_controller::AboutController;
@@ -64,42 +64,47 @@ pub fn run() {
       taskSharesController: Arc::new(TaskSharesController::new()),
     })
     .invoke_handler(tauri::generate_handler![
-      get_binary_name_file,
-      download_update,
-      check_token,
+      downloadUpdate,
+      getBinaryNameFile,
+      checkToken,
       login,
       register,
-      profile_get_all,
-      profile_get,
-      profile_get_by_user_id,
-      profile_create,
-      profile_update,
-      profile_delete,
-      category_get_all,
-      category_get,
-      category_create,
-      category_update,
-      category_delete,
-      todo_get_all,
-      todo_get,
-      todo_create,
-      todo_update,
-      todo_delete,
-      task_get_all,
-      task_get,
-      task_create,
-      task_update,
-      task_delete,
-      subtask_get_all,
-      subtask_get,
-      subtask_create,
-      subtask_update,
-      subtask_delete,
-      task_shares_get_all,
-      task_shares_get,
-      task_shares_create,
-      task_shares_update,
-      task_shares_delete,
+      profileGetAll,
+      profileGetByField,
+      profileGet,
+      profileCreate,
+      profileUpdate,
+      profileDelete,
+      categoryGetAll,
+      categoryGetByField,
+      categoryGet,
+      categoryCreate,
+      categoryUpdate,
+      categoryDelete,
+      todoGetAll,
+      todoGetByField,
+      todoGet,
+      todoCreate,
+      todoUpdate,
+      todoDelete,
+      taskGetAll,
+      taskGetByField,
+      taskGet,
+      taskCreate,
+      taskUpdate,
+      taskDelete,
+      subtaskGetAll,
+      subtaskGetByField,
+      subtaskGet,
+      subtaskCreate,
+      subtaskUpdate,
+      subtaskDelete,
+      taskSharesGetAll,
+      taskSharesGetByField,
+      taskSharesGet,
+      taskSharesCreate,
+      taskSharesUpdate,
+      taskSharesDelete,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

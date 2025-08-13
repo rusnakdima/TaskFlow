@@ -9,7 +9,7 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn check_token(
+pub async fn checkToken(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {

@@ -20,8 +20,17 @@ impl SubtaskController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get_all(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.get_all().await;
+  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+    return self.subtaskService.getAll().await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.subtaskService.getByField(nameField, value).await;
   }
 
   #[allow(non_snake_case)]

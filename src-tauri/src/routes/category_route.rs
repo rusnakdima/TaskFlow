@@ -12,15 +12,27 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn category_get_all(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn categoryGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.get_all().await;
+  let result = categoriesController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn category_get(
+pub async fn categoryGetByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let categoriesController = state.categoriesController.clone();
+  let result = categoriesController.getByField(nameField, value).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn categoryGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -31,7 +43,7 @@ pub async fn category_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn category_create(
+pub async fn categoryCreate(
   state: State<'_, AppState>,
   data: CategoryCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -42,7 +54,7 @@ pub async fn category_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn category_update(
+pub async fn categoryUpdate(
   state: State<'_, AppState>,
   id: String,
   data: CategoryModel,
@@ -54,7 +66,7 @@ pub async fn category_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn category_delete(
+pub async fn categoryDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

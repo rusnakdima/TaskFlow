@@ -62,7 +62,7 @@ impl AuthService {
         let collection_name = "users".to_string();
         let collection_users = match self
           .mongodbProvider
-          .get_collection(collection_name.as_str())
+          .getCollection(collection_name.as_str())
           .await
         {
           Ok(coll) => coll,
@@ -122,7 +122,7 @@ impl AuthService {
 
     let collection_users: Collection<Document> = match self
       .mongodbProvider
-      .get_collection(collection_name.as_str())
+      .getCollection(collection_name.as_str())
       .await
     {
       Ok(coll) => coll,
@@ -243,7 +243,7 @@ impl AuthService {
 
     let collection_users = match self
       .mongodbProvider
-      .get_collection(collection_name.as_str())
+      .getCollection(collection_name.as_str())
       .await
     {
       Ok(coll) => coll,

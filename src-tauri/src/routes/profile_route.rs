@@ -12,26 +12,27 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_get_all(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn profileGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let profileController = state.profileController.clone();
-  let result = profileController.get_all().await;
+  let result = profileController.getAll().await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_get_by_user_id(
+pub async fn profileGetByField(
   state: State<'_, AppState>,
-  userId: String,
+  nameField: String,
+  value: String,
 ) -> Result<ResponseModel, ResponseModel> {
   let profileController = state.profileController.clone();
-  let result = profileController.get_by_user_id(userId).await;
+  let result = profileController.getByField(nameField, value).await;
   result
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_get(
+pub async fn profileGet(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -42,7 +43,7 @@ pub async fn profile_get(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_create(
+pub async fn profileCreate(
   state: State<'_, AppState>,
   data: ProfileCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -53,7 +54,7 @@ pub async fn profile_create(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_update(
+pub async fn profileUpdate(
   state: State<'_, AppState>,
   id: String,
   data: ProfileModel,
@@ -65,7 +66,7 @@ pub async fn profile_update(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profile_delete(
+pub async fn profileDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {

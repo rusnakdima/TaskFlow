@@ -16,7 +16,8 @@ impl AboutController {
     }
   }
 
-  pub async fn download_update(
+  #[allow(non_snake_case)]
+  pub async fn downloadUpdate(
     &self,
     app_handle: tauri::AppHandle,
     url: String,
@@ -24,11 +25,12 @@ impl AboutController {
   ) -> Result<ResponseModel, ResponseModel> {
     return self
       .aboutService
-      .download_file(app_handle, url, file_name)
+      .downloadFile(app_handle, url, file_name)
       .await;
   }
 
-  pub async fn get_binary_name_file(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.aboutService.get_binary_name_file().await;
+  #[allow(non_snake_case)]
+  pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
+    return self.aboutService.getBinaryNameFile().await;
   }
 }
