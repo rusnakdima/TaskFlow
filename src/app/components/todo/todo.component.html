@@ -1,6 +1,6 @@
 <div
   class="flex flex-row items-start justify-between p-5 styleBorderSolidLite border hover:bg-slate-200 dark:hover:bg-zinc-700 cursor-pointer"
-  [routerLink]="['tasks/' + (todo?.id ?? '')]"
+  [routerLink]="['/todos/' + (todo?.id ?? '') + '/tasks']"
 >
   <div class="flex flex-col gap-y-3">
     <div class="flex flex-col gap-y-1">
