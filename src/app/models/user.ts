@@ -8,7 +8,7 @@ export interface User {
   password: string;
   role: string;
   resetToken: string;
-  prodile: Profile;
+  profile: Profile;
   createdAt: string;
   updatedAt: string;
 }
