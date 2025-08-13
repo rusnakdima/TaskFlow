@@ -7,8 +7,8 @@ import { RouterModule } from "@angular/router";
 import { Common } from "@helpers/common";
 
 /* models */
-import { Task } from "@models/task";
 import { Todo } from "@models/todo";
+import { Task } from "@models/task";
 
 @Component({
   selector: "app-todo",
