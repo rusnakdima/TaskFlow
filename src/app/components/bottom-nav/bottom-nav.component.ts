@@ -70,5 +70,9 @@ export class BottomNavComponent implements OnInit {
 
   getUserId() {
     this.userId = this.authService.getValueByKey("id");
+    const link = this.listNavs.find((nav: BottomNavLink) => nav.url == "/profile");
+    if (link) {
+      link.query = { id: this.userId };
+    }
   }
 }
