@@ -6,6 +6,8 @@ import { Router } from "@angular/router";
 
 /* models */
 import { FormField, TypeField } from "@models/form-field";
+import { Todo } from "@models/todo";
+import { Response, ResponseStatus } from "@models/response";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -14,12 +16,11 @@ import { NotifyService } from "@services/notify.service";
 
 /* components */
 import { FormComponent } from "@components/form/form.component";
-import { Todo } from "@models/todo";
-import { Response, ResponseStatus } from "@models/response";
 
 @Component({
   selector: "app-create-todo",
   standalone: true,
+  providers: [AuthService, MainService, NotifyService],
   imports: [CommonModule, FormComponent],
   templateUrl: "./create-todo.component.html",
 })
