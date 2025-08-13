@@ -72,33 +72,47 @@ export const routes: Routes = [
 
   {
     path: "todos",
-    component: TodosComponent,
     title: "Todos",
     data: { breadcrumbs: "Todos" },
-  },
-  {
-    path: "todos/create_todo",
-    component: CreateTodoComponent,
-    title: "Create Todo",
-    data: { breadcrumbs: "Create Todo" },
-  },
-  {
-    path: "todos/:todoId/tasks",
-    component: TasksComponent,
-    title: "Tasks",
-    data: { breadcrumbs: "Tasks" },
-  },
-  {
-    path: "todos/:todoId/tasks/create_task",
-    component: CreateTaskComponent,
-    title: "Create Task",
-    data: { breadcrumbs: "Create Task" },
-  },
-  {
-    path: "todos/:todoId/tasks/:taskId",
-    component: TasksComponent,
-    title: "Task",
-    data: { breadcrumbs: "Task" },
+    children: [
+      {
+        path: "",
+        component: TodosComponent,
+        title: "Todos",
+        data: { breadcrumbs: "Todos" },
+      },
+      {
+        path: "create_todo",
+        component: CreateTodoComponent,
+        title: "Create Todo",
+        data: { breadcrumbs: "Create Todo" },
+      },
+      {
+        path: ":todoId/tasks",
+        title: "Tasks",
+        data: { breadcrumbs: "Tasks" },
+        children: [
+          {
+            path: "",
+            component: TasksComponent,
+            title: "Tasks",
+            data: { breadcrumbs: "Tasks" },
+          },
+          {
+            path: "create_task",
+            component: CreateTaskComponent,
+            title: "Create Task",
+            data: { breadcrumbs: "Create Task" },
+          },
+          {
+            path: ":taskId",
+            component: TasksComponent,
+            title: "Task",
+            data: { breadcrumbs: "Task" },
+          },
+        ],
+      },
+    ],
   },
 
   {
