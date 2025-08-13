@@ -13,12 +13,12 @@ import { Response, ResponseStatus } from "@models/response";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
-import { ProfileService } from "@services/profile.service";
+import { MainService } from "@services/main.service";
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  providers: [AuthService, ProfileService, NotifyService],
+  providers: [AuthService, MainService, NotifyService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./profile.component.html",
 })
@@ -26,7 +26,7 @@ export class ProfileComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
-    private profileService: ProfileService,
+    private mainService: MainService,
     private notifyService: NotifyService
   ) {}
 
@@ -47,8 +47,8 @@ export class ProfileComponent implements OnInit {
   }
 
   getProfile(userId: string) {
-    this.profileService
-      .get_by_user_id<Profile>(userId)
+    this.mainService
+      .getByField<Profile, string>("profile", "userId", userId)
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.profile = response.data;

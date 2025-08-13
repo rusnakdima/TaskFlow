@@ -27,10 +27,14 @@
       </div>
     </div>
 
-    <div class="flex flex-col gap-y-3">
+    <div class="flex flex-col gap-y-3 items-center">
+      <button class="styleButInfo gap-x-2" routerLink="/about">
+        <mat-icon class="!w-[25px] !h-[30px] !text-2xl" fontIcon="info_outline" />
+        <span>About</span>
+      </button>
       @if (queryId == userId) {
-        <button class="styleButDanger" (click)="logout()">
-          <mat-icon class="!w-[25px] !h-[25px] !text-2xl" fontIcon="logout" />
+        <button class="styleButDanger gap-x-2" (click)="logout()">
+          <mat-icon class="!w-[25px] !h-[30px] !text-2xl" fontIcon="logout" />
           <span>Logout</span>
         </button>
       }
