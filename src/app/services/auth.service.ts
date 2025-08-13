@@ -17,7 +17,7 @@ export class AuthService {
   constructor() {}
 
   async checkToken<R>(token: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("check_token", { token });
+    return await invoke<Response<R>>("checkToken", { token });
   }
 
   async login<R>(loginData: LoginForm): Promise<Response<R>> {
@@ -29,11 +29,11 @@ export class AuthService {
   }
 
   async resetPassword<R>(email: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("reset_password", { email: email });
+    return await invoke<Response<R>>("resetPassword", { email: email });
   }
 
   async checkResetToken<R>(data: { username: string; token: string }): Promise<Response<R>> {
-    return await invoke<Response<R>>("check_reset_token", data);
+    return await invoke<Response<R>>("checkResetToken", data);
   }
 
   async changePassword<R>(data: {
@@ -41,7 +41,7 @@ export class AuthService {
     password: string;
     token: string;
   }): Promise<Response<R>> {
-    return await invoke<Response<R>>("change_password", data);
+    return await invoke<Response<R>>("changePassword", data);
   }
 
   logout() {
