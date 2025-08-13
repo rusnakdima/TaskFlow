@@ -76,12 +76,12 @@ export class AppComponent {
         .get_by_user_id<string>(userId)
         .then((response: Response<string>) => {
           if (response.status !== ResponseStatus.SUCCESS) {
-            this.router.navigate(["/create_profile"]);
+            this.router.navigate(["/profile/create_profile"]);
           }
         })
         .catch((err: Response<string>) => {
           if (err.status === ResponseStatus.ERROR) {
-            this.router.navigate(["/create_profile"]);
+            this.router.navigate(["/profile/create_profile"]);
           }
         });
     } else {
