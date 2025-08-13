@@ -10,7 +10,9 @@
     />
 
     <div class="flex flex-row justify-end gap-x-3 pt-3 !rounded-none styleBorderSolidLite border-t">
-      <button class="styleButDanger" (click)="closeForm()">Close</button>
+      @if (isShowCloseButton) {
+        <button class="styleButDanger" (click)="closeForm()">Close</button>
+      }
       <button class="styleButInfo" (click)="onSubmitForm()">Submit</button>
     </div>
   </div>

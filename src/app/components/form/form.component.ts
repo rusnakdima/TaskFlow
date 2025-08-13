@@ -18,6 +18,7 @@ export class FormComponent {
 
   @Input() form?: FormGroup;
   @Input() formFields: Array<FormField> = [];
+  @Input() isShowCloseButton: boolean = true;
 
   @Output() close: EventEmitter<void> = new EventEmitter<void>();
   @Output() onSubmit: EventEmitter<void> = new EventEmitter<void>();

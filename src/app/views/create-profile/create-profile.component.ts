@@ -1,5 +1,5 @@
 /* sys lib */
-import { CommonModule, Location } from "@angular/common";
+import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import {
   FormBuilder,
@@ -34,7 +34,6 @@ export class CreateProfileComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private location: Location,
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService
@@ -84,10 +83,6 @@ export class CreateProfileComponent implements OnInit {
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
     }
-  }
-
-  back() {
-    this.location.back();
   }
 
   onSubmit() {
