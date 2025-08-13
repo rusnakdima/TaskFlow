@@ -1,18 +1,18 @@
 export enum TypeField {
-  text = 'text',
-  number = 'number',
-  textarea = 'textarea',
-  image = 'image',
-  select = 'select',
-  checkbox = 'checkbox',
-  radio = 'radio',
-  datepicker = 'datepicker',
-  slidetoggle = 'slidetoggle',
-  slider = 'slider',
-  sliderrange = 'sliderrange',
-  menu = 'menu',
-  subgroup = 'subgroup',
-  sublist = 'sublist',
+  text = "text",
+  number = "number",
+  textarea = "textarea",
+  image = "image",
+  select = "select",
+  checkbox = "checkbox",
+  radio = "radio",
+  datepicker = "datepicker",
+  slidetoggle = "slidetoggle",
+  slider = "slider",
+  sliderrange = "sliderrange",
+  menu = "menu",
+  subgroup = "subgroup",
+  sublist = "sublist",
 }
 
 interface CommonFormField {
@@ -26,6 +26,26 @@ export interface OptionData {
   value: any;
   label: string;
   isShow: (param: any, index?: number) => boolean;
+}
+
+export function parseArrayOptions(array: any[], keyLabel: string, keyValue: string): OptionData[] {
+  return array.map((item) => {
+    return {
+      value: item[keyValue],
+      label: item[keyLabel],
+      isShow: (param: any, index?: number) => true,
+    } as OptionData;
+  });
+}
+
+export function parseEnumOptions(enumType: any): OptionData[] {
+  return Object.entries(enumType).map((value: any) => {
+    return {
+      value: value[1],
+      label: String(value[1]).slice(0, 1).toLocaleUpperCase() + String(value[1]).slice(1),
+      isShow: (param: any, index?: number) => true,
+    } as OptionData;
+  });
 }
 
 export interface TextField extends CommonFormField {
@@ -70,13 +90,13 @@ export interface SliderRangeField extends CommonFormField {
 }
 export interface MenuField extends CommonFormField {
   type: TypeField.menu;
-  direction: 'vertical' | 'horizontal';
+  direction: "vertical" | "horizontal";
   value: any;
   subGroup: Array<FormField>;
 }
 export interface SubGroupField extends CommonFormField {
   type: TypeField.subgroup;
-  direction: 'vertical' | 'horizontal';
+  direction: "vertical" | "horizontal";
   subGroup: Array<FormField>;
 }
 export interface SubListField extends CommonFormField {
