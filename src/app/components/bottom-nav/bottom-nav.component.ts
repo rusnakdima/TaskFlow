@@ -31,12 +31,12 @@ export class BottomNavComponent implements OnInit {
 
   listNavs: Array<BottomNavLink> = [
     {
-      url: "/home",
+      url: "/dashboard",
       icon: "home",
       query: {},
     },
     {
-      url: "/tasks",
+      url: "/todos",
       icon: "list_alt",
       query: {},
     },
