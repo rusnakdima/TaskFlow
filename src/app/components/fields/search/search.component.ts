@@ -16,11 +16,10 @@ export class SearchComponent implements OnInit {
   constructor() {}
   @Input() tempArray: Array<any> = [];
   @Input() searchByFields: Array<any> = [];
+  @Input() isShowSearchField: boolean = false;
   @Output() array: EventEmitter<Array<any>> = new EventEmitter<Array<any>>();
 
   searchField: string = "";
-
-  isShowSearchField: boolean = false;
 
   ngOnInit() {
     document.addEventListener("keydown", (event: KeyboardEvent) => {
