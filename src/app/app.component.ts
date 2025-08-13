@@ -44,17 +44,19 @@ export class AppComponent {
       this.router.navigate(["/login"]);
     }
 
-    this.authService
-      .checkToken<User>(token)
-      .then((response: Response<User>) => {
-        if (response.status !== ResponseStatus.SUCCESS) {
-          this.notifyService.showNotify(response.status, response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-        this.router.navigate(["/login"]);
-      });
+    if (token) {
+      this.authService
+        .checkToken<User>(token)
+        .then((response: Response<User>) => {
+          if (response.status !== ResponseStatus.SUCCESS) {
+            this.notifyService.showNotify(response.status, response.message);
+          }
+        })
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message ?? err.toString());
+          this.router.navigate(["/login"]);
+        });
+    }
 
     this.checkUserProfile();
 
