@@ -9,7 +9,6 @@ export interface Todo {
   title: string;
   description: string;
   categories: Array<Category>;
-  isCompleted: boolean;
   tasks: Array<Task>;
   assignees: Array<User>;
 }
