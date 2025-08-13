@@ -24,7 +24,11 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
     let relations: Vec<RelationObj> = vec![RelationObj {
       collection_name: "users".to_string(),
       typeField: TypesField::One,
@@ -35,7 +39,15 @@ impl ProfileService {
 
     let list_profiles = self
       .mongodbProvider
-      .getAll("profiles", None, Some(relations))
+      .getAllByField(
+        "profiles",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        Some(relations),
+      )
       .await;
     match list_profiles {
       Ok(profiles) => {
@@ -73,7 +85,11 @@ impl ProfileService {
       .mongodbProvider
       .getByField(
         "profiles",
-        Some(doc! { nameField: value }),
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
         Some(relations),
         &"",
       )
@@ -97,40 +113,10 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let relations: Vec<RelationObj> = vec![RelationObj {
-      collection_name: "users".to_string(),
-      typeField: TypesField::One,
-      nameField: "userId".to_string(),
-      newNameField: "user".to_string(),
-      relations: None,
-    }];
-
-    let profile = self
-      .mongodbProvider
-      .getByField("profiles", None, Some(relations), &id.as_str())
-      .await;
-    match profile {
-      Ok(profile) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&profile),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a profile! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let find_by_user_id = self.getByField("userId".to_string(), data.userId.clone()).await;
+    let find_by_user_id = self
+      .getByField("userId".to_string(), data.userId.clone())
+      .await;
     if find_by_user_id.is_ok() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,

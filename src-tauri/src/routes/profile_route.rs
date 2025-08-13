@@ -12,9 +12,13 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profileGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn profileGetAllByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
   let profileController = state.profileController.clone();
-  let result = profileController.getAll().await;
+  let result = profileController.getAllByField(nameField, value).await;
   result
 }
 
@@ -27,17 +31,6 @@ pub async fn profileGetByField(
 ) -> Result<ResponseModel, ResponseModel> {
   let profileController = state.profileController.clone();
   let result = profileController.getByField(nameField, value).await;
-  result
-}
-
-#[allow(non_snake_case)]
-#[tauri::command]
-pub async fn profileGet(
-  state: State<'_, AppState>,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.get(id).await;
   result
 }
 

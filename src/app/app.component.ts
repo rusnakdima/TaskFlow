@@ -10,7 +10,7 @@ import { User } from "@models/user";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { ProfileService } from "@services/profile.service";
+import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
 /* components */
@@ -21,7 +21,7 @@ import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component"
 @Component({
   selector: "app-root",
   standalone: true,
-  providers: [AuthService, ProfileService],
+  providers: [AuthService, MainService],
   imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent, BottomNavComponent],
   templateUrl: "./app.component.html",
 })
@@ -29,7 +29,7 @@ export class AppComponent {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private profileService: ProfileService,
+    private mainService: MainService,
     private notifyService: NotifyService
   ) {}
 
@@ -72,8 +72,8 @@ export class AppComponent {
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      await this.profileService
-        .get_by_user_id<string>(userId)
+      await this.mainService
+        .getByField<string>("profile", "userId", userId)
         .then((response: Response<string>) => {
           if (response.status !== ResponseStatus.SUCCESS) {
             this.router.navigate(["/profile/create_profile"]);

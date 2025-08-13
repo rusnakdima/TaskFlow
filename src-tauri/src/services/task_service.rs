@@ -24,9 +24,24 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_tasks = self.mongodbProvider.getAll("tasks", None, None).await;
-    match list_tasks {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listTasks = self
+      .mongodbProvider
+      .getAllByField(
+        "tasks",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listTasks {
       Ok(tasks) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -52,31 +67,16 @@ impl TaskService {
   ) -> Result<ResponseModel, ResponseModel> {
     let task = self
       .mongodbProvider
-      .getByField("tasks", Some(doc! { nameField: value }), None, "")
-      .await;
-    match task {
-      Ok(task) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&task),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a task! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task = self
-      .mongodbProvider
-      .getByField("tasks", None, None, &id.as_str())
+      .getByField(
+        "tasks",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+        "",
+      )
       .await;
     match task {
       Ok(task) => {
@@ -98,8 +98,8 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let model_data: TaskModel = data.into();
-    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let modelData: TaskModel = data.into();
+    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let task = self.mongodbProvider.create("tasks", document).await;
     match task {
       Ok(_) => {

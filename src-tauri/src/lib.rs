@@ -12,20 +12,20 @@ use std::sync::Arc;
 use routes::about_route::{downloadUpdate, getBinaryNameFile};
 use routes::auth_route::{checkToken, login, register};
 use routes::category_route::{
-  categoryCreate, categoryDelete, categoryGet, categoryGetAll, categoryGetByField, categoryUpdate,
+  categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
 };
 use routes::profile_route::{
-  profileCreate, profileDelete, profileGet, profileGetAll, profileGetByField, profileUpdate,
+  profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
 };
 use routes::subtask_route::{
-  subtaskCreate, subtaskDelete, subtaskGet, subtaskGetAll, subtaskGetByField, subtaskUpdate,
+  subtaskCreate, subtaskDelete, subtaskGetAllByField, subtaskGetByField, subtaskUpdate,
 };
-use routes::task_route::{taskCreate, taskDelete, taskGet, taskGetAll, taskGetByField, taskUpdate};
+use routes::task_route::{taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate};
 use routes::task_shares_route::{
-  taskSharesCreate, taskSharesDelete, taskSharesGet, taskSharesGetAll, taskSharesGetByField,
+  taskSharesCreate, taskSharesDelete, taskSharesGetAllByField, taskSharesGetByField,
   taskSharesUpdate,
 };
-use routes::todo_route::{todoCreate, todoDelete, todoGet, todoGetAll, todoGetByField, todoUpdate};
+use routes::todo_route::{todoCreate, todoDelete, todoGetAllByField, todoGetByField, todoUpdate};
 
 /* controllers */
 use controllers::about_controller::AboutController;
@@ -69,39 +69,33 @@ pub fn run() {
       checkToken,
       login,
       register,
-      profileGetAll,
+      profileGetAllByField,
       profileGetByField,
-      profileGet,
       profileCreate,
       profileUpdate,
       profileDelete,
-      categoryGetAll,
+      categoryGetAllByField,
       categoryGetByField,
-      categoryGet,
       categoryCreate,
       categoryUpdate,
       categoryDelete,
-      todoGetAll,
+      todoGetAllByField,
       todoGetByField,
-      todoGet,
       todoCreate,
       todoUpdate,
       todoDelete,
-      taskGetAll,
+      taskGetAllByField,
       taskGetByField,
-      taskGet,
       taskCreate,
       taskUpdate,
       taskDelete,
-      subtaskGetAll,
+      subtaskGetAllByField,
       subtaskGetByField,
-      subtaskGet,
       subtaskCreate,
       subtaskUpdate,
       subtaskDelete,
-      taskSharesGetAll,
+      taskSharesGetAllByField,
       taskSharesGetByField,
-      taskSharesGet,
       taskSharesCreate,
       taskSharesUpdate,
       taskSharesDelete,

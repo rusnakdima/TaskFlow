@@ -12,9 +12,13 @@ use crate::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn taskGetAll(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+pub async fn taskGetAllByField(
+  state: State<'_, AppState>,
+  nameField: String,
+  value: String,
+) -> Result<ResponseModel, ResponseModel> {
   let taskController = state.taskController.clone();
-  let result = taskController.getAll().await;
+  let result = taskController.getAllByField(nameField, value).await;
   result
 }
 
@@ -27,17 +31,6 @@ pub async fn taskGetByField(
 ) -> Result<ResponseModel, ResponseModel> {
   let taskController = state.taskController.clone();
   let result = taskController.getByField(nameField, value).await;
-  result
-}
-
-#[allow(non_snake_case)]
-#[tauri::command]
-pub async fn taskGet(
-  state: State<'_, AppState>,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.get(id).await;
   result
 }
 

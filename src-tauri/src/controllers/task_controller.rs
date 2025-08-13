@@ -20,8 +20,12 @@ impl TaskController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.getAll().await;
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.taskService.getAllByField(nameField, value).await;
   }
 
   #[allow(non_snake_case)]
@@ -31,11 +35,6 @@ impl TaskController {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.taskService.getByField(nameField, value).await;
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.get(id).await;
   }
 
   #[allow(non_snake_case)]

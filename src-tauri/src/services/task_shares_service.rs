@@ -24,9 +24,24 @@ impl TaskSharesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_task_shares = self.mongodbProvider.getAll("task_shares", None, None).await;
-    match list_task_shares {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listTaskShares = self
+      .mongodbProvider
+      .getAllByField(
+        "task_shares",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listTaskShares {
       Ok(task_shares) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -54,34 +69,14 @@ impl TaskSharesService {
       .mongodbProvider
       .getByField(
         "task_shares",
-        Some(doc! { nameField: value }),
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
         None,
         "",
       )
-      .await;
-    match task_share {
-      Ok(task_share) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&task_share),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a task_share! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task_share = self
-      .mongodbProvider
-      .getByField("task_shares", None, None, &id.as_str())
       .await;
     match task_share {
       Ok(task_share) => {

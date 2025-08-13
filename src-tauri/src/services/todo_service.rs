@@ -24,9 +24,24 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_todos = self.mongodbProvider.getAll("todos", None, None).await;
-    match list_todos {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listTodos = self
+      .mongodbProvider
+      .getAllByField(
+        "todos",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listTodos {
       Ok(todos) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -52,31 +67,16 @@ impl TodoService {
   ) -> Result<ResponseModel, ResponseModel> {
     let todo = self
       .mongodbProvider
-      .getByField("todos", Some(doc! { nameField: value }), None, "")
-      .await;
-    match todo {
-      Ok(todo) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&todo),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a todo! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todo = self
-      .mongodbProvider
-      .getByField("todos", None, None, &id.as_str())
+      .getByField(
+        "todos",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+        "",
+      )
       .await;
     match todo {
       Ok(todo) => {
@@ -98,8 +98,8 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let model_data: TodoModel = data.into();
-    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let modelData: TodoModel = data.into();
+    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let todo = self.mongodbProvider.create("todos", document).await;
     match todo {
       Ok(_) => {

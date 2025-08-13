@@ -11,19 +11,19 @@ import { Response } from "@models/response";
 export class MainService {
   constructor() {}
 
-  async getAll<R>(apiName: string): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}GetAll`);
-  }
-
-  async getAllByField<R, D>(apiName: string, name: string, value: D): Promise<Response<R>> {
+  async getAllByField<R>(
+    apiName: string,
+    name: string = "",
+    value: string = ""
+  ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}GetAllByField`, { nameField: name, value: value });
   }
 
-  async get<R>(apiName: string, id: string): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}Get`, { id: id });
-  }
-
-  async getByField<R, D>(apiName: string, name: string, value: D): Promise<Response<R>> {
+  async getByField<R>(
+    apiName: string,
+    name: string = "",
+    value: string = ""
+  ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}GetByField`, { nameField: name, value: value });
   }
 

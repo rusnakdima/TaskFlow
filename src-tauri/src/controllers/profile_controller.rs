@@ -20,8 +20,12 @@ impl ProfileController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.getAll().await;
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.profileService.getAllByField(nameField, value).await;
   }
 
   #[allow(non_snake_case)]
@@ -31,11 +35,6 @@ impl ProfileController {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.profileService.getByField(nameField, value).await;
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.get(id).await;
   }
 
   #[allow(non_snake_case)]

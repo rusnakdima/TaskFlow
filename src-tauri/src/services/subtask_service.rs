@@ -24,9 +24,24 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_subtasks = self.mongodbProvider.getAll("subtasks", None, None).await;
-    match list_subtasks {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listSubtasks = self
+      .mongodbProvider
+      .getAllByField(
+        "subtasks",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listSubtasks {
       Ok(subtasks) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -54,7 +69,11 @@ impl SubtaskService {
       .mongodbProvider
       .getByField(
         "subtasks",
-        Some(doc! { nameField: value }),
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
         None,
         "",
       )
@@ -78,33 +97,9 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let subtask = self
-      .mongodbProvider
-      .getByField("subtasks", None, None, &id.as_str())
-      .await;
-    match subtask {
-      Ok(subtask) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&subtask),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a subtask! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let model_data: SubtaskModel = data.into();
-    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let modelData: SubtaskModel = data.into();
+    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let subtask = self.mongodbProvider.create("subtasks", document).await;
     match subtask {
       Ok(_) => {

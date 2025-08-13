@@ -48,7 +48,7 @@ export class ProfileComponent implements OnInit {
 
   getProfile(userId: string) {
     this.mainService
-      .getByField<Profile, string>("profile", "userId", userId)
+      .getByField<Profile>("profile", "userId", userId)
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.profile = response.data;

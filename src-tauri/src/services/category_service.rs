@@ -24,9 +24,24 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    let list_categories = self.mongodbProvider.getAll("categories", None, None).await;
-    match list_categories {
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listCategories = self
+      .mongodbProvider
+      .getAllByField(
+        "categories",
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listCategories {
       Ok(categories) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -54,7 +69,11 @@ impl CategoriesService {
       .mongodbProvider
       .getByField(
         "categories",
-        Some(doc! { nameField: value }),
+        if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        },
         None,
         "",
       )
@@ -78,33 +97,9 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let category = self
-      .mongodbProvider
-      .getByField("categories", None, None, &id.as_str())
-      .await;
-    match category {
-      Ok(category) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_object(&category),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a category! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
   pub async fn create(&self, data: CategoryCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let model_data: CategoryModel = data.into();
-    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
+    let modelData: CategoryModel = data.into();
+    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let category = self.mongodbProvider.create("categories", document).await;
     match category {
       Ok(_) => {

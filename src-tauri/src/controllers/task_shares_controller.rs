@@ -20,8 +20,12 @@ impl TaskSharesController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAll(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.taskSharesService.getAll().await;
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.taskSharesService.getAllByField(nameField, value).await;
   }
 
   #[allow(non_snake_case)]
@@ -31,11 +35,6 @@ impl TaskSharesController {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.taskSharesService.getByField(nameField, value).await;
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.taskSharesService.get(id).await;
   }
 
   #[allow(non_snake_case)]

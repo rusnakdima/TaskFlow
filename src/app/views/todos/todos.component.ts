@@ -15,6 +15,7 @@ import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
 /* components */
+import { AuthService } from "@services/auth.service";
 import { SearchComponent } from "@components/fields/search/search.component";
 import { TodoComponent } from "@components/todo/todo.component";
 
@@ -27,6 +28,7 @@ import { TodoComponent } from "@components/todo/todo.component";
 })
 export class TodosComponent implements OnInit {
   constructor(
+    private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService
   ) {}
@@ -35,19 +37,23 @@ export class TodosComponent implements OnInit {
   tempListTodos: Array<Todo> = [];
 
   ngOnInit(): void {
-    this.mainService
-      .getAll<Array<Todo>>("todo")
-      .then((response: Response<Array<Todo>>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.listTodos = response.data;
-          this.tempListTodos = response.data;
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      });
+    const userId: string = this.authService.getValueByKey("id");
+
+    if (userId && userId != "") {
+      this.mainService
+        .getAllByField<Array<Todo>>("todo", "userId", userId)
+        .then((response: Response<Array<Todo>>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.listTodos = response.data;
+            this.tempListTodos = response.data;
+          } else {
+            this.notifyService.showError(response.message);
+          }
+        })
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message);
+        });
+    }
   }
 
   searchFunc(data: Array<any>) {
