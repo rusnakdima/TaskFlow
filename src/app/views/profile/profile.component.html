@@ -28,10 +28,12 @@
     </div>
 
     <div class="flex flex-col gap-y-3">
-      <button class="styleButDanger" (click)="logout()">
-        <mat-icon class="!w-[25px] !h-[25px] !text-2xl" fontIcon="logout" />
-        <span>Logout</span>
-      </button>
+      @if (queryId == userId) {
+        <button class="styleButDanger" (click)="logout()">
+          <mat-icon class="!w-[25px] !h-[25px] !text-2xl" fontIcon="logout" />
+          <span>Logout</span>
+        </button>
+      }
     </div>
   } @else {
     <div class="flex flex-col justify-center items-center">
