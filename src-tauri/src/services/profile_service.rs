@@ -14,12 +14,20 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct ProfileService {
   pub mongodbProvider: MongodbProvider,
+  relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
   pub fn new() -> Self {
     Self {
       mongodbProvider: MongodbProvider::new(),
+      relations: vec![RelationObj {
+        collection_name: "users".to_string(),
+        typeField: TypesField::OneToOne,
+        nameField: "userId".to_string(),
+        newNameField: "user".to_string(),
+        relations: None,
+      }],
     }
   }
 
@@ -29,14 +37,6 @@ impl ProfileService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let relations: Vec<RelationObj> = vec![RelationObj {
-      collection_name: "users".to_string(),
-      typeField: TypesField::One,
-      nameField: "userId".to_string(),
-      newNameField: "user".to_string(),
-      relations: None,
-    }];
-
     let list_profiles = self
       .mongodbProvider
       .getAllByField(
@@ -46,7 +46,7 @@ impl ProfileService {
         } else {
           None
         },
-        Some(relations),
+        Some(self.relations.clone()),
       )
       .await;
     match list_profiles {
@@ -73,14 +73,6 @@ impl ProfileService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let relations: Vec<RelationObj> = vec![RelationObj {
-      collection_name: "users".to_string(),
-      typeField: TypesField::One,
-      nameField: "userId".to_string(),
-      newNameField: "user".to_string(),
-      relations: None,
-    }];
-
     let profile = self
       .mongodbProvider
       .getByField(
@@ -90,7 +82,7 @@ impl ProfileService {
         } else {
           None
         },
-        Some(relations),
+        Some(self.relations.clone()),
         &"",
       )
       .await;
