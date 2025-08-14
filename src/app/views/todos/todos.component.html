@@ -4,6 +4,7 @@
       <app-search
         [isShowSearchField]="true"
         [tempArray]="tempListTodos"
+        [searchByFields]="['title']"
         (array)="searchFunc($event)"
       />
     </div>

@@ -3,8 +3,24 @@
     <mat-expansion-panel-header>
       <mat-panel-title>{{ todo?.title ?? "" }}</mat-panel-title>
     </mat-expansion-panel-header>
-    <div class="flex flex-col m-3">
-      <span>{{ todo?.description ?? "" }}</span>
+    <div class="flex flex-col gap-y-5 m-3">
+      <div class="flex flex-col gap-y-2">
+        <span class="text-xl">Description</span>
+        <span>{{ todo?.description ?? "" }}</span>
+      </div>
+      <div class="flex flex-col gap-y-2">
+        <span class="text-xl">Team</span>
+        <div class="flex flex-row gap-x-1">
+          @for ((assignee of todo?.assignees ?? []); track $index) {
+            <img class="rounded-full w-7 h-7" [src]="assignee?.profile?.imageUrl ?? ''" alt="" />
+          }
+          <img
+            class="rounded-full w-7 h-7"
+            src="https://cdn-icons-png.flaticon.com/512/7887/7887095.png"
+            alt=""
+          />
+        </div>
+      </div>
     </div>
   </mat-expansion-panel>
 
@@ -13,6 +29,7 @@
       <app-search
         [isShowSearchField]="true"
         [tempArray]="tempListTasks"
+        [searchByFields]="['title']"
         (array)="searchFunc($event)"
       />
     </div>
