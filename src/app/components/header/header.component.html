@@ -1,5 +1,16 @@
 <div class="styleHeader">
-  <span class="text-xl">{{ title }}</span>
+  <div class="flex flex-row items-center gap-x-3 w-full h-full">
+    @if (isBack) {
+      <mat-icon
+        class="!w-[25px] !h-[30px] !text-2xl cursor-pointer"
+        fontIcon="arrow_back"
+        (click)="goBack()"
+      />
+    }
+    <div class="flex flex-col flex-1 justify-center w-full h-full" (click)="isShowInfoMenu = true">
+      <span class="font-semibold text-xl cursor-pointer">{{ title }}</span>
+    </div>
+  </div>
 
   <div class="flex flex-row gap-x-2 justify-center items-center">
     @if (themeVal == "") {
@@ -9,3 +20,48 @@
     }
   </div>
 </div>
+
+@if (isShowInfoMenu) {
+  <div class="absolute top-0 left-0 m-0 z-[999] w-full h-full">
+    <div class="relative flex flex-col top-0 left-0 p-3 theme w-full h-full">
+      <div class="flex flex-row items-center gap-x-5 w-full h-7">
+        <button (click)="isShowInfoMenu = false">
+          <mat-icon class="!w-[25px] !h-[30px] !text-2xl" fontIcon="arrow_back" />
+        </button>
+      </div>
+      @if (typeInfoMenu == "todo" && todo) {
+        <div class="flex flex-col gap-y-7 px-5 py-2">
+          <div class="flex flex-col gap-y-2">
+            <span class="text-xl">{{ todo.title }}</span>
+            <span class="textMuted">{{ todo.description }}</span>
+          </div>
+
+          <div class="flex flex-col gap-y-2">
+            <span class="">Team Assign</span>
+            <div class="flex flex-row gap-x-1">
+              @for (assignee of todo.assignees; track $index) {
+                <img
+                  class="rounded-full w-7 h-7"
+                  [src]="assignee?.profile?.imageUrl ?? ''"
+                  alt=""
+                />
+              }
+              <img
+                class="rounded-full w-7 h-7"
+                src="https://cdn-icons-png.flaticon.com/512/7887/7887095.png"
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+      } @else if (typeInfoMenu == "task" && task) {
+        <div class="flex flex-col gap-y-7 px-5 py-2">
+          <div class="flex flex-col gap-y-2">
+            <span class="text-xl">{{ task.title }}</span>
+            <span class="textMuted">{{ task.description }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
