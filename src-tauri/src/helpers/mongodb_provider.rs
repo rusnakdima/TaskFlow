@@ -1,7 +1,7 @@
 /* sys lib */
 use dotenv::dotenv;
 use mongodb::{
-  bson::{doc, Document, Uuid},
+  bson::{doc, Document},
   Client, Collection, Database,
 };
 use serde::{Deserialize, Serialize};
@@ -168,8 +168,7 @@ impl MongodbProvider {
     let filter = match filter {
       Some(filter) => filter,
       None => {
-        let uuid_id = Uuid::parse_str(id)?;
-        doc! { "id": uuid_id }
+        doc! { "id": id.to_string() }
       }
     };
 
@@ -215,8 +214,7 @@ impl MongodbProvider {
     document: Document,
   ) -> Result<bool, Box<dyn std::error::Error>> {
     let collection = self.getCollection(collection_name).await?;
-    let uuid_id = Uuid::parse_str(id)?;
-    let filter = doc! { "id": uuid_id };
+    let filter = doc! { "id": id.to_string() };
     let update = doc! { "$set": document };
     collection.update_one(filter, update).await?;
 
@@ -229,8 +227,7 @@ impl MongodbProvider {
     id: &str,
   ) -> Result<bool, Box<dyn std::error::Error>> {
     let collection = self.getCollection(collection_name).await?;
-    let uuid_id = Uuid::parse_str(id)?;
-    let filter = doc! { "id": uuid_id };
+    let filter = doc! { "id": id.to_string() };
     collection.delete_one(filter).await?;
 
     Ok(true)
