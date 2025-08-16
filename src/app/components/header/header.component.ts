@@ -12,8 +12,14 @@ import { distinctUntilChanged, filter, map } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+
+/* models */
 import { Todo } from "@models/todo";
 import { Task } from "@models/task";
+
+/* components */
+import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
+import { TaskInformationComponent } from "@components/task-information/task-information.component";
 
 interface Breadcrumb {
   label: string;
@@ -23,7 +29,7 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, TodoInformationComponent, TaskInformationComponent],
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent {

@@ -1,0 +1,12 @@
+<div class="flex flex-col gap-y-7 px-5 py-2">
+  <span class="text-xl">{{ task.title }}</span>
+
+  <div class="flex flex-col gap-y-2">
+    <span class="text-xl">Description</span>
+    <span class="textMuted">{{ task.description }}</span>
+  </div>
+
+  <div class="relative w-[100px] h-[100px]">
+    <app-circle-progress [percentCompletedTasks]="percentCompletedSubTasks" />
+  </div>
+</div>

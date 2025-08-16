@@ -30,37 +30,9 @@
         </button>
       </div>
       @if (typeInfoMenu == "todo" && todo) {
-        <div class="flex flex-col gap-y-7 px-5 py-2">
-          <div class="flex flex-col gap-y-2">
-            <span class="text-xl">{{ todo.title }}</span>
-            <span class="textMuted">{{ todo.description }}</span>
-          </div>
-
-          <div class="flex flex-col gap-y-2">
-            <span class="">Team Assign</span>
-            <div class="flex flex-row gap-x-1">
-              @for (assignee of todo.assignees; track $index) {
-                <img
-                  class="rounded-full w-7 h-7"
-                  [src]="assignee?.profile?.imageUrl ?? ''"
-                  alt=""
-                />
-              }
-              <img
-                class="rounded-full w-7 h-7"
-                src="https://cdn-icons-png.flaticon.com/512/7887/7887095.png"
-                alt=""
-              />
-            </div>
-          </div>
-        </div>
+        <app-todo-information [todo]="todo" />
       } @else if (typeInfoMenu == "task" && task) {
-        <div class="flex flex-col gap-y-7 px-5 py-2">
-          <div class="flex flex-col gap-y-2">
-            <span class="text-xl">{{ task.title }}</span>
-            <span class="textMuted">{{ task.description }}</span>
-          </div>
-        </div>
+        <app-task-information [task]="task" />
       }
     </div>
   </div>
