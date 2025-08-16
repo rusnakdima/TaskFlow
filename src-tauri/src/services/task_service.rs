@@ -46,7 +46,7 @@ impl TaskService {
         } else {
           None
         },
-        None,
+        Some(self.relations.clone()),
       )
       .await;
     match listTasks {
@@ -82,7 +82,7 @@ impl TaskService {
         } else {
           None
         },
-        None,
+        Some(self.relations.clone()),
         "",
       )
       .await;
@@ -110,12 +110,20 @@ impl TaskService {
     let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let task = self.mongodbProvider.create("tasks", document).await;
     match task {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a task!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -135,12 +143,20 @@ impl TaskService {
       .update("tasks", &id.as_str(), document)
       .await;
     match task {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a task!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -156,12 +172,20 @@ impl TaskService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let task = self.mongodbProvider.delete("tasks", &id.as_str()).await;
     match task {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a task!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
