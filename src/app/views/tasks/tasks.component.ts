@@ -24,7 +24,14 @@ import { TaskComponent } from "@components/task/task.component";
   selector: "app-tasks",
   standalone: true,
   providers: [MainService, NotifyService],
-  imports: [CommonModule, MatIconModule, MatExpansionModule, RouterModule, SearchComponent, TaskComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatExpansionModule,
+    RouterModule,
+    SearchComponent,
+    TaskComponent,
+  ],
   templateUrl: "./tasks.component.html",
 })
 export class TasksComponent implements OnInit {
@@ -81,5 +88,19 @@ export class TasksComponent implements OnInit {
 
   searchFunc(data: Array<any>) {
     this.listTasks = data;
+  }
+
+  deleteTask(id: string) {
+    this.mainService
+      .delete<string>("task", id)
+      .then((response: Response<string>) => {
+        this.notifyService.showNotify(response.status, response.message);
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.getTasksByTodoId(this.todo?.id ?? "");
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message);
+      });
   }
 }

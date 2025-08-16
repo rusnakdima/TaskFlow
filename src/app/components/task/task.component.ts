@@ -1,10 +1,11 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatMenu, MatMenuTrigger } from "@angular/material/menu";
 
 /* helpers */
 import { Common } from "@helpers/common";
@@ -19,7 +20,14 @@ import { CircleProgressComponent } from "@components/circle-progress/circle-prog
 @Component({
   selector: "app-task",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, CircleProgressComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatMenu,
+    MatMenuTrigger,
+    CircleProgressComponent,
+  ],
   templateUrl: "./task.component.html",
 })
 export class TaskComponent {
@@ -27,6 +35,8 @@ export class TaskComponent {
 
   @Input() task: Task | null = null;
   @Input() index: number = 0;
+
+  @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
 
   truncateString = Common.truncateString;
 
@@ -41,11 +51,17 @@ export class TaskComponent {
     return listSubtasks.length;
   }
 
-  get percentCompletedTasks(): number {
+  get percentCompletedSubTasks(): number {
     const listSubtasks = this.task?.subtasks ?? [];
     const listCompletedSubtasks = listSubtasks.filter((subtask: Subtask) => subtask.isCompleted);
     const percent =
       listCompletedSubtasks.length / (listSubtasks.length == 0 ? 1 : listSubtasks.length);
     return percent;
+  }
+
+  deleteTask() {
+    if (this.task) {
+      this.deleteTaskEvent.next(this.task.id);
+    }
   }
 }
