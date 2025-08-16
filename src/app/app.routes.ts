@@ -1,5 +1,8 @@
 /* sys lib */
-import { Routes } from "@angular/router";
+import { ActivatedRouteSnapshot, Routes } from "@angular/router";
+
+/* reslver */
+import { MainResolver } from "@services/main.resolver";
 
 /* components */
 import { AboutComponent } from "@views/about/about.component";
@@ -13,6 +16,7 @@ import { StatsComponent } from "@views/stats/stats.component";
 
 import { TodosComponent } from "@views/todos/todos.component";
 import { TasksComponent } from "@views/tasks/tasks.component";
+import { SubtasksComponent } from "@views/subtasks/subtasks.component";
 import { CreateTodoComponent } from "@views/todos/create-todo/create-todo.component";
 import { CreateTaskComponent } from "@views/tasks/create-task/create-task.component";
 
@@ -27,88 +31,95 @@ export const routes: Routes = [
     path: "dashboard",
     component: DashboardComponent,
     title: "Dashboard",
-    data: { breadcrumbs: "Dashboard" },
+    data: { breadcrumb: "Dashboard" },
   },
   {
     path: "Statistic",
     component: StatsComponent,
     title: "Statistic",
-    data: { breadcrumbs: "Statistic" },
+    data: { breadcrumb: "Statistic" },
   },
-  { path: "about", component: AboutComponent, title: "About", data: { breadcrumbs: "About" } },
+  { path: "about", component: AboutComponent, title: "About", data: { breadcrumb: "About" } },
 
-  { path: "login", component: LoginComponent, title: "Login", data: { breadcrumbs: "Login" } },
+  { path: "login", component: LoginComponent, title: "Login", data: { breadcrumb: "Login" } },
   {
     path: "signup",
     component: SignupComponent,
     title: "Sign Up",
-    data: { breadcrumbs: "Sign Up" },
+    data: { breadcrumb: "Sign Up" },
   },
   {
     path: "reset_password",
     component: ResetPasswordComponent,
     title: "Reset Password",
-    data: { breadcrumbs: "Reset Password" },
+    data: { breadcrumb: "Reset Password" },
   },
   {
     path: "change_password",
     component: ChangePasswordComponent,
     title: "Change Password",
-    data: { breadcrumbs: "Change Password" },
+    data: { breadcrumb: "Change Password" },
   },
 
   {
     path: "profile",
     component: ProfileComponent,
     title: "Profile",
-    data: { breadcrumbs: "Profile" },
+    data: { breadcrumb: "Profile" },
   },
   {
     path: "profile/create_profile",
     component: CreateProfileComponent,
     title: "Create Profile",
-    data: { breadcrumbs: "Create Profile" },
+    data: { breadcrumb: "Create Profile" },
   },
 
   {
     path: "todos",
     title: "Todos",
-    data: { breadcrumbs: "Todos" },
+    data: { breadcrumb: "Todos" },
     children: [
       {
         path: "",
         component: TodosComponent,
-        title: "Todos",
-        data: { breadcrumbs: "Todos" },
       },
       {
         path: "create_todo",
         component: CreateTodoComponent,
         title: "Create Todo",
-        data: { breadcrumbs: "Create Todo" },
+        data: { breadcrumb: "Create Todo" },
       },
       {
         path: ":todoId/tasks",
         title: "Tasks",
-        data: { breadcrumbs: "Tasks" },
+        data: { breadcrumb: async (route: ActivatedRouteSnapshot) => route.data },
+        resolve: {
+          todo: MainResolver,
+        },
         children: [
           {
             path: "",
             component: TasksComponent,
-            title: "Tasks",
-            data: { breadcrumbs: "Tasks" },
           },
           {
             path: "create_task",
             component: CreateTaskComponent,
             title: "Create Task",
-            data: { breadcrumbs: "Create Task" },
+            data: { breadcrumb: "Create Task" },
           },
           {
-            path: ":taskId",
-            component: TasksComponent,
+            path: ":taskId/subtasks",
             title: "Task",
-            data: { breadcrumbs: "Task" },
+            data: { breadcrumb: async (route: ActivatedRouteSnapshot) => route.data },
+            resolve: {
+              task: MainResolver,
+            },
+            children: [
+              {
+                path: "",
+                component: SubtasksComponent,
+              },
+            ]
           },
         ],
       },
@@ -119,6 +130,6 @@ export const routes: Routes = [
     path: "**",
     component: NotFoundComponent,
     title: "404 — Not Found",
-    data: { breadcrumbs: "404 — Not Found" },
+    data: { breadcrumb: "404 — Not Found" },
   },
 ];
