@@ -43,6 +43,7 @@ pub struct TaskModel {
   pub description: String,
   pub isCompleted: bool,
   pub priority: String,
+  pub deadline: String,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -60,6 +61,7 @@ impl From<TaskCreateModel> for TaskModel {
       description: value.description,
       isCompleted: false,
       priority: value.priority.to_string(),
+      deadline: "".to_string(),
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -76,6 +78,7 @@ pub struct TaskFullModel {
   pub description: String,
   pub isCompleted: bool,
   pub priority: PriorityTask,
+  pub deadline: String,
   pub createdAt: String,
   pub updatedAt: String,
 }

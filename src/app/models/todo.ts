@@ -8,6 +8,7 @@ export interface Todo {
   user: User;
   title: string;
   description: string;
+  deadline: string;
   categories: Array<Category>;
   tasks: Array<Task>;
   assignees: Array<User>;
