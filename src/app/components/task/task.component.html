@@ -1,18 +1,18 @@
 <div
-  class="flex flex-row items-center justify-between p-5 styleBorderSolidLite border hover:bg-slate-200 dark:hover:bg-zinc-700 cursor-pointer"
+  class="flex flex-row items-center justify-between gap-x-5 p-5 styleBorderSolidLite border hover:bg-slate-200 dark:hover:bg-zinc-700 cursor-pointer"
   [routerLink]="(task?.id ?? '') + '/subtasks'"
 >
-  <div class="flex flex-row gap-x-5">
-    <div class="flex flex-col items-center gap-y-1">
-      <div class="relative w-[80px] h-[80px]">
-        <app-circle-progress [percentCompletedTasks]="percentCompletedSubTasks" [index]="index" />
-      </div>
-    </div>
-
+  <div class="flex flex-row-reverse flex-wrap justify-end gap-5">
     <div class="flex flex-col gap-y-1">
       <span>{{ task?.title ?? "No title" }}</span>
       <span class="textMuted">{{ truncateString(task?.description ?? "No description") }}</span>
       <span class="textMuted text-base">{{ countCompletedTasks }}/{{ countTasks }} subtasks</span>
+    </div>
+
+    <div class="flex flex-col items-center gap-y-1">
+      <div class="relative w-[80px] h-[80px]">
+        <app-circle-progress [percentCompletedTasks]="percentCompletedSubTasks" [index]="index" />
+      </div>
     </div>
   </div>
 
