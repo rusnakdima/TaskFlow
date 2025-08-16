@@ -3,6 +3,9 @@ import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
+/* materials */
+import { MatIconModule } from "@angular/material/icon";
+
 /* helpers */
 import { Common } from "@helpers/common";
 
@@ -16,7 +19,7 @@ import { CircleProgressComponent } from "@components/circle-progress/circle-prog
 @Component({
   selector: "app-todo",
   standalone: true,
-  imports: [CommonModule, RouterModule, CircleProgressComponent],
+  imports: [CommonModule, RouterModule, MatIconModule, CircleProgressComponent],
   templateUrl: "./todo.component.html",
 })
 export class TodoComponent {
