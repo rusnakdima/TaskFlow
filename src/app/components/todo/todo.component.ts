@@ -10,16 +10,20 @@ import { Common } from "@helpers/common";
 import { Todo } from "@models/todo";
 import { Task } from "@models/task";
 
+/* components */
+import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
+
 @Component({
   selector: "app-todo",
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, CircleProgressComponent],
   templateUrl: "./todo.component.html",
 })
 export class TodoComponent {
   constructor() {}
 
   @Input() todo: Todo | null = null;
+  @Input() index: number = 0;
 
   truncateString = Common.truncateString;
 
@@ -37,7 +41,7 @@ export class TodoComponent {
   get percentCompletedTasks(): number {
     const listTasks = this.todo?.tasks ?? [];
     const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
-    const percent = listCompletedTasks.length / listTasks.length;
+    const percent = listCompletedTasks.length / (listTasks.length == 0 ? 1 : listTasks.length);
     return percent;
   }
 }
