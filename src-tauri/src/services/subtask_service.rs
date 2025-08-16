@@ -102,12 +102,20 @@ impl SubtaskService {
     let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let subtask = self.mongodbProvider.create("subtasks", document).await;
     match subtask {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a subtask!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -131,12 +139,20 @@ impl SubtaskService {
       .update("subtasks", &id.as_str(), document)
       .await;
     match subtask {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a subtask!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -152,12 +168,20 @@ impl SubtaskService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let subtask = self.mongodbProvider.delete("subtasks", &id.as_str()).await;
     match subtask {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a subtask!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {

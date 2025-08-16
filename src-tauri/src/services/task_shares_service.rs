@@ -102,12 +102,20 @@ impl TaskSharesService {
     let document: Document = mongodb::bson::to_document(&model_data).unwrap();
     let task_share = self.mongodbProvider.create("task_shares", document).await;
     match task_share {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a task_share!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -131,12 +139,20 @@ impl TaskSharesService {
       .update("task_shares", &id.as_str(), document)
       .await;
     match task_share {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a task_share!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -155,12 +171,20 @@ impl TaskSharesService {
       .delete("task_shares", &id.as_str())
       .await;
     match task_share {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a task_share!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {

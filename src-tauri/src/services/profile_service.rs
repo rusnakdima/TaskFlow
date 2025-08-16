@@ -121,12 +121,20 @@ impl ProfileService {
     let doc: Document = mongodb::bson::to_document(&model_data).unwrap();
     let profile = self.mongodbProvider.create("profiles", doc).await;
     match profile {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a profile!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -150,12 +158,20 @@ impl ProfileService {
       .update("profiles", &id.as_str(), document)
       .await;
     match profile {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a profile!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -171,12 +187,20 @@ impl ProfileService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let profile = self.mongodbProvider.delete("profiles", &id.as_str()).await;
     match profile {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a profile!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {

@@ -145,12 +145,20 @@ impl TodoService {
     let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let todo = self.mongodbProvider.create("todos", document).await;
     match todo {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a todo!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -170,12 +178,20 @@ impl TodoService {
       .update("todos", &id.as_str(), document)
       .await;
     match todo {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a todo!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -191,12 +207,20 @@ impl TodoService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let todo = self.mongodbProvider.delete("todos", &id.as_str()).await;
     match todo {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a todo!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {

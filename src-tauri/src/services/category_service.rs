@@ -102,12 +102,20 @@ impl CategoriesService {
     let document: Document = mongodb::bson::to_document(&modelData).unwrap();
     let category = self.mongodbProvider.create("categories", document).await;
     match category {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't create a category!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -131,12 +139,20 @@ impl CategoriesService {
       .update("categories", &id.as_str(), document)
       .await;
     match category {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't update a category!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
@@ -155,12 +171,20 @@ impl CategoriesService {
       .delete("categories", &id.as_str())
       .await;
     match category {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+      Ok(result) => {
+        if result {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        } else {
+          return Ok(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Couldn't delete a category!".to_string(),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
       Err(error) => {
         return Err(ResponseModel {
