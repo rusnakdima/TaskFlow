@@ -3,7 +3,7 @@ use mongodb::bson::{doc, Document};
 
 /* helpers */
 use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
 
 /* models */
 use crate::models::{
@@ -14,12 +14,20 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct TaskService {
   pub mongodbProvider: MongodbProvider,
+  relations: Vec<RelationObj>,
 }
 
 impl TaskService {
   pub fn new() -> Self {
     Self {
       mongodbProvider: MongodbProvider::new(),
+      relations: vec![RelationObj {
+        collection_name: "subtasks".to_string(),
+        typeField: TypesField::OneToMany,
+        nameField: "taskId".to_string(),
+        newNameField: "subtasks".to_string(),
+        relations: None,
+      }],
     }
   }
 
