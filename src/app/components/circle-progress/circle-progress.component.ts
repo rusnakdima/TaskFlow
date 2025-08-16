@@ -48,7 +48,7 @@ export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit
       if (this.bar) {
         this.bar.animate(this.percentCompletedTasks);
       }
-    }, 200);
+    }, 400);
   }
 
   ngAfterViewInit(): void {
@@ -56,6 +56,6 @@ export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit
       if (this.bar) {
         this.bar.animate(this.percentCompletedTasks);
       }
-    }, 200);
+    }, 400);
   }
 }
