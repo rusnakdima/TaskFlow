@@ -1,7 +1,6 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { Observable, of } from "rxjs";
 import { MainService } from "./main.service";
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
