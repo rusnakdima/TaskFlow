@@ -79,9 +79,8 @@ export class AboutComponent {
           this.notifyService.showNotify(data.status, data.message);
         }
       })
-      .catch((err: any) => {
-        console.error(err);
-        this.notifyService.showError(err);
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
       });
 
     this.aboutService.getDate(this.version).subscribe({
@@ -93,10 +92,9 @@ export class AboutComponent {
           throw Error("Invalid request");
         }
       },
-      error: (err: any) => {
-        console.error(err);
+      error: (err: Response<string>) => {
         this.downloadProgress = false;
-        this.notifyService.showError(err.status + " — " + err.error.message);
+        this.notifyService.showError(err.message ?? err.toString());
       },
     });
   }
@@ -122,9 +120,9 @@ export class AboutComponent {
           throw Error("Invalid request");
         }
       },
-      error: (err: any) => {
+      error: (err: Response<string>) => {
         console.error(err);
-        this.notifyService.showError(err.status + " — " + err.error.message);
+        this.notifyService.showError(err.message ?? err.toString());
       },
     });
   }
@@ -146,9 +144,8 @@ export class AboutComponent {
             this.notifyService.showNotify(data.status, data.message);
           }
         })
-        .catch((err: any) => {
-          console.error(err);
-          this.notifyService.showError(err);
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message ?? err.toString());
         });
       this.downloadProgress = false;
       this.windUpdates = false;
@@ -165,9 +162,8 @@ export class AboutComponent {
       .then((data: Response<string>) => {
         this.notifyService.showNotify(data.status, data.message);
       })
-      .catch((err: any) => {
-        console.error(err);
-        this.notifyService.showError(err);
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
       });
   }
 }
