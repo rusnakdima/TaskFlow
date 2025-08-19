@@ -28,14 +28,12 @@ use routes::task_shares_route::{
 use routes::todo_route::{todoCreate, todoDelete, todoGetAllByField, todoGetByField, todoUpdate};
 
 /* controllers */
-use controllers::about_controller::AboutController;
-use controllers::auth_controller::AuthController;
-use controllers::category_controller::CategoriesController;
-use controllers::profile_controller::ProfileController;
-use controllers::subtask_controller::SubtaskController;
-use controllers::task_controller::TaskController;
-use controllers::task_shares_controller::TaskSharesController;
-use controllers::todo_controller::TodoController;
+use controllers::{
+  about_controller::AboutController, auth_controller::AuthController,
+  category_controller::CategoriesController, profile_controller::ProfileController,
+  subtask_controller::SubtaskController, task_controller::TaskController,
+  task_shares_controller::TaskSharesController, todo_controller::TodoController,
+};
 
 #[allow(non_snake_case)]
 pub struct AppState {
