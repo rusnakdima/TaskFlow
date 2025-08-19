@@ -92,7 +92,7 @@ export class AboutComponent {
           throw Error("Invalid request");
         }
       },
-      error: (err: Response<string>) => {
+      error: (err: any) => {
         this.downloadProgress = false;
         this.notifyService.showError(err.message ?? err.toString());
       },
