@@ -20,9 +20,9 @@ impl AboutService {
   #[allow(non_snake_case)]
   pub async fn downloadFile(
     &self,
-    app_handle: tauri::AppHandle,
+    appHandle: tauri::AppHandle,
     url: String,
-    file_name: String,
+    fileName: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let response = reqwest::get(url).await;
 
@@ -34,21 +34,21 @@ impl AboutService {
       });
     }
 
-    let download_folder = app_handle.path().download_dir();
+    let downloadFolder = appHandle.path().download_dir();
 
-    if download_folder.is_err() {
+    if downloadFolder.is_err() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!(
           "Error! Failed to get download folder: {}",
-          download_folder.unwrap_err()
+          downloadFolder.unwrap_err()
         ),
         data: DataValue::String("".to_string()),
       });
     }
 
-    let file_path = download_folder.unwrap().join(&file_name);
-    let file = File::create(&file_path);
+    let filePath = downloadFolder.unwrap().join(&fileName);
+    let file = File::create(&filePath);
 
     if file.is_err() {
       return Err(ResponseModel {
@@ -64,7 +64,7 @@ impl AboutService {
     return Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::String(file_path.display().to_string()),
+      data: DataValue::String(filePath.display().to_string()),
     });
   }
 
@@ -72,15 +72,15 @@ impl AboutService {
   pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
     dotenv().ok();
 
-    let mut _name_app = env::var("NAME_APP").expect("NAME_APP not set");
+    let mut nameApp = env::var("NAME_APP").expect("NAME_APP not set");
     if cfg!(target_os = "linux") {
-      _name_app = _name_app.to_string();
+      nameApp = nameApp.to_string();
     } else if cfg!(target_os = "windows") {
-      _name_app = format!("{}.exe", _name_app);
+      nameApp = format!("{}.exe", nameApp);
     } else if cfg!(target_os = "macos") {
-      _name_app = format!("{}.app", _name_app);
+      nameApp = format!("{}.app", nameApp);
     } else if cfg!(target_os = "android") {
-      _name_app = format!("{}.apk", _name_app);
+      nameApp = format!("{}.apk", nameApp);
     } else {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -92,7 +92,7 @@ impl AboutService {
     return Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::String(_name_app),
+      data: DataValue::String(nameApp),
     });
   }
 }
