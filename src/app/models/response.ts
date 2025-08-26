@@ -25,10 +25,8 @@ export interface ActiveNotification extends INotify {
   timeoutId?: number;
 }
 
-export class Response<T> {
-  constructor(
-    public status: ResponseStatus,
-    public message: string,
-    public data: T
-  ) {}
+export interface Response<T> {
+  status: ResponseStatus,
+  message: string,
+  data: T
 }
