@@ -88,10 +88,12 @@ export class LoginComponent {
               });
             }, 500);
           }
+          this.submitted = false;
         })
         .catch((err: any) => {
           console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
+          this.submitted = false;
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");

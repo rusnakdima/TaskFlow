@@ -105,7 +105,13 @@
         }
       </div>
 
-      <button class="styleButInfo" (click)="send()">Register</button>
+      <button class="styleButInfo" (click)="submitted == false && send()">
+        @if (submitted) {
+          <span>...Loading</span>
+        } @else {
+          <span>Register</span>
+        }
+      </button>
 
       <div class="flex flex-col gap-x-2">
         <span>Have you already registered?</span>

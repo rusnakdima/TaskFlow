@@ -60,7 +60,13 @@
         <a class="styleLinkRedir" [routerLink]="['/reset_password']">Forgot Password?</a>
       </div>
 
-      <button class="styleButInfo" (click)="send()">Login</button>
+      <button class="styleButInfo" (click)="submitted == false && send()">
+        @if (submitted) {
+          <span>...Loading</span>
+        } @else {
+          <span>Login</span>
+        }
+      </button>
 
       <div class="flex flex-col gap-x-2">
         <span>Is this your first time here?</span>
