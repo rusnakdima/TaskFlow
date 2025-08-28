@@ -97,10 +97,8 @@ export class HeaderComponent {
         const breadcrumbData = child.snapshot.data["breadcrumb"];
         if (typeof breadcrumbData === "function") {
           const data = await breadcrumbData(child.snapshot as ActivatedRouteSnapshot);
-          console.log(data);
           if (data.task) {
             const task = data.task as Task;
-            console.log(task)
             if (task) {
               this.task = task;
               label = task.title;
