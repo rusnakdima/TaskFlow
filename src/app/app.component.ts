@@ -48,7 +48,9 @@ export class AppComponent {
       this.authService
         .checkToken<User>(token)
         .then((response: Response<User>) => {
-          if (response.status !== ResponseStatus.SUCCESS) {
+          if (response.status == ResponseStatus.SUCCESS) {
+            this.checkUserProfile();
+          } else {
             this.notifyService.showNotify(response.status, response.message);
           }
         })
@@ -57,8 +59,6 @@ export class AppComponent {
           this.router.navigate(["/login"]);
         });
     }
-
-    this.checkUserProfile();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
       let lastIndex =
