@@ -80,6 +80,7 @@ export class AppComponent {
           }
         })
         .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message ?? err.toString());
           if (err.status === ResponseStatus.ERROR) {
             this.router.navigate(["/profile/create_profile"]);
           }
