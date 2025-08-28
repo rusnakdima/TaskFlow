@@ -86,7 +86,7 @@ export class CreateTodoComponent {
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
-            this.router.navigate(["/todos"]);
+            this.back();
           }
         })
         .catch((err: Response<string>) => {
