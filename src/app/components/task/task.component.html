@@ -20,7 +20,13 @@
     <mat-icon class="!w-[25px] !h-[30px] !text-2xl" fontIcon="more_horiz" />
   </button>
   <mat-menu #menu="matMenu" class="!p-1 !min-w-min">
-    <div class="flex flex-col items-center">
+    <div class="flex flex-col items-center gap-y-2">
+      <button
+        class="styleFloatBut !bg-blue-500 dark:!bg-blue-600 !p-1"
+        [routerLink]="'edit_task/' + task?.id"
+      >
+        Edit
+      </button>
       <button class="styleFloatBut !bg-red-500 dark:!bg-red-700 !p-1" (click)="deleteTask()">
         Delete
       </button>

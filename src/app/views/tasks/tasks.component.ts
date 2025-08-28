@@ -90,6 +90,15 @@ export class TasksComponent implements OnInit {
     this.listTasks = data;
   }
 
+  deleteTodo() {
+    this.mainService
+      .delete<string>("todo", this.todo?.id ?? "")
+      .then((response: Response<string>) =>
+        this.notifyService.showNotify(response.status, response.message)
+      )
+      .catch((err: Response<string>) => this.notifyService.showError(err.message));
+  }
+
   deleteTask(id: string) {
     this.mainService
       .delete<string>("task", id)

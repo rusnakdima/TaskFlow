@@ -17,8 +17,8 @@ import { StatsComponent } from "@views/stats/stats.component";
 import { TodosComponent } from "@views/todos/todos.component";
 import { TasksComponent } from "@views/tasks/tasks.component";
 import { SubtasksComponent } from "@views/subtasks/subtasks.component";
-import { CreateTodoComponent } from "@views/todos/create-todo/create-todo.component";
-import { CreateTaskComponent } from "@views/tasks/create-task/create-task.component";
+import { ManageTodoComponent } from "@views/todos/manage-todo/manage-todo.component";
+import { ManageTaskComponent } from "@views/tasks/manage-task/manage-task.component";
 
 import { ProfileComponent } from "@views/profile/profile.component";
 import { CreateProfileComponent } from "@views/create-profile/create-profile.component";
@@ -97,9 +97,15 @@ export const routes: Routes = [
       },
       {
         path: "create_todo",
-        component: CreateTodoComponent,
+        component: ManageTodoComponent,
         title: "Create Todo",
         data: { breadcrumb: "Create Todo" },
+      },
+      {
+        path: ":todoId/edit_todo",
+        component: ManageTodoComponent,
+        title: "Edit Todo",
+        data: { breadcrumb: "Edit Todo" },
       },
       {
         path: ":todoId/tasks",
@@ -115,9 +121,15 @@ export const routes: Routes = [
           },
           {
             path: "create_task",
-            component: CreateTaskComponent,
+            component: ManageTaskComponent,
             title: "Create Task",
             data: { breadcrumb: "Create Task" },
+          },
+          {
+            path: "edit_task/:id",
+            component: ManageTaskComponent,
+            title: "Edit Task",
+            data: { breadcrumb: "Edit Task" },
           },
           {
             path: ":taskId/subtasks",
