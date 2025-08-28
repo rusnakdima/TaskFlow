@@ -22,6 +22,7 @@ import { CreateTaskComponent } from "@views/tasks/create-task/create-task.compon
 
 import { ProfileComponent } from "@views/profile/profile.component";
 import { CreateProfileComponent } from "@views/create-profile/create-profile.component";
+import { EditProfileComponent } from "@views/edit-profile/edit-profile.component";
 
 import { NotFoundComponent } from "@views/not-found/not-found.component";
 
@@ -63,15 +64,26 @@ export const routes: Routes = [
 
   {
     path: "profile",
-    component: ProfileComponent,
     title: "Profile",
     data: { breadcrumb: "Profile" },
-  },
-  {
-    path: "profile/create_profile",
-    component: CreateProfileComponent,
-    title: "Create Profile",
-    data: { breadcrumb: "Create Profile" },
+    children: [
+      {
+        path: "",
+        component: ProfileComponent,
+      },
+      {
+        path: "create_profile",
+        component: CreateProfileComponent,
+        title: "Create Profile",
+        data: { breadcrumb: "Create Profile" },
+      },
+      {
+        path: "edit_profile",
+        component: EditProfileComponent,
+        title: "Create Profile",
+        data: { breadcrumb: "Create Profile" },
+      },
+    ],
   },
 
   {
@@ -119,7 +131,7 @@ export const routes: Routes = [
                 path: "",
                 component: SubtasksComponent,
               },
-            ]
+            ],
           },
         ],
       },
