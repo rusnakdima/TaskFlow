@@ -124,7 +124,7 @@ export class ManageTodoComponent {
           }
         })
         .catch((err: Response<string>) => {
-          console.log(err);
+          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
@@ -144,7 +144,7 @@ export class ManageTodoComponent {
           }
         })
         .catch((err: Response<string>) => {
-          console.log(err);
+          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
