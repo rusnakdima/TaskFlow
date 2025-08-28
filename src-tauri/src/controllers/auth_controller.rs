@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::auth_service;
 
@@ -12,9 +15,10 @@ pub struct AuthController {
 }
 
 impl AuthController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     return Self {
-      authService: auth_service::AuthService::new(),
+      authService: auth_service::AuthService::new(jsonProvider),
     };
   }
 

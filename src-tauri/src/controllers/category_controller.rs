@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::category_service;
 
@@ -13,9 +16,10 @@ pub struct CategoriesController {
 }
 
 impl CategoriesController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      categoriesService: category_service::CategoriesService::new(),
+      categoriesService: category_service::CategoriesService::new(jsonProvider),
     }
   }
 

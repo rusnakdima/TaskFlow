@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::profile_service;
 
@@ -13,9 +16,10 @@ pub struct ProfileController {
 }
 
 impl ProfileController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     return Self {
-      profileService: profile_service::ProfileService::new(),
+      profileService: profile_service::ProfileService::new(jsonProvider),
     };
   }
 

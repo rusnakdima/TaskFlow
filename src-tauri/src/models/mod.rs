@@ -1,5 +1,6 @@
 pub mod response;
 
+pub mod relation_obj_models;
 pub mod list_models;
 
 pub mod login_form_model;

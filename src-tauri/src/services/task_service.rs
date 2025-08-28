@@ -1,28 +1,32 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
+  relation_obj_models::{RelationObj, TypesField},
   response::{DataValue, ResponseModel, ResponseStatus},
   task_model::{TaskCreateModel, TaskModel},
 };
 
 #[allow(non_snake_case)]
 pub struct TaskService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
   relations: Vec<RelationObj>,
 }
 
 impl TaskService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
       relations: vec![RelationObj {
-        collection_name: "subtasks".to_string(),
+        nameTable: "subtasks".to_string(),
         typeField: TypesField::OneToMany,
         nameField: "taskId".to_string(),
         newNameField: "subtasks".to_string(),
@@ -38,11 +42,11 @@ impl TaskService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let listTasks = self
-      .mongodbProvider
+      .jsonProvider
       .getAllByField(
         "tasks",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -54,7 +58,7 @@ impl TaskService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&tasks),
+          data: convertDataToArray(&tasks),
         });
       }
       Err(error) => {
@@ -74,11 +78,11 @@ impl TaskService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let task = self
-      .mongodbProvider
+      .jsonProvider
       .getByField(
         "tasks",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -91,7 +95,7 @@ impl TaskService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&task),
+          data: convertDataToObject(&task),
         });
       }
       Err(error) => {
@@ -107,8 +111,8 @@ impl TaskService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
     let modelData: TaskModel = data.into();
-    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
-    let task = self.mongodbProvider.create("tasks", document).await;
+    let record: Value = to_value(&modelData).unwrap();
+    let task = self.jsonProvider.create("tasks", record).await;
     match task {
       Ok(result) => {
         if result {
@@ -137,10 +141,10 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn update(&self, id: String, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
+    let record: Value = to_value(&data).unwrap();
     let task = self
-      .mongodbProvider
-      .update("tasks", &id.as_str(), document)
+      .jsonProvider
+      .update("tasks", &id.as_str(), record)
       .await;
     match task {
       Ok(result) => {
@@ -170,7 +174,7 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task = self.mongodbProvider.delete("tasks", &id.as_str()).await;
+    let task = self.jsonProvider.delete("tasks", &id.as_str()).await;
     match task {
       Ok(result) => {
         if result {

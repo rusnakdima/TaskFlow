@@ -1,9 +1,11 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
@@ -13,13 +15,14 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct SubtaskService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
 }
 
 impl SubtaskService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
     }
   }
 
@@ -30,11 +33,11 @@ impl SubtaskService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let listSubtasks = self
-      .mongodbProvider
+      .jsonProvider
       .getAllByField(
         "subtasks",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -46,7 +49,7 @@ impl SubtaskService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&subtasks),
+          data: convertDataToArray(&subtasks),
         });
       }
       Err(error) => {
@@ -66,11 +69,11 @@ impl SubtaskService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let subtask = self
-      .mongodbProvider
+      .jsonProvider
       .getByField(
         "subtasks",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -83,7 +86,7 @@ impl SubtaskService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&subtask),
+          data: convertDataToObject(&subtask),
         });
       }
       Err(error) => {
@@ -99,8 +102,8 @@ impl SubtaskService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
     let modelData: SubtaskModel = data.into();
-    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
-    let subtask = self.mongodbProvider.create("subtasks", document).await;
+    let record: Value = to_value(&modelData).unwrap();
+    let subtask = self.jsonProvider.create("subtasks", record).await;
     match subtask {
       Ok(result) => {
         if result {
@@ -133,10 +136,10 @@ impl SubtaskService {
     id: String,
     data: SubtaskModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
+    let record: Value = to_value(&data).unwrap();
     let subtask = self
-      .mongodbProvider
-      .update("subtasks", &id.as_str(), document)
+      .jsonProvider
+      .update("subtasks", &id.as_str(), record)
       .await;
     match subtask {
       Ok(result) => {
@@ -166,7 +169,7 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let subtask = self.mongodbProvider.delete("subtasks", &id.as_str()).await;
+    let subtask = self.jsonProvider.delete("subtasks", &id.as_str()).await;
     match subtask {
       Ok(result) => {
         if result {

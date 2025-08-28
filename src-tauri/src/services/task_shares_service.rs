@@ -1,9 +1,11 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
@@ -13,13 +15,14 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct TaskSharesService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
 }
 
 impl TaskSharesService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
     }
   }
 
@@ -30,11 +33,11 @@ impl TaskSharesService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let listTaskShares = self
-      .mongodbProvider
+      .jsonProvider
       .getAllByField(
         "task_shares",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -46,7 +49,7 @@ impl TaskSharesService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&task_shares),
+          data: convertDataToArray(&task_shares),
         });
       }
       Err(error) => {
@@ -65,12 +68,12 @@ impl TaskSharesService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let task_share = self
-      .mongodbProvider
+    let taskShare = self
+      .jsonProvider
       .getByField(
         "task_shares",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -78,18 +81,18 @@ impl TaskSharesService {
         "",
       )
       .await;
-    match task_share {
-      Ok(task_share) => {
+    match taskShare {
+      Ok(taskShare) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&task_share),
+          data: convertDataToObject(&taskShare),
         });
       }
       Err(error) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Couldn't get a task_share! {}", error.to_string()),
+          message: format!("Couldn't get a task share! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }
@@ -98,10 +101,10 @@ impl TaskSharesService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskSharesCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let model_data: TaskSharesModel = data.into();
-    let document: Document = mongodb::bson::to_document(&model_data).unwrap();
-    let task_share = self.mongodbProvider.create("task_shares", document).await;
-    match task_share {
+    let modelData: TaskSharesModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
+    let taskShare = self.jsonProvider.create("task_shares", record).await;
+    match taskShare {
       Ok(result) => {
         if result {
           return Ok(ResponseModel {
@@ -112,7 +115,7 @@ impl TaskSharesService {
         } else {
           return Ok(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't create a task_share!".to_string(),
+            message: "Couldn't create a task share!".to_string(),
             data: DataValue::String("".to_string()),
           });
         }
@@ -120,7 +123,7 @@ impl TaskSharesService {
       Err(error) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Couldn't create a task_share! {}", error.to_string()),
+          message: format!("Couldn't create a task share! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }
@@ -133,12 +136,12 @@ impl TaskSharesService {
     id: String,
     data: TaskSharesModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
-    let task_share = self
-      .mongodbProvider
-      .update("task_shares", &id.as_str(), document)
+    let record: Value = to_value(&data).unwrap();
+    let taskShare = self
+      .jsonProvider
+      .update("task_shares", &id.as_str(), record)
       .await;
-    match task_share {
+    match taskShare {
       Ok(result) => {
         if result {
           return Ok(ResponseModel {
@@ -149,7 +152,7 @@ impl TaskSharesService {
         } else {
           return Ok(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't update a task_share!".to_string(),
+            message: "Couldn't update a task share!".to_string(),
             data: DataValue::String("".to_string()),
           });
         }
@@ -157,7 +160,7 @@ impl TaskSharesService {
       Err(error) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Couldn't update a task_share! {}", error.to_string()),
+          message: format!("Couldn't update a task share! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }
@@ -166,11 +169,8 @@ impl TaskSharesService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let task_share = self
-      .mongodbProvider
-      .delete("task_shares", &id.as_str())
-      .await;
-    match task_share {
+    let taskShare = self.jsonProvider.delete("task_shares", &id.as_str()).await;
+    match taskShare {
       Ok(result) => {
         if result {
           return Ok(ResponseModel {
@@ -181,7 +181,7 @@ impl TaskSharesService {
         } else {
           return Ok(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't delete a task_share!".to_string(),
+            message: "Couldn't delete a task share!".to_string(),
             data: DataValue::String("".to_string()),
           });
         }
@@ -189,7 +189,7 @@ impl TaskSharesService {
       Err(error) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Couldn't delete a task_share! {}", error.to_string()),
+          message: format!("Couldn't delete a task share! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }

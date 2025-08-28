@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::subtask_service;
 
@@ -13,9 +16,10 @@ pub struct SubtaskController {
 }
 
 impl SubtaskController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     return Self {
-      subtaskService: subtask_service::SubtaskService::new(),
+      subtaskService: subtask_service::SubtaskService::new(jsonProvider),
     };
   }
 

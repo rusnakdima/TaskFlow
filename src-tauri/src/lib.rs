@@ -7,6 +7,7 @@ mod services;
 
 /* sys lib */
 use std::sync::Arc;
+use tauri::Manager;
 
 /* routes */
 use routes::about_route::{downloadUpdate, getBinaryNameFile};
@@ -35,6 +36,9 @@ use controllers::{
   task_shares_controller::TaskSharesController, todo_controller::TodoController,
 };
 
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 #[allow(non_snake_case)]
 pub struct AppState {
   aboutController: Arc<AboutController>,
@@ -48,18 +52,24 @@ pub struct AppState {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[allow(non_snake_case)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
-    .manage(AppState {
-      aboutController: Arc::new(AboutController::new()),
-      authController: Arc::new(AuthController::new()),
-      profileController: Arc::new(ProfileController::new()),
-      categoriesController: Arc::new(CategoriesController::new()),
-      todoController: Arc::new(TodoController::new()),
-      taskController: Arc::new(TaskController::new()),
-      subtaskController: Arc::new(SubtaskController::new()),
-      taskSharesController: Arc::new(TaskSharesController::new()),
+    .setup(|app| {
+      let appHandle = app.handle();
+      let jsonProvider = JsonProvider::new(appHandle.clone());
+      app.manage(AppState {
+        aboutController: Arc::new(AboutController::new()),
+        authController: Arc::new(AuthController::new(jsonProvider.clone())),
+        profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
+        categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
+        todoController: Arc::new(TodoController::new(jsonProvider.clone())),
+        taskController: Arc::new(TaskController::new(jsonProvider.clone())),
+        subtaskController: Arc::new(SubtaskController::new(jsonProvider.clone())),
+        taskSharesController: Arc::new(TaskSharesController::new(jsonProvider.clone())),
+      });
+      Ok(())
     })
     .invoke_handler(tauri::generate_handler![
       downloadUpdate,

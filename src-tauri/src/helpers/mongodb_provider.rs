@@ -4,56 +4,35 @@ use mongodb::{
   bson::{doc, Document},
   Client, Collection, Database,
 };
-use serde::{Deserialize, Serialize};
 use std::env;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub enum TypesField {
-  OneToOne,
-  OneToMany,
-  ManyToOne,
-  ManyToMany,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct RelationObj {
-  pub collection_name: String,
-  pub typeField: TypesField,
-  pub nameField: String,
-  pub newNameField: String,
-  pub relations: Option<Vec<RelationObj>>,
-}
+/* models */
+use crate::models::relation_obj_models::{RelationObj, TypesField};
 
 pub struct MongodbProvider {
-  pub uri: String,
-  pub database: String,
+  pub db: Database,
 }
 
 impl MongodbProvider {
-  pub fn new() -> Self {
+  pub async fn new() -> Self {
     dotenv().ok();
+
+    let uri = env::var("MONGODB_URI").expect("MONGODB_URI must be set");
+    let database = env::var("MONGODB_NAME").expect("MONGODB_NAME must be set");
+    let client = Client::with_uri_str(&uri).await.unwrap();
+
     Self {
-      uri: env::var("MONGODB_URI").expect("MONGODB_URI must be set"),
-      database: env::var("MONGODB_NAME").expect("MONGODB_NAME must be set"),
+      db: client.database(&database),
     }
   }
 
   #[allow(non_snake_case)]
-  pub async fn connectToDB(&self) -> Result<Database, Box<dyn std::error::Error>> {
-    let client = Client::with_uri_str(&self.uri).await?;
-    Ok(client.database(&self.database))
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn getCollection(
+  pub async fn getDataTable(
     &self,
-    collection_name: &str,
-  ) -> Result<Collection<Document>, Box<dyn std::error::Error>> {
-    let db = self.connectToDB().await?;
-    let collection_doc = db.collection::<Document>(collection_name);
-    Ok(collection_doc)
+    nameTable: &str,
+  ) -> Result<Collection<Document>, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.db.collection::<Document>(nameTable);
+    Ok(tableData)
   }
 
   #[allow(non_snake_case)]
@@ -61,14 +40,14 @@ impl MongodbProvider {
     &self,
     mut record: Document,
     relations: Vec<RelationObj>,
-  ) -> Result<Document, Box<dyn std::error::Error>> {
+  ) -> Result<Document, Box<dyn std::error::Error + Send + Sync>> {
     for relation in relations {
       match relation.typeField {
         TypesField::OneToOne => {
           if let Some(value) = record.get(relation.nameField).cloned() {
             let result = match self
               .getByField(
-                &relation.collection_name,
+                &relation.nameTable,
                 None,
                 relation.relations,
                 &value.as_str().unwrap().to_string(),
@@ -85,7 +64,7 @@ impl MongodbProvider {
           if let Some(value) = record.get("id").cloned() {
             let result = match self
               .getAllByField(
-                &relation.collection_name,
+                &relation.nameTable,
                 Some(doc! { relation.nameField: &value.as_str().unwrap().to_string() }),
                 relation.relations,
               )
@@ -103,7 +82,7 @@ impl MongodbProvider {
             for id in value {
               let result = match self
                 .getByField(
-                  &relation.collection_name,
+                  &relation.nameTable,
                   None,
                   relation.relations.clone(),
                   &id.as_str().unwrap().to_string(),
@@ -128,14 +107,14 @@ impl MongodbProvider {
   #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
-    collection_name: &str,
+    nameTable: &str,
     filter: Option<Document>,
     relations: Option<Vec<RelationObj>>,
-  ) -> Result<Vec<Document>, Box<dyn std::error::Error>> {
-    let collection = self.getCollection(collection_name).await?;
+  ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
     let mut cursor = match filter {
-      Some(filter) => collection.find(filter).await?,
-      None => collection.find(doc! {}).await?,
+      Some(filter) => tableData.find(filter).await?,
+      None => tableData.find(doc! {}).await?,
     };
 
     let mut results: Vec<Document> = Vec::new();
@@ -145,12 +124,12 @@ impl MongodbProvider {
     }
 
     if let Some(relations) = relations {
-      let mut enriched_results = Vec::new();
+      let mut enrichedResults = Vec::new();
       for result in results {
         let enriched = Box::pin(self.getDataRelations(result, relations.clone())).await?;
-        enriched_results.push(enriched);
+        enrichedResults.push(enriched);
       }
-      results = enriched_results;
+      results = enrichedResults;
     }
 
     Ok(results)
@@ -159,12 +138,12 @@ impl MongodbProvider {
   #[allow(non_snake_case)]
   pub async fn getByField(
     &self,
-    collection_name: &str,
+    nameTable: &str,
     filter: Option<Document>,
     relations: Option<Vec<RelationObj>>,
     id: &str,
-  ) -> Result<Document, Box<dyn std::error::Error>> {
-    let collection = self.getCollection(collection_name).await?;
+  ) -> Result<Document, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
     let filter = match filter {
       Some(filter) => filter,
       None => {
@@ -172,8 +151,8 @@ impl MongodbProvider {
       }
     };
 
-    let result = match collection.find_one(filter).await {
-      Ok(doc_opt) => match doc_opt {
+    let result = match tableData.find_one(filter).await {
+      Ok(docOpt) => match docOpt {
         Some(doc) => doc,
         None => {
           return Err(Box::new(std::io::Error::new(
@@ -187,48 +166,51 @@ impl MongodbProvider {
       }
     };
 
-    let enriched_result = if let Some(relations) = relations {
+    let enrichedResult = if let Some(relations) = relations {
       Box::pin(self.getDataRelations(result, relations.clone())).await?
     } else {
       result
     };
 
-    Ok(enriched_result)
+    Ok(enrichedResult)
   }
 
+  #[allow(non_snake_case)]
   pub async fn create(
     &self,
-    collection_name: &str,
+    nameTable: &str,
     document: Document,
-  ) -> Result<bool, Box<dyn std::error::Error>> {
-    let collection = self.getCollection(collection_name).await?;
-    collection.insert_one(document).await?;
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
+    tableData.insert_one(document).await?;
 
     Ok(true)
   }
 
+  #[allow(non_snake_case)]
   pub async fn update(
     &self,
-    collection_name: &str,
+    nameTable: &str,
     id: &str,
     document: Document,
-  ) -> Result<bool, Box<dyn std::error::Error>> {
-    let collection = self.getCollection(collection_name).await?;
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
     let filter = doc! { "id": id.to_string() };
     let update = doc! { "$set": document };
-    collection.update_one(filter, update).await?;
+    tableData.update_one(filter, update).await?;
 
     Ok(true)
   }
 
+  #[allow(non_snake_case)]
   pub async fn delete(
     &self,
-    collection_name: &str,
+    nameTable: &str,
     id: &str,
-  ) -> Result<bool, Box<dyn std::error::Error>> {
-    let collection = self.getCollection(collection_name).await?;
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
     let filter = doc! { "id": id.to_string() };
-    collection.delete_one(filter).await?;
+    tableData.delete_one(filter).await?;
 
     Ok(true)
   }

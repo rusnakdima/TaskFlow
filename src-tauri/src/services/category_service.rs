@@ -1,9 +1,11 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
@@ -13,13 +15,14 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct CategoriesService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
 }
 
 impl CategoriesService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
     }
   }
 
@@ -30,11 +33,11 @@ impl CategoriesService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let listCategories = self
-      .mongodbProvider
+      .jsonProvider
       .getAllByField(
         "categories",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -46,7 +49,7 @@ impl CategoriesService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&categories),
+          data: convertDataToArray(&categories),
         });
       }
       Err(error) => {
@@ -66,11 +69,11 @@ impl CategoriesService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let category = self
-      .mongodbProvider
+      .jsonProvider
       .getByField(
         "categories",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -83,7 +86,7 @@ impl CategoriesService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&category),
+          data: convertDataToObject(&category),
         });
       }
       Err(error) => {
@@ -99,8 +102,8 @@ impl CategoriesService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: CategoryCreateModel) -> Result<ResponseModel, ResponseModel> {
     let modelData: CategoryModel = data.into();
-    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
-    let category = self.mongodbProvider.create("categories", document).await;
+    let record: Value = to_value(&modelData).unwrap();
+    let category = self.jsonProvider.create("categories", record).await;
     match category {
       Ok(result) => {
         if result {
@@ -133,10 +136,10 @@ impl CategoriesService {
     id: String,
     data: CategoryModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
+    let record: Value = to_value(&data).unwrap();
     let category = self
-      .mongodbProvider
-      .update("categories", &id.as_str(), document)
+      .jsonProvider
+      .update("categories", &id.as_str(), record)
       .await;
     match category {
       Ok(result) => {
@@ -166,10 +169,7 @@ impl CategoriesService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let category = self
-      .mongodbProvider
-      .delete("categories", &id.as_str())
-      .await;
+    let category = self.jsonProvider.delete("categories", &id.as_str()).await;
     match category {
       Ok(result) => {
         if result {

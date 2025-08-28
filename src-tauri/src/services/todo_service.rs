@@ -1,34 +1,38 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
 /* helpers */
-use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
+  relation_obj_models::{RelationObj, TypesField},
   response::{DataValue, ResponseModel, ResponseStatus},
   todo_model::{TodoCreateModel, TodoModel},
 };
 
 #[allow(non_snake_case)]
 pub struct TodoService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
   relations: Vec<RelationObj>,
 }
 
 impl TodoService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
       relations: vec![
         RelationObj {
-          collection_name: "tasks".to_string(),
+          nameTable: "tasks".to_string(),
           typeField: TypesField::OneToMany,
           nameField: "todoId".to_string(),
           newNameField: "tasks".to_string(),
           relations: Some(vec![RelationObj {
-            collection_name: "subtasks".to_string(),
+            nameTable: "subtasks".to_string(),
             typeField: TypesField::OneToMany,
             nameField: "taskId".to_string(),
             newNameField: "subtasks".to_string(),
@@ -36,12 +40,12 @@ impl TodoService {
           }]),
         },
         RelationObj {
-          collection_name: "users".to_string(),
+          nameTable: "users".to_string(),
           typeField: TypesField::OneToOne,
           nameField: "userId".to_string(),
           newNameField: "user".to_string(),
           relations: Some(vec![RelationObj {
-            collection_name: "profiles".to_string(),
+            nameTable: "profiles".to_string(),
             typeField: TypesField::OneToOne,
             nameField: "profileId".to_string(),
             newNameField: "profile".to_string(),
@@ -49,14 +53,14 @@ impl TodoService {
           }]),
         },
         RelationObj {
-          collection_name: "categories".to_string(),
+          nameTable: "categories".to_string(),
           typeField: TypesField::ManyToOne,
           nameField: "categories".to_string(),
           newNameField: "categories".to_string(),
           relations: None,
         },
         RelationObj {
-          collection_name: "users".to_string(),
+          nameTable: "users".to_string(),
           typeField: TypesField::ManyToOne,
           nameField: "assignees".to_string(),
           newNameField: "assignees".to_string(),
@@ -73,11 +77,11 @@ impl TodoService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let listTodos = self
-      .mongodbProvider
+      .jsonProvider
       .getAllByField(
         "todos",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -89,7 +93,7 @@ impl TodoService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&todos),
+          data: convertDataToArray(&todos),
         });
       }
       Err(error) => {
@@ -109,11 +113,11 @@ impl TodoService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let todo = self
-      .mongodbProvider
+      .jsonProvider
       .getByField(
         "todos",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -126,7 +130,7 @@ impl TodoService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&todo),
+          data: convertDataToObject(&todo),
         });
       }
       Err(error) => {
@@ -142,8 +146,8 @@ impl TodoService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
     let modelData: TodoModel = data.into();
-    let document: Document = mongodb::bson::to_document(&modelData).unwrap();
-    let todo = self.mongodbProvider.create("todos", document).await;
+    let record: Value = to_value(&modelData).unwrap();
+    let todo = self.jsonProvider.create("todos", record).await;
     match todo {
       Ok(result) => {
         if result {
@@ -172,10 +176,10 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn update(&self, id: String, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
+    let record: Value = to_value(&data).unwrap();
     let todo = self
-      .mongodbProvider
-      .update("todos", &id.as_str(), document)
+      .jsonProvider
+      .update("todos", &id.as_str(), record)
       .await;
     match todo {
       Ok(result) => {
@@ -205,7 +209,7 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todo = self.mongodbProvider.delete("todos", &id.as_str()).await;
+    let todo = self.jsonProvider.delete("todos", &id.as_str()).await;
     match todo {
       Ok(result) => {
         if result {

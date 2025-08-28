@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::todo_service;
 
@@ -13,9 +16,10 @@ pub struct TodoController {
 }
 
 impl TodoController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      todoService: todo_service::TodoService::new(),
+      todoService: todo_service::TodoService::new(jsonProvider),
     }
   }
 

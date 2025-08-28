@@ -1,3 +1,6 @@
+/* helpers */
+use crate::helpers::json_provider::JsonProvider;
+
 /* services */
 use crate::services::task_shares_service;
 
@@ -13,9 +16,10 @@ pub struct TaskSharesController {
 }
 
 impl TaskSharesController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     return Self {
-      taskSharesService: task_shares_service::TaskSharesService::new(),
+      taskSharesService: task_shares_service::TaskSharesService::new(jsonProvider),
     };
   }
 

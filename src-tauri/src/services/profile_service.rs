@@ -1,28 +1,32 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::common::{convert_data_to_array, convert_data_to_object};
-use crate::helpers::mongodb_provider::{MongodbProvider, RelationObj, TypesField};
+use crate::helpers::{
+  common::{convertDataToArray, convertDataToObject},
+  json_provider::JsonProvider,
+};
 
 /* models */
 use crate::models::{
   profile_model::{ProfileCreateModel, ProfileModel},
+  relation_obj_models::{RelationObj, TypesField},
   response::{DataValue, ResponseModel, ResponseStatus},
 };
 
 #[allow(non_snake_case)]
 pub struct ProfileService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
   relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
       relations: vec![RelationObj {
-        collection_name: "users".to_string(),
+        nameTable: "users".to_string(),
         typeField: TypesField::OneToOne,
         nameField: "userId".to_string(),
         newNameField: "user".to_string(),
@@ -37,24 +41,24 @@ impl ProfileService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let list_profiles = self
-      .mongodbProvider
+    let listProfiles = self
+      .jsonProvider
       .getAllByField(
         "profiles",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
         Some(self.relations.clone()),
       )
       .await;
-    match list_profiles {
+    match listProfiles {
       Ok(profiles) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_array(&profiles),
+          data: convertDataToArray(&profiles),
         });
       }
       Err(error) => {
@@ -74,11 +78,11 @@ impl ProfileService {
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let profile = self
-      .mongodbProvider
+      .jsonProvider
       .getByField(
         "profiles",
         if nameField != "" {
-          Some(doc! { nameField: value })
+          Some(json!({ nameField: value }))
         } else {
           None
         },
@@ -91,7 +95,7 @@ impl ProfileService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convert_data_to_object(&profile),
+          data: convertDataToObject(&profile),
         });
       }
       Err(error) => {
@@ -106,10 +110,10 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let find_by_user_id = self
+    let findByUserId = self
       .getByField("userId".to_string(), data.userId.clone())
       .await;
-    if find_by_user_id.is_ok() {
+    if findByUserId.is_ok() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "Profile already exists!".to_string(),
@@ -117,9 +121,9 @@ impl ProfileService {
       });
     }
 
-    let model_data: ProfileModel = data.into();
-    let doc: Document = mongodb::bson::to_document(&model_data).unwrap();
-    let profile = self.mongodbProvider.create("profiles", doc).await;
+    let modelData: ProfileModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
+    let profile = self.jsonProvider.create("profiles", record).await;
     match profile {
       Ok(result) => {
         if result {
@@ -152,10 +156,10 @@ impl ProfileService {
     id: String,
     data: ProfileModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let document: Document = mongodb::bson::to_document(&data).unwrap();
+    let record: Value = to_value(&data).unwrap();
     let profile = self
-      .mongodbProvider
-      .update("profiles", &id.as_str(), document)
+      .jsonProvider
+      .update("profiles", &id.as_str(), record)
       .await;
     match profile {
       Ok(result) => {
@@ -185,7 +189,7 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let profile = self.mongodbProvider.delete("profiles", &id.as_str()).await;
+    let profile = self.jsonProvider.delete("profiles", &id.as_str()).await;
     match profile {
       Ok(result) => {
         if result {

@@ -2,15 +2,12 @@
 use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use mongodb::{
-  bson::{doc, oid::ObjectId, Document, Uuid},
-  Collection,
-};
-use serde::{Deserialize, Serialize};
+use mongodb::bson::{oid::ObjectId, Uuid};
+use serde_json::{from_value, json, to_value};
 use std::env;
 
 /* helpers */
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::json_provider::JsonProvider;
 
 /* models */
 use crate::models::{
@@ -20,7 +17,7 @@ use crate::models::{
   user_model::UserModel,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Claims {
   pub id: String,
   pub username: String,
@@ -30,13 +27,14 @@ pub struct Claims {
 
 #[allow(non_snake_case)]
 pub struct AuthService {
-  pub mongodbProvider: MongodbProvider,
+  pub jsonProvider: JsonProvider,
 }
 
 impl AuthService {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
-      mongodbProvider: MongodbProvider::new(),
+      jsonProvider: jsonProvider,
     }
   }
 
@@ -57,89 +55,60 @@ impl AuthService {
           });
         }
 
-        let user_id = decoded.claims.id.clone();
+        let userId = decoded.claims.id.clone();
+        let nameTable = "users".to_string();
+        let filter = json!({ "id": userId });
 
-        let collection_name = "users".to_string();
-        let collection_users = match self
-          .mongodbProvider
-          .getCollection(collection_name.as_str())
+        match self
+          .jsonProvider
+          .getByField(&nameTable, Some(filter), None, &userId)
           .await
         {
-          Ok(coll) => coll,
-          Err(e) => {
-            return Err(ResponseModel {
+          Ok(userDoc) => {
+            let user: UserModel = from_value(userDoc.clone()).map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
-              message: format!("Error getting collection: {}", e),
+              message: format!("Error deserializing user: {}", e),
               data: DataValue::String("".to_string()),
-            });
-          }
-        };
-
-        let filter = doc! { "id": user_id };
-        match collection_users.find_one(filter).await {
-          Ok(Some(user_doc)) => {
-            let user: UserModel = mongodb::bson::from_document(user_doc).unwrap();
-            return Ok(ResponseModel {
+            })?;
+            Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "Token is valid".to_string(),
-              data: DataValue::Object(serde_json::json!({
+              data: DataValue::Object(json!({
                 "id": user.id,
                 "username": user.username,
                 "role": user.role,
               })),
-            });
+            })
           }
-          Ok(None) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: "User not found in the system".to_string(),
-              data: DataValue::String("".to_string()),
-            });
-          }
-          Err(e) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: format!("Database error: {}", e),
-              data: DataValue::String("".to_string()),
-            });
-          }
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("User not found: {}", e),
+            data: DataValue::String("".to_string()),
+          }),
         }
       }
-      Err(_) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Invalid token".to_string(),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+      Err(_) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Invalid token".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
   #[allow(non_snake_case)]
   pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
-    let collection_name = "users".to_string();
-    let filter = doc! { "username": loginForm.username };
+    let nameTable = "users".to_string();
 
-    let collection_users: Collection<Document> = match self
-      .mongodbProvider
-      .getCollection(collection_name.as_str())
+    let filter = json!({ "username": loginForm.username });
+    match self
+      .jsonProvider
+      .getByField(&nameTable, Some(filter), None, "")
       .await
     {
-      Ok(coll) => coll,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting collection: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    match collection_users.find_one(filter).await {
-      Ok(Some(user_doc)) => {
-        let stored_hash = match user_doc.get_str("password") {
-          Ok(hash) => hash,
-          Err(_) => {
+      Ok(userDoc) => {
+        let storedHash = match userDoc.get("password").and_then(|v| v.as_str()) {
+          Some(hash) => hash,
+          None => {
             return Err(ResponseModel {
               status: ResponseStatus::Error,
               message: "Error retrieving password".to_string(),
@@ -148,11 +117,11 @@ impl AuthService {
           }
         };
 
-        match verify(loginForm.password, stored_hash) {
-          Ok(_) => {
-            let user_id = match user_doc.get_str("id") {
-              Ok(id) => id.to_string(),
-              Err(_) => {
+        match verify(&loginForm.password, storedHash) {
+          Ok(true) => {
+            let userId = match userDoc.get("id").and_then(|v| v.as_str()) {
+              Some(id) => id.to_string(),
+              None => {
                 return Err(ResponseModel {
                   status: ResponseStatus::Error,
                   message: "Error retrieving user ID".to_string(),
@@ -160,9 +129,9 @@ impl AuthService {
                 });
               }
             };
-            let username = match user_doc.get_str("username") {
-              Ok(name) => name.to_string(),
-              Err(_) => {
+            let username = match userDoc.get("username").and_then(|v| v.as_str()) {
+              Some(name) => name.to_string(),
+              None => {
                 return Err(ResponseModel {
                   status: ResponseStatus::Error,
                   message: "Error retrieving username".to_string(),
@@ -170,9 +139,9 @@ impl AuthService {
                 });
               }
             };
-            let role = match user_doc.get_str("role") {
-              Ok(role) => role.to_string(),
-              Err(_) => {
+            let role = match userDoc.get("role").and_then(|v| v.as_str()) {
+              Some(role) => role.to_string(),
+              None => {
                 return Err(ResponseModel {
                   status: ResponseStatus::Error,
                   message: "Error retrieving role".to_string(),
@@ -183,7 +152,7 @@ impl AuthService {
 
             let expiration = Utc::now() + Duration::hours(24);
             let claims = Claims {
-              id: user_id,
+              id: userId,
               username,
               role,
               exp: expiration.timestamp() as usize,
@@ -205,124 +174,99 @@ impl AuthService {
               }
             };
 
-            return Ok(ResponseModel {
+            Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "Authentication successful".to_string(),
               data: DataValue::String(token),
-            });
-          }
-          Err(_) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: "Error verifying password".to_string(),
-              data: DataValue::String("".to_string()),
             })
           }
+          Ok(false) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Invalid password".to_string(),
+            data: DataValue::String("".to_string()),
+          }),
+          Err(_) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Error verifying password".to_string(),
+            data: DataValue::String("".to_string()),
+          }),
         }
       }
-      Ok(None) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User not found".to_string(),
-          data: DataValue::String("".to_string()),
-        })
-      }
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Database error: {}", e),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("User not found: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
   #[allow(non_snake_case)]
   pub async fn register(&self, signupForm: SignupForm) -> Result<ResponseModel, ResponseModel> {
-    let collection_name = "users".to_string();
+    let nameTable = "users".to_string();
 
-    let collection_users = match self
-      .mongodbProvider
-      .getCollection(collection_name.as_str())
+    let filter = json!({ "email": signupForm.email.clone() });
+    match self
+      .jsonProvider
+      .getByField(&nameTable, Some(filter), None, "")
       .await
     {
-      Ok(coll) => coll,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting collection: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+      Ok(_) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "User with this email already exists".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) if e.to_string().contains("Record not found") => {
+        let user: UserModel = UserModel {
+          _id: ObjectId::new(),
+          id: Uuid::new().to_string(),
+          email: signupForm.email.clone(),
+          username: signupForm.username.clone(),
+          password: match hash(&signupForm.password, 10) {
+            Ok(hashed) => hashed,
+            Err(_) => {
+              return Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Error hashing password".to_string(),
+                data: DataValue::String("".to_string()),
+              });
+            }
+          },
+          role: "user".to_string(),
+          resetToken: "".to_string(),
+          profileId: "".to_string(),
+          createdAt: chrono::Utc::now().to_string(),
+          updatedAt: chrono::Utc::now().to_string(),
+        };
 
-    let filter = doc! { "email": signupForm.email.clone() };
-    match collection_users.find_one(filter).await {
-      Ok(Some(_)) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User with this email already exists".to_string(),
-          data: DataValue::String("".to_string()),
-        });
-      }
-      Ok(None) => { /* Proceed with registration */ }
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error checking existing user: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    }
+        let recordUser = match to_value(&user) {
+          Ok(rec) => rec,
+          Err(e) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: format!("Error serializing user: {}", e),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
 
-    let user: UserModel = UserModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
-      email: signupForm.email.clone(),
-      username: signupForm.username.clone(),
-      password: match hash(signupForm.password.clone(), 10) {
-        Ok(hashed) => hashed,
-        Err(_) => {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Error hashing password".to_string(),
+        match self.jsonProvider.create(&nameTable, recordUser).await {
+          Ok(_) => Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "User created successfully".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          }),
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error creating user: {}", e),
+            data: DataValue::String("".to_string()),
+          }),
         }
-      },
-      role: "user".to_string(),
-      resetToken: "".to_string(),
-      profileId: "".to_string(),
-      createdAt: chrono::Utc::now().to_string(),
-      updatedAt: chrono::Utc::now().to_string(),
-    };
-
-    let user_doc = match mongodb::bson::to_document(&user) {
-      Ok(doc) => doc,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error serializing user: {}", e),
-          data: DataValue::String("".to_string()),
-        });
       }
-    };
-
-    match collection_users.insert_one(user_doc).await {
-      Ok(_) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "User created successfully".to_string(),
-          data: DataValue::String("".to_string()),
-        })
-      }
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error creating user: {}", e),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error checking existing user: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 }
