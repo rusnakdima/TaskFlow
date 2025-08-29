@@ -1,3 +1,6 @@
+#[path = "manage_db.route.rs"]
+pub mod manage_db_route;
+
 #[path = "about.route.rs"]
 pub mod about_route;
 

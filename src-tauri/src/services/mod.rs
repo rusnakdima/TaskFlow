@@ -1,3 +1,6 @@
+#[path = "manage_db.service.rs"]
+pub mod manage_db_service;
+
 #[path = "about.service.rs"]
 pub mod about_service;
 

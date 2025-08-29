@@ -10,6 +10,7 @@ use tauri::AppHandle;
 /* models */
 use crate::models::relation_obj::{RelationObj, TypesField};
 
+#[derive(Clone)]
 pub struct MongodbProvider {
   pub db: Database,
 }
