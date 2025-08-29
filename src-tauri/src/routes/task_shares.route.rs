@@ -1,13 +1,11 @@
 /* sys lib */
+use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::{
-  models::{
-    response::ResponseModel,
-    task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
-  },
-  AppState,
+use crate::models::{
+  response_model::ResponseModel,
+  task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
 };
 
 #[allow(non_snake_case)]

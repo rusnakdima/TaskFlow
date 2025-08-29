@@ -6,7 +6,7 @@ use crate::services::auth_service;
 
 /* models */
 use crate::models::{
-  login_form_model::LoginForm, response::ResponseModel, signup_form_model::SignupForm,
+  login_form_model::LoginForm, response_model::ResponseModel, signup_form_model::SignupForm,
 };
 
 #[allow(non_snake_case)]

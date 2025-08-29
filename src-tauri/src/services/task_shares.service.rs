@@ -9,7 +9,7 @@ use crate::helpers::{
 
 /* models */
 use crate::models::{
-  response::{DataValue, ResponseModel, ResponseStatus},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
   task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
 };
 

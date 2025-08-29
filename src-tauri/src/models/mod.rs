@@ -8,6 +8,7 @@ pub mod relation_obj;
 pub mod login_form_model;
 #[path = "signup_form.model.rs"]
 pub mod signup_form_model;
+
 #[path = "user.model.rs"]
 pub mod user_model;
 #[path = "profile.model.rs"]

@@ -6,7 +6,7 @@ use crate::services::subtask_service;
 
 /* models */
 use crate::models::{
-  response::ResponseModel,
+  response_model::ResponseModel,
   subtask_model::{SubtaskCreateModel, SubtaskModel},
 };
 

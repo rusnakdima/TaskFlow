@@ -1,13 +1,11 @@
 /* sys lib */
+use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::{
-  models::{
-    profile_model::{ProfileCreateModel, ProfileModel},
-    response::ResponseModel,
-  },
-  AppState,
+use crate::models::{
+  profile_model::{ProfileCreateModel, ProfileModel},
+  response_model::ResponseModel,
 };
 
 #[allow(non_snake_case)]

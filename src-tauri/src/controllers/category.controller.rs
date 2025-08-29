@@ -7,7 +7,7 @@ use crate::services::category_service;
 /* models */
 use crate::models::{
   category_model::{CategoryCreateModel, CategoryModel},
-  response::ResponseModel,
+  response_model::ResponseModel,
 };
 
 #[allow(non_snake_case)]

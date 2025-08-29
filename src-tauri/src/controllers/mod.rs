@@ -1,3 +1,6 @@
+#[path = "manage_db.controller.rs"]
+pub mod manage_db_controller;
+
 #[path = "about.controller.rs"]
 pub mod about_controller;
 

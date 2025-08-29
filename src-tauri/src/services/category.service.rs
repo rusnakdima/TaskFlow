@@ -10,7 +10,7 @@ use crate::helpers::{
 /* models */
 use crate::models::{
   category_model::{CategoryCreateModel, CategoryModel},
-  response::{DataValue, ResponseModel, ResponseStatus},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
 };
 
 #[allow(non_snake_case)]

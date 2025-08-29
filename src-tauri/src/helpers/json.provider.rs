@@ -8,7 +8,7 @@ use std::{
 use tauri::{AppHandle, Manager};
 
 /* models */
-use crate::models::relation_obj_models::{RelationObj, TypesField};
+use crate::models::relation_obj::{RelationObj, TypesField};
 
 #[derive(Clone)]
 #[allow(non_snake_case)]

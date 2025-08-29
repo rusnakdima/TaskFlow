@@ -6,7 +6,7 @@ use crate::services::todo_service;
 
 /* models */
 use crate::models::{
-  response::ResponseModel,
+  response_model::ResponseModel,
   todo_model::{TodoCreateModel, TodoModel},
 };
 

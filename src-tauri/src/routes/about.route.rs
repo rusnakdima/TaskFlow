@@ -1,8 +1,9 @@
 /* sys lib */
+use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::{models::response::ResponseModel, AppState};
+use crate::models::response_model::ResponseModel;
 
 #[allow(non_snake_case)]
 #[tauri::command]
@@ -21,9 +22,7 @@ pub async fn downloadUpdate(
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn getBinaryNameFile(
-  state: State<'_, AppState>,
-) -> Result<ResponseModel, ResponseModel> {
+pub async fn getBinaryNameFile(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
   let aboutController = state.aboutController.clone();
   let result = aboutController.getBinaryNameFile().await;
   result

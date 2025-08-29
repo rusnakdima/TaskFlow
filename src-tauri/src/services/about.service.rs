@@ -8,7 +8,7 @@ use tauri::Manager;
 use tauri_plugin_http::reqwest;
 
 /* models */
-use crate::models::response::{DataValue, ResponseModel, ResponseStatus};
+use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 pub struct AboutService;
 

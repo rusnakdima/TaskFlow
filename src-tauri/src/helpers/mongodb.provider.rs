@@ -5,16 +5,18 @@ use mongodb::{
   Client, Collection, Database,
 };
 use std::env;
+use tauri::AppHandle;
 
 /* models */
-use crate::models::relation_obj_models::{RelationObj, TypesField};
+use crate::models::relation_obj::{RelationObj, TypesField};
 
 pub struct MongodbProvider {
   pub db: Database,
 }
 
 impl MongodbProvider {
-  pub async fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub async fn new(appHandle: AppHandle) -> Self {
     dotenv().ok();
 
     let uri = env::var("MONGODB_URI").expect("MONGODB_URI must be set");

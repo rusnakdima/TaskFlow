@@ -7,7 +7,7 @@ use crate::services::profile_service;
 /* models */
 use crate::models::{
   profile_model::{ProfileCreateModel, ProfileModel},
-  response::ResponseModel,
+  response_model::ResponseModel,
 };
 
 #[allow(non_snake_case)]

@@ -1,10 +1,10 @@
 /* sys lib */
+use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::{
-  models::{login_form_model::LoginForm, response::ResponseModel, signup_form_model::SignupForm},
-  AppState,
+use crate::models::{
+  login_form_model::LoginForm, response_model::ResponseModel, signup_form_model::SignupForm,
 };
 
 #[allow(non_snake_case)]

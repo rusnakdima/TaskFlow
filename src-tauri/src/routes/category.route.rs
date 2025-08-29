@@ -1,13 +1,11 @@
 /* sys lib */
+use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::{
-  models::{
-    category_model::{CategoryCreateModel, CategoryModel},
-    response::ResponseModel,
-  },
-  AppState,
+use crate::models::{
+  category_model::{CategoryCreateModel, CategoryModel},
+  response_model::ResponseModel,
 };
 
 #[allow(non_snake_case)]

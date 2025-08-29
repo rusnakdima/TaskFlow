@@ -12,7 +12,7 @@ use crate::helpers::json_provider::JsonProvider;
 /* models */
 use crate::models::{
   login_form_model::LoginForm,
-  response::{DataValue, ResponseModel, ResponseStatus},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
   signup_form_model::SignupForm,
   user_model::UserModel,
 };

@@ -3,7 +3,7 @@ use chrono::Local;
 use serde::Serialize;
 
 /* models */
-use crate::models::response::DataValue;
+use crate::models::response_model::DataValue;
 
 #[allow(non_snake_case)]
 pub fn _getCurrentDate() -> String {

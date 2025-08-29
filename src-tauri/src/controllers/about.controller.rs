@@ -2,7 +2,7 @@
 use crate::services::about_service;
 
 /* models */
-use crate::models::response::ResponseModel;
+use crate::models::response_model::ResponseModel;
 
 #[allow(non_snake_case)]
 pub struct AboutController {

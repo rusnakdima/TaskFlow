@@ -6,7 +6,7 @@ use crate::services::task_shares_service;
 
 /* models */
 use crate::models::{
-  response::ResponseModel,
+  response_model::ResponseModel,
   task_shares_model::{TaskSharesCreateModel, TaskSharesModel},
 };
 

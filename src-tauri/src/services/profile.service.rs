@@ -10,8 +10,8 @@ use crate::helpers::{
 /* models */
 use crate::models::{
   profile_model::{ProfileCreateModel, ProfileModel},
-  relation_obj_models::{RelationObj, TypesField},
-  response::{DataValue, ResponseModel, ResponseStatus},
+  relation_obj::{RelationObj, TypesField},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
 };
 
 #[allow(non_snake_case)]
