@@ -7,7 +7,7 @@ use crate::services::subtask_service;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  subtask_model::{SubtaskCreateModel, SubtaskModel},
+  subtask_model::{SubtaskCreateModel, SubtaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -50,7 +50,7 @@ impl SubtaskController {
   pub async fn update(
     &self,
     id: String,
-    data: SubtaskModel,
+    data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.subtaskService.update(id, data).await;
   }

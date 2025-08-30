@@ -4,7 +4,7 @@ use tauri::State;
 
 /* models */
 use crate::models::{
-  profile_model::{ProfileCreateModel, ProfileModel},
+  profile_model::{ProfileCreateModel, ProfileUpdateModel},
   response_model::ResponseModel,
 };
 
@@ -48,7 +48,7 @@ pub async fn profileCreate(
 pub async fn profileUpdate(
   state: State<'_, AppState>,
   id: String,
-  data: ProfileModel,
+  data: ProfileUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
   let profileController = state.profileController.clone();
   let result = profileController.update(id, data).await;

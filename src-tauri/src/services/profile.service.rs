@@ -9,7 +9,7 @@ use crate::helpers::{
 
 /* models */
 use crate::models::{
-  profile_model::{ProfileCreateModel, ProfileModel},
+  profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
 };
@@ -154,9 +154,10 @@ impl ProfileService {
   pub async fn update(
     &self,
     id: String,
-    data: ProfileModel,
+    data: ProfileUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let record: Value = to_value(&data).unwrap();
+    let modelData: ProfileModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
     let profile = self
       .jsonProvider
       .update("profiles", &id.as_str(), record)

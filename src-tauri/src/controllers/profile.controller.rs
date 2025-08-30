@@ -6,7 +6,7 @@ use crate::services::profile_service;
 
 /* models */
 use crate::models::{
-  profile_model::{ProfileCreateModel, ProfileModel},
+  profile_model::{ProfileCreateModel, ProfileUpdateModel},
   response_model::ResponseModel,
 };
 
@@ -50,7 +50,7 @@ impl ProfileController {
   pub async fn update(
     &self,
     id: String,
-    data: ProfileModel,
+    data: ProfileUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.profileService.update(id, data).await;
   }

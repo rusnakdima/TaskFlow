@@ -7,7 +7,7 @@ use crate::services::task_service;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  task_model::{TaskCreateModel, TaskModel},
+  task_model::{TaskCreateModel, TaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -47,7 +47,11 @@ impl TaskController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn update(&self, id: String, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn update(
+    &self,
+    id: String,
+    data: TaskUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
     return self.taskService.update(id, data).await;
   }
 

@@ -11,7 +11,7 @@ use crate::helpers::{
 use crate::models::{
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  task_model::{TaskCreateModel, TaskModel},
+  task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -140,8 +140,13 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn update(&self, id: String, data: TaskModel) -> Result<ResponseModel, ResponseModel> {
-    let record: Value = to_value(&data).unwrap();
+  pub async fn update(
+    &self,
+    id: String,
+    data: TaskUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let modelData: TaskModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
     let task = self
       .jsonProvider
       .update("tasks", &id.as_str(), record)

@@ -26,15 +26,6 @@ impl Display for PriorityTask {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
-pub struct TaskCreateModel {
-  pub todoId: String,
-  pub title: String,
-  pub description: String,
-  pub priority: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TaskModel {
   pub _id: ObjectId,
   pub id: String,
@@ -46,6 +37,15 @@ pub struct TaskModel {
   pub deadline: String,
   pub createdAt: String,
   pub updatedAt: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct TaskCreateModel {
+  pub todoId: String,
+  pub title: String,
+  pub description: String,
+  pub priority: String,
 }
 
 impl From<TaskCreateModel> for TaskModel {
@@ -63,6 +63,41 @@ impl From<TaskCreateModel> for TaskModel {
       priority: value.priority.to_string(),
       deadline: "".to_string(),
       createdAt: formatted.clone(),
+      updatedAt: formatted.clone(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct TaskUpdateModel {
+  pub _id: ObjectId,
+  pub id: String,
+  pub todoId: String,
+  pub title: String,
+  pub description: String,
+  pub isCompleted: bool,
+  pub priority: String,
+  pub deadline: String,
+  pub createdAt: String,
+  pub updatedAt: String,
+}
+
+impl From<TaskUpdateModel> for TaskModel {
+  fn from(value: TaskUpdateModel) -> Self {
+    let now = chrono::Local::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+
+    TaskModel {
+      _id: value._id,
+      id: value.id,
+      todoId: value.todoId,
+      title: value.title,
+      description: value.description,
+      isCompleted: value.isCompleted,
+      priority: value.priority.to_string(),
+      deadline: "".to_string(),
+      createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
   }

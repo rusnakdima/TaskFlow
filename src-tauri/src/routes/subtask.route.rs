@@ -5,7 +5,7 @@ use tauri::State;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  subtask_model::{SubtaskCreateModel, SubtaskModel},
+  subtask_model::{SubtaskCreateModel, SubtaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -48,7 +48,7 @@ pub async fn subtaskCreate(
 pub async fn subtaskUpdate(
   state: State<'_, AppState>,
   id: String,
-  data: SubtaskModel,
+  data: SubtaskUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
   let subtaskController = state.subtaskController.clone();
   let result = subtaskController.update(id, data).await;

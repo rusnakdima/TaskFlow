@@ -7,7 +7,7 @@ use crate::services::todo_service;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  todo_model::{TodoCreateModel, TodoModel},
+  todo_model::{TodoCreateModel, TodoUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -47,7 +47,11 @@ impl TodoController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn update(&self, id: String, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn update(
+    &self,
+    id: String,
+    data: TodoUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
     return self.todoService.update(id, data).await;
   }
 

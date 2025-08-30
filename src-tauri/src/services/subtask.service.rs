@@ -10,7 +10,7 @@ use crate::helpers::{
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  subtask_model::{SubtaskCreateModel, SubtaskModel},
+  subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -134,9 +134,10 @@ impl SubtaskService {
   pub async fn update(
     &self,
     id: String,
-    data: SubtaskModel,
+    data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let record: Value = to_value(&data).unwrap();
+    let modelData: SubtaskModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
     let subtask = self
       .jsonProvider
       .update("subtasks", &id.as_str(), record)

@@ -11,7 +11,7 @@ use crate::helpers::{
 use crate::models::{
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  todo_model::{TodoCreateModel, TodoModel},
+  todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -175,8 +175,13 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn update(&self, id: String, data: TodoModel) -> Result<ResponseModel, ResponseModel> {
-    let record: Value = to_value(&data).unwrap();
+  pub async fn update(
+    &self,
+    id: String,
+    data: TodoUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let modelData: TodoModel = data.into();
+    let record: Value = to_value(&modelData).unwrap();
     let todo = self
       .jsonProvider
       .update("todos", &id.as_str(), record)

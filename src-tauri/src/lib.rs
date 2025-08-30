@@ -61,7 +61,7 @@ pub fn run() {
     .setup(|app| {
       let appHandle = app.handle();
       let jsonProvider = JsonProvider::new(appHandle.clone());
-      let mongodbProvider = tauri::async_runtime::block_on(MongodbProvider::new(appHandle.clone()));
+      let mongodbProvider = tauri::async_runtime::block_on(MongodbProvider::new());
       app.manage(AppState {
         managedbController: Arc::new(ManageDbController::new(
           jsonProvider.clone(),
