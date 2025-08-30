@@ -7,7 +7,8 @@ import { ActivatedRoute } from "@angular/router";
 /* models */
 import { FormField, parseEnumOptions, TypeField } from "@models/form-field";
 import { Response, ResponseStatus } from "@models/response";
-import { PriorityTask, Task } from "@models/task";
+import { PriorityTask } from "@models/task";
+import { Subtask } from "@models/subtask";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -18,13 +19,13 @@ import { NotifyService } from "@services/notify.service";
 import { FormComponent } from "@components/form/form.component";
 
 @Component({
-  selector: "app-manage-task",
+  selector: "app-manage-subtask",
   standalone: true,
   providers: [AuthService, MainService, NotifyService],
   imports: [CommonModule, FormComponent],
-  templateUrl: "./manage-task.component.html",
+  templateUrl: "./manage-subtask.component.html",
 })
-export class ManageTaskComponent {
+export class ManageSubtaskComponent {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -35,18 +36,17 @@ export class ManageTaskComponent {
     this.form = fb.group({
       _id: [""],
       id: [""],
-      todoId: ["", Validators.required],
+      taskId: ["", Validators.required],
       title: ["", Validators.required],
       description: ["", Validators.required],
       isCompleted: [false],
       priority: ["", Validators.required],
-      deadline: [""],
       createdAt: [""],
       updatedAt: [""],
     });
   }
 
-  todoId: string = "";
+  taskId: string = "";
 
   form: FormGroup;
 
@@ -76,21 +76,21 @@ export class ManageTaskComponent {
 
   ngOnInit() {
     this.route.params.subscribe((params: any) => {
-      if (params.todoId) {
-        this.todoId = params.todoId;
-        this.form.controls["todoId"].setValue(params.todoId);
-      }
       if (params.taskId) {
-        this.getTaskInfo(params.taskId);
+        this.taskId = params.taskId;
+        this.form.controls["taskId"].setValue(params.taskId);
+      }
+      if (params.subtaskId) {
+        this.getSubtaskInfo(params.subtaskId);
         this.isEdit = true;
       }
     });
   }
 
-  getTaskInfo(taskId: string) {
+  getSubtaskInfo(subtaskId: string) {
     this.mainService
-      .getByField<Task>("task", "id", taskId)
-      .then((response: Response<Task>) => {
+      .getByField<Subtask>("subtask", "id", subtaskId)
+      .then((response: Response<Subtask>) => {
         if (response.status == ResponseStatus.SUCCESS) {
           this.form.patchValue(response.data);
         }
@@ -113,18 +113,18 @@ export class ManageTaskComponent {
 
     if (this.form.valid) {
       if (this.isEdit) {
-        this.updateTask();
+        this.updateSubtask();
       } else {
-        this.createTask();
+        this.createSubtask();
       }
     }
   }
 
-  createTask() {
+  createSubtask() {
     if (this.form.valid) {
       const body = this.form.value;
       this.mainService
-        .create<string, Task>("task", body)
+        .create<string, Subtask>("subtask", body)
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
@@ -140,11 +140,11 @@ export class ManageTaskComponent {
     }
   }
 
-  updateTask() {
+  updateSubtask() {
     if (this.form.valid) {
       const body = this.form.value;
       this.mainService
-        .update<string, Task>("task", body.id, body)
+        .update<string, Subtask>("subtask", body.id, body)
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {

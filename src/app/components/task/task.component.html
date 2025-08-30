@@ -23,7 +23,7 @@
     <div class="flex flex-col items-center gap-y-2">
       <button
         class="styleFloatBut !bg-blue-500 dark:!bg-blue-600 !p-1"
-        [routerLink]="'edit_task/' + task?.id"
+        [routerLink]="task?.id + '/edit_task'"
       >
         Edit
       </button>

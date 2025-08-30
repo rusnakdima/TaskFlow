@@ -25,6 +25,7 @@ import { CreateProfileComponent } from "@views/create-profile/create-profile.com
 import { EditProfileComponent } from "@views/edit-profile/edit-profile.component";
 
 import { NotFoundComponent } from "@views/not-found/not-found.component";
+import { ManageSubtaskComponent } from "@views/subtasks/manage-subtask/manage-subtask.component";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
@@ -126,7 +127,7 @@ export const routes: Routes = [
             data: { breadcrumb: "Create Task" },
           },
           {
-            path: "edit_task/:id",
+            path: ":taskId/edit_task",
             component: ManageTaskComponent,
             title: "Edit Task",
             data: { breadcrumb: "Edit Task" },
@@ -142,6 +143,18 @@ export const routes: Routes = [
               {
                 path: "",
                 component: SubtasksComponent,
+              },
+              {
+                path: "create_subtask",
+                component: ManageSubtaskComponent,
+                title: "Create Subtask",
+                data: { breadcrumb: "Create Subtask" },
+              },
+              {
+                path: ":subtaskId/edit_subtask",
+                component: ManageSubtaskComponent,
+                title: "Edit Subtask",
+                data: { breadcrumb: "Edit Subtask" },
               },
             ],
           },
