@@ -1,0 +1,230 @@
+name: Builder for iOS
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (macOS only)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          # Install any additional dependencies if needed
+          echo "Installing macOS dependencies..."
+
+      - name: Install pnpm
+        run: |
+          npm i -g pnpm
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Add iOS Rust targets
+        run: |
+          rustup target add aarch64-apple-ios
+          rustup target add x86_64-apple-ios
+          rustup target add aarch64-apple-ios-sim
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Initialize Tauri iOS (if needed)
+        run: |
+          if [ ! -d "src-tauri/gen/apple" ]; then
+            pnpm tauri ios init
+          fi
+
+      - name: Configure iOS Code Signing
+        run: |
+          # Check if we have signing credentials
+          if [ -n "${{ secrets.IOS_CERTIFICATE_BASE64 }}" ] && [ -n "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" ]; then
+            echo "Setting up production code signing..."
+            
+            # Create certificates directory
+            mkdir -p ~/certificates
+            
+            # Decode and install certificate
+            echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 -d > ~/certificates/certificate.p12
+            
+            # Create keychain
+            security create-keychain -p "temppass" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "temppass" build.keychain
+            security set-keychain-settings -t 3600 -u build.keychain
+            
+            # Import certificate
+            security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k "temppass" build.keychain
+            
+            # Install provisioning profile if provided
+            if [ -n "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" ]; then
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            fi
+            
+            echo "ENABLE_CODE_SIGNING=true" >> $GITHUB_ENV
+          else
+            echo "No signing credentials provided, will build without signing..."
+            echo "ENABLE_CODE_SIGNING=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update Tauri iOS Configuration
+        run: |
+          # Update tauri.conf.json to set development team if provided
+          if [ -n "${{ secrets.IOS_DEVELOPMENT_TEAM }}" ]; then
+            if [ -f "src-tauri/tauri.conf.json" ]; then
+              # Use jq to update the development team
+              jq '.bundle.iOS.developmentTeam = "${{ secrets.IOS_DEVELOPMENT_TEAM }}"' src-tauri/tauri.conf.json > temp.json && mv temp.json src-tauri/tauri.conf.json
+            fi
+          fi
+
+      - name: Build iOS app (with signing)
+        if: env.ENABLE_CODE_SIGNING == 'true'
+        run: |
+          pnpm tauri ios build
+
+      - name: Build iOS app (without signing - for testing)
+        if: env.ENABLE_CODE_SIGNING == 'false'
+        run: |
+          # Build without code signing for CI testing
+          cd src-tauri/gen/apple
+          xcodebuild -allowProvisioningUpdates \
+            -scheme allinonetoolkitv2_iOS \
+            -workspace allinonetoolkitv2.xcodeproj/project.xcworkspace/ \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Alternative - Build for iOS Simulator
+        if: failure()
+        run: |
+          echo "Trying iOS Simulator build..."
+          cd src-tauri/gen/apple
+          xcodebuild -allowProvisioningUpdates \
+            -scheme allinonetoolkitv2_iOS \
+            -workspace allinonetoolkitv2.xcodeproj/project.xcworkspace/ \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 15" \
+            build
+
+      - name: Create IPA (if xcarchive exists)
+        run: |
+          XCARCHIVE_PATH=$(find src-tauri/gen/apple -name "*.xcarchive" | head -1)
+          if [ -n "$XCARCHIVE_PATH" ] && [ -f "$XCARCHIVE_PATH" ]; then
+            echo "Found xcarchive at: $XCARCHIVE_PATH"
+            # Export IPA from xcarchive
+            xcodebuild -exportArchive \
+              -archivePath "$XCARCHIVE_PATH" \
+              -exportPath src-tauri/gen/apple/build \
+              -exportOptionsPlist src-tauri/gen/apple/ExportOptions.plist
+          else
+            echo "No xcarchive found, checking for app bundle..."
+            # Look for .app bundle and create a simple directory structure for IPA
+            APP_PATH=$(find src-tauri/gen/apple -name "*.app" | head -1)
+            if [ -n "$APP_PATH" ]; then
+              echo "Found app bundle at: $APP_PATH"
+              IPA_DIR="src-tauri/gen/apple/build"
+              mkdir -p "$IPA_DIR/Payload"
+              cp -r "$APP_PATH" "$IPA_DIR/Payload/"
+              cd "$IPA_DIR"
+              zip -r "../$(basename "$APP_PATH" .app).ipa" Payload/
+              cd - > /dev/null
+            fi
+          fi
+
+      - name: Create ExportOptions.plist (if not exists)
+        run: |
+          if [ ! -f "src-tauri/gen/apple/ExportOptions.plist" ]; then
+            cat > src-tauri/gen/apple/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>\$DEVELOPMENT_TEAM</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>thinning</key>
+              <string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          EOF
+          fi
+
+      - name: Upload APP bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-bundle
+          path: src-tauri/gen/apple/**/*.app
+          if-no-files-found: warn
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: |
+            src-tauri/gen/apple/build/*.ipa
+            src-tauri/gen/apple/*.ipa
+          if-no-files-found: warn
+
+      - name: Upload XCARCHIVE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-xcarchive
+          path: src-tauri/gen/apple/**/*.xcarchive
+          if-no-files-found: warn
+
+      - name: Find and list build outputs
+        run: |
+          echo "=== Build outputs ==="
+          find src-tauri/gen/apple -type f -name "*.app" -o -name "*.ipa" -o -name "*.xcarchive" | head -20
+
+      - name: Upload to Existing Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/gen/apple/build/*.ipa
+            src-tauri/gen/apple/*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

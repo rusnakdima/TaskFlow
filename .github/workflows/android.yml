@@ -1,0 +1,138 @@
+name: Builder for Android
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "ubuntu-22.04"
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf lib32z1 lib32stdc++6 unzip wget
+
+      - name: Install Android SDK
+        run: |
+          export ANDROID_HOME=$HOME/Android/Sdk
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          mkdir -p "$ANDROID_HOME"
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip commandlinetools-linux-11076708_latest.zip -d $ANDROID_HOME/cmdline-tools
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+
+      - name: Accept Android SDK licenses and install components
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" "ndk;25.1.8937393"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
+
+      - name: Install pnpm
+        run: |
+          npm i -g pnpm
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: "pnpm"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Android Rust targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./src-tauri/gen/android/gradlew
+
+      - name: Setup Android Keystore
+        run: |
+          # Create keystore from GitHub secrets (if provided)
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /home/runner/work/AllInOneToolkitV2/AllInOneToolkitV2/src-tauri/gen/android/app/upload-keystore.jks
+            echo "Using provided keystore"
+          else
+            # Generate a debug keystore for CI builds
+            echo "Generating debug keystore for CI"
+            keytool -genkey -v -keystore /home/runner/work/AllInOneToolkitV2/AllInOneToolkitV2/src-tauri/gen/android/app/upload-keystore.jks \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -alias upload -dname "CN=CI Build, OU=Development, O=AllInOneToolkit, L=City, S=State, C=US"
+          fi
+
+      - name: Build Debug APK (fallback)
+        if: failure()
+        run: |
+          echo "Building debug APK as fallback..."
+          pnpm tauri android build --apk --debug
+
+      - name: Build Android APK
+        run: |
+          pnpm tauri android build --apk
+
+      - name: Build Android AAB
+        run: |
+          pnpm tauri android build --aab
+
+      - name: Build Debug APK (for testing)
+        run: |
+          pnpm tauri android build --apk --debug
+
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/debug/*.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
+
+      - name: Upload to Existing Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
