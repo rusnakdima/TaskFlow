@@ -120,17 +120,22 @@ jobs:
 
       - name: Setup Android Keystore
         run: |
+          cd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           # Create keystore from GitHub secrets (if provided)
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /home/runner/work/TaskFlow/TaskFlow/src-tauri/gen/android/app/upload-keystore.jks
+          if [ -n "${{ secrets.ANDROID_KEY_BASE64 }}" ]; then
+            base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
             echo "Using provided keystore"
           else
             # Generate a debug keystore for CI builds
             echo "Generating debug keystore for CI"
-            keytool -genkey -v -keystore /home/runner/work/TaskFlow/TaskFlow/src-tauri/gen/android/app/upload-keystore.jks \
+            keytool -genkey -v -keystore ~/upload-keystore.jks \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -alias upload -dname "CN=CI Build, OU=Development, O=AllInOneToolkit, L=City, S=State, C=US"
+              -storepass ${{ secrets.ANDROID_KEY_PASSWORD }} -keypass ${{ secrets.ANDROID_KEY_PASSWORD }} \
+              -alias ${{ secrets.ANDROID_KEY_ALIAS }}
+              -dname "CN=CI Build, OU=Development, O=AllInOneToolkit, L=City, S=State, C=US"
           fi
 
       - name: Build Android APK (Release)
