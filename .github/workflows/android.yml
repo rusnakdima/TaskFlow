@@ -21,6 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free up disk space
+        run: |
+          echo "Freeing up disk space..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo apt-get clean
+          docker system prune -a -f || true
+          df -h
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -42,6 +55,7 @@ jobs:
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip commandlinetools-linux-11076708_latest.zip -d $ANDROID_HOME/cmdline-tools
           mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          rm commandlinetools-linux-11076708_latest.zip
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
@@ -52,6 +66,17 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" "ndk;25.1.8937393"
           echo "NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Install pnpm
         run: |
@@ -78,6 +103,18 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Clean up before build
+        run: |
+          echo "Cleaning up before build..."
+          # Clean npm cache
+          npm cache clean --force
+          # Clean gradle cache if exists
+          rm -rf ~/.gradle/daemon/
+          # Clean any existing build artifacts
+          rm -rf src-tauri/gen/android/app/build/
+          rm -rf src-tauri/target/
+          df -h
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./src-tauri/gen/android/gradlew
 
@@ -96,22 +133,34 @@ jobs:
               -alias upload -dname "CN=CI Build, OU=Development, O=AllInOneToolkit, L=City, S=State, C=US"
           fi
 
-      - name: Build Debug APK (fallback)
-        if: failure()
+      - name: Build Android APK (Release)
         run: |
-          echo "Building debug APK as fallback..."
-          pnpm tauri android build --apk --debug
-
-      - name: Build Android APK
-        run: |
+          echo "Building release APK..."
+          df -h
           pnpm tauri android build --apk
+
+      - name: Clean up after release build
+        run: |
+          echo "Cleaning up after release build..."
+          rm -rf src-tauri/target/
+          rm -rf ~/.gradle/caches/transforms-*
+          df -h
 
       - name: Build Android AAB
         run: |
+          echo "Building AAB..."
           pnpm tauri android build --aab
+
+      - name: Clean up after AAB build
+        run: |
+          echo "Cleaning up after AAB build..."
+          rm -rf src-tauri/target/
+          rm -rf ~/.gradle/caches/transforms-*
+          df -h
 
       - name: Build Debug APK (for testing)
         run: |
+          echo "Building debug APK..."
           pnpm tauri android build --apk --debug
 
       - name: Upload Debug APK artifact
