@@ -9,13 +9,13 @@
     <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Date of released</span>
     <span>{{ dateVersion }}</span>
 
-    @if (authors.length == 1) {
-      <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Author</span>
-    } @else if (authors.length > 1) {
-      <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Authors</span>
-    } @else {
-      <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Author</span>
-    }
+    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">
+      @if (authors.length > 1) {
+        Authors
+      } @else {
+        Author
+      }
+    </span>
     @for (author of authors; track $index) {
       @if ($index > 0) {
         <span></span>

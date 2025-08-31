@@ -19,19 +19,20 @@
 }
 
 .styleHeader {
-  @apply sticky flex flex-row justify-between items-center top-0 p-3 mx-auto z-40 theme w-full;
+  @apply sticky flex flex-row justify-between items-center top-0 mx-auto px-3 z-40 theme w-full h-11;
 }
 
 .styleBottomNav {
-  @apply fixed min-[480px]:hidden grid grid-cols-5 bottom-0 m-0 p-3 theme w-full;
+  @apply fixed  grid grid-cols-5 bottom-0 m-0 p-3 theme w-full;
 }
+/* min-[480px]:hidden */
 
 .styleBackWind {
-  @apply fixed flex flex-col items-center left-0 top-0 m-0 z-30 bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto;
+  @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-[999] bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto;
 }
 
 .styleWind {
-  @apply absolute top-1 p-4 m-auto z-50 rounded-xl styleBorderSolid border bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2;
+  @apply absolute p-4 rounded-xl styleBorderSolid border bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2;
 }
 
 .styleWindNotify {
@@ -206,6 +207,10 @@ button:disabled {
 
 .animate-fadeOut {
   animation: fadeOut 0.3s ease-out forwards;
+}
+
+.progressbar-text > p {
+  @apply textNormal
 }
 
 mat-icon {
