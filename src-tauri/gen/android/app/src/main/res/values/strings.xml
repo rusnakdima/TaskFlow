@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">taskflow</string>
+    <string name="main_activity_title">taskflow</string>
+</resources>
