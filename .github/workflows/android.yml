@@ -85,12 +85,12 @@ jobs:
         run: |
           # Create keystore from GitHub secrets (if provided)
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /home/runner/work/AllInOneToolkitV2/AllInOneToolkitV2/src-tauri/gen/android/app/upload-keystore.jks
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /home/runner/work/TaskFlow/TaskFlow/src-tauri/gen/android/app/upload-keystore.jks
             echo "Using provided keystore"
           else
             # Generate a debug keystore for CI builds
             echo "Generating debug keystore for CI"
-            keytool -genkey -v -keystore /home/runner/work/AllInOneToolkitV2/AllInOneToolkitV2/src-tauri/gen/android/app/upload-keystore.jks \
+            keytool -genkey -v -keystore /home/runner/work/TaskFlow/TaskFlow/src-tauri/gen/android/app/upload-keystore.jks \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
               -alias upload -dname "CN=CI Build, OU=Development, O=AllInOneToolkit, L=City, S=State, C=US"
