@@ -123,15 +123,15 @@ jobs:
           cd src-tauri/gen/android
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
           echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          echo "storeFile=$(pwd)/keystore.jks" >> keystore.properties
+          echo "storeFile=$(pwd)/app/keystore.jks" >> keystore.properties
           # Create keystore from GitHub secrets (if provided)
           if [ -n "${{ secrets.ANDROID_KEY_BASE64 }}" ]; then
-            base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $(pwd)/keystore.jks
+            base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $(pwd)/app/keystore.jks
             echo "Using provided keystore"
           else
             # Generate a debug keystore for CI builds
             echo "Generating debug keystore for CI"
-            keytool -genkey -v -keystore $(pwd)/keystore.jks \
+            keytool -genkey -v -keystore $(pwd)/app/keystore.jks \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass ${{ secrets.ANDROID_KEY_PASSWORD }} -keypass ${{ secrets.ANDROID_KEY_PASSWORD }} \
               -alias ${{ secrets.ANDROID_KEY_ALIAS }} \
