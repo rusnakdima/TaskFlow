@@ -134,7 +134,7 @@ jobs:
             keytool -genkey -v -keystore ~/keystore.jks \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass ${{ secrets.ANDROID_KEY_PASSWORD }} -keypass ${{ secrets.ANDROID_KEY_PASSWORD }} \
-              -alias ${{ secrets.ANDROID_KEY_ALIAS }}
+              -alias ${{ secrets.ANDROID_KEY_ALIAS }} \
               -dname "CN=CI Build, OU=Development, O=TechCraft Solutions, L=City, S=State, C=US"
           fi
 
