@@ -135,7 +135,7 @@ jobs:
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass ${{ secrets.ANDROID_KEY_PASSWORD }} -keypass ${{ secrets.ANDROID_KEY_PASSWORD }} \
               -alias ${{ secrets.ANDROID_KEY_ALIAS }} \
-              -dname "CN=CI Build, OU=Development, O=TechCraft Solutions, L=City, S=State, C=US"
+              -dname "CN=Dmitriy303, OU=TCS, O=TechCraft Solutions, L=New York, S=Washington, C=US"
           fi
 
       - name: Build Android APK (Release)
