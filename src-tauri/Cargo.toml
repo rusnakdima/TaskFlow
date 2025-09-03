@@ -1,11 +1,11 @@
 [package]
-name = "taskflow"
-version = "0.0.1"
-description = "Task Flow"
 authors = ["Dmitriy303"]
-license = "MIT License"
-repository = "https://github.com/rusnakdima/TaskFlow"
+description = "Task Flow"
 edition = "2021"
+license = "MIT License"
+name = "taskflow"
+repository = "https://github.com/rusnakdima/TaskFlow"
+version = "0.0.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,21 +13,22 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "taskflow_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+name = "taskflow_lib"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = {version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tauri-plugin-http = "2.5.1"
-dotenv = "0.15.0"
-chrono = "0.4.41"
-mongodb = "3.2.4"
 bcrypt = "0.17.0"
-jsonwebtoken = "9.3.1"
+chrono = "0.4.41"
+dotenv = "0.15.0"
+dotenvy = "0.15.7"
 futures = "0.3.31"
+jsonwebtoken = "9.3.1"
+mongodb = "3.2.4"
+serde = {version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = {version = "2", features = [] }
+tauri-plugin-http = "2.5.1"
+tauri-plugin-opener = "2"
