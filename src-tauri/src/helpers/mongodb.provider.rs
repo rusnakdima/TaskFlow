@@ -1,10 +1,8 @@
 /* sys lib */
-use dotenv::dotenv;
 use mongodb::{
   bson::{doc, Document},
   Client, Collection, Database,
 };
-use std::env;
 
 /* models */
 use crate::models::relation_obj::{RelationObj, TypesField};
@@ -16,11 +14,9 @@ pub struct MongodbProvider {
 
 impl MongodbProvider {
   #[allow(non_snake_case)]
-  pub async fn new() -> Self {
-    dotenv().ok();
-
-    let uri = env::var("MONGODB_URI").expect("MONGODB_URI must be set");
-    let database = env::var("MONGODB_NAME").expect("MONGODB_NAME must be set");
+  pub async fn new(envUri: String, envDbName: String) -> Self {
+    let uri = envUri;
+    let database = envDbName;
     let client = Client::with_uri_str(&uri).await.unwrap();
 
     Self {

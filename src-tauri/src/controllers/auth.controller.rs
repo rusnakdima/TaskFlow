@@ -16,9 +16,9 @@ pub struct AuthController {
 
 impl AuthController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, envValue: String) -> Self {
     return Self {
-      authService: auth_service::AuthService::new(jsonProvider),
+      authService: auth_service::AuthService::new(jsonProvider, envValue),
     };
   }
 

@@ -10,9 +10,10 @@ pub struct AboutController {
 }
 
 impl AboutController {
-  pub fn new() -> Self {
+  #[allow(non_snake_case)]
+  pub fn new(envValue: String) -> Self {
     Self {
-      aboutService: about_service::AboutService::new(),
+      aboutService: about_service::AboutService::new(envValue),
     }
   }
 

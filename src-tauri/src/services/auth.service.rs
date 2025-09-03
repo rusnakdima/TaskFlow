@@ -4,7 +4,6 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde_json::{from_value, json, to_value};
-use std::env;
 
 /* helpers */
 use crate::helpers::json_provider::JsonProvider;
@@ -28,19 +27,21 @@ pub struct Claims {
 #[allow(non_snake_case)]
 pub struct AuthService {
   pub jsonProvider: JsonProvider,
+  pub jwtSecret: String,
 }
 
 impl AuthService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, envValue: String) -> Self {
     Self {
       jsonProvider: jsonProvider,
+      jwtSecret: envValue,
     }
   }
 
   #[allow(non_snake_case)]
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let secret = self.jwtSecret.clone();
     match decode::<Claims>(
       &token,
       &DecodingKey::from_secret(secret.as_ref()),
@@ -158,7 +159,7 @@ impl AuthService {
               exp: expiration.timestamp() as usize,
             };
 
-            let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+            let secret = self.jwtSecret.clone();
             let token = match encode(
               &Header::default(),
               &claims,

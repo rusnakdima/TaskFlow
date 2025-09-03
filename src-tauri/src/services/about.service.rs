@@ -1,6 +1,4 @@
 /* sys lib */
-use dotenv::dotenv;
-use std::env;
 use std::fs::File;
 use std::io::Write;
 
@@ -10,11 +8,15 @@ use tauri_plugin_http::reqwest;
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
-pub struct AboutService;
+#[allow(non_snake_case)]
+pub struct AboutService {
+  pub nameApp: String,
+}
 
 impl AboutService {
-  pub fn new() -> Self {
-    Self
+  #[allow(non_snake_case)]
+  pub fn new(envValue: String) -> Self {
+    Self { nameApp: envValue }
   }
 
   #[allow(non_snake_case)]
@@ -70,17 +72,15 @@ impl AboutService {
 
   #[allow(non_snake_case)]
   pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
-    dotenv().ok();
-
-    let mut nameApp = env::var("NAME_APP").expect("NAME_APP not set");
+    let mut _nameApp = self.nameApp.clone();
     if cfg!(target_os = "linux") {
-      nameApp = nameApp.to_string();
+      _nameApp = _nameApp;
     } else if cfg!(target_os = "windows") {
-      nameApp = format!("{}.exe", nameApp);
+      _nameApp = format!("{}.exe", _nameApp);
     } else if cfg!(target_os = "macos") {
-      nameApp = format!("{}.app", nameApp);
+      _nameApp = format!("{}.app", _nameApp);
     } else if cfg!(target_os = "android") {
-      nameApp = format!("{}.apk", nameApp);
+      _nameApp = format!("{}.apk", _nameApp);
     } else {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -92,7 +92,7 @@ impl AboutService {
     return Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::String(nameApp),
+      data: DataValue::String(_nameApp),
     });
   }
 }

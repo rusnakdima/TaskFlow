@@ -1,8 +1,7 @@
 /* sys lib */
-use dotenv::dotenv;
 use serde_json::{from_str, json, to_string_pretty, Value};
 use std::{
-  env, fs,
+  fs,
   path::{Path, PathBuf},
 };
 use tauri::{AppHandle, Manager};
@@ -18,11 +17,9 @@ pub struct JsonProvider {
 
 impl JsonProvider {
   #[allow(non_snake_case)]
-  pub fn new(appHandle: AppHandle) -> Self {
-    dotenv().ok();
-
-    let homeAppFolder = env::var("HOME_APP_FOLDER").expect("HOME_APP_FOLDER must be set in .env");
-    let dbName = env::var("JSON_DB_NAME").expect("JSON_DB_NAME must be set in .env");
+  pub fn new(appHandle: AppHandle, envHomeFolder: String, envDbName: String) -> Self {
+    let homeAppFolder = envHomeFolder;
+    let dbName = envDbName;
 
     let documentFolder = appHandle
       .path()
