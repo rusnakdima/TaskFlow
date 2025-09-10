@@ -5,10 +5,15 @@ mod models;
 mod routes;
 mod services;
 
-use std::env;
 /* sys lib */
-use std::{path::PathBuf, sync::Arc};
-use tauri::{async_runtime::block_on, path::BaseDirectory, Manager};
+use std::sync::Arc;
+use tauri::{async_runtime::block_on, Manager};
+
+/* helpers */
+use crate::helpers::{
+  config::ConfigHelper,
+  {json_provider::JsonProvider, mongodb_provider::MongodbProvider},
+};
 
 /* routes */
 use routes::about_route::{downloadUpdate, getBinaryNameFile};
@@ -38,9 +43,6 @@ use controllers::{
   todo_controller::TodoController,
 };
 
-/* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
-
 #[allow(non_snake_case)]
 pub struct AppState {
   pub managedbController: Arc<ManageDbController>,
@@ -60,21 +62,17 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
     .setup(|app| {
-      let resourcePath: PathBuf = app
-        .path()
-        .resolve(".env", BaseDirectory::Resource)
-        .expect("Failed to resolve .env resource path");
-      dotenvy::from_path(&resourcePath).ok();
+      let config = ConfigHelper::new();
 
       let appHandle = app.handle();
       let jsonProvider = JsonProvider::new(
         appHandle.clone(),
-        env::var("APP_HOME_FOLDER").expect("APP_HOME_FOLDER must be set"),
-        env::var("JSONDB_NAME").expect("JSONDB_NAME must be set in .env"),
+        config.appHomeFolder.clone(),
+        config.jsonDbName.clone(),
       );
       let mongodbProvider = block_on(MongodbProvider::new(
-        env::var("MONGODB_URI").expect("MONGODB_URI must be set"),
-        env::var("MONGODB_NAME").expect("MONGODB_NAME must be set"),
+        config.mongoDburi.clone(),
+        config.mongoDbName.clone(),
       ));
 
       app.manage(AppState {
@@ -82,12 +80,10 @@ pub fn run() {
           jsonProvider.clone(),
           mongodbProvider.clone(),
         )),
-        aboutController: Arc::new(AboutController::new(
-          env::var("NAME_APP").expect("NAME_APP must be set"),
-        )),
+        aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
         authController: Arc::new(AuthController::new(
           jsonProvider.clone(),
-          env::var("JWT_SECRET").expect("JWT_SECRET must be set"),
+          config.jwtSecret.clone(),
         )),
         profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
         categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
