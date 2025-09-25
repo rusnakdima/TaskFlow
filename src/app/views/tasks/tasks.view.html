@@ -1,0 +1,91 @@
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  @if (todo) {
+    <app-todo-information [todo]="todo" />
+  }
+
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h2 class="text-xl font-bold textNormal">Tasks</h2>
+      <p class="textMuted">Manage and track individual tasks in this project</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button
+        class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+        (click)="toggleFilter()"
+      >
+        <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="filter_alt" />
+        Filter
+      </button>
+      <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        New Task
+      </button>
+    </div>
+  </div>
+
+  @if (showFilter) {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div class="flex-1 max-w-md">
+          <app-search
+            [isShowSearchField]="true"
+            [tempArray]="tempListTasks"
+            [searchByFields]="['title']"
+            (array)="searchFunc($event)"
+          />
+        </div>
+
+        <div class="flex gap-2 flex-wrap">
+          @for (filter of filterOptions; track $index) {
+            <button
+              class="px-3 py-1 text-sm font-medium rounded-full transition-colors"
+              [ngClass]="
+                activeFilter === filter.key
+                  ? 'bg-green-500 text-white'
+                  : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-600'
+              "
+              (click)="changeFilter(filter.key)"
+            >
+              {{ filter.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (listTasks.length === 0) {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+    >
+      <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="assignment" />
+      <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
+      <p class="textMuted mb-6">
+        @if (activeFilter === "all") {
+          Start by creating your first task for this project
+        } @else {
+          No tasks match the current filter
+        }
+      </p>
+      <button class="styleButSuccess" routerLink="create_task">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        Create First Task
+      </button>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      @for (task of listTasks; track $index) {
+        <app-task
+          [task]="task"
+          [index]="$index"
+          (deleteTaskEvent)="deleteTask($event)"
+          (toggleCompletionEvent)="toggleTaskCompletion($event)"
+          (updateTaskEvent)="updateTaskInline($event)"
+        />
+      }
+    </div>
+  }
+</div>

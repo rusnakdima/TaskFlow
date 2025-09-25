@@ -5,60 +5,74 @@ import { ActivatedRouteSnapshot, Routes } from "@angular/router";
 import { MainResolver } from "@services/main.resolver";
 
 /* components */
-import { AboutComponent } from "@views/about/about.component";
-import { LoginComponent } from "@views/login/login.component";
-import { SignupComponent } from "@views/signup/signup.component";
-import { ChangePasswordComponent } from "@views/change-password/change-password.component";
-import { ResetPasswordComponent } from "@views/reset-password/reset-password.component";
+import { LoginView } from "@views/login/login.view";
+import { SignupView } from "@views/signup/signup.view";
+import { ChangePasswordView } from "@views/change-password/change-password.view";
+import { ResetPasswordView } from "@views/reset-password/reset-password.view";
 
-import { DashboardComponent } from "@views/dashboard/dashboard.component";
-import { StatsComponent } from "@views/stats/stats.component";
+import { DashboardView } from "@views/dashboard/dashboard.view";
+import { CalendarView } from "@views/calendar/calendar.view";
+import { SharedTasksView } from "@views/shared-tasks/shared-tasks.view";
+import { StatsView } from "@views/stats/stats.view";
+import { AboutView } from "@views/about/about.view";
 
-import { TodosComponent } from "@views/todos/todos.component";
-import { TasksComponent } from "@views/tasks/tasks.component";
-import { SubtasksComponent } from "@views/subtasks/subtasks.component";
-import { ManageTodoComponent } from "@views/todos/manage-todo/manage-todo.component";
-import { ManageTaskComponent } from "@views/tasks/manage-task/manage-task.component";
+import { TodosView } from "@views/todos/todos.view";
+import { TasksView } from "@views/tasks/tasks.view";
+import { SubtasksView } from "@views/subtasks/subtasks.view";
+import { ManageTodoView } from "@views/todos/manage-todo/manage-todo.view";
+import { ManageTaskView } from "@views/tasks/manage-task/manage-task.view";
+import { ManageSubtaskView } from "@views/subtasks/manage-subtask/manage-subtask.view";
 
-import { ProfileComponent } from "@views/profile/profile.component";
-import { CreateProfileComponent } from "@views/create-profile/create-profile.component";
-import { EditProfileComponent } from "@views/edit-profile/edit-profile.component";
+import { ProfileView } from "@views/profile/profile.view";
+import { CreateProfileView } from "@views/create-profile/create-profile.view";
+import { EditProfileView } from "@views/edit-profile/edit-profile.view";
 
-import { NotFoundComponent } from "@views/not-found/not-found.component";
-import { ManageSubtaskComponent } from "@views/subtasks/manage-subtask/manage-subtask.component";
+import { NotFoundView } from "@views/not-found/not-found.view";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
   {
     path: "dashboard",
-    component: DashboardComponent,
+    component: DashboardView,
     title: "Dashboard",
     data: { breadcrumb: "Dashboard" },
   },
   {
     path: "Statistic",
-    component: StatsComponent,
+    component: StatsView,
     title: "Statistic",
     data: { breadcrumb: "Statistic" },
   },
-  { path: "about", component: AboutComponent, title: "About", data: { breadcrumb: "About" } },
+  {
+    path: "calendar",
+    component: CalendarView,
+    title: "Calendar",
+    data: { breadcrumb: "Calendar" },
+  },
+  {
+    path: "shared-tasks",
+    component: SharedTasksView,
+    title: "Shared Tasks",
+    data: { breadcrumb: "Shared Tasks" },
+  },
+  { path: "about", component: AboutView, title: "About", data: { breadcrumb: "About" } },
 
-  { path: "login", component: LoginComponent, title: "Login", data: { breadcrumb: "Login" } },
+  { path: "login", component: LoginView, title: "Login", data: { breadcrumb: "Login" } },
   {
     path: "signup",
-    component: SignupComponent,
+    component: SignupView,
     title: "Sign Up",
     data: { breadcrumb: "Sign Up" },
   },
   {
     path: "reset_password",
-    component: ResetPasswordComponent,
+    component: ResetPasswordView,
     title: "Reset Password",
     data: { breadcrumb: "Reset Password" },
   },
   {
     path: "change_password",
-    component: ChangePasswordComponent,
+    component: ChangePasswordView,
     title: "Change Password",
     data: { breadcrumb: "Change Password" },
   },
@@ -70,17 +84,17 @@ export const routes: Routes = [
     children: [
       {
         path: "",
-        component: ProfileComponent,
+        component: ProfileView,
       },
       {
         path: "create_profile",
-        component: CreateProfileComponent,
+        component: CreateProfileView,
         title: "Create Profile",
         data: { breadcrumb: "Create Profile" },
       },
       {
         path: "edit_profile",
-        component: EditProfileComponent,
+        component: EditProfileView,
         title: "Create Profile",
         data: { breadcrumb: "Create Profile" },
       },
@@ -89,22 +103,22 @@ export const routes: Routes = [
 
   {
     path: "todos",
-    title: "Todos",
-    data: { breadcrumb: "Todos" },
+    title: "Projects (Todos)",
+    data: { breadcrumb: "Projects (Todos)" },
     children: [
       {
         path: "",
-        component: TodosComponent,
+        component: TodosView,
       },
       {
         path: "create_todo",
-        component: ManageTodoComponent,
+        component: ManageTodoView,
         title: "Create Todo",
         data: { breadcrumb: "Create Todo" },
       },
       {
         path: ":todoId/edit_todo",
-        component: ManageTodoComponent,
+        component: ManageTodoView,
         title: "Edit Todo",
         data: { breadcrumb: "Edit Todo" },
       },
@@ -118,17 +132,17 @@ export const routes: Routes = [
         children: [
           {
             path: "",
-            component: TasksComponent,
+            component: TasksView,
           },
           {
             path: "create_task",
-            component: ManageTaskComponent,
+            component: ManageTaskView,
             title: "Create Task",
             data: { breadcrumb: "Create Task" },
           },
           {
             path: ":taskId/edit_task",
-            component: ManageTaskComponent,
+            component: ManageTaskView,
             title: "Edit Task",
             data: { breadcrumb: "Edit Task" },
           },
@@ -142,17 +156,17 @@ export const routes: Routes = [
             children: [
               {
                 path: "",
-                component: SubtasksComponent,
+                component: SubtasksView,
               },
               {
                 path: "create_subtask",
-                component: ManageSubtaskComponent,
+                component: ManageSubtaskView,
                 title: "Create Subtask",
                 data: { breadcrumb: "Create Subtask" },
               },
               {
                 path: ":subtaskId/edit_subtask",
-                component: ManageSubtaskComponent,
+                component: ManageSubtaskView,
                 title: "Edit Subtask",
                 data: { breadcrumb: "Edit Subtask" },
               },
@@ -165,7 +179,7 @@ export const routes: Routes = [
 
   {
     path: "**",
-    component: NotFoundComponent,
+    component: NotFoundView,
     title: "404 — Not Found",
     data: { breadcrumb: "404 — Not Found" },
   },

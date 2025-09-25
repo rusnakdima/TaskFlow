@@ -1,40 +1,89 @@
-<div class="flex flex-col gap-y-7 px-5 py-2">
-  <span class="text-2xl">{{ todo.title }}</span>
+<div
+  class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
+>
+  <div
+    class="relative bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white"
+  >
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-2">
+          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="folder" />
+          <h1 class="text-2xl font-bold">{{ todo.title }}</h1>
+        </div>
+        <p class="text-blue-100 mb-4 max-w-prose">{{ todo.description }}</p>
 
-  <div class="flex flex-col gap-y-2">
-    <span class="text-xl">Description</span>
-    <span class="textMuted">{{ todo.description }}</span>
-  </div>
-
-  <div class="flex flex-row flex-wrap justify-between gap-x-5 gap-y-7">
-    <div class="flex flex-col gap-y-2">
-      <div
-        class="flex flex-row items-center gap-x-2 p-2 rounded-2xl bg-slate-300 dark:bg-zinc-600 w-min"
-      >
-        <mat-icon class="!w-[25px] !h-[30px] !text-2xl" fontIcon="alarm" />
-        <span
-          >Deadline:
-          {{ todo.deadline != "" ? (todo.deadline | date: "MMM dd yyyy") : "No deadline" }}</span
-        >
+        <div class="grid grid-cols-3 gap-4 justify-between text-center w-full">
+          <div class="flex flex-col">
+            <div class="text-2xl font-bold">{{ getCompletedTasksCount() }}</div>
+            <div class="text-blue-200 text-sm">Completed</div>
+          </div>
+          <div class="flex flex-col">
+            <div class="text-2xl font-bold">{{ getInProgressTasksCount() }}</div>
+            <div class="text-blue-200 text-sm">In Progress</div>
+          </div>
+          <div class="flex flex-col">
+            <div class="text-2xl font-bold">{{ listTasks.length }}</div>
+            <div class="text-blue-200 text-sm">Total Tasks</div>
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-col gap-y-2">
-        <span class="">Team Assign</span>
-        <div class="flex flex-row gap-x-1">
-          @for (assignee of todo.assignees; track $index) {
-            <img class="rounded-full w-7 h-7" [src]="assignee?.profile?.imageUrl ?? ''" alt="" />
-          }
-          <img
-            class="rounded-full w-7 h-7"
-            src="https://cdn-icons-png.flaticon.com/512/7887/7887095.png"
-            alt=""
-          />
+      <div class="flex-shrink-0 self-center sm:self-auto">
+        <div class="relative w-32 h-32">
+          <app-circle-progress [percentCompletedTasks]="getProjectProgress()" />
         </div>
       </div>
     </div>
 
-    <div class="relative w-[100px] h-[100px]">
-      <app-circle-progress [percentCompletedTasks]="percentCompletedTasks" />
-    </div>
+    <button
+      (click)="toggleActions()"
+      class="absolute flex items-center justify-center top-4 right-4 rounded-full bg-black/20 hover:bg-black/30 w-10 h-10 transition-colors"
+    >
+      <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="more_vert" />
+    </button>
   </div>
+
+  @if (showActions) {
+    <div class="p-4 bg-gray-50 dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
+      <div class="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3">
+        <a
+          routerLink="create_task"
+          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+        >
+          <mat-icon
+            class="!w-6 !h-7 !text-2xl text-green-600 dark:text-green-400"
+            fontIcon="add_task"
+          />
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Add Task</span>
+        </a>
+
+        <a
+          [routerLink]="['/todos', todo.id, 'edit_todo']"
+          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+        >
+          <mat-icon class="!w-6 !h-7 !text-2xl text-blue-600 dark:text-blue-400" fontIcon="edit" />
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Edit</span>
+        </a>
+
+        <button
+          (click)="shareProject()"
+          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+        >
+          <mat-icon
+            class="!w-6 !h-7 !text-2xl text-purple-600 dark:text-purple-400"
+            fontIcon="share"
+          />
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Share</span>
+        </button>
+
+        <button
+          (click)="confirmDeleteTodo()"
+          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
+        >
+          <mat-icon class="!w-6 !h-7 !text-2xl text-red-600 dark:text-red-400" fontIcon="delete" />
+          <span class="text-sm font-medium text-red-700 dark:text-red-300">Delete</span>
+        </button>
+      </div>
+    </div>
+  }
 </div>

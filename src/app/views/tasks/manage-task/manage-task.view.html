@@ -1,0 +1,173 @@
+<div class="flex flex-col gap-6 p-4 max-w-4xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">
+        {{ isEdit ? "Edit Task" : "Create New Task" }}
+      </h1>
+      <p class="textMuted mt-1">
+        {{ isEdit ? "Update task details and settings" : "Add a new task to your project" }}
+      </p>
+      @if (projectInfo) {
+        <div class="flex items-center gap-2 mt-2">
+          <mat-icon
+            class="!w-4 !h-5 !text-base text-blue-600 dark:text-blue-400"
+            fontIcon="folder"
+          />
+          <span class="text-sm text-blue-600 dark:text-blue-400 font-medium">{{
+            projectInfo.title
+          }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="flex gap-2 sm:hidden w-full">
+      <button
+        class="flex-1 px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+        (click)="back()"
+      >
+        Cancel
+      </button>
+      <button
+        class="flex-1 styleButSuccess text-sm px-4 py-2"
+        (click)="onSubmit()"
+        [disabled]="form.invalid"
+      >
+        {{ isEdit ? "Update" : "Create" }}
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon class="!w-6 !h-7 !text-xl text-green-600 dark:text-green-400" fontIcon="task" />
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold textNormal">Task Details</h3>
+          <p class="text-sm textMuted">Define what needs to be accomplished</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6">
+        <mat-form-field class="w-full">
+          <mat-label>Task Title</mat-label>
+          <input
+            matInput
+            formControlName="title"
+            placeholder="Enter a clear and specific task title"
+          />
+          @if (form.get("title")?.invalid && form.get("title")?.touched) {
+            <mat-error>Task title is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+          <mat-label>Task Description</mat-label>
+          <textarea
+            matInput
+            formControlName="description"
+            placeholder="Describe the task requirements, acceptance criteria, and any important details"
+            rows="4"
+          ></textarea>
+          @if (form.get("description")?.invalid && form.get("description")?.touched) {
+            <mat-error>Task description is required</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon
+            class="!w-6 !h-7 !text-xl text-orange-600 dark:text-orange-400"
+            fontIcon="tune"
+          />
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold textNormal">Task Configuration</h3>
+          <p class="text-sm textMuted">Set priority, deadlines, and task properties</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium textNormal">
+            Priority Level
+            <span class="text-red-500 ml-1">*</span>
+          </label>
+          <mat-radio-group formControlName="priority" class="space-y-3">
+            @for (priority of priorityOptions; track priority.value) {
+              <mat-radio-button
+                [value]="priority.value"
+                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 !w-full cursor-pointer transition-colors"
+              >
+                <div class="flex items-center gap-2 w-full">
+                  <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
+                  <div>
+                    <div class="font-medium textNormal">{{ priority.label }}</div>
+                    <div class="text-xs textMuted">{{ priority.description }}</div>
+                  </div>
+                </div>
+              </mat-radio-button>
+            }
+          </mat-radio-group>
+          @if (form.get("priority")?.invalid && form.get("priority")?.touched) {
+            <mat-error>Please select a priority level</mat-error>
+          }
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium textNormal">Time periods</label>
+
+          <mat-form-field class="w-full">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field class="w-full">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div class="hidden sm:flex justify-end gap-3 pt-6">
+      <button
+        type="button"
+        class="px-6 py-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors font-medium"
+        (click)="back()"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+        [disabled]="form.invalid || isSubmitting"
+      >
+        @if (isSubmitting) {
+          <div
+            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></div>
+        } @else {
+          <mat-icon class="!w-4 !h-5 !text-base" [fontIcon]="isEdit ? 'save' : 'add'" />
+        }
+        {{ isEdit ? "Update Task" : "Create Task" }}
+      </button>
+    </div>
+  </form>
+</div>

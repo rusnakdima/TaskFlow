@@ -1,13 +1,36 @@
-<div class="styleBottomNav items-center">
+<div class="styleBottomNav">
   @for (nav of listNavs; track $index) {
     <div class="flex flex-col items-center justify-center">
-      <mat-icon
-        class="cursor-pointer"
+      <div
+        class="flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 cursor-pointer group"
         [routerLink]="nav.url"
         [queryParams]="nav.query"
-        [fontIcon]="nav.icon"
-        [ngClass]="[url == nav.url ? '!text-blue-500 dark:!text-green-500' : '']"
-      />
+        [ngClass]="
+          url === nav.url
+            ? 'bg-blue-50 dark:bg-blue-900/30'
+            : 'hover:bg-gray-50 dark:hover:bg-zinc-800'
+        "
+      >
+        <mat-icon
+          class="!w-6 !h-7 !text-2xl transition-colors"
+          [fontIcon]="nav.icon"
+          [ngClass]="
+            url === nav.url
+              ? '!text-blue-600 dark:!text-blue-400'
+              : 'textMuted group-hover:textNormal'
+          "
+        />
+        <span
+          class="text-xs mt-1 font-medium transition-colors"
+          [ngClass]="
+            url === nav.url
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'textMuted group-hover:textNormal'
+          "
+        >
+          {{ nav.label }}
+        </span>
+      </div>
     </div>
   }
 </div>

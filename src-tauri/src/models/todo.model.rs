@@ -13,7 +13,8 @@ pub struct TodoModel {
   pub userId: String,
   pub title: String,
   pub description: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub createdAt: String,
@@ -26,7 +27,8 @@ pub struct TodoCreateModel {
   pub userId: String,
   pub title: String,
   pub description: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
 }
@@ -36,9 +38,18 @@ impl From<TodoCreateModel> for TodoModel {
   fn from(value: TodoCreateModel) -> Self {
     let now = chrono::Local::now();
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
-    let formattedDeadline = chrono::DateTime::parse_from_rfc3339(&value.deadline)
-      .unwrap()
-      .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let mut formattedStartDate = String::new();
+    let mut formattedEndDate = String::new();
+    if value.startDate != "" {
+      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
+    if value.endDate != "" {
+      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
 
     TodoModel {
       _id: ObjectId::new(),
@@ -46,7 +57,8 @@ impl From<TodoCreateModel> for TodoModel {
       userId: value.userId,
       title: value.title,
       description: value.description,
-      deadline: formattedDeadline,
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
       categories: value.categories,
       assignees: value.assignees,
       createdAt: formatted.clone(),
@@ -63,7 +75,8 @@ pub struct TodoUpdateModel {
   pub userId: String,
   pub title: String,
   pub description: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub createdAt: String,
@@ -75,9 +88,18 @@ impl From<TodoUpdateModel> for TodoModel {
   fn from(value: TodoUpdateModel) -> Self {
     let now = chrono::Local::now();
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
-    let formattedDeadline = chrono::DateTime::parse_from_rfc3339(&value.deadline)
-      .unwrap()
-      .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let mut formattedStartDate = String::new();
+    let mut formattedEndDate = String::new();
+    if value.startDate != "" {
+      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
+    if value.endDate != "" {
+      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
 
     TodoModel {
       _id: value._id,
@@ -85,7 +107,8 @@ impl From<TodoUpdateModel> for TodoModel {
       userId: value.userId,
       title: value.title,
       description: value.description,
-      deadline: formattedDeadline,
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
       categories: value.categories,
       assignees: value.assignees,
       createdAt: value.createdAt,
@@ -102,7 +125,8 @@ pub struct TodoFullModel {
   pub user: UserFullModel,
   pub title: String,
   pub description: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub categories: Vec<CategoryFullModel>,
   pub assignees: Vec<UserFullModel>,
   pub createdAt: String,

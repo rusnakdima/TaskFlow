@@ -1,0 +1,297 @@
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Calendar</h1>
+      <p class="textMuted mt-1">View and manage your scheduled tasks.</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button
+        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+        [ngClass]="
+          viewMode === 'month'
+            ? 'bg-blue-500 text-white'
+            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+        "
+        (click)="changeViewMode('month')"
+      >
+        Month
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+        [ngClass]="
+          viewMode === 'week'
+            ? 'bg-blue-500 text-white'
+            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+        "
+        (click)="changeViewMode('week')"
+      >
+        Week
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+        [ngClass]="
+          viewMode === 'day'
+            ? 'bg-blue-500 text-white'
+            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+        "
+        (click)="changeViewMode('day')"
+      >
+        Day
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div
+      class="lg:col-span-3 bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold textNormal">{{ getCurrentTitle() }}</h3>
+        <div class="flex items-center gap-2">
+          <button
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            (click)="previous()"
+          >
+            <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="chevron_left" />
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors textNormal"
+            (click)="goToToday()"
+          >
+            Today
+          </button>
+          <button
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            (click)="next()"
+          >
+            <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="chevron_right" />
+          </button>
+        </div>
+      </div>
+
+      @if (viewMode === 'month') {
+        <div class="grid grid-cols-7 gap-1">
+          <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+
+          @for (day of calendarDays; track $index) {
+            <div
+              class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+              [ngClass]="{
+                'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                'bg-blue-50 dark:bg-blue-900/30': day.isToday,
+                'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+              }"
+              (click)="selectDate(day.date)"
+            >
+              <div class="flex justify-between items-start mb-1">
+                <span
+                  class="text-sm font-medium"
+                  [ngClass]="{
+                    'text-blue-600 dark:text-blue-400': day.isToday,
+                    textNormal: day.isCurrentMonth && !day.isToday,
+                    'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+                  }"
+                >
+                  {{ day.date.getDate() }}
+                </span>
+              </div>
+
+              <div class="space-y-1">
+                @for (event of day.events.slice(0, 2); track event.id) {
+                  <div
+                    class="text-xs p-1 rounded text-white truncate"
+                    [ngClass]="getEventColor(event)"
+                    [title]="event.title"
+                  >
+                    {{ event.title }}
+                  </div>
+                }
+                @if (day.events.length > 2) {
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    +{{ day.events.length - 2 }} more
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (viewMode === 'week') {
+        <div class="grid grid-cols-7 gap-1">
+          <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
+          <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+
+          @for (day of weekDays; track $index) {
+            <div
+              class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+              [ngClass]="{
+                'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                'bg-blue-50 dark:bg-blue-900/30': day.isToday,
+              }"
+              (click)="selectDate(day.date)"
+            >
+              <div class="flex justify-between items-start mb-2">
+                <span
+                  class="text-sm font-medium"
+                  [ngClass]="{
+                    'text-blue-600 dark:text-blue-400': day.isToday,
+                    textNormal: !day.isToday,
+                  }"
+                >
+                  {{ day.date.getDate() }}
+                </span>
+                <span class="text-xs textMuted">{{ day.date.toLocaleDateString('en-US', { month: 'short' }) }}</span>
+              </div>
+
+              <div class="space-y-1">
+                @for (event of day.events; track event.id) {
+                  <div
+                    class="text-xs p-1 rounded text-white truncate"
+                    [ngClass]="getEventColor(event)"
+                    [title]="event.title"
+                  >
+                    {{ event.title }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (viewMode === 'day') {
+        <div class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-6">
+          <h4 class="text-lg font-semibold textNormal mb-4">{{ formatSelectedDate() }}</h4>
+
+          <div class="space-y-4">
+            @if (dayEvents.length === 0) {
+              <div class="text-center py-8">
+                <mat-icon class="!w-12 !h-12 !text-3xl textMuted" fontIcon="event" />
+                <p class="text-sm textMuted mt-4">No events scheduled for this day</p>
+              </div>
+            } @else {
+              @for (event of dayEvents; track event.id) {
+                <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-600">
+                  <div class="flex items-start gap-4">
+                    <div class="w-4 h-4 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
+                    <div class="flex-1">
+                      <h5 class="text-base font-medium textNormal">{{ event.title }}</h5>
+                      @if (event.description) {
+                        <p class="text-sm textMuted mt-2">{{ event.description }}</p>
+                      }
+                      <div class="flex items-center gap-2 mt-2">
+                        <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{ event.status }}</span>
+                        <span class="text-xs textMuted">{{ event.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="space-y-6">
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      >
+        <h3 class="text-lg font-semibold textNormal mb-4">Selected Date</h3>
+        <p class="text-sm textMuted mb-4">{{ formatSelectedDate() }}</p>
+
+        <div class="space-y-3">
+          @if (filteredEvents.length === 0) {
+            <div class="text-center py-4">
+              <mat-icon class="!w-8 !h-8 !text-2xl textMuted" fontIcon="event" />
+              <p class="text-sm textMuted mt-2">No events today</p>
+            </div>
+          } @else {
+            @for (event of filteredEvents; track event.id) {
+              <div class="p-3 rounded-lg border border-gray-200 dark:border-zinc-600">
+                <div class="flex items-start gap-3">
+                  <div class="w-3 h-3 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-sm font-medium textNormal truncate">{{ event.title }}</h4>
+                    @if (event.description) {
+                      <p class="text-xs textMuted mt-1">{{ event.description }}</p>
+                    }
+                    <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{
+                      event.status
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      >
+        <h3 class="text-lg font-semibold textNormal mb-4">Quick Actions</h3>
+
+        <div class="space-y-3">
+          <button
+            class="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+            routerLink="/todos/create_todo"
+          >
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add_task" />
+            <span class="font-medium">New Task</span>
+          </button>
+
+          <button
+            class="w-full flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+            routerLink="/todos"
+          >
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="list" />
+            <span class="font-medium">View All Tasks</span>
+          </button>
+
+          <button
+            class="w-full flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
+            routerLink="/Statistic"
+          >
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="analytics" />
+            <span class="font-medium">View Statistics</span>
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      >
+        <h3 class="text-lg font-semibold textNormal mb-4">Legend</h3>
+
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <span class="text-sm textNormal">Task Due</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            <span class="text-sm textNormal">Completed</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+            <span class="text-sm textNormal">Other Events</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

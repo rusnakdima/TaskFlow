@@ -1,0 +1,15 @@
+<div class="min-h-screen theme">
+  @if (showComponents) {
+    <app-header />
+  }
+
+  <main class="pb-20">
+    <router-outlet />
+  </main>
+
+  @if (showComponents) {
+    <app-bottom-nav />
+  }
+</div>
+
+<app-window-notify />

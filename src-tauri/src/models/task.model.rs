@@ -34,7 +34,8 @@ pub struct TaskModel {
   pub description: String,
   pub isCompleted: bool,
   pub priority: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -46,12 +47,26 @@ pub struct TaskCreateModel {
   pub title: String,
   pub description: String,
   pub priority: String,
+  pub startDate: String,
+  pub endDate: String,
 }
 
 impl From<TaskCreateModel> for TaskModel {
   fn from(value: TaskCreateModel) -> Self {
     let now = chrono::Local::now();
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let mut formattedStartDate = String::new();
+    let mut formattedEndDate = String::new();
+    if value.startDate != "" {
+      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
+    if value.endDate != "" {
+      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
 
     TaskModel {
       _id: ObjectId::new(),
@@ -61,7 +76,8 @@ impl From<TaskCreateModel> for TaskModel {
       description: value.description,
       isCompleted: false,
       priority: value.priority.to_string(),
-      deadline: "".to_string(),
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -78,7 +94,8 @@ pub struct TaskUpdateModel {
   pub description: String,
   pub isCompleted: bool,
   pub priority: String,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -87,6 +104,18 @@ impl From<TaskUpdateModel> for TaskModel {
   fn from(value: TaskUpdateModel) -> Self {
     let now = chrono::Local::now();
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let mut formattedStartDate = String::new();
+    let mut formattedEndDate = String::new();
+    if value.startDate != "" {
+      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
+    if value.endDate != "" {
+      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
+        .unwrap()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    }
 
     TaskModel {
       _id: value._id,
@@ -96,7 +125,8 @@ impl From<TaskUpdateModel> for TaskModel {
       description: value.description,
       isCompleted: value.isCompleted,
       priority: value.priority.to_string(),
-      deadline: "".to_string(),
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
@@ -113,7 +143,8 @@ pub struct TaskFullModel {
   pub description: String,
   pub isCompleted: bool,
   pub priority: PriorityTask,
-  pub deadline: String,
+  pub startDate: String,
+  pub endDate: String,
   pub createdAt: String,
   pub updatedAt: String,
 }

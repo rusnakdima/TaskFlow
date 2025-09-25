@@ -19,14 +19,14 @@ export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit
   ngOnInit(): void {
     setTimeout(() => {
       this.bar = new ProgressBar.Circle(`#progressRing${this.index}`, {
-        color: "#55f",
+        color: "#f00",
         strokeWidth: 5,
         trailColor: "#ddd",
         trailWidth: 5,
         easing: "easeInOut",
         text: {
           autoStyleContainer: false,
-          value: `<p>${Math.floor(this.percentCompletedTasks * 100)}%</p>`,
+          value: `<p>${Math.floor(this.percentCompletedTasks)}%</p>`,
           style: {
             position: "absolute",
             left: "50%",
@@ -39,14 +39,15 @@ export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit
         },
       });
 
-      this.bar.animate(this.percentCompletedTasks);
+      this.bar.animate(this.percentCompletedTasks / 100);
     }, 200);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     setTimeout(() => {
       if (this.bar) {
-        this.bar.animate(this.percentCompletedTasks);
+        this.bar.setText(`<p>${Math.floor(this.percentCompletedTasks)}%</p>`);
+        this.bar.animate(this.percentCompletedTasks / 100);
       }
     }, 400);
   }
@@ -54,7 +55,8 @@ export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit
   ngAfterViewInit(): void {
     setTimeout(() => {
       if (this.bar) {
-        this.bar.animate(this.percentCompletedTasks);
+        this.bar.setText(`<p>${Math.floor(this.percentCompletedTasks)}%</p>`);
+        this.bar.animate(this.percentCompletedTasks / 100);
       }
     }, 400);
   }

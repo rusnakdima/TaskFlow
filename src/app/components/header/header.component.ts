@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, EventEmitter, Output } from "@angular/core";
+import { Component, EventEmitter, OnInit, Output } from "@angular/core";
 import {
   ActivatedRoute,
   ActivatedRouteSnapshot,
@@ -14,12 +14,15 @@ import { distinctUntilChanged, filter, map } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
+import { Response, ResponseStatus } from "@models/response";
+import { Profile } from "@models/profile";
 import { Todo } from "@models/todo";
 import { Task } from "@models/task";
 
-/* components */
-import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
-import { TaskInformationComponent } from "@components/task-information/task-information.component";
+/* services */
+import { AuthService } from "@services/auth.service";
+import { MainService } from "@services/main.service";
+import { NotifyService } from "@services/notify.service";
 
 interface Breadcrumb {
   label: string;
@@ -29,33 +32,41 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, TodoInformationComponent, TaskInformationComponent],
+  imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./header.component.html",
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private location: Location
+    private location: Location,
+    private authService: AuthService,
+    private mainService: MainService,
+    private notifyService: NotifyService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
   themeVal: string = "";
   title: string = "";
+  subtitle: string = "";
   iconUrl: string = "";
+  userId: string = "";
 
+  profile: Profile | null = null;
   todo: Todo | null = null;
   task: Task | null = null;
 
-  typeInfoMenu: "todo" | "task" = "todo";
   isBack: boolean = false;
-  isShowInfoMenu: boolean = false;
+  showUserMenu: boolean = false;
 
   breadcrumbs: Breadcrumb[] = [];
 
   ngOnInit(): void {
     this.themeVal = localStorage.getItem("theme") ?? "";
+    this.userId = this.authService.getValueByKey("id");
+
+    this.getProfile();
 
     this.router.events
       .pipe(
@@ -70,6 +81,21 @@ export class HeaderComponent {
           this.breadcrumbs.length > 0
             ? this.breadcrumbs[this.breadcrumbs.length - 1].label
             : "Home";
+      });
+  }
+
+  getProfile() {
+    this.mainService
+      .getByField<Profile>("profile", "userId", this.userId)
+      .then((response: Response<Profile>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.profile = response.data;
+        }
+      })
+      .catch((err: Response<string>) => {
+        if (err.status === ResponseStatus.ERROR) {
+          this.notifyService.showError(err.message ?? err.toString());
+        }
       });
   }
 
@@ -102,14 +128,12 @@ export class HeaderComponent {
             if (task) {
               this.task = task;
               label = task.title;
-              this.typeInfoMenu = "task";
             }
           } else if (data.todo) {
             const todo = data.todo as Todo;
             if (todo) {
               this.todo = todo;
               label = todo.title;
-              this.typeInfoMenu = "todo";
             }
           } else {
             label = breadcrumbData;
@@ -142,5 +166,23 @@ export class HeaderComponent {
     document.querySelector("html")!.setAttribute("class", theme);
     localStorage.setItem("theme", theme);
     this.themeVal = theme;
+  }
+
+  toggleTheme() {
+    const newTheme = this.themeVal === "dark" ? "" : "dark";
+    this.setTheme(newTheme);
+  }
+
+  toggleUserMenu() {
+    this.showUserMenu = !this.showUserMenu;
+  }
+
+  closeUserMenu() {
+    this.showUserMenu = false;
+  }
+
+  logout() {
+    this.closeUserMenu();
+    this.authService.logout();
   }
 }

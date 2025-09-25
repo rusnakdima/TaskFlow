@@ -1,0 +1,222 @@
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Welcome back!</h1>
+      <p class="textMuted mt-1">Here's what's happening with your tasks today.</p>
+    </div>
+    <div class="flex flex-row gap-2">
+      <button class="styleButInfo text-sm px-4 py-2" routerLink="/todos/create_todo">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        New Task
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div
+      class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-6 text-white shadow-lg cursor-pointer"
+      (click)="navigateToTodos()"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm">Total Tasks</p>
+          <p class="text-2xl font-bold">{{ totalTasks }}</p>
+        </div>
+        <div class="bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="assignment" />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-6 text-white shadow-lg cursor-pointer"
+      (click)="navigateToTodos()"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm">Completed</p>
+          <p class="text-2xl font-bold">{{ completedTasks }}</p>
+        </div>
+        <div class="bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="task_alt" />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-6 text-white shadow-lg cursor-pointer"
+      (click)="navigateToTodos()"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-orange-100 text-sm">In Progress</p>
+          <p class="text-2xl font-bold">{{ inProgressTasks }}</p>
+        </div>
+        <div class="bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="pending" />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-xl p-6 text-white shadow-lg cursor-pointer"
+      (click)="navigateToTodos()"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-red-100 text-sm">Overdue</p>
+          <p class="text-2xl font-bold">{{ overdueTasks }}</p>
+        </div>
+        <div class="bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="warning" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div
+      class="lg:col-span-2 bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Task Progress</h3>
+        <button
+          class="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+          routerLink="/Statistic"
+        >
+          View Details
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <div class="flex justify-between text-sm textMuted mb-2">
+            <span>Completed Tasks</span>
+            <span>{{ getProgressPercentage() }}%</span>
+          </div>
+          <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+            <div
+              class="bg-green-500 h-2 rounded-full transition-all duration-300"
+              [style.width.%]="getProgressPercentage()"
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <h4 class="text-sm font-medium textMuted mb-3">Recent Activity</h4>
+        <div class="space-y-3">
+          @for (activity of recentActivities; track $index) {
+            <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
+              <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span class="text-sm textNormal">{{ activity }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <h3 class="text-lg font-semibold textNormal mb-6">Quick Actions</h3>
+
+      <div class="space-y-3">
+        <button
+          class="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+          routerLink="/todos/create_todo"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="add_task" />
+          <span class="font-medium">Create New Task</span>
+        </button>
+
+        <button
+          class="w-full flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+          routerLink="/calendar"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="calendar_today" />
+          <span class="font-medium">View Calendar</span>
+        </button>
+
+        <button
+          class="w-full flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+          routerLink="/shared-tasks"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="group" />
+          <span class="font-medium">Shared Tasks</span>
+        </button>
+
+        <button
+          class="w-full flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
+          routerLink="/Statistic"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="analytics" />
+          <span class="font-medium">View Statistics</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+  >
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-semibold textNormal">Recent Tasks</h3>
+      <div class="flex gap-2">
+        @for (tab of tabs; track $index) {
+          <button
+            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            [ngClass]="
+              activeTab === tab.key
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+            "
+            (click)="setActiveTab(tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      @if (filteredTasks.length === 0) {
+        <div class="text-center py-8">
+          <mat-icon class="!w-12 !h-13 !text-4xl textMuted" fontIcon="assignment" />
+          <p class="textMuted mt-2">No {{ activeTab }} tasks found</p>
+          <button class="styleButInfo mt-4" routerLink="/todos/create_todo">
+            Create your first task
+          </button>
+        </div>
+      } @else {
+        @for (task of filteredTasks; track $index) {
+          <div
+            class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-zinc-700 rounded-lg border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow cursor-pointer"
+            (click)="navigateToTasks(task)"
+          >
+            <div class="flex-shrink-0">
+              <div
+                class="w-3 h-3 rounded-full"
+                [ngClass]="{
+                  'bg-blue-500': task.status === 'ongoing',
+                  'bg-orange-500': task.status === 'progress',
+                  'bg-green-500': task.status === 'completed',
+                }"
+              ></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-medium textNormal truncate">{{ task.title }}</h4>
+              <p class="text-xs textMuted mt-1">{{ task.description || "No description" }}</p>
+            </div>
+            <div class="flex-shrink-0 flex items-center gap-2">
+              @if (task.dueDate) {
+                <span class="text-xs textMuted">{{ formatDate(task.dueDate) }}</span>
+              }
+              <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="chevron_right" />
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

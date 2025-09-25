@@ -1,0 +1,209 @@
+<div class="flex flex-col gap-6 p-4 max-w-3xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">
+        {{ isEdit ? "Edit Subtask" : "Create New Subtask" }}
+      </h1>
+      <p class="textMuted mt-1">
+        {{
+          isEdit ? "Update subtask details and status" : "Add a specific action item to your task"
+        }}
+      </p>
+
+      <div class="flex items-center gap-2 mt-2 text-sm">
+        @if (projectInfo) {
+          <mat-icon
+            class="!w-4 !h-5 !text-base text-blue-600 dark:text-blue-400"
+            fontIcon="folder"
+          />
+          <span class="text-blue-600 dark:text-blue-400 font-medium">{{ projectInfo.title }}</span>
+          <mat-icon class="!w-3 !h-4 !text-sm textMuted" fontIcon="chevron_right" />
+        }
+        @if (taskInfo) {
+          <mat-icon
+            class="!w-4 !h-5 !text-base text-green-600 dark:text-green-400"
+            fontIcon="task"
+          />
+          <span class="text-green-600 dark:text-green-400 font-medium">{{ taskInfo.title }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="flex gap-2 sm:hidden w-full">
+      <button
+        class="flex-1 px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+        (click)="back()"
+      >
+        Cancel
+      </button>
+      <button
+        class="flex-1 styleButSuccess text-sm px-4 py-2"
+        (click)="onSubmit()"
+        [disabled]="form.invalid"
+      >
+        {{ isEdit ? "Update" : "Create" }}
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon
+            class="!w-6 !h-7 !text-xl text-purple-600 dark:text-purple-400"
+            fontIcon="check_box"
+          />
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold textNormal">Subtask Details</h3>
+          <p class="text-sm textMuted">Define the specific action or deliverable</p>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <mat-form-field class="w-full">
+          <mat-label>Subtask Title</mat-label>
+          <input
+            matInput
+            formControlName="title"
+            placeholder="Enter a specific, actionable subtask title"
+          />
+          @if (form.get("title")?.invalid && form.get("title")?.touched) {
+            <mat-error>Subtask title is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+          <mat-label>Description</mat-label>
+          <textarea
+            matInput
+            formControlName="description"
+            placeholder="Describe what exactly needs to be done, any specific requirements or notes"
+            rows="3"
+          ></textarea>
+          @if (form.get("description")?.invalid && form.get("description")?.touched) {
+            <mat-error>Description is required</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon
+            class="!w-6 !h-7 !text-xl text-orange-600 dark:text-orange-400"
+            fontIcon="settings"
+          />
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold textNormal">Settings & Status</h3>
+          <p class="text-sm textMuted">Configure priority and completion status</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-sm font-medium textNormal">
+          Priority Level
+          <span class="text-red-500 ml-1">*</span>
+        </label>
+        <mat-radio-group formControlName="priority" class="space-y-3">
+          @for (priority of priorityOptions; track priority.value) {
+            <mat-radio-button
+              [value]="priority.value"
+              class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+            >
+              <div class="flex items-center gap-2 flex-1">
+                <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
+                <span class="font-medium textNormal">{{ priority.label }}</span>
+              </div>
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+        @if (form.get("priority")?.invalid && form.get("priority")?.touched) {
+          <mat-error>Please select a priority level</mat-error>
+        }
+      </div>
+    </div>
+
+    @if (isEdit) {
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      >
+        <div class="flex items-center gap-3 mb-4">
+          <div
+            class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+          >
+            <mat-icon
+              class="!w-6 !h-7 !text-xl text-blue-600 dark:text-blue-400"
+              fontIcon="speed"
+            />
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold textNormal">Quick Actions</h3>
+            <p class="text-sm textMuted">Common actions for this subtask</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="flex items-center gap-2 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors textNormal"
+            (click)="duplicateSubtask()"
+          >
+            <mat-icon
+              class="!w-4 !h-5 !text-base text-blue-600 dark:text-blue-400"
+              fontIcon="content_copy"
+            />
+            <span class="text-sm">Duplicate Subtask</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center gap-2 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors textNormal"
+            (click)="viewTaskDetails()"
+          >
+            <mat-icon
+              class="!w-4 !h-5 !text-base text-green-600 dark:text-green-400"
+              fontIcon="open_in_new"
+            />
+            <span class="text-sm">View Parent Task</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="hidden sm:flex justify-end gap-3 pt-6">
+      <button
+        type="button"
+        class="px-6 py-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors font-medium"
+        (click)="back()"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+        [disabled]="form.invalid || isSubmitting"
+      >
+        @if (isSubmitting) {
+          <div
+            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></div>
+        } @else {
+          <mat-icon class="!w-4 !h-5 !text-base" [fontIcon]="isEdit ? 'save' : 'add'" />
+        }
+        {{ isEdit ? "Update Subtask" : "Create Subtask" }}
+      </button>
+    </div>
+  </form>
+</div>

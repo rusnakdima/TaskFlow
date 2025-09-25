@@ -395,6 +395,14 @@ pre {
   @apply !border-black dark:!border-white;
 }
 
+.mat-internal-form-field {
+  @apply !w-full;
+}
+
+.mat-internal-form-field > .mdc-label {
+  @apply !w-full;
+}
+
 .fc-theme-standard .fc-popover,
 .fc-multimonth-header {
   @apply text-black dark:text-white bg-white dark:bg-zinc-900;

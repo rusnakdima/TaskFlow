@@ -16,7 +16,8 @@ export interface Task {
   subtasks: Array<Subtask>;
   isCompleted: boolean;
   priority: PriorityTask;
-  deadline: string;
+  startDate: string;
+  endDate: string;
   createdAt: string;
   updatedAt: string;
 }

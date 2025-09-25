@@ -1,0 +1,247 @@
+<!-- Statistics Dashboard -->
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Statistics</h1>
+      <p class="textMuted mt-1">Analyze your productivity and task completion patterns.</p>
+    </div>
+    
+    <!-- Time Range Selector -->
+    <div class="flex gap-2">
+      @for (range of timeRanges; track $index) {
+        <button 
+          class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+          [ngClass]="selectedTimeRange === range.key ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'"
+          (click)="changeTimeRange(range.key)"
+        >
+          {{range.label}}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Key Metrics Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Tasks -->
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-6 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm">Total Tasks</p>
+          <p class="text-2xl font-bold">{{statistics.totalTasks}}</p>
+          <p class="text-blue-200 text-xs mt-1">{{getPercentageChange(statistics.totalTasks, statistics.previousTotalTasks)}}% from last period</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="assignment" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Completion Rate -->
+    <div class="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-6 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm">Completion Rate</p>
+          <p class="text-2xl font-bold">{{getCompletionRate()}}%</p>
+          <p class="text-green-200 text-xs mt-1">{{getPercentageChange(getCompletionRate(), statistics.previousCompletionRate)}}% from last period</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="trending_up" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Time -->
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-6 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm">Avg. Task Time</p>
+          <p class="text-2xl font-bold">{{statistics.averageTaskTime}}h</p>
+          <p class="text-purple-200 text-xs mt-1">{{getPercentageChange(statistics.averageTaskTime, statistics.previousAverageTime)}}% from last period</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="schedule" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Productivity Score -->
+    <div class="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-6 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-orange-100 text-sm">Productivity Score</p>
+          <p class="text-2xl font-bold">{{statistics.productivityScore}}</p>
+          <p class="text-orange-200 text-xs mt-1">{{getPercentageChange(statistics.productivityScore, statistics.previousProductivityScore)}}% from last period</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="emoji_events" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Task Completion Trend -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Task Completion Trend</h3>
+        <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="show_chart" />
+      </div>
+      
+      <!-- Simple Chart Representation -->
+      <div class="space-y-4">
+        @for (data of chartData.completionTrend; track $index) {
+          <div class="flex items-center justify-between">
+            <span class="text-sm textMuted">{{data.label}}</span>
+            <div class="flex items-center gap-2 flex-1 max-w-xs">
+              <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                <div 
+                  class="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                  [style.width.%]="data.value"
+                ></div>
+              </div>
+              <span class="text-sm textNormal">{{data.value}}%</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Task Categories -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Task Categories</h3>
+        <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="pie_chart" />
+      </div>
+      
+      <!-- Pie Chart Representation -->
+      <div class="space-y-4">
+        @for (category of chartData.categories; track $index) {
+          <div class="flex items-center gap-4">
+            <div 
+              class="w-4 h-4 rounded-full"
+              [style.background-color]="category.color"
+            ></div>
+            <div class="flex-1">
+              <div class="flex justify-between text-sm">
+                <span class="textNormal">{{category.name}}</span>
+                <span class="textMuted">{{category.count}} tasks</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
+                <div 
+                  class="h-2 rounded-full transition-all duration-300" 
+                  [style.width.%]="category.percentage"
+                  [style.background-color]="category.color"
+                ></div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Daily Activity -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Daily Activity</h3>
+        <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="calendar_view_week" />
+      </div>
+      
+      <!-- Activity Heatmap -->
+      <div class="grid grid-cols-7 gap-1">
+        @for (day of chartData.dailyActivity; track $index) {
+          <div class="text-center">
+            <div class="text-xs textMuted mb-2">{{day.dayName}}</div>
+            <div 
+              class="w-full h-16 rounded-lg flex items-center justify-center text-sm font-medium"
+              [ngClass]="{
+                'bg-gray-100 dark:bg-zinc-700 text-gray-400 dark:text-gray-500': day.activity === 0,
+                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300': day.activity > 0 && day.activity <= 3,
+                'bg-blue-300 dark:bg-blue-700 text-blue-800 dark:text-blue-100': day.activity > 3 && day.activity <= 6,
+                'bg-blue-500 dark:bg-blue-500 text-white': day.activity > 6
+              }"
+            >
+              {{day.activity}}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Recent Achievements -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Recent Achievements</h3>
+        <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="military_tech" />
+      </div>
+      
+      <div class="space-y-4">
+        @for (achievement of achievements; track $index) {
+          <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
+            <div 
+              class="w-10 h-10 rounded-full flex items-center justify-center"
+              [style.background-color]="achievement.color"
+            >
+              <mat-icon class="!w-5 !h-5 !text-xl text-white" [fontIcon]="achievement.icon" />
+            </div>
+            <div class="flex-1">
+              <h4 class="text-sm font-medium textNormal">{{achievement.title}}</h4>
+              <p class="text-xs textMuted">{{achievement.description}}</p>
+            </div>
+            <span class="text-xs textMuted">{{achievement.date}}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analytics -->
+  <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-semibold textNormal">Detailed Analytics</h3>
+      <button class="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+        Export Report
+      </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-zinc-600">
+            <th class="text-left py-3 px-4 font-medium textNormal">Metric</th>
+            <th class="text-left py-3 px-4 font-medium textNormal">Current Period</th>
+            <th class="text-left py-3 px-4 font-medium textNormal">Previous Period</th>
+            <th class="text-left py-3 px-4 font-medium textNormal">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (metric of detailedMetrics; track $index) {
+            <tr class="border-b border-gray-100 dark:border-zinc-700">
+              <td class="py-3 px-4 textNormal">{{metric.name}}</td>
+              <td class="py-3 px-4 textNormal">{{metric.current}}</td>
+              <td class="py-3 px-4 textMuted">{{metric.previous}}</td>
+              <td class="py-3 px-4">
+                <span 
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                  [ngClass]="{
+                    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300': metric.change > 0,
+                    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300': metric.change < 0,
+                    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': metric.change === 0
+                  }"
+                >
+                  @if (metric.change > 0) {
+                    <mat-icon class="!w-3 !h-3 !text-xs mr-1" fontIcon="trending_up" />
+                  } @else if (metric.change < 0) {
+                    <mat-icon class="!w-3 !h-3 !text-xs mr-1" fontIcon="trending_down" />
+                  }
+                  {{metric.change > 0 ? '+' : ''}}{{metric.change}}%
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,99 @@
+<div class="flex flex-col gap-6 p-4 max-w-4xl mx-auto">
+  @if (profile) {
+    <!-- Profile Header Card -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div class="flex flex-col sm:flex-row items-center gap-6">
+        <div class="relative">
+          <div class="w-32 h-32 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-1">
+            <img [src]="profile.imageUrl" alt="Profile" class="w-full h-full rounded-full object-cover bg-white dark:bg-zinc-800" />
+          </div>
+          <button
+            class="absolute -bottom-2 -right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-colors"
+            routerLink="/profile/edit_profile"
+          >
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="edit" />
+          </button>
+        </div>
+
+        <div class="flex-1 text-center sm:text-left">
+          <h1 class="text-2xl sm:text-3xl font-bold textNormal mb-2">
+            {{ profile.name }} {{ profile.lastName }}
+          </h1>
+          @if (profile.bio) {
+            <p class="textMuted text-lg">{{ profile.bio }}</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-6 text-white shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-green-100 text-sm mb-1">Completed Tasks</p>
+            <p class="text-3xl font-bold">22</p>
+          </div>
+          <div class="bg-white/20 rounded-lg p-3">
+            <mat-icon class="!w-8 !h-9 !text-3xl" fontIcon="assignment_turned_in" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-6 text-white shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-blue-100 text-sm mb-1">Pending Tasks</p>
+            <p class="text-3xl font-bold">50</p>
+          </div>
+          <div class="bg-white/20 rounded-lg p-3">
+            <mat-icon class="!w-8 !h-9 !text-3xl" fontIcon="pending_actions" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700">
+      <h3 class="text-lg font-semibold textNormal mb-4">Quick Actions</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          class="w-full flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+          routerLink="/profile/edit_profile"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="edit" />
+          <span class="font-medium">Edit Profile</span>
+        </button>
+
+        <button
+          class="w-full flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+          routerLink="/change-password"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="lock" />
+          <span class="font-medium">Change Password</span>
+        </button>
+
+        <button
+          class="w-full flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors col-span-1 sm:col-span-2"
+          (click)="logout()"
+        >
+          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="logout" />
+          <span class="font-medium">Logout</span>
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- Not Logged In State -->
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-zinc-700 text-center">
+      <div class="mb-6">
+        <mat-icon class="!w-16 !h-17 !text-6xl textMuted" fontIcon="account_circle" />
+      </div>
+      <h2 class="text-xl font-semibold textNormal mb-2">Welcome to TaskFlow</h2>
+      <p class="textMuted mb-6">Please log in to view your profile</p>
+      <button routerLink="/login" class="styleButInfo px-8 py-3 text-lg">
+        <mat-icon class="!w-5 !h-6 !text-xl mr-2" fontIcon="login" />
+        Login
+      </button>
+    </div>
+  }
+</div>

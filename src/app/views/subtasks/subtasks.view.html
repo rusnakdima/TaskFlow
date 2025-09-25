@@ -1,0 +1,90 @@
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  @if (task) {
+    <app-task-information
+      [task]="task"
+      [todoId]="todoId"
+      [projectTitle]="projectTitle"
+      [listSubtasks]="tempListSubtasks"
+    />
+  }
+
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h2 class="text-xl font-bold textNormal">Subtasks</h2>
+      <p class="textMuted">Break down the task into specific action items</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button
+        class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+        (click)="toggleFilter()"
+      >
+        <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="filter_alt" />
+        Filter
+      </button>
+      <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_subtask">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        New Subtask
+      </button>
+    </div>
+  </div>
+
+  @if (showFilter) {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div class="flex-1 max-w-md">
+          <app-search
+            [isShowSearchField]="true"
+            [tempArray]="tempListSubtasks"
+            [searchByFields]="['title']"
+            (array)="searchFunc($event)"
+          />
+        </div>
+
+        <div class="flex gap-2 flex-wrap">
+          @for (filter of filterOptions; track $index) {
+            <button
+              class="px-3 py-1 text-sm font-medium rounded-full transition-colors"
+              [ngClass]="
+                activeFilter === filter.key
+                  ? 'bg-purple-500 text-white'
+                  : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-600'
+              "
+              (click)="changeFilter(filter.key)"
+            >
+              {{ filter.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (listSubtasks.length === 0) {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+    >
+      <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="check_box" />
+      <h3 class="text-xl font-semibold textNormal mb-2">No subtasks found</h3>
+      <p class="textMuted mb-6">Break down this task into smaller, actionable items</p>
+      <button class="styleButSuccess" routerLink="create_subtask">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        Create First Subtask
+      </button>
+    </div>
+  } @else {
+    <div class="flex flex-col space-y-2">
+      @for (subtask of listSubtasks; track $index) {
+        <app-subtask
+          [subtask]="subtask"
+          [index]="$index"
+          (deleteSubtaskEvent)="deleteSubtask($event)"
+          (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
+          (updateSubtaskEvent)="updateSubtaskInline($event)"
+        />
+      }
+    </div>
+  }
+</div>
