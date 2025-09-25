@@ -1,162 +1,174 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-.textNormal {
-  @apply text-black dark:text-white;
+@theme {
+  --colors-primary: #6366f1;
+  --colors-secondary: #6b7280;
+  --colors-accent: #ec4899;
+  --colors-success: #10b981;
+  --colors-warning: #f59e0b;
+  --colors-danger: #ef4444;
+  --colors-light: #f9fafb;
+  --colors-dark: #1f2937;
+  --font-family-sans: "Inter", "sans-serif";
 }
 
-.textMuted {
-  @apply text-gray-600 dark:text-gray-300;
-}
+@layer components {
+  .textNormal {
+    @apply text-black dark:text-white;
+  }
 
-.theme {
-  @apply textNormal bg-white dark:bg-zinc-900;
-}
+  .textMuted {
+    @apply text-gray-600 dark:text-gray-300;
+  }
 
-.styleBody {
-  @apply block top-0 left-0 m-0 theme w-full text-base;
-}
+  .theme {
+    @apply text-black dark:text-white bg-white dark:bg-zinc-900;
+  }
 
-.styleHeader {
-  @apply sticky flex flex-row justify-between items-center top-0 mx-auto px-3 z-40 theme w-full h-11;
-}
+  .styleBody {
+    @apply block top-0 left-0 m-0 w-full text-base text-black dark:text-white bg-white dark:bg-zinc-900;
+  }
 
-.styleBottomNav {
-  @apply fixed  grid grid-cols-5 bottom-0 m-0 p-3 theme w-full;
-}
-/* min-[480px]:hidden */
+  .styleHeader {
+    @apply sticky flex flex-row justify-between items-center top-0 mx-auto px-3 z-40 w-full h-11 text-black dark:text-white bg-white dark:bg-zinc-900;
+  }
 
-.styleBackWind {
-  @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-[999] bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto;
-}
+  .styleBottomNav {
+    @apply fixed grid grid-cols-4 left-0 right-0 bottom-0 m-0 w-full text-black dark:text-white bg-white dark:bg-zinc-900;
+  }
 
-.styleWind {
-  @apply absolute p-4 rounded-xl styleBorderSolid border bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2;
-}
+  .styleBackWind {
+    @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-[999] bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto;
+  }
 
-.styleWindNotify {
-  @apply fixed flex flex-col top-1 right-1 z-[999] rounded-lg styleBorderSolid border !border-white text-white;
-}
+  .styleWind {
+    @apply absolute p-4 rounded-xl border border-solid border-black dark:border-white bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2;
+  }
 
-.styleBorderSolid {
-  @apply border-solid border-black dark:border-white;
-}
+  .styleWindNotify {
+    @apply fixed flex flex-col top-1 right-1 z-[999] rounded-lg border border-solid border-white text-white;
+  }
 
-.styleBorderSolidLite {
-  @apply rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
-}
+  .styleBorderSolid {
+    @apply border-solid border-black dark:border-white;
+  }
 
-.styleLinkAside {
-  @apply flex flex-row gap-x-2 items-center px-2 py-1 w-full font-semibold text-left text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
-}
+  .styleBorderSolidLite {
+    @apply rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+  }
 
-.styleLinkNav {
-  @apply font-semibold text-center text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
-}
+  .styleLinkAside {
+    @apply flex flex-row gap-x-2 items-center px-2 py-1 w-full font-semibold text-left text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
+  }
 
-.styleLinkMenuUser {
-  @apply block px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-900 dark:text-white text-xl text-black cursor-pointer;
-}
+  .styleLinkNav {
+    @apply font-semibold text-center text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
+  }
 
-.styleLinkMenu {
-  @apply flex flex-row gap-x-4 items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white;
-}
+  .styleLinkMenuUser {
+    @apply block px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-900 dark:text-white text-xl text-black cursor-pointer;
+  }
 
-.styleLinkRedir {
-  @apply !text-blue-600 dark:!text-lime-500 !decoration-blue-600 dark:!decoration-lime-500 underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer;
-}
+  .styleLinkMenu {
+    @apply flex flex-row gap-x-4 items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white;
+  }
 
-.styleBottomNavItems {
-  @apply flex flex-col items-center text-center cursor-pointer;
-}
+  .styleLinkRedir {
+    @apply !text-blue-600 dark:!text-lime-500 !decoration-blue-600 dark:!decoration-lime-500 underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer;
+  }
 
-.styleBut {
-  @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center;
+  .styleBottomNavItems {
+    @apply flex flex-col items-center text-center cursor-pointer;
+  }
+
+  .styleBut {
+    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center;
+  }
+
+  .styleButInfo {
+    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-blue-900 bg-blue-600;
+  }
+
+  .styleButWarn {
+    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-yellow-900 bg-yellow-500;
+  }
+
+  .styleButDanger {
+    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-red-900 bg-red-600;
+  }
+
+  .styleButSuccess {
+    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-green-900 bg-green-600;
+  }
+
+  .styleFloatBut {
+    @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl border rounded-lg border-solid border-zinc-600 dark:border-zinc-500 hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer;
+  }
+
+  .styleTR {
+    @apply hover:bg-slate-300 dark:hover:bg-neutral-700;
+  }
+
+  .styleTD {
+    @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
+  }
+
+  .styleLI {
+    @apply inline-flex p-4 rounded-t-lg border-b-2 hover:border-gray-300 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer;
+  }
+
+  .styleUL {
+    @apply flex flex-wrap -mb-px border-b border-gray-200 dark:border-gray-700 font-medium text-center text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  .styleLabel {
+    @apply block mt-2 text-gray-900 dark:text-white font-medium;
+  }
+
+  .styleElem {
+    @apply rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+  }
+
+  .styleField {
+    @apply p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+  }
+
+  .styleTextarea {
+    @apply block p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg w-full;
+  }
+
+  .styleFileInput {
+    @apply p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+  }
+
+  .styleCheckbox {
+    @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-300 dark:bg-gray-800 w-5 h-5 text-blue-600 dark:text-red-600;
+  }
+
+  .styleToggle {
+    @apply relative after:absolute after:top-[2px] rounded-full after:rounded-full after:border after:border-gray-300 dark:border-gray-600 peer-checked:after:border-white bg-gray-200 dark:bg-gray-700 after:bg-white peer-checked:bg-blue-600 w-11 h-6 after:w-5 after:h-5 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-focus:outline-none after:content-[''] after:start-[2px] after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full;
+  }
+
+  .styleRadio {
+    @apply w-6 h-6 text-blue-600 dark:text-green-500 bg-gray-300 dark:bg-gray-700 border-gray-500 dark:border-gray-600 focus:ring-blue-600 dark:focus:ring-green-500 dark:ring-offset-gray-800 focus:ring-2;
+  }
+
+  .styleRadio:disabled {
+    @apply !bg-red-700 !border-red-700 focus:!ring-red-700;
+  }
+
+  .styleSelect {
+    @apply block px-3 py-2 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg w-full;
+  }
+
+  .styleDetails {
+    @apply mx-1;
+  }
 }
 
 button:disabled {
   @apply hover:!bg-red-500 dark:hover:!bg-red-500 cursor-not-allowed;
-}
-
-.styleButInfo {
-  @apply styleBut border-blue-900 bg-blue-600;
-}
-
-.styleButWarn {
-  @apply styleBut border-yellow-900 bg-yellow-500;
-}
-
-.styleButDanger {
-  @apply styleBut border-red-900 bg-red-600;
-}
-
-.styleButSuccess {
-  @apply styleBut border-green-900 bg-green-600;
-}
-
-.styleFloatBut {
-  @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl styleBorderSolidLite border hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer;
-}
-
-.styleTR {
-  @apply hover:bg-slate-300 dark:hover:bg-neutral-700;
-}
-
-.styleTD {
-  @apply p-1 styleBorderSolid border-2 !border-gray-500 dark:!border-gray-600;
-}
-
-.styleLI {
-  @apply inline-flex p-4 rounded-t-lg border-b-2 hover:border-gray-300 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer;
-}
-
-.styleUL {
-  @apply flex flex-wrap -mb-px border-b border-gray-200 dark:border-gray-700 font-medium text-center text-sm text-gray-500 dark:text-gray-400;
-}
-
-.styleLabel {
-  @apply block mt-2 text-gray-900 dark:text-white font-medium;
-}
-
-.styleElem {
-  @apply rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
-}
-
-.styleField {
-  @apply p-2.5 styleElem;
-}
-
-.styleTextarea {
-  @apply block p-2.5 styleElem w-full;
-}
-
-.styleFileInput {
-  @apply p-2.5 styleElem;
-}
-
-.styleCheckbox {
-  @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-300 dark:bg-gray-800 w-5 h-5 text-blue-600 dark:text-red-600;
-}
-
-.styleToggle {
-  @apply relative after:absolute after:top-[2px] rounded-full after:rounded-full after:border after:border-gray-300 dark:border-gray-600 peer-checked:after:border-white bg-gray-200 dark:bg-gray-700 after:bg-white peer-checked:bg-blue-600 w-11 h-6 after:w-5 after:h-5 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-focus:outline-none after:content-[''] after:start-[2px] after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full;
-}
-
-.styleRadio {
-  @apply w-6 h-6 text-blue-600 dark:text-green-500 bg-gray-300 dark:bg-gray-700 border-gray-500 dark:border-gray-600 focus:ring-blue-600 dark:focus:ring-green-500 dark:ring-offset-gray-800 focus:ring-2;
-}
-
-.styleRadio:disabled {
-  @apply !bg-red-700 !border-red-700 focus:!ring-red-700;
-}
-
-.styleSelect {
-  @apply block px-3 py-2 styleElem w-full;
-}
-
-.styleDetails {
-  @apply mx-1;
 }
 
 @layer components {
@@ -164,7 +176,6 @@ button:disabled {
     list-style: none;
   }
   .styleDetails .styleSummary:before {
-    /* content: url("/assets/svg/cross.svg"); */
     content: "+";
     font-size: 40px;
     font-weight: bold;
@@ -210,7 +221,7 @@ button:disabled {
 }
 
 .progressbar-text > p {
-  @apply textNormal
+  @apply text-black dark:text-white;
 }
 
 mat-icon {
@@ -218,7 +229,7 @@ mat-icon {
 }
 
 pre {
-  @apply p-5 rounded-lg styleBorderSolidLite border bg-transparent w-full;
+  @apply p-5 rounded-lg border border-solid border-zinc-600 dark:border-zinc-500 bg-transparent w-full;
 }
 
 .dividerIcon > div {
@@ -291,7 +302,7 @@ pre {
 .mat-mdc-menu-panel,
 .mat-datepicker-actions,
 .mat-expansion-panel {
-  @apply !rounded-xl styleBorderSolidLite !border;
+  @apply !rounded-xl border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .mat-calendar,
@@ -386,20 +397,20 @@ pre {
 
 .fc-theme-standard .fc-popover,
 .fc-multimonth-header {
-  @apply theme;
+  @apply text-black dark:text-white bg-white dark:bg-zinc-900;
 }
 
 .fc .fc-multimonth {
-  @apply styleTD !p-0;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0;
 }
 
 .fc-theme-standard .fc-scrollgrid {
-  @apply styleTD !p-0 rounded-xl;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0 rounded-xl;
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th {
-  @apply styleTD !p-0;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0;
 }
 
 .fc-day-disabled,
@@ -414,11 +425,11 @@ td[role="presentation"] {
 }
 
 .fc-prev-button {
-  @apply !rounded-r-none styleBorderSolidLite !border;
+  @apply !rounded-r-none border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-next-button {
-  @apply !rounded-l-none styleBorderSolidLite !border;
+  @apply !rounded-l-none border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-button {
@@ -430,18 +441,9 @@ td[role="presentation"] {
 }
 
 .fc-button-active {
-  @apply fc-button !bg-gray-400 dark:!bg-zinc-700;
+  @apply !bg-gray-400 dark:!bg-zinc-700;
 }
 
 .fc-button-group {
   @apply !rounded-xl;
-}
-
-html,
-body {
-  height: 100%;
-}
-body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
 }
