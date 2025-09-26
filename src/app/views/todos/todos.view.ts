@@ -157,8 +157,7 @@ export class TodosView implements OnInit {
   isCompleted(todo: Todo): boolean {
     const listTasks = todo?.tasks ?? [];
     const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
-    const percent = listCompletedTasks.length / (listTasks.length == 0 ? 1 : listTasks.length);
-    return percent == 100;
+    return listCompletedTasks.length == listTasks.length;
   }
 
   deleteTodoById(todoId: string): void {
