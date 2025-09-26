@@ -137,7 +137,6 @@ export class DashboardView implements OnInit {
       }))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // Generate recent activities
     const sortedTasks = [...tasks].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -159,7 +158,7 @@ export class DashboardView implements OnInit {
     const start = task.startDate ? new Date(task.startDate) : null;
     const end = task.endDate ? new Date(task.endDate) : null;
 
-    if (end && end < now) return "ongoing"; // overdue, but since overdue is separate, perhaps ongoing for not started
+    if (end && end < now) return "ongoing";
 
     if (start && end && start <= now && now <= end) return "progress";
 
