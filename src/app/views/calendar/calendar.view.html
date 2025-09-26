@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      @if (viewMode === 'month') {
+      @if (viewMode === "month") {
         <div class="grid grid-cols-7 gap-1">
           <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
           <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
@@ -106,9 +106,10 @@
               <div class="space-y-1">
                 @for (event of day.events.slice(0, 2); track event.id) {
                   <div
-                    class="text-xs p-1 rounded text-white truncate"
+                    class="text-xs p-1 rounded text-white truncate cursor-pointer"
                     [ngClass]="getEventColor(event)"
                     [title]="event.title"
+                    (click)="navigateToTasks(event)"
                   >
                     {{ event.title }}
                   </div>
@@ -124,7 +125,7 @@
         </div>
       }
 
-      @if (viewMode === 'week') {
+      @if (viewMode === "week") {
         <div class="grid grid-cols-7 gap-1">
           <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
           <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
@@ -153,15 +154,18 @@
                 >
                   {{ day.date.getDate() }}
                 </span>
-                <span class="text-xs textMuted">{{ day.date.toLocaleDateString('en-US', { month: 'short' }) }}</span>
+                <span class="text-xs textMuted">{{
+                  day.date.toLocaleDateString("en-US", { month: "short" })
+                }}</span>
               </div>
 
               <div class="space-y-1">
                 @for (event of day.events; track event.id) {
                   <div
-                    class="text-xs p-1 rounded text-white truncate"
+                    class="text-xs p-1 rounded text-white truncate cursor-pointer"
                     [ngClass]="getEventColor(event)"
                     [title]="event.title"
+                    (click)="navigateToTasks(event)"
                   >
                     {{ event.title }}
                   </div>
@@ -172,7 +176,7 @@
         </div>
       }
 
-      @if (viewMode === 'day') {
+      @if (viewMode === "day") {
         <div class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-6">
           <h4 class="text-lg font-semibold textNormal mb-4">{{ formatSelectedDate() }}</h4>
 
@@ -184,7 +188,10 @@
               </div>
             } @else {
               @for (event of dayEvents; track event.id) {
-                <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-600">
+                <div
+                  class="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
+                  (click)="navigateToTasks(event)"
+                >
                   <div class="flex items-start gap-4">
                     <div class="w-4 h-4 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
                     <div class="flex-1">
@@ -193,8 +200,15 @@
                         <p class="text-sm textMuted mt-2">{{ event.description }}</p>
                       }
                       <div class="flex items-center gap-2 mt-2">
-                        <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{ event.status }}</span>
-                        <span class="text-xs textMuted">{{ event.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                        <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{
+                          event.status
+                        }}</span>
+                        <span class="text-xs textMuted">{{
+                          event.date.toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -221,7 +235,10 @@
             </div>
           } @else {
             @for (event of filteredEvents; track event.id) {
-              <div class="p-3 rounded-lg border border-gray-200 dark:border-zinc-600">
+              <div
+                class="p-3 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
+                (click)="navigateToTasks(event)"
+              >
                 <div class="flex items-start gap-3">
                   <div class="w-3 h-3 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
                   <div class="flex-1 min-w-0">

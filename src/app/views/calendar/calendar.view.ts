@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -25,6 +25,7 @@ interface CalendarEvent {
   type: "todo" | "task";
   status: string;
   description?: string;
+  todoId: string;
 }
 
 @Component({
@@ -38,7 +39,8 @@ export class CalendarView implements OnInit {
   constructor(
     private authService: AuthService,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private router: Router
   ) {}
 
   selectedDate: Date = new Date();
@@ -79,7 +81,7 @@ export class CalendarView implements OnInit {
         .getAllByField<Array<Todo>>("todo", "userId", userId)
         .then((response: Response<Array<Todo>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.processCalendarEvents(response.data);
+            this.processTodosData(response.data);
           } else {
             this.notifyService.showError(response.message);
           }
@@ -90,29 +92,44 @@ export class CalendarView implements OnInit {
     }
   }
 
-  processCalendarEvents(todos: Array<Todo>): void {
+  processTodosData(todos: Array<Todo>): void {
+    const allTasks: Task[] = [];
+    todos.forEach((todo) => {
+      if (todo.tasks) {
+        todo.tasks.forEach((task) => {
+          task.todo = todo;
+          allTasks.push(task);
+        });
+      }
+    });
+    this.processCalendarEvents(allTasks);
+  }
+
+  processCalendarEvents(tasks: Array<Task>): void {
     this.events = [];
 
-    todos.forEach((todo) => {
-      if (todo.startDate) {
+    tasks.forEach((task) => {
+      if (task.startDate) {
         this.events.push({
-          id: todo.id!,
-          title: `Start: ${todo.title}`,
-          date: new Date(todo.startDate),
-          type: "todo",
+          id: task.id!,
+          title: `Start: ${task.title}`,
+          date: new Date(task.startDate),
+          type: "task",
           status: "start",
-          description: todo.description,
+          description: task.description,
+          todoId: task.todo.id,
         });
       }
 
-      if (todo.endDate) {
+      if (task.endDate) {
         this.events.push({
-          id: todo.id!,
-          title: `Due: ${todo.title}`,
-          date: new Date(todo.endDate),
-          type: "todo",
-          status: "due",
-          description: todo.description,
+          id: task.id!,
+          title: task.isCompleted ? `Completed: ${task.title}` : `Due: ${task.title}`,
+          date: new Date(task.endDate),
+          type: "task",
+          status: task.isCompleted ? "completed" : "due",
+          description: task.description,
+          todoId: task.todo.id,
         });
       }
     });
@@ -309,5 +326,9 @@ export class CalendarView implements OnInit {
     } else if (mode === "day") {
       this.generateDayView();
     }
+  }
+
+  navigateToTasks(event: CalendarEvent): void {
+    this.router.navigate(["/todos", event.todoId, "tasks"]);
   }
 }
