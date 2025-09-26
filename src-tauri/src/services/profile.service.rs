@@ -126,11 +126,11 @@ impl ProfileService {
     match profile {
       Ok(result) => {
         if result {
-          let update_result = self
+          let updateResult = self
             .jsonProvider
             .update("users", &userId, json!({"profileId": modelData.id}))
             .await;
-          match update_result {
+          match updateResult {
             Ok(_) => {
               return Ok(ResponseModel {
                 status: ResponseStatus::Success,
@@ -138,12 +138,12 @@ impl ProfileService {
                 data: DataValue::String("".to_string()),
               });
             }
-            Err(update_error) => {
+            Err(updateError) => {
               return Err(ResponseModel {
                 status: ResponseStatus::Error,
                 message: format!(
                   "Profile created but failed to update user: {}",
-                  update_error.to_string()
+                  updateError.to_string()
                 ),
                 data: DataValue::String("".to_string()),
               });
