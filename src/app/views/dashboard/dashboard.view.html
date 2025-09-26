@@ -161,29 +161,14 @@
     class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
   >
     <div class="flex items-center justify-between mb-6">
-      <h3 class="text-lg font-semibold textNormal">Recent Tasks</h3>
-      <div class="flex gap-2">
-        @for (tab of tabs; track $index) {
-          <button
-            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-            [ngClass]="
-              activeTab === tab.key
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-            "
-            (click)="setActiveTab(tab.key)"
-          >
-            {{ tab.label }}
-          </button>
-        }
-      </div>
+      <h3 class="text-lg font-semibold textNormal">All Tasks</h3>
     </div>
 
     <div class="space-y-3">
       @if (filteredTasks.length === 0) {
         <div class="text-center py-8">
           <mat-icon class="!w-12 !h-13 !text-4xl textMuted" fontIcon="assignment" />
-          <p class="textMuted mt-2">No {{ activeTab }} tasks found</p>
+          <p class="textMuted mt-2">No tasks found</p>
           <button class="styleButInfo mt-4" routerLink="/todos/create_todo">
             Create your first task
           </button>

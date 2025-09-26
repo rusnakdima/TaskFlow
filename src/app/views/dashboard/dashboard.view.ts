@@ -41,8 +41,6 @@ export class DashboardView implements OnInit {
     private router: Router
   ) {}
 
-  activeTab: string = "ongoing";
-
   totalTasks: number = 0;
   completedTasks: number = 0;
   inProgressTasks: number = 0;
@@ -50,12 +48,6 @@ export class DashboardView implements OnInit {
 
   allTasks: Array<DisplayTask> = [];
   filteredTasks: Array<DisplayTask> = [];
-
-  tabs = [
-    { key: "ongoing", label: "Ongoing" },
-    { key: "progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-  ];
 
   recentActivities: Array<string> = [];
 
@@ -71,7 +63,7 @@ export class DashboardView implements OnInit {
         .getAllByField<Array<Todo>>("todo", "userId", userId)
         .then((response: Response<Array<Todo>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.loadTasksForTodos(response.data);
+            this.processTodosData(response.data);
           } else {
             this.notifyService.showError(response.message);
           }
@@ -82,27 +74,16 @@ export class DashboardView implements OnInit {
     }
   }
 
-  loadTasksForTodos(todos: Array<Todo>): void {
-    const todoIds = todos.map((todo) => todo.id);
-    const taskPromises = todoIds.map((todoId) =>
-      this.mainService.getAllByField<Array<Task>>("task", "todoId", todoId)
-    );
-
-    Promise.all(taskPromises)
-      .then((responses: Response<Array<Task>>[]) => {
-        const allTasks: { task: Task; todoId: string }[] = [];
-        responses.forEach((response, index) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            response.data.forEach((task) => {
-              allTasks.push({ task, todoId: todoIds[index] });
-            });
-          }
+  processTodosData(todos: Array<Todo>): void {
+    const allTasks: { task: Task; todoId: string }[] = [];
+    todos.forEach((todo) => {
+      if (todo.tasks) {
+        todo.tasks.forEach((task) => {
+          allTasks.push({ task, todoId: todo.id });
         });
-        this.processTaskData(allTasks);
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      });
+      }
+    });
+    this.processTaskData(allTasks);
   }
 
   processTaskData(taskData: Array<{ task: Task; todoId: string }>): void {
@@ -124,15 +105,17 @@ export class DashboardView implements OnInit {
       return end && end < now;
     }).length;
 
-    this.allTasks = taskData.map((item) => ({
-      id: item.task.id,
-      title: item.task.title,
-      description: item.task.description,
-      status: this.getTaskStatus(item.task),
-      dueDate: item.task.endDate,
-      createdAt: item.task.createdAt,
-      todoId: item.todoId,
-    }));
+    this.allTasks = taskData
+      .map((item) => ({
+        id: item.task.id,
+        title: item.task.title,
+        description: item.task.description,
+        status: this.getTaskStatus(item.task),
+        dueDate: item.task.endDate,
+        createdAt: item.task.createdAt,
+        todoId: item.todoId,
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Generate recent activities
     const sortedTasks = [...tasks].sort(
@@ -146,7 +129,7 @@ export class DashboardView implements OnInit {
       }
     });
 
-    this.filterTasks();
+    this.filteredTasks = this.allTasks;
   }
 
   getTaskStatus(task: Task): string {
@@ -163,10 +146,6 @@ export class DashboardView implements OnInit {
     return "ongoing";
   }
 
-  filterTasks(): void {
-    this.filteredTasks = this.allTasks.filter((task) => task.status === this.activeTab);
-  }
-
   getProgressPercentage(): number {
     if (this.totalTasks === 0) return 0;
     return Math.round((this.completedTasks / this.totalTasks) * 100);
@@ -179,11 +158,6 @@ export class DashboardView implements OnInit {
       month: "short",
       day: "numeric",
     });
-  }
-
-  setActiveTab(tab: string): void {
-    this.activeTab = tab;
-    this.filterTasks();
   }
 
   navigateToTodos(): void {
