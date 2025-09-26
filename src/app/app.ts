@@ -92,7 +92,7 @@ export class App {
 
   get showComponents(): boolean {
     if (
-      ["/login", "/signup", "/reset_password", "/change_password", "/create_profile"].includes(
+      ["/login", "/signup", "/reset_password", "/change_password", "/profile/create_profile"].includes(
         this.url
       )
     ) {
