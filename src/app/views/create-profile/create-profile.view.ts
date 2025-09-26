@@ -30,7 +30,14 @@ import { NotifyService } from "@services/notify.service";
   selector: "app-create-profile",
   standalone: true,
   providers: [AuthService, MainService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule, FormComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatIconModule,
+    FormComponent,
+  ],
   templateUrl: "./create-profile.view.html",
 })
 export class CreateProfileView implements OnInit {
@@ -102,7 +109,7 @@ export class CreateProfileView implements OnInit {
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
-            this.router.navigate(["/home"]);
+            this.router.navigate([""]);
           }
         })
         .catch((err: Response<string>) => {

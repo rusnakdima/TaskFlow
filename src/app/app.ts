@@ -75,7 +75,9 @@ export class App {
       await this.mainService
         .getByField<string>("profile", "userId", userId)
         .then((response: Response<string>) => {
-          if (response.status !== ResponseStatus.SUCCESS) {
+          if (response.status == ResponseStatus.SUCCESS) {
+            this.router.navigate([""]);
+          } else {
             this.router.navigate(["/profile/create_profile"]);
           }
         })
