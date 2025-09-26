@@ -136,7 +136,34 @@ impl JsonProvider {
               }
             }
           }
-          TypesField::ManyToMany => {}
+          TypesField::ManyToMany => {
+            if let Some(idValue) = recordObj.get("id").cloned() {
+              if let Some(idStr) = idValue.as_str() {
+                let allRecords = match self
+                  .getAllByField(&relation.nameTable, None, relation.relations.clone())
+                  .await
+                {
+                  Ok(records) => records,
+                  Err(_) => continue,
+                };
+                let filteredRecords: Vec<Value> = allRecords
+                  .into_iter()
+                  .filter(|record| {
+                    if let Some(fieldValue) = record.get(&relation.nameField) {
+                      if let Some(arr) = fieldValue.as_array() {
+                        arr.iter().any(|v| v.as_str() == Some(idStr))
+                      } else {
+                        false
+                      }
+                    } else {
+                      false
+                    }
+                  })
+                  .collect();
+                recordObj.insert(relation.newNameField.clone(), Value::Array(filteredRecords));
+              }
+            }
+          }
         }
       }
     }

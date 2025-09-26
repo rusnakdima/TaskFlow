@@ -10,12 +10,14 @@ use crate::helpers::{
 /* models */
 use crate::models::{
   category_model::{CategoryCreateModel, CategoryModel},
+  relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
 };
 
 #[allow(non_snake_case)]
 pub struct CategoriesService {
   pub jsonProvider: JsonProvider,
+  relations: Vec<RelationObj>,
 }
 
 impl CategoriesService {
@@ -23,6 +25,40 @@ impl CategoriesService {
   pub fn new(jsonProvider: JsonProvider) -> Self {
     Self {
       jsonProvider: jsonProvider,
+      relations: vec![
+        RelationObj {
+          nameTable: "todos".to_string(),
+          typeField: TypesField::ManyToMany,
+          nameField: "categories".to_string(),
+          newNameField: "todos".to_string(),
+          relations: Some(vec![RelationObj {
+            nameTable: "tasks".to_string(),
+            typeField: TypesField::OneToMany,
+            nameField: "todoId".to_string(),
+            newNameField: "tasks".to_string(),
+            relations: Some(vec![RelationObj {
+              nameTable: "subtasks".to_string(),
+              typeField: TypesField::OneToMany,
+              nameField: "taskId".to_string(),
+              newNameField: "subtasks".to_string(),
+              relations: None,
+            }]),
+          }]),
+        },
+        RelationObj {
+          nameTable: "users".to_string(),
+          typeField: TypesField::OneToOne,
+          nameField: "userId".to_string(),
+          newNameField: "user".to_string(),
+          relations: Some(vec![RelationObj {
+            nameTable: "profiles".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "profileId".to_string(),
+            newNameField: "profile".to_string(),
+            relations: None,
+          }]),
+        },
+      ],
     }
   }
 
@@ -41,7 +77,7 @@ impl CategoriesService {
         } else {
           None
         },
-        None,
+        Some(self.relations.clone()),
       )
       .await;
     match listCategories {
@@ -77,7 +113,7 @@ impl CategoriesService {
         } else {
           None
         },
-        None,
+        Some(self.relations.clone()),
         "",
       )
       .await;

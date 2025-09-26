@@ -95,7 +95,30 @@ impl MongodbProvider {
             record.insert(relation.newNameField.clone(), listResult);
           }
         }
-        TypesField::ManyToMany => {}
+        TypesField::ManyToMany => {
+          if let Some(idValue) = record.get("id").cloned() {
+            if let Some(idStr) = idValue.as_str() {
+              let allRecords = match self
+                .getAllByField(&relation.nameTable, None, relation.relations.clone())
+                .await
+              {
+                Ok(records) => records,
+                Err(_) => continue,
+              };
+              let filteredRecords: Vec<Document> = allRecords
+                .into_iter()
+                .filter(|doc| {
+                  if let Ok(arr) = doc.get_array(&relation.nameField) {
+                    arr.iter().any(|v| v.as_str() == Some(idStr))
+                  } else {
+                    false
+                  }
+                })
+                .collect();
+              record.insert(relation.newNameField.clone(), filteredRecords);
+            }
+          }
+        }
       }
     }
 
