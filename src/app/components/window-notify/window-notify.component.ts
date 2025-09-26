@@ -31,7 +31,6 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.subscription = this.notifyService.notify.subscribe((value: INotify) => {
-      console.log(value);
       if (value) {
         this.addNotification(value);
       }
