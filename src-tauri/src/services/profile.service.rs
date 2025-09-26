@@ -110,9 +110,8 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let findByUserId = self
-      .getByField("userId".to_string(), data.userId.clone())
-      .await;
+    let userId = data.userId.clone();
+    let findByUserId = self.getByField("userId".to_string(), userId.clone()).await;
     if findByUserId.is_ok() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -127,11 +126,29 @@ impl ProfileService {
     match profile {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "".to_string(),
-            data: DataValue::String("".to_string()),
-          });
+          let update_result = self
+            .jsonProvider
+            .update("users", &userId, json!({"profileId": modelData.id}))
+            .await;
+          match update_result {
+            Ok(_) => {
+              return Ok(ResponseModel {
+                status: ResponseStatus::Success,
+                message: "".to_string(),
+                data: DataValue::String("".to_string()),
+              });
+            }
+            Err(update_error) => {
+              return Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: format!(
+                  "Profile created but failed to update user: {}",
+                  update_error.to_string()
+                ),
+                data: DataValue::String("".to_string()),
+              });
+            }
+          }
         } else {
           return Ok(ResponseModel {
             status: ResponseStatus::Error,
