@@ -185,10 +185,10 @@ impl TaskService {
       .await;
 
     match subtasks {
-      Ok(subtasks_list) => {
-        for subtask in subtasks_list {
-          if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
-            let _ = self.jsonProvider.delete("subtasks", subtask_id).await;
+      Ok(subtasksList) => {
+        for subtask in subtasksList {
+          if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
+            let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
           }
         }
       }

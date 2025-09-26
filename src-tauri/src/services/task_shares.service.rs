@@ -45,11 +45,11 @@ impl TaskSharesService {
       )
       .await;
     match listTaskShares {
-      Ok(task_shares) => {
+      Ok(taskShares) => {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convertDataToArray(&task_shares),
+          data: convertDataToArray(&taskShares),
         });
       }
       Err(error) => {

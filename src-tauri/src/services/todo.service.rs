@@ -220,24 +220,24 @@ impl TodoService {
       .await;
 
     match tasks {
-      Ok(tasks_list) => {
-        for task in tasks_list {
-          if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
+      Ok(tasksList) => {
+        for task in tasksList {
+          if let Some(taskId) = task.get("id").and_then(|v| v.as_str()) {
             let subtasks = self
               .jsonProvider
-              .getAllByField("subtasks", Some(json!({ "taskId": task_id })), None)
+              .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
               .await;
             match subtasks {
-              Ok(subtasks_list) => {
-                for subtask in subtasks_list {
-                  if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
-                    let _ = self.jsonProvider.delete("subtasks", subtask_id).await;
+              Ok(subtasksList) => {
+                for subtask in subtasksList {
+                  if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
+                    let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
                   }
                 }
               }
               Err(_) => {}
             }
-            let _ = self.jsonProvider.delete("tasks", task_id).await;
+            let _ = self.jsonProvider.delete("tasks", taskId).await;
           }
         }
       }
