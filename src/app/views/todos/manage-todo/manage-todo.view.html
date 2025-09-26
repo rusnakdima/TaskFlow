@@ -131,6 +131,39 @@
             <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
+
+          <div class="space-y-2">
+            <label class="block text-sm font-medium textNormal">Categories</label>
+            <mat-form-field class="w-full">
+              <mat-label>Selected Categories</mat-label>
+              <input
+                matInput
+                [value]="getSelectedCategoriesText()"
+                [matMenuTriggerFor]="categoryMenu"
+                readonly
+                placeholder="Click to select categories"
+              />
+              <mat-icon matSuffix fontIcon="expand_more"></mat-icon>
+            </mat-form-field>
+
+            @if (form.get("categories")?.value?.length > 0) {
+              <div class="flex flex-wrap gap-2 mt-2">
+                @for (category of form.get("categories")?.value; track category.id) {
+                  <span
+                    class="px-2 py-1 bg-gray-300 dark:bg-zinc-600 text-black dark:text-white rounded-full text-sm flex items-center gap-1"
+                  >
+                    {{ category.title }}
+                    <button
+                      (click)="removeCategory(category)"
+                      class="ml-1 text-red-500 hover:text-red-700 cursor-pointer"
+                    >
+                      <mat-icon class="!w-4 !h-5 !text-base" fontIcon="close"></mat-icon>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -264,4 +297,33 @@
       </button>
     </div>
   </form>
+
+  <mat-menu #categoryMenu="matMenu">
+    <div (click)="$event.stopPropagation()">
+      <div class="p-2">
+        <mat-form-field class="w-full">
+          <mat-label>New Category</mat-label>
+          <input
+            matInput
+            [(ngModel)]="newCategoryTitle"
+            [ngModelOptions]="{ standalone: true }"
+            (keydown.enter)="addCategory()"
+          />
+          <button matSuffix mat-icon-button (click)="addCategory()">
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="add"></mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-col gap-y-1 p-2 w-full max-h-20 overflow-y-auto">
+        @for (category of availableCategories; track category.id) {
+          <div class="flex flex-col p-2 styleBorderSolidLite border">
+            <button (click)="onCategorySelection(category)">
+              {{ category.title }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </mat-menu>
 </div>

@@ -18,10 +18,14 @@ import { MatSelectModule } from "@angular/material/select";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 import { MatRadioModule } from "@angular/material/radio";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatButtonModule } from "@angular/material/button";
+import { MatDividerModule } from "@angular/material/divider";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
+import { Category } from "@models/category";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -36,7 +40,7 @@ interface TeamMember {
 @Component({
   selector: "app-manage-todo",
   standalone: true,
-  providers: [AuthService, MainService, NotifyService],
+  providers: [AuthService, MainService],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -48,6 +52,9 @@ interface TeamMember {
     MatDatepickerModule,
     MatNativeDateModule,
     MatRadioModule,
+    MatMenuModule,
+    MatButtonModule,
+    MatDividerModule,
   ],
   templateUrl: "./manage-todo.view.html",
 })
@@ -76,6 +83,8 @@ export class ManageTodoView implements OnInit {
       updatedAt: [""],
     });
   }
+
+  userId: string = "";
 
   form: FormGroup;
   isEdit: boolean = false;
@@ -111,10 +120,14 @@ export class ManageTodoView implements OnInit {
   newMemberEmail: string = "";
   teamMembers: TeamMember[] = [];
 
+  availableCategories: Category[] = [];
+  newCategoryTitle: string = "";
+
   ngOnInit() {
-    const userId = this.authService.getValueByKey("id");
-    if (userId && userId != "") {
-      this.form.controls["userId"].setValue(userId);
+    this.userId = this.authService.getValueByKey("id");
+    if (this.userId && this.userId != "") {
+      this.form.controls["userId"].setValue(this.userId);
+      this.fetchCategories();
     }
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
@@ -185,6 +198,62 @@ export class ManageTodoView implements OnInit {
     return emailRegex.test(email);
   }
 
+  fetchCategories() {
+    this.mainService
+      .getAllByField<Category[]>("category", "userId", this.userId)
+      .then((response: Response<Category[]>) => {
+        if (response.status == ResponseStatus.SUCCESS) {
+          this.availableCategories = response.data;
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
+      });
+  }
+
+  addCategory() {
+    if (this.newCategoryTitle.trim()) {
+      const categoryData: any = {
+        title: this.newCategoryTitle.trim(),
+        userId: this.userId,
+      };
+      this.mainService
+        .create<string, Category>("category", categoryData)
+        .then((response: Response<string>) => {
+          if (response.status == ResponseStatus.SUCCESS) {
+            this.newCategoryTitle = "";
+            this.fetchCategories();
+            this.notifyService.showNotify(response.status, "Category added successfully");
+          }
+        })
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message ?? err.toString());
+        });
+    }
+  }
+
+  onCategorySelection(category: Category) {
+    const currentCategories = this.form.get("categories")?.value || [];
+    const exists = currentCategories.some((c: Category) => c.id === category.id);
+    if (!exists) {
+      this.form.patchValue({
+        categories: [...currentCategories, category],
+      });
+    }
+  }
+
+  removeCategory(category: Category) {
+    const currentCategories = this.form.get("categories")?.value || [];
+    this.form.patchValue({
+      categories: currentCategories.filter((c: Category) => c.id !== category.id),
+    });
+  }
+
+  getSelectedCategoriesText(): string {
+    const categories = this.form.get("categories")?.value || [];
+    return categories.map((c: Category) => c.title).join(", ");
+  }
+
   onSubmit() {
     if (this.form.invalid) {
       Object.values(this.form.controls).forEach((control) => {
@@ -208,6 +277,7 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       const body = {
         ...this.form.value,
+        categories: this.form.controls["categories"].value.map((category: Category) => category.id),
         assignees: this.teamMembers,
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
       };
@@ -236,6 +306,7 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       const body = {
         ...this.form.value,
+        categories: this.form.controls["categories"].value.map((category: Category) => category.id),
         assignees: this.teamMembers,
       };
 

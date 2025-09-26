@@ -1,6 +1,6 @@
 @if (todo) {
   <div
-    class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700 hover:shadow-xl transition-all duration-200 group cursor-pointer"
+    class="flex flex-col p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 h-full shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
     [routerLink]="['/todos/' + todo.id + '/tasks']"
   >
     <div class="flex items-start justify-between mb-4">
@@ -75,6 +75,21 @@
             >
               +{{ todo.assignees.length - 4 }}
             </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (todo.categories && todo.categories.length > 0) {
+      <div class="flex flex-col gap-y-2 mb-4">
+        <span class="textMuted text-sm">Categories</span>
+        <div class="flex flex-row flex-wrap gap-3">
+          @for (category of todo.categories; track category.id) {
+            <span
+              class="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-300 dark:bg-zinc-600 text-xs font-medium text-black dark:text-white"
+            >
+              {{ category.title }}
+            </span>
           }
         </div>
       </div>
