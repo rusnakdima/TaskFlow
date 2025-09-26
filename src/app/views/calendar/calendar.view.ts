@@ -31,7 +31,7 @@ interface CalendarEvent {
 @Component({
   selector: "app-calendar",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [CommonModule, RouterModule, MatIconModule, MatDatepickerModule, MatNativeDateModule],
   templateUrl: "./calendar.view.html",
 })

@@ -25,7 +25,7 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
 @Component({
   selector: "app-tasks",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [
     CommonModule,
     FormsModule,

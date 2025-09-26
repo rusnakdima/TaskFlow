@@ -29,7 +29,7 @@ import { NotifyService } from "@services/notify.service";
 @Component({
   selector: "app-create-profile",
   standalone: true,
-  providers: [AuthService, MainService, NotifyService],
+  providers: [AuthService, MainService],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule, FormComponent],
   templateUrl: "./create-profile.view.html",
 })

@@ -23,7 +23,7 @@ import { TaskInformationComponent } from "@components/task-information/task-info
 @Component({
   selector: "app-subtasks",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [
     CommonModule,
     RouterModule,

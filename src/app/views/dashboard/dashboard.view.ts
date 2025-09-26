@@ -29,7 +29,7 @@ interface DisplayTask {
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./dashboard.view.html",
 })

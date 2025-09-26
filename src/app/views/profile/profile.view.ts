@@ -18,7 +18,7 @@ import { MainService } from "@services/main.service";
 @Component({
   selector: "app-profile",
   standalone: true,
-  providers: [AuthService, MainService, NotifyService],
+  providers: [AuthService, MainService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./profile.view.html",
 })

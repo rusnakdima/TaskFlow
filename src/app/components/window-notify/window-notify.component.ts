@@ -1,6 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -17,22 +18,28 @@ import { ActiveNotification, INotify, ResponseStatus, ResponseStatusIcon } from 
   imports: [CommonModule, MatIconModule],
   templateUrl: "./window-notify.component.html",
 })
-export class WindowNotifyComponent implements OnInit {
+export class WindowNotifyComponent implements OnInit, OnDestroy {
   constructor(private notifyService: NotifyService) {}
 
   notifications: ActiveNotification[] = [];
   private nextId = 1;
   private readonly NOTIFICATION_DURATION = 3000;
   private readonly ANIMATION_DURATION = 300;
+  private subscription: Subscription = new Subscription();
 
   isHover: boolean = false;
 
   ngOnInit() {
-    this.notifyService.notify.subscribe((value: INotify) => {
+    this.subscription = this.notifyService.notify.subscribe((value: INotify) => {
+      console.log(value);
       if (value) {
         this.addNotification(value);
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
   addNotification(notification: INotify) {
@@ -69,7 +76,7 @@ export class WindowNotifyComponent implements OnInit {
     const notification = this.notifications.find((n) => n.id === id);
     if (!notification) return;
 
-    const element = document.querySelector(`.notification-item[id="${id}"]`) as HTMLElement;
+    const element = document.querySelector(`.notification-item[data-id="${id}"]`) as HTMLElement;
     if (element) {
       element.classList.add("animate-fadeOut");
     }

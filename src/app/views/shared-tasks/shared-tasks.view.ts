@@ -41,7 +41,7 @@ interface TeamMember {
 @Component({
   selector: "app-shared-tasks",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./shared-tasks.view.html",
 })

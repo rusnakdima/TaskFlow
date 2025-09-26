@@ -35,7 +35,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-subtask",
   standalone: true,
-  providers: [AuthService, MainService, NotifyService],
+  providers: [AuthService, MainService],
   imports: [
     CommonModule,
     ReactiveFormsModule,

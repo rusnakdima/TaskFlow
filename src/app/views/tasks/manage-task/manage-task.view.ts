@@ -36,7 +36,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-task",
   standalone: true,
-  providers: [AuthService, MainService, NotifyService],
+  providers: [AuthService, MainService],
   imports: [
     CommonModule,
     ReactiveFormsModule,

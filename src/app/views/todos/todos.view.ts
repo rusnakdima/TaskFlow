@@ -23,7 +23,7 @@ import { Task } from "@models/task";
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [MainService, NotifyService],
+  providers: [MainService],
   imports: [CommonModule, RouterModule, MatIconModule, SearchComponent, TodoComponent],
   templateUrl: "./todos.view.html",
 })
