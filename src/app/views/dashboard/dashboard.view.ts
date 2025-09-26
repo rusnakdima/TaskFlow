@@ -10,6 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
 import { Task } from "@models/task";
+import { Profile } from "@models/profile";
 
 /* services */
 import { MainService } from "@services/main.service";
@@ -41,6 +42,8 @@ export class DashboardView implements OnInit {
     private router: Router
   ) {}
 
+  profile: Profile | null = null;
+
   totalTasks: number = 0;
   completedTasks: number = 0;
   inProgressTasks: number = 0;
@@ -52,6 +55,23 @@ export class DashboardView implements OnInit {
   recentActivities: Array<string> = [];
 
   ngOnInit(): void {
+    const userId: string = this.authService.getValueByKey("id");
+
+    if (userId && userId !== "") {
+      this.mainService
+        .getByField<Profile>("profile", "userId", userId)
+        .then((response: Response<Profile>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.profile = response.data;
+          } else {
+            this.notifyService.showError(response.message);
+          }
+        })
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message);
+        });
+    }
+
     this.loadDashboardData();
   }
 
