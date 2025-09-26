@@ -76,7 +76,9 @@ export class App {
         .getByField<string>("profile", "userId", userId)
         .then((response: Response<string>) => {
           if (response.status == ResponseStatus.SUCCESS) {
-            this.router.navigate([""]);
+            if (this.router.url == "/profile/create_profile") {
+              this.router.navigate([""]);
+            }
           } else {
             this.router.navigate(["/profile/create_profile"]);
           }
@@ -94,9 +96,13 @@ export class App {
 
   get showComponents(): boolean {
     if (
-      ["/login", "/signup", "/reset_password", "/change_password", "/profile/create_profile"].includes(
-        this.url
-      )
+      [
+        "/login",
+        "/signup",
+        "/reset_password",
+        "/change_password",
+        "/profile/create_profile",
+      ].includes(this.url)
     ) {
       return false;
     } else {
