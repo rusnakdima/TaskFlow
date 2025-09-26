@@ -12,6 +12,17 @@
         </div>
         <p class="text-blue-100 mb-4 max-w-prose">{{ todo.description }}</p>
 
+        @if (todo.categories && todo.categories.length > 0) {
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span
+              *ngFor="let category of todo.categories"
+              class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-full text-sm font-medium transition-colors"
+            >
+              {{ category.title }}
+            </span>
+          </div>
+        }
+
         <div class="grid grid-cols-3 gap-4 justify-between text-center w-full">
           <div class="flex flex-col">
             <div class="text-2xl font-bold">{{ getCompletedTasksCount() }}</div>
