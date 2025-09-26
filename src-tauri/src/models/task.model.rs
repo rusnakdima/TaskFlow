@@ -51,6 +51,7 @@ pub struct TaskCreateModel {
   pub endDate: String,
 }
 
+#[allow(non_snake_case)]
 impl From<TaskCreateModel> for TaskModel {
   fn from(value: TaskCreateModel) -> Self {
     let now = chrono::Local::now();
@@ -100,6 +101,7 @@ pub struct TaskUpdateModel {
   pub updatedAt: String,
 }
 
+#[allow(non_snake_case)]
 impl From<TaskUpdateModel> for TaskModel {
   fn from(value: TaskUpdateModel) -> Self {
     let now = chrono::Local::now();

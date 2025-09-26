@@ -214,6 +214,36 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let tasks = self
+      .jsonProvider
+      .getAllByField("tasks", Some(json!({ "todoId": id })), None)
+      .await;
+
+    match tasks {
+      Ok(tasks_list) => {
+        for task in tasks_list {
+          if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
+            let subtasks = self
+              .jsonProvider
+              .getAllByField("subtasks", Some(json!({ "taskId": task_id })), None)
+              .await;
+            match subtasks {
+              Ok(subtasks_list) => {
+                for subtask in subtasks_list {
+                  if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
+                    let _ = self.jsonProvider.delete("subtasks", subtask_id).await;
+                  }
+                }
+              }
+              Err(_) => {}
+            }
+            let _ = self.jsonProvider.delete("tasks", task_id).await;
+          }
+        }
+      }
+      Err(_) => {}
+    }
+
     let todo = self.jsonProvider.delete("todos", &id.as_str()).await;
     match todo {
       Ok(result) => {

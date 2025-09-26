@@ -179,6 +179,22 @@ impl TaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let subtasks = self
+      .jsonProvider
+      .getAllByField("subtasks", Some(json!({ "taskId": id })), None)
+      .await;
+
+    match subtasks {
+      Ok(subtasks_list) => {
+        for subtask in subtasks_list {
+          if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
+            let _ = self.jsonProvider.delete("subtasks", subtask_id).await;
+          }
+        }
+      }
+      Err(_) => {}
+    }
+
     let task = self.jsonProvider.delete("tasks", &id.as_str()).await;
     match task {
       Ok(result) => {
