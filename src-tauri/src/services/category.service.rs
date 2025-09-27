@@ -206,6 +206,28 @@ impl CategoriesService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let todos = self.jsonProvider.getAllByField("todos", None, None).await;
+    match todos {
+      Ok(mut todos_list) => {
+        for todo in todos_list.iter_mut() {
+          if let Some(categories) = todo.get_mut("categories") {
+            if let Some(categories_array) = categories.as_array_mut() {
+              categories_array.retain(|cat_id| cat_id.as_str() != Some(&id));
+              let _ = self
+                .jsonProvider
+                .update(
+                  "todos",
+                  todo.get("id").unwrap().as_str().unwrap(),
+                  todo.clone(),
+                )
+                .await;
+            }
+          }
+        }
+      }
+      Err(_) => {}
+    }
+
     let category = self.jsonProvider.delete("categories", &id.as_str()).await;
     match category {
       Ok(result) => {

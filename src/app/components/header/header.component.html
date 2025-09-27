@@ -80,6 +80,15 @@
 
       <button
         class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+        routerLink="/categories"
+        (click)="closeUserMenu()"
+      >
+        <mat-icon class="!w-5 !h-6 !text-xl textMuted" fontIcon="category" />
+        <span class="textNormal">Categories</span>
+      </button>
+
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
         routerLink="/about"
         (click)="closeUserMenu()"
       >

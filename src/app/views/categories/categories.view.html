@@ -1,0 +1,57 @@
+<div class="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Categories</h1>
+      <p class="textMuted mt-1">Manage your project categories.</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button class="styleButSuccess text-sm px-4 py-2" (click)="toggleCreateForm()">
+        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        New Category
+      </button>
+    </div>
+  </div>
+
+  <app-category-form
+    [isVisible]="showCreateForm"
+    [editingCategory]="editingCategory"
+    (close)="onFormClose()"
+    (saved)="onFormSaved()"
+  />
+
+  <div
+    class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+  >
+    <div class="flex-1 max-w-md mb-4">
+      <app-search
+        [isShowSearchField]="true"
+        [tempArray]="tempListCategories"
+        [searchByFields]="['title']"
+        (array)="searchFunc($event)"
+      />
+    </div>
+
+    @if (listCategories.length === 0) {
+      <div class="text-center py-12">
+        <mat-icon class="!w-16 !h-17 !text-5xl textMuted mb-4" fontIcon="category" />
+        <h3 class="text-xl font-semibold textNormal mb-2">No categories found</h3>
+        <p class="textMuted mb-6">Get started by creating your first category</p>
+        <button class="styleButSuccess" (click)="toggleCreateForm()">
+          <mat-icon class="!w-4 !h-6 !text-xl mr-2" fontIcon="add" />
+          Create your first category
+        </button>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (category of listCategories; track $index) {
+          <app-category-card
+            [category]="category"
+            (edit)="editCategory($event)"
+            (delete)="deleteCategory($event)"
+          />
+        }
+      </div>
+    }
+  </div>
+</div>

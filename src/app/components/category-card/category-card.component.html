@@ -1,0 +1,27 @@
+<div
+  class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow"
+>
+  <div class="flex items-center justify-between mb-3">
+    <h4 class="font-medium textNormal">{{ category.title }}</h4>
+    <div class="flex gap-2">
+      <button
+        class="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+        (click)="onEdit()"
+        title="Edit category"
+      >
+        <mat-icon class="!w-4 !h-5 !text-lg" fontIcon="edit" />
+      </button>
+      <button
+        class="p-1 text-gray-500 hover:text-red-500 transition-colors"
+        (click)="onDelete()"
+        title="Delete category"
+      >
+        <mat-icon class="!w-4 !h-5 !text-lg" fontIcon="delete" />
+      </button>
+    </div>
+  </div>
+
+  <div class="text-sm textMuted">
+    Created by {{ category.user.profile.name }} {{ category.user.profile.lastName }}
+  </div>
+</div>
