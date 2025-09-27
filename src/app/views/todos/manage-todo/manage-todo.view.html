@@ -315,7 +315,7 @@
         </mat-form-field>
       </div>
       <mat-divider></mat-divider>
-      <div class="flex flex-col gap-y-1 p-2 w-full max-h-20 overflow-y-auto">
+      <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
         @for (category of availableCategories; track category.id) {
           <div class="flex flex-col p-2 styleBorderSolidLite border">
             <button (click)="onCategorySelection(category)">
