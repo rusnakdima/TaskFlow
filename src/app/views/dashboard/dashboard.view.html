@@ -196,9 +196,7 @@
               <p class="text-xs textMuted mt-1">{{ task.description || "No description" }}</p>
             </div>
             <div class="flex-shrink-0 flex items-center gap-2">
-              @if (task.dueDate) {
-                <span class="text-xs textMuted">{{ formatDate(task.dueDate) }}</span>
-              }
+              <span class="text-xs textMuted">{{ getLastTime(task) }}</span>
               <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="chevron_right" />
             </div>
           </div>

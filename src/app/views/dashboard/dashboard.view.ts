@@ -24,6 +24,7 @@ interface DisplayTask {
   status: string;
   dueDate: string;
   createdAt: string;
+  updatedAt: string;
   todoId: string;
 }
 
@@ -133,9 +134,14 @@ export class DashboardView implements OnInit {
         status: this.getTaskStatus(item.task),
         dueDate: item.task.endDate,
         createdAt: item.task.createdAt,
+        updatedAt: item.task.updatedAt,
         todoId: item.todoId,
       }))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a, b) => {
+        const aTime = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime());
+        const bTime = Math.max(new Date(b.createdAt).getTime(), new Date(b.updatedAt).getTime());
+        return bTime - aTime;
+      });
 
     const sortedTasks = [...tasks].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -148,7 +154,7 @@ export class DashboardView implements OnInit {
       }
     });
 
-    this.filteredTasks = this.allTasks;
+    this.filteredTasks = this.allTasks.slice(0, 10);
   }
 
   getTaskStatus(task: Task): string {
@@ -177,6 +183,13 @@ export class DashboardView implements OnInit {
       month: "short",
       day: "numeric",
     });
+  }
+
+  getLastTime(task: DisplayTask): string {
+    const latestDate = new Date(
+      Math.max(new Date(task.createdAt).getTime(), new Date(task.updatedAt).getTime())
+    );
+    return this.formatDate(latestDate.toISOString());
   }
 
   navigateToTodos(): void {
