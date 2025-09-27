@@ -75,15 +75,17 @@
       </button>
     </div>
   } @else {
-    <div class="flex flex-col space-y-2">
+    <div class="flex flex-col space-y-2" cdkDropList (cdkDropListDropped)="onSubtaskDrop($event)">
       @for (subtask of listSubtasks; track $index) {
-        <app-subtask
-          [subtask]="subtask"
-          [index]="$index"
-          (deleteSubtaskEvent)="deleteSubtask($event)"
-          (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
-          (updateSubtaskEvent)="updateSubtaskInline($event)"
-        />
+        <div cdkDrag>
+          <app-subtask
+            [subtask]="subtask"
+            [index]="$index"
+            (deleteSubtaskEvent)="deleteSubtask($event)"
+            (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
+            (updateSubtaskEvent)="updateSubtaskInline($event)"
+          />
+        </div>
       }
     </div>
   }

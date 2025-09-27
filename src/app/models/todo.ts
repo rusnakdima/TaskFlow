@@ -13,4 +13,5 @@ export interface Todo {
   categories: Array<Category>;
   tasks: Array<Task>;
   assignees: Array<User>;
+  order: number;
 }

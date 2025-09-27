@@ -17,6 +17,7 @@ pub struct TodoModel {
   pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -31,6 +32,7 @@ pub struct TodoCreateModel {
   pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub order: i32,
 }
 
 #[allow(non_snake_case)]
@@ -61,6 +63,7 @@ impl From<TodoCreateModel> for TodoModel {
       endDate: formattedEndDate,
       categories: value.categories,
       assignees: value.assignees,
+      order: value.order,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -79,6 +82,7 @@ pub struct TodoUpdateModel {
   pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -111,6 +115,7 @@ impl From<TodoUpdateModel> for TodoModel {
       endDate: formattedEndDate,
       categories: value.categories,
       assignees: value.assignees,
+      order: value.order,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
@@ -129,6 +134,7 @@ pub struct TodoFullModel {
   pub endDate: String,
   pub categories: Vec<CategoryFullModel>,
   pub assignees: Vec<UserFullModel>,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }

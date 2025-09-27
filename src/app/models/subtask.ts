@@ -10,4 +10,5 @@ export interface Subtask {
   priority: PriorityTask;
   createdAt: string;
   updatedAt: string;
+  order: number;
 }

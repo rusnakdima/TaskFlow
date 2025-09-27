@@ -3,9 +3,9 @@ import { Subtask } from "./subtask";
 import { Todo } from "./todo";
 
 export enum PriorityTask {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
 }
 
 export interface Task {
@@ -20,4 +20,5 @@ export interface Task {
   endDate: string;
   createdAt: string;
   updatedAt: string;
+  order: number;
 }

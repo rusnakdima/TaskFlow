@@ -36,6 +36,7 @@ pub struct TaskModel {
   pub priority: String,
   pub startDate: String,
   pub endDate: String,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -49,6 +50,7 @@ pub struct TaskCreateModel {
   pub priority: String,
   pub startDate: String,
   pub endDate: String,
+  pub order: i32,
 }
 
 #[allow(non_snake_case)]
@@ -79,6 +81,7 @@ impl From<TaskCreateModel> for TaskModel {
       priority: value.priority.to_string(),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
+      order: value.order,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -97,6 +100,7 @@ pub struct TaskUpdateModel {
   pub priority: String,
   pub startDate: String,
   pub endDate: String,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -129,6 +133,7 @@ impl From<TaskUpdateModel> for TaskModel {
       priority: value.priority.to_string(),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
+      order: value.order,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
@@ -147,6 +152,7 @@ pub struct TaskFullModel {
   pub priority: PriorityTask,
   pub startDate: String,
   pub endDate: String,
+  pub order: i32,
   pub createdAt: String,
   pub updatedAt: String,
 }

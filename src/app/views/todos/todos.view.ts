@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { RouterModule } from "@angular/router";
+import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -9,22 +10,29 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
+import { Task } from "@models/task";
 
 /* services */
+import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
 /* components */
-import { AuthService } from "@services/auth.service";
 import { SearchComponent } from "@components/fields/search/search.component";
 import { TodoComponent } from "@components/todo/todo.component";
-import { Task } from "@models/task";
 
 @Component({
   selector: "app-todos",
   standalone: true,
   providers: [MainService],
-  imports: [CommonModule, RouterModule, MatIconModule, SearchComponent, TodoComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    SearchComponent,
+    TodoComponent,
+    DragDropModule,
+  ],
   templateUrl: "./todos.view.html",
 })
 export class TodosView implements OnInit {
@@ -171,6 +179,41 @@ export class TodosView implements OnInit {
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError(err.message);
+      });
+  }
+
+  onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    moveItemInArray(this.listTodos, event.previousIndex, event.currentIndex);
+    this.updateTodoOrder();
+  }
+
+  updateTodoOrder(): void {
+    const updates = this.listTodos.map((todo, index) => ({
+      id: todo.id,
+      order: index,
+    }));
+
+    const promises = updates.map((update) =>
+      this.mainService
+        .getByField<Todo>("todo", "id", update.id)
+        .then((response: Response<Todo>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const currentTodo = response.data;
+            const updatedTodo = { ...currentTodo, order: update.order };
+            return this.mainService.update<string, Todo>("todo", update.id, updatedTodo);
+          } else {
+            throw new Error("Failed to fetch todo");
+          }
+        })
+    );
+
+    Promise.all(promises)
+      .then(() => {
+        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Order updated successfully");
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError("Failed to update order");
+        this.loadTodos();
       });
   }
 }

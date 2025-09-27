@@ -158,25 +158,38 @@ export class ManageSubtaskView implements OnInit {
 
   duplicateSubtask() {
     if (this.form.valid) {
-      const currentData = this.form.value;
-      const duplicateData = {
-        ...currentData,
-        id: "",
-        _id: "",
-        title: `${currentData.title} (Copy)`,
-        isCompleted: false,
-      };
-
       this.mainService
-        .create<string, Subtask>("subtask", duplicateData)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
+        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId)
+        .then((response: Response<Subtask[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.notifyService.showSuccess("Subtask duplicated successfully");
+            const order = response.data.length;
+            const currentData = this.form.value;
+            const duplicateData = {
+              ...currentData,
+              id: "",
+              _id: "",
+              title: `${currentData.title} (Copy)`,
+              isCompleted: false,
+              order: order,
+            };
+
+            this.mainService
+              .create<string, Subtask>("subtask", duplicateData)
+              .then((response: Response<string>) => {
+                this.notifyService.showNotify(response.status, response.message);
+                if (response.status === ResponseStatus.SUCCESS) {
+                  this.notifyService.showSuccess("Subtask duplicated successfully");
+                }
+              })
+              .catch((err: Response<string>) => {
+                this.notifyService.showError(err.message ?? err.toString());
+              });
+          } else {
+            this.notifyService.showError("Failed to get existing subtasks count");
           }
         })
         .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
+          this.notifyService.showError("Failed to get existing subtasks count");
         });
     }
   }
@@ -208,20 +221,38 @@ export class ManageSubtaskView implements OnInit {
 
   createSubtask() {
     if (this.form.valid) {
-      const body = this.form.value;
       this.mainService
-        .create<string, Subtask>("subtask", body)
-        .then((response: Response<string>) => {
-          this.isSubmitting = false;
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
+        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId)
+        .then((response: Response<Subtask[]>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const order = response.data.length;
+            const body = {
+              ...this.form.value,
+              order: order,
+            };
+
+            this.mainService
+              .create<string, Subtask>("subtask", body)
+              .then((response: Response<string>) => {
+                this.isSubmitting = false;
+                this.notifyService.showNotify(response.status, response.message);
+                if (response.status == ResponseStatus.SUCCESS) {
+                  this.back();
+                }
+              })
+              .catch((err: Response<string>) => {
+                this.isSubmitting = false;
+                console.error(err);
+                this.notifyService.showError(err.message ?? err.toString());
+              });
+          } else {
+            this.isSubmitting = false;
+            this.notifyService.showError("Failed to get existing subtasks count");
           }
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          console.error(err);
-          this.notifyService.showError(err.message ?? err.toString());
+          this.notifyService.showError("Failed to get existing subtasks count");
         });
     } else {
       this.isSubmitting = false;

@@ -129,9 +129,15 @@
       }
     </div>
   } @else {
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense">
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
+      cdkDropList
+      (cdkDropListDropped)="onTodoDrop($event)"
+    >
       @for (todo of listTodos; track $index) {
-        <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
+        <div cdkDrag>
+          <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
+        </div>
       }
     </div>
   }

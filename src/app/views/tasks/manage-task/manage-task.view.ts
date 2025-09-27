@@ -165,20 +165,38 @@ export class ManageTaskView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
-      const body = this.form.value;
       this.mainService
-        .create<string, Task>("task", body)
-        .then((response: Response<string>) => {
-          this.isSubmitting = false;
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
+        .getAllByField<Task[]>("task", "todoId", this.todoId)
+        .then((response: Response<Task[]>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const order = response.data.length;
+            const body = {
+              ...this.form.value,
+              order: order,
+            };
+
+            this.mainService
+              .create<string, Task>("task", body)
+              .then((response: Response<string>) => {
+                this.isSubmitting = false;
+                this.notifyService.showNotify(response.status, response.message);
+                if (response.status == ResponseStatus.SUCCESS) {
+                  this.back();
+                }
+              })
+              .catch((err: Response<string>) => {
+                this.isSubmitting = false;
+                console.error(err);
+                this.notifyService.showError(err.message ?? err.toString());
+              });
+          } else {
+            this.isSubmitting = false;
+            this.notifyService.showError("Failed to get existing tasks count");
           }
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          console.error(err);
-          this.notifyService.showError(err.message ?? err.toString());
+          this.notifyService.showError("Failed to get existing tasks count");
         });
     } else {
       this.isSubmitting = false;

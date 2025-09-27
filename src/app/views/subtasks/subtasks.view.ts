@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
+import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -31,6 +32,7 @@ import { TaskInformationComponent } from "@components/task-information/task-info
     SearchComponent,
     SubtaskComponent,
     TaskInformationComponent,
+    DragDropModule,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -190,6 +192,41 @@ export class SubtasksView implements OnInit {
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError(err.message);
+      });
+  }
+
+  onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
+    moveItemInArray(this.listSubtasks, event.previousIndex, event.currentIndex);
+    this.updateSubtaskOrder();
+  }
+
+  updateSubtaskOrder(): void {
+    const updates = this.listSubtasks.map((subtask, index) => ({
+      id: subtask.id,
+      order: index,
+    }));
+
+    const promises = updates.map((update) =>
+      this.mainService
+        .getByField<Subtask>("subtask", "id", update.id)
+        .then((response: Response<Subtask>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const currentSubtask = response.data;
+            const updatedSubtask = { ...currentSubtask, order: update.order };
+            return this.mainService.update<string, Subtask>("subtask", update.id, updatedSubtask);
+          } else {
+            throw new Error("Failed to fetch subtask");
+          }
+        })
+    );
+
+    Promise.all(promises)
+      .then(() => {
+        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Subtask order updated successfully");
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError("Failed to update subtask order");
+        this.getSubtasksByTaskId(this.task?.id ?? "");
       });
   }
 }

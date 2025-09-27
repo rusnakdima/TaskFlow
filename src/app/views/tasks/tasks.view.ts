@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
+import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -35,6 +36,7 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
     SearchComponent,
     TaskComponent,
     TodoInformationComponent,
+    DragDropModule,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -202,5 +204,40 @@ export class TasksView implements OnInit {
           this.notifyService.showError(err.message);
         });
     }
+  }
+
+  onTaskDrop(event: CdkDragDrop<Task[]>): void {
+    moveItemInArray(this.listTasks, event.previousIndex, event.currentIndex);
+    this.updateTaskOrder();
+  }
+
+  updateTaskOrder(): void {
+    const updates = this.listTasks.map((task, index) => ({
+      id: task.id,
+      order: index,
+    }));
+
+    const promises = updates.map((update) =>
+      this.mainService
+        .getByField<Task>("task", "id", update.id)
+        .then((response: Response<Task>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const currentTask = response.data;
+            const updatedTask = { ...currentTask, order: update.order };
+            return this.mainService.update<string, Task>("task", update.id, updatedTask);
+          } else {
+            throw new Error("Failed to fetch task");
+          }
+        })
+    );
+
+    Promise.all(promises)
+      .then(() => {
+        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Task order updated successfully");
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError("Failed to update task order");
+        this.getTasksByTodoId(this.todo?.id ?? "");
+      });
   }
 }

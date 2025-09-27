@@ -53,7 +53,7 @@ impl TaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let listTasks = self
+    let mut listTasks = self
       .jsonProvider
       .getAllByField(
         "tasks",
@@ -66,7 +66,12 @@ impl TaskService {
       )
       .await;
     match listTasks {
-      Ok(tasks) => {
+      Ok(mut tasks) => {
+        tasks.sort_by(|a, b| {
+          let a_order = a.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          a_order.cmp(&b_order)
+        });
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),

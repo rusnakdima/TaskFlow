@@ -275,26 +275,43 @@ export class ManageTodoView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
-      const body = {
-        ...this.form.value,
-        categories: this.form.controls["categories"].value.map((category: Category) => category.id),
-        assignees: this.teamMembers,
-        deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
-      };
-
       this.mainService
-        .create<string, Todo>("todo", body)
-        .then((response: Response<string>) => {
-          this.isSubmitting = false;
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
+        .getAllByField<Todo[]>("todo", "userId", this.userId)
+        .then((response: Response<Todo[]>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const order = response.data.length;
+            const body = {
+              ...this.form.value,
+              categories: this.form.controls["categories"].value.map(
+                (category: Category) => category.id
+              ),
+              assignees: this.teamMembers,
+              deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
+              order: order,
+            };
+
+            this.mainService
+              .create<string, Todo>("todo", body)
+              .then((response: Response<string>) => {
+                this.isSubmitting = false;
+                this.notifyService.showNotify(response.status, response.message);
+                if (response.status == ResponseStatus.SUCCESS) {
+                  this.back();
+                }
+              })
+              .catch((err: Response<string>) => {
+                this.isSubmitting = false;
+                console.error(err);
+                this.notifyService.showError(err.message ?? err.toString());
+              });
+          } else {
+            this.isSubmitting = false;
+            this.notifyService.showError("Failed to get existing todos count");
           }
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          console.error(err);
-          this.notifyService.showError(err.message ?? err.toString());
+          this.notifyService.showError("Failed to get existing todos count");
         });
     } else {
       this.isSubmitting = false;
