@@ -42,6 +42,8 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
   }
 
   addNotification(notification: INotify) {
+    if (notification.message == "") return;
+
     if (this.notifications.length >= 5) {
       this.prepareToRemove(this.notifications[0].id);
     }
