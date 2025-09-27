@@ -7,6 +7,9 @@ use crate::helpers::{
   json_provider::JsonProvider,
 };
 
+/* services */
+use crate::services::{daily_activity_service::DailyActivityService, todo_service::TodoService};
+
 /* models */
 use crate::models::{
   relation_obj::{RelationObj, TypesField},
@@ -14,17 +17,26 @@ use crate::models::{
   task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
 };
 
+#[derive(Clone)]
 #[allow(non_snake_case)]
 pub struct TaskService {
   pub jsonProvider: JsonProvider,
+  pub todoService: TodoService,
+  pub dailyActivityService: DailyActivityService,
   relations: Vec<RelationObj>,
 }
 
 impl TaskService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    todoService: TodoService,
+    dailyActivityService: DailyActivityService,
+  ) -> Self {
     Self {
-      jsonProvider: jsonProvider,
+      jsonProvider,
+      todoService,
+      dailyActivityService,
       relations: vec![RelationObj {
         nameTable: "subtasks".to_string(),
         typeField: TypesField::OneToMany,
@@ -220,5 +232,89 @@ impl TaskService {
         });
       }
     }
+  }
+
+  #[allow(non_snake_case)]
+  async fn logActivity(&self, todoId: String, action: &str, count: i32) {
+    let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+    let userId = if let Ok(response) = &todoResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("userId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    if !userId.is_empty() {
+      let _ = self
+        .dailyActivityService
+        .logActivity(userId, action, count)
+        .await;
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn createAndLog(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let result = self.create(data.clone()).await;
+    if result.is_ok() {
+      self.logActivity(data.todoId, "task_created", 1).await;
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAndLog(
+    &self,
+    id: String,
+    data: TaskUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let oldTaskResult = self.getByField("id".to_string(), id.clone()).await;
+    let wasCompleted = if let Ok(response) = &oldTaskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("isCompleted")
+          .and_then(|v| v.as_bool())
+          .unwrap_or(false),
+        _ => false,
+      }
+    } else {
+      false
+    };
+    let result = self.update(id, data.clone()).await;
+    if result.is_ok() {
+      self
+        .logActivity(data.todoId.clone(), "task_updated", 1)
+        .await;
+      if data.isCompleted && !wasCompleted {
+        self.logActivity(data.todoId, "task_completed", 1).await;
+      }
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn deleteAndLog(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let taskResult = self.getByField("id".to_string(), id.clone()).await;
+    let todoId = if let Ok(response) = &taskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("todoId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    let result = self.delete(id).await;
+    if result.is_ok() && !todoId.is_empty() {
+      self.logActivity(todoId, "task_deleted", 1).await;
+    }
+    result
   }
 }

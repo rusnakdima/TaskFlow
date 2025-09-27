@@ -7,6 +7,9 @@ use crate::helpers::{
   json_provider::JsonProvider,
 };
 
+/* services */
+use crate::services::daily_activity_service::DailyActivityService;
+
 /* models */
 use crate::models::{
   relation_obj::{RelationObj, TypesField},
@@ -14,17 +17,20 @@ use crate::models::{
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
+#[derive(Clone)]
 #[allow(non_snake_case)]
 pub struct TodoService {
   pub jsonProvider: JsonProvider,
+  pub dailyActivityService: DailyActivityService,
   relations: Vec<RelationObj>,
 }
 
 impl TodoService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, dailyActivityService: DailyActivityService) -> Self {
     Self {
-      jsonProvider: jsonProvider,
+      jsonProvider,
+      dailyActivityService,
       relations: vec![
         RelationObj {
           nameTable: "tasks".to_string(),
@@ -269,5 +275,58 @@ impl TodoService {
         });
       }
     }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn createAndLog(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let result = self.create(data.clone()).await;
+    if result.is_ok() {
+      let _ = self
+        .dailyActivityService
+        .logActivity(data.userId, "todo_created", 1)
+        .await;
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAndLog(
+    &self,
+    id: String,
+    data: TodoUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let result = self.update(id, data.clone()).await;
+    if result.is_ok() {
+      let _ = self
+        .dailyActivityService
+        .logActivity(data.userId, "todo_updated", 1)
+        .await;
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn deleteAndLog(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let todoResult = self.getByField("id".to_string(), id.clone()).await;
+    let userId = if let Ok(response) = &todoResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("userId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    let result = self.delete(id).await;
+    if result.is_ok() && !userId.is_empty() {
+      let _ = self
+        .dailyActivityService
+        .logActivity(userId, "todo_deleted", 1)
+        .await;
+    }
+    result
   }
 }

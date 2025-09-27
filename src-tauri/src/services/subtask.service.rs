@@ -7,22 +7,40 @@ use crate::helpers::{
   json_provider::JsonProvider,
 };
 
+/* services */
+use crate::services::{
+  daily_activity_service::DailyActivityService, task_service::TaskService,
+  todo_service::TodoService,
+};
+
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
 };
 
+#[derive(Clone)]
 #[allow(non_snake_case)]
 pub struct SubtaskService {
   pub jsonProvider: JsonProvider,
+  pub taskService: TaskService,
+  pub todoService: TodoService,
+  pub dailyActivityService: DailyActivityService,
 }
 
 impl SubtaskService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    taskService: TaskService,
+    todoService: TodoService,
+    dailyActivityService: DailyActivityService,
+  ) -> Self {
     Self {
-      jsonProvider: jsonProvider,
+      jsonProvider,
+      taskService,
+      todoService,
+      dailyActivityService,
     }
   }
 
@@ -195,5 +213,107 @@ impl SubtaskService {
         });
       }
     }
+  }
+
+  #[allow(non_snake_case)]
+  async fn logActivity(&self, taskId: String, action: &str, count: i32) {
+    let taskResult = self.taskService.getByField("id".to_string(), taskId).await;
+    let todoId = if let Ok(response) = &taskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("todoId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    if !todoId.is_empty() {
+      let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+      let userId = if let Ok(response) = &todoResult {
+        match &response.data {
+          DataValue::Object(obj) => obj
+            .get("userId")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+          _ => "".to_string(),
+        }
+      } else {
+        "".to_string()
+      };
+      if !userId.is_empty() {
+        let _ = self
+          .dailyActivityService
+          .logActivity(userId, action, count)
+          .await;
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn createAndLog(
+    &self,
+    data: SubtaskCreateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let result = self.create(data.clone()).await;
+    if result.is_ok() {
+      self.logActivity(data.taskId, "subtask_created", 1).await;
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAndLog(
+    &self,
+    id: String,
+    data: SubtaskUpdateModel,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let oldSubtaskResult = self.getByField("id".to_string(), id.clone()).await;
+    let wasCompleted = if let Ok(response) = &oldSubtaskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("isCompleted")
+          .and_then(|v| v.as_bool())
+          .unwrap_or(false),
+        _ => false,
+      }
+    } else {
+      false
+    };
+    let result = self.update(id, data.clone()).await;
+    if result.is_ok() {
+      self
+        .logActivity(data.taskId.clone(), "subtask_updated", 1)
+        .await;
+      if data.isCompleted && !wasCompleted {
+        self.logActivity(data.taskId, "subtask_completed", 1).await;
+      }
+    }
+    result
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn deleteAndLog(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let subtaskResult = self.getByField("id".to_string(), id.clone()).await;
+    let taskId = if let Ok(response) = &subtaskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("taskId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    let result = self.delete(id).await;
+    if result.is_ok() && !taskId.is_empty() {
+      self.logActivity(taskId, "subtask_deleted", 1).await;
+    }
+    result
   }
 }

@@ -14,6 +14,7 @@ use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
 };
 
+#[derive(Clone)]
 #[allow(non_snake_case)]
 pub struct CategoriesService {
   pub jsonProvider: JsonProvider,

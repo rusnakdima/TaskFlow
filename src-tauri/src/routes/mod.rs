@@ -19,3 +19,5 @@ pub mod task_route;
 pub mod subtask_route;
 #[path = "task_shares.route.rs"]
 pub mod task_shares_route;
+#[path = "statistics.route.rs"]
+pub mod statistics_route;

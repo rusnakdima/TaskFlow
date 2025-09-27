@@ -19,3 +19,5 @@ pub mod task_controller;
 pub mod subtask_controller;
 #[path = "task_shares.controller.rs"]
 pub mod task_shares_controller;
+#[path = "statistics.controller.rs"]
+pub mod statistics_controller;

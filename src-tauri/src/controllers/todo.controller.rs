@@ -2,7 +2,7 @@
 use crate::helpers::json_provider::JsonProvider;
 
 /* services */
-use crate::services::todo_service;
+use crate::services::{daily_activity_service::DailyActivityService, todo_service::TodoService};
 
 /* models */
 use crate::models::{
@@ -12,14 +12,16 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct TodoController {
-  pub todoService: todo_service::TodoService,
+  pub todoService: TodoService,
+  pub dailyActivityService: DailyActivityService,
 }
 
 impl TodoController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, dailyActivityService: DailyActivityService) -> Self {
     Self {
-      todoService: todo_service::TodoService::new(jsonProvider),
+      todoService: TodoService::new(jsonProvider, dailyActivityService.clone()),
+      dailyActivityService,
     }
   }
 
@@ -43,7 +45,7 @@ impl TodoController {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.create(data).await;
+    return self.todoService.createAndLog(data).await;
   }
 
   #[allow(non_snake_case)]
@@ -52,11 +54,11 @@ impl TodoController {
     id: String,
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.update(id, data).await;
+    return self.todoService.updateAndLog(id, data).await;
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.delete(id).await;
+    return self.todoService.deleteAndLog(id).await;
   }
 }

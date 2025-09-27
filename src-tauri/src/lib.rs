@@ -24,6 +24,7 @@ use routes::category_route::{
 use routes::profile_route::{
   profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
 };
+use routes::statistics_route::statisticsGet;
 use routes::subtask_route::{
   subtaskCreate, subtaskDelete, subtaskGetAllByField, subtaskGetByField, subtaskUpdate,
 };
@@ -38,10 +39,13 @@ use routes::todo_route::{todoCreate, todoDelete, todoGetAllByField, todoGetByFie
 use controllers::{
   about_controller::AboutController, auth_controller::AuthController,
   category_controller::CategoriesController, manage_db_controller::ManageDbController,
-  profile_controller::ProfileController, subtask_controller::SubtaskController,
-  task_controller::TaskController, task_shares_controller::TaskSharesController,
-  todo_controller::TodoController,
+  profile_controller::ProfileController, statistics_controller::StatisticsController,
+  subtask_controller::SubtaskController, task_controller::TaskController,
+  task_shares_controller::TaskSharesController, todo_controller::TodoController,
 };
+
+/* services */
+use services::daily_activity_service::DailyActivityService;
 
 #[allow(non_snake_case)]
 pub struct AppState {
@@ -54,6 +58,8 @@ pub struct AppState {
   pub taskController: Arc<TaskController>,
   pub subtaskController: Arc<SubtaskController>,
   pub taskSharesController: Arc<TaskSharesController>,
+  pub statisticsController: Arc<StatisticsController>,
+  pub dailyActivityService: Arc<DailyActivityService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -87,10 +93,21 @@ pub fn run() {
         )),
         profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
         categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
-        todoController: Arc::new(TodoController::new(jsonProvider.clone())),
-        taskController: Arc::new(TaskController::new(jsonProvider.clone())),
-        subtaskController: Arc::new(SubtaskController::new(jsonProvider.clone())),
+        todoController: Arc::new(TodoController::new(
+          jsonProvider.clone(),
+          DailyActivityService::new(jsonProvider.clone()),
+        )),
+        taskController: Arc::new(TaskController::new(
+          jsonProvider.clone(),
+          DailyActivityService::new(jsonProvider.clone()),
+        )),
+        subtaskController: Arc::new(SubtaskController::new(
+          jsonProvider.clone(),
+          DailyActivityService::new(jsonProvider.clone()),
+        )),
         taskSharesController: Arc::new(TaskSharesController::new(jsonProvider.clone())),
+        statisticsController: Arc::new(StatisticsController::new(jsonProvider.clone())),
+        dailyActivityService: Arc::new(DailyActivityService::new(jsonProvider.clone())),
       });
       Ok(())
     })
@@ -130,6 +147,7 @@ pub fn run() {
       taskSharesCreate,
       taskSharesUpdate,
       taskSharesDelete,
+      statisticsGet,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

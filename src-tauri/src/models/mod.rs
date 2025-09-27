@@ -24,3 +24,7 @@ pub mod task_model;
 pub mod subtask_model;
 #[path = "task_shares.model.rs"]
 pub mod task_shares_model;
+#[path = "daily_activity.model.rs"]
+pub mod daily_activity_model;
+#[path = "statistics.model.rs"]
+pub mod statistics_model;

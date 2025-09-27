@@ -2,7 +2,10 @@
 use crate::helpers::json_provider::JsonProvider;
 
 /* services */
-use crate::services::subtask_service;
+use crate::services::{
+  daily_activity_service::DailyActivityService, subtask_service::SubtaskService,
+  task_service::TaskService, todo_service::TodoService,
+};
 
 /* models */
 use crate::models::{
@@ -12,14 +15,31 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct SubtaskController {
-  pub subtaskService: subtask_service::SubtaskService,
+  pub subtaskService: SubtaskService,
+  pub taskService: TaskService,
+  pub todoService: TodoService,
+  pub dailyActivityService: DailyActivityService,
 }
 
 impl SubtaskController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, dailyActivityService: DailyActivityService) -> Self {
+    let todoService = TodoService::new(jsonProvider.clone(), dailyActivityService.clone());
+    let taskService = TaskService::new(
+      jsonProvider.clone(),
+      todoService.clone(),
+      dailyActivityService.clone(),
+    );
     return Self {
-      subtaskService: subtask_service::SubtaskService::new(jsonProvider),
+      subtaskService: SubtaskService::new(
+        jsonProvider.clone(),
+        taskService.clone(),
+        todoService.clone(),
+        dailyActivityService.clone(),
+      ),
+      taskService,
+      todoService,
+      dailyActivityService,
     };
   }
 
@@ -43,7 +63,7 @@ impl SubtaskController {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.create(data).await;
+    return self.subtaskService.createAndLog(data).await;
   }
 
   #[allow(non_snake_case)]
@@ -52,11 +72,11 @@ impl SubtaskController {
     id: String,
     data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.update(id, data).await;
+    return self.subtaskService.updateAndLog(id, data).await;
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.delete(id).await;
+    return self.subtaskService.deleteAndLog(id).await;
   }
 }
