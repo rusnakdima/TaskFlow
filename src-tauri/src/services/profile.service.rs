@@ -1,5 +1,6 @@
 /* sys lib */
 use mongodb::bson::{doc, to_bson, Bson, Document};
+use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::{
@@ -16,13 +17,13 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct ProfileService {
-  pub mongodbProvider: MongodbProvider,
+  pub mongodbProvider: Arc<MongodbProvider>,
   relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
   #[allow(non_snake_case)]
-  pub fn new(mongodbProvider: MongodbProvider) -> Self {
+  pub fn new(mongodbProvider: Arc<MongodbProvider>) -> Self {
     Self {
       mongodbProvider: mongodbProvider,
       relations: vec![RelationObj {

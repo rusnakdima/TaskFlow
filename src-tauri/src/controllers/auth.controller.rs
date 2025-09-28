@@ -1,5 +1,5 @@
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* services */
 use crate::services::auth_service;
@@ -9,6 +9,9 @@ use crate::models::{
   login_form_model::LoginForm, response_model::ResponseModel, signup_form_model::SignupForm,
 };
 
+/* sys */
+use std::sync::Arc;
+
 #[allow(non_snake_case)]
 pub struct AuthController {
   pub authService: auth_service::AuthService,
@@ -16,9 +19,9 @@ pub struct AuthController {
 
 impl AuthController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, envValue: String) -> Self {
+  pub fn new(mongodbProvider: Arc<MongodbProvider>, envValue: String) -> Self {
     return Self {
-      authService: auth_service::AuthService::new(jsonProvider, envValue),
+      authService: auth_service::AuthService::new(mongodbProvider, envValue),
     };
   }
 

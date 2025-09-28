@@ -15,9 +15,17 @@ pub async fn profileGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.getAllByField(nameField, value).await;
-  result
+  match &state.profileController {
+    Some(profileController) => {
+      let result = profileController.getAllByField(nameField, value).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: crate::models::response_model::ResponseStatus::Error,
+      message: "Profile management not available".to_string(),
+      data: crate::models::response_model::DataValue::String("".to_string()),
+    }),
+  }
 }
 
 #[allow(non_snake_case)]
@@ -27,9 +35,17 @@ pub async fn profileGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.getByField(nameField, value).await;
-  result
+  match &state.profileController {
+    Some(profileController) => {
+      let result = profileController.getByField(nameField, value).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: crate::models::response_model::ResponseStatus::Error,
+      message: "Profile management not available".to_string(),
+      data: crate::models::response_model::DataValue::String("".to_string()),
+    }),
+  }
 }
 
 #[allow(non_snake_case)]
@@ -38,9 +54,17 @@ pub async fn profileCreate(
   state: State<'_, AppState>,
   data: ProfileCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.create(data).await;
-  result
+  match &state.profileController {
+    Some(profileController) => {
+      let result = profileController.create(data).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: crate::models::response_model::ResponseStatus::Error,
+      message: "Profile management not available".to_string(),
+      data: crate::models::response_model::DataValue::String("".to_string()),
+    }),
+  }
 }
 
 #[allow(non_snake_case)]
@@ -50,9 +74,17 @@ pub async fn profileUpdate(
   id: String,
   data: ProfileUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.update(id, data).await;
-  result
+  match &state.profileController {
+    Some(profileController) => {
+      let result = profileController.update(id, data).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: crate::models::response_model::ResponseStatus::Error,
+      message: "Profile management not available".to_string(),
+      data: crate::models::response_model::DataValue::String("".to_string()),
+    }),
+  }
 }
 
 #[allow(non_snake_case)]
@@ -61,7 +93,15 @@ pub async fn profileDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let profileController = state.profileController.clone();
-  let result = profileController.delete(id).await;
-  result
+  match &state.profileController {
+    Some(profileController) => {
+      let result = profileController.delete(id).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: crate::models::response_model::ResponseStatus::Error,
+      message: "Profile management not available".to_string(),
+      data: crate::models::response_model::DataValue::String("".to_string()),
+    }),
+  }
 }

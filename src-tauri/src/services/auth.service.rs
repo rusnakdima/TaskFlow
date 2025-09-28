@@ -4,6 +4,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::bson::{doc, from_bson, oid::ObjectId, to_bson, Bson, Uuid};
 use serde_json::json;
+use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::mongodb_provider::MongodbProvider;
@@ -26,13 +27,13 @@ pub struct Claims {
 
 #[allow(non_snake_case)]
 pub struct AuthService {
-  pub mongodbProvider: MongodbProvider,
+  pub mongodbProvider: Arc<MongodbProvider>,
   pub jwtSecret: String,
 }
 
 impl AuthService {
   #[allow(non_snake_case)]
-  pub fn new(mongodbProvider: MongodbProvider, envValue: String) -> Self {
+  pub fn new(mongodbProvider: Arc<MongodbProvider>, envValue: String) -> Self {
     Self {
       mongodbProvider: mongodbProvider,
       jwtSecret: envValue,
