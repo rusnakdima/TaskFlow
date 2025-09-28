@@ -14,29 +14,19 @@ pub struct ManageDbController {
 
 impl ManageDbController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: MongodbProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<std::sync::Arc<MongodbProvider>>) -> Self {
     Self {
       managedbService: manage_db_service::ManageDbService::new(jsonProvider, mongodbProvider),
     }
   }
 
   #[allow(non_snake_case)]
-  pub async fn importToJsonDb(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.importToJsonDb().await;
+  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    return self.managedbService.importToLocal(userId).await;
   }
 
   #[allow(non_snake_case)]
-  pub async fn exportFromJsonDb(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.exportFromJsonDb().await;
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn importToMongoDb(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.importToMongoDb().await;
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn exportFromMongoDb(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.exportFromMongoDb().await;
+  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    return self.managedbService.exportToCloud(userId).await;
   }
 }
