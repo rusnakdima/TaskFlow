@@ -189,7 +189,13 @@ impl JsonProvider {
               filterObj.iter().all(|(key, filterValue)| {
                 recordObj
                   .get(key)
-                  .map(|recordValue| recordValue == filterValue)
+                  .map(|recordValue| {
+                    if filterValue.is_array() {
+                      filterValue.as_array().unwrap().contains(recordValue)
+                    } else {
+                      recordValue == filterValue
+                    }
+                  })
                   .unwrap_or(false)
               })
             } else {
@@ -229,7 +235,13 @@ impl JsonProvider {
             filterObj.iter().all(|(key, filterValue)| {
               recordObj
                 .get(key)
-                .map(|recordValue| recordValue == filterValue)
+                .map(|recordValue| {
+                  if filterValue.is_array() {
+                    filterValue.as_array().unwrap().contains(recordValue)
+                  } else {
+                    recordValue == filterValue
+                  }
+                })
                 .unwrap_or(false)
             })
           } else {
