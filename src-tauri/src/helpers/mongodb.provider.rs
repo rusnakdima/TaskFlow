@@ -14,14 +14,17 @@ pub struct MongodbProvider {
 
 impl MongodbProvider {
   #[allow(non_snake_case)]
-  pub async fn new(envUri: String, envDbName: String) -> Self {
+  pub async fn new(
+    envUri: String,
+    envDbName: String,
+  ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
     let uri = envUri;
     let database = envDbName;
-    let client = Client::with_uri_str(&uri).await.unwrap();
+    let client = Client::with_uri_str(&uri).await?;
 
-    Self {
+    Ok(Self {
       db: client.database(&database),
-    }
+    })
   }
 
   #[allow(non_snake_case)]
