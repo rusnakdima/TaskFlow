@@ -23,6 +23,7 @@ import { Task } from "@models/task";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { SyncService } from "@services/sync.service";
 
 interface Breadcrumb {
   label: string;
@@ -42,7 +43,8 @@ export class HeaderComponent implements OnInit {
     private location: Location,
     private authService: AuthService,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private syncService: SyncService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
@@ -59,6 +61,7 @@ export class HeaderComponent implements OnInit {
 
   isBack: boolean = false;
   showUserMenu: boolean = false;
+  isSyncing: boolean = false;
 
   breadcrumbs: Breadcrumb[] = [];
 
@@ -179,6 +182,26 @@ export class HeaderComponent implements OnInit {
 
   closeUserMenu() {
     this.showUserMenu = false;
+  }
+
+  async syncAll() {
+    if (this.isSyncing) return;
+
+    this.isSyncing = true;
+    this.notifyService.showInfo("Starting synchronization...");
+
+    try {
+      const response = await this.syncService.syncAll();
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Synchronization completed successfully!");
+      } else {
+        this.notifyService.showError(response.message || "Synchronization failed");
+      }
+    } catch (error) {
+      this.notifyService.showError("Synchronization failed: " + error);
+    } finally {
+      this.isSyncing = false;
+    }
   }
 
   logout() {

@@ -31,6 +31,19 @@
 
       <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        (click)="syncAll()"
+        [disabled]="isSyncing"
+        [title]="isSyncing ? 'Synchronizing...' : 'Sync data with cloud'"
+      >
+        @if (isSyncing) {
+          <mat-icon class="!w-5 !h-6 !text-xl textMuted animate-spin" fontIcon="sync" />
+        } @else {
+          <mat-icon class="!w-5 !h-6 !text-xl textMuted" fontIcon="sync" />
+        }
+      </button>
+
+      <button
+        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
         (click)="toggleTheme()"
         [title]="themeVal === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
       >
@@ -85,6 +98,15 @@
       >
         <mat-icon class="!w-5 !h-6 !text-xl textMuted" fontIcon="category" />
         <span class="textNormal">Categories</span>
+      </button>
+
+      <button
+        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+        routerLink="/sync"
+        (click)="closeUserMenu()"
+      >
+        <mat-icon class="!w-5 !h-6 !text-xl textMuted" fontIcon="sync" />
+        <span class="textNormal">Sync Data</span>
       </button>
 
       <button

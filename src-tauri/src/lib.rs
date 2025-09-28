@@ -21,6 +21,7 @@ use routes::auth_route::{checkToken, login, register};
 use routes::category_route::{
   categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
 };
+use routes::manage_db_route::{exportToCloud, importToLocal};
 use routes::profile_route::{
   profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
 };
@@ -51,8 +52,8 @@ use services::daily_activity_service::DailyActivityService;
 pub struct AppState {
   pub managedbController: Arc<ManageDbController>,
   pub aboutController: Arc<AboutController>,
-  pub authController: Arc<AuthController>,
-  pub profileController: Arc<ProfileController>,
+  pub authController: Option<Arc<AuthController>>,
+  pub profileController: Option<Arc<ProfileController>>,
   pub categoriesController: Arc<CategoriesController>,
   pub todoController: Arc<TodoController>,
   pub taskController: Arc<TaskController>,
@@ -76,22 +77,35 @@ pub fn run() {
         config.appHomeFolder.clone(),
         config.jsonDbName.clone(),
       );
-      let mongodbProvider = block_on(MongodbProvider::new(
-        config.mongoDburi.clone(),
+      let mongodbProvider = match block_on(MongodbProvider::new(
+        config.mongoDbUri.clone(),
         config.mongoDbName.clone(),
+      )) {
+        Ok(provider) => Some(Arc::new(provider)),
+        Err(e) => {
+          println!("Failed to connect to MongoDB: {:?}", e);
+          None
+        }
+      };
+
+      let authController = mongodbProvider
+        .as_ref()
+        .map(|mp| Arc::new(AuthController::new(mp.clone(), config.jwtSecret.clone())));
+
+      let profileController = mongodbProvider
+        .as_ref()
+        .map(|mp| Arc::new(ProfileController::new(mp.clone())));
+
+      let managedbController = Arc::new(ManageDbController::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
       ));
 
       app.manage(AppState {
-        managedbController: Arc::new(ManageDbController::new(
-          jsonProvider.clone(),
-          mongodbProvider.clone(),
-        )),
+        managedbController,
         aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
-        authController: Arc::new(AuthController::new(
-          jsonProvider.clone(),
-          config.jwtSecret.clone(),
-        )),
-        profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
+        authController,
+        profileController,
         categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
         todoController: Arc::new(TodoController::new(
           jsonProvider.clone(),
@@ -148,6 +162,8 @@ pub fn run() {
       taskSharesUpdate,
       taskSharesDelete,
       statisticsGet,
+      importToLocal,
+      exportToCloud,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

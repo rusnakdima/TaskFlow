@@ -1,0 +1,120 @@
+<div class="max-w-4xl mx-auto p-6">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold textNormal mb-2">Data Synchronization</h1>
+    <p class="textMuted">
+      Synchronize your data between local storage and cloud database. Users and profiles are always
+      stored in the cloud.
+    </p>
+  </div>
+
+  <div
+    class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6 mb-8"
+  >
+    <h2 class="text-xl font-semibold textNormal mb-4">Quick Sync</h2>
+    <p class="textMuted mb-4">
+      Automatically sync all data: first upload local changes to cloud, then download cloud changes
+      to local.
+    </p>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="syncAll()"
+      [disabled]="isSyncingAll"
+      class="flex items-center gap-2"
+    >
+      @if (isSyncingAll) {
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>Synchronizing...</span>
+      } @else {
+        <div class="flex flex-row items-center gap-x-3">
+          <mat-icon class="!w-4 !h-5 !text-lg text-white" fontIcon="sync" />
+          <span>Sync All Data</span>
+        </div>
+      }
+    </button>
+  </div>
+
+  <div
+    class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6"
+  >
+    <h2 class="text-xl font-semibold textNormal mb-4">Manual Sync Operations</h2>
+    <p class="textMuted mb-6">
+      Perform individual synchronization operations. Use these for specific data management needs.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div
+        class="flex flex-col justify-between border border-gray-200 dark:border-zinc-600 rounded-lg p-4"
+      >
+        <div class="flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="cloud_download" />
+            <h3 class="font-medium textNormal">Import to Local</h3>
+          </div>
+          <p class="text-sm textMuted mb-4">Download data from cloud database to local storage.</p>
+        </div>
+        <button
+          mat-stroked-button
+          (click)="importToLocal()"
+          [disabled]="isSyncingImport"
+          class="w-full flex items-center justify-center gap-2"
+        >
+          @if (isSyncingImport) {
+            <mat-spinner diameter="16"></mat-spinner>
+            <span>Importing...</span>
+          } @else {
+            <div class="flex flex-row gap-x-3">
+              <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="download" />
+              <span>Import from Cloud</span>
+            </div>
+          }
+        </button>
+      </div>
+
+      <div
+        class="flex flex-col justify-between border border-gray-200 dark:border-zinc-600 rounded-lg p-4"
+      >
+        <div class="flex flex-col">
+          <div class="flex items-center gap-3 mb-3">
+            <mat-icon class="!w-6 !h-6 !text-xl text-green-500">cloud_upload</mat-icon>
+            <h3 class="font-medium textNormal">Export from Local</h3>
+          </div>
+          <p class="text-sm textMuted mb-4">Upload local data to cloud database.</p>
+        </div>
+        <button
+          mat-stroked-button
+          (click)="exportToCloud()"
+          [disabled]="isSyncingExport"
+          class="w-full flex items-center justify-center gap-2"
+        >
+          @if (isSyncingExport) {
+            <mat-spinner diameter="16"></mat-spinner>
+            <span>Exporting...</span>
+          } @else {
+            <div class="flex flex-row gap-x-3">
+              <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="upload" />
+              <span>Export to Cloud</span>
+            </div>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800"
+  >
+    <div class="flex items-start gap-3">
+      <mat-icon class="!w-6 !h-6 !text-xl text-blue-500">info</mat-icon>
+      <div>
+        <h3 class="font-medium text-blue-900 dark:text-blue-100 mb-2">Important Notes</h3>
+        <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+          <li>• Users and profiles are always stored in the cloud and cannot be manually synced</li>
+          <li>• Quick sync performs export first (upload), then import (download)</li>
+          <li>• Manual operations allow fine-grained control over data flow</li>
+          <li>• All operations sync: daily activities, categories, todos, tasks, and subtasks</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

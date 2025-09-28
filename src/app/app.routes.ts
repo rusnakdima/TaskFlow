@@ -15,6 +15,7 @@ import { CalendarView } from "@views/calendar/calendar.view";
 import { SharedTasksView } from "@views/shared-tasks/shared-tasks.view";
 import { StatsView } from "@views/stats/stats.view";
 import { AboutView } from "@views/about/about.view";
+import { SyncView } from "@views/sync/sync.view";
 import { CategoriesView } from "@views/categories/categories.view";
 
 import { TodosView } from "@views/todos/todos.view";
@@ -57,6 +58,12 @@ export const routes: Routes = [
     data: { breadcrumb: "Shared Tasks" },
   },
   { path: "about", component: AboutView, title: "About", data: { breadcrumb: "About" } },
+  {
+    path: "sync",
+    component: SyncView,
+    title: "Data Synchronization",
+    data: { breadcrumb: "Sync" },
+  },
   {
     path: "categories",
     component: CategoriesView,

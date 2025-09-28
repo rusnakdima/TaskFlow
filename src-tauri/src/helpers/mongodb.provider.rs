@@ -1,8 +1,10 @@
 /* sys lib */
 use mongodb::{
   bson::{doc, Document},
+  options::ClientOptions,
   Client, Collection, Database,
 };
+use std::time::Duration;
 
 /* models */
 use crate::models::relation_obj::{RelationObj, TypesField};
@@ -20,7 +22,11 @@ impl MongodbProvider {
   ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
     let uri = envUri;
     let database = envDbName;
-    let client = Client::with_uri_str(&uri).await?;
+    let mut client_options = ClientOptions::parse(uri).await?;
+    client_options.app_name = Some("TaskFlow".to_string());
+    client_options.connect_timeout = Some(Duration::from_secs(10));
+    client_options.server_selection_timeout = Some(Duration::from_secs(10));
+    let client = Client::with_options(client_options)?;
 
     Ok(Self {
       db: client.database(&database),
