@@ -1,147 +1,156 @@
 @if (task) {
-  <div
-    class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700 hover:shadow-xl transition-all duration-200 group"
-    [routerLink]="task.id + '/subtasks'"
-  >
-    <div class="flex items-start justify-between mb-4">
-      <div class="flex items-start gap-3 flex-1">
-        <button
-          class="mt-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-          (click)="toggleCompletion($event)"
-        >
-          @if (task.isCompleted) {
-            <mat-icon class="!w-5 !h-6 !text-xl text-green-600" fontIcon="check_circle" />
-          } @else {
-            <mat-icon
-              class="!w-5 !h-6 !text-xl textMuted hover:text-green-600"
-              fontIcon="radio_button_unchecked"
-            />
-          }
-        </button>
+  <div cdkDrag>
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700 hover:shadow-xl transition-all duration-200 group"
+      [routerLink]="task.id + '/subtasks'"
+    >
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex items-start gap-3 flex-1">
+          <button
+            class="mt-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            (click)="toggleCompletion($event)"
+          >
+            @if (task.isCompleted) {
+              <mat-icon class="!w-5 !h-6 !text-xl text-green-600" fontIcon="check_circle" />
+            } @else {
+              <mat-icon
+                class="!w-5 !h-6 !text-xl textMuted hover:text-green-600"
+                fontIcon="radio_button_unchecked"
+              />
+            }
+          </button>
 
-        <div class="flex-1 min-w-0 cursor-pointer">
-          @if (editingField === "title") {
-            <input
-              type="text"
-              [(ngModel)]="editingValue"
-              (blur)="saveInlineEdit()"
-              (keyup.enter)="saveInlineEdit()"
-              (keyup.escape)="cancelInlineEdit()"
-              class="w-full px-2 py-1 text-lg font-semibold bg-transparent border-b-2 border-green-500 focus:outline-none textNormal"
-              (click)="$event.stopPropagation()"
-            />
-          } @else {
-            <h3
-              class="text-lg font-semibold textNormal mb-1"
-              [ngClass]="
-                task.isCompleted
-                  ? 'line-through text-gray-500 dark:text-gray-400'
-                  : 'group-hover:text-green-600 dark:group-hover:text-green-400'
-              "
-              (dblclick)="startInlineEdit('title', task.title || '')"
-              title="Double-click to edit title"
-              (click)="$event.stopPropagation()"
-            >
-              {{ task.title }}
-            </h3>
-          }
+          <div class="flex-1 min-w-0 cursor-pointer">
+            @if (editingField === "title") {
+              <input
+                type="text"
+                [(ngModel)]="editingValue"
+                (blur)="saveInlineEdit()"
+                (keyup.enter)="saveInlineEdit()"
+                (keyup.escape)="cancelInlineEdit()"
+                class="w-full px-2 py-1 text-lg font-semibold bg-transparent border-b-2 border-green-500 focus:outline-none textNormal"
+                (click)="$event.stopPropagation()"
+              />
+            } @else {
+              <h3
+                class="text-lg font-semibold textNormal mb-1"
+                [ngClass]="
+                  task.isCompleted
+                    ? 'line-through text-gray-500 dark:text-gray-400'
+                    : 'group-hover:text-green-600 dark:group-hover:text-green-400'
+                "
+                (dblclick)="startInlineEdit('title', task.title || '')"
+                title="Double-click to edit title"
+                (click)="$event.stopPropagation()"
+              >
+                {{ task.title }}
+              </h3>
+            }
 
-          @if (editingField === "description") {
-            <textarea
-              [(ngModel)]="editingValue"
-              (blur)="saveInlineEdit()"
-              (keyup.enter)="saveInlineEdit()"
-              (keyup.escape)="cancelInlineEdit()"
-              class="w-full px-2 py-1 text-sm bg-transparent border border-green-500 rounded focus:outline-none textNormal resize-none"
-              rows="2"
-              (click)="$event.stopPropagation()"
-            ></textarea>
-          } @else if (task.description) {
-            <p
-              class="text-sm textMuted line-clamp-2"
-              (dblclick)="startInlineEdit('description', task.description)"
-              title="Double-click to edit description"
-              (click)="$event.stopPropagation()"
-            >
-              {{ truncateString(task.description, 100) }}
-            </p>
-          }
+            @if (editingField === "description") {
+              <textarea
+                [(ngModel)]="editingValue"
+                (blur)="saveInlineEdit()"
+                (keyup.enter)="saveInlineEdit()"
+                (keyup.escape)="cancelInlineEdit()"
+                class="w-full px-2 py-1 text-sm bg-transparent border border-green-500 rounded focus:outline-none textNormal resize-none"
+                rows="2"
+                (click)="$event.stopPropagation()"
+              ></textarea>
+            } @else if (task.description) {
+              <p
+                class="text-sm textMuted line-clamp-2"
+                (dblclick)="startInlineEdit('description', task.description)"
+                title="Double-click to edit description"
+                (click)="$event.stopPropagation()"
+              >
+                {{ truncateString(task.description, 100) }}
+              </p>
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 ml-3">
+          <span
+            class="px-2 py-1 rounded-full text-xs font-medium"
+            [ngClass]="getPriorityColor(task.priority || 'medium')"
+          >
+            {{ (task.priority || "medium").toUpperCase() }}
+          </span>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 ml-3">
-        <span
-          class="px-2 py-1 rounded-full text-xs font-medium"
-          [ngClass]="getPriorityColor(task.priority || 'medium')"
-        >
-          {{ (task.priority || "medium").toUpperCase() }}
-        </span>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-4 mb-4 text-sm textMuted">
-      @if (task.endDate) {
+      <div class="flex items-center gap-4 mb-4 text-sm textMuted">
+        @if (task.endDate) {
+          <div class="flex items-center gap-1">
+            <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="schedule" />
+            <span>Due {{ formatDate(task.endDate) }}</span>
+          </div>
+        }
         <div class="flex items-center gap-1">
-          <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="schedule" />
-          <span>Due {{ formatDate(task.endDate) }}</span>
+          <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="list" />
+          <span>{{ countTasks }} subtasks</span>
         </div>
-      }
-      <div class="flex items-center gap-1">
-        <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="list" />
-        <span>{{ countTasks }} subtasks</span>
-      </div>
-    </div>
-
-    <div class="mb-4">
-      <div class="flex justify-between text-sm mb-2">
-        <span class="textMuted">Progress</span>
-        <span class="textNormal font-medium">{{ getProgressPercentage() }}%</span>
-      </div>
-      <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-        <div
-          class="h-2 rounded-full transition-all duration-300"
-          [ngClass]="task.isCompleted ? 'bg-green-500' : 'bg-blue-500'"
-          [style.width.%]="getProgressPercentage()"
-        ></div>
-      </div>
-    </div>
-
-    <div class="flex items-center justify-between">
-      <div class="flex gap-2">
-        <button
-          class="px-3 py-1 text-xs font-medium rounded-full transition-colors"
-          [ngClass]="
-            task.isCompleted
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-          "
-        >
-          {{ task.isCompleted ? "Completed" : "In Progress" }}
-        </button>
       </div>
 
-      <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
-          [routerLink]="task.id + '/subtasks'"
-          title="View subtasks"
-        >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="list" />
-        </button>
-        <button
-          class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-          [routerLink]="task.id + '/edit_task'"
-          title="Edit task"
-        >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="edit" />
-        </button>
-        <button
-          class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
-          (click)="deleteTask()"
-          title="Delete task"
-        >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="delete" />
-        </button>
+      <div class="mb-4">
+        <div class="flex justify-between text-sm mb-2">
+          <span class="textMuted">Progress</span>
+          <span class="textNormal font-medium">{{ getProgressPercentage() }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+          <div
+            class="h-2 rounded-full transition-all duration-300"
+            [ngClass]="task.isCompleted ? 'bg-green-500' : 'bg-blue-500'"
+            [style.width.%]="getProgressPercentage()"
+          ></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex gap-2">
+          <button
+            class="px-3 py-1 text-xs font-medium rounded-full transition-colors"
+            [ngClass]="
+              task.isCompleted
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+            "
+          >
+            {{ task.isCompleted ? "Completed" : "In Progress" }}
+          </button>
+        </div>
+
+        <div class="flex flex-row gap-2">
+          <button
+            class="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 transition-colors cursor-move"
+            cdkDragHandle
+            title="Drag to reorder"
+          >
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="drag_indicator" />
+          </button>
+          <button
+            class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
+            [routerLink]="task.id + '/subtasks'"
+            title="View subtasks"
+          >
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="list" />
+          </button>
+          <button
+            class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+            [routerLink]="task.id + '/edit_task'"
+            title="Edit task"
+          >
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="edit" />
+          </button>
+          <button
+            class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+            (click)="deleteTask()"
+            title="Delete task"
+          >
+            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="delete" />
+          </button>
+        </div>
       </div>
     </div>
   </div>

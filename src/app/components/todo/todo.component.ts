@@ -5,6 +5,7 @@ import { RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -16,7 +17,7 @@ import { Task } from "@models/task";
 @Component({
   selector: "app-todo",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, DragDropModule],
   templateUrl: "./todo.component.html",
 })
 export class TodoComponent {

@@ -79,18 +79,17 @@
     <div
       class="grid grid-cols-1 lg:grid-cols-2 gap-6"
       cdkDropList
+      cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTaskDrop($event)"
     >
       @for (task of listTasks; track $index) {
-        <div cdkDrag>
-          <app-task
-            [task]="task"
-            [index]="$index"
-            (deleteTaskEvent)="deleteTask($event)"
-            (toggleCompletionEvent)="toggleTaskCompletion($event)"
-            (updateTaskEvent)="updateTaskInline($event)"
-          />
-        </div>
+        <app-task
+          [task]="task"
+          [index]="$index"
+          (deleteTaskEvent)="deleteTask($event)"
+          (toggleCompletionEvent)="toggleTaskCompletion($event)"
+          (updateTaskEvent)="updateTaskInline($event)"
+        />
       }
     </div>
   }

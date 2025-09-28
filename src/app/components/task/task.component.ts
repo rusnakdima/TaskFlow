@@ -6,6 +6,7 @@ import { FormsModule } from "@angular/forms";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -17,7 +18,7 @@ import { Subtask } from "@models/subtask";
 @Component({
   selector: "app-task",
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule],
+  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, DragDropModule],
   templateUrl: "./task.component.html",
 })
 export class TaskComponent {

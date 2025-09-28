@@ -132,12 +132,11 @@
     <div
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
       cdkDropList
+      cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTodoDrop($event)"
     >
       @for (todo of listTodos; track $index) {
-        <div cdkDrag>
-          <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
-        </div>
+        <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
       }
     </div>
   }
