@@ -1,10 +1,11 @@
 /* sys lib */
-use serde_json::{json, to_value, Value};
+use mongodb::bson::{doc, to_bson, Bson, Document};
+use serde_json::json;
 
 /* helpers */
 use crate::helpers::{
   common::{convertDataToArray, convertDataToObject},
-  json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
 
 /* models */
@@ -16,15 +17,15 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub struct ProfileService {
-  pub jsonProvider: JsonProvider,
+  pub mongodbProvider: MongodbProvider,
   relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(mongodbProvider: MongodbProvider) -> Self {
     Self {
-      jsonProvider: jsonProvider,
+      mongodbProvider: mongodbProvider,
       relations: vec![RelationObj {
         nameTable: "users".to_string(),
         typeField: TypesField::OneToOne,
@@ -41,17 +42,16 @@ impl ProfileService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      let mut doc = Document::new();
+      doc.insert(nameField, value);
+      Some(doc)
+    } else {
+      None
+    };
     let listProfiles = self
-      .jsonProvider
-      .getAllByField(
-        "profiles",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-      )
+      .mongodbProvider
+      .getAllByField("profiles", filter, Some(self.relations.clone()))
       .await;
     match listProfiles {
       Ok(profiles) => {
@@ -77,18 +77,16 @@ impl ProfileService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      let mut doc = Document::new();
+      doc.insert(nameField, value);
+      Some(doc)
+    } else {
+      None
+    };
     let profile = self
-      .jsonProvider
-      .getByField(
-        "profiles",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-        &"",
-      )
+      .mongodbProvider
+      .getByField("profiles", filter, Some(self.relations.clone()), &"")
       .await;
     match profile {
       Ok(profile) => {
@@ -121,14 +119,30 @@ impl ProfileService {
     }
 
     let modelData: ProfileModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
-    let profile = self.jsonProvider.create("profiles", record).await;
+    let record = match to_bson(&modelData) {
+      Ok(Bson::Document(doc)) => doc,
+      Ok(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Error serializing profile: not a document".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error serializing profile: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+    let profile = self.mongodbProvider.create("profiles", record).await;
     match profile {
       Ok(result) => {
         if result {
           let updateResult = self
-            .jsonProvider
-            .update("users", &userId, json!({"profileId": modelData.id}))
+            .mongodbProvider
+            .update("users", &userId, doc! { "profileId": modelData.id })
             .await;
           match updateResult {
             Ok(_) => {
@@ -174,9 +188,25 @@ impl ProfileService {
     data: ProfileUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
     let modelData: ProfileModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
+    let record = match to_bson(&modelData) {
+      Ok(Bson::Document(doc)) => doc,
+      Ok(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Error serializing profile: not a document".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error serializing profile: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
     let profile = self
-      .jsonProvider
+      .mongodbProvider
       .update("profiles", &id.as_str(), record)
       .await;
     match profile {
@@ -207,7 +237,7 @@ impl ProfileService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let profile = self.jsonProvider.delete("profiles", &id.as_str()).await;
+    let profile = self.mongodbProvider.delete("profiles", &id.as_str()).await;
     match profile {
       Ok(result) => {
         if result {

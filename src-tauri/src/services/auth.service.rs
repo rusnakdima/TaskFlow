@@ -2,11 +2,11 @@
 use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use mongodb::bson::{oid::ObjectId, Uuid};
-use serde_json::{from_value, json, to_value};
+use mongodb::bson::{doc, from_bson, oid::ObjectId, to_bson, Bson, Uuid};
+use serde_json::json;
 
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* models */
 use crate::models::{
@@ -26,15 +26,15 @@ pub struct Claims {
 
 #[allow(non_snake_case)]
 pub struct AuthService {
-  pub jsonProvider: JsonProvider,
+  pub mongodbProvider: MongodbProvider,
   pub jwtSecret: String,
 }
 
 impl AuthService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, envValue: String) -> Self {
+  pub fn new(mongodbProvider: MongodbProvider, envValue: String) -> Self {
     Self {
-      jsonProvider: jsonProvider,
+      mongodbProvider: mongodbProvider,
       jwtSecret: envValue,
     }
   }
@@ -58,19 +58,20 @@ impl AuthService {
 
         let userId = decoded.claims.id.clone();
         let nameTable = "users".to_string();
-        let filter = json!({ "id": userId });
+        let filter = doc! { "id": userId.clone() };
 
         match self
-          .jsonProvider
+          .mongodbProvider
           .getByField(&nameTable, Some(filter), None, &userId)
           .await
         {
           Ok(userDoc) => {
-            let user: UserModel = from_value(userDoc.clone()).map_err(|e| ResponseModel {
-              status: ResponseStatus::Error,
-              message: format!("Error deserializing user: {}", e),
-              data: DataValue::String("".to_string()),
-            })?;
+            let user: UserModel =
+              from_bson(Bson::Document(userDoc.clone())).map_err(|e| ResponseModel {
+                status: ResponseStatus::Error,
+                message: format!("Error deserializing user: {}", e),
+                data: DataValue::String("".to_string()),
+              })?;
             Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "Token is valid".to_string(),
@@ -100,9 +101,9 @@ impl AuthService {
   pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
     let nameTable = "users".to_string();
 
-    let filter = json!({ "username": loginForm.username });
+    let filter = doc! { "username": loginForm.username.clone() };
     match self
-      .jsonProvider
+      .mongodbProvider
       .getByField(&nameTable, Some(filter), None, "")
       .await
     {
@@ -205,9 +206,9 @@ impl AuthService {
   pub async fn register(&self, signupForm: SignupForm) -> Result<ResponseModel, ResponseModel> {
     let nameTable = "users".to_string();
 
-    let filter = json!({ "email": signupForm.email.clone() });
+    let filter = doc! { "email": signupForm.email.clone() };
     match self
-      .jsonProvider
+      .mongodbProvider
       .getByField(&nameTable, Some(filter), None, "")
       .await
     {
@@ -216,7 +217,7 @@ impl AuthService {
         message: "User with this email already exists".to_string(),
         data: DataValue::String("".to_string()),
       }),
-      Err(e) if e.to_string().contains("Record not found") => {
+      Err(e) if e.to_string().contains("Document not found") => {
         let user: UserModel = UserModel {
           _id: ObjectId::new(),
           id: Uuid::new().to_string(),
@@ -239,8 +240,15 @@ impl AuthService {
           updatedAt: chrono::Utc::now().to_string(),
         };
 
-        let recordUser = match to_value(&user) {
-          Ok(rec) => rec,
+        let recordUser = match to_bson(&user) {
+          Ok(Bson::Document(doc)) => doc,
+          Ok(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Error serializing user: not a document".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
           Err(e) => {
             return Err(ResponseModel {
               status: ResponseStatus::Error,
@@ -250,7 +258,7 @@ impl AuthService {
           }
         };
 
-        match self.jsonProvider.create(&nameTable, recordUser).await {
+        match self.mongodbProvider.create(&nameTable, recordUser).await {
           Ok(_) => Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "User created successfully".to_string(),
