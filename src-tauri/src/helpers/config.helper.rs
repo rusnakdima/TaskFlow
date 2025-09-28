@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 #[allow(non_snake_case)]
 pub struct ConfigHelper {
   pub nameApp: String,
   pub appHomeFolder: String,
   pub jsonDbName: String,
-  pub mongoDburi: String,
+  pub mongoDbUri: String,
   pub mongoDbName: String,
   pub jwtSecret: String,
 }
@@ -29,7 +30,7 @@ impl ConfigHelper {
         .get("JSONDB_NAME")
         .expect("JSONDB_NAME not set in .env")
         .clone(),
-      mongoDburi: envVars
+      mongoDbUri: envVars
         .get("MONGODB_URI")
         .expect("MONGODB_URI not set in .env")
         .clone(),
