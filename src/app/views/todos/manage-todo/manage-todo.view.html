@@ -12,22 +12,6 @@
         }}
       </p>
     </div>
-
-    <div class="flex gap-2 sm:hidden w-full">
-      <button
-        class="flex-1 px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
-        (click)="back()"
-      >
-        Cancel
-      </button>
-      <button
-        class="flex-1 styleButSuccess text-sm px-4 py-2"
-        (click)="onSubmit()"
-        [disabled]="form.invalid"
-      >
-        {{ isEdit ? "Update" : "Create" }}
-      </button>
-    </div>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
@@ -273,7 +257,7 @@
       </div>
     </div>
 
-    <div class="hidden sm:flex justify-end gap-3 pt-6">
+    <div class="flex justify-end gap-3 pt-6">
       <button
         type="button"
         class="px-6 py-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors font-medium"
@@ -291,9 +275,9 @@
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="!w-4 !h-5 !text-base" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="!w-5 !h-7 !text-xl" [fontIcon]="isEdit ? 'save' : 'add'" />
         }
-        {{ isEdit ? "Update Project" : "Create Project" }}
+        {{ isEdit ? "Update" : "Create" }}
       </button>
     </div>
   </form>
