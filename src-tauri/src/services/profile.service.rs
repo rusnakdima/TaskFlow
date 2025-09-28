@@ -1,6 +1,5 @@
 /* sys lib */
 use mongodb::bson::{doc, to_bson, Bson, Document};
-use serde_json::json;
 
 /* helpers */
 use crate::helpers::{
