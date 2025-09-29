@@ -43,7 +43,7 @@
           <div class="flex flex-row justify-between items-center">
             <span>{{ field.label }}</span>
             <button class="flex flcol items-center justify-center" (click)="onAddRecord()">
-              <mat-icon class="!w-[25px] !h-[25px]" fontIcon="add" />
+              <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add" />
             </button>
           </div>
           @for (fg of formArray(field.name).controls; track fg; let i = $index) {
@@ -52,13 +52,13 @@
                 <summary class="list-none">
                   <div class="flex flex-row justify-between items-center w-full">
                     <div class="flex flex-row gap-x-1">
-                      <mat-icon>
+                      <mat-icon class="!w-5 !h-5 !text-xl">
                         {{ openStates[i] ? "keyboard_arrow_down" : "chevron_right" }}
                       </mat-icon>
                       <span>Record {{ i + 1 }}</span>
                     </div>
                     <button (click)="onRemoveRecord(i)">
-                      <mat-icon fontIcon="remove" />
+                      <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="remove" />
                     </button>
                   </div>
                 </summary>
@@ -73,7 +73,7 @@
                 class="absolute flex flex-col items-end right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <button (click)="onInsertRecord(i + 1)">
-                  <mat-icon fontIcon="add" />
+                  <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add" />
                 </button>
               </div>
             </div>

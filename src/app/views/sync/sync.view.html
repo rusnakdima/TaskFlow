@@ -15,19 +15,13 @@
       Automatically sync all data: first upload local changes to cloud, then download cloud changes
       to local.
     </p>
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="syncAll()"
-      [disabled]="isSyncingAll"
-      class="flex items-center gap-2"
-    >
+    <button class="styleButSuccess" (click)="syncAll()" [disabled]="isSyncingAll">
       @if (isSyncingAll) {
         <mat-spinner diameter="20"></mat-spinner>
         <span>Synchronizing...</span>
       } @else {
         <div class="flex flex-row items-center gap-x-3">
-          <mat-icon class="!w-4 !h-5 !text-lg text-white" fontIcon="sync" />
+          <mat-icon class="!w-5 !h-5 !text-xl text-white" fontIcon="sync" />
           <span>Sync All Data</span>
         </div>
       }
@@ -48,23 +42,18 @@
       >
         <div class="flex flex-col">
           <div class="flex items-center gap-3 mb-3">
-            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="cloud_download" />
+            <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="cloud_download" />
             <h3 class="font-medium textNormal">Import to Local</h3>
           </div>
           <p class="text-sm textMuted mb-4">Download data from cloud database to local storage.</p>
         </div>
-        <button
-          mat-stroked-button
-          (click)="importToLocal()"
-          [disabled]="isSyncingImport"
-          class="w-full flex items-center justify-center gap-2"
-        >
+        <button (click)="importToLocal()" [disabled]="isSyncingImport" class="styleButInfo">
           @if (isSyncingImport) {
             <mat-spinner diameter="16"></mat-spinner>
             <span>Importing...</span>
           } @else {
             <div class="flex flex-row gap-x-3">
-              <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="download" />
+              <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="download" />
               <span>Import from Cloud</span>
             </div>
           }
@@ -76,23 +65,18 @@
       >
         <div class="flex flex-col">
           <div class="flex items-center gap-3 mb-3">
-            <mat-icon class="!w-6 !h-6 !text-xl text-green-500">cloud_upload</mat-icon>
+            <mat-icon class="!w-6 !h-6 !text-2xl text-green-500">cloud_upload</mat-icon>
             <h3 class="font-medium textNormal">Export from Local</h3>
           </div>
           <p class="text-sm textMuted mb-4">Upload local data to cloud database.</p>
         </div>
-        <button
-          mat-stroked-button
-          (click)="exportToCloud()"
-          [disabled]="isSyncingExport"
-          class="w-full flex items-center justify-center gap-2"
-        >
+        <button (click)="exportToCloud()" [disabled]="isSyncingExport" class="styleButInfo">
           @if (isSyncingExport) {
             <mat-spinner diameter="16"></mat-spinner>
             <span>Exporting...</span>
           } @else {
             <div class="flex flex-row gap-x-3">
-              <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="upload" />
+              <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="upload" />
               <span>Export to Cloud</span>
             </div>
           }

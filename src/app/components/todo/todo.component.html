@@ -30,12 +30,12 @@
       <div class="flex items-center gap-4 mb-4 text-sm textMuted">
         @if (todo.endDate) {
           <div class="flex items-center gap-1">
-            <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="schedule" />
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="schedule" />
             <span>Due {{ formatDate(todo.endDate) }}</span>
           </div>
         }
         <div class="flex items-center gap-1">
-          <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="assignment" />
+          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="assignment" />
           <span>{{ countTasks }} tasks</span>
         </div>
       </div>
@@ -60,7 +60,7 @@
       @if (todo.assignees && todo.assignees.length > 0) {
         <div class="mb-4">
           <div class="flex items-center gap-2 mb-2">
-            <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="group" />
+            <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="group" />
             <span class="text-sm textMuted">Team</span>
           </div>
           <div class="flex -space-x-2" (click)="$event.stopPropagation()">
@@ -112,7 +112,7 @@
             title="Drag to reorder"
             (click)="$event.stopPropagation()"
           >
-            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="drag_indicator" />
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="drag_indicator" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
@@ -120,7 +120,7 @@
             (click)="$event.stopPropagation()"
             title="View tasks"
           >
-            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="list" />
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="list" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
@@ -128,14 +128,14 @@
             (click)="$event.stopPropagation()"
             title="Edit project"
           >
-            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="edit" />
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="edit" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
             (click)="deleteProject($event)"
             title="Delete project"
           >
-            <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="delete" />
+            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete" />
           </button>
         </div>
       </div>

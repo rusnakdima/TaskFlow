@@ -10,11 +10,11 @@
         class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
         (click)="toggleFilter()"
       >
-        <mat-icon class="!w-5 !h-7 !text-xl" fontIcon="filter_alt" />
+        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="filter_alt" />
         Filter
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" routerLink="/todos/create_todo">
-        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
         New Project
       </button>
     </div>
@@ -62,7 +62,7 @@
           <p class="text-blue-100 text-sm">Total Projects</p>
           <p class="text-xl font-bold">{{ getFilteredCount("all") }}</p>
         </div>
-        <mat-icon class="!w-6 !h-8 !text-2xl opacity-80" fontIcon="assignment" />
+        <mat-icon class="!w-6 !h-6 !text-2xl opacity-80" fontIcon="assignment" />
       </div>
     </div>
 
@@ -74,7 +74,7 @@
           <p class="text-orange-100 text-sm">In Progress</p>
           <p class="text-xl font-bold">{{ getFilteredCount("active") }}</p>
         </div>
-        <mat-icon class="!w-6 !h-8 !text-2xl opacity-80" fontIcon="pending" />
+        <mat-icon class="!w-6 !h-6 !text-2xl opacity-80" fontIcon="pending" />
       </div>
     </div>
 
@@ -86,7 +86,7 @@
           <p class="text-green-100 text-sm">Completed</p>
           <p class="text-xl font-bold">{{ getFilteredCount("completed") }}</p>
         </div>
-        <mat-icon class="!w-6 !h-8 !text-2xl opacity-80" fontIcon="task_alt" />
+        <mat-icon class="!w-6 !h-6 !text-2xl opacity-80" fontIcon="task_alt" />
       </div>
     </div>
 
@@ -98,7 +98,7 @@
           <p class="text-purple-100 text-sm">This Week</p>
           <p class="text-xl font-bold">{{ getFilteredCount("week") }}</p>
         </div>
-        <mat-icon class="!w-6 !h-8 !text-2xl opacity-80" fontIcon="today" />
+        <mat-icon class="!w-6 !h-6 !text-2xl opacity-80" fontIcon="today" />
       </div>
     </div>
   </div>
@@ -107,7 +107,7 @@
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
-      <mat-icon class="!w-16 !h-17 !text-5xl textMuted mb-4" fontIcon="assignment" />
+      <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="assignment" />
       <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
       <p class="textMuted mb-6">
         @if (activeFilter === "all") {
@@ -118,12 +118,12 @@
       </p>
       @if (activeFilter === "all") {
         <button class="styleButSuccess" routerLink="/todos/create_todo">
-          <mat-icon class="!w-4 !h-6 !text-xl mr-2" fontIcon="add" />
+          <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
           Create your first task
         </button>
       } @else {
         <button class="styleButInfo" (click)="changeFilter('all')">
-          <mat-icon class="!w-4 !h-6 !text-xl mr-2" fontIcon="clear_all" />
+          <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="clear_all" />
           Show all tasks
         </button>
       }

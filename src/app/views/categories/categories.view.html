@@ -7,7 +7,7 @@
 
     <div class="flex gap-2">
       <button class="styleButSuccess text-sm px-4 py-2" (click)="toggleCreateForm()">
-        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
         New Category
       </button>
     </div>
@@ -34,11 +34,11 @@
 
     @if (listCategories.length === 0) {
       <div class="text-center py-12">
-        <mat-icon class="!w-16 !h-17 !text-5xl textMuted mb-4" fontIcon="category" />
+        <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="category" />
         <h3 class="text-xl font-semibold textNormal mb-2">No categories found</h3>
         <p class="textMuted mb-6">Get started by creating your first category</p>
         <button class="styleButSuccess" (click)="toggleCreateForm()">
-          <mat-icon class="!w-4 !h-6 !text-xl mr-2" fontIcon="add" />
+          <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
           Create your first category
         </button>
       </div>

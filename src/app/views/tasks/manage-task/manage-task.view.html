@@ -10,7 +10,7 @@
       @if (projectInfo) {
         <div class="flex items-center gap-2 mt-2">
           <mat-icon
-            class="!w-4 !h-5 !text-base text-blue-600 dark:text-blue-400"
+            class="!w-4 !h-4 !text-base text-blue-600 dark:text-blue-400"
             fontIcon="folder"
           />
           <span class="text-sm text-blue-600 dark:text-blue-400 font-medium">{{
@@ -29,7 +29,7 @@
         <div
           class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center"
         >
-          <mat-icon class="!w-6 !h-7 !text-xl text-green-600 dark:text-green-400" fontIcon="task" />
+          <mat-icon class="!w-6 !h-6 !text-xl text-green-600 dark:text-green-400" fontIcon="task" />
         </div>
         <div>
           <h3 class="text-lg font-semibold textNormal">Task Details</h3>
@@ -73,7 +73,7 @@
           class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
         >
           <mat-icon
-            class="!w-6 !h-7 !text-xl text-orange-600 dark:text-orange-400"
+            class="!w-6 !h-6 !text-xl text-orange-600 dark:text-orange-400"
             fontIcon="tune"
           />
         </div>
@@ -148,7 +148,7 @@
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="!w-5 !h-7 !text-xl" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="isEdit ? 'save' : 'add'" />
         }
         {{ isEdit ? "Update" : "Create" }}
       </button>

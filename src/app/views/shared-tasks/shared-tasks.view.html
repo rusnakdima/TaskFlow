@@ -9,11 +9,11 @@
 
     <div class="flex gap-2">
       <button class="styleButInfo text-sm px-4 py-2" (click)="inviteMember()">
-        <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="person_add" />
+        <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="person_add" />
         Invite Member
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" (click)="createProject()">
-        <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="add" />
+        <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="add" />
         New Project
       </button>
     </div>
@@ -30,7 +30,7 @@
       "
       (click)="changeTab('projects')"
     >
-      <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="work" />
+      <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="work" />
       Projects
     </button>
     <button
@@ -42,7 +42,7 @@
       "
       (click)="changeTab('team')"
     >
-      <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="group" />
+      <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="group" />
       Team Members
     </button>
   </div>
@@ -86,7 +86,7 @@
           <!-- Team Members -->
           <div class="mb-4">
             <div class="flex items-center gap-2 mb-2">
-              <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="group" />
+              <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="group" />
               <span class="text-sm textMuted">Team</span>
             </div>
             <div class="flex -space-x-2">
@@ -122,7 +122,7 @@
         (click)="createProject()"
       >
         <div class="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
-          <mat-icon class="!w-12 !h-13 !text-4xl textMuted mb-4" fontIcon="add_box" />
+          <mat-icon class="!w-9 !h-9 !text-4xl textMuted mb-4" fontIcon="add_box" />
           <h3 class="text-lg font-semibold textNormal mb-2">Create New Project</h3>
           <p class="text-sm textMuted">Start collaborating with your team on a new project</p>
         </div>
@@ -142,7 +142,7 @@
             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
             (click)="backToProjects()"
           >
-            <mat-icon class="!w-5 !h-6 !text-xl textNormal" fontIcon="arrow_back" />
+            <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="arrow_back" />
           </button>
           <div>
             <h2 class="text-2xl font-bold textNormal">{{ selectedProject.title }}</h2>
@@ -228,15 +228,15 @@
       <!-- Quick Actions -->
       <div class="flex gap-3">
         <button class="styleButInfo text-sm px-4 py-2">
-          <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="add_task" />
+          <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="add_task" />
           Add Task
         </button>
         <button class="styleButSuccess text-sm px-4 py-2">
-          <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="person_add" />
+          <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="person_add" />
           Invite Member
         </button>
         <button class="styleButWarn text-sm px-4 py-2">
-          <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="settings" />
+          <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="settings" />
           Settings
         </button>
       </div>
@@ -251,7 +251,7 @@
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-semibold textNormal">Team Members</h3>
         <button class="styleButInfo text-sm px-4 py-2" (click)="inviteMember()">
-          <mat-icon class="!w-4 !h-5 !text-base mr-2" fontIcon="person_add" />
+          <mat-icon class="!w-4 !h-4 !text-base mr-2" fontIcon="person_add" />
           Invite Member
         </button>
       </div>
@@ -312,12 +312,12 @@
                     <button
                       class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
                     >
-                      <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="visibility" />
+                      <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="visibility" />
                     </button>
                     <button
                       class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
                     >
-                      <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="edit" />
+                      <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="edit" />
                     </button>
                     <button
                       class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"

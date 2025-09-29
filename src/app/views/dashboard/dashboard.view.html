@@ -8,7 +8,7 @@
     </div>
     <div class="flex flex-row gap-2">
       <button class="styleButInfo text-sm px-4 py-2" routerLink="/todos/create_todo">
-        <mat-icon class="!w-5 !h-7 !text-xl mr-2" fontIcon="add" />
+        <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
         New Project (Todo)
       </button>
     </div>
@@ -25,7 +25,7 @@
           <p class="text-2xl font-bold">{{ totalTasks }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="assignment" />
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="assignment" />
         </div>
       </div>
     </div>
@@ -40,7 +40,7 @@
           <p class="text-2xl font-bold">{{ completedTasks }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="task_alt" />
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="task_alt" />
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
           <p class="text-2xl font-bold">{{ inProgressTasks }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="pending" />
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="pending" />
         </div>
       </div>
     </div>
@@ -70,7 +70,7 @@
           <p class="text-2xl font-bold">{{ overdueTasks }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="!w-6 !h-7 !text-2xl" fontIcon="warning" />
+          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="warning" />
         </div>
       </div>
     </div>
@@ -128,7 +128,7 @@
           class="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
           routerLink="/todos/create_todo"
         >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="add_task" />
+          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add_task" />
           <span class="font-medium">Create New Task</span>
         </button>
 
@@ -136,7 +136,7 @@
           class="w-full flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
           routerLink="/calendar"
         >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="calendar_today" />
+          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="calendar_today" />
           <span class="font-medium">View Calendar</span>
         </button>
 
@@ -144,7 +144,7 @@
           class="w-full flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
           routerLink="/shared-tasks"
         >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="group" />
+          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="group" />
           <span class="font-medium">Shared Tasks</span>
         </button>
 
@@ -152,7 +152,7 @@
           class="w-full flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
           routerLink="/Statistic"
         >
-          <mat-icon class="!w-5 !h-6 !text-xl" fontIcon="analytics" />
+          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="analytics" />
           <span class="font-medium">View Statistics</span>
         </button>
       </div>
@@ -169,7 +169,7 @@
     <div class="space-y-3">
       @if (filteredTasks.length === 0) {
         <div class="text-center py-8">
-          <mat-icon class="!w-12 !h-13 !text-4xl textMuted" fontIcon="assignment" />
+          <mat-icon class="!w-9 !h-9 !text-4xl textMuted" fontIcon="assignment" />
           <p class="textMuted mt-2">No tasks found</p>
           <button class="styleButInfo mt-4" routerLink="/todos/create_todo">
             Create your first task
@@ -197,7 +197,7 @@
             </div>
             <div class="flex-shrink-0 flex items-center gap-2">
               <span class="text-xs textMuted">{{ getLastTime(task) }}</span>
-              <mat-icon class="!w-4 !h-5 !text-base textMuted" fontIcon="chevron_right" />
+              <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="chevron_right" />
             </div>
           </div>
         }

@@ -9,16 +9,11 @@
         [(ngModel)]="searchField"
         (keyup)="searchFunc()"
       />
-      <!-- <mat-icon
-        class="cursor-pointer"
-        fontIcon="close"
-        (click)="isShowSearchField = false"
-      /> -->
     </div>
   </div>
 } @else {
   <button class="styleFloatBut !p-1 min-w-10 h-10" (click)="setFocusField()">
-    <mat-icon fontIcon="search" />
+    <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="search" />
     <span class="hidden sm:block">Search</span>
   </button>
 }
