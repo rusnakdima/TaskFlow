@@ -26,3 +26,25 @@ pub async fn exportToCloud(
   let result = managedbController.exportToCloud(userId).await;
   result
 }
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn getAllDataForAdmin(
+  state: State<'_, AppState>,
+) -> Result<ResponseModel, ResponseModel> {
+  let managedbController = state.managedbController.clone();
+  let result = managedbController.getAllDataForAdmin().await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn permanentlyDeleteRecord(
+  state: State<'_, AppState>,
+  table: String,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let managedbController = state.managedbController.clone();
+  let result = managedbController.permanentlyDeleteRecord(table, id).await;
+  result
+}

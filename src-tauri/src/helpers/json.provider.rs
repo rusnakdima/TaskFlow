@@ -180,30 +180,36 @@ impl JsonProvider {
   ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
     let mut listRecords = self.getDataTable(nameTable).await?;
 
-    if let Some(filter) = filter {
-      if let Some(filterObj) = filter.as_object() {
-        listRecords = listRecords
-          .into_iter()
-          .filter(|record| {
-            if let Some(recordObj) = record.as_object() {
-              filterObj.iter().all(|(key, filterValue)| {
-                recordObj
-                  .get(key)
-                  .map(|recordValue| {
-                    if filterValue.is_array() {
-                      filterValue.as_array().unwrap().contains(recordValue)
-                    } else {
-                      recordValue == filterValue
-                    }
-                  })
-                  .unwrap_or(false)
-              })
-            } else {
-              false
-            }
-          })
-          .collect();
+    let mut effectiveFilter = if let Some(f) = filter { f } else { json!({}) };
+
+    if let Some(filterObj) = effectiveFilter.as_object_mut() {
+      if !filterObj.contains_key("isDeleted") {
+        filterObj.insert("isDeleted".to_string(), json!(false));
       }
+    }
+
+    if let Some(filterObj) = effectiveFilter.as_object() {
+      listRecords = listRecords
+        .into_iter()
+        .filter(|record| {
+          if let Some(recordObj) = record.as_object() {
+            filterObj.iter().all(|(key, filterValue)| {
+              recordObj
+                .get(key)
+                .map(|recordValue| {
+                  if filterValue.is_array() {
+                    filterValue.as_array().unwrap().contains(recordValue)
+                  } else {
+                    recordValue == filterValue
+                  }
+                })
+                .unwrap_or(false)
+            })
+          } else {
+            false
+          }
+        })
+        .collect();
     }
 
     if let Some(relations) = relations {
@@ -330,6 +336,30 @@ impl JsonProvider {
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let mut listRecords = self.getDataTable(nameTable).await?;
 
+    for record in listRecords.iter_mut() {
+      if record.get("id").and_then(|v| v.as_str()) == Some(id) {
+        if let Some(obj) = record.as_object_mut() {
+          obj.insert("isDeleted".to_string(), Value::Bool(true));
+          self.saveDataTable(nameTable, &listRecords).await?;
+          return Ok(true);
+        }
+      }
+    }
+
+    Err(Box::new(std::io::Error::new(
+      std::io::ErrorKind::NotFound,
+      "Record not found",
+    )))
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn hardDelete(
+    &self,
+    nameTable: &str,
+    id: &str,
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let mut listRecords = self.getDataTable(nameTable).await?;
+
     let initialLen = listRecords.len();
     listRecords.retain(|record| {
       record
@@ -348,49 +378,5 @@ impl JsonProvider {
         "Record not found",
       )))
     }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn tableExists(&self, nameTable: &str) -> bool {
-    self.getTablePath(nameTable).exists()
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn createTable(
-    &self,
-    nameTable: &str,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let tablePath = self.getTablePath(nameTable);
-    if !tablePath.exists() {
-      fs::write(&tablePath, "[]")?;
-      Ok(true)
-    } else {
-      Ok(false)
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn dropTable(
-    &self,
-    nameTable: &str,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let tablePath = self.getTablePath(nameTable);
-    if tablePath.exists() {
-      fs::remove_file(&tablePath)?;
-      Ok(true)
-    } else {
-      Ok(false)
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn count(
-    &self,
-    nameTable: &str,
-    filter: Option<Value>,
-  ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-    let data = self.getAllByField(nameTable, filter, None).await?;
-
-    Ok(data.len())
   }
 }

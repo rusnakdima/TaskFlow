@@ -21,4 +21,5 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   order: number;
+  isDeleted: boolean;
 }

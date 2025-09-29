@@ -54,6 +54,7 @@ export class HeaderComponent implements OnInit {
   subtitle: string = "";
   iconUrl: string = "";
   userId: string = "";
+  role: string = "";
 
   profile: Profile | null = null;
   todo: Todo | null = null;
@@ -68,6 +69,7 @@ export class HeaderComponent implements OnInit {
   ngOnInit(): void {
     this.themeVal = localStorage.getItem("theme") ?? "";
     this.userId = this.authService.getValueByKey("id");
+    this.role = this.authService.getValueByKey("role");
 
     this.getProfile();
 

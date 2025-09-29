@@ -16,6 +16,7 @@ pub struct SubtaskModel {
   pub isCompleted: bool,
   pub priority: String,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -45,6 +46,7 @@ impl From<SubtaskCreateModel> for SubtaskModel {
       isCompleted: false,
       priority: value.priority.to_string(),
       order: value.order,
+      isDeleted: false,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -62,6 +64,7 @@ pub struct SubtaskUpdateModel {
   pub isCompleted: bool,
   pub priority: String,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -80,6 +83,7 @@ impl From<SubtaskUpdateModel> for SubtaskModel {
       isCompleted: value.isCompleted,
       priority: value.priority.to_string(),
       order: value.order,
+      isDeleted: value.isDeleted,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
@@ -97,6 +101,7 @@ pub struct SubtaskFullModel {
   pub isCompleted: bool,
   pub priority: PriorityTask,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }

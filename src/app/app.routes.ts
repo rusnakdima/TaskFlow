@@ -30,6 +30,7 @@ import { CreateProfileView } from "@views/create-profile/create-profile.view";
 import { EditProfileView } from "@views/edit-profile/edit-profile.view";
 
 import { NotFoundView } from "@views/not-found/not-found.view";
+import { AdminView } from "@views/admin/admin.view";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
@@ -56,6 +57,12 @@ export const routes: Routes = [
     component: SharedTasksView,
     title: "Shared Tasks",
     data: { breadcrumb: "Shared Tasks" },
+  },
+  {
+    path: "admin",
+    component: AdminView,
+    title: "Admin Panel",
+    data: { breadcrumb: "Admin Panel" },
   },
   { path: "about", component: AboutView, title: "About", data: { breadcrumb: "About" } },
   {

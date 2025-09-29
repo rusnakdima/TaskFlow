@@ -19,6 +19,7 @@ pub struct CategoryModel {
   pub id: String,
   pub title: String,
   pub userId: String,
+  pub isDeleted: bool,
 }
 
 impl From<CategoryCreateModel> for CategoryModel {
@@ -28,6 +29,7 @@ impl From<CategoryCreateModel> for CategoryModel {
       id: Uuid::new().to_string(),
       title: value.title,
       userId: value.userId,
+      isDeleted: false,
     }
   }
 }
@@ -39,4 +41,5 @@ pub struct CategoryFullModel {
   pub id: String,
   pub title: String,
   pub user: UserFullModel,
+  pub isDeleted: bool,
 }

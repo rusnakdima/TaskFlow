@@ -21,7 +21,9 @@ use routes::auth_route::{checkToken, login, register};
 use routes::category_route::{
   categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
 };
-use routes::manage_db_route::{exportToCloud, importToLocal};
+use routes::manage_db_route::{
+  exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord,
+};
 use routes::profile_route::{
   profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
 };
@@ -164,6 +166,8 @@ pub fn run() {
       statisticsGet,
       importToLocal,
       exportToCloud,
+      getAllDataForAdmin,
+      permanentlyDeleteRecord,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

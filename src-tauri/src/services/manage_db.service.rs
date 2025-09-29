@@ -1,18 +1,15 @@
 /* sys */
+use mongodb::bson::{doc, from_bson, to_bson, Document};
+use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* helpers */
-use crate::{
-  helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider},
-  models::response_model::{DataValue, ResponseStatus},
+use crate::helpers::{
+  common::convertDataToObject, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
 };
 
-/* mongodb */
-use mongodb::bson::{doc, from_bson, to_bson, Document};
-use serde_json::{json, Value};
-
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 #[allow(non_snake_case)]
 pub struct ManageDbService {
@@ -49,7 +46,7 @@ impl ManageDbService {
 
   #[allow(non_snake_case)]
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodb_provider = match &self.mongodbProvider {
+    let mongodbProvider = match &self.mongodbProvider {
       Some(p) => p,
       None => {
         return Err(ResponseModel {
@@ -60,8 +57,12 @@ impl ManageDbService {
       }
     };
 
-    let todos = match mongodb_provider
-      .getAllByField("todos", Some(doc! {"userId": &userId}), None)
+    let todos = match mongodbProvider
+      .getAllByField(
+        "todos",
+        Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
+        None,
+      )
       .await
     {
       Ok(docs) => docs,
@@ -80,7 +81,7 @@ impl ManageDbService {
       .collect();
 
     let tasks = if !todoIds.is_empty() {
-      match mongodb_provider
+      match mongodbProvider
         .getAllByField("tasks", Some(doc! {"todoId": {"$in": &todoIds}}), None)
         .await
       {
@@ -103,7 +104,7 @@ impl ManageDbService {
       .collect();
 
     let subtasks = if !taskIds.is_empty() {
-      match mongodb_provider
+      match mongodbProvider
         .getAllByField("subtasks", Some(doc! {"taskId": {"$in": &taskIds}}), None)
         .await
       {
@@ -120,8 +121,12 @@ impl ManageDbService {
       vec![]
     };
 
-    let categories = match mongodb_provider
-      .getAllByField("categories", Some(doc! {"userId": &userId}), None)
+    let categories = match mongodbProvider
+      .getAllByField(
+        "categories",
+        Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
+        None,
+      )
       .await
     {
       Ok(docs) => docs,
@@ -134,8 +139,12 @@ impl ManageDbService {
       }
     };
 
-    let dailyActivities = match mongodb_provider
-      .getAllByField("daily_activities", Some(doc! {"userId": &userId}), None)
+    let dailyActivities = match mongodbProvider
+      .getAllByField(
+        "daily_activities",
+        Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
+        None,
+      )
       .await
     {
       Ok(docs) => docs,
@@ -155,6 +164,8 @@ impl ManageDbService {
       ("categories", categories),
       ("daily_activities", dailyActivities),
     ];
+
+    let dataSetsClone = dataSets.clone();
 
     for (table, docs) in dataSets {
       for doc in docs {
@@ -189,6 +200,34 @@ impl ManageDbService {
       }
     }
 
+    for (table, docs) in dataSetsClone {
+      let cloudIds: Vec<String> = docs
+        .iter()
+        .filter_map(|doc| doc.get_str("id").ok())
+        .map(|s| s.to_string())
+        .collect();
+      let allLocal = self
+        .jsonProvider
+        .getDataTable(table)
+        .await
+        .unwrap_or_default();
+      let allLocalIds: Vec<String> = allLocal
+        .iter()
+        .filter_map(|record| {
+          record
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+        })
+        .collect();
+
+      for id in allLocalIds {
+        if !cloudIds.contains(&id) {
+          let _ = self.jsonProvider.hardDelete(table, &id).await;
+        }
+      }
+    }
+
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Data imported to local JSON DB successfully".to_string(),
@@ -198,7 +237,7 @@ impl ManageDbService {
 
   #[allow(non_snake_case)]
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodb_provider = match &self.mongodbProvider {
+    let mongodbProvider = match &self.mongodbProvider {
       Some(p) => p,
       None => {
         return Err(ResponseModel {
@@ -208,6 +247,41 @@ impl ManageDbService {
         });
       }
     };
+
+    let tables = vec![
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+    for table in tables {
+      let allLocal = match self.jsonProvider.getDataTable(table).await {
+        Ok(recs) => recs,
+        Err(_) => continue,
+      };
+      let idsToDelete: Vec<String> = allLocal
+        .into_iter()
+        .filter_map(|record| {
+          if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
+            record
+              .get("id")
+              .and_then(|v| v.as_str())
+              .map(|s| s.to_string())
+          } else {
+            None
+          }
+        })
+        .collect();
+
+      for id in idsToDelete {
+        if let Ok(mut existing_doc) = mongodbProvider.getByField(table, None, None, &id).await {
+          existing_doc.insert("isDeleted", true);
+          let _ = mongodbProvider.update(table, &id, existing_doc).await;
+        }
+        let _ = self.jsonProvider.hardDelete(table, &id).await;
+      }
+    }
 
     let todos = match self
       .jsonProvider
@@ -314,7 +388,7 @@ impl ManageDbService {
         if let Some(obj) = value.as_object_mut() {
           obj.remove("_id");
         }
-        match mongodb_provider.getByField(table, None, None, &id).await {
+        match mongodbProvider.getByField(table, None, None, &id).await {
           Ok(existing_doc) => {
             let existing_val = serde_json::to_value(&existing_doc).map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
@@ -332,7 +406,7 @@ impl ManageDbService {
                 message: format!("Error converting bson to document: {}", e),
                 data: DataValue::String("".to_string()),
               })?;
-              if let Err(e) = mongodb_provider.update(table, &id, doc).await {
+              if let Err(e) = mongodbProvider.update(table, &id, doc).await {
                 return Err(ResponseModel {
                   status: ResponseStatus::Error,
                   message: format!("Error updating record in {}: {}", table, e),
@@ -352,7 +426,7 @@ impl ManageDbService {
               message: format!("Error converting bson to document: {}", e),
               data: DataValue::String("".to_string()),
             })?;
-            if let Err(e) = mongodb_provider.create(table, doc).await {
+            if let Err(e) = mongodbProvider.create(table, doc).await {
               return Err(ResponseModel {
                 status: ResponseStatus::Error,
                 message: format!("Error creating record in {}: {}", table, e),
@@ -369,5 +443,84 @@ impl ManageDbService {
       message: "Data exported to cloud MongoDB successfully".to_string(),
       data: DataValue::String("".to_string()),
     })
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
+    let mongodbProvider = match &self.mongodbProvider {
+      Some(p) => p,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "MongoDB not available".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    let tables = vec![
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+
+    let mut allData = serde_json::Map::new();
+
+    for table in tables {
+      let docs = match mongodbProvider.getAllByField(table, None, None).await {
+        Ok(docs) => docs,
+        Err(e) => {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error getting {}: {}", table, e),
+            data: DataValue::String("".to_string()),
+          });
+        }
+      };
+      let values: Vec<Value> = docs
+        .into_iter()
+        .map(|doc| serde_json::to_value(&doc).unwrap())
+        .collect();
+      allData.insert(table.to_string(), serde_json::Value::Array(values));
+    }
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: "All data retrieved for admin".to_string(),
+      data: convertDataToObject(&allData),
+    })
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn permanentlyDeleteRecord(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongodbProvider = match &self.mongodbProvider {
+      Some(p) => p,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "MongoDB not available".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongodbProvider.delete(&table, &id).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: format!("Record permanently deleted from {}", table),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error deleting record: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 }

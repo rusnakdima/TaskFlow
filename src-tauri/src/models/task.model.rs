@@ -37,6 +37,7 @@ pub struct TaskModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -82,6 +83,7 @@ impl From<TaskCreateModel> for TaskModel {
       startDate: formattedStartDate,
       endDate: formattedEndDate,
       order: value.order,
+      isDeleted: false,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
     }
@@ -101,6 +103,7 @@ pub struct TaskUpdateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }
@@ -134,6 +137,7 @@ impl From<TaskUpdateModel> for TaskModel {
       startDate: formattedStartDate,
       endDate: formattedEndDate,
       order: value.order,
+      isDeleted: value.isDeleted,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
     }
@@ -153,6 +157,7 @@ pub struct TaskFullModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
+  pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
 }

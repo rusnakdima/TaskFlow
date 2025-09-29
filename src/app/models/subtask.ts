@@ -11,4 +11,5 @@ export interface Subtask {
   createdAt: string;
   updatedAt: string;
   order: number;
+  isDeleted: boolean;
 }

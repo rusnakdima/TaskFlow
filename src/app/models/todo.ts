@@ -14,4 +14,5 @@ export interface Todo {
   tasks: Array<Task>;
   assignees: Array<User>;
   order: number;
+  isDeleted: boolean;
 }

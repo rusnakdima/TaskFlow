@@ -14,7 +14,10 @@ pub struct ManageDbController {
 
 impl ManageDbController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<std::sync::Arc<MongodbProvider>>) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Option<std::sync::Arc<MongodbProvider>>,
+  ) -> Self {
     Self {
       managedbService: manage_db_service::ManageDbService::new(jsonProvider, mongodbProvider),
     }
@@ -28,5 +31,22 @@ impl ManageDbController {
   #[allow(non_snake_case)]
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
     return self.managedbService.exportToCloud(userId).await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
+    return self.managedbService.getAllDataForAdmin().await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn permanentlyDeleteRecord(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self
+      .managedbService
+      .permanentlyDeleteRecord(table, id)
+      .await;
   }
 }
