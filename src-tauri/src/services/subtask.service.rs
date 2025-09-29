@@ -50,7 +50,7 @@ impl SubtaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mut listSubtasks = self
+    let listSubtasks = self
       .jsonProvider
       .getAllByField(
         "subtasks",

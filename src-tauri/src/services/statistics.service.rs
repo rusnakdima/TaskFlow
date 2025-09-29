@@ -497,9 +497,9 @@ impl StatisticsService {
   #[allow(non_snake_case)]
   fn computeAchievements(
     &self,
-    todos: &Vec<serde_json::Value>,
-    tasks: &Vec<serde_json::Value>,
-    subtasks: &Vec<serde_json::Value>,
+    _todos: &Vec<serde_json::Value>,
+    _tasks: &Vec<serde_json::Value>,
+    _subtasks: &Vec<serde_json::Value>,
   ) -> Vec<AchievementModel> {
     vec![
       // AchievementModel {

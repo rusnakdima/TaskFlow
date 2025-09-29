@@ -53,7 +53,7 @@ impl TaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mut listTasks = self
+    let listTasks = self
       .jsonProvider
       .getAllByField(
         "tasks",

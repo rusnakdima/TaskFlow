@@ -82,7 +82,7 @@ impl TodoService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mut listTodos = self
+    let listTodos = self
       .jsonProvider
       .getAllByField(
         "todos",
