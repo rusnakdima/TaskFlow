@@ -30,7 +30,14 @@ import { NotifyService } from "@services/notify.service";
   selector: "app-edit-profile",
   standalone: true,
   providers: [AuthService, MainService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule, FormComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatIconModule,
+    FormComponent,
+  ],
   templateUrl: "./edit-profile.view.html",
 })
 export class EditProfileView {
@@ -49,6 +56,8 @@ export class EditProfileView {
       bio: [""],
       imageUrl: [""],
       userId: ["", Validators.required],
+      createdAt: [""],
+      updatedAt: [""],
     });
   }
 
@@ -116,7 +125,7 @@ export class EditProfileView {
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
-            this.router.navigate(["/profile"]);
+            this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
           }
         })
         .catch((err: Response<string>) => {

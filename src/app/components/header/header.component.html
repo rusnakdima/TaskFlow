@@ -5,7 +5,7 @@
     <div class="flex items-center gap-3">
       @if (isBack) {
         <button
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 !h-9 transition-colors"
           (click)="goBack()"
         >
           <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="arrow_back" />
@@ -22,15 +22,15 @@
 
     <div class="flex items-center gap-2">
       <!-- <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
+        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors !h-9 relative"
         title="Notifications"
       >
-        <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="notifications_none" />
+        <mat-icon class="!w-6 !h-6 !text-2xl textMuted" fontIcon="notifications_none" />
         <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
       </button> -->
 
       <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 !h-9 transition-colors"
         (click)="syncAll()"
         [disabled]="isSyncing"
         [title]="isSyncing ? 'Synchronizing...' : 'Sync data with cloud'"
@@ -43,27 +43,25 @@
       </button>
 
       <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 !h-9 transition-colors"
         (click)="toggleTheme()"
         [title]="themeVal === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
       >
-        @if (themeVal === "dark") {
-          <mat-icon class="!w-6 !h-6 !text-2xl textMuted" fontIcon="light_mode" />
-        } @else {
-          <mat-icon class="!w-6 !h-6 !text-2xl textMuted" fontIcon="dark_mode" />
-        }
+        <mat-icon
+          class="!w-6 !h-6 !text-2xl textMuted"
+          [fontIcon]="themeVal === 'dark' ? 'light_mode' : 'dark_mode'"
+        />
       </button>
 
       <button
         class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
         (click)="toggleUserMenu()"
       >
-        <div
-          class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium"
-        >
-          {{ profile ? profile.name.slice(0, 1) : "U"
-          }}{{ profile ? profile.lastName.slice(0, 1) : "" }}
-        </div>
+        <img
+          [src]="profile?.imageUrl ? profile?.imageUrl : 'assets/images/user.png'"
+          class="w-8 h-8 rounded-full"
+          alt=""
+        />
       </button>
     </div>
   </div>
