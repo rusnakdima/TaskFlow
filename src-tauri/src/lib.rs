@@ -36,7 +36,9 @@ use routes::task_shares_route::{
   taskSharesCreate, taskSharesDelete, taskSharesGetAllByField, taskSharesGetByField,
   taskSharesUpdate,
 };
-use routes::todo_route::{todoCreate, todoDelete, todoGetAllByField, todoGetByField, todoUpdate};
+use routes::todo_route::{
+  todoCreate, todoDelete, todoGetAllByField, todoGetByAssignee, todoGetByField, todoUpdate,
+};
 
 /* controllers */
 use controllers::{
@@ -74,11 +76,6 @@ pub fn run() {
       let config = ConfigHelper::new();
 
       let appHandle = app.handle();
-      let jsonProvider = JsonProvider::new(
-        appHandle.clone(),
-        config.appHomeFolder.clone(),
-        config.jsonDbName.clone(),
-      );
       let mongodbProvider = match block_on(MongodbProvider::new(
         config.mongoDbUri.clone(),
         config.mongoDbName.clone(),
@@ -89,6 +86,12 @@ pub fn run() {
           None
         }
       };
+      let jsonProvider = JsonProvider::new(
+        appHandle.clone(),
+        config.appHomeFolder.clone(),
+        config.jsonDbName.clone(),
+        mongodbProvider.clone(),
+      );
 
       let authController = mongodbProvider
         .as_ref()
@@ -145,6 +148,7 @@ pub fn run() {
       categoryDelete,
       todoGetAllByField,
       todoGetByField,
+      todoGetByAssignee,
       todoCreate,
       todoUpdate,
       todoDelete,

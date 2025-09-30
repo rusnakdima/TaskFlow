@@ -34,6 +34,17 @@ pub async fn todoGetByField(
 
 #[allow(non_snake_case)]
 #[tauri::command]
+pub async fn todoGetByAssignee(
+  state: State<'_, AppState>,
+  assigneeId: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let todoController = state.todoController.clone();
+  let result = todoController.getByAssignee(assigneeId).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
 pub async fn todoCreate(
   state: State<'_, AppState>,
   data: TodoCreateModel,

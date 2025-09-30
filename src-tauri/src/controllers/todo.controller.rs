@@ -44,6 +44,11 @@ impl TodoController {
   }
 
   #[allow(non_snake_case)]
+  pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
+    return self.todoService.getByAssignee(assigneeId).await;
+  }
+
+  #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
     return self.todoService.createAndLog(data).await;
   }

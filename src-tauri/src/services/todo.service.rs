@@ -66,11 +66,17 @@ impl TodoService {
           relations: None,
         },
         RelationObj {
-          nameTable: "users".to_string(),
+          nameTable: "profiles".to_string(),
           typeField: TypesField::ManyToOne,
           nameField: "assignees".to_string(),
           newNameField: "assignees".to_string(),
-          relations: None,
+          relations: Some(vec![RelationObj {
+            nameTable: "users".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "userId".to_string(),
+            newNameField: "user".to_string(),
+            relations: None,
+          }]),
         },
       ],
     }
@@ -148,6 +154,39 @@ impl TodoService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Couldn't get a todo! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
+    let listTodos = self
+      .jsonProvider
+      .getAllByField(
+        "todos",
+        Some(json!({ "assignees": { "$in": [assigneeId] } })),
+        Some(self.relations.clone()),
+      )
+      .await;
+    match listTodos {
+      Ok(mut todos) => {
+        todos.sort_by(|a, b| {
+          let aOrder = a.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          let bOrder = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          aOrder.cmp(&bOrder)
+        });
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "".to_string(),
+          data: convertDataToArray(&todos),
+        });
+      }
+      Err(error) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't get a list of todos! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }
