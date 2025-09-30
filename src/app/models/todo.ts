@@ -1,5 +1,6 @@
 /* models */
 import { Category } from "./category";
+import { Profile } from "./profile";
 import { Task } from "./task";
 import { User } from "./user";
 
@@ -12,7 +13,7 @@ export interface Todo {
   endDate: string;
   categories: Array<Category>;
   tasks: Array<Task>;
-  assignees: Array<User>;
+  assignees: Array<Profile>;
   order: number;
   isDeleted: boolean;
 }

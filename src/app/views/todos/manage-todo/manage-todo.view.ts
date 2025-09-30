@@ -26,16 +26,12 @@ import { MatDividerModule } from "@angular/material/divider";
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
 import { Category } from "@models/category";
+import { Profile } from "@models/profile";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
-
-interface TeamMember {
-  email: string;
-  role: string;
-}
 
 @Component({
   selector: "app-manage-todo",
@@ -79,6 +75,8 @@ export class ManageTodoView implements OnInit {
       visibility: ["private"],
       categories: [[]],
       assignees: [[]],
+      order: [0],
+      isDeleted: [false],
       createdAt: [""],
       updatedAt: [""],
     });
@@ -117,16 +115,18 @@ export class ManageTodoView implements OnInit {
     },
   ];
 
-  newMemberEmail: string = "";
-  teamMembers: TeamMember[] = [];
+  availableProfiles: Profile[] = [];
+  localTeamMembers: Profile[] = [];
+  userSearchQuery: string = "";
 
   availableCategories: Category[] = [];
   newCategoryTitle: string = "";
 
-  ngOnInit() {
+  async ngOnInit() {
     this.userId = this.authService.getValueByKey("id");
     if (this.userId && this.userId != "") {
       this.form.controls["userId"].setValue(this.userId);
+      await this.fetchProfiles();
       this.fetchCategories();
     }
     this.route.params.subscribe((params: any) => {
@@ -135,6 +135,12 @@ export class ManageTodoView implements OnInit {
         this.isEdit = true;
       }
     });
+
+    setTimeout(() => {
+      if (!this.isEdit) {
+        this.fetchTodosCount();
+      }
+    }, 1000);
   }
 
   getTodoInfo(todoId: string) {
@@ -144,12 +150,8 @@ export class ManageTodoView implements OnInit {
         if (response.status == ResponseStatus.SUCCESS) {
           const todo = response.data;
           this.form.patchValue(todo);
-
-          if (todo.assignees && Array.isArray(todo.assignees)) {
-            this.teamMembers = todo.assignees.map((assignee: any) => ({
-              email: assignee.email || assignee,
-              role: assignee.role || "member",
-            }));
+          if (this.form.get("assignees")?.value.length > 0) {
+            this.form.get("visibility")?.setValue("team");
           }
         }
       })
@@ -162,40 +164,69 @@ export class ManageTodoView implements OnInit {
     this.location.back();
   }
 
-  addTeamMember() {
-    if (this.newMemberEmail && this.isValidEmail(this.newMemberEmail)) {
-      const exists = this.teamMembers.some((member) => member.email === this.newMemberEmail);
-      if (!exists) {
-        this.teamMembers.push({
-          email: this.newMemberEmail,
-          role: "member",
-        });
-        this.newMemberEmail = "";
-        this.form.patchValue({
-          assignees: this.teamMembers,
-        });
-      } else {
-        this.notifyService.showError("Team member already added");
-      }
-    } else {
-      this.notifyService.showError("Please enter a valid email address");
+  async fetchTodosCount() {
+    this.mainService
+      .getAllByField<Todo[]>("todo", "userId", this.userId)
+      .then((response: Response<Todo[]>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.form.controls["order"].setValue(response.data.length + 1);
+        } else {
+          this.isSubmitting = false;
+          this.notifyService.showError("Failed to get existing todos count");
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.isSubmitting = false;
+        this.notifyService.showError(err.message ?? err.toString());
+      });
+  }
+
+  async fetchProfiles(): Promise<void> {
+    return this.mainService
+      .getAllByField<Profile[]>("profile")
+      .then((response: Response<Profile[]>) => {
+        if (response.status == ResponseStatus.SUCCESS) {
+          this.availableProfiles = response.data;
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
+      });
+  }
+
+  getFilteredUsers() {
+    if (!this.userSearchQuery) return this.availableProfiles;
+    return this.availableProfiles.filter((p) =>
+      `${p.name} ${p.lastName} ${p.user.email}`
+        .toLowerCase()
+        .includes(this.userSearchQuery.toLowerCase())
+    );
+  }
+
+  addProfile(profile: Profile) {
+    const currentAssignees = this.form.get("assignees")?.value || [];
+    const exists = currentAssignees.some((p: Profile) => p.id === profile.id);
+    if (!exists) {
+      this.form.patchValue({
+        assignees: [...currentAssignees, profile],
+      });
     }
   }
 
-  removeTeamMember(index: number) {
-    this.teamMembers.splice(index, 1);
+  removeProfile(profile: Profile) {
+    const currentAssignees = this.form.get("assignees")?.value || [];
     this.form.patchValue({
-      assignees: this.teamMembers,
+      assignees: currentAssignees.filter((p: Profile) => p.id !== profile.id),
     });
   }
 
-  getMemberInitials(email: string): string {
-    return email.split("@")[0].substring(0, 2).toUpperCase();
+  getMemberInitialsFromProfile(profile: Profile): string {
+    return (profile.name.charAt(0) + profile.lastName.charAt(0)).toUpperCase();
   }
 
-  isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  getSelectedUsersText(): string {
+    const assignees = this.form.get("assignees")?.value || [];
+    return assignees.map((p: Profile) => `${p.name} ${p.lastName}`).join(", ");
   }
 
   fetchCategories() {
@@ -209,6 +240,13 @@ export class ManageTodoView implements OnInit {
       .catch((err: Response<string>) => {
         this.notifyService.showError(err.message ?? err.toString());
       });
+  }
+
+  getFilteredAvailableCategories() {
+    if (!this.newCategoryTitle) return this.availableCategories;
+    return this.availableCategories.filter((category) =>
+      category.title.toLowerCase().includes(this.newCategoryTitle.toLowerCase())
+    );
   }
 
   addCategory() {
@@ -232,7 +270,7 @@ export class ManageTodoView implements OnInit {
     }
   }
 
-  onCategorySelection(category: Category) {
+  selectCategory(category: Category) {
     const currentCategories = this.form.get("categories")?.value || [];
     const exists = currentCategories.some((c: Category) => c.id === category.id);
     if (!exists) {
@@ -275,43 +313,25 @@ export class ManageTodoView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
-      this.mainService
-        .getAllByField<Todo[]>("todo", "userId", this.userId)
-        .then((response: Response<Todo[]>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const order = response.data.length;
-            const body = {
-              ...this.form.value,
-              categories: this.form.controls["categories"].value.map(
-                (category: Category) => category.id
-              ),
-              assignees: this.teamMembers,
-              deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
-              order: order,
-            };
+      const body = {
+        ...this.form.value,
+        categories: this.form.get("categories")?.value.map((category: Category) => category.id),
+        assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
+        deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
+      };
 
-            this.mainService
-              .create<string, Todo>("todo", body)
-              .then((response: Response<string>) => {
-                this.isSubmitting = false;
-                this.notifyService.showNotify(response.status, response.message);
-                if (response.status == ResponseStatus.SUCCESS) {
-                  this.back();
-                }
-              })
-              .catch((err: Response<string>) => {
-                this.isSubmitting = false;
-                console.error(err);
-                this.notifyService.showError(err.message ?? err.toString());
-              });
-          } else {
-            this.isSubmitting = false;
-            this.notifyService.showError("Failed to get existing todos count");
+      this.mainService
+        .create<string, Todo>("todo", body)
+        .then((response: Response<string>) => {
+          this.isSubmitting = false;
+          this.notifyService.showNotify(response.status, response.message);
+          if (response.status == ResponseStatus.SUCCESS) {
+            this.back();
           }
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          this.notifyService.showError("Failed to get existing todos count");
+          this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
       this.isSubmitting = false;
@@ -323,8 +343,8 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       const body = {
         ...this.form.value,
-        categories: this.form.controls["categories"].value.map((category: Category) => category.id),
-        assignees: this.teamMembers,
+        categories: this.form.get("categories")?.value.map((category: Category) => category.id),
+        assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
       };
 
       this.mainService
@@ -338,7 +358,6 @@ export class ManageTodoView implements OnInit {
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {

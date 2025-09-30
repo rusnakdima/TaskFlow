@@ -105,14 +105,14 @@
           <mat-form-field class="w-full">
             <mat-label>Start Date</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker-toggle matSuffix [for]="startPicker" />
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field class="w-full">
             <mat-label>End Date</mat-label>
             <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker-toggle matSuffix [for]="endPicker" />
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
 
@@ -127,21 +127,21 @@
                 readonly
                 placeholder="Click to select categories"
               />
-              <mat-icon class="!w-5 !h-5 !text-xl" matSuffix fontIcon="expand_more"></mat-icon>
+              <mat-icon class="!w-5 !h-5 !text-xl" matSuffix fontIcon="expand_more" />
             </mat-form-field>
 
             @if (form.get("categories")?.value?.length > 0) {
               <div class="flex flex-wrap gap-2 mt-2">
                 @for (category of form.get("categories")?.value; track category.id) {
                   <span
-                    class="px-2 py-1 bg-gray-300 dark:bg-zinc-600 text-black dark:text-white rounded-full text-sm flex items-center gap-1"
+                    class="flex flex-row items-center gap-1 px-2 py-1 rounded-full bg-gray-300 dark:bg-zinc-600 text-black dark:text-white"
                   >
                     {{ category.title }}
                     <button
                       (click)="removeCategory(category)"
-                      class="ml-1 text-red-500 hover:text-red-700 cursor-pointer"
+                      class="!h-4.5 text-red-500 hover:text-red-700 cursor-pointer"
                     >
-                      <mat-icon class="!w-4 !h-4 !text-base" fontIcon="close"></mat-icon>
+                      <mat-icon class="!w-4.5 !h-4.5 !text-lg" fontIcon="close" />
                     </button>
                   </span>
                 }
@@ -206,47 +206,48 @@
             <label class="block text-sm font-medium textNormal">Team Members</label>
             <div class="flex gap-2">
               <mat-form-field class="flex-1">
-                <mat-label>Email address</mat-label>
+                <mat-label>Select Team Members</mat-label>
                 <input
                   matInput
-                  type="email"
-                  [(ngModel)]="newMemberEmail"
-                  [ngModelOptions]="{ standalone: true }"
-                  placeholder="Enter email address"
+                  [value]="getSelectedUsersText()"
+                  [matMenuTriggerFor]="userMenu"
+                  readonly
+                  placeholder="Click to select team members"
                 />
+                <mat-icon class="!w-5 !h-5 !text-xl" matSuffix fontIcon="expand_more" />
               </mat-form-field>
-              <button
-                mat-raised-button
-                class="styleButSuccess"
-                type="button"
-                (click)="addTeamMember()"
-                [disabled]="!newMemberEmail"
-              >
-                Add
-              </button>
             </div>
 
-            @if (teamMembers.length > 0) {
+            @if (form.get("assignees")?.value.length > 0) {
               <div class="space-y-2">
-                @for (member of teamMembers; track $index) {
+                @for (member of form.get("assignees")?.value; track member.id) {
                   <div
-                    class="flex items-center justify-between p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg"
+                    class="flex flex-row items-center justify-between p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg"
                   >
                     <div class="flex items-center gap-3">
                       <div
-                        class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                        class="flex items-center justify-center rounded-full bg-blue-500 w-8 h-8 text-white text-sm font-medium"
                       >
-                        {{ getMemberInitials(member.email) }}
+                        <img
+                          [src]="member?.imageUrl ? member?.imageUrl : 'assets/images/user.png'"
+                          class="w-8 h-8 rounded-full"
+                          alt=""
+                        />
                       </div>
-                      <span class="textNormal">{{ member.email }}</span>
+                      <div>
+                        <h4 class="text-sm font-medium textNormal">
+                          {{ member.name }} {{ member.lastName }}
+                        </h4>
+                        <p class="text-xs textMuted">{{ member.user.email }}</p>
+                      </div>
                     </div>
                     <button
                       mat-icon-button
                       color="warn"
                       type="button"
-                      (click)="removeTeamMember($index)"
+                      (click)="removeProfile(member)"
                     >
-                      <mat-icon class="!w-4 !h-4 !text-base" fontIcon="remove" />
+                      <mat-icon class="!w-5 !h-5 !text-xl cursor-pointer" fontIcon="remove" />
                     </button>
                   </div>
                 }
@@ -282,27 +283,56 @@
     </div>
   </form>
 
-  <mat-menu #categoryMenu="matMenu">
+  <mat-menu #userMenu="matMenu" class="!w-125 !max-w-7xl">
     <div (click)="$event.stopPropagation()">
       <div class="p-2">
         <mat-form-field class="w-full">
-          <mat-label>New Category</mat-label>
+          <mat-label>Search users</mat-label>
+          <input matInput [(ngModel)]="userSearchQuery" [ngModelOptions]="{ standalone: true }" />
+        </mat-form-field>
+      </div>
+      <mat-divider />
+      <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
+        @for (profile of getFilteredUsers(); track profile.id) {
+          <div
+            class="flex flex-col p-2 styleBorderSolidLite border hover:bg-gray-300 dark:hover:bg-zinc-700 cursor-pointer"
+          >
+            <div class="flex flex-row justify-between items-center" (click)="addProfile(profile)">
+              <div>
+                <div class="font-medium">{{ profile.name }} {{ profile.lastName }}</div>
+                <div class="text-sm textMuted">{{ profile.user.email }}</div>
+              </div>
+              <button (click)="addProfile(profile)">
+                <mat-icon class="!w-6 !h-6 !text-2xl cursor-pointer" fontIcon="add" />
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </mat-menu>
+
+  <mat-menu #categoryMenu="matMenu" class="!w-100">
+    <div (click)="$event.stopPropagation()">
+      <div class="p-2">
+        <mat-form-field class="w-full">
+          <mat-label>Search/Add Category</mat-label>
           <input
             matInput
             [(ngModel)]="newCategoryTitle"
             [ngModelOptions]="{ standalone: true }"
             (keydown.enter)="addCategory()"
           />
-          <button matSuffix mat-icon-button (click)="addCategory()">
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add"></mat-icon>
+          <button matSuffix class="mr-2" (click)="addCategory()">
+            <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="add" />
           </button>
         </mat-form-field>
       </div>
-      <mat-divider></mat-divider>
+      <mat-divider />
       <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
-        @for (category of availableCategories; track category.id) {
+        @for (category of getFilteredAvailableCategories(); track category.id) {
           <div class="flex flex-col p-2 styleBorderSolidLite border">
-            <button (click)="onCategorySelection(category)">
+            <button (click)="selectCategory(category)">
               {{ category.title }}
             </button>
           </div>
