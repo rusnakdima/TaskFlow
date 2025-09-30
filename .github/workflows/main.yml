@@ -25,8 +25,25 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
+    env:
+      NAME_APP: taskflow
+      APP_HOME_FOLDER: TaskFlow
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_NAME: TaskFlow
+      JWT_SECRET: q3tb@!jnk$^hg8*u5zv9&m6x1s2w7p4r0e3
+      JSONDB_NAME: task_flow_db
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          echo "NAME_APP=taskflow" > src-tauri/.env
+          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
+          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
+          echo "JWT_SECRET=$JWT_SECRET" >> src-tauri/.env
+          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
