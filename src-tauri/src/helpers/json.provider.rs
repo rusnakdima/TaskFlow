@@ -1,5 +1,6 @@
 /* sys lib */
-use serde_json::{from_str, json, to_string_pretty, Value};
+use mongodb::bson::{to_bson, Bson, Document};
+use serde_json::{from_str, json, to_string_pretty, to_value, Value};
 use std::{
   fs,
   path::{Path, PathBuf},
@@ -9,15 +10,24 @@ use tauri::{AppHandle, Manager};
 /* models */
 use crate::models::relation_obj::{RelationObj, TypesField};
 
+/* helpers */
+use super::mongodb_provider::MongodbProvider;
+
 #[derive(Clone)]
 #[allow(non_snake_case)]
 pub struct JsonProvider {
   pub dbFilePath: PathBuf,
+  pub mongodb_provider: Option<std::sync::Arc<MongodbProvider>>,
 }
 
 impl JsonProvider {
   #[allow(non_snake_case)]
-  pub fn new(appHandle: AppHandle, envHomeFolder: String, envDbName: String) -> Self {
+  pub fn new(
+    appHandle: AppHandle,
+    envHomeFolder: String,
+    envDbName: String,
+    mongodb_provider: Option<std::sync::Arc<MongodbProvider>>,
+  ) -> Self {
     let homeAppFolder = envHomeFolder;
     let dbName = envDbName;
 
@@ -36,7 +46,8 @@ impl JsonProvider {
     std::fs::create_dir_all(&dbFilePath).expect("Failed to create folder for database");
 
     Self {
-      dbFilePath: dbFilePath,
+      dbFilePath,
+      mongodb_provider,
     }
   }
 
@@ -45,6 +56,77 @@ impl JsonProvider {
     let mut path = self.dbFilePath.clone();
     path.push(format!("{}.json", nameTable));
     path
+  }
+
+  #[allow(non_snake_case)]
+  fn convertDocToValue(
+    &self,
+    doc: Document,
+  ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(to_value(doc)?)
+  }
+
+  #[allow(non_snake_case)]
+  fn convertValueToDoc(
+    &self,
+    value: &Value,
+  ) -> Result<Document, Box<dyn std::error::Error + Send + Sync>> {
+    let bson_value = to_bson(value)?;
+    if let Bson::Document(doc) = bson_value {
+      Ok(doc)
+    } else {
+      Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "Expected Document",
+      )))
+    }
+  }
+
+  #[allow(non_snake_case)]
+  fn shouldUseMongo(&self, nameTable: &str) -> bool {
+    (nameTable == "users" || nameTable == "profiles") && self.mongodb_provider.is_some()
+  }
+
+  #[allow(non_snake_case)]
+  async fn getByFieldJsonOrMongo(
+    &self,
+    nameTable: &str,
+    filter: Option<Value>,
+    relations: Option<Vec<RelationObj>>,
+    id: &str,
+  ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    if self.shouldUseMongo(nameTable) {
+      let mongo_provider = self.mongodb_provider.as_ref().unwrap();
+      let mongo_filter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
+      let doc = mongo_provider
+        .getByField(nameTable, mongo_filter, relations, id)
+        .await?;
+      self.convertDocToValue(doc)
+    } else {
+      self.getByField(nameTable, filter, relations, id).await
+    }
+  }
+
+  #[allow(non_snake_case)]
+  async fn getAllByFieldJsonOrMongo(
+    &self,
+    nameTable: &str,
+    filter: Option<Value>,
+    relations: Option<Vec<RelationObj>>,
+  ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    if self.shouldUseMongo(nameTable) {
+      let mongo_provider = self.mongodb_provider.as_ref().unwrap();
+      let mongo_filter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
+      let docs = mongo_provider
+        .getAllByField(nameTable, mongo_filter, relations)
+        .await?;
+      docs
+        .into_iter()
+        .map(|doc| self.convertDocToValue(doc))
+        .collect::<Result<Vec<_>, _>>()
+    } else {
+      self.getAllByField(nameTable, filter, relations).await
+    }
   }
 
   #[allow(non_snake_case)]
@@ -91,7 +173,7 @@ impl JsonProvider {
             if let Some(value) = recordObj.get(&relation.nameField).cloned() {
               if let Some(idStr) = value.as_str() {
                 let result = match self
-                  .getByField(&relation.nameTable, None, relation.relations, idStr)
+                  .getByFieldJsonOrMongo(&relation.nameTable, None, relation.relations, idStr)
                   .await
                 {
                   Ok(doc) => doc,
@@ -106,7 +188,7 @@ impl JsonProvider {
               if let Some(idStr) = idValue.as_str() {
                 let filter = json!({ relation.nameField: idStr });
                 let result = match self
-                  .getAllByField(&relation.nameTable, Some(filter), relation.relations)
+                  .getAllByFieldJsonOrMongo(&relation.nameTable, Some(filter), relation.relations)
                   .await
                 {
                   Ok(records) => Value::Array(records),
@@ -123,7 +205,12 @@ impl JsonProvider {
                 for id in ids {
                   if let Some(idStr) = id.as_str() {
                     let result = match self
-                      .getByField(&relation.nameTable, None, relation.relations.clone(), idStr)
+                      .getByFieldJsonOrMongo(
+                        &relation.nameTable,
+                        None,
+                        relation.relations.clone(),
+                        idStr,
+                      )
                       .await
                     {
                       Ok(doc) => doc,
@@ -140,7 +227,7 @@ impl JsonProvider {
             if let Some(idValue) = recordObj.get("id").cloned() {
               if let Some(idStr) = idValue.as_str() {
                 let allRecords = match self
-                  .getAllByField(&relation.nameTable, None, relation.relations.clone())
+                  .getAllByFieldJsonOrMongo(&relation.nameTable, None, relation.relations.clone())
                   .await
                 {
                   Ok(records) => records,
@@ -197,7 +284,17 @@ impl JsonProvider {
               recordObj
                 .get(key)
                 .map(|recordValue| {
-                  if filterValue.is_array() {
+                  if let Some(filterValue) = filterValue.as_object() {
+                    if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
+                      if let Some(vecRec) = recordValue.as_array() {
+                        inVals.iter().any(|in_val| vecRec.contains(in_val))
+                      } else {
+                        false
+                      }
+                    } else {
+                      false
+                    }
+                  } else if filterValue.is_array() {
                     filterValue.as_array().unwrap().contains(recordValue)
                   } else {
                     recordValue == filterValue
@@ -242,7 +339,17 @@ impl JsonProvider {
               recordObj
                 .get(key)
                 .map(|recordValue| {
-                  if filterValue.is_array() {
+                  if let Some(filter_obj) = filterValue.as_object() {
+                    if let Some(in_vals) = filter_obj.get("$in").and_then(|v| v.as_array()) {
+                      if let Some(rec_arr) = recordValue.as_array() {
+                        in_vals.iter().any(|in_val| rec_arr.contains(in_val))
+                      } else {
+                        false
+                      }
+                    } else {
+                      false
+                    }
+                  } else if filterValue.is_array() {
                     filterValue.as_array().unwrap().contains(recordValue)
                   } else {
                     recordValue == filterValue
