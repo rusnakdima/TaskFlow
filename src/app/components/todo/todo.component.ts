@@ -99,11 +99,6 @@ export class TodoComponent {
     });
   }
 
-  getMemberInitials(email: string): string {
-    if (!email) return "U";
-    return email.split("@")[0].substring(0, 2).toUpperCase();
-  }
-
   isOverdue(): boolean {
     if (!this.todo?.endDate) return false;
     const now = new Date();
