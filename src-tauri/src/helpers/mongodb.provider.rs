@@ -24,8 +24,8 @@ impl MongodbProvider {
     let database = envDbName;
     let mut client_options = ClientOptions::parse(uri).await?;
     client_options.app_name = Some("TaskFlow".to_string());
-    client_options.connect_timeout = Some(Duration::from_secs(10));
-    client_options.server_selection_timeout = Some(Duration::from_secs(10));
+    client_options.connect_timeout = Some(Duration::from_secs(3));
+    client_options.server_selection_timeout = Some(Duration::from_secs(3));
     let client = Client::with_options(client_options)?;
 
     Ok(Self {
