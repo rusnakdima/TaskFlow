@@ -52,9 +52,10 @@
                 <summary class="list-none">
                   <div class="flex flex-row justify-between items-center w-full">
                     <div class="flex flex-row gap-x-1">
-                      <mat-icon class="!w-5 !h-5 !text-xl">
-                        {{ openStates[i] ? "keyboard_arrow_down" : "chevron_right" }}
-                      </mat-icon>
+                      <mat-icon
+                        class="!w-5 !h-5 !text-xl"
+                        [fontIcon]="openStates[i] ? 'keyboard_arrow_down' : 'chevron_right'"
+                      />
                       <span>Record {{ i + 1 }}</span>
                     </div>
                     <button (click)="onRemoveRecord(i)">
