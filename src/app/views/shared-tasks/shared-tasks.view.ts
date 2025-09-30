@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { RouterModule } from "@angular/router";
+import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -9,24 +10,15 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
+import { Profile } from "@models/profile";
 
 /* services */
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 
-interface SharedProject {
-  id: string;
-  title: string;
-  description: string;
-  owner: string;
-  members: Array<{ id: string; name: string; role: string; avatar?: string }>;
-  tasks: Array<Todo>;
-  progress: number;
-  createdAt: string;
-  updatedAt: string;
-  status: "active" | "completed" | "paused";
-}
+/* components */
+import { TodoComponent } from "@components/todo/todo.component";
 
 interface TeamMember {
   id: string;
@@ -42,7 +34,7 @@ interface TeamMember {
   selector: "app-shared-tasks",
   standalone: true,
   providers: [MainService],
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, TodoComponent],
   templateUrl: "./shared-tasks.view.html",
 })
 export class SharedTasksView implements OnInit {
@@ -52,134 +44,42 @@ export class SharedTasksView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  activeTab: string = "projects";
-  selectedProject: SharedProject | null = null;
-
-  sharedProjects: SharedProject[] = [];
-  teamMembers: TeamMember[] = [];
-
-  sampleProjects: SharedProject[] = [
-    {
-      id: "1",
-      title: "Website Redesign",
-      description: "Complete redesign of the company website with modern UI/UX",
-      owner: "John Doe",
-      members: [
-        { id: "1", name: "John Doe", role: "Project Manager" },
-        { id: "2", name: "Jane Smith", role: "Designer" },
-        { id: "3", name: "Mike Johnson", role: "Developer" },
-      ],
-      tasks: [],
-      progress: 65,
-      createdAt: "2024-01-15",
-      updatedAt: "2024-01-20",
-      status: "active",
-    },
-    {
-      id: "2",
-      title: "Mobile App Development",
-      description: "Cross-platform mobile application for task management",
-      owner: "Jane Smith",
-      members: [
-        { id: "2", name: "Jane Smith", role: "Lead Developer" },
-        { id: "4", name: "Alex Wilson", role: "UI Designer" },
-        { id: "5", name: "Sarah Brown", role: "QA Tester" },
-      ],
-      tasks: [],
-      progress: 35,
-      createdAt: "2024-01-10",
-      updatedAt: "2024-01-22",
-      status: "active",
-    },
-    {
-      id: "3",
-      title: "Marketing Campaign",
-      description: "Q1 2024 product launch marketing campaign",
-      owner: "Mike Johnson",
-      members: [
-        { id: "3", name: "Mike Johnson", role: "Marketing Lead" },
-        { id: "6", name: "Emily Davis", role: "Content Creator" },
-        { id: "7", name: "Chris Lee", role: "Social Media Manager" },
-      ],
-      tasks: [],
-      progress: 90,
-      createdAt: "2024-01-05",
-      updatedAt: "2024-01-23",
-      status: "completed",
-    },
-  ];
-
-  sampleTeamMembers: TeamMember[] = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john.doe@company.com",
-      role: "Project Manager",
-      tasksCompleted: 25,
-      tasksAssigned: 30,
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane.smith@company.com",
-      role: "Lead Developer",
-      tasksCompleted: 18,
-      tasksAssigned: 22,
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike.johnson@company.com",
-      role: "Marketing Lead",
-      tasksCompleted: 12,
-      tasksAssigned: 15,
-    },
-    {
-      id: "4",
-      name: "Alex Wilson",
-      email: "alex.wilson@company.com",
-      role: "UI Designer",
-      tasksCompleted: 8,
-      tasksAssigned: 10,
-    },
-  ];
+  sharedProjects: Todo[] = [];
 
   ngOnInit(): void {
     this.loadSharedProjects();
-    this.loadTeamMembers();
   }
 
-  loadSharedProjects(): void {
-    this.sharedProjects = this.sampleProjects;
+  async fetchProfile(userId: string): Promise<Profile | null> {
+    const response: Response<Profile> = await this.mainService.getByField<Profile>(
+      "profile",
+      "userId",
+      userId
+    );
+
+    if (response.status !== ResponseStatus.SUCCESS) return null;
+    const profile = response.data;
+    return profile;
   }
 
-  loadTeamMembers(): void {
-    this.teamMembers = this.sampleTeamMembers;
-  }
-
-  changeTab(tab: string): void {
-    this.activeTab = tab;
-    this.selectedProject = null;
-  }
-
-  selectProject(project: SharedProject): void {
-    this.selectedProject = project;
-  }
-
-  backToProjects(): void {
-    this.selectedProject = null;
-  }
-
-  getStatusColor(status: string): string {
-    switch (status) {
-      case "active":
-        return "bg-green-500";
-      case "completed":
-        return "bg-blue-500";
-      case "paused":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
+  async loadSharedProjects() {
+    const userId = this.authService.getValueByKey("id");
+    if (userId) {
+      const profile: Profile | null = await this.fetchProfile(userId);
+      this.mainService
+        .getTodosByAssignee<Todo[]>(profile?.id ?? "")
+        .then((response: Response<Todo[]>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.sharedProjects = response.data;
+          } else {
+            this.sharedProjects = [];
+            this.notifyService.showError(response.message ?? "Failed to load shared projects");
+          }
+        })
+        .catch((err: any) => {
+          this.sharedProjects = [];
+          this.notifyService.showError(err.message ?? "Error loading shared projects");
+        });
     }
   }
 
@@ -218,5 +118,10 @@ export class SharedTasksView implements OnInit {
 
   createProject(): void {
     this.notifyService.showInfo("Project creation form would open here");
+  }
+
+  onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    moveItemInArray(this.sharedProjects, event.previousIndex, event.currentIndex);
+    // this.updateTodoOrder();
   }
 }

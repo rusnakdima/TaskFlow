@@ -37,4 +37,8 @@ export class MainService {
   async delete<R>(apiName: string, id: string): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Delete`, { id: id });
   }
+
+  async getTodosByAssignee<R>(profieId: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("todoGetByAssignee", { assigneeId: profieId });
+  }
 }
