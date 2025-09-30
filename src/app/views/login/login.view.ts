@@ -91,7 +91,6 @@ export class LoginView {
           this.submitted = false;
         })
         .catch((err: any) => {
-          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
           this.submitted = false;
         });

@@ -113,7 +113,6 @@ export class CreateProfileView implements OnInit {
           }
         })
         .catch((err: Response<string>) => {
-          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {

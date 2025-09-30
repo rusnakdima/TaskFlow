@@ -95,7 +95,6 @@ export class ChangePasswordView {
         }
       })
       .catch((err: any) => {
-        console.error(err);
         this.notifyService.showError(err.message ?? err.toString());
       });
   }
@@ -131,7 +130,6 @@ export class ChangePasswordView {
           }
         })
         .catch((err: any) => {
-          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     }

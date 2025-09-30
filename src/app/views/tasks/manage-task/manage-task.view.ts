@@ -186,7 +186,6 @@ export class ManageTaskView implements OnInit {
               })
               .catch((err: Response<string>) => {
                 this.isSubmitting = false;
-                console.error(err);
                 this.notifyService.showError(err.message ?? err.toString());
               });
           } else {
@@ -218,7 +217,6 @@ export class ManageTaskView implements OnInit {
         })
         .catch((err: Response<string>) => {
           this.isSubmitting = false;
-          console.error(err);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {

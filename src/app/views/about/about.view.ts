@@ -122,7 +122,6 @@ export class AboutView {
         }
       },
       error: (err: Response<string>) => {
-        console.error(err);
         this.notifyService.showError(err.message ?? err.toString());
       },
     });
