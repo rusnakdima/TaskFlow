@@ -1,0 +1,31 @@
+# Exclude build artifacts and generated folders
+**/target/
+**/node_modules/
+**/dist/
+**/build/
+**/.tauri/
+
+# Exclude development files
+.git/
+.gitignore
+
+# Exclude cache and temp files
+**/.DS_Store
+**/*.log
+
+# Exclude IDE files
+.vscode/
+.idea/
+
+# Exclude OS specific files
+**/.DS_Store
+**/Thumbs.db
+
+# Exclude images from README (not needed for build)
+imgREADME/
+
+# Exclude generated gen folders
+src-tauri/gen/
+
+# Keep package files and source, but exclude lock files if they're not needed
+# pnpm-lock.yaml is kept in Dockerfile, so no need to exclude
