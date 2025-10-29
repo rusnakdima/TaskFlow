@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+@import "flowbite/src/themes/default";
+@plugin "flowbite/plugin";
+@source "../node_modules/flowbite";
 
 @theme {
   --colors-primary: #6366f1;
@@ -143,7 +146,7 @@
   }
 
   .styleCheckbox {
-    @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-300 dark:bg-gray-800 w-5 h-5 text-blue-600 dark:text-red-600;
+    @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-200 dark:bg-zinc-600 w-5 h-5 text-blue-600 dark:text-red-600;
   }
 
   .styleToggle {
