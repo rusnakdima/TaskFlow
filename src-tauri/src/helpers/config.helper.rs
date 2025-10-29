@@ -1,3 +1,4 @@
+/* sys lib */
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -9,6 +10,12 @@ pub struct ConfigHelper {
   pub mongoDbUri: String,
   pub mongoDbName: String,
   pub jwtSecret: String,
+  pub smtpUsername: String,
+  pub smtpPassword: String,
+  pub smtpServer: String,
+  pub smtpPort: u16,
+  pub resetTokenExpiryHours: u64,
+  pub appScheme: String,
 }
 
 impl ConfigHelper {
@@ -41,6 +48,33 @@ impl ConfigHelper {
       jwtSecret: envVars
         .get("JWT_SECRET")
         .expect("JWT_SECRET not set in .env")
+        .clone(),
+      smtpUsername: envVars
+        .get("SMTP_USERNAME")
+        .expect("SMTP_USERNAME not set in .env")
+        .clone(),
+      smtpPassword: envVars
+        .get("SMTP_PASSWORD")
+        .expect("SMTP_PASSWORD not set in .env")
+        .clone(),
+      smtpServer: envVars
+        .get("SMTP_SERVER")
+        .expect("SMTP_SERVER not set in .env")
+        .clone(),
+      smtpPort: envVars
+        .get("SMTP_PORT")
+        .map(|s| s.parse::<u16>().expect("SMTP_PORT must be a valid number"))
+        .unwrap_or(587),
+      resetTokenExpiryHours: envVars
+        .get("RESET_TOKEN_EXPIRY_HOURS")
+        .map(|s| {
+          s.parse::<u64>()
+            .expect("RESET_TOKEN_EXPIRY_HOURS must be a valid number")
+        })
+        .unwrap_or(1),
+      appScheme: envVars
+        .get("APP_SCHEME")
+        .expect("APP_SCHEME not set in .env")
         .clone(),
     }
   }

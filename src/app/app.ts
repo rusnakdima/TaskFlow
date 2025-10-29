@@ -41,7 +41,16 @@ export class App {
 
     const token = localStorage.getItem("token") ?? "";
     if (!token) {
-      this.router.navigate(["/login"]);
+      setTimeout(() => {
+        if (
+          this.router.url.indexOf("/login") == -1 &&
+          this.router.url.indexOf("/signup") == -1 &&
+          this.router.url.indexOf("/reset-password") == -1 &&
+          this.router.url.indexOf("/change-password") == -1
+        ) {
+          this.router.navigate(["/login"]);
+        }
+      }, 1000);
     }
 
     if (token) {
@@ -76,17 +85,17 @@ export class App {
         .getByField<string>("profile", "userId", userId)
         .then((response: Response<string>) => {
           if (response.status == ResponseStatus.SUCCESS) {
-            if (this.router.url == "/profile/create_profile") {
+            if (this.router.url == "/profile/create-profile") {
               this.router.navigate([""]);
             }
           } else {
-            this.router.navigate(["/profile/create_profile"]);
+            this.router.navigate(["/profile/create-profile"]);
           }
         })
         .catch((err: Response<string>) => {
           this.notifyService.showError(err.message ?? err.toString());
           if (err.status === ResponseStatus.ERROR) {
-            this.router.navigate(["/profile/create_profile"]);
+            this.router.navigate(["/profile/create-profile"]);
           }
         });
     } else {
@@ -99,9 +108,9 @@ export class App {
       [
         "/login",
         "/signup",
-        "/reset_password",
-        "/change_password",
-        "/profile/create_profile",
+        "/reset-password",
+        "/change-password",
+        "/profile/create-profile",
       ].includes(this.url)
     ) {
       return false;

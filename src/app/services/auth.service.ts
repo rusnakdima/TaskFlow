@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Response } from "@models/response";
 import { LoginForm } from "@models/login-form";
 import { SignupForm } from "@models/signup-form";
+import { PasswordReset } from "@models/password-reset-form";
 
 @Injectable({
   providedIn: "root",
@@ -28,20 +29,12 @@ export class AuthService {
     return await invoke<Response<R>>("register", { signupForm: signupData });
   }
 
-  async resetPassword<R>(email: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("resetPassword", { email: email });
+  async requestPasswordReset<R>(email: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("requestPasswordReset", { email });
   }
 
-  async checkResetToken<R>(data: { username: string; token: string }): Promise<Response<R>> {
-    return await invoke<Response<R>>("checkResetToken", data);
-  }
-
-  async changePassword<R>(data: {
-    username: string;
-    password: string;
-    token: string;
-  }): Promise<Response<R>> {
-    return await invoke<Response<R>>("changePassword", data);
+  async resetPassword<R>(passwordReset: PasswordReset): Promise<Response<R>> {
+    return await invoke<Response<R>>("resetPassword", { resetData: passwordReset });
   }
 
   logout() {

@@ -4,7 +4,12 @@ use tauri::State;
 
 /* models */
 use crate::models::{
-  login_form_model::LoginForm, response_model::ResponseModel, signup_form_model::SignupForm,
+  login_form_model::LoginForm,
+  password_reset::PasswordReset,
+  response_model::{
+    ResponseModel, {DataValue, ResponseStatus},
+  },
+  signup_form_model::SignupForm,
 };
 
 #[allow(non_snake_case)]
@@ -19,9 +24,9 @@ pub async fn checkToken(
       result
     }
     None => Err(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Error,
+      status: ResponseStatus::Error,
       message: "Authentication not available".to_string(),
-      data: crate::models::response_model::DataValue::String("".to_string()),
+      data: DataValue::String("".to_string()),
     }),
   }
 }
@@ -38,9 +43,9 @@ pub async fn login(
       result
     }
     None => Err(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Error,
+      status: ResponseStatus::Error,
       message: "Authentication not available".to_string(),
-      data: crate::models::response_model::DataValue::String("".to_string()),
+      data: DataValue::String("".to_string()),
     }),
   }
 }
@@ -57,9 +62,47 @@ pub async fn register(
       result
     }
     None => Err(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Error,
+      status: ResponseStatus::Error,
       message: "Authentication not available".to_string(),
-      data: crate::models::response_model::DataValue::String("".to_string()),
+      data: DataValue::String("".to_string()),
+    }),
+  }
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn requestPasswordReset(
+  state: State<'_, AppState>,
+  email: String,
+) -> Result<ResponseModel, ResponseModel> {
+  match &state.authController {
+    Some(authController) => {
+      let result = authController.requestPasswordReset(email).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "Authentication not available".to_string(),
+      data: DataValue::String("".to_string()),
+    }),
+  }
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn resetPassword(
+  state: State<'_, AppState>,
+  resetData: PasswordReset,
+) -> Result<ResponseModel, ResponseModel> {
+  match &state.authController {
+    Some(authController) => {
+      let result = authController.resetPassword(resetData).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "Authentication not available".to_string(),
+      data: DataValue::String("".to_string()),
     }),
   }
 }

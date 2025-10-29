@@ -22,6 +22,7 @@ import { NotifyService } from "@services/notify.service";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
+import { PasswordReset } from "@models/password-reset-form";
 
 @Component({
   selector: "app-change-password",
@@ -33,6 +34,7 @@ import { Response, ResponseStatus } from "@models/response";
 })
 export class ChangePasswordView {
   resetForm: FormGroup;
+  private token: string = "";
 
   constructor(
     private fb: FormBuilder,
@@ -42,27 +44,30 @@ export class ChangePasswordView {
     private notifyService: NotifyService
   ) {
     this.resetForm = fb.group({
-      username: ["", Validators.required],
-      password: ["", Validators.required],
-      confirm_password: ["", [Validators.required, this.matchPasswords()]],
-      token: ["", Validators.required],
+      password: ["", [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ["", [Validators.required, this.matchPasswords()]],
     });
   }
 
   role: string = "";
 
   errorText: string = "";
+  isTokenValid: boolean = false;
+  isExpired: boolean = false;
 
   isShowPassword: boolean = false;
   isShowConfirmPassword: boolean = false;
-  isExpired: boolean = true;
 
   ngOnInit() {
     this.route.queryParams.subscribe((param) => {
-      if (param["username"] && param["token"]) {
-        this.f["username"].setValue(param["username"]);
-        this.f["token"].setValue(param["token"]);
-        this.checkToken();
+      if (param["token"]) {
+        this.token = param["token"];
+        this.isTokenValid = true;
+        this.isExpired = false;
+      } else {
+        this.errorText = "No reset token provided";
+        this.isTokenValid = false;
+        this.isExpired = true;
       }
     });
 
@@ -79,24 +84,6 @@ export class ChangePasswordView {
 
   isInvalid(attr: string) {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
-  }
-
-  checkToken() {
-    this.authService
-      .checkResetToken<string>({
-        username: this.f["username"].value,
-        token: this.f["token"].value,
-      })
-      .then((response: Response<string>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          this.isExpired = false;
-        } else {
-          this.errorText = response.message;
-        }
-      })
-      .catch((err: any) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
   }
 
   matchPasswords(): ValidatorFn {
@@ -118,14 +105,21 @@ export class ChangePasswordView {
       Object.values(this.resetForm.controls).forEach((control) => {
         control.markAsTouched();
       });
+      return;
     }
 
-    if (this.resetForm.valid) {
+    if (this.resetForm.valid && this.token) {
+      const passwordReset: PasswordReset = {
+        token: this.token,
+        newPassword: this.f["password"].value,
+      };
+
       this.authService
-        .changePassword<string>(this.resetForm.value)
+        .resetPassword<string>(passwordReset)
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
+            this.notifyService.showNotify(ResponseStatus.SUCCESS, "Password changed successfully");
             document.location.href = "/login";
           }
         })

@@ -26,6 +26,14 @@
     },
     "withGlobalTauri": true
   },
+  "plugins": {
+    "updater": {
+      "active": false
+    },
+    "deep-link": {
+      "schemes": ["taskflow"]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -55,6 +63,14 @@
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       }
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null
     }
   }
 }

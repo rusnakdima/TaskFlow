@@ -17,7 +17,7 @@ use crate::helpers::{
 
 /* routes */
 use routes::about_route::{downloadUpdate, getBinaryNameFile};
-use routes::auth_route::{checkToken, login, register};
+use routes::auth_route::{checkToken, login, register, requestPasswordReset, resetPassword};
 use routes::category_route::{
   categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
 };
@@ -95,7 +95,7 @@ pub fn run() {
 
       let authController = mongodbProvider
         .as_ref()
-        .map(|mp| Arc::new(AuthController::new(mp.clone(), config.jwtSecret.clone())));
+        .map(|mp| Arc::new(AuthController::new(mp.clone(), config.clone())));
 
       let profileController = mongodbProvider
         .as_ref()
@@ -136,6 +136,8 @@ pub fn run() {
       checkToken,
       login,
       register,
+      requestPasswordReset,
+      resetPassword,
       profileGetAllByField,
       profileGetByField,
       profileCreate,

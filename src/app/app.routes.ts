@@ -86,13 +86,13 @@ export const routes: Routes = [
     data: { breadcrumb: "Sign Up" },
   },
   {
-    path: "reset_password",
+    path: "reset-password",
     component: ResetPasswordView,
     title: "Reset Password",
     data: { breadcrumb: "Reset Password" },
   },
   {
-    path: "change_password",
+    path: "change-password",
     component: ChangePasswordView,
     title: "Change Password",
     data: { breadcrumb: "Change Password" },
@@ -108,7 +108,7 @@ export const routes: Routes = [
         component: ProfileView,
       },
       {
-        path: "create_profile",
+        path: "create-profile",
         component: CreateProfileView,
         title: "Create Profile",
         data: { breadcrumb: "Create Profile" },

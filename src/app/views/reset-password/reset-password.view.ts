@@ -70,12 +70,17 @@ export class ResetPasswordView {
     }
 
     if (this.resetForm.valid) {
+      const email = this.resetForm.controls["email"].value;
+
       this.authService
-        .resetPassword<string>(this.resetForm.controls["email"].value)
+        .requestPasswordReset<string>(email)
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
-            document.location.href = "/";
+            this.notifyService.showNotify(
+              ResponseStatus.SUCCESS,
+              "Check your email for the password reset link"
+            );
           }
         })
         .catch((err: any) => {

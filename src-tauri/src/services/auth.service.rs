@@ -3,15 +3,20 @@ use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::bson::{doc, from_bson, oid::ObjectId, to_bson, Bson, Uuid};
+
 use serde_json::json;
 use std::sync::Arc;
+use uuid::Uuid as UuidCrate;
 
 /* helpers */
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::{
+  config::ConfigHelper, email_provider::EmailProvider, mongodb_provider::MongodbProvider,
+};
 
 /* models */
 use crate::models::{
   login_form_model::LoginForm,
+  password_reset::PasswordReset,
   response_model::{DataValue, ResponseModel, ResponseStatus},
   signup_form_model::SignupForm,
   user_model::UserModel,
@@ -275,6 +280,127 @@ impl AuthService {
       Err(e) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error checking existing user: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn requestPasswordReset(
+    &self,
+    email: String,
+    config: &ConfigHelper,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let nameTable = "users".to_string();
+
+    let filter = doc! { "email": email.clone() };
+    match self
+      .mongodbProvider
+      .getByField(&nameTable, Some(filter), None, "")
+      .await
+    {
+      Ok(userDoc) => {
+        let resetToken = UuidCrate::new_v4().to_string();
+
+        let emailService = EmailProvider::fromConfig(config)?;
+        emailService
+          .sendPasswordResetEmail(&email, &resetToken)
+          .await?;
+
+        let userId = userDoc
+          .get("id")
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Error retrieving user ID".to_string(),
+            data: DataValue::String("".to_string()),
+          })?;
+
+        let updateData = doc! {
+          "resetToken": resetToken.clone(),
+          "updatedAt": chrono::Utc::now().to_string()
+        };
+
+        match self
+          .mongodbProvider
+          .update(&nameTable, &userId, updateData)
+          .await
+        {
+          Ok(_) => Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "Password reset email sent".to_string(),
+            data: DataValue::String("".to_string()),
+          }),
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error updating user reset token: {}", e),
+            data: DataValue::String("".to_string()),
+          }),
+        }
+      }
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("User not found: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn resetPassword(
+    &self,
+    resetData: PasswordReset,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let nameTable = "users".to_string();
+
+    let filter = doc! { "resetToken": resetData.token.clone() };
+    match self
+      .mongodbProvider
+      .getByField(&nameTable, Some(filter), None, "")
+      .await
+    {
+      Ok(userDoc) => {
+        let userId = userDoc
+          .get("id")
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| ResponseModel {
+            status: ResponseStatus::Error,
+            message: "Error retrieving user ID".to_string(),
+            data: DataValue::String("".to_string()),
+          })?;
+
+        let hashedPassword = hash(&resetData.newPassword, 10).map_err(|_| ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Error hashing new password".to_string(),
+          data: DataValue::String("".to_string()),
+        })?;
+
+        let updateData = doc! {
+          "password": hashedPassword,
+          "resetToken": "",
+          "updatedAt": chrono::Utc::now().to_string()
+        };
+
+        match self
+          .mongodbProvider
+          .update(&nameTable, &userId, updateData)
+          .await
+        {
+          Ok(_) => Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "Password reset successfully".to_string(),
+            data: DataValue::String("".to_string()),
+          }),
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error updating password: {}", e),
+            data: DataValue::String("".to_string()),
+          }),
+        }
+      }
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Invalid reset token: {}", e),
         data: DataValue::String("".to_string()),
       }),
     }
