@@ -9,7 +9,10 @@ use crate::helpers::{
 };
 
 /* models */
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+use crate::models::{
+  relation_obj::{RelationObj, TypesField},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
+};
 
 #[allow(non_snake_case)]
 pub struct ManageDbService {
@@ -466,10 +469,29 @@ impl ManageDbService {
       "daily_activities",
     ];
 
+    let userRelations = vec![RelationObj {
+      nameTable: "users".to_string(),
+      typeField: TypesField::OneToOne,
+      nameField: "userId".to_string(),
+      newNameField: "user".to_string(),
+      relations: Some(vec![RelationObj {
+        nameTable: "profiles".to_string(),
+        typeField: TypesField::OneToOne,
+        nameField: "profileId".to_string(),
+        newNameField: "profile".to_string(),
+        relations: None,
+      }]),
+    }];
+
     let mut allData = serde_json::Map::new();
 
     for table in tables {
-      let docs = match mongodbProvider.getAllByField(table, None, None).await {
+      let relations = if table == "todos" || table == "categories" {
+        Some(userRelations.clone())
+      } else {
+        None
+      };
+      let docs = match mongodbProvider.getAllByField(table, None, relations).await {
         Ok(docs) => docs,
         Err(e) => {
           return Err(ResponseModel {
