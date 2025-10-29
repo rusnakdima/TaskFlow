@@ -64,16 +64,10 @@
       <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="assignment" />
       <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
       <p class="textMuted mb-6">
-        @if (activeFilter === "all") {
-          Start by creating your first task for this project
-        } @else {
+        @if (activeFilter !== "all") {
           No tasks match the current filter
         }
       </p>
-      <button class="styleButSuccess" routerLink="create_task">
-        <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
-        Create First Task
-      </button>
     </div>
   } @else {
     <div

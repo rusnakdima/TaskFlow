@@ -110,18 +110,11 @@
       <mat-icon class="!w-12 !h-12 !text-5xl textMuted mb-4" fontIcon="assignment" />
       <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
       <p class="textMuted mb-6">
-        @if (activeFilter === "all") {
-          Get started by creating your first task
-        } @else {
+        @if (activeFilter !== "all") {
           No tasks match the current filter
         }
       </p>
-      @if (activeFilter === "all") {
-        <button class="styleButSuccess" routerLink="/todos/create_todo">
-          <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="add" />
-          Create your first task
-        </button>
-      } @else {
+      @if (activeFilter !== "all") {
         <button class="styleButInfo" (click)="changeFilter('all')">
           <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="clear_all" />
           Show all tasks
