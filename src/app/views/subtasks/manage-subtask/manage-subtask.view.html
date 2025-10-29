@@ -167,18 +167,8 @@
     }
 
     <div class="flex justify-end gap-3 pt-6">
-      <button
-        type="button"
-        class="px-6 py-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors font-medium"
-        (click)="back()"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
-        [disabled]="form.invalid || isSubmitting"
-      >
+      <button type="button" class="styleBut" (click)="back()">Cancel</button>
+      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting">
         @if (isSubmitting) {
           <div
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
