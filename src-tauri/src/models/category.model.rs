@@ -36,6 +36,7 @@ impl From<CategoryCreateModel> for CategoryModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+#[allow(unused)]
 pub struct CategoryFullModel {
   pub _id: ObjectId,
   pub id: String,

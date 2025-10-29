@@ -130,6 +130,7 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+#[allow(unused)]
 pub struct DailyActivityFullModel {
   pub _id: ObjectId,
   pub id: String,
