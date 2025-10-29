@@ -1,153 +1,191 @@
-<div class="lg:hidden">
-  <button
-    class="fixed top-16 left-4 z-40 p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-700"
-    (click)="toggleMobileSidebar()"
-    [class.left-72]="showMobileSidebar"
+<ng-template #dataTypesTemplate let-isDesktop="isDesktop">
+  <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
+    <h2 class="text-lg font-semibold textNormal">Data Types</h2>
+  </div>
+  <div
+    [class]="
+      isDesktop
+        ? 'flex flex-col gap-y-1 p-3'
+        : 'flex flex-col gap-y-1 p-3 divide-y divide-gray-100 dark:divide-zinc-700 max-h-[calc(100vh-200px)] lg:max-h-none overflow-y-auto'
+    "
   >
-    <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="menu" />
-  </button>
-</div>
+    @for (type of dataTypes; track type.id) {
+      <button
+        class="flex flex-row gap-x-2 styleFloatBut w-full"
+        [class.bg-gray-300]="isDesktop && selectedType === type.id"
+        [class.dark:bg-zinc-700]="isDesktop && selectedType === type.id"
+        (click)="selectDataType(type.id)"
+      >
+        <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="type.icon" />
+        <div [class]="isDesktop ? 'flex flex-col flex-1 items-start' : 'flex-1'">
+          <div class="text-sm font-medium textNormal">{{ type.label }}</div>
+          <div class="flex items-center justify-between mt-1">
+            <span class="text-xs textMuted">{{ type.count }} items</span>
+          </div>
+        </div>
+        <div class="flex flex-row gap-x-1">
+          @if (loading) {
+            <mat-icon class="!w-5 !h-5 !text-xl text-blue-500 animate-spin" fontIcon="sync" />
+          }
+          <mat-icon
+            class="!w-5 !h-5 !text-xl textMuted"
+            [class.rotate-90]="!isDesktop && selectedType === type.id"
+            fontIcon="chevron_right"
+          />
+        </div>
+      </button>
+    }
+  </div>
+</ng-template>
 
-<div class="max-w-7xl mx-auto px-4 lg:px-6 py-4 lg:py-8">
+<ng-template #filtersTemplate let-isMobile="isMobile">
+  @if (isMobile) {
+    <div
+      class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
+    >
+      <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
+      <button mat-button class="!min-w-0 !w-9 !h-9 !p-0" (click)="showFilters = false">
+        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="close" />
+      </button>
+    </div>
+  } @else {
+    <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
+      <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
+    </div>
+  }
+  <div class="flex flex-col gap-y-1 p-3">
+    <mat-form-field class="w-full">
+      <mat-label>Search Title</mat-label>
+      <input matInput [(ngModel)]="titleFilter" placeholder="Search by title..." />
+    </mat-form-field>
+    @if (selectedType === "todos" || selectedType === "tasks" || selectedType === "subtasks") {
+      <mat-form-field class="w-full">
+        <mat-label>Priority</mat-label>
+        <mat-select [(ngModel)]="priorityFilter">
+          <mat-option value="">All</mat-option>
+          <mat-option value="low">Low</mat-option>
+          <mat-option value="medium">Medium</mat-option>
+          <mat-option value="high">High</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="w-full">
+        <mat-label>Completion Status</mat-label>
+        <mat-select [(ngModel)]="isCompletedFilter">
+          <mat-option value="all">All</mat-option>
+          <mat-option value="completed">Completed</mat-option>
+          <mat-option value="pending">Pending</mat-option>
+        </mat-select>
+      </mat-form-field>
+    }
+    @if (selectedType === "todos") {
+      <mat-form-field class="w-full">
+        <mat-label>Categories</mat-label>
+        <input matInput [(ngModel)]="categoriesFilter" placeholder="Search by categories..." />
+      </mat-form-field>
+    }
+    @if (selectedType === "todos" || selectedType === "categories") {
+      <mat-form-field class="w-full">
+        <mat-label>User</mat-label>
+        <input matInput [(ngModel)]="userFilter" placeholder="Search by user..." />
+      </mat-form-field>
+    }
+
+    @if (
+      selectedType === "categories" ||
+      selectedType === "tasks" ||
+      selectedType === "todos" ||
+      selectedType === "subtasks"
+    ) {
+      <mat-form-field class="w-full">
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="statusFilter">
+          <mat-option value="all">All Records</mat-option>
+          <mat-option value="active">Active Only</mat-option>
+          <mat-option value="deleted">Deleted Only</mat-option>
+        </mat-select>
+      </mat-form-field>
+    }
+    @if (selectedType === "tasks" || selectedType === "todos" || selectedType === "categories") {
+      <mat-form-field class="w-full">
+        <mat-label>Start Date From</mat-label>
+        <input matInput [matDatepicker]="picker1" [(ngModel)]="startDateFilter" />
+        <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
+        <mat-datepicker #picker1></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="w-full">
+        <mat-label>End Date To</mat-label>
+        <input matInput [matDatepicker]="picker2" [(ngModel)]="endDateFilter" />
+        <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
+        <mat-datepicker #picker2></mat-datepicker>
+      </mat-form-field>
+    }
+  </div>
+</ng-template>
+
+<div class="mx-auto px-4 lg:px-6 py-4 lg:py-8">
   <div class="flex flex-col lg:flex-row gap-4 lg:gap-8">
     <div
       class="w-full lg:w-80 flex-shrink-0 lg:hidden"
       [class.flex]="showMobileSidebar"
       [class.hidden]="!showMobileSidebar"
     >
-      @if (showMobileSidebar) {
-        <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeMobileSidebar()"></div>
-      }
+      <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeMobileSidebar()"></div>
 
       <div
         class="fixed lg:relative top-0 left-0 lg:left-auto right-0 lg:w-full z-40 lg:z-auto bg-white dark:bg-zinc-800 rounded-xl lg:rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden h-full lg:h-auto max-w-sm lg:max-w-none"
       >
-        <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
-          <h2 class="text-lg font-semibold textNormal">Data Types</h2>
-        </div>
-
-        <div class="divide-y divide-gray-100 dark:divide-zinc-700 max-h-[calc(100vh-200px)] lg:max-h-none overflow-y-auto">
-          @for (type of dataTypes; track type.id) {
-            <button
-              class="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-              [class.bg-blue-50]="selectedType === type.id"
-              [class.dark:bg-blue-900/30]="selectedType === type.id"
-              (click)="selectDataType(type.id)"
-            >
-              <mat-icon
-                class="!w-5 !h-5 !text-xl"
-                [class.text-blue-600]="selectedType === type.id"
-                [class.dark:text-blue-400]="selectedType === type.id"
-                [class.text-gray-500]="selectedType !== type.id"
-                [class.dark:text-zinc-400]="selectedType !== type.id"
-                [fontIcon]="type.icon"
-              />
-              <div class="flex-1">
-                <div class="text-sm font-medium textNormal">{{ type.label }}</div>
-                <div class="flex items-center justify-between mt-1">
-                  <span class="text-xs textMuted">{{ type.count }} items</span>
-                </div>
-              </div>
-              <div class="flex flex-row gap-x-1">
-                @if (loading) {
-                  <mat-icon class="!w-5 !h-5 !text-xl text-blue-500 animate-spin" fontIcon="sync" />
-                }
-                <mat-icon
-                  class="!w-5 !h-5 !text-xl textMuted"
-                  [class.rotate-90]="selectedType === type.id"
-                  fontIcon="chevron_right"
-                />
-              </div>
-            </button>
-          }
-        </div>
+        <ng-container *ngTemplateOutlet="dataTypesTemplate; context: { isDesktop: false }" />
       </div>
     </div>
 
     <div class="hidden lg:block w-80 flex-shrink-0">
-      <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden">
-        <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
-          <h2 class="text-lg font-semibold textNormal">Data Types</h2>
-        </div>
-
-        <div class="divide-y divide-gray-100 dark:divide-zinc-700">
-          @for (type of dataTypes; track type.id) {
-            <button
-              class="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-              [class.bg-blue-50]="selectedType === type.id"
-              [class.dark:bg-blue-900/30]="selectedType === type.id"
-              (click)="selectDataType(type.id)"
-            >
-              <mat-icon
-                class="!w-5 !h-5 !text-xl"
-                [class.text-blue-600]="selectedType === type.id"
-                [class.dark:text-blue-400]="selectedType === type.id"
-                [class.text-gray-500]="selectedType !== type.id"
-                [class.dark:text-zinc-400]="selectedType !== type.id"
-                [fontIcon]="type.icon"
-              />
-              <div class="flex-1">
-                <div class="text-sm font-medium textNormal">{{ type.label }}</div>
-                <div class="flex items-center justify-between mt-1">
-                  <span class="text-xs textMuted">{{ type.count }} items</span>
-                </div>
-              </div>
-              <div class="flex flex-row gap-x-1">
-                @if (loading) {
-                  <mat-icon class="!w-5 !h-5 !text-xl text-blue-500 animate-spin" fontIcon="sync" />
-                }
-                <mat-icon
-                  class="!w-5 !h-5 !text-xl textMuted"
-                  [class.rotate-90]="selectedType === type.id"
-                  fontIcon="chevron_right"
-                />
-              </div>
-            </button>
-          }
-        </div>
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
+      >
+        <ng-container *ngTemplateOutlet="dataTypesTemplate; context: { isDesktop: true }" />
       </div>
     </div>
 
     <div class="flex-1 h-[calc(100vh-220px)] overflow-y-auto">
-      <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700">
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700"
+      >
         <div class="p-4 lg:p-6 border-b border-gray-200 dark:border-zinc-700">
+          <div class="lg:hidden">
+            <button
+              class="p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-700"
+              (click)="toggleMobileSidebar()"
+              [class.left-72]="showMobileSidebar"
+            >
+              <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="menu" />
+            </button>
+          </div>
+
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 class="text-xl font-bold textNormal">{{ getSelectedTypeLabel() }}</h2>
               <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
             </div>
-            <div class="flex flex-col lg:flex-row gap-2 lg:items-center">
-              <div class="relative">
-                <button
-                  mat-button
-                  class="flex items-center gap-2 border border-gray-300 dark:border-zinc-600 rounded px-3 py-2 text-sm"
-                  [matMenuTriggerFor]="filterMenu"
-                >
-                  <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="getCurrentFilterIcon()" />
-                  {{ getCurrentFilterLabel() }}
-                  <mat-icon class="!w-4.5 !h-4.5 !text-lg ml-1" fontIcon="keyboard_arrow_down" />
-                </button>
-                <mat-menu #filterMenu="matMenu" class="bg-white dark:bg-zinc-800">
-                  @for (filterType of filterOptions; track filterType.value) {
-                    <button
-                      mat-menu-item
-                      class="!flex !items-center !gap-1"
-                      (click)="setFilter(filterType.value)"
-                    >
-                      <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="filterType.icon" />
-                      <span>{{ filterType.label }}</span>
-                    </button>
-                  }
-                </mat-menu>
-              </div>
-              <button
-                mat-button
-                class="bg-blue-600 hover:bg-blue-700 text-white"
-                (click)="loadAdminData()"
-                [disabled]="loading"
-              >
-                <mat-icon class="!w-5 !h-5 !text-xl mr-2" [ngClass]="loading ? 'animate-spin' : ''" fontIcon="sync" />
+            <div class="flex flex-row gap-2 items-center flex-wrap">
+              <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading">
+                <mat-icon
+                  class="!w-5 !h-5 !text-xl mr-2"
+                  [ngClass]="loading ? 'animate-spin' : ''"
+                  fontIcon="sync"
+                />
                 Refresh
+              </button>
+              <button
+                class="styleButDanger"
+                [disabled]="selectedRecords.size === 0"
+                (click)="deleteSelected()"
+              >
+                <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="delete_forever" />
+                Delete Selected ({{ selectedRecords.size }})
+              </button>
+              <button class="styleButInfo lg:hidden" (click)="showFilters = !showFilters">
+                <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="filter_alt" />
+                Filters
               </button>
             </div>
           </div>
@@ -156,23 +194,38 @@
         <div class="p-4 lg:p-6">
           @if (loading) {
             <div class="flex items-center justify-center py-16">
-              <mat-icon class="!w-7.5 !h-7.5 !text-3xl text-blue-500 animate-spin" fontIcon="sync" />
+              <mat-icon
+                class="!w-7.5 !h-7.5 !text-3xl text-blue-500 animate-spin"
+                fontIcon="sync"
+              />
               <span class="ml-3 textNormal">Loading data...</span>
             </div>
           } @else if (getCurrentData().length === 0) {
             <div class="text-center py-16">
               <mat-icon class="!w-16 !h-16 !text-4xl text-gray-300" fontIcon="inbox" />
-              <h3 class="mt-4 text-lg font-medium text-gray-500">No records found</h3>
-              <p class="mt-2 text-sm textMuted">No {{ getSelectedTypeLabel().toLowerCase() }} data available</p>
+              <h3 class="text-lg font-medium text-gray-500">No records found</h3>
+              <p class="mt-2 text-sm textMuted">
+                No {{ getSelectedTypeLabel().toLowerCase() }} data available
+              </p>
             </div>
           } @else {
             <div class="grid grid-cols-1 gap-4">
               @for (item of getCurrentData(); track item.id; let i = $index) {
                 <mat-card class="p-4 lg:p-6 hover:shadow-lg transition-shadow">
-                  <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                  <div
+                    class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4"
+                  >
                     <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <mat-icon class="!w-5 !h-5 !text-xl text-blue-600 dark:text-blue-400" fontIcon="article" />
+                      <input
+                        type="checkbox"
+                        class="styleCheckbox"
+                        [checked]="isSelected(item.id)"
+                        (change)="toggleSelect(item.id)"
+                      />
+                      <div
+                        class="flex items-center justify-center flex-shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
+                      >
+                        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="article" />
                       </div>
                       <div>
                         <h4 class="font-semibold textNormal">Record {{ item.id }}</h4>
@@ -181,60 +234,55 @@
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                       @if (item.isDeleted) {
-                        <mat-chip class="!bg-red-100 !text-red-600 dark:!bg-red-900/30 dark:!text-red-400 !h-9">
+                        <mat-chip
+                          class="!bg-red-100 !text-red-600 dark:!bg-red-900/30 dark:!text-red-400 !h-9"
+                        >
                           <div class="flex flex-row items-center gap-x-2">
                             <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete" />
                             <span>Deleted</span>
                           </div>
                         </mat-chip>
                       } @else {
-                        <mat-chip class="!bg-green-100 !text-green-600 dark:!bg-green-900/30 dark:!text-green-400 !h-9">
+                        <mat-chip
+                          class="!bg-green-100 !text-green-600 dark:!bg-green-900/30 dark:!text-green-400 !h-9"
+                        >
                           <div class="flex flex-row items-center gap-x-2">
                             <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="check_circle" />
                             <span>Active</span>
                           </div>
                         </mat-chip>
                       }
-                      <button
-                        mat-button
-                        class="!min-w-0 !w-9 !h-9 !p-0 textMuted"
-                        [matMenuTriggerFor]="actionMenu"
-                      >
-                        <mat-icon class="!w-5 !h-5 !text-lg textMuted" fontIcon="more_vert" />
+                      <button class="styleButDanger cursor-pointer" (click)="deleteRecord(item)">
+                        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete_forever" />
                       </button>
-                      <mat-menu #actionMenu="matMenu" class="bg-white dark:bg-zinc-800">
-                        <button
-                          mat-menu-item
-                          class="!text-red-600 dark:!text-red-400"
-                          (click)="deleteRecord(item)"
-                        >
-                          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete_forever" />
-                          <span>Permanently Delete</span>
-                        </button>
-                      </mat-menu>
                     </div>
                   </div>
 
                   <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
                     @for (prop of getDataProperties(item); track prop.key) {
-                      @if (prop.key !== 'id') {
+                      @if (prop.key !== "id") {
                         <div class="overflow-hidden">
                           <span class="font-medium textMuted">{{ prop.key }}:</span>
                           <div class="mt-1 break-words">
-                            @if (prop.key === 'createdAt' || prop.key === 'updatedAt') {
+                            @if (prop.key === "createdAt" || prop.key === "updatedAt") {
                               <span class="textNormal">{{ formatDate(prop.value) }}</span>
-                            } @else if (prop.value === null || prop.value === '') {
+                            } @else if (prop.value === null || prop.value === "") {
                               <span class="text-gray-400">—</span>
-                            } @else if (typeof prop.value === 'boolean') {
+                            } @else if (typeof prop.value === "boolean") {
                               <span [class]="prop.value ? 'text-green-600' : 'text-red-600'">
-                                {{ prop.value ? 'Yes' : 'No' }}
+                                {{ prop.value ? "Yes" : "No" }}
                               </span>
-                            } @else if (prop.key === 'priority') {
+                            } @else if (prop.key === "priority") {
                               <span class="textNormal capitalize">{{ prop.value }}</span>
                             } @else if (typeof prop.value == "object" && prop.value.length >= 0) {
                               @for (item of prop.value; track $index) {
                                 <span class="textNormal">{{ item | json }}</span>
                               }
+                            } @else if (prop.key === "user") {
+                              <span class="textNormal"
+                                >{{ prop.value.profile?.name }}
+                                {{ prop.value.profile?.lastName }} ({{ prop.value.username }})</span
+                              >
                             } @else if (typeof prop.value == "object") {
                               <span class="textNormal">{{ prop.value | json }}</span>
                             } @else {
@@ -250,6 +298,27 @@
             </div>
           }
         </div>
+      </div>
+    </div>
+
+    <div
+      class="flex flex-row items-end w-full lg:w-80 flex-shrink-0 lg:hidden"
+      [class.flex]="showFilters"
+      [class.hidden]="!showFilters"
+    >
+      <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeFilters()"></div>
+      <div
+        class="fixed top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
+      >
+        <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: true }" />
+      </div>
+    </div>
+
+    <div class="hidden lg:block w-80 flex-shrink-0">
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
+      >
+        <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
       </div>
     </div>
   </div>
