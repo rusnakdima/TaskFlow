@@ -3,6 +3,7 @@ import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs";
+import { listen } from "@tauri-apps/api/event";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
@@ -75,6 +76,13 @@ export class App {
           ? this.router.url.lastIndexOf("?")
           : this.router.url.length;
       this.url = this.router.url.slice(0, lastIndex);
+    });
+
+    listen("deep-link-opened", (event: any) => {
+      const data = event.payload;
+      if (data.path === "change-password" && data.params && data.params.token) {
+        this.router.navigate(["/change-password"], { queryParams: { token: data.params.token } });
+      }
     });
   }
 
