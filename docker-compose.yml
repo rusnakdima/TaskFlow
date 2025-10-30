@@ -1,0 +1,16 @@
+services:
+  tauri:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    volumes:
+      - .:/app:cached
+      - cargo-cache:/root/.cargo
+      - ./src-tauri/target:/app/src-tauri/target
+    working_dir: /app
+    command: [ "sh", "-c", ". \"$NVM_DIR/nvm.sh\" && pnpm tauri build --bundles appimage" ]
+    # tty: true
+
+volumes:
+  cargo-cache:
