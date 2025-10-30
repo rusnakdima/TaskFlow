@@ -66,30 +66,30 @@ impl EmailProvider {
         r#"
         <!DOCTYPE html>
         <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Password Reset</title>
-        </head>
-        <body>
-          <h2>Password Reset Request</h2>
-          <p>You have requested to reset your password for your TaskFlow account.</p>
-          <p><strong>Click this link to reset your password:</strong></p>
-          <p style="margin: 20px 0;">
-            <a href="taskflow://reset-password?token={}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              Reset My Password
-            </a>
-          </p>
-          <p>If the link above doesn't work, copy and paste this manual link into your browser:</p>
-          <p style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace;">
-            taskflow://reset-password?token={}
-          </p>
-          <p>This token will expire in {} hour(s).</p>
-          <p>If you did not request this password reset, please ignore this email.</p>
-          <p>Best regards,<br>TaskFlow Team</p>
-        </body>
+          <head>
+            <meta charset="utf-8">
+            <title>Password Reset</title>
+          </head>
+          <body>
+            <h2>Password Reset Request</h2>
+            <p>You have requested to reset your password for your TaskFlow account.</p>
+            <p><strong>Click this link to change your password:</strong></p>
+            <p style="margin: 20px 0;">
+              <a href='{}://change-password?token={}' style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Change My Password
+              </a>
+            </p>
+            <p>If the link above doesn't work, copy and paste this manual link into your browser:</p>
+            <p style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace;">
+              {}://change-password?token={}
+            </p>
+            <p>This token will expire in {} hour(s).</p>
+            <p>If you did not request this password reset, please ignore this email.</p>
+            <p>Best regards,<br>TaskFlow Solutions</p>
+          </body>
         </html>
         "#,
-        resetToken, resetToken, self.config.resetTokenExpiryHours
+        self.config.appScheme, resetToken, self.config.appScheme, resetToken, self.config.resetTokenExpiryHours
       ))
       .map_err(|_| ResponseModel {
         status: ResponseStatus::Error,
