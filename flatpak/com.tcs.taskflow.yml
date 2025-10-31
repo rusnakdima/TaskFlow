@@ -1,0 +1,72 @@
+app-id: com.tcs.taskflow
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+command: taskflow
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.rust-stable
+build-options:
+  append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=home
+modules:
+  - name: taskflow
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
+      env:
+        CARGO_HOME: /run/build/taskflow/cargo
+        RUST_BACKTRACE: "1"
+        CI: "true"
+        NPM_CONFIG_LOGLEVEL: info
+        PNPM_HOME: /run/build/taskflow/.pnpm
+        PATH: /run/build/taskflow/.pnpm:/usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin:/app/bin:/usr/bin:/bin
+    sources:
+      - type: dir
+        path: ..
+        dest: source
+      - type: file
+        url: https://github.com/pnpm/pnpm/releases/download/v9.12.3/pnpm-linuxstatic-x64
+        sha256: abf3e983690413075d6f85c77de59b23d85e3aba8889b7212d500ba5bb24fc17
+        dest-filename: pnpm
+    build-commands:
+      # Setup pnpm
+      - mkdir -p /run/build/taskflow/.pnpm
+      - install -Dm755 pnpm /run/build/taskflow/.pnpm/pnpm
+
+      # Configure pnpm and build in source directory
+      - |
+        cd source
+        /run/build/taskflow/.pnpm/pnpm config set store-dir /run/build/taskflow/.pnpm-store
+        /run/build/taskflow/.pnpm/pnpm config set fetch-timeout 600000
+        /run/build/taskflow/.pnpm/pnpm config set fetch-retries 5
+        /run/build/taskflow/.pnpm/pnpm config set network-concurrency 1
+        /run/build/taskflow/.pnpm/pnpm install --frozen-lockfile
+        /run/build/taskflow/.pnpm/pnpm tauri build --bundles deb
+
+      # Install the binary
+      - install -Dm755 source/src-tauri/target/release/taskflow /app/bin/taskflow
+
+      # Install icons
+      - install -Dm644 source/src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
+      - install -Dm644 source/src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.tcs.taskflow.png
+
+      # Create desktop file
+      - mkdir -p /app/share/applications
+      - |
+        cat > /app/share/applications/com.tcs.taskflow.desktop <<EOF
+        [Desktop Entry]
+        Type=Application
+        Name=TaskFlow
+        Exec=taskflow
+        Icon=com.tcs.taskflow
+        Categories=Utility;
+        Terminal=false
+        EOF

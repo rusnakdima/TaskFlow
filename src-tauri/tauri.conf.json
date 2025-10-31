@@ -37,11 +37,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [
-      "icons/icon.ico",
-      "icons/icon.png",
-      "icons/128x128.png"
-    ],
+    "icon": ["icons/icon.ico", "icons/icon.png", "icons/128x128.png"],
     "resources": {
       ".env": ".env"
     },

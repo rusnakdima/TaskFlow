@@ -1,0 +1,7 @@
+# Flatpak
+/build-dir
+/repo
+.flatpak-builder/
+
+# Builded flatpak installer
+*.flatpak
