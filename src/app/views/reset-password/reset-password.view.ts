@@ -25,6 +25,8 @@ import { Response, ResponseStatus } from "@models/response";
 })
 export class ResetPasswordView {
   resetForm: FormGroup;
+  step: "email" | "code" = "email";
+  userEmail: string = "";
 
   constructor(
     private fb: FormBuilder,
@@ -41,6 +43,7 @@ export class ResetPasswordView {
           Validators.pattern(/^[a-zA-Z0-9._%+-]+@(gmail|yandex|outlook)\.[a-zA-Z]{2,}$/),
         ],
       ],
+      code: ["", [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
   }
 
@@ -62,30 +65,75 @@ export class ResetPasswordView {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
 
-  onSubmit() {
-    if (this.resetForm.invalid) {
-      Object.values(this.resetForm.controls).forEach((control) => {
-        control.markAsTouched();
+  onEmailSubmit() {
+    if (this.resetForm.controls["email"].invalid) {
+      this.resetForm.controls["email"].markAsTouched();
+      return;
+    }
+
+    const email = this.resetForm.controls["email"].value;
+    this.userEmail = email;
+
+    this.authService
+      .requestPasswordReset<string>(email)
+      .then((response: Response<string>) => {
+        this.notifyService.showNotify(response.status, response.message);
+        if (response.status == ResponseStatus.SUCCESS) {
+          this.step = "code";
+          this.notifyService.showNotify(
+            ResponseStatus.SUCCESS,
+            "Check your email for the verification code"
+          );
+        }
+      })
+      .catch((err: any) => {
+        this.notifyService.showError(err.message ?? err.toString());
       });
+  }
+
+  onCodeSubmit() {
+    if (this.resetForm.controls["code"].invalid) {
+      this.resetForm.controls["code"].markAsTouched();
+      return;
     }
 
-    if (this.resetForm.valid) {
-      const email = this.resetForm.controls["email"].value;
-
-      this.authService
-        .requestPasswordReset<string>(email)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.notifyService.showNotify(
-              ResponseStatus.SUCCESS,
-              "Check your email for the password reset link"
-            );
-          }
-        })
-        .catch((err: any) => {
-          this.notifyService.showError(err.message ?? err.toString());
-        });
+    let email = this.userEmail;
+    if (!email) {
+      if (this.resetForm.controls["email"].invalid) {
+        this.resetForm.controls["email"].markAsTouched();
+        return;
+      }
+      email = this.resetForm.controls["email"].value;
     }
+
+    const code = this.resetForm.controls["code"].value;
+
+    this.authService
+      .verifyCode<string>(email, code)
+      .then((response: Response<string>) => {
+        this.notifyService.showNotify(response.status, response.message);
+        if (response.status == ResponseStatus.SUCCESS) {
+          sessionStorage.setItem("resetPasswordEmail", email);
+          sessionStorage.setItem("resetPasswordCode", code);
+
+          window.location.href = "/change-password";
+        }
+      })
+      .catch((err: any) => {
+        this.notifyService.showError(err.message ?? err.toString());
+      });
+  }
+
+  skipToCode() {
+    this.step = "code";
+    if (!this.userEmail && this.resetForm.controls["email"].value) {
+      this.userEmail = this.resetForm.controls["email"].value;
+    }
+  }
+
+  backToEmail() {
+    this.step = "email";
+    this.resetForm.controls["code"].setValue("");
+    this.resetForm.controls["code"].markAsUntouched();
   }
 }

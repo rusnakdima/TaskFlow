@@ -90,6 +90,26 @@ pub async fn requestPasswordReset(
 
 #[allow(non_snake_case)]
 #[tauri::command]
+pub async fn verifyCode(
+  state: State<'_, AppState>,
+  email: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  match &state.authController {
+    Some(authController) => {
+      let result = authController.verifyCode(email, code).await;
+      result
+    }
+    None => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "Authentication not available".to_string(),
+      data: DataValue::String("".to_string()),
+    }),
+  }
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
 pub async fn resetPassword(
   state: State<'_, AppState>,
   resetData: PasswordReset,

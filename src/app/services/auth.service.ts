@@ -33,6 +33,10 @@ export class AuthService {
     return await invoke<Response<R>>("requestPasswordReset", { email });
   }
 
+  async verifyCode<R>(email: string, code: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("verifyCode", { email, code });
+  }
+
   async resetPassword<R>(passwordReset: PasswordReset): Promise<Response<R>> {
     return await invoke<Response<R>>("resetPassword", { resetData: passwordReset });
   }

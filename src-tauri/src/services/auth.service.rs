@@ -6,7 +6,6 @@ use mongodb::bson::{doc, from_bson, oid::ObjectId, to_bson, Bson, Uuid};
 
 use serde_json::json;
 use std::sync::Arc;
-use uuid::Uuid as UuidCrate;
 
 /* helpers */
 use crate::helpers::{
@@ -240,7 +239,7 @@ impl AuthService {
             }
           },
           role: "user".to_string(),
-          resetToken: "".to_string(),
+          temporaryCode: "".to_string(),
           profileId: "".to_string(),
           createdAt: chrono::Utc::now().to_string(),
           updatedAt: chrono::Utc::now().to_string(),
@@ -300,12 +299,10 @@ impl AuthService {
       .await
     {
       Ok(userDoc) => {
-        let resetToken = UuidCrate::new_v4().to_string();
+        let code = format!("{:06}", rand::random::<u32>() % 1000000);
 
         let emailService = EmailProvider::fromConfig(config)?;
-        emailService
-          .sendPasswordResetEmail(&email, &resetToken)
-          .await?;
+        emailService.sendPasswordResetCode(&email, &code).await?;
 
         let userId = userDoc
           .get("id")
@@ -317,7 +314,7 @@ impl AuthService {
           })?;
 
         let updateData = doc! {
-          "resetToken": resetToken.clone(),
+          "temporaryCode": code.clone(),
           "updatedAt": chrono::Utc::now().to_string()
         };
 
@@ -328,12 +325,12 @@ impl AuthService {
         {
           Ok(_) => Ok(ResponseModel {
             status: ResponseStatus::Success,
-            message: "Password reset email sent".to_string(),
+            message: "Password reset code sent".to_string(),
             data: DataValue::String("".to_string()),
           }),
           Err(e) => Err(ResponseModel {
             status: ResponseStatus::Error,
-            message: format!("Error updating user reset token: {}", e),
+            message: format!("Error updating user temporary code: {}", e),
             data: DataValue::String("".to_string()),
           }),
         }
@@ -347,13 +344,46 @@ impl AuthService {
   }
 
   #[allow(non_snake_case)]
+  pub async fn verifyCode(
+    &self,
+    email: String,
+    code: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let nameTable = "users".to_string();
+
+    let filter = doc! {
+      "email": email.clone(),
+      "temporaryCode": code.clone()
+    };
+    match self
+      .mongodbProvider
+      .getByField(&nameTable, Some(filter), None, "")
+      .await
+    {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "Code verified successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Invalid verification code: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn resetPassword(
     &self,
     resetData: PasswordReset,
   ) -> Result<ResponseModel, ResponseModel> {
     let nameTable = "users".to_string();
 
-    let filter = doc! { "resetToken": resetData.token.clone() };
+    let filter = doc! {
+      "email": resetData.email.clone(),
+      "temporaryCode": resetData.code.clone()
+    };
     match self
       .mongodbProvider
       .getByField(&nameTable, Some(filter), None, "")
@@ -377,7 +407,7 @@ impl AuthService {
 
         let updateData = doc! {
           "password": hashedPassword,
-          "resetToken": "",
+          "temporaryCode": "",
           "updatedAt": chrono::Utc::now().to_string()
         };
 
@@ -400,7 +430,7 @@ impl AuthService {
       }
       Err(e) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Invalid reset token: {}", e),
+        message: format!("Invalid verification code: {}", e),
         data: DataValue::String("".to_string()),
       }),
     }

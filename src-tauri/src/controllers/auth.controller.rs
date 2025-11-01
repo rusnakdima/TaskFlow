@@ -52,6 +52,15 @@ impl AuthController {
   }
 
   #[allow(non_snake_case)]
+  pub async fn verifyCode(
+    &self,
+    email: String,
+    code: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    return self.authService.verifyCode(email, code).await;
+  }
+
+  #[allow(non_snake_case)]
   pub async fn resetPassword(
     &self,
     resetData: PasswordReset,

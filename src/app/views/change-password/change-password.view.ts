@@ -11,7 +11,6 @@ import {
   ValidatorFn,
   Validators,
 } from "@angular/forms";
-import { ActivatedRoute } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -34,11 +33,10 @@ import { PasswordReset } from "@models/password-reset-form";
 })
 export class ChangePasswordView {
   resetForm: FormGroup;
-  private token: string = "";
+  private userEmail: string = "";
 
   constructor(
     private fb: FormBuilder,
-    private route: ActivatedRoute,
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService
@@ -52,24 +50,20 @@ export class ChangePasswordView {
   role: string = "";
 
   errorText: string = "";
-  isTokenValid: boolean = false;
-  isExpired: boolean = false;
+  isVerified: boolean = false;
 
   isShowPassword: boolean = false;
   isShowConfirmPassword: boolean = false;
 
   ngOnInit() {
-    this.route.queryParams.subscribe((param) => {
-      if (param["token"]) {
-        this.token = param["token"];
-        this.isTokenValid = true;
-        this.isExpired = false;
-      } else {
-        this.errorText = "No reset token provided";
-        this.isTokenValid = false;
-        this.isExpired = true;
-      }
-    });
+    this.userEmail = sessionStorage.getItem("resetPasswordEmail") || "";
+
+    if (this.userEmail) {
+      this.isVerified = true;
+    } else {
+      this.errorText = "No verified email found. Please restart the password reset process.";
+      this.isVerified = false;
+    }
 
     this.role = this.authService.getValueByKey("role") ?? "player";
   }
@@ -108,9 +102,10 @@ export class ChangePasswordView {
       return;
     }
 
-    if (this.resetForm.valid && this.token) {
+    if (this.resetForm.valid && this.userEmail) {
       const passwordReset: PasswordReset = {
-        token: this.token,
+        email: this.userEmail,
+        code: sessionStorage.getItem("resetPasswordCode") || "",
         newPassword: this.f["password"].value,
       };
 
@@ -120,7 +115,12 @@ export class ChangePasswordView {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             this.notifyService.showNotify(ResponseStatus.SUCCESS, "Password changed successfully");
-            document.location.href = "/login";
+
+            setTimeout(() => {
+              sessionStorage.removeItem("resetPasswordEmail");
+              sessionStorage.removeItem("resetPasswordCode");
+              document.location.href = "/login";
+            }, 1500);
           }
         })
         .catch((err: any) => {

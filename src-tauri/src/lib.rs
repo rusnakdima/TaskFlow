@@ -7,7 +7,7 @@ mod services;
 
 /* sys lib */
 use std::sync::Arc;
-use tauri::{async_runtime::block_on, Emitter, Listener, Manager};
+use tauri::{async_runtime::block_on, Manager};
 
 /* helpers */
 use crate::helpers::{
@@ -17,7 +17,9 @@ use crate::helpers::{
 
 /* routes */
 use routes::about_route::{downloadUpdate, getBinaryNameFile};
-use routes::auth_route::{checkToken, login, register, requestPasswordReset, resetPassword};
+use routes::auth_route::{
+  checkToken, login, register, requestPasswordReset, resetPassword, verifyCode,
+};
 use routes::category_route::{
   categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
 };
@@ -129,50 +131,6 @@ pub fn run() {
         dailyActivityService: Arc::new(DailyActivityService::new(jsonProvider.clone())),
       });
 
-      let scheme = config.appScheme.clone();
-      let app_handle = app.handle().clone();
-      app.listen_any("deep-link://opened", move |event| {
-        let payload_str = event.payload();
-        if let Ok(payload) = serde_json::from_str::<serde_json::Value>(payload_str) {
-          if let Some(urls) = payload.get("urls").and_then(|u| u.as_array()) {
-            for url_value in urls {
-              if let Some(url) = url_value.as_str() {
-                println!("Opened deep link: {}", url);
-                let mut parsed = serde_json::Map::new();
-                let scheme_prefix = format!("{}://", scheme);
-                if url.starts_with(&scheme_prefix) {
-                  let url_part = &url[scheme_prefix.len()..];
-                  if let Some(q_pos) = url_part.find('?') {
-                    let path = &url_part[..q_pos];
-                    let query = &url_part[q_pos + 1..];
-                    parsed.insert(
-                      "path".to_string(),
-                      serde_json::Value::String(path.to_string()),
-                    );
-                    let params: serde_json::Map<String, serde_json::Value> = query
-                      .split('&')
-                      .filter_map(|pair| {
-                        let mut split = pair.split('=');
-                        let key = split.next()?.to_string();
-                        let value = split.next()?.to_string();
-                        Some((key, serde_json::Value::String(value)))
-                      })
-                      .collect();
-                    parsed.insert("params".to_string(), serde_json::Value::Object(params));
-                  } else {
-                    parsed.insert(
-                      "path".to_string(),
-                      serde_json::Value::String(url_part.to_string()),
-                    );
-                  }
-                }
-                let _ = app_handle.emit("deep-link-opened", serde_json::Value::Object(parsed));
-              }
-            }
-          }
-        }
-      });
-
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -182,6 +140,7 @@ pub fn run() {
       login,
       register,
       requestPasswordReset,
+      verifyCode,
       resetPassword,
       profileGetAllByField,
       profileGetByField,
