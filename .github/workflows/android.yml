@@ -50,13 +50,16 @@ jobs:
       - name: Free up disk space
         run: |
           echo "Freeing up disk space..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /usr/share/swift
-          sudo rm -rf /usr/local/.ghcup
-          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/share/boost || true
+          # Skip AGENT_TOOLSDIRECTORY removal in local environments
+          if [ -n "$AGENT_TOOLSDIRECTORY" ] && [ "$AGENT_TOOLSDIRECTORY" != "/opt/hostedtoolcache" ]; then
+            sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          fi
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/local/.ghcup || true
+          sudo apt-get clean || true
           docker system prune -a -f || true
           df -h
 
@@ -136,9 +139,10 @@ jobs:
           npm cache clean --force
           # Clean gradle cache if exists
           rm -rf ~/.gradle/daemon/
-          # Clean any existing build artifacts
+          # Clean any existing build artifacts (but preserve incremental compilation cache)
           rm -rf src-tauri/gen/android/app/build/
-          rm -rf src-tauri/target/
+          # Only clean release artifacts, keep debug and incremental cache
+          rm -rf src-tauri/target/release/
           df -h
 
       - name: Grant execute permission for gradlew
@@ -147,9 +151,21 @@ jobs:
       - name: Setup Android Keystore
         run: |
           cd src-tauri/gen/android
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
-          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          # Use defaults for local testing if secrets are not provided
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+          KEY_PASSWORD="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+          if [ -z "$KEY_ALIAS" ]; then
+            KEY_ALIAS="androiddebugkey"
+          fi
+          if [ -z "$KEY_PASSWORD" ]; then
+            KEY_PASSWORD="android"
+          fi
+
+          echo "keyAlias=$KEY_ALIAS" > keystore.properties
+          echo "password=$KEY_PASSWORD" >> keystore.properties
           echo "storeFile=$(pwd)/app/keystore.jks" >> keystore.properties
+
           # Create keystore from GitHub secrets (if provided)
           if [ -n "${{ secrets.ANDROID_KEY_BASE64 }}" ]; then
             base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $(pwd)/app/keystore.jks
@@ -157,42 +173,47 @@ jobs:
           else
             # Generate a debug keystore for CI builds
             echo "Generating debug keystore for CI"
-            keytool -genkey -v -keystore $(pwd)/app/keystore.jks \
+            keytool -genkeypair -v -keystore $(pwd)/app/keystore.jks \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass ${{ secrets.ANDROID_KEY_PASSWORD }} -keypass ${{ secrets.ANDROID_KEY_PASSWORD }} \
-              -alias ${{ secrets.ANDROID_KEY_ALIAS }} \
-              -dname "CN=Dmitriy303, OU=TCS, O=TechCraft Solutions, L=New York, S=Washington, C=US"
+              -storepass "$KEY_PASSWORD" -keypass "$KEY_PASSWORD" \
+              -alias "$KEY_ALIAS" \
+              -dname "CN=Dmitriy303, OU=TCS, O=TechCraft Solutions, L=New York, ST=Washington, C=US"
           fi
 
       - name: Build Android APK (Release)
         run: |
           echo "Building release APK..."
           df -h
-          pnpm tauri android build --apk
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build android-apk release
 
       - name: Clean up after release build
         run: |
           echo "Cleaning up after release build..."
-          rm -rf src-tauri/target/
+          # Only clean release artifacts, preserve incremental cache
+          rm -rf src-tauri/target/release/
           rm -rf ~/.gradle/caches/transforms-*
           df -h
 
       - name: Build Android AAB
         run: |
           echo "Building AAB..."
-          pnpm tauri android build --aab
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build android-aab release
 
       - name: Clean up after AAB build
         run: |
           echo "Cleaning up after AAB build..."
-          rm -rf src-tauri/target/
+          # Only clean release artifacts, preserve incremental cache
+          rm -rf src-tauri/target/release/
           rm -rf ~/.gradle/caches/transforms-*
           df -h
 
       - name: Build Debug APK (for testing)
         run: |
           echo "Building debug APK..."
-          pnpm tauri android build --apk --debug
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build android-apk release
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4

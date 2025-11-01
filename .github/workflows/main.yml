@@ -85,7 +85,9 @@ jobs:
         run: pnpm install
 
       - name: Build app
-        run: pnpm tauri build ${{ matrix.args }}
+        run: |
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build desktop release ${{ matrix.args }}
 
       - name: Upload to Existing Release
         uses: softprops/action-gh-release@v1

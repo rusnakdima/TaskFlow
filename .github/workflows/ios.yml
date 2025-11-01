@@ -56,6 +56,11 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Build frontend (optimized)
+        run: |
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build ios release
+
       - name: Initialize Tauri iOS (if needed)
         run: |
           if [ ! -d "src-tauri/gen/apple" ]; then
