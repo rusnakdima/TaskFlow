@@ -2,12 +2,18 @@
 import { CommonModule, Location } from "@angular/common";
 import { Component } from "@angular/core";
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators,
 } from "@angular/forms";
+
+/* helpers */
+import { Common } from "@helpers/common.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -35,14 +41,7 @@ export class ResetPasswordView {
     private notifyService: NotifyService
   ) {
     this.resetForm = fb.group({
-      email: [
-        "",
-        [
-          Validators.required,
-          Validators.email,
-          Validators.pattern(/^[a-zA-Z0-9._%+-]+@(gmail|yandex|outlook)\.[a-zA-Z]{2,}$/),
-        ],
-      ],
+      email: ["", [Validators.required, Validators.email, this.emailValidator()]],
       code: ["", [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
   }
@@ -63,6 +62,16 @@ export class ResetPasswordView {
 
   isInvalid(attr: string) {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
+  }
+
+  emailValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const email = control.value;
+      if (email && !Common.isValidEmail(email)) {
+        return { invalidEmail: true };
+      }
+      return null;
+    };
   }
 
   onEmailSubmit() {

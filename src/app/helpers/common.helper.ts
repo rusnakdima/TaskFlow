@@ -91,9 +91,7 @@ export class Common {
       }
 
       const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-      const days = Math.floor(
-        (diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24),
-      );
+      const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
       if (months >= 1) {
         return `${months} month${months > 1 ? "s" : ""}${
           days > 0 ? ` ${days} day${days > 1 ? "s" : ""}` : ""
@@ -101,9 +99,7 @@ export class Common {
       }
 
       const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(
-        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
       if (totalDays >= 1) {
@@ -135,9 +131,7 @@ export class Common {
       }
 
       const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-      const days = Math.floor(
-        (diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24),
-      );
+      const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
       if (months >= 1) {
         return `in ${months} month${months > 1 ? "s" : ""}${
           days > 0 ? ` ${days} day${days > 1 ? "s" : ""}` : ""
@@ -145,9 +139,7 @@ export class Common {
       }
 
       const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(
-        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
       if (totalDays >= 1) {
@@ -179,9 +171,7 @@ export class Common {
       }
 
       const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-      const days = Math.floor(
-        (diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24),
-      );
+      const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
       if (months >= 1) {
         return `${months} month${months > 1 ? "s" : ""}${
           days > 0 ? ` ${days} day${days > 1 ? "s" : ""}` : ""
@@ -189,9 +179,7 @@ export class Common {
       }
 
       const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(
-        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
       if (totalDays >= 1) {
@@ -208,5 +196,10 @@ export class Common {
     }
 
     return "";
+  }
+
+  static isValidEmail(email: string): boolean {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yandex|outlook|yahoo|mail|xmail)\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
   }
 }

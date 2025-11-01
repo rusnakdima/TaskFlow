@@ -16,6 +16,9 @@ import { Router, RouterModule } from "@angular/router";
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
+/* helpers */
+import { Common } from "@helpers/common.helper";
+
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { SignupForm } from "@models/signup-form";
@@ -41,14 +44,7 @@ export class SignupView {
     private notifyService: NotifyService
   ) {
     this.regForm = fb.group({
-      email: [
-        "",
-        [
-          Validators.required,
-          Validators.email,
-          Validators.pattern(/^[a-zA-Z0-9._%+-]+@(gmail|yandex|outlook)\.[a-zA-Z]{2,}$/),
-        ],
-      ],
+      email: ["", [Validators.required, Validators.email, this.emailValidator()]],
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
       password: ["", [Validators.required, Validators.minLength(6)]],
       confirm_password: ["", [Validators.required, Validators.minLength(6), this.checkPasswords()]],
@@ -83,6 +79,16 @@ export class SignupView {
         if (password != confirmPassword) {
           return { passwordMismatch: true };
         }
+      }
+      return null;
+    };
+  }
+
+  emailValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const email = control.value;
+      if (email && !Common.isValidEmail(email)) {
+        return { invalidEmail: true };
       }
       return null;
     };
