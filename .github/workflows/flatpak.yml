@@ -49,8 +49,13 @@ jobs:
           echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
           echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
           echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
-          echo "JWT_SECRET=q3tb@!jnk$^hg8*u5zv9&m6x1s2w7p4r0e3" >> src-tauri/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
           echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
+          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
+          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
+          echo "SMTP_PORT=587" >> src-tauri/.env
+          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
