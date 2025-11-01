@@ -27,28 +27,36 @@ modules:
         CI: "true"
         NPM_CONFIG_LOGLEVEL: info
         PNPM_HOME: /run/build/taskflow/.pnpm
-        PATH: /run/build/taskflow/.pnpm:/usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin:/app/bin:/usr/bin:/bin
     sources:
       - type: dir
         path: ..
         dest: source
-      - type: file
-        url: https://github.com/pnpm/pnpm/releases/download/v9.12.3/pnpm-linuxstatic-x64
-        sha256: abf3e983690413075d6f85c77de59b23d85e3aba8889b7212d500ba5bb24fc17
-        dest-filename: pnpm
+      - type: script
+        dest-filename: install-pnpm.sh
+        commands:
+          - mkdir -p /run/build/taskflow/.pnpm
+          - curl -fsSL https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linuxstatic-x64 -o /run/build/taskflow/.pnpm/pnpm
+          - chmod +x /run/build/taskflow/.pnpm/pnpm
     build-commands:
-      # Setup pnpm
-      - mkdir -p /run/build/taskflow/.pnpm
-      - install -Dm755 pnpm /run/build/taskflow/.pnpm/pnpm
+      # Setup pnpm (latest version)
+      - chmod +x install-pnpm.sh
+      - ./install-pnpm.sh
 
-      # Configure pnpm and build in source directory
+      # Install dependencies and build Tauri app
       - |
         cd source
+        export PATH="/run/build/taskflow/.pnpm:/usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin:$PATH"
+
+        # Configure pnpm
         /run/build/taskflow/.pnpm/pnpm config set store-dir /run/build/taskflow/.pnpm-store
         /run/build/taskflow/.pnpm/pnpm config set fetch-timeout 600000
         /run/build/taskflow/.pnpm/pnpm config set fetch-retries 5
         /run/build/taskflow/.pnpm/pnpm config set network-concurrency 1
+
+        # Install dependencies
         /run/build/taskflow/.pnpm/pnpm install --frozen-lockfile
+
+        # Build Tauri app (binary only, no bundles needed for Flatpak)
         /run/build/taskflow/.pnpm/pnpm tauri build --bundles deb
 
       # Install the binary
@@ -58,10 +66,10 @@ modules:
       - install -Dm644 source/src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
       - install -Dm644 source/src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.tcs.taskflow.png
 
-      # Create desktop file
-      - mkdir -p /app/share/applications
+      # Install desktop file
+      - install -Dm644 /dev/stdin /app/share/applications/com.tcs.taskflow.desktop <<EOF
       - |
-        cat > /app/share/applications/com.tcs.taskflow.desktop <<EOF
+        cat <<EOF > /app/share/applications/com.tcs.taskflow.desktop
         [Desktop Entry]
         Type=Application
         Name=TaskFlow
