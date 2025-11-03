@@ -8,6 +8,78 @@ on:
     #   - master
 
 jobs:
+  build-windows:
+    permissions:
+      contents: write
+    runs-on: windows-2022
+    env:
+      NAME_APP: taskflow
+      APP_HOME_FOLDER: TaskFlow
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_NAME: TaskFlow
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JSONDB_NAME: task_flow_db
+      SMTP_USERNAME: rusnakdima03@gmail.com
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_SERVER: smtp.gmail.com
+      SMTP_PORT: 587
+      RESET_TOKEN_EXPIRY_HOURS: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          echo "NAME_APP=taskflow" > src-tauri/.env
+          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
+          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
+          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
+          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
+          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
+          echo "SMTP_PORT=587" >> src-tauri/.env
+          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
+
+      - name: Install pnpm
+        run: |
+          npm i -g pnpm
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: "pnpm"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Windows app
+        shell: bash
+        run: |
+          chmod +x ./build-optimized.sh
+          FORCE_BUILD=true ./build-optimized.sh build desktop release
+
+      - name: Upload Windows Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-tauri:
     permissions:
       contents: write
@@ -85,6 +157,7 @@ jobs:
         run: pnpm install
 
       - name: Build app
+        shell: bash
         run: |
           chmod +x ./build-optimized.sh
           FORCE_BUILD=true ./build-optimized.sh build desktop release ${{ matrix.args }}
