@@ -9,5 +9,4 @@ pub struct EmailConfig {
   pub smtpServer: String,
   pub smtpPort: u16,
   pub resetTokenExpiryHours: u64,
-  pub appScheme: String,
 }

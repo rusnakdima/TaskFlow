@@ -33,7 +33,6 @@ impl EmailProvider {
       smtpServer: config.smtpServer.clone(),
       smtpPort: config.smtpPort,
       resetTokenExpiryHours: config.resetTokenExpiryHours,
-      appScheme: config.appScheme.clone(),
     };
 
     Ok(Self::new(emailConfig))
