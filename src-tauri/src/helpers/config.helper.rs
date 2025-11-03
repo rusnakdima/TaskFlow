@@ -15,7 +15,6 @@ pub struct ConfigHelper {
   pub smtpServer: String,
   pub smtpPort: u16,
   pub resetTokenExpiryHours: u64,
-  pub appScheme: String,
 }
 
 impl ConfigHelper {
@@ -72,10 +71,6 @@ impl ConfigHelper {
             .expect("RESET_TOKEN_EXPIRY_HOURS must be a valid number")
         })
         .unwrap_or(1),
-      appScheme: envVars
-        .get("APP_SCHEME")
-        .expect("APP_SCHEME not set in .env")
-        .clone(),
     }
   }
 
