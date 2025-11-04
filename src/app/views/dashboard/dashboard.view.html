@@ -171,9 +171,6 @@
         <div class="text-center py-8">
           <mat-icon class="!w-9 !h-9 !text-4xl textMuted" fontIcon="assignment" />
           <p class="textMuted mt-2">No tasks found</p>
-          <button class="styleButInfo mt-4" routerLink="/todos/create_todo">
-            Create your first task
-          </button>
         </div>
       } @else {
         @for (task of filteredTasks; track $index) {
