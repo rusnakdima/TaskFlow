@@ -63,6 +63,8 @@ export class ManageSubtaskView implements OnInit {
       description: ["", Validators.required],
       isCompleted: [false],
       priority: ["", Validators.required],
+      order: [0],
+      isDeleted: [false],
       createdAt: [""],
       updatedAt: [""],
     });

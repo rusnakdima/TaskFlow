@@ -66,6 +66,8 @@ export class ManageTaskView implements OnInit {
       priority: ["", Validators.required],
       startDate: [""],
       endDate: [""],
+      order: [0],
+      isDeleted: [false],
       createdAt: [""],
       updatedAt: [""],
     });
