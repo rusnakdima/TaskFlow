@@ -95,7 +95,7 @@ jobs:
           cat > flatpak-build/files/share/applications/com.tcs.taskflow.desktop <<EOF
           [Desktop Entry]
           Type=Application
-          Name=TaskFlow
+          Name=Task Flow
           Exec=taskflow
           Icon=com.tcs.taskflow
           Categories=Utility;
