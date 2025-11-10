@@ -29,9 +29,6 @@
   "plugins": {
     "updater": {
       "active": false
-    },
-    "deep-link": {
-      "schemes": ["taskflow"]
     }
   },
   "bundle": {
