@@ -32,7 +32,6 @@ serde_json = "1"
 tauri = {version = "2", features = [] }
 tauri-plugin-http = "2.5.1"
 tauri-plugin-opener = "2"
-tauri-plugin-deep-link = "2"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 uuid = { version = "1.0", features = ["v4"] }
 rand = "0.8"
