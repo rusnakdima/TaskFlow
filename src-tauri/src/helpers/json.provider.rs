@@ -17,7 +17,7 @@ use super::mongodb_provider::MongodbProvider;
 #[allow(non_snake_case)]
 pub struct JsonProvider {
   pub dbFilePath: PathBuf,
-  pub mongodb_provider: Option<std::sync::Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<std::sync::Arc<MongodbProvider>>,
 }
 
 impl JsonProvider {
@@ -26,7 +26,7 @@ impl JsonProvider {
     appHandle: AppHandle,
     envHomeFolder: String,
     envDbName: String,
-    mongodb_provider: Option<std::sync::Arc<MongodbProvider>>,
+    mongodbProvider: Option<std::sync::Arc<MongodbProvider>>,
   ) -> Self {
     let homeAppFolder = envHomeFolder;
     let dbName = envDbName;
@@ -47,7 +47,7 @@ impl JsonProvider {
 
     Self {
       dbFilePath,
-      mongodb_provider,
+      mongodbProvider,
     }
   }
 
@@ -84,7 +84,7 @@ impl JsonProvider {
 
   #[allow(non_snake_case)]
   fn shouldUseMongo(&self, nameTable: &str) -> bool {
-    (nameTable == "users" || nameTable == "profiles") && self.mongodb_provider.is_some()
+    (nameTable == "users" || nameTable == "profiles") && self.mongodbProvider.is_some()
   }
 
   #[allow(non_snake_case)]
@@ -96,10 +96,10 @@ impl JsonProvider {
     id: &str,
   ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
     if self.shouldUseMongo(nameTable) {
-      let mongo_provider = self.mongodb_provider.as_ref().unwrap();
-      let mongo_filter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
-      let doc = mongo_provider
-        .getByField(nameTable, mongo_filter, relations, id)
+      let mongoProvider = self.mongodbProvider.as_ref().unwrap();
+      let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
+      let doc = mongoProvider
+        .getByField(nameTable, mongoFilter, relations, id)
         .await?;
       self.convertDocToValue(doc)
     } else {
@@ -115,10 +115,10 @@ impl JsonProvider {
     relations: Option<Vec<RelationObj>>,
   ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
     if self.shouldUseMongo(nameTable) {
-      let mongo_provider = self.mongodb_provider.as_ref().unwrap();
-      let mongo_filter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
-      let docs = mongo_provider
-        .getAllByField(nameTable, mongo_filter, relations)
+      let mongoProvider = self.mongodbProvider.as_ref().unwrap();
+      let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
+      let docs = mongoProvider
+        .getAllByField(nameTable, mongoFilter, relations)
         .await?;
       docs
         .into_iter()
