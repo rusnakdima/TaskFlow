@@ -136,12 +136,21 @@ impl JsonProvider {
   ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
     let tablePath = self.getTablePath(nameTable);
 
+    if let Some(parent_dir) = tablePath.parent() {
+      fs::create_dir_all(parent_dir)?;
+    }
+
     if !tablePath.exists() {
       fs::write(&tablePath, "[]")?;
       return Ok(Vec::new());
     }
 
     let content = fs::read_to_string(&tablePath)?;
+
+    if content.trim().is_empty() {
+      return Ok(vec![]);
+    }
+
     let data: Vec<Value> = from_str::<Vec<Value>>(&content)?;
 
     Ok(data)
@@ -154,8 +163,20 @@ impl JsonProvider {
     data: &Vec<Value>,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let tablePath = self.getTablePath(nameTable);
+
     let jsonString = to_string_pretty(data)?;
-    fs::write(&tablePath, jsonString)?;
+
+    let tempPath = tablePath.with_extension("tmp");
+
+    if let Err(e) = fs::write(&tempPath, &jsonString) {
+      let _ = fs::remove_file(&tempPath);
+      return Err(Box::new(e));
+    }
+
+    if let Err(e) = fs::rename(&tempPath, &tablePath) {
+      let _ = fs::remove_file(&tempPath);
+      return Err(Box::new(e));
+    }
 
     Ok(())
   }
@@ -433,6 +454,16 @@ impl JsonProvider {
         "Record not found",
       )))
     }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(
+    &self,
+    nameTable: &str,
+    records: Vec<Value>,
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    self.saveDataTable(nameTable, &records).await?;
+    Ok(true)
   }
 
   #[allow(non_snake_case)]
