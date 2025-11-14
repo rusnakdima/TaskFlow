@@ -51,6 +51,8 @@ export class TasksView implements OnInit {
   tempListTasks: Array<Task> = [];
   todo: Todo | null = null;
 
+  private isUpdatingOrder: boolean = false;
+
   activeFilter: string = "all";
   showFilter: boolean = false;
 
@@ -207,37 +209,51 @@ export class TasksView implements OnInit {
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {
+    if (this.isUpdatingOrder) {
+      this.notifyService.showWarning("Please wait for previous operation to complete");
+      return;
+    }
+
     moveItemInArray(this.listTasks, event.previousIndex, event.currentIndex);
     this.updateTaskOrder();
   }
 
   updateTaskOrder(): void {
-    const updates = this.listTasks.map((task, index) => ({
+    this.isUpdatingOrder = true;
+
+    const transformedTasks = this.listTasks.map((task) => ({
+      _id: task._id,
       id: task.id,
-      order: index,
+      todoId: task.todo?.id || "",
+      title: task.title,
+      description: task.description,
+      isCompleted: task.isCompleted,
+      priority: task.priority,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      order: task.order,
+      isDeleted: task.isDeleted,
+      createdAt: task.createdAt,
+      updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    const promises = updates.map((update) =>
-      this.mainService
-        .getByField<Task>("task", "id", update.id)
-        .then((response: Response<Task>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const currentTask = response.data;
-            const updatedTask = { ...currentTask, order: update.order };
-            return this.mainService.update<string, Task>("task", update.id, updatedTask);
-          } else {
-            throw new Error("Failed to fetch task");
-          }
-        })
-    );
-
-    Promise.all(promises)
-      .then(() => {
-        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Task order updated successfully");
+    this.mainService
+      .updateAll<string, any>("task", transformedTasks)
+      .then((response: Response<string>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showNotify(ResponseStatus.SUCCESS, "Task order updated successfully");
+        } else {
+          this.getTasksByTodoId(this.todo?.id ?? "");
+          this.notifyService.showError("Failed to update task order");
+        }
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError("Failed to update task order");
         this.getTasksByTodoId(this.todo?.id ?? "");
+        console.error(err);
+      })
+      .finally(() => {
+        this.isUpdatingOrder = false;
       });
   }
 }

@@ -159,35 +159,94 @@ impl SubtaskService {
     id: String,
     data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let modelData: SubtaskModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
     let subtask = self
       .jsonProvider
-      .update("subtasks", &id.as_str(), record)
+      .getByField("subtasks", None, None, id.as_str())
       .await;
+
     match subtask {
-      Ok(result) => {
-        if result {
-          return Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "".to_string(),
-            data: DataValue::String("".to_string()),
-          });
-        } else {
-          return Ok(ResponseModel {
+      Ok(subtask) => {
+        let existingSubtask: SubtaskModel =
+          match serde_json::from_value::<SubtaskModel>(subtask.clone()) {
+            Ok(subtask) => subtask,
+            Err(_) => {
+              return Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Failed to parse existing subtask data".to_string(),
+                data: DataValue::String("".to_string()),
+              });
+            }
+          };
+
+        let updatedSubtask = data.applyTo(existingSubtask);
+        let record: Value = match to_value(&updatedSubtask) {
+          Ok(val) => val,
+          Err(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Failed to serialize updated subtask".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let updateResult = self
+          .jsonProvider
+          .update("subtasks", &id.as_str(), record)
+          .await;
+
+        match updateResult {
+          Ok(success) => {
+            if success {
+              Ok(ResponseModel {
+                status: ResponseStatus::Success,
+                message: "Subtask updated successfully".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            } else {
+              Ok(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Couldn't update a subtask!".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            }
+          }
+          Err(error) => Err(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't update a subtask!".to_string(),
+            message: format!("Couldn't update a subtask! {}", error.to_string()),
             data: DataValue::String("".to_string()),
-          });
+          }),
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't update a subtask! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Existing subtask not found: {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(&self, data: Vec<SubtaskModel>) -> Result<ResponseModel, ResponseModel> {
+    let records: Vec<Value> = data
+      .into_iter()
+      .map(|subtask| {
+        let value = to_value(&subtask).unwrap();
+        value
+      })
+      .collect();
+
+    match self.jsonProvider.updateAll("subtasks", records).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "All subtasks updated successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't update subtasks! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -290,11 +349,15 @@ impl SubtaskService {
     };
     let result = self.update(id, data.clone()).await;
     if result.is_ok() {
-      self
-        .logActivity(data.taskId.clone(), "subtask_updated", 1)
-        .await;
-      if data.isCompleted && !wasCompleted {
-        self.logActivity(data.taskId, "subtask_completed", 1).await;
+      if let Some(ref taskId) = data.taskId {
+        self.logActivity(taskId.clone(), "subtask_updated", 1).await;
+        if let Some(isCompleted) = data.isCompleted {
+          if isCompleted && !wasCompleted {
+            self
+              .logActivity(taskId.clone(), "subtask_completed", 1)
+              .await;
+          }
+        }
       }
     }
     result

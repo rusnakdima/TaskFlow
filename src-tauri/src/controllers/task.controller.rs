@@ -10,7 +10,7 @@ use crate::services::{
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  task_model::{TaskCreateModel, TaskUpdateModel},
+  task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -64,6 +64,11 @@ impl TaskController {
     data: TaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.taskService.updateAndLog(id, data).await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(&self, data: Vec<TaskModel>) -> Result<ResponseModel, ResponseModel> {
+    return self.taskService.updateAll(data).await;
   }
 
   #[allow(non_snake_case)]

@@ -50,6 +50,8 @@ export class SubtasksView implements OnInit {
   task: Task | null = null;
   projectTitle: string = "";
 
+  private isUpdatingOrder: boolean = false;
+
   activeFilter: string = "all";
   showFilter: boolean = false;
 
@@ -196,37 +198,52 @@ export class SubtasksView implements OnInit {
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
+    if (this.isUpdatingOrder) {
+      this.notifyService.showWarning("Please wait for previous operation to complete");
+      return;
+    }
+
     moveItemInArray(this.listSubtasks, event.previousIndex, event.currentIndex);
     this.updateSubtaskOrder();
   }
 
   updateSubtaskOrder(): void {
-    const updates = this.listSubtasks.map((subtask, index) => ({
+    this.isUpdatingOrder = true;
+
+    const transformedSubtasks = this.tempListSubtasks.map((subtask) => ({
+      _id: subtask._id,
       id: subtask.id,
-      order: index,
+      taskId: subtask.task?.id || "",
+      title: subtask.title,
+      description: subtask.description,
+      isCompleted: subtask.isCompleted,
+      priority: subtask.priority,
+      order: subtask.order,
+      isDeleted: subtask.isDeleted,
+      createdAt: subtask.createdAt,
+      updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    const promises = updates.map((update) =>
-      this.mainService
-        .getByField<Subtask>("subtask", "id", update.id)
-        .then((response: Response<Subtask>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const currentSubtask = response.data;
-            const updatedSubtask = { ...currentSubtask, order: update.order };
-            return this.mainService.update<string, Subtask>("subtask", update.id, updatedSubtask);
-          } else {
-            throw new Error("Failed to fetch subtask");
-          }
-        })
-    );
-
-    Promise.all(promises)
-      .then(() => {
-        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Subtask order updated successfully");
+    this.mainService
+      .updateAll<string, any>("subtask", transformedSubtasks)
+      .then((response: Response<string>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showNotify(
+            ResponseStatus.SUCCESS,
+            "Subtask order updated successfully"
+          );
+        } else {
+          this.getSubtasksByTaskId(this.task?.id ?? "");
+          this.notifyService.showError("Failed to update subtask order");
+        }
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError("Failed to update subtask order");
         this.getSubtasksByTaskId(this.task?.id ?? "");
+        console.error(err);
+      })
+      .finally(() => {
+        this.isUpdatingOrder = false;
       });
   }
 }

@@ -93,53 +93,61 @@ impl From<TaskCreateModel> for TaskModel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TaskUpdateModel {
-  pub _id: ObjectId,
+  pub _id: Option<ObjectId>,
   pub id: String,
-  pub todoId: String,
-  pub title: String,
-  pub description: String,
-  pub isCompleted: bool,
-  pub priority: String,
-  pub startDate: String,
-  pub endDate: String,
-  pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
+  pub todoId: Option<String>,
+  pub title: Option<String>,
+  pub description: Option<String>,
+  pub isCompleted: Option<bool>,
+  pub priority: Option<String>,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
+  pub order: Option<i32>,
+  pub isDeleted: Option<bool>,
+  pub createdAt: Option<String>,
   pub updatedAt: String,
 }
 
 #[allow(non_snake_case)]
-impl From<TaskUpdateModel> for TaskModel {
-  fn from(value: TaskUpdateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
-    let mut formattedStartDate = String::new();
-    let mut formattedEndDate = String::new();
-    if value.startDate != "" {
-      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+impl TaskUpdateModel {
+  pub fn applyTo(&self, existing: TaskModel) -> TaskModel {
+    let mut formattedStartDate = existing.startDate.clone();
+    let mut formattedEndDate = existing.endDate.clone();
+
+    if let Some(ref startDate) = self.startDate {
+      if startDate != "" {
+        formattedStartDate = chrono::DateTime::parse_from_rfc3339(startDate)
+          .unwrap()
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+      } else {
+        formattedStartDate = startDate.clone();
+      }
     }
-    if value.endDate != "" {
-      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+
+    if let Some(ref endDate) = self.endDate {
+      if endDate != "" {
+        formattedEndDate = chrono::DateTime::parse_from_rfc3339(endDate)
+          .unwrap()
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+      } else {
+        formattedEndDate = endDate.clone();
+      }
     }
 
     TaskModel {
-      _id: value._id,
-      id: value.id,
-      todoId: value.todoId,
-      title: value.title,
-      description: value.description,
-      isCompleted: value.isCompleted,
-      priority: value.priority.to_string(),
+      _id: existing._id,
+      id: existing.id,
+      todoId: self.todoId.clone().unwrap_or(existing.todoId),
+      title: self.title.clone().unwrap_or(existing.title),
+      description: self.description.clone().unwrap_or(existing.description),
+      isCompleted: self.isCompleted.unwrap_or(existing.isCompleted),
+      priority: self.priority.clone().unwrap_or(existing.priority),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
-      order: value.order,
-      isDeleted: value.isDeleted,
-      createdAt: value.createdAt,
-      updatedAt: formatted.clone(),
+      order: self.order.unwrap_or(existing.order),
+      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
+      createdAt: existing.createdAt,
+      updatedAt: self.updatedAt.clone(),
     }
   }
 }

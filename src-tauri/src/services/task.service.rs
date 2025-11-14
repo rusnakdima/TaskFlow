@@ -162,35 +162,93 @@ impl TaskService {
     id: String,
     data: TaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let modelData: TaskModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
     let task = self
       .jsonProvider
-      .update("tasks", &id.as_str(), record)
+      .getByField("tasks", None, None, id.as_str())
       .await;
+
     match task {
-      Ok(result) => {
-        if result {
-          return Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "".to_string(),
-            data: DataValue::String("".to_string()),
-          });
-        } else {
-          return Ok(ResponseModel {
+      Ok(task) => {
+        let existingTask: TaskModel = match serde_json::from_value::<TaskModel>(task.clone()) {
+          Ok(task) => task,
+          Err(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Failed to parse existing task data".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let updatedTask = data.applyTo(existingTask);
+        let record: Value = match to_value(&updatedTask) {
+          Ok(val) => val,
+          Err(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Failed to serialize updated task".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let updateResult = self
+          .jsonProvider
+          .update("tasks", &id.as_str(), record)
+          .await;
+
+        match updateResult {
+          Ok(success) => {
+            if success {
+              Ok(ResponseModel {
+                status: ResponseStatus::Success,
+                message: "Task updated successfully".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            } else {
+              Ok(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Couldn't update a task!".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            }
+          }
+          Err(error) => Err(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't update a task!".to_string(),
+            message: format!("Couldn't update a task! {}", error.to_string()),
             data: DataValue::String("".to_string()),
-          });
+          }),
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't update a task! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Existing task not found: {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(&self, data: Vec<TaskModel>) -> Result<ResponseModel, ResponseModel> {
+    let records: Vec<Value> = data
+      .into_iter()
+      .map(|task| {
+        let value = to_value(&task).unwrap();
+        value
+      })
+      .collect();
+
+    match self.jsonProvider.updateAll("tasks", records).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "All tasks updated successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't update tasks! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -289,13 +347,16 @@ impl TaskService {
     } else {
       false
     };
+
     let result = self.update(id, data.clone()).await;
     if result.is_ok() {
-      self
-        .logActivity(data.todoId.clone(), "task_updated", 1)
-        .await;
-      if data.isCompleted && !wasCompleted {
-        self.logActivity(data.todoId, "task_completed", 1).await;
+      if let Some(ref todoId) = data.todoId {
+        self.logActivity(todoId.clone(), "task_updated", 1).await;
+        if let Some(isCompleted) = data.isCompleted {
+          if isCompleted && !wasCompleted {
+            self.logActivity(todoId.clone(), "task_completed", 1).await;
+          }
+        }
       }
     }
     result

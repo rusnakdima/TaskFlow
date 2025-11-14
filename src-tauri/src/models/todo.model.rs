@@ -75,53 +75,61 @@ impl From<TodoCreateModel> for TodoModel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TodoUpdateModel {
-  pub _id: ObjectId,
+  pub _id: Option<ObjectId>,
   pub id: String,
-  pub userId: String,
-  pub title: String,
-  pub description: String,
-  pub startDate: String,
-  pub endDate: String,
-  pub categories: Vec<String>,
-  pub assignees: Vec<String>,
-  pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
+  pub userId: Option<String>,
+  pub title: Option<String>,
+  pub description: Option<String>,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
+  pub categories: Option<Vec<String>>,
+  pub assignees: Option<Vec<String>>,
+  pub order: Option<i32>,
+  pub isDeleted: Option<bool>,
+  pub createdAt: Option<String>,
   pub updatedAt: String,
 }
 
 #[allow(non_snake_case)]
-impl From<TodoUpdateModel> for TodoModel {
-  fn from(value: TodoUpdateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
-    let mut formattedStartDate = String::new();
-    let mut formattedEndDate = String::new();
-    if value.startDate != "" {
-      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+impl TodoUpdateModel {
+  pub fn applyTo(&self, existing: TodoModel) -> TodoModel {
+    let mut formattedStartDate = existing.startDate.clone();
+    let mut formattedEndDate = existing.endDate.clone();
+
+    if let Some(ref startDate) = self.startDate {
+      if startDate != "" {
+        formattedStartDate = chrono::DateTime::parse_from_rfc3339(startDate)
+          .unwrap()
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+      } else {
+        formattedStartDate = startDate.clone();
+      }
     }
-    if value.endDate != "" {
-      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+
+    if let Some(ref endDate) = self.endDate {
+      if endDate != "" {
+        formattedEndDate = chrono::DateTime::parse_from_rfc3339(endDate)
+          .unwrap()
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+      } else {
+        formattedEndDate = endDate.clone();
+      }
     }
 
     TodoModel {
-      _id: value._id,
-      id: value.id,
-      userId: value.userId,
-      title: value.title,
-      description: value.description,
+      _id: existing._id,
+      id: existing.id,
+      userId: self.userId.clone().unwrap_or(existing.userId),
+      title: self.title.clone().unwrap_or(existing.title),
+      description: self.description.clone().unwrap_or(existing.description),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
-      categories: value.categories,
-      assignees: value.assignees,
-      order: value.order,
-      isDeleted: value.isDeleted,
-      createdAt: value.createdAt,
-      updatedAt: formatted.clone(),
+      categories: self.categories.clone().unwrap_or(existing.categories),
+      assignees: self.assignees.clone().unwrap_or(existing.assignees),
+      order: self.order.unwrap_or(existing.order),
+      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
+      createdAt: existing.createdAt,
+      updatedAt: self.updatedAt.clone(),
     }
   }
 }

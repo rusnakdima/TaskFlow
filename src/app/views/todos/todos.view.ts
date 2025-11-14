@@ -45,6 +45,8 @@ export class TodosView implements OnInit {
   listTodos: Array<Todo> = [];
   tempListTodos: Array<Todo> = [];
 
+  private isUpdatingOrder: boolean = false;
+
   activeFilter: string = "all";
   showFilter: boolean = false;
 
@@ -183,37 +185,51 @@ export class TodosView implements OnInit {
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    if (this.isUpdatingOrder) {
+      this.notifyService.showWarning("Please wait for previous operation to complete");
+      return;
+    }
+
     moveItemInArray(this.listTodos, event.previousIndex, event.currentIndex);
     this.updateTodoOrder();
   }
 
   updateTodoOrder(): void {
-    const updates = this.listTodos.map((todo, index) => ({
+    this.isUpdatingOrder = true;
+
+    const transformedTodos = this.listTodos.map((todo) => ({
+      _id: todo._id,
       id: todo.id,
-      order: index,
+      userId: todo.user?.id || "",
+      title: todo.title,
+      description: todo.description,
+      startDate: todo.startDate,
+      endDate: todo.endDate,
+      categories: todo.categories?.map((cat) => cat.id) || [],
+      assignees: todo.assignees?.map((assignee) => assignee.id) || [],
+      order: todo.order,
+      isDeleted: todo.isDeleted,
+      createdAt: todo.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    const promises = updates.map((update) =>
-      this.mainService
-        .getByField<Todo>("todo", "id", update.id)
-        .then((response: Response<Todo>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const currentTodo = response.data;
-            const updatedTodo = { ...currentTodo, order: update.order };
-            return this.mainService.update<string, Todo>("todo", update.id, updatedTodo);
-          } else {
-            throw new Error("Failed to fetch todo");
-          }
-        })
-    );
-
-    Promise.all(promises)
-      .then(() => {
-        this.notifyService.showNotify(ResponseStatus.SUCCESS, "Order updated successfully");
+    this.mainService
+      .updateAll<string, any>("todo", transformedTodos)
+      .then((response: Response<string>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showNotify(ResponseStatus.SUCCESS, "Order updated successfully");
+        } else {
+          this.loadTodos();
+          this.notifyService.showError("Failed to update order");
+        }
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError("Failed to update order");
         this.loadTodos();
+        console.error(err);
+      })
+      .finally(() => {
+        this.isUpdatingOrder = false;
       });
   }
 }

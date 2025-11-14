@@ -5,7 +5,7 @@ use tauri::State;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  todo_model::{TodoCreateModel, TodoUpdateModel},
+  todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -63,6 +63,17 @@ pub async fn todoUpdate(
 ) -> Result<ResponseModel, ResponseModel> {
   let todoController = state.todoController.clone();
   let result = todoController.update(id, data).await;
+  result
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn todoUpdateAll(
+  state: State<'_, AppState>,
+  data: Vec<TodoModel>,
+) -> Result<ResponseModel, ResponseModel> {
+  let todoController = state.todoController.clone();
+  let result = todoController.updateAll(data).await;
   result
 }
 

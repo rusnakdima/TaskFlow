@@ -7,7 +7,7 @@ use crate::services::{daily_activity_service::DailyActivityService, todo_service
 /* models */
 use crate::models::{
   response_model::ResponseModel,
-  todo_model::{TodoCreateModel, TodoUpdateModel},
+  todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
 #[allow(non_snake_case)]
@@ -60,6 +60,11 @@ impl TodoController {
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
     return self.todoService.updateAndLog(id, data).await;
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(&self, data: Vec<TodoModel>) -> Result<ResponseModel, ResponseModel> {
+    return self.todoService.updateAll(data).await;
   }
 
   #[allow(non_snake_case)]

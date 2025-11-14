@@ -230,35 +230,95 @@ impl TodoService {
     id: String,
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let modelData: TodoModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
     let todo = self
       .jsonProvider
-      .update("todos", &id.as_str(), record)
+      .getByField("todos", None, None, id.as_str())
       .await;
+
     match todo {
-      Ok(result) => {
-        if result {
-          return Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "".to_string(),
-            data: DataValue::String("".to_string()),
-          });
-        } else {
-          return Ok(ResponseModel {
+      Ok(todo) => {
+        let existingTodo: TodoModel = match serde_json::from_value::<TodoModel>(todo.clone()) {
+          Ok(todo) => todo,
+          Err(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Failed to parse existing todo data".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let updatedTodo = data.applyTo(existingTodo);
+        let record: Value = match to_value(&updatedTodo) {
+          Ok(val) => val,
+          Err(_) => {
+            return Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: "Failed to serialize updated todo".to_string(),
+              data: DataValue::String("".to_string()),
+            });
+          }
+        };
+
+        let updateResult = self
+          .jsonProvider
+          .update("todos", &id.as_str(), record)
+          .await;
+
+        match updateResult {
+          Ok(success) => {
+            if success {
+              Ok(ResponseModel {
+                status: ResponseStatus::Success,
+                message: "Todo updated successfully".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            } else {
+              Ok(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Couldn't update a todo!".to_string(),
+                data: DataValue::String("".to_string()),
+              })
+            }
+          }
+          Err(error) => Err(ResponseModel {
             status: ResponseStatus::Error,
-            message: "Couldn't update a todo!".to_string(),
+            message: format!("Couldn't update a todo! {}", error.to_string()),
             data: DataValue::String("".to_string()),
-          });
+          }),
         }
       }
       Err(error) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Couldn't update a todo! {}", error.to_string()),
+          message: format!("Couldn't get a list of todos! {}", error.to_string()),
           data: DataValue::String("".to_string()),
         });
       }
+    }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(&self, data: Vec<TodoModel>) -> Result<ResponseModel, ResponseModel> {
+    let records: Vec<Value> = data
+      .into_iter()
+      .map(|todo| {
+        let value = to_value(&todo).unwrap();
+        value
+      })
+      .collect();
+
+    match self.jsonProvider.updateAll("todos", records).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "All todos updated successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't update todos! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -339,12 +399,20 @@ impl TodoService {
     id: String,
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    let result = self.update(id, data.clone()).await;
+    let result = self.update(id.clone(), data.clone()).await;
     if result.is_ok() {
-      let _ = self
-        .dailyActivityService
-        .logActivity(data.userId, "todo_updated", 1)
-        .await;
+      if let Ok(currentTodo) = self.getByField("id".to_string(), id.clone()).await {
+        if let DataValue::Object(obj) = &currentTodo.data {
+          if let Some(userIdVal) = obj.get("userId") {
+            if let Some(userId) = userIdVal.as_str() {
+              let _ = self
+                .dailyActivityService
+                .logActivity(userId.to_string(), "todo_updated", 1)
+                .await;
+            }
+          }
+        }
+      }
     }
     result
   }
