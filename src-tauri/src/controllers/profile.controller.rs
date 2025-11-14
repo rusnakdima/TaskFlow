@@ -2,7 +2,7 @@
 use crate::helpers::mongodb_provider::MongodbProvider;
 
 /* services */
-use crate::services::profile_service;
+use crate::services::profile_service::ProfileService;
 
 /* models */
 use crate::models::{
@@ -15,14 +15,14 @@ use std::sync::Arc;
 
 #[allow(non_snake_case)]
 pub struct ProfileController {
-  pub profileService: profile_service::ProfileService,
+  pub profileService: ProfileService,
 }
 
 impl ProfileController {
   #[allow(non_snake_case)]
   pub fn new(mongodbProvider: Arc<MongodbProvider>) -> Self {
     return Self {
-      profileService: profile_service::ProfileService::new(mongodbProvider),
+      profileService: ProfileService::new(mongodbProvider),
     };
   }
 
