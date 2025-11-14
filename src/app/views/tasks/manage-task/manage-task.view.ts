@@ -172,8 +172,12 @@ export class ManageTaskView implements OnInit {
         .then((response: Response<Task[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             const order = response.data.length;
+            const formValue = this.form.value;
+            // Ensure date fields are empty strings instead of null
             const body = {
-              ...this.form.value,
+              ...formValue,
+              startDate: formValue.startDate || "",
+              endDate: formValue.endDate || "",
               order: order,
             };
 
@@ -207,7 +211,13 @@ export class ManageTaskView implements OnInit {
 
   updateTask() {
     if (this.form.valid) {
-      const body = this.form.value;
+      const formValue = this.form.value;
+      const body = {
+        ...formValue,
+        startDate: formValue.startDate || "",
+        endDate: formValue.endDate || "",
+      };
+
       this.mainService
         .update<string, Task>("task", body.id, body)
         .then((response: Response<string>) => {

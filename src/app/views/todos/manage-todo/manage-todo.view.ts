@@ -313,8 +313,11 @@ export class ManageTodoView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
+      const formValue = this.form.value;
       const body = {
-        ...this.form.value,
+        ...formValue,
+        startDate: formValue.startDate || "",
+        endDate: formValue.endDate || "",
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
@@ -341,8 +344,11 @@ export class ManageTodoView implements OnInit {
 
   updateTask() {
     if (this.form.valid) {
+      const formValue = this.form.value;
       const body = {
-        ...this.form.value,
+        ...formValue,
+        startDate: formValue.startDate || "",
+        endDate: formValue.endDate || "",
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
       };
