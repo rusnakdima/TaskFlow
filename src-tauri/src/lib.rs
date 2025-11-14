@@ -32,14 +32,18 @@ use routes::profile_route::{
 use routes::statistics_route::statisticsGet;
 use routes::subtask_route::{
   subtaskCreate, subtaskDelete, subtaskGetAllByField, subtaskGetByField, subtaskUpdate,
+  subtaskUpdateAll,
 };
-use routes::task_route::{taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate};
+use routes::task_route::{
+  taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate, taskUpdateAll,
+};
 use routes::task_shares_route::{
   taskSharesCreate, taskSharesDelete, taskSharesGetAllByField, taskSharesGetByField,
   taskSharesUpdate,
 };
 use routes::todo_route::{
   todoCreate, todoDelete, todoGetAllByField, todoGetByAssignee, todoGetByField, todoUpdate,
+  todoUpdateAll,
 };
 
 /* controllers */
@@ -157,16 +161,19 @@ pub fn run() {
       todoGetByAssignee,
       todoCreate,
       todoUpdate,
+      todoUpdateAll,
       todoDelete,
       taskGetAllByField,
       taskGetByField,
       taskCreate,
       taskUpdate,
+      taskUpdateAll,
       taskDelete,
       subtaskGetAllByField,
       subtaskGetByField,
       subtaskCreate,
       subtaskUpdate,
+      subtaskUpdateAll,
       subtaskDelete,
       taskSharesGetAllByField,
       taskSharesGetByField,
