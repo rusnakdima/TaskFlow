@@ -26,6 +26,9 @@ import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
+/* helpers */
+import { normalizeTaskDates } from "@helpers/date-conversion.helper";
+
 interface PriorityOption {
   value: PriorityTask;
   label: string;
@@ -173,11 +176,9 @@ export class ManageTaskView implements OnInit {
           if (response.status === ResponseStatus.SUCCESS) {
             const order = response.data.length;
             const formValue = this.form.value;
-            // Ensure date fields are empty strings instead of null
+            const normalizedFormValue = normalizeTaskDates(formValue);
             const body = {
-              ...formValue,
-              startDate: formValue.startDate || "",
-              endDate: formValue.endDate || "",
+              ...normalizedFormValue,
               order: order,
             };
 
@@ -212,10 +213,9 @@ export class ManageTaskView implements OnInit {
   updateTask() {
     if (this.form.valid) {
       const formValue = this.form.value;
+      const normalizedFormValue = normalizeTaskDates(formValue);
       const body = {
-        ...formValue,
-        startDate: formValue.startDate || "",
-        endDate: formValue.endDate || "",
+        ...normalizedFormValue,
       };
 
       this.mainService

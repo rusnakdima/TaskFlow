@@ -5,6 +5,7 @@ import { Task } from "./task";
 import { User } from "./user";
 
 export interface Todo {
+  _id?: {} | undefined;
   id: string;
   user: User;
   title: string;
@@ -16,4 +17,6 @@ export interface Todo {
   assignees: Array<Profile>;
   order: number;
   isDeleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

@@ -9,6 +9,7 @@ export enum PriorityTask {
 }
 
 export interface Task {
+  _id?: {} | undefined;
   id: string;
   todo: Todo;
   title: string;
@@ -18,8 +19,8 @@ export interface Task {
   priority: PriorityTask;
   startDate: string;
   endDate: string;
-  createdAt: string;
-  updatedAt: string;
   order: number;
   isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -33,6 +33,9 @@ import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
+/* helpers */
+import { normalizeTodoDates } from "@helpers/date-conversion.helper";
+
 @Component({
   selector: "app-manage-todo",
   standalone: true,
@@ -314,10 +317,9 @@ export class ManageTodoView implements OnInit {
   createTask() {
     if (this.form.valid) {
       const formValue = this.form.value;
+      const normalizedFormValue = normalizeTodoDates(formValue);
       const body = {
-        ...formValue,
-        startDate: formValue.startDate || "",
-        endDate: formValue.endDate || "",
+        ...normalizedFormValue,
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
@@ -345,10 +347,9 @@ export class ManageTodoView implements OnInit {
   updateTask() {
     if (this.form.valid) {
       const formValue = this.form.value;
+      const normalizedFormValue = normalizeTodoDates(formValue);
       const body = {
-        ...formValue,
-        startDate: formValue.startDate || "",
-        endDate: formValue.endDate || "",
+        ...normalizedFormValue,
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
       };
