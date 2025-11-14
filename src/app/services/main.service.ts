@@ -34,6 +34,11 @@ export class MainService {
   async update<R, D>(apiName: string, id: string, data: D): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Update`, { id: id, data: data });
   }
+
+  async updateAll<R, D>(apiName: string, data: Array<D>): Promise<Response<R>> {
+    return await invoke<Response<R>>(`${apiName}UpdateAll`, { data: data });
+  }
+
   async delete<R>(apiName: string, id: string): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Delete`, { id: id });
   }
