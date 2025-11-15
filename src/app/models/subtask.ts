@@ -5,6 +5,7 @@ export interface Subtask {
   _id?: {} | undefined;
   id: string;
   task: Task;
+  taskId: string;
   title: string;
   description: string;
   isCompleted: boolean;

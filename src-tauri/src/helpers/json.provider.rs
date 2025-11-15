@@ -137,8 +137,8 @@ impl JsonProvider {
   ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
     let tablePath = self.getTablePath(nameTable);
 
-    if let Some(parent_dir) = tablePath.parent() {
-      fs::create_dir_all(parent_dir)?;
+    if let Some(parentDir) = tablePath.parent() {
+      fs::create_dir_all(parentDir)?;
     }
 
     if !tablePath.exists() {
@@ -463,7 +463,54 @@ impl JsonProvider {
     nameTable: &str,
     records: Vec<Value>,
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    self.saveDataTable(nameTable, &records).await?;
+    let mut existingRecords = self.getDataTable(nameTable).await?;
+
+    let newRecordsMap: std::collections::HashMap<String, &Value> = records
+      .iter()
+      .filter_map(|record| {
+        if let Some(id) = record.get("id").and_then(|id| id.as_str()) {
+          Some((id.to_string(), record))
+        } else {
+          None
+        }
+      })
+      .collect();
+
+    for existingRecord in existingRecords.iter_mut() {
+      if let Some(existingId) = existingRecord.get("id").and_then(|id| id.as_str()) {
+        if let Some(newRecord) = newRecordsMap.get(existingId) {
+          if let (Some(existingObj), Some(new_obj)) =
+            (existingRecord.as_object_mut(), newRecord.as_object())
+          {
+            for (key, value) in new_obj {
+              if key != "_id" {
+                existingObj.insert(key.clone(), value.clone());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    let existingIds: Vec<String> = existingRecords
+      .iter()
+      .filter_map(|record| {
+        record
+          .get("id")
+          .and_then(|id| id.as_str())
+          .map(|s| s.to_string())
+      })
+      .collect();
+
+    for newRecord in records {
+      if let Some(new_id) = newRecord.get("id").and_then(|id| id.as_str()) {
+        if !existingIds.contains(&new_id.to_string()) {
+          existingRecords.push(newRecord);
+        }
+      }
+    }
+
+    self.saveDataTable(nameTable, &existingRecords).await?;
     Ok(true)
   }
 

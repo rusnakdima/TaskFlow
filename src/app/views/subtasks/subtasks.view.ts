@@ -210,10 +210,14 @@ export class SubtasksView implements OnInit {
   updateSubtaskOrder(): void {
     this.isUpdatingOrder = true;
 
-    const transformedSubtasks = this.tempListSubtasks.map((subtask) => ({
+    this.listSubtasks.forEach((subtask, index) => {
+      subtask.order = index;
+    });
+
+    const transformedSubtasks = this.listSubtasks.map((subtask) => ({
       _id: subtask._id,
       id: subtask.id,
-      taskId: subtask.task?.id || "",
+      taskId: subtask.taskId || "",
       title: subtask.title,
       description: subtask.description,
       isCompleted: subtask.isCompleted,

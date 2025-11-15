@@ -8,6 +8,7 @@ export interface Todo {
   _id?: {} | undefined;
   id: string;
   user: User;
+  userId: string;
   title: string;
   description: string;
   startDate: string;

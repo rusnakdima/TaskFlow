@@ -8,4 +8,5 @@ export interface Profile {
   bio: string;
   imageUrl: String;
   user: User;
+  userId: string;
 }

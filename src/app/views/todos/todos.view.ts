@@ -71,6 +71,7 @@ export class TodosView implements OnInit {
         .then((response: Response<Array<Todo>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.tempListTodos = response.data;
+            console.log(this.tempListTodos);
             this.applyFilter();
           } else {
             this.notifyService.showError(response.message);
@@ -197,10 +198,14 @@ export class TodosView implements OnInit {
   updateTodoOrder(): void {
     this.isUpdatingOrder = true;
 
+    this.listTodos.forEach((todo, index) => {
+      todo.order = index;
+    });
+
     const transformedTodos = this.listTodos.map((todo) => ({
       _id: todo._id,
       id: todo.id,
-      userId: todo.user?.id || "",
+      userId: todo.userId || "",
       title: todo.title,
       description: todo.description,
       startDate: todo.startDate,

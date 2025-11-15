@@ -12,6 +12,7 @@ export interface Task {
   _id?: {} | undefined;
   id: string;
   todo: Todo;
+  todoId: string;
   title: string;
   description: string;
   subtasks: Array<Subtask>;

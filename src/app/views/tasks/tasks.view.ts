@@ -97,6 +97,7 @@ export class TasksView implements OnInit {
       .then((response: Response<Array<Task>>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.tempListTasks = response.data;
+          console.log(this.tempListTasks);
           this.applyFilter();
         } else {
           this.notifyService.showError(response.message);
@@ -221,10 +222,14 @@ export class TasksView implements OnInit {
   updateTaskOrder(): void {
     this.isUpdatingOrder = true;
 
+    this.listTasks.forEach((task, index) => {
+      task.order = index;
+    });
+
     const transformedTasks = this.listTasks.map((task) => ({
       _id: task._id,
       id: task.id,
-      todoId: task.todo?.id || "",
+      todoId: task.todoId || "",
       title: task.title,
       description: task.description,
       isCompleted: task.isCompleted,
