@@ -68,6 +68,8 @@ export class AdminView implements OnInit {
   isCompletedFilter: string = "all";
   userFilter: string = "";
   categoriesFilter: string = "";
+  todoIdFilter: string = "";
+  taskIdFilter: string = "";
 
   dataTypes = [
     {
@@ -112,6 +114,7 @@ export class AdminView implements OnInit {
       const response = await this.adminService.getAllDataForAdmin<AdminData>();
       if (response.status === ResponseStatus.SUCCESS) {
         this.adminData = response.data;
+        console.log(this.adminData);
 
         this.dataTypes.forEach((type) => {
           const data = this.adminData[type.id];
@@ -215,6 +218,20 @@ export class AdminView implements OnInit {
       });
     }
 
+    if (this.todoIdFilter && this.selectedType === "tasks") {
+      const filter = this.todoIdFilter.toLowerCase();
+      data = data.filter((item) => {
+        return item.todoId && item.todoId.toLowerCase().includes(filter);
+      });
+    }
+
+    if (this.taskIdFilter && this.selectedType === "subtasks") {
+      const filter = this.taskIdFilter.toLowerCase();
+      data = data.filter((item) => {
+        return item.taskId && item.taskId.toLowerCase().includes(filter);
+      });
+    }
+
     return data;
   }
 
@@ -299,6 +316,8 @@ export class AdminView implements OnInit {
     this.isCompletedFilter = "all";
     this.userFilter = "";
     this.categoriesFilter = "";
+    this.todoIdFilter = "";
+    this.taskIdFilter = "";
   }
 
   async deleteSelected(): Promise<void> {

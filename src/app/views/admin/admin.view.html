@@ -89,6 +89,18 @@
         <input matInput [(ngModel)]="userFilter" placeholder="Search by user..." />
       </mat-form-field>
     }
+    @if (selectedType === "tasks") {
+      <mat-form-field class="w-full">
+        <mat-label>Todo ID</mat-label>
+        <input matInput [(ngModel)]="todoIdFilter" placeholder="Search by todo ID..." />
+      </mat-form-field>
+    }
+    @if (selectedType === "subtasks") {
+      <mat-form-field class="w-full">
+        <mat-label>Task ID</mat-label>
+        <input matInput [(ngModel)]="taskIdFilter" placeholder="Search by task ID..." />
+      </mat-form-field>
+    }
 
     @if (
       selectedType === "categories" ||
