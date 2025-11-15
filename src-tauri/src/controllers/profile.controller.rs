@@ -1,5 +1,5 @@
 /* helpers */
-use crate::helpers::mongodb_provider::MongodbProvider;
+use crate::helpers::json_provider::JsonProvider;
 
 /* services */
 use crate::services::profile_service::ProfileService;
@@ -10,9 +10,6 @@ use crate::models::{
   response_model::ResponseModel,
 };
 
-/* sys */
-use std::sync::Arc;
-
 #[allow(non_snake_case)]
 pub struct ProfileController {
   pub profileService: ProfileService,
@@ -20,9 +17,9 @@ pub struct ProfileController {
 
 impl ProfileController {
   #[allow(non_snake_case)]
-  pub fn new(mongodbProvider: Arc<MongodbProvider>) -> Self {
+  pub fn new(jsonProvider: JsonProvider) -> Self {
     return Self {
-      profileService: ProfileService::new(mongodbProvider),
+      profileService: ProfileService::new(jsonProvider),
     };
   }
 

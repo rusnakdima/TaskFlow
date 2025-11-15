@@ -2,9 +2,10 @@
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
 use serde_json::json;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* services */
 use crate::services::{
@@ -32,11 +33,15 @@ pub struct StatisticsService {
 
 impl StatisticsService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
     let dailyActivityService = DailyActivityService::new(jsonProvider.clone());
     Self {
       jsonProvider: jsonProvider.clone(),
-      todoService: TodoService::new(jsonProvider.clone(), dailyActivityService.clone()),
+      todoService: TodoService::new(
+        jsonProvider.clone(),
+        mongodbProvider,
+        dailyActivityService.clone(),
+      ),
       categoriesService: CategoriesService::new(jsonProvider),
       dailyActivityService,
     }

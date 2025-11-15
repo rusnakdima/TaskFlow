@@ -1,5 +1,8 @@
+/* sys lib */
+use std::sync::Arc;
+
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* services */
 use crate::services::{
@@ -23,8 +26,16 @@ pub struct SubtaskController {
 
 impl SubtaskController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, dailyActivityService: DailyActivityService) -> Self {
-    let todoService = TodoService::new(jsonProvider.clone(), dailyActivityService.clone());
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    dailyActivityService: DailyActivityService,
+  ) -> Self {
+    let todoService = TodoService::new(
+      jsonProvider.clone(),
+      mongodbProvider.clone(),
+      dailyActivityService.clone(),
+    );
     let taskService = TaskService::new(
       jsonProvider.clone(),
       todoService.clone(),

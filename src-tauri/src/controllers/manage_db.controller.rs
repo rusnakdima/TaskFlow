@@ -5,11 +5,11 @@ use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvi
 use crate::models::response_model::ResponseModel;
 
 /* services */
-use crate::services::manage_db_service;
+use crate::services::manage_db_service::ManageDbService;
 
 #[allow(non_snake_case)]
 pub struct ManageDbController {
-  pub managedbService: manage_db_service::ManageDbService,
+  pub managedbService: ManageDbService,
 }
 
 impl ManageDbController {
@@ -19,7 +19,7 @@ impl ManageDbController {
     mongodbProvider: Option<std::sync::Arc<MongodbProvider>>,
   ) -> Self {
     Self {
-      managedbService: manage_db_service::ManageDbService::new(jsonProvider, mongodbProvider),
+      managedbService: ManageDbService::new(jsonProvider, mongodbProvider),
     }
   }
 

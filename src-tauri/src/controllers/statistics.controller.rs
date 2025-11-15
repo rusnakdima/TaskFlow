@@ -1,22 +1,25 @@
+/* sys lib */
+use std::sync::Arc;
+
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* services */
-use crate::services::statistics_service;
+use crate::services::statistics_service::StatisticsService;
 
 /* models */
 use crate::models::response_model::ResponseModel;
 
 #[allow(non_snake_case)]
 pub struct StatisticsController {
-  pub statisticsService: statistics_service::StatisticsService,
+  pub statisticsService: StatisticsService,
 }
 
 impl StatisticsController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
     Self {
-      statisticsService: statistics_service::StatisticsService::new(jsonProvider),
+      statisticsService: StatisticsService::new(jsonProvider, mongodbProvider),
     }
   }
 

@@ -83,8 +83,9 @@ impl JsonProvider {
   }
 
   #[allow(non_snake_case)]
-  fn shouldUseMongo(&self, nameTable: &str) -> bool {
-    (nameTable == "users" || nameTable == "profiles") && self.mongodbProvider.is_some()
+  fn shouldUseMongo(&self, _nameTable: &str) -> bool {
+    // (nameTable == "users" || nameTable == "profiles") && self.mongodbProvider.is_some()
+    false
   }
 
   #[allow(non_snake_case)]

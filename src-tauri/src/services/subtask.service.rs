@@ -69,19 +69,17 @@ impl SubtaskService {
           let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           a_order.cmp(&b_order)
         });
-        return Ok(ResponseModel {
+        Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
           data: convertDataToArray(&subtasks),
-        });
+        })
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of subtasks! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of subtasks! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -105,20 +103,16 @@ impl SubtaskService {
       )
       .await;
     match subtask {
-      Ok(subtask) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convertDataToObject(&subtask),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a subtask! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Ok(subtask) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToObject(&subtask),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a subtask! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -130,26 +124,24 @@ impl SubtaskService {
     match subtask {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't create a subtask!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create a subtask! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create a subtask! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -256,26 +248,24 @@ impl SubtaskService {
     match subtask {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't delete a subtask!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't delete a subtask! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't delete a subtask! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 

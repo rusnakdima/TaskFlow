@@ -82,20 +82,16 @@ impl CategoriesService {
       )
       .await;
     match listCategories {
-      Ok(categories) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convertDataToArray(&categories),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of categories! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Ok(categories) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToArray(&categories),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of categories! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -119,20 +115,16 @@ impl CategoriesService {
       )
       .await;
     match category {
-      Ok(category) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convertDataToObject(&category),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a category! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Ok(category) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToObject(&category),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a category! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -144,26 +136,24 @@ impl CategoriesService {
     match category {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't create a category!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create a category! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create a category! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -181,26 +171,24 @@ impl CategoriesService {
     match category {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't update a category!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't update a category! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't update a category! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -232,26 +220,24 @@ impl CategoriesService {
     match category {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't delete a category!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't delete a category! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't delete a category! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 }

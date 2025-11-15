@@ -160,12 +160,36 @@ impl ManageDbService {
       }
     };
 
+    let profiles = match mongodbProvider.getAllByField("profiles", None, None).await {
+      Ok(docs) => docs,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting profiles: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    let users = match mongodbProvider.getAllByField("users", None, None).await {
+      Ok(docs) => docs,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting users: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
     let dataSets = vec![
       ("todos", todos),
       ("tasks", tasks),
       ("subtasks", subtasks),
       ("categories", categories),
       ("daily_activities", dailyActivities),
+      ("profiles", profiles),
+      ("users", users),
     ];
 
     let dataSetsClone = dataSets.clone();
@@ -179,8 +203,8 @@ impl ManageDbService {
           data: DataValue::String("".to_string()),
         })?;
         match self.jsonProvider.getByField(table, None, None, &id).await {
-          Ok(existing_val) => {
-            if Self::shouldUpdateTarget(&value, &existing_val) {
+          Ok(existingVal) => {
+            if Self::shouldUpdateTarget(&value, &existingVal) {
               if let Err(e) = self.jsonProvider.update(table, &id, value).await {
                 return Err(ResponseModel {
                   status: ResponseStatus::Error,
@@ -257,6 +281,8 @@ impl ManageDbService {
       "subtasks",
       "categories",
       "daily_activities",
+      "profiles",
+      "users",
     ];
     for table in tables {
       let allLocal = match self.jsonProvider.getDataTable(table).await {
@@ -278,9 +304,9 @@ impl ManageDbService {
         .collect();
 
       for id in idsToDelete {
-        if let Ok(mut existing_doc) = mongodbProvider.getByField(table, None, None, &id).await {
-          existing_doc.insert("isDeleted", true);
-          let _ = mongodbProvider.update(table, &id, existing_doc).await;
+        if let Ok(mut existingDoc) = mongodbProvider.getByField(table, None, None, &id).await {
+          existingDoc.insert("isDeleted", true);
+          let _ = mongodbProvider.update(table, &id, existingDoc).await;
         }
         let _ = self.jsonProvider.hardDelete(table, &id).await;
       }
@@ -377,12 +403,40 @@ impl ManageDbService {
       }
     };
 
+    let profiles = match self
+      .jsonProvider
+      .getAllByField("profiles", None, None)
+      .await
+    {
+      Ok(vals) => vals,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting profiles from JSON: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    let users = match self.jsonProvider.getAllByField("users", None, None).await {
+      Ok(vals) => vals,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting users from JSON: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
     let dataSets = vec![
       ("todos", todos),
       ("tasks", tasks),
       ("subtasks", subtasks),
       ("categories", categories),
       ("daily_activities", dailyActivities),
+      ("profiles", profiles),
+      ("users", users),
     ];
 
     for (table, values) in dataSets {
@@ -392,13 +446,13 @@ impl ManageDbService {
           obj.remove("_id");
         }
         match mongodbProvider.getByField(table, None, None, &id).await {
-          Ok(existing_doc) => {
-            let existing_val = serde_json::to_value(&existing_doc).map_err(|e| ResponseModel {
+          Ok(existingDoc) => {
+            let existingVal = serde_json::to_value(&existingDoc).map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
               message: format!("Error converting existing document to value: {}", e),
               data: DataValue::String("".to_string()),
             })?;
-            if Self::shouldUpdateTarget(&value, &existing_val) {
+            if Self::shouldUpdateTarget(&value, &existingVal) {
               let doc: Document = from_bson(to_bson(&value).map_err(|e| ResponseModel {
                 status: ResponseStatus::Error,
                 message: format!("Error converting value to bson: {}", e),

@@ -72,19 +72,17 @@ impl TaskService {
           let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           a_order.cmp(&b_order)
         });
-        return Ok(ResponseModel {
+        Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
           data: convertDataToArray(&tasks),
-        });
+        })
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of tasks! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of tasks! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -108,20 +106,16 @@ impl TaskService {
       )
       .await;
     match task {
-      Ok(task) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convertDataToObject(&task),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a task! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Ok(task) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToObject(&task),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a task! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -133,26 +127,24 @@ impl TaskService {
     match task {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't create a task!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create a task! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create a task! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -274,26 +266,24 @@ impl TaskService {
     match task {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't delete a task!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't delete a task! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't delete a task! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 

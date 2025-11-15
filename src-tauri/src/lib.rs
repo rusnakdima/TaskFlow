@@ -11,8 +11,7 @@ use tauri::{async_runtime::block_on, Manager};
 
 /* helpers */
 use crate::helpers::{
-  config::ConfigHelper,
-  {json_provider::JsonProvider, mongodb_provider::MongodbProvider},
+  config::ConfigHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
 };
 
 /* routes */
@@ -37,10 +36,6 @@ use routes::subtask_route::{
 use routes::task_route::{
   taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate, taskUpdateAll,
 };
-use routes::task_shares_route::{
-  taskSharesCreate, taskSharesDelete, taskSharesGetAllByField, taskSharesGetByField,
-  taskSharesUpdate,
-};
 use routes::todo_route::{
   todoCreate, todoDelete, todoGetAllByField, todoGetByAssignee, todoGetByField, todoUpdate,
   todoUpdateAll,
@@ -52,7 +47,7 @@ use controllers::{
   category_controller::CategoriesController, manage_db_controller::ManageDbController,
   profile_controller::ProfileController, statistics_controller::StatisticsController,
   subtask_controller::SubtaskController, task_controller::TaskController,
-  task_shares_controller::TaskSharesController, todo_controller::TodoController,
+  todo_controller::TodoController,
 };
 
 /* services */
@@ -62,13 +57,12 @@ use services::daily_activity_service::DailyActivityService;
 pub struct AppState {
   pub managedbController: Arc<ManageDbController>,
   pub aboutController: Arc<AboutController>,
-  pub authController: Option<Arc<AuthController>>,
-  pub profileController: Option<Arc<ProfileController>>,
+  pub authController: Arc<AuthController>,
+  pub profileController: Arc<ProfileController>,
   pub categoriesController: Arc<CategoriesController>,
   pub todoController: Arc<TodoController>,
   pub taskController: Arc<TaskController>,
   pub subtaskController: Arc<SubtaskController>,
-  pub taskSharesController: Arc<TaskSharesController>,
   pub statisticsController: Arc<StatisticsController>,
   pub dailyActivityService: Arc<DailyActivityService>,
 }
@@ -92,20 +86,13 @@ pub fn run() {
           None
         }
       };
+
       let jsonProvider = JsonProvider::new(
         appHandle.clone(),
         config.appHomeFolder.clone(),
         config.jsonDbName.clone(),
         mongodbProvider.clone(),
       );
-
-      let authController = mongodbProvider
-        .as_ref()
-        .map(|mp| Arc::new(AuthController::new(mp.clone(), config.clone())));
-
-      let profileController = mongodbProvider
-        .as_ref()
-        .map(|mp| Arc::new(ProfileController::new(mp.clone())));
 
       let managedbController = Arc::new(ManageDbController::new(
         jsonProvider.clone(),
@@ -115,23 +102,41 @@ pub fn run() {
       app.manage(AppState {
         managedbController,
         aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
-        authController,
-        profileController,
+        authController: Arc::new(AuthController::new(
+          mongodbProvider
+            .clone()
+            .expect("MongoDB provider required for AuthController"),
+          config.clone(),
+        )),
+        profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
         categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
         todoController: Arc::new(TodoController::new(
           jsonProvider.clone(),
+          mongodbProvider
+            .clone()
+            .expect("MongoDB provider required for TaskController"),
           DailyActivityService::new(jsonProvider.clone()),
         )),
         taskController: Arc::new(TaskController::new(
           jsonProvider.clone(),
+          mongodbProvider
+            .clone()
+            .expect("MongoDB provider required for TaskController"),
           DailyActivityService::new(jsonProvider.clone()),
         )),
         subtaskController: Arc::new(SubtaskController::new(
           jsonProvider.clone(),
+          mongodbProvider
+            .clone()
+            .expect("MongoDB provider required for SubtaskController"),
           DailyActivityService::new(jsonProvider.clone()),
         )),
-        taskSharesController: Arc::new(TaskSharesController::new(jsonProvider.clone())),
-        statisticsController: Arc::new(StatisticsController::new(jsonProvider.clone())),
+        statisticsController: Arc::new(StatisticsController::new(
+          jsonProvider.clone(),
+          mongodbProvider
+            .clone()
+            .expect("MongoDB provider required for StatisticsController"),
+        )),
         dailyActivityService: Arc::new(DailyActivityService::new(jsonProvider.clone())),
       });
 
@@ -175,11 +180,6 @@ pub fn run() {
       subtaskUpdate,
       subtaskUpdateAll,
       subtaskDelete,
-      taskSharesGetAllByField,
-      taskSharesGetByField,
-      taskSharesCreate,
-      taskSharesUpdate,
-      taskSharesDelete,
       statisticsGet,
       importToLocal,
       exportToCloud,

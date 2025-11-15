@@ -1,10 +1,13 @@
 /* sys lib */
+use mongodb::bson::doc;
 use serde_json::{json, to_value, Value};
+use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::{
   common::{convertDataToArray, convertDataToObject},
   json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
 
 /* services */
@@ -21,15 +24,21 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct TodoService {
   pub jsonProvider: JsonProvider,
+  pub mongodbProvider: Arc<MongodbProvider>,
   pub dailyActivityService: DailyActivityService,
   relations: Vec<RelationObj>,
 }
 
 impl TodoService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, dailyActivityService: DailyActivityService) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    dailyActivityService: DailyActivityService,
+  ) -> Self {
     Self {
       jsonProvider,
+      mongodbProvider,
       dailyActivityService,
       relations: vec![
         RelationObj {
@@ -107,19 +116,17 @@ impl TodoService {
           let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           a_order.cmp(&b_order)
         });
-        return Ok(ResponseModel {
+        Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
           data: convertDataToArray(&todos),
-        });
+        })
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of todos! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of todos! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -143,30 +150,26 @@ impl TodoService {
       )
       .await;
     match todo {
-      Ok(todo) => {
-        return Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convertDataToObject(&todo),
-        });
-      }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a todo! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Ok(todo) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToObject(&todo),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a todo! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
   #[allow(non_snake_case)]
   pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
     let listTodos = self
-      .jsonProvider
+      .mongodbProvider
       .getAllByField(
         "todos",
-        Some(json!({ "assignees": { "$in": [assigneeId] } })),
+        Some(doc! { "assignees": { "$in": [assigneeId] } }),
         Some(self.relations.clone()),
       )
       .await;
@@ -177,19 +180,17 @@ impl TodoService {
           let bOrder = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           aOrder.cmp(&bOrder)
         });
-        return Ok(ResponseModel {
+        Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
           data: convertDataToArray(&todos),
-        });
+        })
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of todos! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of todos! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -201,26 +202,24 @@ impl TodoService {
     match todo {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't create a todo!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create a todo! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create a todo! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -237,7 +236,9 @@ impl TodoService {
 
     match todo {
       Ok(todo) => {
-        let existingTodo: TodoModel = match serde_json::from_value::<TodoModel>(todo.clone()) {
+        let existingTodo_result: Result<TodoModel, _> =
+          serde_json::from_value::<TodoModel>(todo.clone());
+        let existingTodo = match existingTodo_result {
           Ok(todo) => todo,
           Err(_) => {
             return Err(ResponseModel {
@@ -288,13 +289,11 @@ impl TodoService {
           }),
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of todos! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of todos! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -358,26 +357,24 @@ impl TodoService {
     match todo {
       Ok(result) => {
         if result {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         } else {
-          return Ok(ResponseModel {
+          Ok(ResponseModel {
             status: ResponseStatus::Error,
             message: "Couldn't delete a todo!".to_string(),
             data: DataValue::String("".to_string()),
-          });
+          })
         }
       }
-      Err(error) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't delete a todo! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        });
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't delete a todo! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
