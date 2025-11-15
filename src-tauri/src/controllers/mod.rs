@@ -17,7 +17,5 @@ pub mod todo_controller;
 pub mod task_controller;
 #[path = "subtask.controller.rs"]
 pub mod subtask_controller;
-#[path = "task_shares.controller.rs"]
-pub mod task_shares_controller;
 #[path = "statistics.controller.rs"]
 pub mod statistics_controller;
