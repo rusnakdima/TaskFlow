@@ -1,11 +1,16 @@
 /* sys lib */
 use serde_json::{json, to_value, Value};
+use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::{
   common::{convertDataToArray, convertDataToObject},
   json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
+
+/* services */
+use crate::services::profile_sync_service::ProfileSyncService;
 
 /* models */
 use crate::models::{
@@ -18,14 +23,27 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct ProfileService {
   pub jsonProvider: JsonProvider,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub profileSyncService: Option<ProfileSyncService>,
   relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
   #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
+    let mongodbProvider = jsonProvider.mongodbProvider.clone();
+    let profileSyncService = match &mongodbProvider {
+      Some(mongodbProvider) => Some(ProfileSyncService::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+      )),
+      None => None,
+    };
+
     Self {
       jsonProvider,
+      mongodbProvider,
+      profileSyncService,
       relations: vec![RelationObj {
         nameTable: "users".to_string(),
         typeField: TypesField::OneToOne,
@@ -119,6 +137,10 @@ impl ProfileService {
     match profile {
       Ok(result) => {
         if result {
+          if let Some(ref syncService) = self.profileSyncService {
+            let _ = syncService.syncProfileToCloud(modelData.clone()).await;
+          }
+
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
@@ -220,6 +242,10 @@ impl ProfileService {
         match updateResult {
           Ok(success) => {
             if success {
+              if let Some(ref syncService) = self.profileSyncService {
+                let _ = syncService.syncProfileToCloud(updatedProfile.clone()).await;
+              }
+
               Ok(ResponseModel {
                 status: ResponseStatus::Success,
                 message: "Profile updated successfully".to_string(),
@@ -254,6 +280,10 @@ impl ProfileService {
     match profile {
       Ok(result) => {
         if result {
+          if let Some(ref mongodbProvider) = self.mongodbProvider {
+            let _ = mongodbProvider.delete("profiles", &id.as_str()).await;
+          }
+
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),

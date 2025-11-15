@@ -8,6 +8,8 @@ pub mod about_service;
 pub mod auth_service;
 #[path = "profile.service.rs"]
 pub mod profile_service;
+#[path = "profile_sync.service.rs"]
+pub mod profile_sync_service;
 
 #[path = "daily_activity.service.rs"]
 pub mod daily_activity_service;
