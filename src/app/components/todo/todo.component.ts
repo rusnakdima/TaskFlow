@@ -27,6 +27,8 @@ export class TodoComponent {
   @Input() index: number = 0;
   @Output() deleteEvent: EventEmitter<string> = new EventEmitter<string>();
 
+  isExpandedDetails: boolean = false;
+
   truncateString = Common.truncateString;
 
   get countCompletedTasks(): number {
@@ -45,6 +47,11 @@ export class TodoComponent {
     const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
     const percent = listCompletedTasks.length / (listTasks.length == 0 ? 1 : listTasks.length);
     return percent;
+  }
+
+  toggleDetails(event: Event) {
+    event.stopPropagation();
+    this.isExpandedDetails = !this.isExpandedDetails;
   }
 
   getProgressPercentage(): number {

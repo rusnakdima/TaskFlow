@@ -4,8 +4,8 @@
       class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700 hover:shadow-xl transition-all duration-200 group"
       [routerLink]="task.id + '/subtasks'"
     >
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex items-start gap-3 flex-1">
+      <div class="flex flex-row items-start justify-between mb-4">
+        <div class="flex flex-row flex-1 items-start gap-3">
           <button
             class="mt-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
             (click)="toggleCompletion($event)"
@@ -70,7 +70,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 ml-3">
+        <div class="flex items-center gap-2 ml-2">
           <span
             class="px-2 py-1 rounded-full text-xs font-medium"
             [ngClass]="getPriorityColor(task.priority || 'medium')"

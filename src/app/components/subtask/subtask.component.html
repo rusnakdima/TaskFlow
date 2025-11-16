@@ -3,78 +3,86 @@
     <div
       class="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow border border-gray-200 dark:border-zinc-700 hover:shadow-md transition-all duration-200 group"
     >
-      <div class="flex items-start gap-3">
-        <button
-          class="mt-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-          (click)="toggleCompletion()"
-        >
-          @if (subtask.isCompleted) {
-            <mat-icon class="!w-6 !h-6 !text-2xl text-green-600" fontIcon="check_circle" />
-          } @else {
-            <mat-icon
-              class="!w-6 !h-6 !text-2xl textMuted hover:text-green-600"
-              fontIcon="radio_button_unchecked"
-            />
-          }
-        </button>
+      <div class="flex flex-row items-start gap-3">
+        <div class="flex flex-row flex-1 items-start gap-3">
+          <button
+            class="mt-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            (click)="toggleCompletion()"
+          >
+            @if (subtask.isCompleted) {
+              <mat-icon class="!w-6 !h-6 !text-2xl text-green-600" fontIcon="check_circle" />
+            } @else {
+              <mat-icon
+                class="!w-6 !h-6 !text-2xl textMuted hover:text-green-600"
+                fontIcon="radio_button_unchecked"
+              />
+            }
+          </button>
 
-        <div class="flex-1 min-w-0">
-          @if (editingField === "title") {
-            <input
-              type="text"
-              [(ngModel)]="editingValue"
-              (blur)="saveInlineEdit()"
-              (keyup.enter)="saveInlineEdit()"
-              (keyup.escape)="cancelInlineEdit()"
-              class="w-full px-2 py-1 font-medium bg-transparent border-b-2 border-purple-500 focus:outline-none textNormal"
-            />
-          } @else {
-            <h4
-              class="font-medium textNormal mb-1"
-              [ngClass]="
-                subtask.isCompleted
-                  ? 'line-through text-gray-500 dark:text-gray-400'
-                  : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
-              "
-              (dblclick)="startInlineEdit('title', subtask.title || '')"
-              title="Double-click to edit title"
-            >
-              {{ subtask.title }}
-            </h4>
-          }
+          <div class="flex-1 min-w-0">
+            @if (editingField === "title") {
+              <input
+                type="text"
+                [(ngModel)]="editingValue"
+                (blur)="saveInlineEdit()"
+                (keyup.enter)="saveInlineEdit()"
+                (keyup.escape)="cancelInlineEdit()"
+                class="w-full px-2 py-1 font-medium bg-transparent border-b-2 border-purple-500 focus:outline-none textNormal"
+              />
+            } @else {
+              <h4
+                class="font-medium textNormal mb-1"
+                [ngClass]="
+                  subtask.isCompleted
+                    ? 'line-through text-gray-500 dark:text-gray-400'
+                    : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
+                "
+                (dblclick)="startInlineEdit('title', subtask.title || '')"
+                title="Double-click to edit title"
+              >
+                {{ subtask.title }}
+              </h4>
+            }
 
-          @if (editingField === "description") {
-            <textarea
-              [(ngModel)]="editingValue"
-              (blur)="saveInlineEdit()"
-              (keyup.escape)="cancelInlineEdit()"
-              class="w-full px-2 py-1 text-sm bg-transparent border border-purple-500 rounded focus:outline-none textNormal resize-none"
-              rows="2"
-            ></textarea>
-          } @else if (subtask.description) {
-            <p
-              class="text-sm textMuted"
-              (dblclick)="startInlineEdit('description', subtask.description)"
-              title="Double-click to edit description"
-            >
-              {{ truncateString(subtask.description, 80) }}
-            </p>
-          }
+            @if (editingField === "description") {
+              <textarea
+                [(ngModel)]="editingValue"
+                (blur)="saveInlineEdit()"
+                (keyup.escape)="cancelInlineEdit()"
+                class="w-full px-2 py-1 text-sm bg-transparent border border-purple-500 rounded focus:outline-none textNormal resize-none"
+                rows="2"
+              ></textarea>
+            } @else if (subtask.description) {
+              <p
+                class="text-sm textMuted"
+                (dblclick)="startInlineEdit('description', subtask.description)"
+                title="Double-click to edit description"
+              >
+                {{ subtask.description }}
+              </p>
+            }
+          </div>
 
-          <div class="flex items-center gap-3 mt-2">
+          <div class="flex items-center gap-2 ml-2">
             <span
               class="px-2 py-1 rounded-full text-xs font-medium"
               [ngClass]="getPriorityColor(subtask.priority || 'medium')"
             >
               {{ (subtask.priority || "medium").toUpperCase() }}
             </span>
-
-            @if (subtask.isCompleted) {
-              <span class="text-xs text-green-600 dark:text-green-400 font-medium">
-                ✓ Completed
-              </span>
-            }
           </div>
+        </div>
+      </div>
+
+      <div class="flex flex-row justify-between items-center mt-3">
+        <div class="flex items-center gap-3">
+          @if (subtask.isCompleted) {
+            <span
+              class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-xs text-green-600 dark:text-green-400 font-medium"
+            >
+              Completed
+            </span>
+          }
         </div>
 
         <div class="flex flex-row gap-1">
