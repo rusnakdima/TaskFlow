@@ -9,6 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
+import { Todo } from "@models/todo";
 import { Task } from "@models/task";
 import { Subtask } from "@models/subtask";
 
@@ -47,6 +48,7 @@ export class SubtasksView implements OnInit {
   tempListSubtasks: Array<Subtask> = [];
 
   todoId: string = "";
+  todo: Todo | null = null;
   task: Task | null = null;
   projectTitle: string = "";
 
@@ -66,12 +68,29 @@ export class SubtasksView implements OnInit {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId = params.todoId;
+        this.getTodoInfo(this.todoId);
       }
       if (params.taskId) {
         this.getTaskInfo(params.taskId);
         this.getSubtasksByTaskId(params.taskId);
       }
     });
+  }
+
+  getTodoInfo(id: string) {
+    this.mainService
+      .getByField<Todo>("todo", "id", id)
+      .then((response: Response<Todo>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.todo = response.data;
+          this.projectTitle = this.todo?.title ?? "";
+        } else {
+          this.notifyService.showNotify(response.status, response.message);
+        }
+      })
+      .catch((err: Response<string>) => {
+        this.notifyService.showError(err.message ?? err.toString());
+      });
   }
 
   getTaskInfo(id: string) {
