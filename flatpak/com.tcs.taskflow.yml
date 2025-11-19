@@ -1,80 +1,65 @@
-app-id: com.tcs.taskflow
+id: com.tcs.taskflow
 runtime: org.gnome.Platform
 runtime-version: "48"
 sdk: org.gnome.Sdk
 command: taskflow
-sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node22
-  - org.freedesktop.Sdk.Extension.rust-stable
-build-options:
-  append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+
 finish-args:
-  - --share=ipc
-  - --socket=x11
+  # Window display permissions
   - --socket=wayland
+  - --socket=fallback-x11
   - --device=dri
+  - --share=ipc
+
+  # Network access (if your app needs it)
   - --share=network
+
+  # File system access (adjust as needed)
   - --filesystem=home
+
+  # Optional: Tray icon support
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --filesystem=xdg-run/tray-icon:create
+
+  # Optional: Single instance support
+  - --own-name=com.tcs.taskflow.SingleInstance
+
+  # Optional: Audio support (if your app plays sounds)
+  # - --socket=pulseaudio
+
+  # Optional: Notifications
+  # - --talk-name=org.freedesktop.Notifications
+
 modules:
-  - name: taskflow
+  - name: binary
     buildsystem: simple
-    build-options:
-      build-args:
-        - --share=network
-      env:
-        CARGO_HOME: /run/build/taskflow/cargo
-        RUST_BACKTRACE: "1"
-        CI: "true"
-        NPM_CONFIG_LOGLEVEL: info
-        PNPM_HOME: /run/build/taskflow/.pnpm
     sources:
-      - type: dir
-        path: ..
-        dest: source
-      - type: script
-        dest-filename: install-pnpm.sh
-        commands:
-          - mkdir -p /run/build/taskflow/.pnpm
-          - curl -fsSL https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linuxstatic-x64 -o /run/build/taskflow/.pnpm/pnpm
-          - chmod +x /run/build/taskflow/.pnpm/pnpm
+      # Using the portable binary directly from the build output
+      - type: file
+        path: ../src-tauri/target/release/taskflow
+
+      # Desktop file - you'll need to create this
+      - type: file
+        path: com.tcs.taskflow.desktop
+
+      # Icon - adjust path to your actual icon location
+      - type: file
+        path: ../src-tauri/icons/icon.png
+
+      # AppStream metadata
+      - type: file
+        path: com.tcs.taskflow.metainfo.xml
+
     build-commands:
-      # Setup pnpm (latest version)
-      - chmod +x install-pnpm.sh
-      - ./install-pnpm.sh
-
-      # Install dependencies and build Tauri app
-      - |
-        cd source
-        export PATH="/run/build/taskflow/.pnpm:/usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin:$PATH"
-
-        # Configure pnpm
-        /run/build/taskflow/.pnpm/pnpm config set store-dir /run/build/taskflow/.pnpm-store
-        /run/build/taskflow/.pnpm/pnpm config set fetch-timeout 600000
-        /run/build/taskflow/.pnpm/pnpm config set fetch-retries 5
-        /run/build/taskflow/.pnpm/pnpm config set network-concurrency 1
-
-        # Install dependencies
-        /run/build/taskflow/.pnpm/pnpm install --frozen-lockfile
-
-        # Build Tauri app (binary only, no bundles needed for Flatpak)
-        /run/build/taskflow/.pnpm/pnpm tauri build --bundles deb
-
-      # Install the binary
-      - install -Dm755 source/src-tauri/target/release/taskflow /app/bin/taskflow
-
-      # Install icons
-      - install -Dm644 source/src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
-      - install -Dm644 source/src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.tcs.taskflow.png
+      # Install binary
+      - install -Dm755 taskflow /app/bin/taskflow
 
       # Install desktop file
-      - install -Dm644 /dev/stdin /app/share/applications/com.tcs.taskflow.desktop <<EOF
-      - |
-        cat <<EOF > /app/share/applications/com.tcs.taskflow.desktop
-        [Desktop Entry]
-        Type=Application
-        Name=Task Flow
-        Exec=taskflow
-        Icon=com.tcs.taskflow
-        Categories=Utility;
-        Terminal=false
-        EOF
+      - install -Dm644 com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.desktop
+
+      # Install icon (to multiple sizes for better scaling)
+      - install -Dm644 icon.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
+      - install -Dm644 icon.png /app/share/icons/hicolor/256x256/apps/com.tcs.taskflow.png
+
+      # Install AppStream metadata
+      - install -Dm644 com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.metainfo.xml

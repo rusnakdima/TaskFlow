@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Task Flow
+Comment=Task management application
+Icon=com.tcs.taskflow
+Exec=taskflow
+Terminal=false
+Categories=Utility;Development;
+Keywords=task;management;productivity;
+StartupWMClass=taskflow
+StartupNotify=true

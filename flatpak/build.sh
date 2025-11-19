@@ -1,96 +1,82 @@
 #!/bin/bash
-set -e
 
-MANIFEST_FILE="com.tcs.taskflow.yml"
-BUILD_DIR="build-dir"
-REPO_DIR="repo"
+# Build script for Flatpak on Manjaro Linux
+# This script builds your Tauri app as a Flatpak package using optimized build process
 
-echo "Building Flatpak for TaskFlow..."
+set -e # Exit on error
 
-# Function to detect package manager
-detect_package_manager() {
-  if command -v pacman &> /dev/null; then
-    echo "pacman"
-  elif command -v apt &> /dev/null; then
-    echo "apt"
-  elif command -v dnf &> /dev/null; then
-    echo "dnf"
-  elif command -v yum &> /dev/null; then
-    echo "yum"
-  else
-    echo "unknown"
-  fi
-}
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# Function to install flatpak-builder
-install_flatpak_builder() {
-  local pm="$1"
-  echo "Installing flatpak-builder using $pm..."
-  case "$pm" in
-    pacman)
-      sudo pacman -S --needed --noconfirm flatpak-builder
-      ;;
-    apt)
-      sudo apt update && sudo apt install -y flatpak-builder
-      ;;
-    dnf)
-      sudo dnf install -y flatpak-builder
-      ;;
-    yum)
-      sudo yum install -y flatpak-builder
-      ;;
-    *)
-      echo "Unsupported package manager. Please install flatpak-builder manually."
-      exit 1
-      ;;
-  esac
-}
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Ensure flatpak-builder is installed
-if ! command -v flatpak-builder &> /dev/null; then
-  echo "flatpak-builder not found. Attempting to install..."
-  PM=$(detect_package_manager)
-  install_flatpak_builder "$PM"
+echo -e "${GREEN}=== Tauri Flatpak Builder with Optimized Build ===${NC}"
+
+# Check if flatpak and flatpak-builder are installed
+if ! command -v flatpak &>/dev/null; then
+	echo -e "${RED}Error: flatpak is not installed${NC}"
+	echo "Install it with: sudo pacman -S flatpak"
+	exit 1
 fi
 
-# Add flathub remote if not exists
-echo "Ensuring Flathub remote is configured..."
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
+if ! command -v flatpak-builder &>/dev/null; then
+	echo -e "${RED}Error: flatpak-builder is not installed${NC}"
+	echo "Install it with: sudo pacman -S flatpak-builder"
+	exit 1
+fi
 
-# Ensure required Flatpak runtimes and SDK extensions are installed
-echo "Installing required Flatpak runtimes and SDK extensions..."
+# Check if pnpm is installed
+if ! command -v pnpm &>/dev/null; then
+	echo -e "${RED}Error: pnpm is not installed${NC}"
+	echo "Install it with: npm install -g pnpm"
+	exit 1
+fi
 
-# Install runtime and SDK for GNOME 46
-echo "Installing GNOME Platform and SDK version 46..."
-flatpak install --user --noninteractive flathub org.gnome.Platform//46 2>/dev/null || echo "✓ Platform already installed"
-flatpak install --user --noninteractive flathub org.gnome.Sdk//46 2>/dev/null || echo "✓ SDK already installed"
+# Variables - CUSTOMIZE THESE
+APP_ID="com.tcs.taskflow"
+MANIFEST="com.tcs.taskflow.yml"
+BUILD_DIR="./build"
+REPO_DIR="./repo"
 
-# Install SDK extensions for freedesktop 24.08
-echo "Installing Node.js 22 and Rust SDK extensions..."
-flatpak install --user --noninteractive flathub org.freedesktop.Sdk.Extension.node22//24.08 2>/dev/null || echo "✓ Node22 extension already installed"
-flatpak install --user --noninteractive flathub org.freedesktop.Sdk.Extension.rust-stable//24.08 2>/dev/null || echo "✓ Rust extension already installed"
+echo -e "${YELLOW}Step 1: Installing required runtimes...${NC}"
+flatpak install -y --user flathub org.gnome.Platform//48 org.gnome.Sdk//48 || true
 
-# Clean previous build
-echo "Cleaning previous builds..."
-rm -rf $BUILD_DIR $REPO_DIR
+echo -e "${YELLOW}Step 2: Building Tauri app with optimized build process (no bundle)...${NC}"
+# Use the optimized build script from package.json with --no-bundle to avoid linuxdeploy
+cd ..
+pnpm build:prod && pnpm tauri:build:fast
+cd "$SCRIPT_DIR"  # Return to the flatpak directory
 
-# Build the flatpak
+echo -e "${YELLOW}Step 3: Building Flatpak...${NC}"
+flatpak-builder \
+	--force-clean \
+	--user \
+	--install-deps-from=flathub \
+	--repo="${REPO_DIR}" \
+	"${BUILD_DIR}" \
+	"${MANIFEST}"
+
+echo -e "${GREEN}Step 4: Creating Flatpak bundle for installation...${NC}"
+flatpak build-bundle "${REPO_DIR}" "${APP_ID}.flatpak" "${APP_ID}"
+
+echo -e "${GREEN}Step 5: Installing Flatpak locally from bundle...${NC}"
+flatpak install -y --user "./${APP_ID}.flatpak"
+
+echo -e "${GREEN}=== Build Complete! ===${NC}"
 echo ""
-echo "Building Flatpak package (this may take a while)..."
-flatpak-builder --force-clean --repo=$REPO_DIR --install-deps-from=flathub --user $BUILD_DIR $MANIFEST_FILE
-
-# Create a single-file bundle
+echo "To run your app:"
+echo -e "  ${YELLOW}flatpak run ${APP_ID}${NC}"
 echo ""
-echo "Creating Flatpak bundle..."
-flatpak build-bundle $REPO_DIR taskflow.flatpak com.tcs.taskflow
-
+echo "To create a single-file bundle for distribution:"
+echo -e "  ${YELLOW}flatpak build-bundle ${REPO_DIR} ${APP_ID}.flatpak ${APP_ID}${NC}"
 echo ""
-echo "✅ Build completed successfully!"
+echo "To update the app:"
+echo -e "  ${YELLOW}flatpak -y --user update ${APP_ID}${NC}"
 echo ""
-echo "Generated file: taskflow.flatpak"
-echo ""
-echo "To install the Flatpak, run:"
-echo "  flatpak install --user taskflow.flatpak"
-echo ""
-echo "To run the app:"
-echo "  flatpak run com.tcs.taskflow"
+echo "To uninstall:"
+echo -e "  ${YELLOW}flatpak uninstall --user ${APP_ID}${NC}"
