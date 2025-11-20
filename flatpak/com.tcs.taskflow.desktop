@@ -2,11 +2,11 @@
 Version=1.0
 Type=Application
 Name=Task Flow
-Comment=Task management application
+Comment=A comprehensive task management application
 Icon=com.tcs.taskflow
 Exec=taskflow
 Terminal=false
-Categories=Utility;Development;
+Categories=Office;ProjectManagement;
 Keywords=task;management;productivity;
 StartupWMClass=taskflow
 StartupNotify=true

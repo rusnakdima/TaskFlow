@@ -15,7 +15,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Tauri Flatpak Builder with Optimized Build ===${NC}"
+echo -e "${GREEN}=== TaskFlow Flatpak Builder with Optimized Build ===${NC}"
 
 # Check if flatpak and flatpak-builder are installed
 if ! command -v flatpak &>/dev/null; then
@@ -48,9 +48,10 @@ flatpak install -y --user flathub org.gnome.Platform//48 org.gnome.Sdk//48 || tr
 
 echo -e "${YELLOW}Step 2: Building Tauri app with optimized build process (no bundle)...${NC}"
 # Use the optimized build script from package.json with --no-bundle to avoid linuxdeploy
+
 cd ..
-pnpm build:prod && pnpm tauri:build:fast
-cd "$SCRIPT_DIR"  # Return to the flatpak directory
+pnpm tauri:build:fast
+cd "$SCRIPT_DIR"
 
 echo -e "${YELLOW}Step 3: Building Flatpak...${NC}"
 flatpak-builder \

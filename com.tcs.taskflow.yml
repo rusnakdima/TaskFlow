@@ -1,0 +1,63 @@
+id: com.tcs.taskflow
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node22
+command: taskflow
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+  - --share=network  # Required for dependency installation
+  - --filesystem=home
+
+modules:
+  - name: taskflow
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+      env:
+        - CARGO_NET_GIT_FETCH_WITH_CLI = true
+        - NODE_VERSION = 22
+    build-commands:
+      - |
+        # Ensure pnpm is available - first try to install if needed
+        if ! command -v pnpm &> /dev/null; then
+          echo "Installing pnpm..."
+          npm_config_prefix=/tmp/pnpm-local npm install --global pnpm
+          # Add to PATH for subsequent commands
+          export PATH="/tmp/pnpm-local/bin:$PATH"
+          # Verify installation
+          if ! command -v pnpm &> /dev/null; then
+            echo "ERROR: Failed to install pnpm" >&2
+            exit 1
+          fi
+        else
+          echo "pnpm is already available"
+        fi
+      - pnpm install
+      - pnpm build:prod
+      - |
+        cd src-tauri && pnpm tauri build --release
+        # Find the actual binary name created by Tauri
+        if [ -f target/release/taskflow ]; then
+          cp target/release/taskflow ../taskflow
+        elif [ -f target/release/taskflow-app ]; then  # May have different name
+          cp target/release/taskflow-app ../taskflow
+        else
+          # If the binary doesn't match expected names, copy any executable from target/release
+          find target/release -maxdepth 1 -type f -executable -exec cp {} ../taskflow \; 2>/dev/null || true
+        fi
+      - install -Dm755 taskflow /app/bin/taskflow
+      - install -Dm644 flatpak/com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.desktop
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/256x256/apps/com.tcs.taskflow.png
+      - install -Dm644 flatpak/com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.metainfo.xml
+    sources:
+      - type: dir
+        path: "."
+    cleanup:
+      - /share/man
