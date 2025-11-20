@@ -6,7 +6,7 @@ on:
       - "v*"
 
 jobs:
-  publish-tauri:
+  build-windows:
     permissions:
       contents: write
     runs-on: windows-2022

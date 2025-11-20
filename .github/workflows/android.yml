@@ -6,7 +6,7 @@ on:
       - "v*"
 
 jobs:
-  publish-tauri:
+  build-android:
     permissions:
       contents: write
     strategy:

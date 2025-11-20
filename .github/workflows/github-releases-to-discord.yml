@@ -4,7 +4,7 @@ on:
     types: [published]
 
 jobs:
-  publish-tauri:
+  publish-post-discord:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
