@@ -6,12 +6,13 @@ sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
   - org.freedesktop.Sdk.Extension.node22
 command: taskflow
+
 finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
   - --share=ipc
-  - --share=network  # Required for dependency installation
+  - --share=network
   - --filesystem=home
 
 modules:
@@ -19,29 +20,20 @@ modules:
     buildsystem: simple
     build-options:
       append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+      build-args:
+        - "--share=network"
       env:
         - CARGO_NET_GIT_FETCH_WITH_CLI = true
         - NODE_VERSION = 22
+        - npm_config_registry = https://registry.npmjs.org/
+        - npm_config_cache = /run/build/taskflow/.npm-cache
     build-commands:
+      - npm config set registry https://registry.npmjs.org/
+      - npm config set cache /run/build/taskflow/.npm-cache
+      - npm install --verbose --no-audit --no-fund --prefer-offline
+      - npm run build:prod
       - |
-        # Ensure pnpm is available - first try to install if needed
-        if ! command -v pnpm &> /dev/null; then
-          echo "Installing pnpm..."
-          npm_config_prefix=/tmp/pnpm-local npm install --global pnpm
-          # Add to PATH for subsequent commands
-          export PATH="/tmp/pnpm-local/bin:$PATH"
-          # Verify installation
-          if ! command -v pnpm &> /dev/null; then
-            echo "ERROR: Failed to install pnpm" >&2
-            exit 1
-          fi
-        else
-          echo "pnpm is already available"
-        fi
-      - pnpm install
-      - pnpm build:prod
-      - |
-        cd src-tauri && pnpm tauri build --release
+        cd src-tauri && npm run tauri build --release
         # Find the actual binary name created by Tauri
         if [ -f target/release/taskflow ]; then
           cp target/release/taskflow ../taskflow
