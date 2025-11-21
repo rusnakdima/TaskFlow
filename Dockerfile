@@ -14,7 +14,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | b
     && . "$NVM_DIR/nvm.sh" \
     && nvm install 22 \
     && nvm use 22 \
-    && npm install -g pnpm
+    && npm install -g bun
 
 ENV NODE_VERSION=22
 ENV PATH="$NVM_DIR/versions/node/v${NODE_VERSION}.*/bin:$PATH"
@@ -26,9 +26,9 @@ ENV PATH="/root/.cargo/bin:$PATH"
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN . "$NVM_DIR/nvm.sh" && pnpm install --frozen-lockfile
+COPY package.json ./
+RUN . "$NVM_DIR/nvm.sh" && bun install
 
 COPY . .
 
-RUN . "$NVM_DIR/nvm.sh" && pnpm tauri build --bundles appimage
+RUN . "$NVM_DIR/nvm.sh" && bun run tauri build --bundles appimage

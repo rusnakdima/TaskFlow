@@ -112,9 +112,9 @@ call :check_frontend_changes
 if %errorlevel% equ 0 (
   call :print_status "Building frontend..."
   if "%build_type%"=="debug" (
-    pnpm build
+    bun run build
   ) else (
-    pnpm build:prod
+    bun run build:prod
   )
   echo %date% %time% > .last-frontend-build
   call :print_success "Frontend built successfully"
@@ -124,16 +124,16 @@ REM Build Tauri app
 call :print_status "Building Tauri application..."
 if "%target%"=="desktop" (
   if "%build_type%"=="debug" (
-    pnpm tauri:build:debug
+    bun run tauri:build:debug
   ) else (
-    pnpm tauri:build
+    bun run tauri:build
   )
 ) else if "%target%"=="android-apk" (
-    pnpm tauri:build:android:apk
+    bun run tauri:build:android:apk
 ) else if "%target%"=="android-aab" (
-    pnpm tauri:build:android:aab
+    bun run tauri:build:android:aab
 ) else if "%target%"=="android" (
-    pnpm tauri:build:android
+    bun run tauri:build:android
 ) else if "%target%"=="ios" (
   REM For iOS, we only build the frontend here
   REM The actual iOS build is handled by the workflow

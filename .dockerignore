@@ -28,4 +28,4 @@ imgREADME/
 src-tauri/gen/
 
 # Keep package files and source, but exclude lock files if they're not needed
-# pnpm-lock.yaml is kept in Dockerfile, so no need to exclude
+# bun.lockb is kept in Dockerfile, so no need to exclude

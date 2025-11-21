@@ -9,7 +9,7 @@ services:
       - cargo-cache:/root/.cargo
       - ./src-tauri/target:/app/src-tauri/target
     working_dir: /app
-    command: [ "sh", "-c", ". \"$NVM_DIR/nvm.sh\" && pnpm tauri build --bundles appimage" ]
+    command: [ "sh", "-c", ". \"$NVM_DIR/nvm.sh\" && bun run tauri build --bundles appimage" ]
     # tty: true
 
 volumes:

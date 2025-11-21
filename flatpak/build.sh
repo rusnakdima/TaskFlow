@@ -30,10 +30,10 @@ if ! command -v flatpak-builder &>/dev/null; then
 	exit 1
 fi
 
-# Check if pnpm is installed
-if ! command -v pnpm &>/dev/null; then
-	echo -e "${RED}Error: pnpm is not installed${NC}"
-	echo "Install it with: npm install -g pnpm"
+# Check if bun is installed
+if ! command -v bun &>/dev/null; then
+	echo -e "${RED}Error: bun is not installed${NC}"
+	echo "Install it with: curl -fsSL https://bun.sh/install | bash"
 	exit 1
 fi
 
@@ -50,7 +50,7 @@ echo -e "${YELLOW}Step 2: Building Tauri app with optimized build process (no bu
 # Use the optimized build script from package.json with --no-bundle to avoid linuxdeploy
 
 cd ..
-pnpm tauri:build:fast
+bun run tauri:build:fast
 cd "$SCRIPT_DIR"
 
 echo -e "${YELLOW}Step 3: Building Flatpak...${NC}"

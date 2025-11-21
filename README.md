@@ -18,13 +18,7 @@ node -v
 ```
 
 ```bash
-npm -v
-```
-
-If you are using the pnpm package manager, then run this command:
-
-```bash
-pnpm -v
+bun -v
 ```
 
 #### Installation dependencies
@@ -32,13 +26,7 @@ pnpm -v
 After that, go to the folder with this project and run the following command:
 
 ```bash
-npm install
-```
-
-If you are using the pnpm package manager, then run this command:
-
-```bash
-pnpm install
+bun install
 ```
 
 #### Checking the installed tools to launch the project
@@ -54,14 +42,10 @@ If you get an error instead of a version, it means that you don't have a Rust co
 
 ## Usage
 
-After installing the dependencies, use the following command to run, depending on the package manager you are using:
+After installing the dependencies, use the following command to run:
 
 ```bash
-npm run tauri dev
-```
-Or
-```bash
-pnpm tauri dev
+bun run tauri dev
 ```
 
 ## Build Optimization
@@ -74,24 +58,19 @@ Use the optimized build scripts that only rebuild components when source files h
 
 ```bash
 # Build desktop application (only rebuilds if files changed)
-npm run build:smart
-pnpm build:smart
+bun run build:smart
 
 # Build desktop debug version
-npm run build:smart:debug
-pnpm build:smart:debug
+bun run build:smart:debug
 
 # Build Android APK (only rebuilds if files changed)
-npm run build:smart:android
-pnpm build:smart:android
+bun run build:smart:android
 
 # Build Android APK debug version
-npm run build:smart:android:debug
-pnpm build:smart:android:debug
+bun run build:smart:android:debug
 
 # Clean all build artifacts and cache
-npm run build:clean
-pnpm build:clean
+bun run build:clean
 ```
 
 ### Traditional Build Scripts
@@ -100,16 +79,13 @@ For comparison, traditional build scripts are still available:
 
 ```bash
 # Standard desktop build (always rebuilds everything)
-npm run tauri:build
-pnpm tauri:build
+bun run tauri:build
 
 # Android APK build
-npm run tauri:build:android:apk
-pnpm tauri:build:android:apk
+bun run tauri:build:android:apk
 
 # Android AAB build
-npm run tauri:build:android:aab
-pnpm tauri:build:android:aab
+bun run tauri:build:android:aab
 ```
 
 ### Build Optimizations Applied
@@ -122,10 +98,10 @@ pnpm tauri:build:android:aab
 
 ### Performance Tips
 
-- Use `npm run build:smart` for development builds to avoid unnecessary recompilation
+- Use `bun run build:smart` for development builds to avoid unnecessary recompilation
 - The first build will always take longer as it establishes the baseline
 - Subsequent builds will be much faster if only small changes are made
-- Use `npm run build:clean` if you encounter build issues or want to start fresh
+- Use `bun run build:clean` if you encounter build issues or want to start fresh
 
 ## Authors
 
