@@ -49,15 +49,15 @@ jobs:
           echo "SMTP_PORT=587" >> src-tauri/.env
           echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
 
-      - name: Install pnpm
-        run: |
-          npm i -g pnpm
-
-      - name: Setup node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: "pnpm"
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -70,7 +70,7 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - name: Install frontend dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build app
         shell: bash

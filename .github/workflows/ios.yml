@@ -27,15 +27,15 @@ jobs:
           # Install any additional dependencies if needed
           echo "Installing macOS dependencies..."
 
-      - name: Install pnpm
-        run: |
-          npm i -g pnpm
-
-      - name: Setup node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: "pnpm"
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -54,7 +54,7 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - name: Install frontend dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build frontend (optimized)
         run: |
@@ -64,7 +64,7 @@ jobs:
       - name: Initialize Tauri iOS (if needed)
         run: |
           if [ ! -d "src-tauri/gen/apple" ]; then
-            pnpm tauri ios init
+            bun run tauri ios init
           fi
 
       - name: Configure iOS Code Signing
@@ -114,7 +114,7 @@ jobs:
       - name: Build iOS app (with signing)
         if: env.ENABLE_CODE_SIGNING == 'true'
         run: |
-          pnpm tauri ios build
+          bun run tauri ios build
 
       - name: Build iOS app (without signing - for testing)
         if: env.ENABLE_CODE_SIGNING == 'false'
