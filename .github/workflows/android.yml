@@ -96,11 +96,6 @@ jobs:
           sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" "ndk;25.1.8937393"
           echo "NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Cache Gradle dependencies
         uses: actions/cache@v3
         with:
@@ -111,6 +106,11 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
