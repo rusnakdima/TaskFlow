@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "bun run start",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "bun run build:prod",
     "frontendDist": "../dist/taskflow/browser"
   },
   "app": {
