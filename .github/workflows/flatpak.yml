@@ -10,9 +10,35 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest # Using newer Ubuntu for better support
+    env:
+      NAME_APP: taskflow
+      APP_HOME_FOLDER: TaskFlow
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_NAME: TaskFlow
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JSONDB_NAME: task_flow_db
+      SMTP_USERNAME: rusnakdima03@gmail.com
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_SERVER: smtp.gmail.com
+      SMTP_PORT: 587
+      RESET_TOKEN_EXPIRY_HOURS: 1
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          echo "NAME_APP=taskflow" > src-tauri/.env
+          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
+          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
+          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
+          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
+          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
+          echo "SMTP_PORT=587" >> src-tauri/.env
+          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -66,11 +92,11 @@ jobs:
 
       - name: Build Flatpak using manifest
         run: |
-          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub build-dir flatpak/com.tcs.taskflow.yml
+          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub build-dir flatpak/io.github.rusnakdima.TaskFlow.yml
 
       - name: Create Flatpak bundle
         run: |
-          flatpak build-bundle repo taskflow.flatpak com.tcs.taskflow
+          flatpak build-bundle repo taskflow.flatpak io.github.rusnakdima.TaskFlow
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
