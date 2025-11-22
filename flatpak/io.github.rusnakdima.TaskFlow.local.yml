@@ -1,0 +1,46 @@
+id: io.github.rusnakdima.TaskFlow
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node22
+command: taskflow
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+  - --share=network
+  - --filesystem=home
+
+modules:
+  - name: taskflow-local
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+      build-args:
+        - "--share=network"
+    build-commands:
+      - install -Dm755 src-tauri/target/release/taskflow /app/bin/taskflow
+      - install -Dm644 io.github.rusnakdima.TaskFlow.desktop /app/share/applications/io.github.rusnakdima.TaskFlow.desktop
+      - install -Dm644 io.github.rusnakdima.TaskFlow.metainfo.xml /app/share/metainfo/io.github.rusnakdima.TaskFlow.metainfo.xml
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/128x128/apps/io.github.rusnakdima.TaskFlow.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/256x256/apps/io.github.rusnakdima.TaskFlow.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/io.github.rusnakdima.TaskFlow.svg
+
+    sources:
+      - type: file
+        path: "io.github.rusnakdima.TaskFlow.desktop"
+      - type: file
+        path: "io.github.rusnakdima.TaskFlow.metainfo.xml"
+      - type: dir
+        path: "../src-tauri/icons"
+        dest: "src-tauri/icons"
+      - type: dir
+        path: "../src-tauri/target/release"
+        dest: "src-tauri/target/release"
+
+    cleanup:
+      - /share/man

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.tcs.taskflow</id>
+  <id>io.github.rusnakdima.TaskFlow</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
 
@@ -22,7 +22,7 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">com.tcs.taskflow.desktop</launchable>
+  <launchable type="desktop-id">io.github.rusnakdima.TaskFlow.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">
