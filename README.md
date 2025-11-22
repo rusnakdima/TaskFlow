@@ -10,7 +10,7 @@ here are screenshots of this project
 
 #### Checking the installed tools to launch the project
 
-First make sure you have Node js installed.
+First make sure you have Node.js and Bun installed.
 To do this, open a command prompt or terminal and type the following commands:
 
 ```bash
@@ -19,6 +19,23 @@ node -v
 
 ```bash
 bun -v
+```
+
+If Bun is not installed, you can install it from the [official website](https://bun.sh/). Here are the installation commands for different systems:
+
+**For macOS and Linux:**
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+**For Windows (using PowerShell):**
+```powershell
+irm bun.sh/install.ps1 | iex
+```
+
+**For all platforms using npm:**
+```bash
+npm install -g bun
 ```
 
 #### Installation dependencies
