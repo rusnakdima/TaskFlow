@@ -2,6 +2,62 @@
 
 This directory contains utility scripts for the TaskFlow project.
 
+## Build Scripts
+
+### `build-optimized.sh` (Linux/macOS) and `build-optimized.cmd` (Windows)
+
+These scripts provide optimized builds for the TaskFlow application, helping avoid unnecessary recompilation of components.
+
+#### Features
+
+- Checks for file changes before rebuilding frontend or Rust code
+- Supports multiple targets: desktop, android, android-apk, android-aab, ios
+- Supports build types: release (default) and debug
+- Maintains build artifacts caching to speed up repeated builds
+- CI/CD friendly with environment variable support
+
+#### Usage (Linux/macOS)
+```bash
+# Make the script executable first
+chmod +x scripts/build-optimized.sh
+
+# Build desktop release (default)
+./scripts/build-optimized.sh build
+
+# Build desktop debug
+./scripts/build-optimized.sh build desktop debug
+
+# Build Android APK debug
+./scripts/build-optimized.sh build android-apk debug
+
+# Clean all build artifacts
+./scripts/build-optimized.sh clean
+
+# Set environment variable to force rebuild
+FORCE_BUILD=true ./scripts/build-optimized.sh build
+```
+
+#### Usage (Windows)
+```cmd
+REM Build desktop release (default)
+scripts\build-optimized.cmd build
+
+REM Build desktop debug
+scripts\build-optimized.cmd build desktop debug
+
+REM Build Android APK debug
+scripts\build-optimized.cmd build android-apk debug
+
+REM Clean all build artifacts
+scripts\build-optimized.cmd clean
+```
+
+#### Advanced Usage
+You can use the `FORCE_BUILD` environment variable to skip change detection and force a full rebuild:
+```bash
+FORCE_BUILD=true ./scripts/build-optimized.sh build
+```
+
 ## Version Synchronization Script
 
 ### `sync-versions.sh`
