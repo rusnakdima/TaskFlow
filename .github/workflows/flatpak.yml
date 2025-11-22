@@ -9,128 +9,76 @@ jobs:
   build-flatpak:
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest # Using newer Ubuntu for better support
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: latest
+          bun-version: latest
 
-      - name: Setup Rust
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
             flatpak \
-            flatpak-builder
+            flatpak-builder \
+            patchelf \
+            libwebkit2gtk-4.1-dev \
+            librsvg2-dev \
+            libayatana-appindicator3-dev \
+            cargo \
+            rustc
 
-      - name: Create .env file
-        run: |
-          echo "NAME_APP=taskflow" > src-tauri/.env
-          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
-          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
-          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
-          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
-          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
-          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
-          echo "SMTP_PORT=587" >> src-tauri/.env
-          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Tauri app
-        run: pnpm tauri build --bundles deb
+      - name: Install Node.js dependencies
+        run: bun install
 
       - name: Add flathub remote
         run: |
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Flatpak runtime and SDK
         run: |
-          flatpak install --user --noninteractive flathub org.gnome.Platform//48
-          flatpak install --user --noninteractive flathub org.gnome.Sdk//48
+          flatpak install --noninteractive flathub org.gnome.Platform//48
+          flatpak install --noninteractive flathub org.gnome.Sdk//48
+          flatpak install --noninteractive flathub org.freedesktop.Sdk.Extension.node22//24.08
+          flatpak install --noninteractive flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
 
-      - name: Prepare Flatpak structure
+      - name: Build Tauri application
         run: |
-          mkdir -p flatpak-build/files/bin
-          mkdir -p flatpak-build/files/share/applications
-          mkdir -p flatpak-build/files/share/icons/hicolor/128x128/apps
-          mkdir -p flatpak-build/files/share/icons/hicolor/32x32/apps
-          mkdir -p flatpak-build/export
+          bun run tauri:build:fast
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
-      - name: Copy binary and resources
+      - name: Build Flatpak using manifest
         run: |
-          # Copy binary
-          cp src-tauri/target/release/taskflow flatpak-build/files/bin/
-          chmod +x flatpak-build/files/bin/taskflow
-
-          # Copy icons
-          cp src-tauri/icons/128x128.png flatpak-build/files/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
-          cp src-tauri/icons/32x32.png flatpak-build/files/share/icons/hicolor/32x32/apps/com.tcs.taskflow.png
-
-      - name: Create desktop file
-        run: |
-          cat > flatpak-build/files/share/applications/com.tcs.taskflow.desktop <<EOF
-          [Desktop Entry]
-          Type=Application
-          Name=Task Flow
-          Exec=taskflow
-          Icon=com.tcs.taskflow
-          Categories=Utility;
-          Terminal=false
-          EOF
-
-      - name: Create Flatpak manifest for export
-        run: |
-          cat > flatpak-build/metadata <<EOF
-          [Application]
-          name=com.tcs.taskflow
-          runtime=org.gnome.Platform/x86_64/48
-          sdk=org.gnome.Sdk/x86_64/48
-          command=taskflow
-
-          [Context]
-          shared=ipc;network;
-          sockets=x11;wayland;
-          devices=dri;
-          filesystems=home;
-          EOF
-
-      - name: Build Flatpak repository
-        run: |
-          mkdir -p flatpak-repo
-          flatpak build-export flatpak-repo flatpak-build
+          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub build-dir flatpak/com.tcs.taskflow.yml
 
       - name: Create Flatpak bundle
         run: |
-          flatpak build-bundle flatpak-repo taskflow.flatpak com.tcs.taskflow
+          flatpak build-bundle repo taskflow.flatpak com.tcs.taskflow
 
       - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: taskflow.flatpak
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
