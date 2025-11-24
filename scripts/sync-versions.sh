@@ -43,13 +43,13 @@ if [ -f "src/environments/environment.ts" ]; then
 	echo "✓ Updated src/environments/environment.ts"
 fi
 
-# Update Flatpak manifest - taskflow
+# Update Flatpak manifest
 if [ -f "flatpak/com.tcs.taskflow.yml" ]; then
 	sed -i "s/^version: .*/version: '$NEW_VERSION'/" flatpak/com.tcs.taskflow.yml
 	echo "Updated flatpak/com.tcs.taskflow.yml"
 fi
 
-# Update Flatpak metainfo.xml with current date for taskflow
+# Update Flatpak metainfo.xml with current date
 update_metainfo() {
 	local metainfo_file="$1"
 
@@ -68,17 +68,17 @@ update_metainfo() {
 
 	# Insert the new release after <releases> tag
 	awk -v version="$NEW_VERSION" -v date="$CURRENT_DATE" '
-        /<releases>/ {
-            print $0
-            print "    <release version=\"" version "\" date=\"" date "\">"
-            print "      <description>"
-            print "        <p>Release version " version "</p>"
-            print "      </description>"
-            print "    </release>"
-            next
-        }
-        { print }
-        ' "${metainfo_file}.bak" >"$metainfo_file"
+		/<releases>/ {
+				print $0
+				print "    <release version=\"" version "\" date=\"" date "\">"
+				print "      <description>"
+				print "        <p>Release version " version "</p>"
+				print "      </description>"
+				print "    </release>"
+				next
+		}
+		{ print }
+	' "${metainfo_file}.bak" >"$metainfo_file"
 
 	rm -f "${metainfo_file}.bak"
 	echo "✓ Updated $metainfo_file with new release"
