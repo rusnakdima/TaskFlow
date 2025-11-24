@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build script for Flatpak on Manjaro Linux
+# Build script for Flatpak Linux
 # This script builds your Tauri app as a Flatpak package using optimized build process
 # Usage: ./build.sh [dev|prod]
 #   dev: Fast build for development (default)
