@@ -75,8 +75,8 @@ jobs:
       - name: Build app
         shell: bash
         run: |
-          chmod +x ./build-optimized.sh
-          FORCE_BUILD=true ./build-optimized.sh build desktop release ${{ matrix.args }}
+          chmod +x ./scripts/build-optimized.sh
+          FORCE_BUILD=true ./scripts/build-optimized.sh build desktop release ${{ matrix.args }}
 
       - name: Upload to Existing Release
         uses: softprops/action-gh-release@v1

@@ -184,8 +184,8 @@ jobs:
         run: |
           echo "Building release APK..."
           df -h
-          chmod +x ./build-optimized.sh
-          FORCE_BUILD=true ./build-optimized.sh build android-apk release
+          chmod +x ./scripts/build-optimized.sh
+          FORCE_BUILD=true ./scripts/build-optimized.sh build android-apk release
 
       - name: Clean up after release build
         run: |
@@ -198,8 +198,8 @@ jobs:
       - name: Build Android AAB
         run: |
           echo "Building AAB..."
-          chmod +x ./build-optimized.sh
-          FORCE_BUILD=true ./build-optimized.sh build android-aab release
+          chmod +x ./scripts/build-optimized.sh
+          FORCE_BUILD=true ./scripts/build-optimized.sh build android-aab release
 
       - name: Clean up after AAB build
         run: |
@@ -212,8 +212,8 @@ jobs:
       - name: Build Debug APK (for testing)
         run: |
           echo "Building debug APK..."
-          chmod +x ./build-optimized.sh
-          FORCE_BUILD=true ./build-optimized.sh build android-apk release
+          chmod +x ./scripts/build-optimized.sh
+          FORCE_BUILD=true ./scripts/build-optimized.sh build android-apk release
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4

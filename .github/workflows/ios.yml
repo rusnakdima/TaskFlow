@@ -58,8 +58,8 @@ jobs:
 
       - name: Build frontend (optimized)
         run: |
-          chmod +x ./build-optimized.sh
-          FORCE_BUILD=true ./build-optimized.sh build ios release
+          chmod +x ./scripts/build-optimized.sh
+          FORCE_BUILD=true ./scripts/build-optimized.sh build ios release
 
       - name: Initialize Tauri iOS (if needed)
         run: |
