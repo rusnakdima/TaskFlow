@@ -23,13 +23,13 @@ These scripts provide optimized builds for the TaskFlow application, helping avo
 chmod +x scripts/build-optimized.sh
 
 # Build desktop release (default)
-./scripts/build-optimized.sh build
+./scripts/build-optimized.sh build desktop release
 
 # Build desktop debug
 ./scripts/build-optimized.sh build desktop debug
 
-# Build Android debug
-./scripts/build-optimized.sh build android debug
+# Build Android
+./scripts/build-optimized.sh build android release
 
 # Clean all build artifacts
 ./scripts/build-optimized.sh clean
@@ -42,13 +42,13 @@ FORCE_BUILD=true ./scripts/build-optimized.sh build
 
 ```cmd
 REM Build desktop release (default)
-scripts\build-optimized.cmd build
+scripts\build-optimized.cmd build release
 
 REM Build desktop debug
 scripts\build-optimized.cmd build desktop debug
 
-REM Build Android debug
-scripts\build-optimized.cmd build android debug
+REM Build Android
+scripts\build-optimized.cmd build android release
 
 REM Clean all build artifacts
 scripts\build-optimized.cmd clean
