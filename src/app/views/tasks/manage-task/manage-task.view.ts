@@ -74,6 +74,15 @@ export class ManageTaskView implements OnInit {
       createdAt: [""],
       updatedAt: [""],
     });
+
+    this.form.get("startDate")?.valueChanges.subscribe((startDate) => {
+      const endDateControl = this.form.get("endDate");
+      if (!startDate) {
+        endDateControl?.setValue("");
+      } else {
+        this.updateEndDateValidation(startDate, endDateControl?.value);
+      }
+    });
   }
 
   todoId: string = "";
@@ -119,12 +128,29 @@ export class ManageTaskView implements OnInit {
     });
   }
 
+  updateEndDateValidation(startDate: string, currentEndDate: string) {
+    if (startDate && currentEndDate) {
+      const start = new Date(startDate);
+      const end = new Date(currentEndDate);
+      if (end < start) {
+        this.form.get("endDate")?.setValue("");
+      }
+    }
+  }
+
   getTaskInfo(taskId: string) {
     this.mainService
       .getByField<Task>("task", "id", taskId)
       .then((response: Response<Task>) => {
         if (response.status == ResponseStatus.SUCCESS) {
-          this.form.patchValue(response.data);
+          const taskData = response.data;
+          this.form.patchValue(taskData);
+
+          const startDate = taskData.startDate;
+          const endDate = taskData.endDate;
+          if (startDate && endDate) {
+            this.updateEndDateValidation(startDate, endDate);
+          }
         }
       })
       .catch((err: Response<string>) => {
@@ -150,6 +176,10 @@ export class ManageTaskView implements OnInit {
   }
 
   onSubmit() {
+    if (!this.validateDates()) {
+      return;
+    }
+
     if (this.form.invalid) {
       Object.values(this.form.controls).forEach((control) => {
         control.markAsTouched();
@@ -168,33 +198,132 @@ export class ManageTaskView implements OnInit {
     }
   }
 
+  validateDates(): boolean {
+    const startDate = this.form.get("startDate")?.value;
+    const endDate = this.form.get("endDate")?.value;
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (end < start) {
+        this.notifyService.showError("End date cannot be earlier than start date");
+        return false;
+      }
+    }
+
+    if (!startDate && endDate) {
+      this.form.get("endDate")?.setValue("");
+    }
+
+    return true;
+  }
+
+  endDateFilter = (date: Date | null): boolean => {
+    const startDateValue = this.form.get("startDate")?.value;
+    if (!startDateValue) {
+      return false;
+    }
+
+    if (!date) {
+      return false;
+    }
+
+    const startDate = new Date(startDateValue);
+    return date >= startDate;
+  };
+
+  clearDates() {
+    this.form.get("startDate")?.setValue("");
+    this.form.get("endDate")?.setValue("");
+  }
+
   createTask() {
     if (this.form.valid) {
       this.mainService
         .getAllByField<Task[]>("task", "todoId", this.todoId)
         .then((response: Response<Task[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            const order = response.data.length;
-            const formValue = this.form.value;
-            const normalizedFormValue = normalizeTaskDates(formValue);
-            const body = {
-              ...normalizedFormValue,
-              order: order,
-            };
+            const existingTasks = response.data;
 
-            this.mainService
-              .create<string, Task>("task", body)
-              .then((response: Response<string>) => {
-                this.isSubmitting = false;
-                this.notifyService.showNotify(response.status, response.message);
-                if (response.status == ResponseStatus.SUCCESS) {
-                  this.back();
-                }
-              })
-              .catch((err: Response<string>) => {
-                this.isSubmitting = false;
-                this.notifyService.showError(err.message ?? err.toString());
-              });
+            const updatedTasks = existingTasks.map((task) => ({
+              ...task,
+              order: task.order + 1,
+            }));
+
+            if (updatedTasks.length > 0) {
+              const transformedTasks = updatedTasks.map((task) => ({
+                _id: task._id,
+                id: task.id,
+                todoId: task.todoId || "",
+                title: task.title,
+                description: task.description,
+                isCompleted: task.isCompleted,
+                priority: task.priority,
+                startDate: task.startDate,
+                endDate: task.endDate,
+                order: task.order,
+                isDeleted: task.isDeleted,
+                createdAt: task.createdAt,
+                updatedAt: new Date().toISOString().split(".")[0],
+              }));
+
+              this.mainService
+                .updateAll<string, any>("task", transformedTasks)
+                .then((updateResponse: Response<string>) => {
+                  if (updateResponse.status !== ResponseStatus.SUCCESS) {
+                    this.notifyService.showError("Failed to update existing tasks order");
+                    this.isSubmitting = false;
+                    return;
+                  }
+
+                  const formValue = this.form.value;
+                  const normalizedFormValue = normalizeTaskDates(formValue);
+                  const body = {
+                    ...normalizedFormValue,
+                    order: 0,
+                  };
+
+                  this.mainService
+                    .create<string, Task>("task", body)
+                    .then((createResponse: Response<string>) => {
+                      this.isSubmitting = false;
+                      this.notifyService.showNotify(createResponse.status, createResponse.message);
+                      if (createResponse.status == ResponseStatus.SUCCESS) {
+                        this.back();
+                      }
+                    })
+                    .catch((createErr: Response<string>) => {
+                      this.isSubmitting = false;
+                      this.notifyService.showError(createErr.message ?? createErr.toString());
+                    });
+                })
+                .catch((updateErr: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showError(updateErr.message ?? updateErr.toString());
+                });
+            } else {
+              const formValue = this.form.value;
+              const normalizedFormValue = normalizeTaskDates(formValue);
+              const body = {
+                ...normalizedFormValue,
+                order: 0,
+              };
+
+              this.mainService
+                .create<string, Task>("task", body)
+                .then((response: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showNotify(response.status, response.message);
+                  if (response.status == ResponseStatus.SUCCESS) {
+                    this.back();
+                  }
+                })
+                .catch((err: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showError(err.message ?? err.toString());
+                });
+            }
           } else {
             this.isSubmitting = false;
             this.notifyService.showError("Failed to get existing tasks count");

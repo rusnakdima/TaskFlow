@@ -227,25 +227,80 @@ export class ManageSubtaskView implements OnInit {
         .getAllByField<Subtask[]>("subtask", "taskId", this.taskId)
         .then((response: Response<Subtask[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            const order = response.data.length;
-            const body = {
-              ...this.form.value,
-              order: order,
-            };
+            const existingSubtasks = response.data;
 
-            this.mainService
-              .create<string, Subtask>("subtask", body)
-              .then((response: Response<string>) => {
-                this.isSubmitting = false;
-                this.notifyService.showNotify(response.status, response.message);
-                if (response.status == ResponseStatus.SUCCESS) {
-                  this.back();
-                }
-              })
-              .catch((err: Response<string>) => {
-                this.isSubmitting = false;
-                this.notifyService.showError(err.message ?? err.toString());
-              });
+            const updatedSubtasks = existingSubtasks.map((subtask) => ({
+              ...subtask,
+              order: subtask.order + 1,
+            }));
+
+            if (updatedSubtasks.length > 0) {
+              const transformedSubtasks = updatedSubtasks.map((subtask) => ({
+                _id: subtask._id,
+                id: subtask.id,
+                taskId: subtask.taskId || "",
+                title: subtask.title,
+                description: subtask.description,
+                isCompleted: subtask.isCompleted,
+                priority: subtask.priority,
+                order: subtask.order,
+                isDeleted: subtask.isDeleted,
+                createdAt: subtask.createdAt,
+                updatedAt: new Date().toISOString().split(".")[0],
+              }));
+
+              this.mainService
+                .updateAll<string, any>("subtask", transformedSubtasks)
+                .then((updateResponse: Response<string>) => {
+                  if (updateResponse.status !== ResponseStatus.SUCCESS) {
+                    this.notifyService.showError("Failed to update existing subtasks order");
+                    this.isSubmitting = false;
+                    return;
+                  }
+
+                  const body = {
+                    ...this.form.value,
+                    order: 0,
+                  };
+
+                  this.mainService
+                    .create<string, Subtask>("subtask", body)
+                    .then((createResponse: Response<string>) => {
+                      this.isSubmitting = false;
+                      this.notifyService.showNotify(createResponse.status, createResponse.message);
+                      if (createResponse.status == ResponseStatus.SUCCESS) {
+                        this.back();
+                      }
+                    })
+                    .catch((createErr: Response<string>) => {
+                      this.isSubmitting = false;
+                      this.notifyService.showError(createErr.message ?? createErr.toString());
+                    });
+                })
+                .catch((updateErr: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showError(updateErr.message ?? updateErr.toString());
+                });
+            } else {
+              const body = {
+                ...this.form.value,
+                order: 0,
+              };
+
+              this.mainService
+                .create<string, Subtask>("subtask", body)
+                .then((response: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showNotify(response.status, response.message);
+                  if (response.status == ResponseStatus.SUCCESS) {
+                    this.back();
+                  }
+                })
+                .catch((err: Response<string>) => {
+                  this.isSubmitting = false;
+                  this.notifyService.showError(err.message ?? err.toString());
+                });
+            }
           } else {
             this.isSubmitting = false;
             this.notifyService.showError("Failed to get existing subtasks count");

@@ -111,7 +111,18 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-medium textNormal">Time periods</label>
+          <div class="flex justify-between items-center">
+            <label class="block text-sm font-medium textNormal">Time periods</label>
+            @if (form.get("startDate")?.value || form.get("endDate")?.value) {
+              <button
+                type="button"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 py-1 rounded-md"
+                (click)="clearDates()"
+              >
+                Clear dates
+              </button>
+            }
+          </div>
 
           <mat-form-field class="w-full">
             <mat-label>Start Date</mat-label>
@@ -122,9 +133,14 @@
 
           <mat-form-field class="w-full">
             <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              formControlName="endDate"
+              [matDatepickerFilter]="endDateFilter"
+            />
             <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-datepicker #endPicker [disabled]="!form.get('startDate')?.value"></mat-datepicker>
           </mat-form-field>
         </div>
       </div>
