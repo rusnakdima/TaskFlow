@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.rusnakdima.TaskFlow</id>
+  <id>com.tcs.taskflow</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
 
   <name>Task Flow</name>
   <summary>A comprehensive task management application</summary>
 
-  <developer id="io.github.rusnakdima">
+  <developer id="com.tcs">
     <name>TechCraft Solutions</name>
   </developer>
 
@@ -22,7 +22,7 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">io.github.rusnakdima.TaskFlow.desktop</launchable>
+  <launchable type="desktop-id">com.tcs.taskflow.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">

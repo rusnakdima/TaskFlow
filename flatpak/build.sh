@@ -54,7 +54,7 @@ if ! command -v bun &>/dev/null; then
 fi
 
 # Variables - CUSTOMIZE THESE
-APP_ID="io.github.rusnakdima.TaskFlow"
+APP_ID="com.tcs.taskflow"
 
 # Select manifest based on build type
 if [ "$BUILD_TYPE" = "dev" ]; then

@@ -1,4 +1,4 @@
-id: io.github.rusnakdima.TaskFlow
+id: com.tcs.taskflow
 runtime: org.gnome.Platform
 runtime-version: "48"
 sdk: org.gnome.Sdk
@@ -34,16 +34,16 @@ modules:
       - export PATH="$BUN_INSTALL/bin:$PATH" && bun install --frozen-lockfile
       - export PATH="$BUN_INSTALL/bin:$PATH" && bun run tauri build --no-bundle
       # Metadata
-      - install -Dm644 flatpak/io.github.rusnakdima.TaskFlow.desktop /app/share/applications/io.github.rusnakdima.TaskFlow.desktop
-      - install -Dm644 flatpak/io.github.rusnakdima.TaskFlow.metainfo.xml /app/share/metainfo/io.github.rusnakdima.TaskFlow.metainfo.xml
+      - install -Dm644 flatpak/com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.desktop
+      - install -Dm644 flatpak/com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.metainfo.xml
       # Binary
       - install -Dm755 src-tauri/target/release/taskflow /app/bin/taskflow
       # Icons
       - |
         for size in 128x128 256x256; do
-          install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/$size/apps/io.github.rusnakdima.TaskFlow.png
+          install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/$size/apps/com.tcs.taskflow.png
         done
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/io.github.rusnakdima.TaskFlow.svg
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/com.tcs.taskflow.svg
 
     sources:
       - type: dir

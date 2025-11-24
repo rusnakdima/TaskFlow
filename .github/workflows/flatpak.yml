@@ -92,11 +92,11 @@ jobs:
 
       - name: Build Flatpak using manifest
         run: |
-          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub build-dir flatpak/io.github.rusnakdima.TaskFlow.local.yml
+          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub build-dir flatpak/com.tcs.taskflow.local.yml
 
       - name: Create Flatpak bundle
         run: |
-          flatpak build-bundle repo taskflow.flatpak io.github.rusnakdima.TaskFlow
+          flatpak build-bundle repo taskflow.flatpak com.tcs.taskflow
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2

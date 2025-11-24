@@ -116,7 +116,6 @@ if %errorlevel% equ 0 (
   ) else (
     bun run build:prod
   )
-  echo %date% %time% > .last-frontend-build
   call :print_success "Frontend built successfully"
 )
 
@@ -128,19 +127,15 @@ if "%target%"=="desktop" (
   ) else (
     bun run tauri:build
   )
-) else if "%target%"=="android-apk" (
-    bun run tauri:build:android:apk
-) else if "%target%"=="android-aab" (
-    bun run tauri:build:android:aab
 ) else if "%target%"=="android" (
-    bun run tauri:build:android
+  bun run tauri:build:android
 ) else if "%target%"=="ios" (
   REM For iOS, we only build the frontend here
   REM The actual iOS build is handled by the workflow
   call :print_status "Frontend built for iOS target"
 ) else (
   call :print_error "Unknown target: %target%"
-  echo Available targets: desktop, android, android-apk, android-aab, ios
+  echo Available targets: desktop, android, ios
   exit /b 1
 )
 
@@ -171,8 +166,6 @@ echo.
 echo Targets:
 echo   desktop               - Desktop application (default)
 echo   android               - Android application
-echo   android-apk           - Android APK only
-echo   android-aab           - Android AAB only
 echo   ios                   - iOS application (frontend only)
 echo.
 echo Types:
@@ -181,7 +174,7 @@ echo   debug                 - Debug build
 echo.
 echo Examples:
 echo   %0 build                    # Build desktop release
-echo   %0 build android-apk debug  # Build Android APK debug
+echo   %0 build android debug      # Build Android APK
 echo   %0 clean                    # Clean all artifacts
 goto :eof
 

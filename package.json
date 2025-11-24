@@ -13,18 +13,13 @@
     "tauri:build:debug": "tauri build --debug",
     "tauri:build:fast": "tauri build --no-bundle",
     "tauri:build:android": "tauri android build",
-    "tauri:build:android:apk": "tauri android build --apk",
-    "tauri:build:android:aab": "tauri android build --aab",
     "build:frontend:check": "ng build --configuration production --output-hashing none",
     "build:optimized": "bun run build:prod && bun run tauri:build",
     "build:android:optimized": "bun run build:prod && bun run tauri:build:android:apk",
-    "build:smart": "./build-optimized.sh build desktop release",
-    "build:smart:debug": "./build-optimized.sh build desktop debug",
-    "build:smart:android": "./build-optimized.sh build android release",
-    "build:smart:android:apk": "./build-optimized.sh build android-apk release",
-    "build:smart:android:aab": "./build-optimized.sh build android-aab release",
-    "build:smart:android:debug": "./build-optimized.sh build android-apk debug",
-    "build:clean": "./build-optimized.sh clean"
+    "build:smart": "./scripts/build-optimized.sh build desktop release",
+    "build:smart:debug": "./scripts/build-optimized.sh build desktop debug",
+    "build:smart:android": "./scripts/build-optimized.sh build android release",
+    "build:clean": "./scripts/build-optimized.sh clean"
   },
   "private": true,
   "dependencies": {

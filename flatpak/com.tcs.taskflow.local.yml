@@ -1,4 +1,4 @@
-id: io.github.rusnakdima.TaskFlow
+id: com.tcs.taskflow
 runtime: org.gnome.Platform
 runtime-version: "48"
 sdk: org.gnome.Sdk
@@ -24,17 +24,17 @@ modules:
         - "--share=network"
     build-commands:
       - install -Dm755 src-tauri/target/release/taskflow /app/bin/taskflow
-      - install -Dm644 io.github.rusnakdima.TaskFlow.desktop /app/share/applications/io.github.rusnakdima.TaskFlow.desktop
-      - install -Dm644 io.github.rusnakdima.TaskFlow.metainfo.xml /app/share/metainfo/io.github.rusnakdima.TaskFlow.metainfo.xml
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/128x128/apps/io.github.rusnakdima.TaskFlow.png
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/256x256/apps/io.github.rusnakdima.TaskFlow.png
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/io.github.rusnakdima.TaskFlow.svg
+      - install -Dm644 com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.desktop
+      - install -Dm644 com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.metainfo.xml
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/256x256/apps/com.tcs.taskflow.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/com.tcs.taskflow.svg
 
     sources:
       - type: file
-        path: "io.github.rusnakdima.TaskFlow.desktop"
+        path: "com.tcs.taskflow.desktop"
       - type: file
-        path: "io.github.rusnakdima.TaskFlow.metainfo.xml"
+        path: "com.tcs.taskflow.metainfo.xml"
       - type: dir
         path: "../src-tauri/icons"
         dest: "src-tauri/icons"

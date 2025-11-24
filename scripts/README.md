@@ -11,12 +11,13 @@ These scripts provide optimized builds for the TaskFlow application, helping avo
 #### Features
 
 - Checks for file changes before rebuilding frontend or Rust code
-- Supports multiple targets: desktop, android, android-apk, android-aab, ios
+- Supports multiple targets: desktop, android, ios
 - Supports build types: release (default) and debug
 - Maintains build artifacts caching to speed up repeated builds
 - CI/CD friendly with environment variable support
 
 #### Usage (Linux/macOS)
+
 ```bash
 # Make the script executable first
 chmod +x scripts/build-optimized.sh
@@ -27,8 +28,8 @@ chmod +x scripts/build-optimized.sh
 # Build desktop debug
 ./scripts/build-optimized.sh build desktop debug
 
-# Build Android APK debug
-./scripts/build-optimized.sh build android-apk debug
+# Build Android debug
+./scripts/build-optimized.sh build android debug
 
 # Clean all build artifacts
 ./scripts/build-optimized.sh clean
@@ -38,6 +39,7 @@ FORCE_BUILD=true ./scripts/build-optimized.sh build
 ```
 
 #### Usage (Windows)
+
 ```cmd
 REM Build desktop release (default)
 scripts\build-optimized.cmd build
@@ -45,15 +47,17 @@ scripts\build-optimized.cmd build
 REM Build desktop debug
 scripts\build-optimized.cmd build desktop debug
 
-REM Build Android APK debug
-scripts\build-optimized.cmd build android-apk debug
+REM Build Android debug
+scripts\build-optimized.cmd build android debug
 
 REM Clean all build artifacts
 scripts\build-optimized.cmd clean
 ```
 
 #### Advanced Usage
+
 You can use the `FORCE_BUILD` environment variable to skip change detection and force a full rebuild:
+
 ```bash
 FORCE_BUILD=true ./scripts/build-optimized.sh build
 ```
