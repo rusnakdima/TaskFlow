@@ -126,7 +126,13 @@
 
           <mat-form-field class="w-full">
             <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+            <input
+              matInput
+              [matDatepicker]="startPicker"
+              formControlName="startDate"
+              readonly
+              (click)="startPicker.open()"
+            />
             <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
@@ -138,6 +144,8 @@
               [matDatepicker]="endPicker"
               formControlName="endDate"
               [matDatepickerFilter]="endDateFilter"
+              readonly
+              (click)="endPicker.open()"
             />
             <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker [disabled]="!form.get('startDate')?.value"></mat-datepicker>
