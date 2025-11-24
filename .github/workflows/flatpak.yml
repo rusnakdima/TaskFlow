@@ -73,14 +73,14 @@ jobs:
 
       - name: Add flathub remote
         run: |
-          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Flatpak runtime and SDK
         run: |
-          flatpak install --noninteractive flathub org.gnome.Platform//48
-          flatpak install --noninteractive flathub org.gnome.Sdk//48
-          flatpak install --noninteractive flathub org.freedesktop.Sdk.Extension.node22//24.08
-          flatpak install --noninteractive flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
+          flatpak install --user --noninteractive flathub org.gnome.Platform//48
+          flatpak install --user --noninteractive flathub org.gnome.Sdk//48
+          flatpak install --user --noninteractive flathub org.freedesktop.Sdk.Extension.node22//24.08
+          flatpak install --user --noninteractive flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
 
       # - name: Build Tauri application
       #   run: |
