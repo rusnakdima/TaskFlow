@@ -43,6 +43,12 @@ if [ -f "src/environments/environment.ts" ]; then
 	echo "✓ Updated src/environments/environment.ts"
 fi
 
+# Update Flatpak manifest - taskflow
+if [ -f "flatpak/com.tcs.taskflow.yml" ]; then
+	sed -i "s/^version: .*/version: '$NEW_VERSION'/" flatpak/com.tcs.taskflow.yml
+	echo "Updated flatpak/com.tcs.taskflow.yml"
+fi
+
 # Update Flatpak metainfo.xml with current date for taskflow
 update_metainfo() {
 	local metainfo_file="$1"
@@ -79,8 +85,8 @@ update_metainfo() {
 }
 
 # Update metainfo for taskflow
-if [ -f "flatpak/io.github.rusnakdima.TaskFlow.metainfo.xml" ]; then
-	update_metainfo "flatpak/io.github.rusnakdima.TaskFlow.metainfo.xml"
+if [ -f "flatpak/com.tcs.taskflow.metainfo.xml" ]; then
+	update_metainfo "flatpak/com.tcs.taskflow.metainfo.xml"
 fi
 
 echo ""
