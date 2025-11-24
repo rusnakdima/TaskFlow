@@ -15,7 +15,7 @@
     "tauri:build:android": "tauri android build",
     "build:frontend:check": "ng build --configuration production --output-hashing none",
     "build:optimized": "bun run build:prod && bun run tauri:build",
-    "build:android:optimized": "bun run build:prod && bun run tauri:build:android:apk",
+    "build:android:optimized": "bun run build:prod && bun run tauri:build:android",
     "build:smart": "./scripts/build-optimized.sh build desktop release",
     "build:smart:debug": "./scripts/build-optimized.sh build desktop debug",
     "build:smart:android": "./scripts/build-optimized.sh build android release",
