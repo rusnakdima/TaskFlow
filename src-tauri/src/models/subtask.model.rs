@@ -26,7 +26,7 @@ pub struct SubtaskModel {
 pub struct SubtaskCreateModel {
   pub taskId: String,
   pub title: String,
-  pub description: String,
+  pub description: Option<String>,
   pub isCompleted: bool,
   pub priority: String,
   pub order: i32,
@@ -42,7 +42,7 @@ impl From<SubtaskCreateModel> for SubtaskModel {
       id: Uuid::new().to_string(),
       taskId: value.taskId,
       title: value.title,
-      description: value.description,
+      description: value.description.unwrap_or_default(),
       isCompleted: false,
       priority: value.priority.to_string(),
       order: value.order,

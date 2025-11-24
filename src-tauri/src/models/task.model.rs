@@ -47,7 +47,7 @@ pub struct TaskModel {
 pub struct TaskCreateModel {
   pub todoId: String,
   pub title: String,
-  pub description: String,
+  pub description: Option<String>,
   pub priority: String,
   pub startDate: String,
   pub endDate: String,
@@ -77,7 +77,7 @@ impl From<TaskCreateModel> for TaskModel {
       id: Uuid::new().to_string(),
       todoId: value.todoId,
       title: value.title,
-      description: value.description,
+      description: value.description.unwrap_or_default(),
       isCompleted: false,
       priority: value.priority.to_string(),
       startDate: formattedStartDate,

@@ -60,7 +60,7 @@ export class ManageSubtaskView implements OnInit {
       id: [""],
       taskId: ["", Validators.required],
       title: ["", Validators.required],
-      description: ["", Validators.required],
+      description: [""],
       isCompleted: [false],
       priority: ["", Validators.required],
       order: [0],

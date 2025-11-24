@@ -64,7 +64,7 @@ export class ManageTaskView implements OnInit {
       id: [""],
       todoId: ["", Validators.required],
       title: ["", Validators.required],
-      description: ["", Validators.required],
+      description: [""],
       isCompleted: [false],
       priority: ["", Validators.required],
       startDate: [""],
