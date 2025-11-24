@@ -109,7 +109,16 @@ export class TasksView implements OnInit {
   }
 
   searchFunc(data: Array<any>) {
-    this.listTasks = data;
+    const sortedData = [...data].sort((a, b) => {
+      if (a.isCompleted === b.isCompleted) {
+        return 0;
+      } else if (a.isCompleted) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
+    this.listTasks = sortedData;
   }
 
   toggleTaskCompletion(task: Task) {
@@ -126,6 +135,9 @@ export class TasksView implements OnInit {
               todoTask.isCompleted = task.isCompleted;
             }
           }
+
+          this.applyFilter();
+
           this.notifyService.showSuccess(`Task ${task.isCompleted ? "completed" : "reopened"}`);
         } else {
           this.notifyService.showError(response.message);
@@ -161,6 +173,17 @@ export class TasksView implements OnInit {
       default:
         break;
     }
+
+  
+    filtered.sort((a, b) => {
+      if (a.isCompleted === b.isCompleted) {
+        return 0;
+      } else if (a.isCompleted) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
 
     this.listTasks = filtered;
   }

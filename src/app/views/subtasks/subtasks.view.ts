@@ -125,7 +125,16 @@ export class SubtasksView implements OnInit {
   }
 
   searchFunc(data: Array<any>) {
-    this.listSubtasks = data;
+    const sortedData = [...data].sort((a, b) => {
+      if (a.isCompleted === b.isCompleted) {
+        return 0;
+      } else if (a.isCompleted) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
+    this.listSubtasks = sortedData;
   }
 
   toggleFilter() {
@@ -154,6 +163,16 @@ export class SubtasksView implements OnInit {
         break;
     }
 
+    filtered.sort((a, b) => {
+      if (a.isCompleted === b.isCompleted) {
+        return 0;
+      } else if (a.isCompleted) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
+
     this.listSubtasks = filtered;
   }
 
@@ -165,6 +184,9 @@ export class SubtasksView implements OnInit {
       .then((response: Response<string>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           subtask.isCompleted = !subtask.isCompleted;
+
+          this.applyFilter();
+
           this.notifyService.showSuccess(
             `Subtask ${subtask.isCompleted ? "completed" : "reopened"}`
           );
