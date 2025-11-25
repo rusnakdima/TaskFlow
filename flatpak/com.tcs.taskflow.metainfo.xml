@@ -26,8 +26,24 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/main/imgREADME/home.png</image>
-      <caption>The main window of Task Flow</caption>
+      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/home.png</image>
+      <caption>Home screen with task overview and quick access to management tools</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/projects.png</image>
+      <caption>Project management view for organizing and tracking multiple projects</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/calendar.png</image>
+      <caption>Calendar view for scheduling tasks and managing deadlines</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/statistic.png</image>
+      <caption>Statistics dashboard for tracking productivity and task completion</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/sync.png</image>
+      <caption>Synchronization settings for cloud storage and cross-device access</caption>
     </screenshot>
   </screenshots>
 

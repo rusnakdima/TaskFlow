@@ -2,9 +2,11 @@
 
 # Build script for Flatpak Linux
 # This script builds your Tauri app as a Flatpak package using optimized build process
-# Usage: ./build.sh [dev|prod]
+# Usage: ./build.sh [dev|prod] [build|no-build]
 #   dev: Fast build for development (default)
 #   prod: Full build for production/store publication
+#   build: Build the Tauri app (default behavior if not specified, only affects dev builds)
+#   no-build: Skip building the Tauri app and proceed with Flatpak packaging using existing binary (only affects dev builds)
 
 set -e # Exit on error
 
@@ -12,8 +14,9 @@ set -e # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Parse command line argument
-BUILD_TYPE="${1:-dev}" # Default to 'dev' if no argument provided
+# Parse command line arguments
+BUILD_TYPE="${1:-dev}"    # Default to 'dev' if no argument provided
+BUILD_TAURI="${2:-build}" # Default to 'build' if no argument provided
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,8 +32,17 @@ elif [ "$BUILD_TYPE" = "dev" ]; then
 	echo "Building with optimizations for fast iteration using pre-built binary..."
 else
 	echo -e "${RED}Error: Invalid build type '$BUILD_TYPE'${NC}"
-	echo "Usage: $0 [dev|prod]"
+	echo "Usage: $0 [dev|prod] [build|no-build]"
 	exit 1
+fi
+
+# For production builds, we don't need to check the BUILD_TAURI flag since we don't build the Tauri app
+if [ "$BUILD_TYPE" = "dev" ]; then
+	if [ "$BUILD_TAURI" != "build" ] && [ "$BUILD_TAURI" != "no-build" ]; then
+		echo -e "${RED}Error: Invalid build option '$BUILD_TAURI'${NC}"
+		echo "Usage: $0 [dev|prod] [build|no-build]"
+		exit 1
+	fi
 fi
 
 # Check if flatpak and flatpak-builder are installed
@@ -46,11 +58,13 @@ if ! command -v flatpak-builder &>/dev/null; then
 	exit 1
 fi
 
-# Check if bun is installed
-if ! command -v bun &>/dev/null; then
-	echo -e "${RED}Error: bun is not installed for development build${NC}"
-	echo "Install it with: curl -fsSL https://bun.sh/install | bash"
-	exit 1
+# Check if bun is installed (required for dev builds that build Tauri app)
+if [ "$BUILD_TYPE" = "dev" ] && [ "$BUILD_TAURI" = "build" ]; then
+	if ! command -v bun &>/dev/null; then
+		echo -e "${RED}Error: bun is not installed for Tauri build${NC}"
+		echo "Install it with: curl -fsSL https://bun.sh/install | bash"
+		exit 1
+	fi
 fi
 
 # Variables - CUSTOMIZE THESE
@@ -60,24 +74,30 @@ APP_ID="com.tcs.taskflow"
 if [ "$BUILD_TYPE" = "dev" ]; then
 	MANIFEST="${APP_ID}.local.yml"
 else
-	MANIFEST="${APP_ID}.yml"
+	MANIFEST="../${APP_ID}.yml"
 fi
 
 BUILD_DIR="./build"
 REPO_DIR="./repo"
 
 echo -e "${YELLOW}Step 1: Installing required runtimes...${NC}"
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
 flatpak install -y --user flathub org.gnome.Platform//48 org.gnome.Sdk//48 || true
 
 echo -e "${YELLOW}Step 2: Building Tauri app with optimized build process (no bundle)...${NC}"
 
-if [ "$BUILD_TYPE" = "dev" ]; then
+if [ "$BUILD_TYPE" = "dev" ] && [ "$BUILD_TAURI" = "build" ]; then
 	# For development, build the app with bun first
 	cd ..
 	echo "Building Tauri app with bun..."
 	bun run tauri:build:fast
 	echo "App built. Proceeding with Flatpak packaging using local manifest..."
 	cd "$SCRIPT_DIR"
+elif [ "$BUILD_TYPE" = "dev" ] && [ "$BUILD_TAURI" = "no-build" ]; then
+	echo -e "${YELLOW}Skipping Tauri app build step as requested.${NC}"
+elif [ "$BUILD_TYPE" = "prod" ]; then
+	echo -e "${YELLOW}Skipping Tauri app build step for production build.${NC}"
+	echo -e "${YELLOW}Using pre-built binary in the production manifest.${NC}"
 fi
 
 echo -e "${YELLOW}Step 3: Building Flatpak...${NC}"
@@ -90,17 +110,17 @@ flatpak-builder \
 	"${MANIFEST}"
 
 echo -e "${YELLOW}Step 4: Creating Flatpak bundle...${NC}"
+
 flatpak build-bundle "${REPO_DIR}" "${APP_ID}.flatpak" "${APP_ID}"
 echo -e "${GREEN}=== Build Complete! ===${NC}"
 echo ""
-echo "To run your app:"
-echo -e "  ${YELLOW}flatpak run ${APP_ID}${NC}"
+echo "Created bundle: ${APP_ID}.flatpak"
 echo ""
 echo "To install the bundle:"
 echo -e "  ${YELLOW}flatpak install ${APP_ID}.flatpak${NC}"
 echo ""
-echo "Created bundle: ${APP_ID}.flatpak"
+echo "To run your app:"
+echo -e "  ${YELLOW}flatpak run ${APP_ID}${NC}"
 echo ""
-echo "Build type: ${BUILD_TYPE}"
 echo "To uninstall:"
 echo -e "  ${YELLOW}flatpak uninstall --user ${APP_ID}${NC}"

@@ -1,4 +1,4 @@
-id: com.tcs.taskflow
+app-id: com.tcs.taskflow.local
 runtime: org.gnome.Platform
 runtime-version: "48"
 sdk: org.gnome.Sdk
@@ -23,12 +23,17 @@ modules:
       build-args:
         - "--share=network"
     build-commands:
+      # Binary
       - install -Dm755 src-tauri/target/release/taskflow /app/bin/taskflow
-      - install -Dm644 com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.desktop
-      - install -Dm644 com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.metainfo.xml
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/128x128/apps/com.tcs.taskflow.png
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/256x256/apps/com.tcs.taskflow.png
-      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/com.tcs.taskflow.svg
+      # Metadata
+      - install -Dm644 com.tcs.taskflow.desktop /app/share/applications/com.tcs.taskflow.local.desktop
+      - install -Dm644 com.tcs.taskflow.metainfo.xml /app/share/metainfo/com.tcs.taskflow.local.metainfo.xml
+      # Icons
+      - |
+        for size in 128x128 256x256; do
+          install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/$size/apps/com.tcs.taskflow.local.png
+        done
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/scalable/apps/com.tcs.taskflow.local.svg
 
     sources:
       - type: file
