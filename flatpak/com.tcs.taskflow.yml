@@ -13,8 +13,7 @@ finish-args:
   - --device=dri
   - --share=ipc
   - --share=network
-  - --filesystem=xdg-documents
-  - --filesystem=xdg-download
+  - --filesystem=home
 
 modules:
   - name: taskflow-local
