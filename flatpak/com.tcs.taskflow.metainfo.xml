@@ -67,6 +67,11 @@
   </provides>
 
   <releases>
+    <release version="0.6.0" date="2025-11-30">
+      <description>
+        <p>Changed the types of statuses for tasks/subtasks</p>
+      </description>
+    </release>
     <release version="0.5.0" date="2025-11-24">
       <description>
         <p>The description field in the task/subtask management forms is now optional.</p>
