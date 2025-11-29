@@ -1,5 +1,5 @@
 /* models */
-import { PriorityTask, Task } from "./task";
+import { PriorityTask, Task, TaskStatus } from "./task";
 
 export interface Subtask {
   _id?: {} | undefined;
@@ -8,7 +8,7 @@ export interface Subtask {
   taskId: string;
   title: string;
   description: string;
-  isCompleted: boolean;
+  status: TaskStatus;
   priority: PriorityTask;
   order: number;
   isDeleted: boolean;

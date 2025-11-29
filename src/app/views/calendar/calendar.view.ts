@@ -11,7 +11,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 
 /* services */
 import { MainService } from "@services/main.service";
@@ -124,10 +124,24 @@ export class CalendarView implements OnInit {
       if (task.endDate) {
         this.events.push({
           id: task.id!,
-          title: task.isCompleted ? `Completed: ${task.title}` : `Due: ${task.title}`,
+          title:
+            task.status === TaskStatus.COMPLETED
+              ? `Completed: ${task.title}`
+              : task.status === TaskStatus.SKIPPED
+                ? `Skipped: ${task.title}`
+                : task.status === TaskStatus.FAILED
+                  ? `Failed: ${task.title}`
+                  : `Due: ${task.title}`,
           date: new Date(task.endDate),
           type: "task",
-          status: task.isCompleted ? "completed" : "due",
+          status:
+            task.status === TaskStatus.COMPLETED
+              ? "completed"
+              : task.status === TaskStatus.SKIPPED
+                ? "skipped"
+                : task.status === TaskStatus.FAILED
+                  ? "failed"
+                  : "due",
           description: task.description,
           todoId: task.todo.id,
         });
@@ -314,6 +328,8 @@ export class CalendarView implements OnInit {
   getEventColor(event: CalendarEvent): string {
     if (event.status === "due") return "bg-red-500";
     if (event.status === "completed") return "bg-green-500";
+    if (event.status === "skipped") return "bg-orange-500";
+    if (event.status === "failed") return "bg-gray-500";
     return "bg-blue-500";
   }
 

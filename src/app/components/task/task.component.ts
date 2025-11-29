@@ -12,7 +12,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 import { Common } from "@helpers/common.helper";
 
 /* models */
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Subtask } from "@models/subtask";
 
 @Component({
@@ -39,7 +39,10 @@ export class TaskComponent {
 
   get countCompletedTasks(): number {
     const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter((subtask: Subtask) => subtask.isCompleted);
+    const listCompletedSubtasks = listSubtasks.filter(
+      (subtask: Subtask) =>
+        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
+    );
     return listCompletedSubtasks.length;
   }
 
@@ -50,14 +53,18 @@ export class TaskComponent {
 
   get percentCompletedSubTasks(): number {
     const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter((subtask: Subtask) => subtask.isCompleted);
+    const listCompletedSubtasks = listSubtasks.filter(
+      (subtask: Subtask) =>
+        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
+    );
     const percent =
       listCompletedSubtasks.length / (listSubtasks.length == 0 ? 1 : listSubtasks.length);
     return percent;
   }
 
   getProgressPercentage(): number {
-    if (this.task?.isCompleted) return 100;
+    if (this.task?.status === TaskStatus.COMPLETED || this.task?.status === TaskStatus.SKIPPED)
+      return 100;
     return Math.round(this.percentCompletedSubTasks * 100);
   }
 

@@ -3,7 +3,7 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::task_model::{PriorityTask, TaskFullModel};
+use crate::models::task_model::{PriorityTask, TaskFullModel, TaskStatus};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -13,7 +13,7 @@ pub struct SubtaskModel {
   pub taskId: String,
   pub title: String,
   pub description: String,
-  pub isCompleted: bool,
+  pub status: TaskStatus,
   pub priority: String,
   pub order: i32,
   pub isDeleted: bool,
@@ -27,7 +27,6 @@ pub struct SubtaskCreateModel {
   pub taskId: String,
   pub title: String,
   pub description: Option<String>,
-  pub isCompleted: bool,
   pub priority: String,
   pub order: i32,
 }
@@ -43,7 +42,7 @@ impl From<SubtaskCreateModel> for SubtaskModel {
       taskId: value.taskId,
       title: value.title,
       description: value.description.unwrap_or_default(),
-      isCompleted: false,
+      status: TaskStatus::Pending,
       priority: value.priority.to_string(),
       order: value.order,
       isDeleted: false,
@@ -61,7 +60,7 @@ pub struct SubtaskUpdateModel {
   pub taskId: Option<String>,
   pub title: Option<String>,
   pub description: Option<String>,
-  pub isCompleted: Option<bool>,
+  pub status: Option<TaskStatus>,
   pub priority: Option<String>,
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
@@ -78,7 +77,7 @@ impl SubtaskUpdateModel {
       taskId: self.taskId.clone().unwrap_or(existing.taskId),
       title: self.title.clone().unwrap_or(existing.title),
       description: self.description.clone().unwrap_or(existing.description),
-      isCompleted: self.isCompleted.unwrap_or(existing.isCompleted),
+      status: self.status.clone().unwrap_or(existing.status),
       priority: self.priority.clone().unwrap_or(existing.priority),
       order: self.order.unwrap_or(existing.order),
       isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
@@ -97,7 +96,7 @@ pub struct SubtaskFullModel {
   pub task: TaskFullModel,
   pub title: String,
   pub description: String,
-  pub isCompleted: bool,
+  pub status: TaskStatus,
   pub priority: PriorityTask,
   pub order: i32,
   pub isDeleted: bool,

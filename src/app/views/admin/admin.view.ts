@@ -18,6 +18,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
 import { ResponseStatus } from "@models/response";
+import { TaskStatus } from "@models/task";
 
 /* services */
 import { AdminService } from "@services/admin.service";
@@ -165,15 +166,31 @@ export class AdminView implements OnInit {
     }
 
     if (this.selectedType === "tasks" && this.isCompletedFilter === "completed") {
-      data = data.filter((item) => item.isCompleted);
+      data = data.filter((item) => item.status === TaskStatus.COMPLETED);
     } else if (this.selectedType === "tasks" && this.isCompletedFilter === "pending") {
-      data = data.filter((item) => !item.isCompleted);
+      data = data.filter((item) => item.status === TaskStatus.PENDING);
+    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "skipped") {
+      data = data.filter((item) => item.status === TaskStatus.SKIPPED);
+    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "failed") {
+      data = data.filter((item) => item.status === TaskStatus.FAILED);
+    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "done") {
+      data = data.filter(
+        (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
+      );
     }
 
     if (this.selectedType === "subtasks" && this.isCompletedFilter === "completed") {
-      data = data.filter((item) => item.isCompleted);
+      data = data.filter((item) => item.status === TaskStatus.COMPLETED);
     } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "pending") {
-      data = data.filter((item) => !item.isCompleted);
+      data = data.filter((item) => item.status === TaskStatus.PENDING);
+    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "skipped") {
+      data = data.filter((item) => item.status === TaskStatus.SKIPPED);
+    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "failed") {
+      data = data.filter((item) => item.status === TaskStatus.FAILED);
+    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "done") {
+      data = data.filter(
+        (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
+      );
     }
 
     if (this.userFilter) {

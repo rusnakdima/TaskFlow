@@ -9,7 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Profile } from "@models/profile";
 
 /* services */
@@ -113,15 +113,17 @@ export class DashboardView implements OnInit {
 
     const now = new Date();
 
-    this.completedTasks = tasks.filter((task) => task.isCompleted).length;
+    this.completedTasks = tasks.filter(
+      (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+    ).length;
     this.inProgressTasks = tasks.filter((task) => {
-      if (task.isCompleted) return false;
+      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
       const start = task.startDate ? new Date(task.startDate) : null;
       const end = task.endDate ? new Date(task.endDate) : null;
       return start && end && start <= now && now <= end;
     }).length;
     this.overdueTasks = tasks.filter((task) => {
-      if (task.isCompleted) return false;
+      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
       const end = task.endDate ? new Date(task.endDate) : null;
       return end && end < now;
     }).length;
@@ -147,8 +149,12 @@ export class DashboardView implements OnInit {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     this.recentActivities = sortedTasks.slice(0, 4).map((task) => {
-      if (task.isCompleted) {
+      if (task.status === TaskStatus.COMPLETED) {
         return `Completed task: ${task.title}`;
+      } else if (task.status === TaskStatus.SKIPPED) {
+        return `Skipped task: ${task.title}`;
+      } else if (task.status === TaskStatus.FAILED) {
+        return `Failed task: ${task.title}`;
       } else {
         return `Created task: ${task.title}`;
       }
@@ -158,7 +164,9 @@ export class DashboardView implements OnInit {
   }
 
   getTaskStatus(task: Task): string {
-    if (task.isCompleted) return "completed";
+    if (task.status === TaskStatus.COMPLETED) return "completed";
+    if (task.status === TaskStatus.SKIPPED) return "skipped";
+    if (task.status === TaskStatus.FAILED) return "failed";
 
     const now = new Date();
     const start = task.startDate ? new Date(task.startDate) : null;

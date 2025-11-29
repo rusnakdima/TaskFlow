@@ -10,7 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -71,7 +71,6 @@ export class TodosView implements OnInit {
         .then((response: Response<Array<Todo>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.tempListTodos = response.data;
-            console.log(this.tempListTodos);
             this.applyFilter();
           } else {
             this.notifyService.showError(response.message);
@@ -167,7 +166,9 @@ export class TodosView implements OnInit {
 
   isCompleted(todo: Todo): boolean {
     const listTasks = todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
+    const listCompletedTasks = listTasks.filter(
+      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+    );
     return listCompletedTasks.length == listTasks.length;
   }
 

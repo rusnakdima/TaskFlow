@@ -8,12 +8,31 @@
           <button
             class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
             (click)="toggleCompletion()"
+            [title]="
+              subtask.status === 'completed'
+                ? 'Mark as skipped'
+                : subtask.status === 'skipped'
+                  ? 'Mark as failed'
+                  : subtask.status === 'failed'
+                    ? 'Mark as pending'
+                    : 'Mark as completed'
+            "
           >
-            @if (subtask.isCompleted) {
-              <mat-icon class="!w-5 !h-5 !text-xl text-green-600" fontIcon="check_circle" />
+            @if (subtask.status === "completed") {
+              <mat-icon class="!w-5 !h-5 !text-xl !text-green-600" fontIcon="check_circle" />
+            } @else if (subtask.status === "skipped") {
+              <mat-icon
+                class="!w-5 !h-5 !text-xl !text-orange-600 dark:!text-orange-400"
+                fontIcon="cancel"
+              />
+            } @else if (subtask.status === "failed") {
+              <mat-icon
+                class="!w-5 !h-5 !text-xl !text-red-600 dark:!text-red-400"
+                fontIcon="dangerous"
+              />
             } @else {
               <mat-icon
-                class="!w-5 !h-5 !text-xl textMuted hover:text-green-600"
+                class="!w-5 !h-5 !text-xl textMuted hover:!text-green-600"
                 fontIcon="radio_button_unchecked"
               />
             }
@@ -33,7 +52,9 @@
               <h4
                 class="font-medium textNormal mb-1"
                 [ngClass]="
-                  subtask.isCompleted
+                  subtask.status === 'completed' ||
+                  subtask.status === 'skipped' ||
+                  subtask.status === 'failed'
                     ? 'line-through text-gray-500 dark:text-gray-400'
                     : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
                 "
@@ -76,11 +97,23 @@
 
       <div class="flex flex-row justify-between items-center mt-3">
         <div class="flex items-center gap-3">
-          @if (subtask.isCompleted) {
+          @if (subtask.status === "completed") {
             <span
               class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-xs text-green-600 dark:text-green-400 font-medium"
             >
               Completed
+            </span>
+          } @else if (subtask.status === "skipped") {
+            <span
+              class="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs text-orange-600 dark:text-orange-400 font-medium"
+            >
+              Skipped
+            </span>
+          } @else if (subtask.status === "failed") {
+            <span
+              class="px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-xs text-red-600 dark:text-red-400 font-medium"
+            >
+              Failed
             </span>
           }
         </div>

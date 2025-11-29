@@ -1,7 +1,7 @@
 /* sys lib */
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::fmt::{Display, Formatter, Result};
 
 /* models */
 use crate::models::todo_model::TodoFullModel;
@@ -14,8 +14,34 @@ pub enum PriorityTask {
   High,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub enum TaskStatus {
+  #[serde(rename = "pending")]
+  Pending,
+  #[serde(rename = "completed")]
+  Completed,
+  #[serde(rename = "skipped")]
+  Skipped,
+  #[serde(rename = "failed")]
+  Failed,
+}
+
+impl Display for TaskStatus {
+  #[allow(non_snake_case)]
+  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    let statusStr = match self {
+      TaskStatus::Pending => "pending",
+      TaskStatus::Completed => "completed",
+      TaskStatus::Skipped => "skipped",
+      TaskStatus::Failed => "failed",
+    };
+    write!(f, "{}", statusStr)
+  }
+}
+
 impl Display for PriorityTask {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+  fn fmt(&self, f: &mut Formatter) -> Result {
     match self {
       PriorityTask::Low => write!(f, "Low"),
       PriorityTask::Medium => write!(f, "Medium"),
@@ -32,7 +58,7 @@ pub struct TaskModel {
   pub todoId: String,
   pub title: String,
   pub description: String,
-  pub isCompleted: bool,
+  pub status: TaskStatus,
   pub priority: String,
   pub startDate: String,
   pub endDate: String,
@@ -78,7 +104,7 @@ impl From<TaskCreateModel> for TaskModel {
       todoId: value.todoId,
       title: value.title,
       description: value.description.unwrap_or_default(),
-      isCompleted: false,
+      status: TaskStatus::Pending,
       priority: value.priority.to_string(),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
@@ -98,7 +124,7 @@ pub struct TaskUpdateModel {
   pub todoId: Option<String>,
   pub title: Option<String>,
   pub description: Option<String>,
-  pub isCompleted: Option<bool>,
+  pub status: Option<TaskStatus>,
   pub priority: Option<String>,
   pub startDate: Option<String>,
   pub endDate: Option<String>,
@@ -140,7 +166,7 @@ impl TaskUpdateModel {
       todoId: self.todoId.clone().unwrap_or(existing.todoId),
       title: self.title.clone().unwrap_or(existing.title),
       description: self.description.clone().unwrap_or(existing.description),
-      isCompleted: self.isCompleted.unwrap_or(existing.isCompleted),
+      status: self.status.clone().unwrap_or(existing.status),
       priority: self.priority.clone().unwrap_or(existing.priority),
       startDate: formattedStartDate,
       endDate: formattedEndDate,
@@ -161,7 +187,7 @@ pub struct TaskFullModel {
   pub todo: TodoFullModel,
   pub title: String,
   pub description: String,
-  pub isCompleted: bool,
+  pub status: TaskStatus,
   pub priority: PriorityTask,
   pub startDate: String,
   pub endDate: String,

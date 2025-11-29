@@ -8,7 +8,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Response, ResponseStatus } from "@models/response";
 
 /* services */
@@ -40,16 +40,24 @@ export class TodoInformationComponent {
   }
 
   getCompletedTasksCount(): number {
-    return this.listTasks.filter((task) => task.isCompleted).length;
+    return this.listTasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
+  }
+
+  getSkippedTasksCount(): number {
+    return this.listTasks.filter((task) => task.status === TaskStatus.SKIPPED).length;
+  }
+
+  getFailedTasksCount(): number {
+    return this.listTasks.filter((task) => task.status === TaskStatus.FAILED).length;
   }
 
   getInProgressTasksCount(): number {
-    return this.listTasks.filter((task) => !task.isCompleted).length;
+    return this.listTasks.filter((task) => task.status === TaskStatus.PENDING).length;
   }
 
   getProjectProgress(): number {
     if (this.listTasks.length === 0) return 0;
-    const completedTasks = this.getCompletedTasksCount();
+    const completedTasks = this.getCompletedTasksCount() + this.getSkippedTasksCount();
     return Math.round((completedTasks / this.listTasks.length) * 100);
   }
 

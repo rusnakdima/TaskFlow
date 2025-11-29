@@ -17,7 +17,7 @@ import { MatRadioModule } from "@angular/material/radio";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
-import { PriorityTask, Task } from "@models/task";
+import { PriorityTask, Task, TaskStatus } from "@models/task";
 import { Subtask } from "@models/subtask";
 import { Todo } from "@models/todo";
 
@@ -61,7 +61,7 @@ export class ManageSubtaskView implements OnInit {
       taskId: ["", Validators.required],
       title: ["", Validators.required],
       description: [""],
-      isCompleted: [false],
+      status: [TaskStatus.PENDING],
       priority: ["", Validators.required],
       order: [0],
       isDeleted: [false],
@@ -120,7 +120,8 @@ export class ManageSubtaskView implements OnInit {
       .getByField<Subtask>("subtask", "id", subtaskId)
       .then((response: Response<Subtask>) => {
         if (response.status == ResponseStatus.SUCCESS) {
-          this.form.patchValue(response.data);
+          const subtaskData = response.data;
+          this.form.patchValue(subtaskData);
         }
       })
       .catch((err: Response<string>) => {
@@ -171,7 +172,7 @@ export class ManageSubtaskView implements OnInit {
               id: "",
               _id: "",
               title: `${currentData.title} (Copy)`,
-              isCompleted: false,
+              status: TaskStatus.PENDING,
               order: order,
             };
 
@@ -241,7 +242,7 @@ export class ManageSubtaskView implements OnInit {
                 taskId: subtask.taskId || "",
                 title: subtask.title,
                 description: subtask.description,
-                isCompleted: subtask.isCompleted,
+                status: subtask.status,
                 priority: subtask.priority,
                 order: subtask.order,
                 isDeleted: subtask.isDeleted,

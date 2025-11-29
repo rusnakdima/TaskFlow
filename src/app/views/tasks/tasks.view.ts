@@ -11,7 +11,7 @@ import { MatExpansionModule } from "@angular/material/expansion";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Todo } from "@models/todo";
 
 /* services */
@@ -64,6 +64,9 @@ export class TasksView implements OnInit {
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
     { key: "completed", label: "Completed" },
+    { key: "skipped", label: "Skipped" },
+    { key: "failed", label: "Failed" },
+    { key: "done", label: "Done" },
     { key: "high", label: "High Priority" },
   ];
 
@@ -110,9 +113,9 @@ export class TasksView implements OnInit {
 
   searchFunc(data: Array<any>) {
     const sortedData = [...data].sort((a, b) => {
-      if (a.isCompleted === b.isCompleted) {
+      if (a.status === b.status) {
         return 0;
-      } else if (a.isCompleted) {
+      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
         return 1;
       } else {
         return -1;
@@ -122,23 +125,52 @@ export class TasksView implements OnInit {
   }
 
   toggleTaskCompletion(task: Task) {
-    const updatedTask = { ...task, isCompleted: !task.isCompleted };
+    let newStatus: TaskStatus;
+    let message = "";
+    switch (task.status) {
+      case TaskStatus.PENDING:
+        newStatus = TaskStatus.COMPLETED;
+        message = "Task skipped";
+        break;
+      case TaskStatus.COMPLETED:
+        newStatus = TaskStatus.SKIPPED;
+        message = "Task completed";
+        break;
+      case TaskStatus.SKIPPED:
+        newStatus = TaskStatus.FAILED;
+        message = "Task marked as failed";
+        break;
+      case TaskStatus.FAILED:
+      default:
+        newStatus = TaskStatus.PENDING;
+        message = "Task reopened";
+        break;
+    }
+
+    const updatedTask = { ...task, status: newStatus };
 
     this.mainService
       .update<string, Task>("task", task.id, updatedTask)
       .then((response: Response<string>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          task.isCompleted = !task.isCompleted;
+          task.status = newStatus;
           if (this.todo) {
             const todoTask = this.todo.tasks.find((t) => t.id === task.id);
             if (todoTask) {
-              todoTask.isCompleted = task.isCompleted;
+              todoTask.status = newStatus;
             }
+          }
+
+          const index = this.tempListTasks.findIndex((t) => t.id === task.id);
+          if (index !== -1) {
+            this.tempListTasks[index] = { ...task };
+
+            this.tempListTasks = [...this.tempListTasks];
           }
 
           this.applyFilter();
 
-          this.notifyService.showSuccess(`Task ${task.isCompleted ? "completed" : "reopened"}`);
+          this.notifyService.showSuccess(message);
         } else {
           this.notifyService.showError(response.message);
         }
@@ -162,10 +194,21 @@ export class TasksView implements OnInit {
 
     switch (this.activeFilter) {
       case "active":
-        filtered = filtered.filter((task) => !task.isCompleted);
+        filtered = filtered.filter((task) => task.status === TaskStatus.PENDING);
         break;
       case "completed":
-        filtered = filtered.filter((task) => task.isCompleted);
+        filtered = filtered.filter((task) => task.status === TaskStatus.COMPLETED);
+        break;
+      case "skipped":
+        filtered = filtered.filter((task) => task.status === TaskStatus.SKIPPED);
+        break;
+      case "failed":
+        filtered = filtered.filter((task) => task.status === TaskStatus.FAILED);
+        break;
+      case "done":
+        filtered = filtered.filter(
+          (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+        );
         break;
       case "high":
         filtered = filtered.filter((task) => task.priority === "high");
@@ -174,11 +217,10 @@ export class TasksView implements OnInit {
         break;
     }
 
-  
     filtered.sort((a, b) => {
-      if (a.isCompleted === b.isCompleted) {
+      if (a.status === b.status) {
         return 0;
-      } else if (a.isCompleted) {
+      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
         return 1;
       } else {
         return -1;
@@ -189,10 +231,19 @@ export class TasksView implements OnInit {
   }
 
   updateTaskInline(event: { task: Task; field: string; value: string }) {
-    const updatedTask = {
-      ...event.task,
-      [event.field]: event.value,
-    };
+    let updatedTask: Task;
+
+    if (event.field === "status") {
+      updatedTask = {
+        ...event.task,
+        status: event.value as TaskStatus,
+      };
+    } else {
+      updatedTask = {
+        ...event.task,
+        [event.field]: event.value,
+      };
+    }
 
     this.mainService
       .update<string, Task>("task", event.task.id, updatedTask)
@@ -202,6 +253,8 @@ export class TasksView implements OnInit {
             event.task.title = event.value;
           } else if (event.field === "description") {
             event.task.description = event.value;
+          } else if (event.field === "status") {
+            event.task.status = event.value as TaskStatus;
           }
           this.notifyService.showSuccess("Task updated successfully");
         } else {
@@ -255,7 +308,7 @@ export class TasksView implements OnInit {
       todoId: task.todoId || "",
       title: task.title,
       description: task.description,
-      isCompleted: task.isCompleted,
+      status: task.status,
       priority: task.priority,
       startDate: task.startDate,
       endDate: task.endDate,

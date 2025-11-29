@@ -7,7 +7,7 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Subtask } from "@models/subtask";
 import { Response, ResponseStatus } from "@models/response";
 
@@ -39,16 +39,24 @@ export class TaskInformationComponent {
   @Input() listSubtasks: Array<Subtask> = [];
 
   getCompletedSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => subtask.isCompleted).length;
+    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.COMPLETED).length;
+  }
+
+  getSkippedSubtasksCount(): number {
+    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.SKIPPED).length;
+  }
+
+  getFailedSubtasksCount(): number {
+    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.FAILED).length;
   }
 
   getInProgressSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => !subtask.isCompleted).length;
+    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.PENDING).length;
   }
 
   getTaskProgress(): number {
     if (this.listSubtasks.length === 0) return 0;
-    const completedSubtasks = this.getCompletedSubtasksCount();
+    const completedSubtasks = this.getCompletedSubtasksCount() + this.getSkippedSubtasksCount();
     return Math.round((completedSubtasks / this.listSubtasks.length) * 100);
   }
 
@@ -58,12 +66,12 @@ export class TaskInformationComponent {
 
   markTaskComplete() {
     if (this.task) {
-      const updatedTask = { ...this.task, isCompleted: true };
+      const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
       this.mainService
         .update<string, Task>("task", this.task.id, updatedTask)
         .then((response: Response<string>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.task.isCompleted = true;
+            this.task.status = TaskStatus.COMPLETED;
             this.notifyService.showSuccess("Task marked as complete!");
           } else {
             this.notifyService.showError(response.message);
@@ -99,7 +107,10 @@ export class TaskInformationComponent {
 
   get percentCompletedSubTasks(): number {
     const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter((subtask: Subtask) => subtask.isCompleted);
+    const listCompletedSubtasks = listSubtasks.filter(
+      (subtask: Subtask) =>
+        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
+    );
     const percent =
       listCompletedSubtasks.length / (listSubtasks.length == 0 ? 1 : listSubtasks.length);
     return percent;

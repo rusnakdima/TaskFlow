@@ -23,18 +23,22 @@
           </div>
         }
 
-        <div class="grid grid-cols-3 gap-4 justify-between text-center w-full">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-between text-center w-full">
           <div class="flex flex-col">
-            <div class="text-2xl font-bold">{{ getCompletedTasksCount() }}</div>
-            <div class="text-blue-200 text-sm">Completed</div>
+            <div class="text-xl font-bold">{{ getCompletedTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Completed</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-2xl font-bold">{{ getInProgressTasksCount() }}</div>
-            <div class="text-blue-200 text-sm">In Progress</div>
+            <div class="text-xl font-bold">{{ getSkippedTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Skipped</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-2xl font-bold">{{ listTasks.length }}</div>
-            <div class="text-blue-200 text-sm">Total Tasks</div>
+            <div class="text-xl font-bold">{{ getFailedTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Failed</div>
+          </div>
+          <div class="flex flex-col">
+            <div class="text-xl font-bold">{{ getInProgressTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
           </div>
         </div>
       </div>

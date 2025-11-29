@@ -10,7 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response";
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 import { Subtask } from "@models/subtask";
 
 /* services */
@@ -61,6 +61,9 @@ export class SubtasksView implements OnInit {
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
     { key: "completed", label: "Completed" },
+    { key: "skipped", label: "Skipped" },
+    { key: "failed", label: "Failed" },
+    { key: "done", label: "Done" },
     { key: "high", label: "High Priority" },
   ];
 
@@ -126,9 +129,9 @@ export class SubtasksView implements OnInit {
 
   searchFunc(data: Array<any>) {
     const sortedData = [...data].sort((a, b) => {
-      if (a.isCompleted === b.isCompleted) {
+      if (a.status === b.status) {
         return 0;
-      } else if (a.isCompleted) {
+      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
         return 1;
       } else {
         return -1;
@@ -151,10 +154,22 @@ export class SubtasksView implements OnInit {
 
     switch (this.activeFilter) {
       case "active":
-        filtered = filtered.filter((subtask) => !subtask.isCompleted);
+        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.PENDING);
         break;
       case "completed":
-        filtered = filtered.filter((subtask) => subtask.isCompleted);
+        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.COMPLETED);
+        break;
+      case "skipped":
+        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.SKIPPED);
+        break;
+      case "failed":
+        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.FAILED);
+        break;
+      case "done":
+        filtered = filtered.filter(
+          (subtask) =>
+            subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
+        );
         break;
       case "high":
         filtered = filtered.filter((subtask) => subtask.priority === "high");
@@ -164,9 +179,9 @@ export class SubtasksView implements OnInit {
     }
 
     filtered.sort((a, b) => {
-      if (a.isCompleted === b.isCompleted) {
+      if (a.status === b.status) {
         return 0;
-      } else if (a.isCompleted) {
+      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
         return 1;
       } else {
         return -1;
@@ -177,19 +192,46 @@ export class SubtasksView implements OnInit {
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
-    const updatedSubtask = { ...subtask, isCompleted: !subtask.isCompleted };
+    let newStatus: TaskStatus;
+    let message = "";
+    switch (subtask.status) {
+      case TaskStatus.PENDING:
+        newStatus = TaskStatus.COMPLETED;
+        message = "Subtask reopened";
+        break;
+      case TaskStatus.COMPLETED:
+        newStatus = TaskStatus.SKIPPED;
+        message = "Subtask completed";
+        break;
+      case TaskStatus.SKIPPED:
+        newStatus = TaskStatus.FAILED;
+        message = "Subtask skipped";
+        break;
+      case TaskStatus.FAILED:
+      default:
+        newStatus = TaskStatus.PENDING;
+        message = "Subtask marked as failed";
+        break;
+    }
+
+    const updatedSubtask = { ...subtask, status: newStatus };
 
     this.mainService
       .update<string, Subtask>("subtask", subtask.id, updatedSubtask)
       .then((response: Response<string>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          subtask.isCompleted = !subtask.isCompleted;
+          subtask.status = newStatus;
+
+          const index = this.tempListSubtasks.findIndex((s) => s.id === subtask.id);
+          if (index !== -1) {
+            this.tempListSubtasks[index] = { ...subtask };
+
+            this.tempListSubtasks = [...this.tempListSubtasks];
+          }
 
           this.applyFilter();
 
-          this.notifyService.showSuccess(
-            `Subtask ${subtask.isCompleted ? "completed" : "reopened"}`
-          );
+          this.notifyService.showSuccess(message);
         } else {
           this.notifyService.showError(response.message);
         }
@@ -200,10 +242,19 @@ export class SubtasksView implements OnInit {
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: string }) {
-    const updatedSubtask = {
-      ...event.subtask,
-      [event.field]: event.value,
-    };
+    let updatedSubtask: Subtask;
+
+    if (event.field === "status") {
+      updatedSubtask = {
+        ...event.subtask,
+        status: event.value as TaskStatus,
+      };
+    } else {
+      updatedSubtask = {
+        ...event.subtask,
+        [event.field]: event.value,
+      };
+    }
 
     this.mainService
       .update<string, Subtask>("subtask", event.subtask.id, updatedSubtask)
@@ -213,6 +264,8 @@ export class SubtasksView implements OnInit {
             event.subtask.title = event.value;
           } else if (event.field === "description") {
             event.subtask.description = event.value;
+          } else if (event.field === "status") {
+            event.subtask.status = event.value as TaskStatus;
           }
           this.notifyService.showSuccess("Subtask updated successfully");
         } else {
@@ -261,7 +314,7 @@ export class SubtasksView implements OnInit {
       taskId: subtask.taskId || "",
       title: subtask.title,
       description: subtask.description,
-      isCompleted: subtask.isCompleted,
+      status: subtask.status,
       priority: subtask.priority,
       order: subtask.order,
       isDeleted: subtask.isDeleted,

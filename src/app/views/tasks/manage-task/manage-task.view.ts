@@ -15,10 +15,11 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatInputModule } from "@angular/material/input";
 import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatSelectModule } from "@angular/material/select";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
-import { PriorityTask, Task } from "@models/task";
+import { PriorityTask, Task, TaskStatus } from "@models/task";
 import { Todo } from "@models/todo";
 
 /* services */
@@ -48,6 +49,7 @@ interface PriorityOption {
     MatRadioModule,
     MatDatepickerModule,
     MatInputModule,
+    MatSelectModule,
   ],
   templateUrl: "./manage-task.view.html",
 })
@@ -65,7 +67,7 @@ export class ManageTaskView implements OnInit {
       todoId: ["", Validators.required],
       title: ["", Validators.required],
       description: [""],
-      isCompleted: [false],
+      status: [TaskStatus.PENDING],
       priority: ["", Validators.required],
       startDate: [""],
       endDate: [""],
@@ -258,7 +260,7 @@ export class ManageTaskView implements OnInit {
                 todoId: task.todoId || "",
                 title: task.title,
                 description: task.description,
-                isCompleted: task.isCompleted,
+                status: task.status,
                 priority: task.priority,
                 startDate: task.startDate,
                 endDate: task.endDate,

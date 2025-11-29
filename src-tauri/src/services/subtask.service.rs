@@ -17,6 +17,7 @@ use crate::services::{
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
+  task_model::TaskStatus,
 };
 
 #[derive(Clone)]
@@ -328,10 +329,13 @@ impl SubtaskService {
     let oldSubtaskResult = self.getByField("id".to_string(), id.clone()).await;
     let wasCompleted = if let Ok(response) = &oldSubtaskResult {
       match &response.data {
-        DataValue::Object(obj) => obj
-          .get("isCompleted")
-          .and_then(|v| v.as_bool())
-          .unwrap_or(false),
+        DataValue::Object(obj) => {
+          if let Some(status_val) = obj.get("status").and_then(|v| v.as_str()) {
+            status_val == "completed" || status_val == "skipped"
+          } else {
+            false
+          }
+        }
         _ => false,
       }
     } else {
@@ -341,8 +345,9 @@ impl SubtaskService {
     if result.is_ok() {
       if let Some(ref taskId) = data.taskId {
         self.logActivity(taskId.clone(), "subtask_updated", 1).await;
-        if let Some(isCompleted) = data.isCompleted {
-          if isCompleted && !wasCompleted {
+        if let Some(ref status) = data.status {
+          let isNowCompleted = matches!(status, TaskStatus::Completed | TaskStatus::Skipped);
+          if isNowCompleted && !wasCompleted {
             self
               .logActivity(taskId.clone(), "subtask_completed", 1)
               .await;

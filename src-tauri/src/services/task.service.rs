@@ -14,7 +14,7 @@ use crate::services::{daily_activity_service::DailyActivityService, todo_service
 use crate::models::{
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
+  task_model::{TaskCreateModel, TaskModel, TaskStatus, TaskUpdateModel},
 };
 
 #[derive(Clone)]
@@ -328,10 +328,13 @@ impl TaskService {
     let oldTaskResult = self.getByField("id".to_string(), id.clone()).await;
     let wasCompleted = if let Ok(response) = &oldTaskResult {
       match &response.data {
-        DataValue::Object(obj) => obj
-          .get("isCompleted")
-          .and_then(|v| v.as_bool())
-          .unwrap_or(false),
+        DataValue::Object(obj) => {
+          if let Some(status_val) = obj.get("status").and_then(|v| v.as_str()) {
+            status_val == "completed" || status_val == "skipped"
+          } else {
+            false
+          }
+        }
         _ => false,
       }
     } else {
@@ -342,8 +345,9 @@ impl TaskService {
     if result.is_ok() {
       if let Some(ref todoId) = data.todoId {
         self.logActivity(todoId.clone(), "task_updated", 1).await;
-        if let Some(isCompleted) = data.isCompleted {
-          if isCompleted && !wasCompleted {
+        if let Some(ref status) = data.status {
+          let isNowCompleted = matches!(status, TaskStatus::Completed | TaskStatus::Skipped);
+          if isNowCompleted && !wasCompleted {
             self.logActivity(todoId.clone(), "task_completed", 1).await;
           }
         }

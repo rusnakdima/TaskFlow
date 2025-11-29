@@ -12,7 +12,7 @@ import { Common } from "@helpers/common.helper";
 
 /* models */
 import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Task, TaskStatus } from "@models/task";
 
 @Component({
   selector: "app-todo",
@@ -33,7 +33,9 @@ export class TodoComponent {
 
   get countCompletedTasks(): number {
     const listTasks = this.todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
+    const listCompletedTasks = listTasks.filter(
+      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+    );
     return listCompletedTasks.length;
   }
 
@@ -44,7 +46,9 @@ export class TodoComponent {
 
   get percentCompletedTasks(): number {
     const listTasks = this.todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter((task: Task) => task.isCompleted);
+    const listCompletedTasks = listTasks.filter(
+      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+    );
     const percent = listCompletedTasks.length / (listTasks.length == 0 ? 1 : listTasks.length);
     return percent;
   }

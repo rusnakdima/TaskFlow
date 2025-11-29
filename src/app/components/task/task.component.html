@@ -10,12 +10,31 @@
             <button
               class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
               (click)="toggleCompletion($event)"
+              [title]="
+                task.status === 'completed'
+                  ? 'Mark as skipped'
+                  : task.status === 'skipped'
+                    ? 'Mark as failed'
+                    : task.status === 'failed'
+                      ? 'Mark as pending'
+                      : 'Mark as completed'
+              "
             >
-              @if (task.isCompleted) {
-                <mat-icon class="!w-5 !h-5 !text-xl text-green-600" fontIcon="check_circle" />
+              @if (task.status === "completed") {
+                <mat-icon class="!w-5 !h-5 !text-xl !text-green-600" fontIcon="check_circle" />
+              } @else if (task.status === "skipped") {
+                <mat-icon
+                  class="!w-5 !h-5 !text-xl !text-orange-600 dark:!text-orange-400"
+                  fontIcon="cancel"
+                />
+              } @else if (task.status === "failed") {
+                <mat-icon
+                  class="!w-5 !h-5 !text-xl !text-red-600 dark:!text-red-400"
+                  fontIcon="dangerous"
+                />
               } @else {
                 <mat-icon
-                  class="!w-5 !h-5 !text-xl textMuted hover:text-green-600"
+                  class="!w-5 !h-5 !text-xl textMuted hover:!text-green-600"
                   fontIcon="radio_button_unchecked"
                 />
               }
@@ -36,7 +55,9 @@
                 <h3
                   class="text-lg font-semibold textNormal"
                   [ngClass]="
-                    task.isCompleted
+                    task.status === 'completed' ||
+                    task.status === 'skipped' ||
+                    task.status === 'failed'
                       ? 'line-through text-gray-500 dark:text-gray-400'
                       : 'group-hover:text-green-600 dark:group-hover:text-green-400'
                   "
@@ -102,7 +123,15 @@
           <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
             <div
               class="h-2 rounded-full transition-all duration-300"
-              [ngClass]="task.isCompleted ? 'bg-green-500' : 'bg-blue-500'"
+              [ngClass]="
+                task.status === 'completed'
+                  ? 'bg-green-500'
+                  : task.status === 'skipped'
+                    ? 'bg-orange-500'
+                    : task.status === 'failed'
+                      ? 'bg-red-500'
+                      : 'bg-blue-500'
+              "
               [style.width.%]="getProgressPercentage()"
             ></div>
           </div>
@@ -114,12 +143,24 @@
           <button
             class="px-3 py-1 text-xs font-medium rounded-full transition-colors"
             [ngClass]="
-              task.isCompleted
+              task.status === 'completed'
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                : task.status === 'skipped'
+                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                  : task.status === 'failed'
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
             "
           >
-            {{ task.isCompleted ? "Completed" : "In Progress" }}
+            {{
+              task.status === "completed"
+                ? "Completed"
+                : task.status === "skipped"
+                  ? "Skipped"
+                  : task.status === "failed"
+                    ? "Failed"
+                    : "In Progress"
+            }}
           </button>
         </div>
 

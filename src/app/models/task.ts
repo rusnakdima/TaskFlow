@@ -8,6 +8,13 @@ export enum PriorityTask {
   HIGH = "high",
 }
 
+export enum TaskStatus {
+  PENDING = "pending",
+  COMPLETED = "completed",
+  SKIPPED = "skipped",
+  FAILED = "failed",
+}
+
 export interface Task {
   _id?: {} | undefined;
   id: string;
@@ -16,7 +23,7 @@ export interface Task {
   title: string;
   description: string;
   subtasks: Array<Subtask>;
-  isCompleted: boolean;
+  status: TaskStatus;
   priority: PriorityTask;
   startDate: string;
   endDate: string;

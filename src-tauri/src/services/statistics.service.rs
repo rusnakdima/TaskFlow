@@ -241,10 +241,11 @@ impl StatisticsService {
     let completedTasks: Vec<_> = tasks
       .iter()
       .filter(|task| {
-        task
-          .get("isCompleted")
-          .and_then(|v| v.as_bool())
-          .unwrap_or(false)
+        if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
+          status == "completed" || status == "skipped"
+        } else {
+          false
+        }
       })
       .collect();
 
@@ -358,12 +359,12 @@ impl StatisticsService {
 
     for task in tasks {
       if let Some(updatedAt) = task.get("updatedAt").and_then(|v| v.as_str()) {
-        if let Some(isCompleted) = task.get("isCompleted").and_then(|v| v.as_bool()) {
+        if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
           if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updatedAt) {
             let weekday = dtUpdated.weekday();
             let entry = completionByWeekday.entry(weekday).or_insert((0, 0));
             entry.1 += 1;
-            if isCompleted {
+            if status == "completed" || status == "skipped" {
               entry.0 += 1;
             }
           }
@@ -462,12 +463,10 @@ impl StatisticsService {
                   if let Some(tasks) = todo.get("tasks").and_then(|v| v.as_array()) {
                     for task in tasks {
                       totalTasks += 1;
-                      if task
-                        .get("isCompleted")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(false)
-                      {
-                        completedTasks += 1;
+                      if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
+                        if status == "completed" || status == "skipped" {
+                          completedTasks += 1;
+                        }
                       }
                     }
                   }
