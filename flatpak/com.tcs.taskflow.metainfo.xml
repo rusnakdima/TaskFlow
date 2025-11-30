@@ -67,6 +67,11 @@
   </provides>
 
   <releases>
+    <release version="0.6.2" date="2025-11-30">
+      <description>
+        <p>Fixed an issue with opening a page with subtasks after deletion</p>
+      </description>
+    </release>
     <release version="0.6.1" date="2025-11-30">
       <description>
         <p>Fixed an error loading data for statistics and data synchronization</p>
