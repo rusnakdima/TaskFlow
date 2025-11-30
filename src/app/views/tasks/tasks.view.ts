@@ -100,7 +100,6 @@ export class TasksView implements OnInit {
       .then((response: Response<Array<Task>>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.tempListTasks = response.data;
-          console.log(this.tempListTasks);
           this.applyFilter();
         } else {
           this.notifyService.showError(response.message);

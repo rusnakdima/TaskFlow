@@ -1,6 +1,5 @@
 /* sys lib */
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
-use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -210,7 +209,23 @@ impl StatisticsService {
     startDate: &NaiveDate,
     endDate: &NaiveDate,
   ) -> Vec<serde_json::Value> {
-    let activities = self.getDailyActivities(userId).await;
+    let activitiesResponse = self
+      .dailyActivityService
+      .getAllByField("userId".to_string(), userId.to_string())
+      .await;
+    let activities = match activitiesResponse {
+      Ok(response) => {
+        if let DataValue::Array(data) = response.data {
+          data
+        } else {
+          Vec::new()
+        }
+      }
+      Err(_) => {
+        return Vec::new();
+      }
+    };
+
     activities
       .into_iter()
       .filter(|activity| {
@@ -222,18 +237,6 @@ impl StatisticsService {
         false
       })
       .collect()
-  }
-
-  #[allow(non_snake_case)]
-  async fn getDailyActivities(&self, userId: &str) -> Vec<serde_json::Value> {
-    match self
-      .jsonProvider
-      .getAllByField("daily_activities", Some(json!({ "userId": userId })), None)
-      .await
-    {
-      Ok(activities) => activities,
-      Err(_) => Vec::new(),
-    }
   }
 
   #[allow(non_snake_case)]

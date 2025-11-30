@@ -115,7 +115,6 @@ export class AdminView implements OnInit {
       const response = await this.adminService.getAllDataForAdmin<AdminData>();
       if (response.status === ResponseStatus.SUCCESS) {
         this.adminData = response.data;
-        console.log(this.adminData);
 
         this.dataTypes.forEach((type) => {
           const data = this.adminData[type.id];

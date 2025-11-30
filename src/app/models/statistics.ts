@@ -9,6 +9,13 @@ export interface Statistics {
   previousProductivityScore: number;
 }
 
+export interface StatisticsResponse {
+  statistics: Statistics;
+  chartData: ChartData;
+  achievements: Achievement[];
+  detailedMetrics: DetailedMetric[];
+}
+
 export interface ChartData {
   completionTrend: Array<{ label: string; value: number }>;
   categories: Array<CategoryChart>;

@@ -7,12 +7,19 @@ import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Statistics, ChartData, Achievement, DetailedMetric } from "@models/statistics";
+import {
+  Statistics,
+  ChartData,
+  Achievement,
+  DetailedMetric,
+  StatisticsResponse,
+} from "@models/statistics";
 
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StatisticsService } from "@services/statistics.service";
+import { Response, ResponseStatus } from "@models/response";
 
 @Component({
   selector: "app-stats",
@@ -89,15 +96,19 @@ export class StatsView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      try {
-        const data = await this.statisticsService.getStatistics(userId, this.selectedTimeRange);
-        this.statistics = data.statistics;
-        this.chartData = data.chartData;
-        this.achievements = data.achievements;
-        this.detailedMetrics = data.detailedMetrics;
-      } catch (error) {
-        this.notifyService.showError("Failed to load statistics");
-      }
+      await this.statisticsService
+        .getStatistics(userId, this.selectedTimeRange)
+        .then((response: Response<StatisticsResponse>) => {
+          if (response.status == ResponseStatus.SUCCESS) {
+            this.statistics = response.data.statistics;
+            this.chartData = response.data.chartData;
+            this.achievements = response.data.achievements;
+            this.detailedMetrics = response.data.detailedMetrics;
+          }
+        })
+        .catch((err: Response<string>) => {
+          this.notifyService.showError(err.message);
+        });
     }
   }
 

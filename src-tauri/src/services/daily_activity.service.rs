@@ -2,7 +2,7 @@
 use serde_json::{json, to_value, Value};
 
 /* helpers */
-use crate::helpers::json_provider::JsonProvider;
+use crate::helpers::{common::convertDataToArray, json_provider::JsonProvider};
 
 /* models */
 use crate::models::{
@@ -20,6 +20,41 @@ impl DailyActivityService {
   #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
     Self { jsonProvider }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getAllByField(
+    &self,
+    nameField: String,
+    value: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let listDailyActivities = self
+      .jsonProvider
+      .getAllByField(
+        "daily_activities",
+        if nameField != "" {
+          Some(json!({ nameField: value }))
+        } else {
+          None
+        },
+        None,
+      )
+      .await;
+    match listDailyActivities {
+      Ok(dailyActivities) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToArray(&dailyActivities),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!(
+          "Couldn't get a list of daily ctivities! {}",
+          error.to_string()
+        ),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
   #[allow(non_snake_case)]

@@ -303,26 +303,30 @@ impl JsonProvider {
         .filter(|record| {
           if let Some(recordObj) = record.as_object() {
             filterObj.iter().all(|(key, filterValue)| {
-              recordObj
-                .get(key)
-                .map(|recordValue| {
-                  if let Some(filterValue) = filterValue.as_object() {
-                    if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
-                      if let Some(vecRec) = recordValue.as_array() {
-                        inVals.iter().any(|in_val| vecRec.contains(in_val))
+              if recordObj.contains_key(key) {
+                recordObj
+                  .get(key)
+                  .map(|recordValue| {
+                    if let Some(filterValue) = filterValue.as_object() {
+                      if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
+                        if let Some(vecRec) = recordValue.as_array() {
+                          inVals.iter().any(|in_val| vecRec.contains(in_val))
+                        } else {
+                          false
+                        }
                       } else {
                         false
                       }
+                    } else if filterValue.is_array() {
+                      filterValue.as_array().unwrap().contains(recordValue)
                     } else {
-                      false
+                      recordValue == filterValue
                     }
-                  } else if filterValue.is_array() {
-                    filterValue.as_array().unwrap().contains(recordValue)
-                  } else {
-                    recordValue == filterValue
-                  }
-                })
-                .unwrap_or(false)
+                  })
+                  .unwrap_or(false)
+              } else {
+                true
+              }
             })
           } else {
             false
