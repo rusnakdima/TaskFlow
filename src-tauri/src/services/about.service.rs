@@ -74,7 +74,7 @@ impl AboutService {
   pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
     let mut _nameApp = self.nameApp.clone();
     if cfg!(target_os = "linux") {
-      _nameApp = _nameApp;
+      _nameApp = format!("{}.AppImage", _nameApp);
     } else if cfg!(target_os = "windows") {
       _nameApp = format!("{}.exe", _nameApp);
     } else if cfg!(target_os = "macos") {
