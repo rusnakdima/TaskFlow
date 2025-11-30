@@ -67,6 +67,12 @@
   </provides>
 
   <releases>
+    <release version="0.6.1" date="2025-11-30">
+      <description>
+        <p>Fixed an error loading data for statistics and data synchronization</p>
+        <p>Fixed the Flatpak collector app via Github Action</p>
+      </description>
+    </release>
     <release version="0.6.0" date="2025-11-30">
       <description>
         <p>Changed the types of statuses for tasks/subtasks</p>
