@@ -129,7 +129,7 @@ export class TaskComponent {
   }
 
   deleteTask() {
-    if (this.task && confirm(`Are you sure you want to delete "${this.task.title}"?`)) {
+    if (this.task) {
       this.deleteTaskEvent.emit(this.task.id);
     }
   }

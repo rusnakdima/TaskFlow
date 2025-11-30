@@ -164,7 +164,7 @@
           </button>
         </div>
 
-        <div class="flex flex-row gap-2">
+        <div class="flex flex-row gap-2" (click)="$event.stopPropagation()">
           <button
             class="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 transition-colors cursor-move"
             cdkDragHandle
