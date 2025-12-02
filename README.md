@@ -1,6 +1,6 @@
 # Task Flow
 
-This is a project on [Tauri](https://tauri.app/). 
+Task Flow is a productivity application built with [Tauri](https://tauri.app/) that helps users manage and organize their tasks efficiently. The application provides a clean, intuitive interface for creating, tracking, and completing tasks with cross-platform support.
 
 ## Screenshots
 
@@ -24,16 +24,19 @@ bun -v
 If Bun is not installed, you can install it from the [official website](https://bun.sh/). Here are the installation commands for different systems:
 
 **For macOS and Linux:**
+
 ```bash
 curl -fsSL https://bun.sh/install | bash
 ```
 
 **For Windows (using PowerShell):**
+
 ```powershell
 irm bun.sh/install.ps1 | iex
 ```
 
 **For all platforms using npm:**
+
 ```bash
 npm install -g bun
 ```
