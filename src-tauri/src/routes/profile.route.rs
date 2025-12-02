@@ -15,11 +15,10 @@ pub async fn profileGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let result = state
+  state
     .profileController
     .getAllByField(nameField, value)
-    .await;
-  result
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -29,8 +28,7 @@ pub async fn profileGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let result = state.profileController.getByField(nameField, value).await;
-  result
+  state.profileController.getByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -39,8 +37,7 @@ pub async fn profileCreate(
   state: State<'_, AppState>,
   data: ProfileCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let result = state.profileController.create(data).await;
-  result
+  state.profileController.create(data).await
 }
 
 #[allow(non_snake_case)]
@@ -50,8 +47,7 @@ pub async fn profileUpdate(
   id: String,
   data: ProfileUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let result = state.profileController.update(id, data).await;
-  result
+  state.profileController.update(id, data).await
 }
 
 #[allow(non_snake_case)]
@@ -60,6 +56,5 @@ pub async fn profileDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let result = state.profileController.delete(id).await;
-  result
+  state.profileController.delete(id).await
 }

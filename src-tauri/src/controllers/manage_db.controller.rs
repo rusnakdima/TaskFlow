@@ -25,17 +25,17 @@ impl ManageDbController {
 
   #[allow(non_snake_case)]
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.importToLocal(userId).await;
+    self.managedbService.importToLocal(userId).await
   }
 
   #[allow(non_snake_case)]
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.exportToCloud(userId).await;
+    self.managedbService.exportToCloud(userId).await
   }
 
   #[allow(non_snake_case)]
   pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.managedbService.getAllDataForAdmin().await;
+    self.managedbService.getAllDataForAdmin().await
   }
 
   #[allow(non_snake_case)]
@@ -44,9 +44,9 @@ impl ManageDbController {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self
+    self
       .managedbService
       .permanentlyDeleteRecord(table, id)
-      .await;
+      .await
   }
 }

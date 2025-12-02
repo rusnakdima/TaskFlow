@@ -15,9 +15,7 @@ pub async fn taskGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.getAllByField(nameField, value).await;
-  result
+  state.taskController.getAllByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -27,9 +25,7 @@ pub async fn taskGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.getByField(nameField, value).await;
-  result
+  state.taskController.getByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -38,9 +34,7 @@ pub async fn taskCreate(
   state: State<'_, AppState>,
   data: TaskCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.create(data).await;
-  result
+  state.taskController.create(data).await
 }
 
 #[allow(non_snake_case)]
@@ -50,9 +44,7 @@ pub async fn taskUpdate(
   id: String,
   data: TaskUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.update(id, data).await;
-  result
+  state.taskController.update(id, data).await
 }
 
 #[allow(non_snake_case)]
@@ -61,9 +53,7 @@ pub async fn taskUpdateAll(
   state: State<'_, AppState>,
   data: Vec<TaskModel>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.updateAll(data).await;
-  result
+  state.taskController.updateAll(data).await
 }
 
 #[allow(non_snake_case)]
@@ -72,7 +62,5 @@ pub async fn taskDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let taskController = state.taskController.clone();
-  let result = taskController.delete(id).await;
-  result
+  state.taskController.delete(id).await
 }

@@ -9,21 +9,18 @@ use crate::models::response_model::ResponseModel;
 #[tauri::command]
 pub async fn downloadUpdate(
   state: State<'_, AppState>,
-  app_handle: tauri::AppHandle,
+  appHandle: tauri::AppHandle,
   url: String,
-  file_name: String,
+  fileName: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let aboutController = state.aboutController.clone();
-  let result = aboutController
-    .downloadUpdate(app_handle, url, file_name)
-    .await;
-  result
+  state
+    .aboutController
+    .downloadUpdate(appHandle, url, fileName)
+    .await
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
 pub async fn getBinaryNameFile(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
-  let aboutController = state.aboutController.clone();
-  let result = aboutController.getBinaryNameFile().await;
-  result
+  state.aboutController.getBinaryNameFile().await
 }

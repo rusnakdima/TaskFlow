@@ -15,9 +15,10 @@ pub async fn categoryGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.getAllByField(nameField, value).await;
-  result
+  state
+    .categoriesController
+    .getAllByField(nameField, value)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -27,9 +28,10 @@ pub async fn categoryGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.getByField(nameField, value).await;
-  result
+  state
+    .categoriesController
+    .getByField(nameField, value)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -38,9 +40,7 @@ pub async fn categoryCreate(
   state: State<'_, AppState>,
   data: CategoryCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.create(data).await;
-  result
+  state.categoriesController.create(data).await
 }
 
 #[allow(non_snake_case)]
@@ -50,9 +50,7 @@ pub async fn categoryUpdate(
   id: String,
   data: CategoryModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.update(id, data).await;
-  result
+  state.categoriesController.update(id, data).await
 }
 
 #[allow(non_snake_case)]
@@ -61,7 +59,5 @@ pub async fn categoryDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let categoriesController = state.categoriesController.clone();
-  let result = categoriesController.delete(id).await;
-  result
+  state.categoriesController.delete(id).await
 }

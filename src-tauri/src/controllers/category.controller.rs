@@ -29,7 +29,7 @@ impl CategoriesController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.categoriesService.getAllByField(nameField, value).await;
+    self.categoriesService.getAllByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
@@ -38,12 +38,12 @@ impl CategoriesController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.categoriesService.getByField(nameField, value).await;
+    self.categoriesService.getByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: CategoryCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.categoriesService.create(data).await;
+    self.categoriesService.create(data).await
   }
 
   #[allow(non_snake_case)]
@@ -52,11 +52,11 @@ impl CategoriesController {
     id: String,
     data: CategoryModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.categoriesService.update(id, data).await;
+    self.categoriesService.update(id, data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.categoriesService.delete(id).await;
+    self.categoriesService.delete(id).await
   }
 }

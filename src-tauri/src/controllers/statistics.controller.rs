@@ -29,9 +29,9 @@ impl StatisticsController {
     userId: String,
     timeRange: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self
+    self
       .statisticsService
       .getStatistics(userId, timeRange)
-      .await;
+      .await
   }
 }

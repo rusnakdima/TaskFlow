@@ -24,14 +24,14 @@ impl AboutController {
     url: String,
     file_name: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self
+    self
       .aboutService
       .downloadFile(app_handle, url, file_name)
-      .await;
+      .await
   }
 
   #[allow(non_snake_case)]
   pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
-    return self.aboutService.getBinaryNameFile().await;
+    self.aboutService.getBinaryNameFile().await
   }
 }

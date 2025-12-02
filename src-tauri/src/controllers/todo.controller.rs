@@ -38,7 +38,7 @@ impl TodoController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.getAllByField(nameField, value).await;
+    self.todoService.getAllByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
@@ -47,17 +47,17 @@ impl TodoController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.getByField(nameField, value).await;
+    self.todoService.getByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
   pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.getByAssignee(assigneeId).await;
+    self.todoService.getByAssignee(assigneeId).await
   }
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.createAndLog(data).await;
+    self.todoService.createAndLog(data).await
   }
 
   #[allow(non_snake_case)]
@@ -66,16 +66,16 @@ impl TodoController {
     id: String,
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.updateAndLog(id, data).await;
+    self.todoService.updateAndLog(id, data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn updateAll(&self, data: Vec<TodoModel>) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.updateAll(data).await;
+    self.todoService.updateAll(data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.todoService.deleteAndLog(id).await;
+    self.todoService.deleteAndLog(id).await
   }
 }

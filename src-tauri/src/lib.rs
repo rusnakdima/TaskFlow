@@ -15,30 +15,28 @@ use crate::helpers::{
 };
 
 /* routes */
-use routes::about_route::{downloadUpdate, getBinaryNameFile};
-use routes::auth_route::{
-  checkToken, login, register, requestPasswordReset, resetPassword, verifyCode,
-};
-use routes::category_route::{
-  categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
-};
-use routes::manage_db_route::{
-  exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord,
-};
-use routes::profile_route::{
-  profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
-};
-use routes::statistics_route::statisticsGet;
-use routes::subtask_route::{
-  subtaskCreate, subtaskDelete, subtaskGetAllByField, subtaskGetByField, subtaskUpdate,
-  subtaskUpdateAll,
-};
-use routes::task_route::{
-  taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate, taskUpdateAll,
-};
-use routes::todo_route::{
-  todoCreate, todoDelete, todoGetAllByField, todoGetByAssignee, todoGetByField, todoUpdate,
-  todoUpdateAll,
+use routes::{
+  about_route::{downloadUpdate, getBinaryNameFile},
+  auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
+  category_route::{
+    categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
+  },
+  manage_db_route::{exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord},
+  profile_route::{
+    profileCreate, profileDelete, profileGetAllByField, profileGetByField, profileUpdate,
+  },
+  statistics_route::statisticsGet,
+  subtask_route::{
+    subtaskCreate, subtaskDelete, subtaskGetAllByField, subtaskGetByField, subtaskUpdate,
+    subtaskUpdateAll,
+  },
+  task_route::{
+    taskCreate, taskDelete, taskGetAllByField, taskGetByField, taskUpdate, taskUpdateAll,
+  },
+  todo_route::{
+    todoCreate, todoDelete, todoGetAllByField, todoGetByAssignee, todoGetByField, todoUpdate,
+    todoUpdateAll,
+  },
 };
 
 /* controllers */

@@ -15,9 +15,7 @@ pub async fn todoGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.getAllByField(nameField, value).await;
-  result
+  state.todoController.getAllByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -27,9 +25,7 @@ pub async fn todoGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.getByField(nameField, value).await;
-  result
+  state.todoController.getByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -38,9 +34,7 @@ pub async fn todoGetByAssignee(
   state: State<'_, AppState>,
   assigneeId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.getByAssignee(assigneeId).await;
-  result
+  state.todoController.getByAssignee(assigneeId).await
 }
 
 #[allow(non_snake_case)]
@@ -49,9 +43,7 @@ pub async fn todoCreate(
   state: State<'_, AppState>,
   data: TodoCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.create(data).await;
-  result
+  state.todoController.create(data).await
 }
 
 #[allow(non_snake_case)]
@@ -61,9 +53,7 @@ pub async fn todoUpdate(
   id: String,
   data: TodoUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.update(id, data).await;
-  result
+  state.todoController.update(id, data).await
 }
 
 #[allow(non_snake_case)]
@@ -72,9 +62,7 @@ pub async fn todoUpdateAll(
   state: State<'_, AppState>,
   data: Vec<TodoModel>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.updateAll(data).await;
-  result
+  state.todoController.updateAll(data).await
 }
 
 #[allow(non_snake_case)]
@@ -83,7 +71,5 @@ pub async fn todoDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let todoController = state.todoController.clone();
-  let result = todoController.delete(id).await;
-  result
+  state.todoController.delete(id).await
 }

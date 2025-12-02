@@ -51,7 +51,7 @@ impl TaskController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.getAllByField(nameField, value).await;
+    self.taskService.getAllByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
@@ -60,12 +60,12 @@ impl TaskController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.getByField(nameField, value).await;
+    self.taskService.getByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.createAndLog(data).await;
+    self.taskService.createAndLog(data).await
   }
 
   #[allow(non_snake_case)]
@@ -74,16 +74,16 @@ impl TaskController {
     id: String,
     data: TaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.updateAndLog(id, data).await;
+    self.taskService.updateAndLog(id, data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn updateAll(&self, data: Vec<TaskModel>) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.updateAll(data).await;
+    self.taskService.updateAll(data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.taskService.deleteAndLog(id).await;
+    self.taskService.deleteAndLog(id).await
   }
 }

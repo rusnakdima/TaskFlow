@@ -15,9 +15,10 @@ pub async fn subtaskGetAllByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.getAllByField(nameField, value).await;
-  result
+  state
+    .subtaskController
+    .getAllByField(nameField, value)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -27,9 +28,7 @@ pub async fn subtaskGetByField(
   nameField: String,
   value: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.getByField(nameField, value).await;
-  result
+  state.subtaskController.getByField(nameField, value).await
 }
 
 #[allow(non_snake_case)]
@@ -38,9 +37,7 @@ pub async fn subtaskCreate(
   state: State<'_, AppState>,
   data: SubtaskCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.create(data).await;
-  result
+  state.subtaskController.create(data).await
 }
 
 #[allow(non_snake_case)]
@@ -50,9 +47,7 @@ pub async fn subtaskUpdate(
   id: String,
   data: SubtaskUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.update(id, data).await;
-  result
+  state.subtaskController.update(id, data).await
 }
 
 #[allow(non_snake_case)]
@@ -61,9 +56,7 @@ pub async fn subtaskUpdateAll(
   state: State<'_, AppState>,
   data: Vec<SubtaskModel>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.updateAll(data).await;
-  result
+  state.subtaskController.updateAll(data).await
 }
 
 #[allow(non_snake_case)]
@@ -72,7 +65,5 @@ pub async fn subtaskDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let subtaskController = state.subtaskController.clone();
-  let result = subtaskController.delete(id).await;
-  result
+  state.subtaskController.delete(id).await
 }

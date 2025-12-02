@@ -18,9 +18,9 @@ pub struct ProfileController {
 impl ProfileController {
   #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
-    return Self {
+    Self {
       profileService: ProfileService::new(jsonProvider),
-    };
+    }
   }
 
   #[allow(non_snake_case)]
@@ -29,7 +29,7 @@ impl ProfileController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.getAllByField(nameField, value).await;
+    self.profileService.getAllByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
@@ -38,12 +38,12 @@ impl ProfileController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.getByField(nameField, value).await;
+    self.profileService.getByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.create(data).await;
+    self.profileService.create(data).await
   }
 
   #[allow(non_snake_case)]
@@ -52,11 +52,11 @@ impl ProfileController {
     id: String,
     data: ProfileUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.update(id, data).await;
+    self.profileService.update(id, data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.profileService.delete(id).await;
+    self.profileService.delete(id).await
   }
 }

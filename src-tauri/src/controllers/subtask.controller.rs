@@ -41,7 +41,8 @@ impl SubtaskController {
       todoService.clone(),
       dailyActivityService.clone(),
     );
-    return Self {
+
+    Self {
       subtaskService: SubtaskService::new(
         jsonProvider.clone(),
         taskService.clone(),
@@ -51,7 +52,7 @@ impl SubtaskController {
       taskService,
       todoService,
       dailyActivityService,
-    };
+    }
   }
 
   #[allow(non_snake_case)]
@@ -60,7 +61,7 @@ impl SubtaskController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.getAllByField(nameField, value).await;
+    self.subtaskService.getAllByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
@@ -69,12 +70,12 @@ impl SubtaskController {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.getByField(nameField, value).await;
+    self.subtaskService.getByField(nameField, value).await
   }
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.createAndLog(data).await;
+    self.subtaskService.createAndLog(data).await
   }
 
   #[allow(non_snake_case)]
@@ -83,16 +84,16 @@ impl SubtaskController {
     id: String,
     data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.updateAndLog(id, data).await;
+    self.subtaskService.updateAndLog(id, data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn updateAll(&self, data: Vec<SubtaskModel>) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.updateAll(data).await;
+    self.subtaskService.updateAll(data).await
   }
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    return self.subtaskService.deleteAndLog(id).await;
+    self.subtaskService.deleteAndLog(id).await
   }
 }

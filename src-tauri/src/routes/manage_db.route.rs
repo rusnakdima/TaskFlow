@@ -11,9 +11,7 @@ pub async fn importToLocal(
   state: State<'_, AppState>,
   userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let managedbController = state.managedbController.clone();
-  let result = managedbController.importToLocal(userId).await;
-  result
+  state.managedbController.importToLocal(userId).await
 }
 
 #[allow(non_snake_case)]
@@ -22,9 +20,7 @@ pub async fn exportToCloud(
   state: State<'_, AppState>,
   userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let managedbController = state.managedbController.clone();
-  let result = managedbController.exportToCloud(userId).await;
-  result
+  state.managedbController.exportToCloud(userId).await
 }
 
 #[allow(non_snake_case)]
@@ -32,9 +28,7 @@ pub async fn exportToCloud(
 pub async fn getAllDataForAdmin(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let managedbController = state.managedbController.clone();
-  let result = managedbController.getAllDataForAdmin().await;
-  result
+  state.managedbController.getAllDataForAdmin().await
 }
 
 #[allow(non_snake_case)]
@@ -44,7 +38,8 @@ pub async fn permanentlyDeleteRecord(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let managedbController = state.managedbController.clone();
-  let result = managedbController.permanentlyDeleteRecord(table, id).await;
-  result
+  state
+    .managedbController
+    .permanentlyDeleteRecord(table, id)
+    .await
 }

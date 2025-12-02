@@ -12,7 +12,8 @@ pub async fn statisticsGet(
   userId: String,
   timeRange: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let statisticsController = state.statisticsController.clone();
-  let result = statisticsController.getStatistics(userId, timeRange).await;
-  result
+  state
+    .statisticsController
+    .getStatistics(userId, timeRange)
+    .await
 }

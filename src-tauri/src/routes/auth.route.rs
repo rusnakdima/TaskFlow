@@ -14,9 +14,7 @@ pub async fn checkToken(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.checkToken(token).await;
-  result
+  state.authController.checkToken(token).await
 }
 
 #[allow(non_snake_case)]
@@ -25,9 +23,7 @@ pub async fn login(
   state: State<'_, AppState>,
   loginForm: LoginForm,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.login(loginForm).await;
-  result
+  state.authController.login(loginForm).await
 }
 
 #[allow(non_snake_case)]
@@ -36,9 +32,7 @@ pub async fn register(
   state: State<'_, AppState>,
   signupForm: SignupForm,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.register(signupForm).await;
-  result
+  state.authController.register(signupForm).await
 }
 
 #[allow(non_snake_case)]
@@ -47,9 +41,7 @@ pub async fn requestPasswordReset(
   state: State<'_, AppState>,
   email: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.requestPasswordReset(email).await;
-  result
+  state.authController.requestPasswordReset(email).await
 }
 
 #[allow(non_snake_case)]
@@ -59,9 +51,7 @@ pub async fn verifyCode(
   email: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.verifyCode(email, code).await;
-  result
+  state.authController.verifyCode(email, code).await
 }
 
 #[allow(non_snake_case)]
@@ -70,7 +60,5 @@ pub async fn resetPassword(
   state: State<'_, AppState>,
   resetData: PasswordReset,
 ) -> Result<ResponseModel, ResponseModel> {
-  let authController = state.authController.clone();
-  let result = authController.resetPassword(resetData).await;
-  result
+  state.authController.resetPassword(resetData).await
 }
