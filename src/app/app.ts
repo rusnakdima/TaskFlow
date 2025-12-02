@@ -77,13 +77,6 @@ export class App {
           : this.router.url.length;
       this.url = this.router.url.slice(0, lastIndex);
     });
-
-    listen("deep-link-opened", (event: any) => {
-      const data = event.payload;
-      if (data.path === "change-password" && data.params && data.params.token) {
-        this.router.navigate(["/change-password"], { queryParams: { token: data.params.token } });
-      }
-    });
   }
 
   async checkUserProfile() {
