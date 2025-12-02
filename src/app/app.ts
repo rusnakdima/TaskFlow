@@ -3,7 +3,6 @@ import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs";
-import { listen } from "@tauri-apps/api/event";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response";
