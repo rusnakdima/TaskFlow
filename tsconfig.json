@@ -27,7 +27,8 @@
       "@env/*": ["./src/environments/*"],
       "@components/*": ["./src/app/components/*"],
       "@views/*": ["./src/app/views/*"],
-      "@app/*": ["./src/app/*"]
+      "@app/*": ["./src/app/*"],
+      "@guards/*": ["./src/app/guards/*"]
     }
   },
   "angularCompilerOptions": {

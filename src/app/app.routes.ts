@@ -4,6 +4,9 @@ import { ActivatedRouteSnapshot, Routes } from "@angular/router";
 /* reslver */
 import { MainResolver } from "@services/main.resolver";
 
+/* guards */
+import { canActivateAuth } from "@guards/auth.guard";
+
 /* components */
 import { LoginView } from "@views/login/login.view";
 import { SignupView } from "@views/signup/signup.view";
@@ -39,43 +42,56 @@ export const routes: Routes = [
     component: DashboardView,
     title: "Dashboard",
     data: { breadcrumb: "Dashboard" },
+    canActivate: [canActivateAuth],
   },
   {
     path: "Statistic",
     component: StatsView,
     title: "Statistic",
     data: { breadcrumb: "Statistic" },
+    canActivate: [canActivateAuth],
   },
   {
     path: "calendar",
     component: CalendarView,
     title: "Calendar",
     data: { breadcrumb: "Calendar" },
+    canActivate: [canActivateAuth],
   },
   {
     path: "shared-tasks",
     component: SharedTasksView,
     title: "Shared Tasks",
     data: { breadcrumb: "Shared Tasks" },
+    canActivate: [canActivateAuth],
   },
   {
     path: "admin",
     component: AdminView,
     title: "Admin Panel",
     data: { breadcrumb: "Admin Panel" },
+    canActivate: [canActivateAuth],
   },
-  { path: "about", component: AboutView, title: "About", data: { breadcrumb: "About" } },
+  {
+    path: "about",
+    component: AboutView,
+    title: "About",
+    data: { breadcrumb: "About" },
+    canActivate: [canActivateAuth],
+  },
   {
     path: "sync",
     component: SyncView,
     title: "Data Synchronization",
     data: { breadcrumb: "Sync" },
+    canActivate: [canActivateAuth],
   },
   {
     path: "categories",
     component: CategoriesView,
     title: "Categories",
     data: { breadcrumb: "Categories" },
+    canActivate: [canActivateAuth],
   },
 
   { path: "login", component: LoginView, title: "Login", data: { breadcrumb: "Login" } },
@@ -102,6 +118,7 @@ export const routes: Routes = [
     path: "profile",
     title: "Profile",
     data: { breadcrumb: "Profile" },
+    canActivate: [canActivateAuth],
     children: [
       {
         path: "",
@@ -126,6 +143,7 @@ export const routes: Routes = [
     path: "todos",
     title: "Projects (Todos)",
     data: { breadcrumb: "Projects (Todos)" },
+    canActivate: [canActivateAuth],
     children: [
       {
         path: "",
@@ -136,12 +154,14 @@ export const routes: Routes = [
         component: ManageTodoView,
         title: "Create Todo",
         data: { breadcrumb: "Create Todo" },
+        canActivate: [canActivateAuth],
       },
       {
         path: ":todoId/edit_todo",
         component: ManageTodoView,
         title: "Edit Todo",
         data: { breadcrumb: "Edit Todo" },
+        canActivate: [canActivateAuth],
       },
       {
         path: ":todoId/tasks",
@@ -150,6 +170,7 @@ export const routes: Routes = [
         resolve: {
           todo: MainResolver,
         },
+        canActivate: [canActivateAuth],
         children: [
           {
             path: "",
@@ -160,12 +181,14 @@ export const routes: Routes = [
             component: ManageTaskView,
             title: "Create Task",
             data: { breadcrumb: "Create Task" },
+            canActivate: [canActivateAuth],
           },
           {
             path: ":taskId/edit_task",
             component: ManageTaskView,
             title: "Edit Task",
             data: { breadcrumb: "Edit Task" },
+            canActivate: [canActivateAuth],
           },
           {
             path: ":taskId/subtasks",
@@ -174,6 +197,7 @@ export const routes: Routes = [
             resolve: {
               task: MainResolver,
             },
+            canActivate: [canActivateAuth],
             children: [
               {
                 path: "",
@@ -184,12 +208,14 @@ export const routes: Routes = [
                 component: ManageSubtaskView,
                 title: "Create Subtask",
                 data: { breadcrumb: "Create Subtask" },
+                canActivate: [canActivateAuth],
               },
               {
                 path: ":subtaskId/edit_subtask",
                 component: ManageSubtaskView,
                 title: "Edit Subtask",
                 data: { breadcrumb: "Edit Subtask" },
+                canActivate: [canActivateAuth],
               },
             ],
           },
