@@ -175,9 +175,9 @@ impl ProfileService {
 
     match profile {
       Ok(profile) => {
-        let existingProfile_result: Result<ProfileModel, _> =
+        let existingProfileResult: Result<ProfileModel, _> =
           serde_json::from_value::<ProfileModel>(profile.clone());
-        let existingProfile = match existingProfile_result {
+        let existingProfile = match existingProfileResult {
           Ok(profile) => profile,
           Err(_) => {
             return Err(ResponseModel {

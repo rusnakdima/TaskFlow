@@ -236,9 +236,9 @@ impl TodoService {
 
     match todo {
       Ok(todo) => {
-        let existingTodo_result: Result<TodoModel, _> =
+        let existingTodoResult: Result<TodoModel, _> =
           serde_json::from_value::<TodoModel>(todo.clone());
-        let existingTodo = match existingTodo_result {
+        let existingTodo = match existingTodoResult {
           Ok(todo) => todo,
           Err(_) => {
             return Err(ResponseModel {
