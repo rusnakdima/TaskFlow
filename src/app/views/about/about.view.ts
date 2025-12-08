@@ -1,6 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* env */
 import { environment } from "@env/environment";
@@ -12,9 +13,6 @@ import { Author } from "@models/author";
 /* services */
 import { AboutService } from "@services/about.service";
 import { NotifyService } from "@services/notify.service";
-
-/* Tauri */
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 @Component({
   selector: "app-about",
