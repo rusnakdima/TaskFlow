@@ -67,6 +67,15 @@
   </provides>
 
   <releases>
+    <release version="0.7.0" date="2025-12-09">
+      <description>
+        <p>Changed the code styles in rust</p>
+        <p>Deep-link listening code removed</p>
+        <p>Added the authorization verification feature to all pages</p>
+        <p>The logic of downloading a new version of the application has been changed</p>
+        <p>The page layout has been changed</p>
+      </description>
+    </release>
     <release version="0.6.2" date="2025-11-30">
       <description>
         <p>Fixed an issue with opening a page with subtasks after deletion</p>
