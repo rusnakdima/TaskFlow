@@ -25,6 +25,8 @@ chrono = "0.4.41"
 dotenv = "0.15.0"
 dotenvy = "0.15.7"
 futures = "0.3.31"
+futures-util = { version = "0.3", features = ["io"] }
+tokio = { version = "1", features = ["io-util"] }
 jsonwebtoken = "9.3.1"
 mongodb = "3.2.4"
 serde = {version = "1", features = ["derive"] }
@@ -33,5 +35,6 @@ tauri = {version = "2", features = [] }
 tauri-plugin-http = "2.5.1"
 tauri-plugin-opener = "2"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
+open = "5"
 uuid = { version = "1.0", features = ["v4"] }
 rand = "0.8"

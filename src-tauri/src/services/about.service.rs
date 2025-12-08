@@ -1,9 +1,10 @@
 /* sys lib */
-use std::fs::File;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_http::reqwest;
+
+use open;
 
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
@@ -22,77 +23,113 @@ impl AboutService {
   #[allow(non_snake_case)]
   pub async fn downloadFile(
     &self,
+    window: &tauri::Window,
     appHandle: tauri::AppHandle,
     url: String,
     fileName: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let response = reqwest::get(url).await;
+    let mut response = reqwest::get(&url).await.map_err(|e| ResponseModel {
+      status: ResponseStatus::Error,
+      message: format!("Download failed: {}", e),
+      data: DataValue::String("".to_string()),
+    })?;
 
-    if response.is_err() {
-      return Err(ResponseModel {
+    let totalSize = response.content_length().unwrap_or(0);
+    let mut downloaded: u64 = 0;
+
+    let downloadDir = appHandle.path().download_dir().map_err(|e| ResponseModel {
+      status: ResponseStatus::Error,
+      message: format!("Failed to get download directory: {}", e),
+      data: DataValue::String("".to_string()),
+    })?;
+
+    let filePath = downloadDir.join(&fileName);
+    let mut file = tokio::fs::File::create(&filePath)
+      .await
+      .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Error: {:?}", response.unwrap_err()),
+        message: format!("Failed to create file: {}", e),
         data: DataValue::String("".to_string()),
-      });
+      })?;
+
+    loop {
+      match response.chunk().await {
+        Ok(Some(chunk)) => {
+          file.write_all(&chunk).await.map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Write failed: {}", e),
+            data: DataValue::String("".to_string()),
+          })?;
+
+          downloaded += chunk.len() as u64;
+
+          if totalSize > 0 {
+            let percent = (downloaded as f64 / totalSize as f64 * 100.0) as u32;
+            let _ = window.emit("download-progress", percent);
+          }
+        }
+        Ok(None) => break,
+        Err(e) => {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Download failed: {}", e),
+            data: DataValue::String("".to_string()),
+          })
+        }
+      }
     }
 
-    let downloadFolder = appHandle.path().download_dir();
+    file.flush().await.map_err(|e| ResponseModel {
+      status: ResponseStatus::Error,
+      message: format!("Flush failed: {}", e),
+      data: DataValue::String("".to_string()),
+    })?;
 
-    if downloadFolder.is_err() {
-      return Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!(
-          "Error! Failed to get download folder: {}",
-          downloadFolder.unwrap_err()
-        ),
-        data: DataValue::String("".to_string()),
-      });
-    }
-
-    let filePath = downloadFolder.unwrap().join(&fileName);
-    let file = File::create(&filePath);
-
-    if file.is_err() {
-      return Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error! Failed to create file: {}", file.unwrap_err()),
-        data: DataValue::String("".to_string()),
-      });
-    }
-
-    let bytes = response.unwrap().bytes().await.unwrap();
-    let _ = file.unwrap().write_all(&bytes);
-
-    return Ok(ResponseModel {
+    Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
       data: DataValue::String(filePath.display().to_string()),
-    });
+    })
   }
 
   #[allow(non_snake_case)]
-  pub async fn getBinaryNameFile(&self) -> Result<ResponseModel, ResponseModel> {
-    let mut _nameApp = self.nameApp.clone();
-    if cfg!(target_os = "linux") {
-      _nameApp = format!("{}.AppImage", _nameApp);
+  pub async fn getBinaryNameFile(&self, version: String) -> Result<ResponseModel, ResponseModel> {
+    let _nameApp = if cfg!(target_os = "linux") {
+      format!("{}_{}_amd64.AppImage", self.nameApp, version)
     } else if cfg!(target_os = "windows") {
-      _nameApp = format!("{}.exe", _nameApp);
+      format!("{}_{}_x64-setup.exe", self.nameApp, version)
     } else if cfg!(target_os = "macos") {
-      _nameApp = format!("{}.app", _nameApp);
+      format!("{}_{}_aarch64.dmg", self.nameApp, version)
     } else if cfg!(target_os = "android") {
-      _nameApp = format!("{}.apk", _nameApp);
+      "app-universal-release.apk".to_string()
     } else {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: "Unknown target platform".to_string(),
+        message: "Unsupported target platform".to_string(),
         data: DataValue::String("".to_string()),
       });
-    }
+    };
 
     return Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
       data: DataValue::String(_nameApp),
     });
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn openFile(&self, path: String) -> Result<ResponseModel, ResponseModel> {
+    match open::that(&path) {
+      Ok(()) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "File opened successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Failed to open file: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 }

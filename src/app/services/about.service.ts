@@ -31,8 +31,8 @@ export class AboutService {
     );
   }
 
-  async getBinaryNameFile<R>(): Promise<Response<R>> {
-    return await invoke<Response<R>>("getBinaryNameFile");
+  async getBinaryNameFile<R>(version: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("getBinaryNameFile", { version });
   }
 
   checkUpdate(): Observable<any> {

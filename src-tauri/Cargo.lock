@@ -4544,9 +4544,11 @@ dependencies = [
  "dotenv",
  "dotenvy",
  "futures",
+ "futures-util",
  "jsonwebtoken",
  "lettre",
  "mongodb",
+ "open",
  "rand 0.8.5",
  "serde",
  "serde_json",
@@ -4554,6 +4556,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-http",
  "tauri-plugin-opener",
+ "tokio",
  "uuid",
 ]
 

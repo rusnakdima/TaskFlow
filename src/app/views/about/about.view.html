@@ -38,9 +38,9 @@
   </button>
 
   @if (pathUpdate != "") {
-    <div class="text-xl font-bold mt-3">
-      <span class="styleLink" (click)="openFile()">Open new version</span>
-    </div>
+    <button class="styleButWarn" (click)="openFile()">
+      <span>Open new version</span>
+    </button>
   }
 </div>
 
@@ -55,12 +55,8 @@
         @if (downloadProgress) {
           <div class="w-full bg-gray-300 rounded-full mb-4 dark:bg-gray-700 h-[20px]">
             <div
-              class="w-full rounded-full h-[20px]"
-              [style]="{
-                backgroundImage:
-                  'repeating-linear-gradient( 45deg, transparent, transparent 10px, rgb(5 122 85) 10px, rgb(5 122 85) 20px )',
-                animation: 'slide 4s linear infinite',
-              }"
+              class="bg-green-500 h-[20px] rounded-full transition-all duration-300"
+              [style.width.%]="downloadProgressValue"
             ></div>
           </div>
         }

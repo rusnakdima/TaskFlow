@@ -16,7 +16,7 @@ use crate::helpers::{
 
 /* routes */
 use routes::{
-  about_route::{downloadUpdate, getBinaryNameFile},
+  about_route::{downloadUpdate, getBinaryNameFile, openFile},
   auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
   category_route::{
     categoryCreate, categoryDelete, categoryGetAllByField, categoryGetByField, categoryUpdate,
@@ -143,6 +143,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       downloadUpdate,
       getBinaryNameFile,
+      openFile,
       checkToken,
       login,
       register,

@@ -13,6 +13,9 @@ import { Author } from "@models/author";
 import { AboutService } from "@services/about.service";
 import { NotifyService } from "@services/notify.service";
 
+/* Tauri */
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
+
 @Component({
   selector: "app-about",
   standalone: true,
@@ -41,6 +44,9 @@ export class AboutView {
 
   windUpdates: boolean = false;
   downloadProgress: boolean = false;
+  downloadProgressValue: number = 0;
+
+  unlistenProgress: UnlistenFn | null = null;
 
   ngOnInit(): void {
     this.getDate();
@@ -69,21 +75,6 @@ export class AboutView {
   }
 
   getDate() {
-    // this.aboutService
-    //   .getBinaryNameFile<string>()
-    //   .then((data: Response<string>) => {
-    //     if (data.status == ResponseStatus.SUCCESS) {
-    //       if (data.data != "Unknown") {
-    //         this.nameFile = data.data;
-    //       }
-    //     } else {
-    //       this.notifyService.showNotify(data.status, data.message);
-    //     }
-    //   })
-    //   .catch((err: Response<string>) => {
-    //     this.notifyService.showError(err.message ?? err.toString());
-    //   });
-
     this.aboutService.getDate(this.version).subscribe({
       next: (res: any) => {
         if (res && res.published_at) {
@@ -113,6 +104,20 @@ export class AboutView {
               this.notifyService.showWarning("A new version is available!");
               this.windUpdates = true;
               this.lastVersion = lastVer;
+              this.aboutService
+                .getBinaryNameFile<string>(this.lastVersion)
+                .then((res) => {
+                  if (res.status == ResponseStatus.SUCCESS) {
+                    this.nameFile = res.data;
+                  } else {
+                    this.notifyService.showNotify(res.status, res.message);
+                    this.windUpdates = false;
+                  }
+                })
+                .catch((err) => {
+                  this.notifyService.showError(err.message ?? err.toString());
+                  this.windUpdates = false;
+                });
             } else {
               this.notifyService.showSuccess("You have the latest version!");
             }
@@ -127,43 +132,46 @@ export class AboutView {
     });
   }
 
-  downloadFile() {
-    // if (this.nameFile != "") {
-    //   this.downloadProgress = true;
-    //   this.notifyService.showWarning("Wait until the program update is downloaded!");
+  async downloadFile() {
+    if (this.nameFile != "") {
+      this.downloadProgress = true;
+      this.downloadProgressValue = 0;
 
-    //   this.aboutService
-    //     .downloadUpdate<string>(this.lastVersion, this.nameFile)
-    //     .then((data: Response<string>) => {
-    //       if (data.status == ResponseStatus.SUCCESS) {
-    //         this.notifyService.showSuccess(
-    //           "The new version of the program has been successfully downloaded!"
-    //         );
-    //         this.pathUpdate = data.data;
-    //       } else {
-    //         this.notifyService.showNotify(data.status, data.message);
-    //       }
-    //     })
-    //     .catch((err: Response<string>) => {
-    //       this.notifyService.showError(err.message ?? err.toString());
-    //     });
-    //   this.downloadProgress = false;
-    //   this.windUpdates = false;
-    // } else {
-    //   this.notifyService.showError(
-    //     "System definition error! It is impossible to find a file for this OS!"
-    //   );
-    // }
+      if (!this.unlistenProgress) {
+        this.unlistenProgress = await listen<number>("download-progress", (event) => {
+          this.downloadProgressValue = event.payload;
+        });
+      }
 
-    try {
-      const link = document.createElement("a");
-      link.href = `https://github.com/rusnakdima/${this.gitRepoName}/releases/tag/latest`;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error(error);
+      this.notifyService.showWarning("Wait until the program update is downloaded!");
+
+      try {
+        const data: Response<string> = await this.aboutService.downloadUpdate<string>(
+          this.lastVersion,
+          this.nameFile
+        );
+        if (data.status == ResponseStatus.SUCCESS) {
+          this.notifyService.showSuccess(
+            "The new version of the program has been successfully downloaded!"
+          );
+          this.pathUpdate = data.data;
+          this.windUpdates = false;
+        } else {
+          this.notifyService.showNotify(data.status, data.message);
+        }
+      } catch (err: any) {
+        this.notifyService.showError(err.message ?? err.toString());
+      } finally {
+        this.downloadProgress = false;
+        if (this.unlistenProgress) {
+          this.unlistenProgress();
+          this.unlistenProgress = null;
+        }
+      }
+    } else {
+      this.notifyService.showError(
+        "System definition error! It is impossible to find a file for this OS!"
+      );
     }
   }
 
