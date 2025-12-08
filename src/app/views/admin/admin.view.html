@@ -41,7 +41,7 @@
 <ng-template #filtersTemplate let-isMobile="isMobile">
   @if (isMobile) {
     <div
-      class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
+      class="flex flex-row items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
     >
       <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
       <button mat-button class="!min-w-0 !w-9 !h-9 !p-0" (click)="showFilters = false">
@@ -134,45 +134,32 @@
   </div>
 </ng-template>
 
-<div class="mx-auto px-4 lg:px-6 py-4 lg:py-8">
-  <div class="flex flex-col lg:flex-row gap-4 lg:gap-8">
-    <div
-      class="w-full lg:w-80 flex-shrink-0 lg:hidden"
-      [class.flex]="showMobileSidebar"
-      [class.hidden]="!showMobileSidebar"
-    >
-      <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeMobileSidebar()"></div>
-
-      <div
-        class="fixed lg:relative top-0 left-0 lg:left-auto right-0 lg:w-full z-40 lg:z-auto bg-white dark:bg-zinc-800 rounded-xl lg:rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden h-full lg:h-auto max-w-sm lg:max-w-none"
-      >
-        <ng-container *ngTemplateOutlet="dataTypesTemplate; context: { isDesktop: false }" />
-      </div>
+<div class="w-full px-4 lg:px-6 py-4 lg:py-8">
+  <div class="flex flex-col gap-4 lg:gap-8">
+    <div class="flex flex-wrap gap-2">
+      @for (type of dataTypes; track type.id) {
+        <button
+          class="px-4 py-2 rounded-lg transition-colors font-medium"
+          [ngClass]="
+            selectedType === type.id
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
+          "
+          (click)="selectDataType(type.id)"
+        >
+          <div class="flex items-center gap-2">
+            <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="type.icon" />
+            <span>{{ type.label }} ({{ type.count }})</span>
+          </div>
+        </button>
+      }
     </div>
 
-    <div class="hidden lg:block w-80 flex-shrink-0">
-      <div
-        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
-      >
-        <ng-container *ngTemplateOutlet="dataTypesTemplate; context: { isDesktop: true }" />
-      </div>
-    </div>
-
-    <div class="flex-1 h-[calc(100vh-220px)] overflow-y-auto">
+    <div class="h-[calc(100vh-220px)] overflow-y-auto">
       <div
         class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700"
       >
         <div class="p-4 lg:p-6 border-b border-gray-200 dark:border-zinc-700">
-          <div class="lg:hidden">
-            <button
-              class="p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-700"
-              (click)="toggleMobileSidebar()"
-              [class.left-72]="showMobileSidebar"
-            >
-              <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="menu" />
-            </button>
-          </div>
-
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 class="text-xl font-bold textNormal">{{ getSelectedTypeLabel() }}</h2>
@@ -195,7 +182,7 @@
                 <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="delete_forever" />
                 Delete Selected ({{ selectedRecords.size }})
               </button>
-              <button class="styleButInfo lg:hidden" (click)="showFilters = !showFilters">
+              <button class="styleButInfo" (click)="showFilters = !showFilters">
                 <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="filter_alt" />
                 Filters
               </button>
@@ -314,24 +301,14 @@
     </div>
 
     <div
-      class="flex flex-row items-end w-full lg:w-80 flex-shrink-0 lg:hidden"
+      class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
       [class.flex]="showFilters"
       [class.hidden]="!showFilters"
     >
-      <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeFilters()"></div>
-      <div
-        class="fixed top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
-      >
-        <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: true }" />
-      </div>
+      <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
     </div>
-
-    <div class="hidden lg:block w-80 flex-shrink-0">
-      <div
-        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
-      >
-        <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
-      </div>
-    </div>
+    @if (showFilters) {
+      <div class="fixed inset-0 z-30 bg-black/50" (click)="closeFilters()"></div>
+    }
   </div>
 </div>

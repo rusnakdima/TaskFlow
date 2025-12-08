@@ -3,8 +3,10 @@
     <app-header />
   }
 
-  <main class="pb-20">
-    <router-outlet />
+  <main class="pb-20 w-full">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+      <router-outlet />
+    </div>
   </main>
 
   @if (showComponents) {
