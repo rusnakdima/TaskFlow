@@ -157,7 +157,11 @@ impl AuthService {
               }
             };
 
-            let expiration = Utc::now() + Duration::hours(24);
+            let expiration = match &loginForm.remember {
+              true => Utc::now() + Duration::days(7),
+              false => Utc::now() + Duration::hours(24),
+            };
+
             let claims = Claims {
               id: userId,
               username,
