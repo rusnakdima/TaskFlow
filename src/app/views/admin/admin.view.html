@@ -16,7 +16,7 @@
         [class.dark:bg-zinc-700]="isDesktop && selectedType === type.id"
         (click)="selectDataType(type.id)"
       >
-        <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="type.icon" />
+        <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
         <div [class]="isDesktop ? 'flex flex-col flex-1 items-start' : 'flex-1'">
           <div class="text-sm font-medium textNormal">{{ type.label }}</div>
           <div class="flex items-center justify-between mt-1">
@@ -25,10 +25,10 @@
         </div>
         <div class="flex flex-row gap-x-1">
           @if (loading) {
-            <mat-icon class="!w-5 !h-5 !text-xl text-blue-500 animate-spin" fontIcon="sync" />
+            <mat-icon class="w-5! h-5! text-xl! text-blue-500 animate-spin" fontIcon="sync" />
           }
           <mat-icon
-            class="!w-5 !h-5 !text-xl textMuted"
+            class="w-5! h-5! text-xl! textMuted"
             [class.rotate-90]="!isDesktop && selectedType === type.id"
             fontIcon="chevron_right"
           />
@@ -44,8 +44,8 @@
       class="flex flex-row items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
     >
       <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
-      <button mat-button class="!min-w-0 !w-9 !h-9 !p-0" (click)="showFilters = false">
-        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="close" />
+      <button mat-button class="min-w-0! w-9! h-9! p-0!" (click)="showFilters = false">
+        <mat-icon class="w-5! h-5! text-xl!" fontIcon="close" />
       </button>
     </div>
   } @else {
@@ -148,7 +148,7 @@
           (click)="selectDataType(type.id)"
         >
           <div class="flex items-center gap-2">
-            <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="type.icon" />
+            <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
             <span>{{ type.label }} ({{ type.count }})</span>
           </div>
         </button>
@@ -168,7 +168,7 @@
             <div class="flex flex-row gap-2 items-center flex-wrap">
               <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading">
                 <mat-icon
-                  class="!w-5 !h-5 !text-xl mr-2"
+                  class="w-5! h-5! text-xl! mr-2"
                   [ngClass]="loading ? 'animate-spin' : ''"
                   fontIcon="sync"
                 />
@@ -179,11 +179,11 @@
                 [disabled]="selectedRecords.size === 0"
                 (click)="deleteSelected()"
               >
-                <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="delete_forever" />
+                <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="delete_forever" />
                 Delete Selected ({{ selectedRecords.size }})
               </button>
               <button class="styleButInfo" (click)="showFilters = !showFilters">
-                <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="filter_alt" />
+                <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
                 Filters
               </button>
             </div>
@@ -194,14 +194,14 @@
           @if (loading) {
             <div class="flex items-center justify-center py-16">
               <mat-icon
-                class="!w-7.5 !h-7.5 !text-3xl text-blue-500 animate-spin"
+                class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin"
                 fontIcon="sync"
               />
               <span class="ml-3 textNormal">Loading data...</span>
             </div>
           } @else if (getCurrentData().length === 0) {
             <div class="text-center py-16">
-              <mat-icon class="!w-16 !h-16 !text-4xl text-gray-300" fontIcon="inbox" />
+              <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
               <h3 class="text-lg font-medium text-gray-500">No records found</h3>
               <p class="mt-2 text-sm textMuted">
                 No {{ getSelectedTypeLabel().toLowerCase() }} data available
@@ -222,37 +222,37 @@
                         (change)="toggleSelect(item.id)"
                       />
                       <div
-                        class="flex items-center justify-center flex-shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
+                        class="flex items-center justify-center shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
                       >
-                        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="article" />
+                        <mat-icon class="w-5! h-5! text-xl!" fontIcon="article" />
                       </div>
                       <div>
                         <h4 class="font-semibold textNormal">Record {{ item.id }}</h4>
                         <p class="text-sm textMuted">#{{ i + 1 }}</p>
                       </div>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 shrink-0">
                       @if (item.isDeleted) {
                         <mat-chip
-                          class="!bg-red-100 !text-red-600 dark:!bg-red-900/30 dark:!text-red-400 !h-9"
+                          class="bg-red-100! text-red-600! dark:bg-red-900/30! dark:text-red-400! h-9!"
                         >
                           <div class="flex flex-row items-center gap-x-2">
-                            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete" />
+                            <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
                             <span>Deleted</span>
                           </div>
                         </mat-chip>
                       } @else {
                         <mat-chip
-                          class="!bg-green-100 !text-green-600 dark:!bg-green-900/30 dark:!text-green-400 !h-9"
+                          class="bg-green-100! text-green-600! dark:bg-green-900/30! dark:text-green-400! h-9!"
                         >
                           <div class="flex flex-row items-center gap-x-2">
-                            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="check_circle" />
+                            <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
                             <span>Active</span>
                           </div>
                         </mat-chip>
                       }
                       <button class="styleButDanger cursor-pointer" (click)="deleteRecord(item)">
-                        <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete_forever" />
+                        <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
                       </button>
                     </div>
                   </div>
@@ -262,7 +262,7 @@
                       @if (prop.key !== "id") {
                         <div class="overflow-hidden">
                           <span class="font-medium textMuted">{{ prop.key }}:</span>
-                          <div class="mt-1 break-words">
+                          <div class="mt-1 wrap-break-word">
                             @if (prop.key === "createdAt" || prop.key === "updatedAt") {
                               <span class="textNormal">{{ formatDate(prop.value) }}</span>
                             } @else if (prop.value === null || prop.value === "") {

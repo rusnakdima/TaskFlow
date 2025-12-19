@@ -2,12 +2,12 @@
   class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
 >
   <div
-    class="relative bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white"
+    class="relative bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white"
   >
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-2">
-          <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="folder" />
+          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="folder" />
           <h1 class="text-2xl font-bold">{{ todo.title }}</h1>
         </div>
         <p class="text-blue-100 mb-4 max-w-prose">{{ todo.description }}</p>
@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <div class="flex-shrink-0 self-center sm:self-auto">
+      <div class="shrink-0 self-center sm:self-auto">
         <div class="relative w-32 h-32">
           <app-circle-progress [percentCompletedTasks]="getProjectProgress()" />
         </div>
@@ -54,7 +54,7 @@
       (click)="toggleActions()"
       class="absolute flex items-center justify-center top-4 right-4 rounded-full bg-black/20 hover:bg-black/30 w-10 h-10 transition-colors"
     >
-      <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="more_vert" />
+      <mat-icon class="w-5! h-5! text-xl!" fontIcon="more_vert" />
     </button>
   </div>
 
@@ -66,7 +66,7 @@
           class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
           <mat-icon
-            class="!w-6 !h-6 !text-2xl text-green-600 dark:text-green-400"
+            class="w-6! h-6! text-2xl! text-green-600 dark:text-green-400"
             fontIcon="add_task"
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Add Task</span>
@@ -76,7 +76,7 @@
           [routerLink]="['/todos', todo.id, 'edit_todo']"
           class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
-          <mat-icon class="!w-6 !h-6 !text-2xl text-blue-600 dark:text-blue-400" fontIcon="edit" />
+          <mat-icon class="w-6! h-6! text-2xl! text-blue-600 dark:text-blue-400" fontIcon="edit" />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Edit</span>
         </a>
 
@@ -85,7 +85,7 @@
           class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
           <mat-icon
-            class="!w-6 !h-6 !text-2xl text-purple-600 dark:text-purple-400"
+            class="w-6! h-6! text-2xl! text-purple-600 dark:text-purple-400"
             fontIcon="share"
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Share</span>
@@ -95,7 +95,7 @@
           (click)="confirmDeleteTodo()"
           class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
-          <mat-icon class="!w-6 !h-6 !text-2xl text-red-600 dark:text-red-400" fontIcon="delete" />
+          <mat-icon class="w-6! h-6! text-2xl! text-red-600 dark:text-red-400" fontIcon="delete" />
           <span class="text-sm font-medium text-red-700 dark:text-red-300">Delete</span>
         </button>
       </div>

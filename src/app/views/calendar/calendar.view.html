@@ -53,7 +53,7 @@
             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
             (click)="previous()"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="chevron_left" />
+            <mat-icon class="w-5! h-5! text-xl! textNormal" fontIcon="chevron_left" />
           </button>
           <button
             class="px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors textNormal"
@@ -65,7 +65,7 @@
             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
             (click)="next()"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl textNormal" fontIcon="chevron_right" />
+            <mat-icon class="w-5! h-5! text-xl! textNormal" fontIcon="chevron_right" />
           </button>
         </div>
       </div>
@@ -183,7 +183,7 @@
           <div class="space-y-4">
             @if (dayEvents.length === 0) {
               <div class="text-center py-8">
-                <mat-icon class="!w-7.5 !h-7.5 !text-3xl textMuted" fontIcon="event" />
+                <mat-icon class="w-7.5! h-7.5! text-3xl! textMuted" fontIcon="event" />
                 <p class="text-sm textMuted mt-4">No events scheduled for this day</p>
               </div>
             } @else {
@@ -230,7 +230,7 @@
         <div class="space-y-3">
           @if (filteredEvents.length === 0) {
             <div class="text-center py-4">
-              <mat-icon class="!w-8 !h-8 !text-2xl textMuted" fontIcon="event" />
+              <mat-icon class="w-8! h-8! text-2xl! textMuted" fontIcon="event" />
               <p class="text-sm textMuted mt-2">No events today</p>
             </div>
           } @else {
@@ -267,7 +267,7 @@
             class="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
             routerLink="/todos/create_todo"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add_task" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="add_task" />
             <span class="font-medium">New Task</span>
           </button>
 
@@ -275,7 +275,7 @@
             class="w-full flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
             routerLink="/todos"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="list" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
             <span class="font-medium">View All Tasks</span>
           </button>
 
@@ -283,7 +283,7 @@
             class="w-full flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
             routerLink="/Statistic"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="analytics" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="analytics" />
             <span class="font-medium">View Statistics</span>
           </button>
         </div>

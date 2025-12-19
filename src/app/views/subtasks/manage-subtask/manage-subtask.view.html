@@ -13,15 +13,15 @@
       <div class="flex items-center gap-2 mt-2 text-sm">
         @if (projectInfo) {
           <mat-icon
-            class="!w-4 !h-4 !text-base text-blue-600 dark:text-blue-400"
+            class="w-4! h-4! text-base! text-blue-600 dark:text-blue-400"
             fontIcon="folder"
           />
           <span class="text-blue-600 dark:text-blue-400 font-medium">{{ projectInfo.title }}</span>
-          <mat-icon class="!w-4 !h-4 !text-base textMuted" fontIcon="chevron_right" />
+          <mat-icon class="w-4! h-4! text-base! textMuted" fontIcon="chevron_right" />
         }
         @if (taskInfo) {
           <mat-icon
-            class="!w-4 !h-4 !text-base text-green-600 dark:text-green-400"
+            class="w-4! h-4! text-base! text-green-600 dark:text-green-400"
             fontIcon="task"
           />
           <span class="text-green-600 dark:text-green-400 font-medium">{{ taskInfo.title }}</span>
@@ -39,7 +39,7 @@
           class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center"
         >
           <mat-icon
-            class="!w-5 !h-5 !text-xl text-purple-600 dark:text-purple-400"
+            class="w-5! h-5! text-xl! text-purple-600 dark:text-purple-400"
             fontIcon="check_box"
           />
         </div>
@@ -85,7 +85,7 @@
           class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
         >
           <mat-icon
-            class="!w-5 !h-5 !text-xl text-orange-600 dark:text-orange-400"
+            class="w-5! h-5! text-xl! text-orange-600 dark:text-orange-400"
             fontIcon="settings"
           />
         </div>
@@ -128,7 +128,7 @@
             class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
           >
             <mat-icon
-              class="!w-5 !h-5 !text-xl text-blue-600 dark:text-blue-400"
+              class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400"
               fontIcon="speed"
             />
           </div>
@@ -145,7 +145,7 @@
             (click)="duplicateSubtask()"
           >
             <mat-icon
-              class="!w-4 !h-4 !text-base text-blue-600 dark:text-blue-400"
+              class="w-4! h-4! text-base! text-blue-600 dark:text-blue-400"
               fontIcon="content_copy"
             />
             <span class="text-sm">Duplicate Subtask</span>
@@ -157,7 +157,7 @@
             (click)="viewTaskDetails()"
           >
             <mat-icon
-              class="!w-4 !h-4 !text-base text-green-600 dark:text-green-400"
+              class="w-4! h-4! text-base! text-green-600 dark:text-green-400"
               fontIcon="open_in_new"
             />
             <span class="text-sm">View Parent Task</span>
@@ -174,7 +174,7 @@
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit ? 'save' : 'add'" />
         }
         {{ isEdit ? "Update" : "Create" }}
       </button>

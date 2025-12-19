@@ -22,7 +22,7 @@
         <div
           class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
         >
-          <mat-icon class="!w-5 !h-5 !text-xl text-blue-600 dark:text-blue-400" fontIcon="info" />
+          <mat-icon class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400" fontIcon="info" />
         </div>
         <div>
           <h3 class="text-lg font-semibold textNormal">Basic Information</h3>
@@ -62,7 +62,7 @@
           class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center"
         >
           <mat-icon
-            class="!w-5 !h-5 !text-xl text-purple-600 dark:text-purple-400"
+            class="w-5! h-5! text-xl! text-purple-600 dark:text-purple-400"
             fontIcon="settings"
           />
         </div>
@@ -127,7 +127,7 @@
                 readonly
                 placeholder="Click to select categories"
               />
-              <mat-icon class="!w-5 !h-5 !text-xl" matSuffix fontIcon="expand_more" />
+              <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
             </mat-form-field>
 
             @if (form.get("categories")?.value?.length > 0) {
@@ -139,9 +139,9 @@
                     {{ category.title }}
                     <button
                       (click)="removeCategory(category)"
-                      class="!h-4.5 text-red-500 hover:text-red-700 cursor-pointer"
+                      class="h-4.5! text-red-500 hover:text-red-700 cursor-pointer"
                     >
-                      <mat-icon class="!w-4.5 !h-4.5 !text-lg" fontIcon="close" />
+                      <mat-icon class="w-4.5! h-4.5! text-lg!" fontIcon="close" />
                     </button>
                   </span>
                 }
@@ -160,7 +160,7 @@
           class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center"
         >
           <mat-icon
-            class="!w-5 !h-5 !text-xl text-green-600 dark:text-green-400"
+            class="w-5! h-5! text-xl! text-green-600 dark:text-green-400"
             fontIcon="group"
           />
         </div>
@@ -180,7 +180,7 @@
             >
               <div class="flex-1">
                 <div class="flex flex-row gap-x-3">
-                  <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="lock" />
+                  <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="lock" />
                   <div class="font-medium textNormal">Private</div>
                 </div>
                 <div class="text-sm textMuted">Only you can access this project</div>
@@ -192,7 +192,7 @@
             >
               <div class="flex-1">
                 <div class="flex flex-row gap-x-3">
-                  <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="group" />
+                  <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="group" />
                   <div class="font-medium textNormal">Team</div>
                 </div>
                 <div class="text-sm textMuted">Share with specific team members</div>
@@ -214,7 +214,7 @@
                   readonly
                   placeholder="Click to select team members"
                 />
-                <mat-icon class="!w-5 !h-5 !text-xl" matSuffix fontIcon="expand_more" />
+                <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
               </mat-form-field>
             </div>
 
@@ -247,7 +247,7 @@
                       type="button"
                       (click)="removeProfile(member)"
                     >
-                      <mat-icon class="!w-5 !h-5 !text-xl cursor-pointer" fontIcon="remove" />
+                      <mat-icon class="w-5! h-5! text-xl! cursor-pointer" fontIcon="remove" />
                     </button>
                   </div>
                 }
@@ -266,14 +266,14 @@
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="!w-5 !h-5 !text-xl" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit ? 'save' : 'add'" />
         }
         {{ isEdit ? "Update" : "Create" }}
       </button>
     </div>
   </form>
 
-  <mat-menu #userMenu="matMenu" class="!w-125 !max-w-7xl">
+  <mat-menu #userMenu="matMenu" class="w-12!5 max-w-7xl!">
     <div (click)="$event.stopPropagation()">
       <div class="p-2">
         <mat-form-field class="w-full">
@@ -293,7 +293,7 @@
                 <div class="text-sm textMuted">{{ profile.user.email }}</div>
               </div>
               <button (click)="addProfile(profile)">
-                <mat-icon class="!w-6 !h-6 !text-2xl cursor-pointer" fontIcon="add" />
+                <mat-icon class="w-6! h-6! text-2xl! cursor-pointer" fontIcon="add" />
               </button>
             </div>
           </div>
@@ -302,7 +302,7 @@
     </div>
   </mat-menu>
 
-  <mat-menu #categoryMenu="matMenu" class="!w-100">
+  <mat-menu #categoryMenu="matMenu" class="w-100!">
     <div (click)="$event.stopPropagation()">
       <div class="p-2">
         <mat-form-field class="w-full">
@@ -314,7 +314,7 @@
             (keydown.enter)="addCategory()"
           />
           <button matSuffix class="mr-2" (click)="addCategory()">
-            <mat-icon class="!w-6 !h-6 !text-2xl" fontIcon="add" />
+            <mat-icon class="w-6! h-6! text-2xl!" fontIcon="add" />
           </button>
         </mat-form-field>
       </div>

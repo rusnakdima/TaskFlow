@@ -19,7 +19,7 @@
           class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
           (click)="closeModal()"
         >
-          <mat-icon class="!w-5 !h-5 !text-xl textMuted" fontIcon="close" />
+          <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="close" />
         </button>
       </div>
 
@@ -55,7 +55,7 @@
           [disabled]="!categoryTitle.trim() || isLoading"
         >
           @if (isLoading) {
-            <mat-icon class="!w-4 !h-4 !text-sm mr-2 animate-spin" fontIcon="refresh" />
+            <mat-icon class="w-4! h-4! text-sm! mr-2 animate-spin" fontIcon="refresh" />
             Saving...
           } @else {
             {{ editingCategory ? "Update" : "Create" }}

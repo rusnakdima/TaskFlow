@@ -5,7 +5,7 @@
     >
       <div class="flex flex-col sm:flex-row items-center gap-6">
         <div class="relative">
-          <div class="w-32 h-32 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-1">
+          <div class="w-32 h-32 rounded-full bg-linear-to-r from-blue-500 to-purple-600 p-1">
             <img
               [src]="profile.imageUrl ? profile.imageUrl : 'assets/images/user.png'"
               alt="Profile"
@@ -13,10 +13,10 @@
             />
           </div>
           <button
-            class="styleButInfo absolute -bottom-2 -right-2 p-2 rounded-full !h-9 shadow-lg"
+            class="styleButInfo absolute -bottom-2 -right-2 p-2 rounded-full h-9! shadow-lg"
             routerLink="/profile/edit_profile"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="edit" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
           </button>
         </div>
 
@@ -40,7 +40,7 @@
           class="w-full flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
           routerLink="/profile/edit_profile"
         >
-          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="edit" />
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
           <span class="font-medium">Edit Profile</span>
         </button>
 
@@ -48,7 +48,7 @@
           class="w-full flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
           routerLink="/change-password"
         >
-          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="lock" />
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="lock" />
           <span class="font-medium">Change Password</span>
         </button>
 
@@ -56,7 +56,7 @@
           class="w-full flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors col-span-1 sm:col-span-2"
           (click)="logout()"
         >
-          <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="logout" />
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="logout" />
           <span class="font-medium">Logout</span>
         </button>
       </div>
@@ -66,12 +66,12 @@
       class="bg-white dark:bg-zinc-800 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
       <div class="mb-6">
-        <mat-icon class="!w-15 !h-15 !text-6xl textMuted" fontIcon="account_circle" />
+        <mat-icon class="w-15! h-15! text-6xl! textMuted" fontIcon="account_circle" />
       </div>
       <h2 class="text-xl font-semibold textNormal mb-2">Welcome to TaskFlow</h2>
       <p class="textMuted mb-6">Please log in to view your profile</p>
       <button routerLink="/login" class="styleButInfo px-8 py-3 text-lg">
-        <mat-icon class="!w-5 !h-5 !text-xl mr-2" fontIcon="login" />
+        <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="login" />
         Login
       </button>
     </div>

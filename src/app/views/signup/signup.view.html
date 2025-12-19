@@ -1,11 +1,11 @@
-<div class="flex flex-col left-0 top-0 m-0 w-full h-[100vh] overflow-x-auto">
+<div class="flex flex-col left-0 top-0 m-0 w-full h-screen overflow-x-auto">
   <div
-    class="flex flex-col p-5 m-auto !rounded-xl styleBorderSolidLite !border-[3px] bg-transparent backdrop-blur w-full min-[400px]:w-10/12 sm:w-[400px] text-center"
+    class="flex flex-col p-5 m-auto rounded-xl! styleBorderSolidLite border-4! bg-transparent backdrop-blur w-full min-[400px]:w-10/12 sm:w-[400px] text-center"
   >
-    <div class="flex flex-col !text-left gap-y-3" [formGroup]="regForm">
+    <div class="flex flex-col text-left! gap-y-3" [formGroup]="regForm">
       <div class="flex flex-col gap-y-1">
         <label class="styleLabel">Email</label>
-        <input class="styleField !bg-transparent" type="email" formControlName="email" required />
+        <input class="styleField bg-transparent!" type="email" formControlName="email" required />
 
         @if (isInvalid("email")) {
           @if (f["email"].errors?.["required"]) {
@@ -20,7 +20,7 @@
 
       <div class="flex flex-col gap-y-1">
         <label class="styleLabel">Username</label>
-        <input class="styleField !bg-transparent" type="text" formControlName="username" required />
+        <input class="styleField bg-transparent!" type="text" formControlName="username" required />
 
         @if (isInvalid("username")) {
           @if (f["username"].errors?.["required"]) {
@@ -36,20 +36,20 @@
 
         <div class="relative flex flex-row items-center">
           <input
-            class="styleField !bg-transparent w-full"
+            class="styleField bg-transparent! w-full"
             [type]="isShowPassword ? 'text' : 'password'"
             formControlName="password"
           />
           <div class="absolute right-1 top-1">
             @if (isShowPassword) {
               <mat-icon
-                class="!w-7.5 !h-7.5 !text-3xl !text-red-500"
+                class="w-7.5! h-7.5! text-3xl! text-red-500!"
                 fontIcon="visibility_off"
                 (click)="isShowPassword = false"
               />
             } @else {
               <mat-icon
-                class="!w-7.5 !h-7.5 !text-3xl !text-red-500"
+                class="w-7.5! h-7.5! text-3xl! text-red-500!"
                 fontIcon="visibility"
                 (click)="isShowPassword = true"
               />
@@ -71,20 +71,20 @@
 
         <div class="relative flex flex-row items-center">
           <input
-            class="styleField !bg-transparent w-full"
+            class="styleField bg-transparent! w-full"
             [type]="isShowConfirmPassword ? 'text' : 'password'"
             formControlName="confirm_password"
           />
           <div class="absolute right-1 top-1">
             @if (isShowConfirmPassword) {
               <mat-icon
-                class="!w-7.5 !h-7.5 !text-3xl !text-red-500"
+                class="w-7.5! h-7.5! text-3xl! text-red-500!"
                 fontIcon="visibility_off"
                 (click)="isShowConfirmPassword = false"
               />
             } @else {
               <mat-icon
-                class="!w-7.5 !h-7.5 !text-3xl !text-red-500"
+                class="w-7.5! h-7.5! text-3xl! text-red-500!"
                 fontIcon="visibility"
                 (click)="isShowConfirmPassword = true"
               />

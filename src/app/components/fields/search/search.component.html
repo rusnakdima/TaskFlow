@@ -3,7 +3,7 @@
     <div class="flex flex-row items-center gap-x-2 p-2 mx-auto styleElem w-full">
       <input
         type="text"
-        class="styleField !border-none w-full h-8"
+        class="styleField border-none! w-full h-8"
         placeholder="Search..."
         id="searchField"
         [(ngModel)]="searchField"
@@ -12,8 +12,8 @@
     </div>
   </div>
 } @else {
-  <button class="styleFloatBut !p-1 min-w-10 h-10" (click)="setFocusField()">
-    <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="search" />
+  <button class="styleFloatBut p-1! min-w-10 h-10" (click)="setFocusField()">
+    <mat-icon class="w-5! h-5! text-xl!" fontIcon="search" />
     <span class="hidden sm:block">Search</span>
   </button>
 }

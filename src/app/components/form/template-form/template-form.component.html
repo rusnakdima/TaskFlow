@@ -16,7 +16,7 @@
             [readonly]="true"
           />
           <mat-menu #menu="matMenu">
-            <div class="flex flex-col p-2 !max-w-max" (click)="$event.stopPropagation()">
+            <div class="flex flex-col p-2 max-w-max!" (click)="$event.stopPropagation()">
               <app-template-form
                 [parentForm]="parentForm"
                 [form]="formGroup(field.name)"
@@ -43,7 +43,7 @@
           <div class="flex flex-row justify-between items-center">
             <span>{{ field.label }}</span>
             <button class="flex flcol items-center justify-center" (click)="onAddRecord()">
-              <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add" />
+              <mat-icon class="w-5! h-5! text-xl!" fontIcon="add" />
             </button>
           </div>
           @for (fg of formArray(field.name).controls; track fg; let i = $index) {
@@ -53,13 +53,13 @@
                   <div class="flex flex-row justify-between items-center w-full">
                     <div class="flex flex-row gap-x-1">
                       <mat-icon
-                        class="!w-5 !h-5 !text-xl"
+                        class="w-5! h-5! text-xl!"
                         [fontIcon]="openStates[i] ? 'keyboard_arrow_down' : 'chevron_right'"
                       />
                       <span>Record {{ i + 1 }}</span>
                     </div>
                     <button (click)="onRemoveRecord(i)">
-                      <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="remove" />
+                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="remove" />
                     </button>
                   </div>
                 </summary>
@@ -74,7 +74,7 @@
                 class="absolute flex flex-col items-end right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <button (click)="onInsertRecord(i + 1)">
-                  <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="add" />
+                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="add" />
                 </button>
               </div>
             </div>
