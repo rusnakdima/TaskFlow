@@ -62,6 +62,53 @@ export class TodoComponent {
     return Math.round(this.percentCompletedTasks * 100);
   }
 
+  getProgressSegments(): { status: TaskStatus; percentage: number; color: string }[] {
+    const listTasks = this.todo?.tasks ?? [];
+    const total = listTasks.length;
+
+    if (total === 0) {
+      return [{ status: TaskStatus.PENDING, percentage: 100, color: "bg-gray-400" }];
+    }
+
+    const completed = listTasks.filter((t) => t.status === TaskStatus.COMPLETED).length;
+    const skipped = listTasks.filter((t) => t.status === TaskStatus.SKIPPED).length;
+    const failed = listTasks.filter((t) => t.status === TaskStatus.FAILED).length;
+    const pending = listTasks.filter((t) => t.status === TaskStatus.PENDING).length;
+
+    const segments = [];
+
+    if (completed > 0) {
+      segments.push({
+        status: TaskStatus.COMPLETED,
+        percentage: Math.round((completed / total) * 100),
+        color: "bg-green-500",
+      });
+    }
+    if (skipped > 0) {
+      segments.push({
+        status: TaskStatus.SKIPPED,
+        percentage: Math.round((skipped / total) * 100),
+        color: "bg-orange-500",
+      });
+    }
+    if (failed > 0) {
+      segments.push({
+        status: TaskStatus.FAILED,
+        percentage: Math.round((failed / total) * 100),
+        color: "bg-red-500",
+      });
+    }
+    if (pending > 0) {
+      segments.push({
+        status: TaskStatus.PENDING,
+        percentage: Math.round((pending / total) * 100),
+        color: "bg-gray-400",
+      });
+    }
+
+    return segments;
+  }
+
   getProgressColor(): string {
     const progress = this.getProgressPercentage();
     if (progress >= 100) return "bg-green-500";

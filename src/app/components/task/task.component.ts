@@ -68,6 +68,70 @@ export class TaskComponent {
     return Math.round(this.percentCompletedSubTasks * 100);
   }
 
+  getProgressSegments(): { status: TaskStatus; percentage: number; color: string }[] {
+    const listSubtasks = this.task?.subtasks ?? [];
+    const total = listSubtasks.length;
+
+    if (total === 0) {
+      const taskStatus = this.task?.status || TaskStatus.PENDING;
+      let color = "bg-gray-400";
+      switch (taskStatus) {
+        case TaskStatus.COMPLETED:
+          color = "bg-green-500";
+          break;
+        case TaskStatus.SKIPPED:
+          color = "bg-orange-500";
+          break;
+        case TaskStatus.FAILED:
+          color = "bg-red-500";
+          break;
+        case TaskStatus.PENDING:
+        default:
+          color = "bg-gray-400";
+          break;
+      }
+      return [{ status: taskStatus, percentage: 100, color }];
+    }
+
+    const completed = listSubtasks.filter((s) => s.status === TaskStatus.COMPLETED).length;
+    const skipped = listSubtasks.filter((s) => s.status === TaskStatus.SKIPPED).length;
+    const failed = listSubtasks.filter((s) => s.status === TaskStatus.FAILED).length;
+    const pending = listSubtasks.filter((s) => s.status === TaskStatus.PENDING).length;
+
+    const segments = [];
+
+    if (completed > 0) {
+      segments.push({
+        status: TaskStatus.COMPLETED,
+        percentage: Math.round((completed / total) * 100),
+        color: "bg-green-500",
+      });
+    }
+    if (skipped > 0) {
+      segments.push({
+        status: TaskStatus.SKIPPED,
+        percentage: Math.round((skipped / total) * 100),
+        color: "bg-orange-500",
+      });
+    }
+    if (failed > 0) {
+      segments.push({
+        status: TaskStatus.FAILED,
+        percentage: Math.round((failed / total) * 100),
+        color: "bg-red-500",
+      });
+    }
+    if (pending > 0) {
+      segments.push({
+        status: TaskStatus.PENDING,
+        percentage: Math.round((pending / total) * 100),
+        color: "bg-gray-400",
+      });
+    }
+
+    return segments;
+  }
+
   getPriorityColor(priority: string): string {
     switch (priority.toLowerCase()) {
       case "high":

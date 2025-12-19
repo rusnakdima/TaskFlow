@@ -1,10 +1,10 @@
 @if (task) {
   <div cdkDrag class="h-full flex flex-col">
     <div
-      class="flex flex-col flex-grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
+      class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [routerLink]="task.id + '/subtasks'"
     >
-      <div class="flex flex-col flex-grow">
+      <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
           <div class="flex flex-row flex-1 items-start gap-3">
             <button
@@ -21,20 +21,20 @@
               "
             >
               @if (task.status === "completed") {
-                <mat-icon class="!w-5 !h-5 !text-xl !text-green-600" fontIcon="check_circle" />
+                <mat-icon class="w-5! h-5! text-xl! text-green-600!" fontIcon="check_circle" />
               } @else if (task.status === "skipped") {
                 <mat-icon
-                  class="!w-5 !h-5 !text-xl !text-orange-600 dark:!text-orange-400"
+                  class="w-5! h-5! text-xl! text-orange-600! dark:text-orange-400!"
                   fontIcon="cancel"
                 />
               } @else if (task.status === "failed") {
                 <mat-icon
-                  class="!w-5 !h-5 !text-xl !text-red-600 dark:!text-red-400"
+                  class="w-5! h-5! text-xl! text-red-600! dark:text-red-400!"
                   fontIcon="dangerous"
                 />
               } @else {
                 <mat-icon
-                  class="!w-5 !h-5 !text-xl textMuted hover:!text-green-600"
+                  class="w-5! h-5! text-xl! textMuted hover:text-green-600!"
                   fontIcon="radio_button_unchecked"
                 />
               }
@@ -105,12 +105,12 @@
         <div class="flex items-center gap-4 mb-4 text-sm textMuted">
           @if (task.endDate) {
             <div class="flex items-center gap-1">
-              <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="schedule" />
+              <mat-icon class="w-5! h-5! text-xl!" fontIcon="schedule" />
               <span>Due {{ formatDate(task.endDate) }}</span>
             </div>
           }
           <div class="flex items-center gap-1">
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="list" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
             <span>{{ countTasks }} subtasks</span>
           </div>
         </div>
@@ -120,20 +120,28 @@
             <span class="textMuted">Progress</span>
             <span class="textNormal font-medium">{{ getProgressPercentage() }}%</span>
           </div>
-          <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-            <div
-              class="h-2 rounded-full transition-all duration-300"
-              [ngClass]="
-                task.status === 'completed'
-                  ? 'bg-green-500'
-                  : task.status === 'skipped'
-                    ? 'bg-orange-500'
-                    : task.status === 'failed'
-                      ? 'bg-red-500'
-                      : 'bg-blue-500'
-              "
-              [style.width.%]="getProgressPercentage()"
-            ></div>
+          <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-3 overflow-hidden">
+            <div class="flex h-full rounded-full overflow-hidden">
+              @for (segment of getProgressSegments(); track segment.status) {
+                <div
+                  class="h-full transition-all duration-300"
+                  [ngClass]="segment.color"
+                  [style.width.%]="segment.percentage"
+                  [title]="segment.status + ': ' + segment.percentage + '%'"
+                ></div>
+              }
+            </div>
+          </div>
+          <div class="flex justify-between text-xs mt-1 textMuted">
+            @for (segment of getProgressSegments(); track segment.status) {
+              <span
+                class="flex items-center gap-1"
+                [title]="segment.status + ': ' + segment.percentage + '%'"
+              >
+                <div class="w-2 h-2 rounded-full" [ngClass]="segment.color"></div>
+                {{ segment.percentage }}%
+              </span>
+            }
           </div>
         </div>
       </div>
@@ -170,28 +178,28 @@
             cdkDragHandle
             title="Drag to reorder"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="drag_indicator" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
             [routerLink]="task.id + '/subtasks'"
             title="View subtasks"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="list" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
             [routerLink]="task.id + '/edit_task'"
             title="Edit task"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="edit" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
           </button>
           <button
             class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
             (click)="deleteTask()"
             title="Delete task"
           >
-            <mat-icon class="!w-5 !h-5 !text-xl" fontIcon="delete" />
+            <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
           </button>
         </div>
       </div>
