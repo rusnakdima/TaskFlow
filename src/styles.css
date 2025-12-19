@@ -42,7 +42,7 @@
   }
 
   .styleBackWind {
-    @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-[999] bg-white/40 dark:bg-black/30 w-full h-[100vh] overflow-y-auto;
+    @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-999 bg-white/40 dark:bg-black/30 w-full h-screen overflow-y-auto;
   }
 
   .styleWind {
@@ -50,7 +50,7 @@
   }
 
   .styleWindNotify {
-    @apply fixed flex flex-col top-1 right-1 z-[999] rounded-lg border border-solid border-white text-white;
+    @apply fixed flex flex-col top-1 right-1 z-999 rounded-lg border border-solid border-white text-white;
   }
 
   .styleBorderSolid {
@@ -78,7 +78,7 @@
   }
 
   .styleLinkRedir {
-    @apply !text-blue-600 dark:!text-lime-500 !decoration-blue-600 dark:!decoration-lime-500 underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer;
+    @apply text-blue-600! dark:text-lime-500! decoration-blue-600! dark:decoration-lime-500! underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer;
   }
 
   .styleBottomNavItems {
@@ -106,7 +106,7 @@
   }
 
   .styleFloatBut {
-    @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl border rounded-lg border-solid border-zinc-600 dark:border-zinc-500 hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer;
+    @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl border border-solid border-zinc-600 dark:border-zinc-500 hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer;
   }
 
   .styleTR {
@@ -158,7 +158,7 @@
   }
 
   .styleRadio:disabled {
-    @apply !bg-red-700 !border-red-700 focus:!ring-red-700;
+    @apply bg-red-700! border-red-700! focus:ring-red-700!;
   }
 
   .styleSelect {
@@ -171,7 +171,7 @@
 }
 
 button:disabled {
-  @apply hover:!bg-red-500 dark:hover:!bg-red-500 cursor-not-allowed;
+  @apply hover:bg-red-500! dark:hover:bg-red-500! cursor-not-allowed;
 }
 
 @layer components {
@@ -228,7 +228,7 @@ button:disabled {
 }
 
 mat-icon {
-  @apply !w-[30px] !h-[30px] !text-3xl;
+  @apply w-[30px]! h-[30px]! text-3xl!;
 }
 
 pre {
@@ -260,7 +260,7 @@ pre {
 }
 
 .ngx-pagination {
-  @apply inline-flex items-center -space-x-px !mb-0;
+  @apply inline-flex items-center -space-x-px mb-0!;
 }
 
 .ngx-pagination .pagination-previous,
@@ -282,25 +282,25 @@ pre {
 
 .ngx-pagination .pagination-previous.disabled:before,
 .ngx-pagination .pagination-previous a:before {
-  @apply !content-['<'] !mr-0;
+  @apply content-['<']! mr-0!;
 }
 
 .ngx-pagination .pagination-next.disabled:after,
 .ngx-pagination .pagination-next a:after {
-  @apply !content-['>'] !ml-0;
+  @apply content-['>']! ml-0!;
 }
 
 .ngx-pagination a,
 .ngx-pagination .disabled {
-  @apply !px-4 !py-2 text-xl !text-gray-500 dark:!text-zinc-400 hover:!text-gray-700 dark:hover:!text-white !bg-white dark:!bg-zinc-800 hover:!bg-gray-100 dark:hover:!bg-zinc-700 border !border-gray-300 dark:!border-zinc-600;
+  @apply px-4! py-2! text-xl text-gray-500! dark:text-zinc-400! hover:text-gray-700! dark:hover:text-white! bg-white! dark:bg-zinc-800! hover:bg-gray-100! dark:hover:bg-zinc-700! border border-gray-300! dark:border-zinc-600!;
 }
 
 .ngx-pagination .current {
-  @apply !px-4 !py-2 z-0 text-xl !text-blue-600 dark:!text-white hover:!text-blue-700 !bg-blue-50 dark:!bg-zinc-600 hover:!bg-blue-100 border border-blue-300 dark:!border-zinc-400 dark:hover:!bg-zinc-700;
+  @apply px-4! py-2! z-0 text-xl text-blue-600! dark:text-white! hover:text-blue-700! bg-blue-50! dark:bg-zinc-600! hover:bg-blue-100! border border-blue-300 dark:border-zinc-400! dark:hover:bg-zinc-700!;
 }
 
 mat-icon {
-  @apply !leading-none;
+  @apply leading-none!;
 }
 
 .mat-calendar,
@@ -309,7 +309,7 @@ mat-icon {
 .mat-mdc-menu-panel,
 .mat-datepicker-actions,
 .mat-expansion-panel {
-  @apply !rounded-xl border border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-xl! border border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .mat-calendar,
@@ -320,7 +320,7 @@ mat-icon {
 .mat-datepicker-actions,
 .mat-datepicker-content,
 .mat-mdc-dialog-container .mdc-dialog__surface {
-  @apply !bg-slate-100 dark:!bg-neutral-800;
+  @apply bg-slate-100! dark:bg-neutral-800!;
 }
 
 .mat-calendar-table-header > tr > *,
@@ -342,11 +342,11 @@ mat-icon {
 .mat-expansion-indicator::after,
 .mat-expansion-panel-header-title,
 .mdc-tab__text-label {
-  @apply !text-black dark:!text-white;
+  @apply text-black! dark:text-white!;
 }
 
 .mat-expansion-indicator::after {
-  @apply !border-black dark:!border-white;
+  @apply border-black! dark:border-white!;
 }
 
 .mat-mdc-form-field-required-marker {
@@ -354,28 +354,28 @@ mat-icon {
 }
 
 .mat-mdc-form-field-error {
-  @apply !text-red-500;
+  @apply text-red-500!;
 }
 
 .mat-mdc-input-element {
-  @apply !caret-blue-500 dark:!caret-green-500;
+  @apply caret-blue-500! dark:caret-green-500!;
 }
 
 .mat-mdc-input-element::placeholder {
-  @apply !text-gray-500 dark:!text-gray-400;
+  @apply text-gray-500! dark:text-gray-400!;
 }
 
 .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mdc-list-item__primary-text,
 .mat-mdc-option-pseudo-checkbox::after {
-  @apply !text-blue-600 dark:!text-lime-500;
+  @apply text-blue-600! dark:text-lime-500!;
 }
 
 .mat-calendar-body-disabled > * {
-  @apply !text-gray-400 dark:!text-zinc-500;
+  @apply text-gray-400! dark:text-zinc-500!;
 }
 
 .mat-expansion-panel-header {
-  @apply !px-3 !h-[40px];
+  @apply px-3! h-[40px]!;
 }
 
 .mat-expansion-panel-header-title {
@@ -383,15 +383,15 @@ mat-icon {
 }
 
 .mat-expansion-panel-body {
-  @apply !p-1;
+  @apply p-1!;
 }
 
 .mat-mdc-form-field-subscript-wrapper {
-  @apply !h-0;
+  @apply h-0!;
 }
 
 .mat-mdc-text-field-wrapper {
-  @apply !rounded-lg border !border-gray-400 dark:!border-gray-600 focus:!ring-blue-500 dark:focus:!ring-blue-500 focus:!border-blue-500 dark:focus:!border-blue-500 !bg-slate-300 dark:!bg-neutral-800 placeholder:!text-lg !text-gray-900 dark:!text-white dark:placeholder:!text-gray-100;
+  @apply rounded-lg! border border-gray-400! dark:border-gray-600! focus:ring-blue-500! dark:focus:ring-blue-500! focus:border-blue-500! dark:focus:border-blue-500! bg-slate-300! dark:bg-neutral-800! placeholder:text-lg! text-gray-900! dark:text-white! dark:placeholder:text-gray-100!;
 }
 
 .mdc-line-ripple {
@@ -399,15 +399,15 @@ mat-icon {
 }
 
 .mdc-tab-indicator__content--underline {
-  @apply !border-black dark:!border-white;
+  @apply border-black! dark:border-white!;
 }
 
 .mat-internal-form-field {
-  @apply !w-full;
+  @apply w-full!;
 }
 
 .mat-internal-form-field > .mdc-label {
-  @apply !w-full;
+  @apply w-full!;
 }
 
 .cdk-drag-preview {
@@ -437,49 +437,49 @@ mat-icon {
 }
 
 .fc .fc-multimonth {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
 }
 
 .fc-theme-standard .fc-scrollgrid {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0 rounded-xl;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 rounded-xl;
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 !p-0;
+  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
 }
 
 .fc-day-disabled,
 .fc .fc-multimonth-daygrid,
 .fc-daygrid-week-number {
-  @apply !bg-transparent;
+  @apply bg-transparent!;
 }
 
 th[role="presentation"],
 td[role="presentation"] {
-  @apply !border-b-0 !border-r-0;
+  @apply border-b-0! border-r-0!;
 }
 
 .fc-prev-button {
-  @apply !rounded-r-none border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-r-none! border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-next-button {
-  @apply !rounded-l-none border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-l-none! border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-button {
-  @apply flex flex-col justify-center px-4 !border-zinc-600 dark:!border-zinc-500 !text-black dark:!text-white cursor-pointer;
+  @apply flex flex-col justify-center px-4 border-zinc-600! dark:border-zinc-500! text-black! dark:text-white! cursor-pointer;
 }
 
 .fc-button:not(.fc-button-active) {
-  @apply !bg-transparent;
+  @apply bg-transparent!;
 }
 
 .fc-button-active {
-  @apply !bg-gray-400 dark:!bg-zinc-700;
+  @apply bg-gray-400! dark:bg-zinc-700!;
 }
 
 .fc-button-group {
-  @apply !rounded-xl;
+  @apply rounded-xl!;
 }
