@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  version: '0.7.2',
+  version: '0.7.3',
   gitRepoName: 'TaskFlow',
   nameProduct: 'Task Flow',
   yearCreate: 2025,

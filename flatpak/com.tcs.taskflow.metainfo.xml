@@ -67,9 +67,14 @@
   </provides>
 
   <releases>
+    <release version="0.7.3" date="2025-12-21">
+      <description>
+        <p>Changed the application collector via Github Action</p>
+      </description>
+    </release>
     <release version="0.7.2" date="2025-12-21">
       <description>
-        <p>Release version 0.7.2</p>
+        <p>The style of the progress bar in the Todo and Task elements has been changed: segments of each status are now displayed.</p>
       </description>
     </release>
     <release version="0.7.1" date="2025-12-13">
