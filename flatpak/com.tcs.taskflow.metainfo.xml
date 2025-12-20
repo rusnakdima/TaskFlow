@@ -67,6 +67,11 @@
   </provides>
 
   <releases>
+    <release version="0.7.2" date="2025-12-21">
+      <description>
+        <p>Release version 0.7.2</p>
+      </description>
+    </release>
     <release version="0.7.1" date="2025-12-13">
       <description>
         <p>Changed the logic for storing authorization</p>
