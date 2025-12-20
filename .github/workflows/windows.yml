@@ -9,7 +9,7 @@ jobs:
   build-windows:
     permissions:
       contents: write
-    runs-on: blacksmith-4vcpu-windows-2025
+    runs-on: windows-2022
     env:
       NAME_APP: taskflow
       APP_HOME_FOLDER: TaskFlow
