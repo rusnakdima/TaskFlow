@@ -9,7 +9,7 @@ jobs:
   build-linux:
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     env:
       NAME_APP: taskflow
       APP_HOME_FOLDER: TaskFlow
