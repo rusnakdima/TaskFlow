@@ -3,8 +3,8 @@ import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 
 /* models */
-import { Response } from "@models/response";
-import { StatisticsResponse } from "@models/statistics";
+import { Response } from "@models/response.model";
+import { StatisticsResponse } from "@models/statistics.model";
 
 @Injectable({
   providedIn: "root",

@@ -8,7 +8,7 @@ import { filter } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { BottomNavLink } from "@models/bottome-nav";
+import { BottomNavLink } from "@models/bottome-nav.model";
 
 @Component({
   selector: "app-bottom-nav",

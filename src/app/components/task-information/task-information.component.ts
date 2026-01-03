@@ -7,9 +7,9 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task, TaskStatus } from "@models/task";
-import { Subtask } from "@models/subtask";
-import { Response, ResponseStatus } from "@models/response";
+import { Task, TaskStatus } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { MainService } from "@services/main.service";

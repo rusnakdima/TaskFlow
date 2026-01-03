@@ -4,7 +4,7 @@ import { Component, Input } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
 /* models */
-import { FormField } from '@models/form-field';
+import { FormField } from '@models/form-field.model';
 
 /* components */
 import { TextComponent } from '@components/fields/text/text.component';

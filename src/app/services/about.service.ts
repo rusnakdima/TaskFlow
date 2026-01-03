@@ -8,7 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { environment } from "@env/environment";
 
 /* models */
-import { Response } from "@models/response";
+import { Response } from "@models/response.model";
 
 const httpOptions = {
   headers: new HttpHeaders({

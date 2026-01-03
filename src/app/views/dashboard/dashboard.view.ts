@@ -7,10 +7,10 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Todo } from "@models/todo";
-import { Task, TaskStatus } from "@models/task";
-import { Profile } from "@models/profile";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Todo } from "@models/todo.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Profile } from "@models/profile.model";
 
 /* services */
 import { MainService } from "@services/main.service";

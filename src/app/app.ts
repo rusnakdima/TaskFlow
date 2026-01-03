@@ -5,8 +5,8 @@ import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { User } from "@models/user";
+import { Response, ResponseStatus } from "@models/response.model";
+import { User } from "@models/user.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

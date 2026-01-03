@@ -1,5 +1,5 @@
 /* models */
-import { PriorityTask, Task, TaskStatus } from "./task";
+import { PriorityTask, Task, TaskStatus } from "./task.model";
 
 export interface Subtask {
   _id?: {} | undefined;

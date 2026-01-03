@@ -10,7 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
-import { ActiveNotification, INotify, ResponseStatus, ResponseStatusIcon } from "@models/response";
+import { ActiveNotification, INotify, ResponseStatus, ResponseStatusIcon } from "@models/response.model";
 
 @Component({
   selector: "app-window-notify",

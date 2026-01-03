@@ -12,7 +12,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 import { Common } from "@helpers/common.helper";
 
 /* models */
-import { Subtask } from "@models/subtask";
+import { Subtask } from "@models/subtask.model";
 
 @Component({
   selector: "app-subtask",

@@ -14,10 +14,10 @@ import { distinctUntilChanged, filter, map } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Profile } from "@models/profile";
-import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Profile } from "@models/profile.model";
+import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

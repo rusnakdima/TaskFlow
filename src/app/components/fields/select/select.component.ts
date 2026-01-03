@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 
 /* models */
-import { SelectField } from '@models/form-field';
+import { SelectField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-select',

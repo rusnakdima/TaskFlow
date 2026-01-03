@@ -11,8 +11,8 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 import { Common } from "@helpers/common.helper";
 
 /* models */
-import { Todo } from "@models/todo";
-import { Task, TaskStatus } from "@models/task";
+import { Todo } from "@models/todo.model";
+import { Task, TaskStatus } from "@models/task.model";
 
 @Component({
   selector: "app-todo",

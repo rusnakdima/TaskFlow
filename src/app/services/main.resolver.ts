@@ -2,9 +2,9 @@
 import { Injectable } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
 import { MainService } from "./main.service";
-import { Response, ResponseStatus } from "@models/response";
-import { Todo } from "@models/todo";
-import { Task } from "@models/task";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
 
 @Injectable({
   providedIn: "root",
