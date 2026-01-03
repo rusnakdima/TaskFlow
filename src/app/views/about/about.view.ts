@@ -7,8 +7,8 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { environment } from "@env/environment";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Author } from "@models/author";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Author } from "@models/author.model";
 
 /* services */
 import { AboutService } from "@services/about.service";

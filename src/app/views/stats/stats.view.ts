@@ -13,13 +13,13 @@ import {
   Achievement,
   DetailedMetric,
   StatisticsResponse,
-} from "@models/statistics";
+} from "@models/statistics.model";
 
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StatisticsService } from "@services/statistics.service";
-import { Response, ResponseStatus } from "@models/response";
+import { Response, ResponseStatus } from "@models/response.model";
 
 @Component({
   selector: "app-stats",

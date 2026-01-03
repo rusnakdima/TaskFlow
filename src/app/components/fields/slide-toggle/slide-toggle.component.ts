@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 /* models */
-import { SlideToggleField } from '@models/form-field';
+import { SlideToggleField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-slide-toggle',

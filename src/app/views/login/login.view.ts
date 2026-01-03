@@ -14,8 +14,8 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { LoginForm } from "@models/login-form";
+import { Response, ResponseStatus } from "@models/response.model";
+import { LoginForm } from "@models/login-form.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

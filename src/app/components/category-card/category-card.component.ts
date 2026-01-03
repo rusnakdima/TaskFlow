@@ -6,7 +6,7 @@ import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Category } from "@models/category";
+import { Category } from "@models/category.model";
 
 @Component({
   selector: "app-category-card",

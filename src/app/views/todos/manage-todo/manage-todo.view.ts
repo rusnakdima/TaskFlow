@@ -23,10 +23,10 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatDividerModule } from "@angular/material/divider";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Todo } from "@models/todo";
-import { Category } from "@models/category";
-import { Profile } from "@models/profile";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Todo } from "@models/todo.model";
+import { Category } from "@models/category.model";
+import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

@@ -18,9 +18,9 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatSelectModule } from "@angular/material/select";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { PriorityTask, Task, TaskStatus } from "@models/task";
-import { Todo } from "@models/todo";
+import { Response, ResponseStatus } from "@models/response.model";
+import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

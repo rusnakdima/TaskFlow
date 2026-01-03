@@ -10,9 +10,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatExpansionModule } from "@angular/material/expansion";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Task, TaskStatus } from "@models/task";
-import { Todo } from "@models/todo";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Todo } from "@models/todo.model";
 
 /* services */
 import { MainService } from "@services/main.service";

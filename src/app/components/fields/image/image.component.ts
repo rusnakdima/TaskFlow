@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 /* models */
-import { ImageField } from '@models/form-field';
+import { ImageField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-image',

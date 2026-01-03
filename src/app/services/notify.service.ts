@@ -3,7 +3,7 @@ import { Injectable } from "@angular/core";
 import { Subject } from "rxjs";
 
 /* models */
-import { INotify, ResponseStatus } from "@models/response";
+import { INotify, ResponseStatus } from "@models/response.model";
 
 @Injectable({
   providedIn: "root",

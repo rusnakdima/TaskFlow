@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 /* models */
-import { TextareaField } from '@models/form-field';
+import { TextareaField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-text-area',
