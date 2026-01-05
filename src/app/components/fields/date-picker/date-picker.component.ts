@@ -10,7 +10,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { provideNativeDateAdapter } from '@angular/material/core';
 
 /* models */
-import { DatePickerField } from '@models/form-field';
+import { DatePickerField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-date-picker',

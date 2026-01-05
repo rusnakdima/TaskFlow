@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSliderModule } from '@angular/material/slider';
 
 /* models */
-import { SliderRangeField } from '@models/form-field';
+import { SliderRangeField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-slider-range',

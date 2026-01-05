@@ -17,9 +17,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { FormComponent } from "@components/form/form.component";
 
 /* models */
-import { FormField, TypeField } from "@models/form-field";
-import { Profile } from "@models/profile";
-import { Response, ResponseStatus } from "@models/response";
+import { FormField, TypeField } from "@models/form-field.model";
+import { Profile } from "@models/profile.model";
+import { Response, ResponseStatus } from "@models/response.model";
 import { AuthService } from "@services/auth.service";
 
 /* services */

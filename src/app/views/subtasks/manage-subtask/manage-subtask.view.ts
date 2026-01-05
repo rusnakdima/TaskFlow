@@ -16,10 +16,10 @@ import { MatInputModule } from "@angular/material/input";
 import { MatRadioModule } from "@angular/material/radio";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { PriorityTask, Task, TaskStatus } from "@models/task";
-import { Subtask } from "@models/subtask";
-import { Todo } from "@models/todo";
+import { Response, ResponseStatus } from "@models/response.model";
+import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

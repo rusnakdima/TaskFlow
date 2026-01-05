@@ -20,8 +20,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { Common } from "@helpers/common.helper";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { SignupForm } from "@models/signup-form";
+import { Response, ResponseStatus } from "@models/response.model";
+import { SignupForm } from "@models/signup-form.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

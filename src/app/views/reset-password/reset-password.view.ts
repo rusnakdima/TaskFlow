@@ -20,7 +20,7 @@ import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
+import { Response, ResponseStatus } from "@models/response.model";
 
 @Component({
   selector: "app-reset-password",

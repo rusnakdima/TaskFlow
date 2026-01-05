@@ -1,6 +1,6 @@
 /* models */
-import { Subtask } from "./subtask";
-import { Todo } from "./todo";
+import { Subtask } from "./subtask.model";
+import { Todo } from "./todo.model";
 
 export enum PriorityTask {
   LOW = "low",

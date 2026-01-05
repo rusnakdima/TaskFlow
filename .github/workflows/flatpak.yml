@@ -9,7 +9,7 @@ jobs:
   build-flatpak:
     permissions:
       contents: write
-    runs-on: blacksmith-4vcpu-ubuntu-2404 # Using newer Ubuntu for better support
+    runs-on: ubuntu-latest # Using newer Ubuntu for better support
     env:
       NAME_APP: taskflow
       APP_HOME_FOLDER: TaskFlow
