@@ -7,9 +7,9 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Todo } from "@models/todo";
-import { Task, TaskStatus } from "@models/task";
-import { Response, ResponseStatus } from "@models/response";
+import { Todo } from "@models/todo.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { MainService } from "@services/main.service";

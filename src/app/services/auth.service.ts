@@ -4,10 +4,10 @@ import { JwtHelperService } from "@auth0/angular-jwt";
 import { invoke } from "@tauri-apps/api/core";
 
 /* models */
-import { Response } from "@models/response";
-import { LoginForm } from "@models/login-form";
-import { SignupForm } from "@models/signup-form";
-import { PasswordReset } from "@models/password-reset-form";
+import { Response } from "@models/response.model";
+import { LoginForm } from "@models/login-form.model";
+import { SignupForm } from "@models/signup-form.model";
+import { PasswordReset } from "@models/password-reset-form.model";
 
 @Injectable({
   providedIn: "root",

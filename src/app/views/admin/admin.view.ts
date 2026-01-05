@@ -17,8 +17,8 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { ResponseStatus } from "@models/response";
-import { TaskStatus } from "@models/task";
+import { ResponseStatus } from "@models/response.model";
+import { TaskStatus } from "@models/task.model";
 
 /* services */
 import { AdminService } from "@services/admin.service";

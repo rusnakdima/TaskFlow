@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatRadioModule } from '@angular/material/radio';
 
 /* models */
-import { RadioField } from '@models/form-field';
+import { RadioField } from '@models/form-field.model';
 
 @Component({
   selector: 'app-radio',

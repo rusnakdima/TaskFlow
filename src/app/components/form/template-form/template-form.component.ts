@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 
 /* models */
-import { FormField } from '@models/form-field';
+import { FormField } from '@models/form-field.model';
 
 /* components */
 import { BlockFieldsComponent } from '../block-fields/block-fields.component';

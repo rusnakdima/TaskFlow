@@ -1,8 +1,8 @@
 /* models */
-import { Category } from "./category";
-import { Profile } from "./profile";
-import { Task } from "./task";
-import { User } from "./user";
+import { Category } from "./category.model";
+import { Profile } from "./profile.model";
+import { Task } from "./task.model";
+import { User } from "./user.model";
 
 export interface Todo {
   _id?: {} | undefined;

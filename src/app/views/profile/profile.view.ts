@@ -7,8 +7,8 @@ import { ActivatedRoute, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Profile } from "@models/profile";
-import { Response, ResponseStatus } from "@models/response";
+import { Profile } from "@models/profile.model";
+import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

@@ -8,8 +8,8 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response";
-import { Category } from "@models/category";
+import { Response, ResponseStatus } from "@models/response.model";
+import { Category } from "@models/category.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";

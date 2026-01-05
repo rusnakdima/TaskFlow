@@ -135,7 +135,7 @@
         <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="pie_chart" />
       </div>
 
-      <div class="space-y-4">
+      <div class="space-y-4 max-h-[300px] overflow-y-auto">
         @for (category of chartData.categories; track $index) {
           <div class="flex items-center gap-4">
             <div class="w-4 h-4 rounded-full" [style.background-color]="category.color"></div>
