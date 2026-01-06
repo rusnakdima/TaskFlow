@@ -21,13 +21,13 @@ impl AboutController {
   pub async fn downloadUpdate(
     &self,
     window: &tauri::Window,
-    app_handle: tauri::AppHandle,
+    appHandle: tauri::AppHandle,
     url: String,
-    file_name: String,
+    fileName: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
       .aboutService
-      .downloadFile(window, app_handle, url, file_name)
+      .downloadFile(window, appHandle, url, fileName)
       .await
   }
 
