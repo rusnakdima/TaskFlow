@@ -25,21 +25,21 @@
             [type]="isShowPassword ? 'text' : 'password'"
             formControlName="password"
           />
-          <div class="absolute right-2 h-7.5!">
+          <button class="absolute right-1.5 h-7.5!">
             @if (isShowPassword) {
               <mat-icon
-                class="w-7.5! h-7.5! text-3xl! text-red-500!"
+                class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility_off"
                 (click)="isShowPassword = false"
               />
             } @else {
               <mat-icon
-                class="w-7.5! h-7.5! text-3xl! text-red-500!"
+                class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility"
                 (click)="isShowPassword = true"
               />
             }
-          </div>
+          </button>
         </div>
 
         @if (isInvalid("password")) {
