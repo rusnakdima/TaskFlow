@@ -1,6 +1,7 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, EventEmitter, OnInit, Output } from "@angular/core";
+import { Component, EventEmitter, OnDestroy, OnInit, Output } from "@angular/core";
+import { Subscription } from "rxjs";
 import {
   ActivatedRoute,
   ActivatedRouteSnapshot,
@@ -36,7 +37,7 @@ interface Breadcrumb {
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./header.component.html",
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -65,11 +66,16 @@ export class HeaderComponent implements OnInit {
   isSyncing: boolean = false;
 
   breadcrumbs: Breadcrumb[] = [];
+  private syncSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     this.themeVal = localStorage.getItem("theme") ?? "";
     this.userId = this.authService.getValueByKey("id");
     this.role = this.authService.getValueByKey("role");
+
+    this.syncSubscription = this.syncService.isSyncing$.subscribe(
+      (isSyncing) => (this.isSyncing = isSyncing)
+    );
 
     this.getProfile();
 
@@ -87,6 +93,10 @@ export class HeaderComponent implements OnInit {
             ? this.breadcrumbs[this.breadcrumbs.length - 1].label
             : "Home";
       });
+  }
+
+  ngOnDestroy(): void {
+    this.syncSubscription?.unsubscribe();
   }
 
   getProfile() {
@@ -189,7 +199,6 @@ export class HeaderComponent implements OnInit {
   async syncAll() {
     if (this.isSyncing) return;
 
-    this.isSyncing = true;
     this.notifyService.showInfo("Starting synchronization...");
 
     try {
@@ -201,8 +210,6 @@ export class HeaderComponent implements OnInit {
       }
     } catch (error) {
       this.notifyService.showError("Synchronization failed: " + error);
-    } finally {
-      this.isSyncing = false;
     }
   }
 
