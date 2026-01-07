@@ -17,7 +17,6 @@ import { NotifyService } from "@services/notify.service";
 @Component({
   selector: "app-sync",
   standalone: true,
-  providers: [SyncService],
   imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
   templateUrl: "./sync.view.html",
 })
