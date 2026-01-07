@@ -9,7 +9,8 @@ use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::{
-  config::ConfigHelper, email_provider::EmailProvider, mongodb_provider::MongodbProvider,
+  config::ConfigHelper, email_provider::EmailProvider, json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
 
 /* models */
@@ -31,15 +32,21 @@ pub struct Claims {
 
 #[allow(non_snake_case)]
 pub struct AuthService {
+  pub jsonProvider: JsonProvider,
   pub mongodbProvider: Arc<MongodbProvider>,
   pub jwtSecret: String,
 }
 
 impl AuthService {
   #[allow(non_snake_case)]
-  pub fn new(mongodbProvider: Arc<MongodbProvider>, envValue: String) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    envValue: String,
+  ) -> Self {
     Self {
-      mongodbProvider: mongodbProvider,
+      jsonProvider,
+      mongodbProvider,
       jwtSecret: envValue,
     }
   }
@@ -163,7 +170,7 @@ impl AuthService {
             };
 
             let claims = Claims {
-              id: userId,
+              id: userId.clone(),
               username,
               role,
               exp: expiration.timestamp() as usize,
@@ -184,6 +191,42 @@ impl AuthService {
                 });
               }
             };
+
+            let userData = match serde_json::to_value(&userDoc) {
+              Ok(data) => data,
+              Err(e) => {
+                eprintln!("Warning: Failed to serialize user data: {}", e);
+                json!({})
+              }
+            };
+
+            if let Err(e) = self.jsonProvider.create("users", userData).await {
+              eprintln!("Warning: Failed to store user data locally: {}", e);
+            }
+
+            let profileFilter = doc! { "userId": userId.clone() };
+            match self
+              .mongodbProvider
+              .getByField("profiles", Some(profileFilter), None, "")
+              .await
+            {
+              Ok(profileDoc) => {
+                let profileData = match serde_json::to_value(&profileDoc) {
+                  Ok(data) => data,
+                  Err(e) => {
+                    eprintln!("Warning: Failed to serialize profile data: {}", e);
+                    json!({})
+                  }
+                };
+
+                if let Err(e) = self.jsonProvider.create("profiles", profileData).await {
+                  eprintln!("Warning: Failed to store profile data locally: {}", e);
+                }
+              }
+              Err(e) => {
+                eprintln!("Warning: No profile found for user {}: {}", userId, e);
+              }
+            }
 
             Ok(ResponseModel {
               status: ResponseStatus::Success,

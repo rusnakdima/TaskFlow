@@ -101,6 +101,7 @@ pub fn run() {
         managedbController,
         aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
         authController: Arc::new(AuthController::new(
+          jsonProvider.clone(),
           mongodbProvider
             .clone()
             .expect("MongoDB provider required for AuthController"),

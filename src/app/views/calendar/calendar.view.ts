@@ -347,4 +347,32 @@ export class CalendarView implements OnInit {
   navigateToTasks(event: CalendarEvent): void {
     this.router.navigate(["/todos", event.todoId, "tasks"]);
   }
+
+  getWeeksForMobile(): Array<
+    Array<{
+      date: Date;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      events: CalendarEvent[];
+    }>
+  > {
+    const weeks: Array<
+      Array<{
+        date: Date;
+        isCurrentMonth: boolean;
+        isToday: boolean;
+        isSelected: boolean;
+        events: CalendarEvent[];
+      }>
+    > = [];
+    for (let i = 0; i < this.calendarDays.length; i += 7) {
+      weeks.push(this.calendarDays.slice(i, i + 7));
+    }
+    return weeks;
+  }
+
+  getDayName(date: Date): string {
+    return date.toLocaleDateString("en-US", { weekday: "short" });
+  }
 }

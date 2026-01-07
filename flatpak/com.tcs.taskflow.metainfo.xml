@@ -12,7 +12,8 @@
   </developer>
 
   <description>
-    <p>Task Flow is a versatile application providing various task management utilities in one convenient package.</p>
+    <p>Task Flow is a versatile application providing various task management utilities in one
+      convenient package.</p>
     <p>Provides multiple tools for task management including:</p>
     <ul>
       <li>Task organization and tracking</li>
@@ -26,23 +27,28 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/home.png</image>
+      <image>
+        https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/home.png</image>
       <caption>Home screen with task overview and quick access to management tools</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/projects.png</image>
+      <image>
+        https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/projects.png</image>
       <caption>Project management view for organizing and tracking multiple projects</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/calendar.png</image>
+      <image>
+        https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/calendar.png</image>
       <caption>Calendar view for scheduling tasks and managing deadlines</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/statistic.png</image>
+      <image>
+        https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/statistic.png</image>
       <caption>Statistics dashboard for tracking productivity and task completion</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/sync.png</image>
+      <image>
+        https://raw.githubusercontent.com/rusnakdima/TaskFlow/refs/heads/main/imgREADME/sync.png</image>
       <caption>Synchronization settings for cloud storage and cross-device access</caption>
     </screenshot>
   </screenshots>
@@ -67,6 +73,20 @@
   </provides>
 
   <releases>
+    <release version="0.8.0" date="2026-01-08">
+      <description>
+        <p>Enhanced user experience with mobile-responsive calendar layout and improved component
+          designs</p>
+        <p>Added responsive calendar grid for mobile devices with touch-friendly interface</p>
+        <p>Simplified admin view layout structure for better performance</p>
+        <p>Improved component responsiveness and removed redundant creator information</p>
+        <p>Implemented reactive syncing status handling in header</p>
+        <p>Redesigned about page with modern card-based layout</p>
+        <p>Enhanced authentication with local data caching</p>
+        <p>Added password visibility toggles and improved form controls</p>
+        <p>Updated styling and layout consistency across components</p>
+      </description>
+    </release>
     <release version="0.7.4" date="2026-01-05">
       <description>
         <p>Added max height and vertical scroll to categories list in stats page</p>
@@ -79,7 +99,8 @@
     </release>
     <release version="0.7.2" date="2025-12-21">
       <description>
-        <p>The style of the progress bar in the Todo and Task elements has been changed: segments of each status are now displayed.</p>
+        <p>The style of the progress bar in the Todo and Task elements has been changed: segments of
+          each status are now displayed.</p>
       </description>
     </release>
     <release version="0.7.1" date="2025-12-13">
@@ -116,10 +137,13 @@
       <description>
         <p>The description field in the task/subtask management forms is now optional.</p>
         <p>Changed the position and size of the radio button for tasks/subtasks.</p>
-        <p>Added logic for the end date field: now it can only be specified if there is a start date, if the start date is deleted, then the end date of the task/subtask is also deleted, and now you cannot select the end date before the start date.</p>
+        <p>Added logic for the end date field: now it can only be specified if there is a start
+          date, if the start date is deleted, then the end date of the task/subtask is also deleted,
+          and now you cannot select the end date before the start date.</p>
         <p>Added a date deletion button in the form for editing tasks/subtasks.</p>
         <p>Implemented logic so that new tasks/subtasks are shown first.</p>
-        <p>Added logic for sorting tasks/subtasks so that completed entries are after those not completed in the list.</p>
+        <p>Added logic for sorting tasks/subtasks so that completed entries are after those not
+          completed in the list.</p>
         <p>The read-only property is set for fields with dates.</p>
         <p>Fixed block markup on the task page.</p>
       </description>
@@ -131,5 +155,5 @@
     </release>
   </releases>
 
-  <content_rating type="oars-1.1"/>
+  <content_rating type="oars-1.1" />
 </component>
