@@ -71,42 +71,137 @@
       </div>
 
       @if (viewMode === "month") {
-        <div class="grid grid-cols-7 gap-1">
-          <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+        <!-- Mobile layout for screens < 500px -->
+        <div class="block sm:hidden space-y-2">
+          @for (week of getWeeksForMobile(); track $index) {
+            <div class="grid grid-cols-7 gap-1">
+              @for (day of week; track day.date.getTime()) {
+                <div
+                  class="aspect-square p-1 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700 text-center"
+                  [ngClass]="{
+                    'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                    'bg-blue-50 dark:bg-blue-900/30': day.isToday,
+                    'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+                  }"
+                  (click)="selectDate(day.date)"
+                >
+                  <div
+                    class="text-xs font-medium mb-1"
+                    [ngClass]="{
+                      'text-blue-600 dark:text-blue-400': day.isToday,
+                      textNormal: day.isCurrentMonth && !day.isToday,
+                      'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+                    }"
+                  >
+                    {{ day.date.getDate() }}
+                  </div>
+                  @if (day.events.length > 0) {
+                    <div class="flex justify-center">
+                      <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
 
-          @for (day of calendarDays; track $index) {
+        <!-- Desktop layout for screens >= 640px -->
+        <div class="hidden sm:block">
+          <div class="grid grid-cols-7 gap-1">
+            <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+
+            @for (day of calendarDays; track $index) {
+              <div
+                class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+                [ngClass]="{
+                  'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                  'bg-blue-50 dark:bg-blue-900/30': day.isToday,
+                  'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+                }"
+                (click)="selectDate(day.date)"
+              >
+                <div class="flex justify-between items-start mb-1">
+                  <span
+                    class="text-sm font-medium"
+                    [ngClass]="{
+                      'text-blue-600 dark:text-blue-400': day.isToday,
+                      textNormal: day.isCurrentMonth && !day.isToday,
+                      'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
+                    }"
+                  >
+                    {{ day.date.getDate() }}
+                  </span>
+                </div>
+
+                <div class="space-y-1">
+                  @for (event of day.events.slice(0, 2); track event.id) {
+                    <div
+                      class="text-xs p-1 rounded text-white truncate cursor-pointer"
+                      [ngClass]="getEventColor(event)"
+                      [title]="event.title"
+                      (click)="navigateToTasks(event)"
+                    >
+                      {{ event.title }}
+                    </div>
+                  }
+                  @if (day.events.length > 2) {
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      +{{ day.events.length - 2 }} more
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (viewMode === "week") {
+        <!-- Mobile layout for screens < 500px -->
+        <div class="block sm:hidden space-y-3">
+          @for (day of weekDays; track day.date.getTime()) {
             <div
-              class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+              class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-zinc-600"
               [ngClass]="{
-                'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                'bg-gray-100 dark:bg-zinc-600': day.isSelected,
                 'bg-blue-50 dark:bg-blue-900/30': day.isToday,
-                'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
               }"
               (click)="selectDate(day.date)"
             >
-              <div class="flex justify-between items-start mb-1">
-                <span
-                  class="text-sm font-medium"
-                  [ngClass]="{
-                    'text-blue-600 dark:text-blue-400': day.isToday,
-                    textNormal: day.isCurrentMonth && !day.isToday,
-                    'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
-                  }"
-                >
-                  {{ day.date.getDate() }}
-                </span>
+              <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium textMuted">{{ getDayName(day.date) }}</span>
+                  <span
+                    class="text-sm font-semibold"
+                    [ngClass]="{
+                      'text-blue-600 dark:text-blue-400': day.isToday,
+                      textNormal: !day.isToday,
+                    }"
+                  >
+                    {{ day.date.getDate() }}
+                  </span>
+                  <span class="text-xs textMuted">{{
+                    day.date.toLocaleDateString("en-US", { month: "short" })
+                  }}</span>
+                </div>
+                @if (day.events.length > 0) {
+                  <span class="text-xs bg-red-500 text-white px-2 py-1 rounded-full">{{
+                    day.events.length
+                  }}</span>
+                }
               </div>
 
               <div class="space-y-1">
-                @for (event of day.events.slice(0, 2); track event.id) {
+                @for (event of day.events.slice(0, 3); track event.id) {
                   <div
-                    class="text-xs p-1 rounded text-white truncate cursor-pointer"
+                    class="text-xs p-2 rounded text-white truncate"
                     [ngClass]="getEventColor(event)"
                     [title]="event.title"
                     (click)="navigateToTasks(event)"
@@ -114,65 +209,66 @@
                     {{ event.title }}
                   </div>
                 }
-                @if (day.events.length > 2) {
+                @if (day.events.length > 3) {
                   <div class="text-xs text-gray-500 dark:text-gray-400">
-                    +{{ day.events.length - 2 }} more
+                    +{{ day.events.length - 3 }} more
                   </div>
                 }
               </div>
             </div>
           }
         </div>
-      }
 
-      @if (viewMode === "week") {
-        <div class="grid grid-cols-7 gap-1">
-          <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
-          <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+        <!-- Desktop layout for screens >= 640px -->
+        <div class="hidden sm:block">
+          <div class="grid grid-cols-7 gap-1">
+            <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
+            <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
 
-          @for (day of weekDays; track $index) {
-            <div
-              class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
-              [ngClass]="{
-                'bg-gray-100 dark:bg-zinc-700': day.isSelected,
-                'bg-blue-50 dark:bg-blue-900/30': day.isToday,
-              }"
-              (click)="selectDate(day.date)"
-            >
-              <div class="flex justify-between items-start mb-2">
-                <span
-                  class="text-sm font-medium"
-                  [ngClass]="{
-                    'text-blue-600 dark:text-blue-400': day.isToday,
-                    textNormal: !day.isToday,
-                  }"
-                >
-                  {{ day.date.getDate() }}
-                </span>
-                <span class="text-xs textMuted">{{
-                  day.date.toLocaleDateString("en-US", { month: "short" })
-                }}</span>
-              </div>
-
-              <div class="space-y-1">
-                @for (event of day.events; track event.id) {
-                  <div
-                    class="text-xs p-1 rounded text-white truncate cursor-pointer"
-                    [ngClass]="getEventColor(event)"
-                    [title]="event.title"
-                    (click)="navigateToTasks(event)"
+            @for (day of weekDays; track $index) {
+              <div
+                class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+                [ngClass]="{
+                  'bg-gray-100 dark:bg-zinc-700': day.isSelected,
+                  'bg-blue-50 dark:bg-blue-900/30': day.isToday,
+                }"
+                (click)="selectDate(day.date)"
+              >
+                <div class="flex justify-between items-start mb-2">
+                  <span
+                    class="text-sm font-medium"
+                    [ngClass]="{
+                      'text-blue-600 dark:text-blue-400': day.isToday,
+                      textNormal: !day.isToday,
+                    }"
                   >
-                    {{ event.title }}
-                  </div>
-                }
+                    {{ day.date.getDate() }}
+                  </span>
+                  <span class="text-xs textMuted">{{
+                    day.date.toLocaleDateString("en-US", { month: "short" })
+                  }}</span>
+                </div>
+
+                <div class="space-y-1">
+                  @for (event of day.events; track event.id) {
+                    <div
+                      class="text-xs p-1 rounded text-white truncate cursor-pointer"
+                      [ngClass]="getEventColor(event)"
+                      [title]="event.title"
+                      (click)="navigateToTasks(event)"
+                    >
+                      {{ event.title }}
+                    </div>
+                  }
+                </div>
               </div>
-            </div>
-          }
+            }
+          </div>
         </div>
       }
 
