@@ -21,11 +21,11 @@ impl MongodbProvider {
     envDbName: String,
   ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
     let uri = envUri;
-    let mut client_options = ClientOptions::parse(uri).await?;
-    client_options.app_name = Some(envDbName.clone().to_string());
-    client_options.connect_timeout = Some(Duration::from_secs(3));
-    client_options.server_selection_timeout = Some(Duration::from_secs(3));
-    let client = Client::with_options(client_options)?;
+    let mut clientOptions = ClientOptions::parse(uri).await?;
+    clientOptions.app_name = Some(envDbName.clone().to_string());
+    clientOptions.connect_timeout = Some(Duration::from_secs(3));
+    clientOptions.server_selection_timeout = Some(Duration::from_secs(3));
+    let client = Client::with_options(clientOptions)?;
 
     Ok(Self {
       db: client.database(&envDbName),
@@ -229,6 +229,38 @@ impl MongodbProvider {
     tableData.update_one(filter, update).await?;
 
     Ok(true)
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn updateAll(
+    &self,
+    nameTable: &str,
+    documents: Vec<Document>,
+  ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if documents.is_empty() {
+      return Ok(());
+    }
+
+    let tableData = self.getDataTable(nameTable).await?;
+
+    for mut doc in documents {
+      let id = doc.get_str("id").unwrap_or_default();
+      let filter = doc! { "id": id };
+
+      doc.remove("_id");
+
+      let update = doc! { "$set": doc };
+      let options = mongodb::options::UpdateOptions::builder()
+        .upsert(true)
+        .build();
+
+      tableData
+        .update_one(filter, update)
+        .with_options(options)
+        .await?;
+    }
+
+    Ok(())
   }
 
   #[allow(non_snake_case)]
