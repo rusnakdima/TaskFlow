@@ -1,7 +1,10 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
+
+/* materials */
+import { MatIconModule } from "@angular/material/icon";
 
 /* env */
 import { environment } from "@env/environment";
@@ -18,7 +21,7 @@ import { NotifyService } from "@services/notify.service";
   selector: "app-about",
   standalone: true,
   providers: [AboutService],
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule],
   templateUrl: "./about.view.html",
 })
 export class AboutView {
@@ -38,11 +41,11 @@ export class AboutView {
 
   nameFile: string = "";
   lastVersion: string = "";
-  pathUpdate: string = "";
+  pathUpdate = signal<string>("");
 
-  windUpdates: boolean = false;
-  downloadProgress: boolean = false;
-  downloadProgressValue: number = 0;
+  windUpdates = signal<boolean>(false);
+  downloadProgress = signal<boolean>(false);
+  downloadProgressValue = signal<number>(0);
 
   unlistenProgress: UnlistenFn | null = null;
 
@@ -83,7 +86,7 @@ export class AboutView {
         }
       },
       error: (err: any) => {
-        this.downloadProgress = false;
+        this.downloadProgress.set(false);
         this.notifyService.showError(err.message ?? err.toString());
       },
     });
@@ -100,7 +103,7 @@ export class AboutView {
           setTimeout(() => {
             if (this.matchVersion(lastVer)) {
               this.notifyService.showWarning("A new version is available!");
-              this.windUpdates = true;
+              this.windUpdates.set(true);
               this.lastVersion = lastVer;
               this.aboutService
                 .getBinaryNameFile<string>(this.lastVersion)
@@ -109,12 +112,12 @@ export class AboutView {
                     this.nameFile = res.data;
                   } else {
                     this.notifyService.showNotify(res.status, res.message);
-                    this.windUpdates = false;
+                    this.windUpdates.set(false);
                   }
                 })
                 .catch((err) => {
                   this.notifyService.showError(err.message ?? err.toString());
-                  this.windUpdates = false;
+                  this.windUpdates.set(false);
                 });
             } else {
               this.notifyService.showSuccess("You have the latest version!");
@@ -124,7 +127,8 @@ export class AboutView {
           throw Error("Invalid request");
         }
       },
-      error: (err: Response<string>) => {
+      error: (err: Response<any>) => {
+        this.windUpdates.set(false);
         this.notifyService.showError(err.message ?? err.toString());
       },
     });
@@ -132,12 +136,12 @@ export class AboutView {
 
   async downloadFile() {
     if (this.nameFile != "") {
-      this.downloadProgress = true;
-      this.downloadProgressValue = 0;
+      this.downloadProgress.set(true);
+      this.downloadProgressValue.set(0);
 
       if (!this.unlistenProgress) {
         this.unlistenProgress = await listen<number>("download-progress", (event) => {
-          this.downloadProgressValue = event.payload;
+          this.downloadProgressValue.set(event.payload);
         });
       }
 
@@ -152,15 +156,15 @@ export class AboutView {
           this.notifyService.showSuccess(
             "The new version of the program has been successfully downloaded!"
           );
-          this.pathUpdate = data.data;
-          this.windUpdates = false;
+          this.pathUpdate.set(data.data);
+          this.windUpdates.set(false);
         } else {
           this.notifyService.showNotify(data.status, data.message);
         }
       } catch (err: any) {
         this.notifyService.showError(err.message ?? err.toString());
       } finally {
-        this.downloadProgress = false;
+        this.downloadProgress.set(false);
         if (this.unlistenProgress) {
           this.unlistenProgress();
           this.unlistenProgress = null;
@@ -175,7 +179,7 @@ export class AboutView {
 
   openFile() {
     this.aboutService
-      .openFile<string>(this.pathUpdate)
+      .openFile<string>(this.pathUpdate())
       .then((data: Response<string>) => {
         this.notifyService.showNotify(data.status, data.message);
       })
