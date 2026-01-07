@@ -134,181 +134,175 @@
   </div>
 </ng-template>
 
-<div class="w-full px-4 lg:px-6 py-4 lg:py-8">
-  <div class="flex flex-col gap-4 lg:gap-8">
-    <div class="flex flex-wrap gap-2">
-      @for (type of dataTypes; track type.id) {
-        <button
-          class="px-4 py-2 rounded-lg transition-colors font-medium"
-          [ngClass]="
-            selectedType === type.id
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
-          "
-          (click)="selectDataType(type.id)"
-        >
-          <div class="flex items-center gap-2">
-            <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
-            <span>{{ type.label }} ({{ type.count }})</span>
-          </div>
-        </button>
-      }
-    </div>
-
-    <div class="h-[calc(100vh-220px)] overflow-y-auto">
-      <div
-        class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700"
+<div class="flex flex-col gap-4 lg:gap-8">
+  <div class="flex flex-wrap gap-2">
+    @for (type of dataTypes; track type.id) {
+      <button
+        class="px-4 py-2 rounded-lg transition-colors font-medium"
+        [ngClass]="
+          selectedType === type.id
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
+        "
+        (click)="selectDataType(type.id)"
       >
-        <div class="p-4 lg:p-6 border-b border-gray-200 dark:border-zinc-700">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-bold textNormal">{{ getSelectedTypeLabel() }}</h2>
-              <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
-            </div>
-            <div class="flex flex-row gap-2 items-center flex-wrap">
-              <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading">
-                <mat-icon
-                  class="w-5! h-5! text-xl! mr-2"
-                  [ngClass]="loading ? 'animate-spin' : ''"
-                  fontIcon="sync"
-                />
-                Refresh
-              </button>
-              <button
-                class="styleButDanger"
-                [disabled]="selectedRecords.size === 0"
-                (click)="deleteSelected()"
-              >
-                <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="delete_forever" />
-                Delete Selected ({{ selectedRecords.size }})
-              </button>
-              <button class="styleButInfo" (click)="showFilters = !showFilters">
-                <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
-                Filters
-              </button>
-            </div>
-          </div>
+        <div class="flex items-center gap-2">
+          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
+          <span>{{ type.label }} ({{ type.count }})</span>
         </div>
-
-        <div class="p-4 lg:p-6">
-          @if (loading) {
-            <div class="flex items-center justify-center py-16">
-              <mat-icon
-                class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin"
-                fontIcon="sync"
-              />
-              <span class="ml-3 textNormal">Loading data...</span>
-            </div>
-          } @else if (getCurrentData().length === 0) {
-            <div class="text-center py-16">
-              <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
-              <h3 class="text-lg font-medium text-gray-500">No records found</h3>
-              <p class="mt-2 text-sm textMuted">
-                No {{ getSelectedTypeLabel().toLowerCase() }} data available
-              </p>
-            </div>
-          } @else {
-            <div class="grid grid-cols-1 gap-4">
-              @for (item of getCurrentData(); track item.id; let i = $index) {
-                <mat-card class="p-4 lg:p-6 hover:shadow-lg transition-shadow">
-                  <div
-                    class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4"
-                  >
-                    <div class="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        class="styleCheckbox"
-                        [checked]="isSelected(item.id)"
-                        (change)="toggleSelect(item.id)"
-                      />
-                      <div
-                        class="flex items-center justify-center shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
-                      >
-                        <mat-icon class="w-5! h-5! text-xl!" fontIcon="article" />
-                      </div>
-                      <div>
-                        <h4 class="font-semibold textNormal">Record {{ item.id }}</h4>
-                        <p class="text-sm textMuted">#{{ i + 1 }}</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                      @if (item.isDeleted) {
-                        <mat-chip
-                          class="bg-red-100! text-red-600! dark:bg-red-900/30! dark:text-red-400! h-9!"
-                        >
-                          <div class="flex flex-row items-center gap-x-2">
-                            <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
-                            <span>Deleted</span>
-                          </div>
-                        </mat-chip>
-                      } @else {
-                        <mat-chip
-                          class="bg-green-100! text-green-600! dark:bg-green-900/30! dark:text-green-400! h-9!"
-                        >
-                          <div class="flex flex-row items-center gap-x-2">
-                            <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
-                            <span>Active</span>
-                          </div>
-                        </mat-chip>
-                      }
-                      <button class="styleButDanger cursor-pointer" (click)="deleteRecord(item)">
-                        <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
-                    @for (prop of getDataProperties(item); track prop.key) {
-                      @if (prop.key !== "id") {
-                        <div class="overflow-hidden">
-                          <span class="font-medium textMuted">{{ prop.key }}:</span>
-                          <div class="mt-1 wrap-break-word">
-                            @if (prop.key === "createdAt" || prop.key === "updatedAt") {
-                              <span class="textNormal">{{ formatDate(prop.value) }}</span>
-                            } @else if (prop.value === null || prop.value === "") {
-                              <span class="text-gray-400">—</span>
-                            } @else if (typeof prop.value === "boolean") {
-                              <span [class]="prop.value ? 'text-green-600' : 'text-red-600'">
-                                {{ prop.value ? "Yes" : "No" }}
-                              </span>
-                            } @else if (prop.key === "priority") {
-                              <span class="textNormal capitalize">{{ prop.value }}</span>
-                            } @else if (typeof prop.value == "object" && prop.value.length >= 0) {
-                              @for (item of prop.value; track $index) {
-                                <span class="textNormal">{{ item | json }}</span>
-                              }
-                            } @else if (prop.key === "user") {
-                              <span class="textNormal"
-                                >{{ prop.value.profile?.name }}
-                                {{ prop.value.profile?.lastName }} ({{ prop.value.username }})</span
-                              >
-                            } @else if (typeof prop.value == "object") {
-                              <span class="textNormal">{{ prop.value | json }}</span>
-                            } @else {
-                              <span class="textNormal">{{ prop.value }}</span>
-                            }
-                          </div>
-                        </div>
-                      }
-                    }
-                  </div>
-                </mat-card>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
-      [class.flex]="showFilters"
-      [class.hidden]="!showFilters"
-    >
-      <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
-    </div>
-    @if (showFilters) {
-      <div class="fixed inset-0 z-30 bg-black/50" (click)="closeFilters()"></div>
+      </button>
     }
   </div>
+
+  <div class="h-[calc(100vh-220px)] overflow-y-auto">
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="p-4 lg:p-6 border-b border-gray-200 dark:border-zinc-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold textNormal">{{ getSelectedTypeLabel() }}</h2>
+            <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
+          </div>
+          <div class="flex flex-row gap-2 items-center flex-wrap">
+            <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading">
+              <mat-icon
+                class="w-5! h-5! text-xl! mr-2"
+                [ngClass]="loading ? 'animate-spin' : ''"
+                fontIcon="sync"
+              />
+              Refresh
+            </button>
+            <button
+              class="styleButDanger"
+              [disabled]="selectedRecords.size === 0"
+              (click)="deleteSelected()"
+            >
+              <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="delete_forever" />
+              Delete Selected ({{ selectedRecords.size }})
+            </button>
+            <button class="styleButInfo" (click)="showFilters = !showFilters">
+              <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
+              Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 lg:p-6">
+        @if (loading) {
+          <div class="flex items-center justify-center py-16">
+            <mat-icon class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin" fontIcon="sync" />
+            <span class="ml-3 textNormal">Loading data...</span>
+          </div>
+        } @else if (getCurrentData().length === 0) {
+          <div class="text-center py-16">
+            <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
+            <h3 class="text-lg font-medium text-gray-500">No records found</h3>
+            <p class="mt-2 text-sm textMuted">
+              No {{ getSelectedTypeLabel().toLowerCase() }} data available
+            </p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-4">
+            @for (item of getCurrentData(); track item.id; let i = $index) {
+              <mat-card class="p-4 lg:p-6 hover:shadow-lg transition-shadow">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      class="styleCheckbox"
+                      [checked]="isSelected(item.id)"
+                      (change)="toggleSelect(item.id)"
+                    />
+                    <div
+                      class="flex items-center justify-center shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
+                    >
+                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="article" />
+                    </div>
+                    <div>
+                      <h4 class="font-semibold textNormal">Record {{ item.id }}</h4>
+                      <p class="text-sm textMuted">#{{ i + 1 }}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    @if (item.isDeleted) {
+                      <mat-chip
+                        class="bg-red-100! text-red-600! dark:bg-red-900/30! dark:text-red-400! h-9!"
+                      >
+                        <div class="flex flex-row items-center gap-x-2">
+                          <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
+                          <span>Deleted</span>
+                        </div>
+                      </mat-chip>
+                    } @else {
+                      <mat-chip
+                        class="bg-green-100! text-green-600! dark:bg-green-900/30! dark:text-green-400! h-9!"
+                      >
+                        <div class="flex flex-row items-center gap-x-2">
+                          <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
+                          <span>Active</span>
+                        </div>
+                      </mat-chip>
+                    }
+                    <button class="styleButDanger cursor-pointer" (click)="deleteRecord(item)">
+                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
+                  @for (prop of getDataProperties(item); track prop.key) {
+                    @if (prop.key !== "id") {
+                      <div class="overflow-hidden">
+                        <span class="font-medium textMuted">{{ prop.key }}:</span>
+                        <div class="mt-1 wrap-break-word">
+                          @if (prop.key === "createdAt" || prop.key === "updatedAt") {
+                            <span class="textNormal">{{ formatDate(prop.value) }}</span>
+                          } @else if (prop.value === null || prop.value === "") {
+                            <span class="text-gray-400">—</span>
+                          } @else if (typeof prop.value === "boolean") {
+                            <span [class]="prop.value ? 'text-green-600' : 'text-red-600'">
+                              {{ prop.value ? "Yes" : "No" }}
+                            </span>
+                          } @else if (prop.key === "priority") {
+                            <span class="textNormal capitalize">{{ prop.value }}</span>
+                          } @else if (typeof prop.value == "object" && prop.value.length >= 0) {
+                            @for (item of prop.value; track $index) {
+                              <span class="textNormal">{{ item | json }}</span>
+                            }
+                          } @else if (prop.key === "user") {
+                            <span class="textNormal"
+                              >{{ prop.value.profile?.name }} {{ prop.value.profile?.lastName }} ({{
+                                prop.value.username
+                              }})</span
+                            >
+                          } @else if (typeof prop.value == "object") {
+                            <span class="textNormal">{{ prop.value | json }}</span>
+                          } @else {
+                            <span class="textNormal">{{ prop.value }}</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </mat-card>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
+    [class.flex]="showFilters"
+    [class.hidden]="!showFilters"
+  >
+    <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
+  </div>
+  @if (showFilters) {
+    <div class="fixed inset-0 z-30 bg-black/50" (click)="closeFilters()"></div>
+  }
 </div>
