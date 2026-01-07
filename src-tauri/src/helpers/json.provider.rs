@@ -483,10 +483,10 @@ impl JsonProvider {
     for existingRecord in existingRecords.iter_mut() {
       if let Some(existingId) = existingRecord.get("id").and_then(|id| id.as_str()) {
         if let Some(newRecord) = newRecordsMap.get(existingId) {
-          if let (Some(existingObj), Some(new_obj)) =
+          if let (Some(existingObj), Some(newObj)) =
             (existingRecord.as_object_mut(), newRecord.as_object())
           {
-            for (key, value) in new_obj {
+            for (key, value) in newObj {
               if key != "_id" {
                 existingObj.insert(key.clone(), value.clone());
               }
@@ -507,8 +507,8 @@ impl JsonProvider {
       .collect();
 
     for newRecord in records {
-      if let Some(new_id) = newRecord.get("id").and_then(|id| id.as_str()) {
-        if !existingIds.contains(&new_id.to_string()) {
+      if let Some(newId) = newRecord.get("id").and_then(|id| id.as_str()) {
+        if !existingIds.contains(&newId.to_string()) {
           existingRecords.push(newRecord);
         }
       }
