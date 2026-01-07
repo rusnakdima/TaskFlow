@@ -1,69 +1,185 @@
-<div class="flex flex-col items-center gap-y-2 m-5">
-  <img src="/assets/images/icon.png" alt="icon app" class="rounded-xl !w-[100px]" />
-  <span class="font-bold text-2xl text-center">{{ nameProduct }}</span>
-
-  <div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-lg">
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Version</span>
-    <span>{{ version }}</span>
-
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Date of released</span>
-    <span>{{ dateVersion }}</span>
-
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">
-      @if (authors.length > 1) {
-        Authors
-      } @else {
-        Author
-      }
-    </span>
-    @for (author of authors; track $index) {
-      @if ($index > 0) {
-        <span></span>
-      }
-      <a class="styleLinkRedir" [href]="author.url" target="_blank">{{ author.name }}</a>
-    }
-
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Company</span>
-    <span>{{ companyName }}</span>
-
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Year of creation</span>
-    <span>{{ yearCreate }}</span>
-
-    <span class="font-bold !text-gray-600 dark:!text-gray-300 text-end">Last checked</span>
-    <span>{{ dateCheck }}</span>
+<div class="max-w-7xl mx-auto">
+  <div class="text-center mb-8">
+    <div
+      class="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm"
+    >
+      <img
+        src="/assets/images/icon.png"
+        alt="{{ nameProduct }} icon"
+        class="w-12 h-12 rounded-xl"
+      />
+    </div>
+    <h1 class="text-4xl font-bold mb-2">{{ nameProduct }}</h1>
+    <p>Streamline your workflow and boost productivity</p>
   </div>
 
-  <button class="styleButInfo" (click)="checkUpdate()">
-    <span>Check for updates...</span>
-  </button>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div
+      class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-white/20 dark:border-slate-700"
+    >
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon fontIcon="info" class="text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Version Info</h3>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Version</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ version }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Released</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ dateVersion }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Last Checked</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ dateCheck }}</span>
+        </div>
+      </div>
+    </div>
 
-  @if (pathUpdate != "") {
-    <button class="styleButWarn" (click)="openFile()">
-      <span>Open new version</span>
-    </button>
-  }
+    <div
+      class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-white/20 dark:border-slate-700"
+    >
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 bg-teal-100 dark:bg-teal-900 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon fontIcon="code" class="text-teal-600 dark:text-teal-400" />
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Developer</h3>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Author</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ authors[0]?.name }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Company</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ companyName }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-600 dark:text-slate-400">Year</span>
+          <span class="font-semibold text-slate-900 dark:text-white">{{ yearCreate }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-white/20 dark:border-slate-700 mb-6"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 bg-cyan-100 dark:bg-cyan-900 rounded-lg flex items-center justify-center"
+        >
+          <mat-icon fontIcon="system_update" class="text-cyan-600 dark:text-cyan-400" />
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Updates</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400">Check for the latest version</p>
+        </div>
+      </div>
+      <button
+        class="bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
+        (click)="checkUpdate()"
+      >
+        <mat-icon fontIcon="refresh" class="text-white text-sm" />
+        Check Updates
+      </button>
+    </div>
+
+    @if (pathUpdate() != "") {
+      <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center"
+            >
+              <mat-icon
+                fontIcon="download_done"
+                class="text-green-600 dark:text-green-400 text-sm"
+              />
+            </div>
+            <span class="text-green-600 dark:text-green-400 font-medium"
+              >New version available!</span
+            >
+          </div>
+          <button
+            class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
+            (click)="openFile()"
+          >
+            <mat-icon fontIcon="open_in_new" class="text-white text-sm" />
+            Open Update
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="text-center">
+    <p class="text-emerald-100 text-sm">
+      {{ nameProduct }} - Built with ❤️ for productivity enthusiasts
+    </p>
+  </div>
 </div>
 
-@if (windUpdates) {
-  <div class="styleBackWind">
-    <div class="styleWind">
-      <div class="border-b-2 pb-2 styleBorderSolid">
-        <span class="text-xl font-bold">Updating the program</span>
+@if (windUpdates()) {
+  <div
+    class="fixed inset-0 z-999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden"
+    >
+      <div class="bg-linear-to-r from-cyan-500 to-blue-600 p-6 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <mat-icon fontIcon="system_update" class="text-white" />
+          </div>
+          <h2 class="text-xl font-bold">Update Available</h2>
+        </div>
       </div>
-      <div class="flex flex-col my-3 gap-y-2">
-        <span>Do you want to download the update?</span>
-        @if (downloadProgress) {
-          <div class="w-full bg-gray-300 rounded-full mb-4 dark:bg-gray-700 h-[20px]">
-            <div
-              class="bg-green-500 h-[20px] rounded-full transition-all duration-300"
-              [style.width.%]="downloadProgressValue"
-            ></div>
+
+      <div class="p-6">
+        <p class="text-slate-600 dark:text-slate-400 mb-6">
+          A new version of {{ nameProduct }} is available. Would you like to download and install
+          the update?
+        </p>
+
+        @if (downloadProgress()) {
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm text-slate-600 dark:text-slate-400">
+              <span>Downloading...</span>
+              <span>{{ downloadProgressValue() }}%</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div
+                class="bg-linear-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                [style.width.%]="downloadProgressValue()"
+              ></div>
+            </div>
           </div>
         }
       </div>
-      <div class="flex flex-row justify-end gap-x-3 pt-2 border-t-2 styleBorderSolid">
-        <button class="styleButDanger" (click)="windUpdates = false">No</button>
-        <button class="styleButSuccess" (click)="downloadFile()">Yes</button>
+
+      <div class="flex gap-3 p-6 pt-0">
+        <button
+          class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+          (click)="windUpdates.set(false)"
+        >
+          Cancel
+        </button>
+        <button
+          class="flex-1 bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+          (click)="downloadFile()"
+        >
+          <mat-icon fontIcon="download" class="text-white text-sm" />
+          Download
+        </button>
       </div>
     </div>
   </div>

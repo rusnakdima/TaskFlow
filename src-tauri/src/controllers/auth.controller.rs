@@ -1,5 +1,7 @@
 /* helpers */
-use crate::helpers::{config::ConfigHelper, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  config::ConfigHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
 use crate::services::auth_service::AuthService;
@@ -21,9 +23,13 @@ pub struct AuthController {
 
 impl AuthController {
   #[allow(non_snake_case)]
-  pub fn new(mongodbProvider: Arc<MongodbProvider>, config: ConfigHelper) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    config: ConfigHelper,
+  ) -> Self {
     Self {
-      authService: AuthService::new(mongodbProvider, config.jwtSecret.clone()),
+      authService: AuthService::new(jsonProvider, mongodbProvider, config.jwtSecret.clone()),
       config,
     }
   }

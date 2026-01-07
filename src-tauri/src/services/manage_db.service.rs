@@ -40,15 +40,10 @@ impl ManageDbService {
   }
 
   #[allow(non_snake_case)]
-  fn getId(value: &Value) -> Option<String> {
-    value
-      .get("id")
-      .and_then(|v| v.as_str())
-      .map(|s| s.to_string())
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAllDataFromCloud(
+    &self,
+    userId: String,
+  ) -> Result<std::collections::HashMap<String, Vec<Document>>, ResponseModel> {
     let mongodbProvider = match &self.mongodbProvider {
       Some(p) => p,
       None => {
@@ -59,6 +54,8 @@ impl ManageDbService {
         });
       }
     };
+
+    let mut result = std::collections::HashMap::new();
 
     let todos = match mongodbProvider
       .getAllByField(
@@ -77,10 +74,13 @@ impl ManageDbService {
         });
       }
     };
-    let todoIds: Vec<String> = todos
+    result.insert("todos".to_string(), todos);
+
+    let todoIds: Vec<String> = result
+      .get("todos")
+      .unwrap_or(&vec![])
       .iter()
-      .filter_map(|doc| doc.get_str("id").ok())
-      .map(|s| s.to_string())
+      .filter_map(|v: &Document| v.get_str("id").ok().map(|s| s.to_string()))
       .collect();
 
     let tasks = if !todoIds.is_empty() {
@@ -100,10 +100,13 @@ impl ManageDbService {
     } else {
       vec![]
     };
-    let taskIds: Vec<String> = tasks
+    result.insert("tasks".to_string(), tasks);
+
+    let taskIds: Vec<String> = result
+      .get("tasks")
+      .unwrap_or(&vec![])
       .iter()
-      .filter_map(|doc| doc.get_str("id").ok())
-      .map(|s| s.to_string())
+      .filter_map(|v: &Document| v.get_str("id").ok().map(|s| s.to_string()))
       .collect();
 
     let subtasks = if !taskIds.is_empty() {
@@ -123,6 +126,7 @@ impl ManageDbService {
     } else {
       vec![]
     };
+    result.insert("subtasks".to_string(), subtasks);
 
     let categories = match mongodbProvider
       .getAllByField(
@@ -141,6 +145,7 @@ impl ManageDbService {
         });
       }
     };
+    result.insert("categories".to_string(), categories);
 
     let dailyActivities = match mongodbProvider
       .getAllByField(
@@ -159,99 +164,162 @@ impl ManageDbService {
         });
       }
     };
+    result.insert("daily_activities".to_string(), dailyActivities);
 
-    let profiles = match mongodbProvider.getAllByField("profiles", None, None).await {
-      Ok(docs) => docs,
+    Ok(result)
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn getAllDataFromLocal(
+    &self,
+    userId: String,
+  ) -> Result<std::collections::HashMap<String, Vec<Value>>, ResponseModel> {
+    let mut result = std::collections::HashMap::new();
+
+    let todos = match self
+      .jsonProvider
+      .getAllByField("todos", Some(json!({"userId": userId.clone()})), None)
+      .await
+    {
+      Ok(vals) => vals
+        .into_iter()
+        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
+        .collect(),
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Error getting profiles: {}", e),
+          message: format!("Error getting todos from JSON: {}", e),
           data: DataValue::String("".to_string()),
         });
       }
     };
+    result.insert("todos".to_string(), todos);
 
-    let users = match mongodbProvider.getAllByField("users", None, None).await {
-      Ok(docs) => docs,
+    let todoIds: Vec<String> = result
+      .get("todos")
+      .unwrap_or(&vec![])
+      .iter()
+      .filter_map(|v: &Value| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
+      .collect();
+
+    let tasks = match self
+      .jsonProvider
+      .getAllByField("tasks", Some(json!({"todoId": todoIds})), None)
+      .await
+    {
+      Ok(vals) => vals
+        .into_iter()
+        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
+        .collect(),
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Error getting users: {}", e),
+          message: format!("Error getting tasks from JSON: {}", e),
           data: DataValue::String("".to_string()),
         });
       }
     };
+    result.insert("tasks".to_string(), tasks);
 
-    let dataSets = vec![
-      ("todos", todos),
-      ("tasks", tasks),
-      ("subtasks", subtasks),
-      ("categories", categories),
-      ("daily_activities", dailyActivities),
-      ("profiles", profiles),
-      ("users", users),
-    ];
+    let taskIds: Vec<String> = result
+      .get("tasks")
+      .unwrap_or(&vec![])
+      .iter()
+      .filter_map(|v: &Value| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
+      .collect();
 
-    let dataSetsClone = dataSets.clone();
-
-    for (table, docs) in dataSets {
-      for doc in docs {
-        let id = doc.get_str("id").unwrap_or_default();
-        let value = serde_json::to_value(&doc).map_err(|e| ResponseModel {
+    let subtasks = match self
+      .jsonProvider
+      .getAllByField("subtasks", Some(json!({"taskId": taskIds})), None)
+      .await
+    {
+      Ok(vals) => vals
+        .into_iter()
+        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
+        .collect(),
+      Err(e) => {
+        return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Error converting document to value: {}", e),
+          message: format!("Error getting subtasks from JSON: {}", e),
           data: DataValue::String("".to_string()),
-        })?;
-        match self.jsonProvider.getByField(table, None, None, &id).await {
-          Ok(existingVal) => {
-            if Self::shouldUpdateTarget(&value, &existingVal) {
-              if let Err(e) = self.jsonProvider.update(table, &id, value).await {
-                return Err(ResponseModel {
-                  status: ResponseStatus::Error,
-                  message: format!("Error updating record in {}: {}", table, e),
-                  data: DataValue::String("".to_string()),
-                });
-              }
-            }
-          }
-          Err(_) => {
-            if let Err(e) = self.jsonProvider.create(table, value).await {
-              return Err(ResponseModel {
-                status: ResponseStatus::Error,
-                message: format!("Error creating record in {}: {}", table, e),
-                data: DataValue::String("".to_string()),
-              });
-            }
-          }
-        }
+        });
       }
+    };
+    result.insert("subtasks".to_string(), subtasks);
+
+    let categories = match self
+      .jsonProvider
+      .getAllByField(
+        "categories",
+        Some(serde_json::json!({"userId": userId.clone()})),
+        None,
+      )
+      .await
+    {
+      Ok(vals) => vals
+        .into_iter()
+        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
+        .collect(),
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting categories from JSON: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+    result.insert("categories".to_string(), categories);
+
+    let dailyActivities = match self
+      .jsonProvider
+      .getAllByField(
+        "daily_activities",
+        Some(serde_json::json!({"userId": userId})),
+        None,
+      )
+      .await
+    {
+      Ok(vals) => vals
+        .into_iter()
+        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
+        .collect(),
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting daily_activities from JSON: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+    result.insert("daily_activities".to_string(), dailyActivities);
+
+    Ok(result)
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    let cloudData = match self.getAllDataFromCloud(userId).await {
+      Ok(data) => data,
+      Err(e) => return Err(e),
+    };
+
+    let mut allToUpdate = std::collections::HashMap::new();
+
+    for (table, docs) in cloudData {
+      let values: Vec<Value> = docs
+        .into_iter()
+        .map(|doc| serde_json::to_value(&doc).unwrap())
+        .collect();
+      allToUpdate.insert(table, values);
     }
 
-    for (table, docs) in dataSetsClone {
-      let cloudIds: Vec<String> = docs
-        .iter()
-        .filter_map(|doc| doc.get_str("id").ok())
-        .map(|s| s.to_string())
-        .collect();
-      let allLocal = self
-        .jsonProvider
-        .getDataTable(table)
-        .await
-        .unwrap_or_default();
-      let allLocalIds: Vec<String> = allLocal
-        .iter()
-        .filter_map(|record| {
-          record
-            .get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-        })
-        .collect();
-
-      for id in allLocalIds {
-        if !cloudIds.contains(&id) {
-          let _ = self.jsonProvider.hardDelete(table, &id).await;
-        }
+    for (table, values) in &allToUpdate {
+      if let Err(e) = self.jsonProvider.updateAll(table, values.clone()).await {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error updating records in {}: {}", table, e),
+          data: DataValue::String("".to_string()),
+        });
       }
     }
 
@@ -281,201 +349,21 @@ impl ManageDbService {
       "subtasks",
       "categories",
       "daily_activities",
-      "profiles",
-      "users",
     ];
-    for table in tables {
+
+    let mut deletedByTable: std::collections::HashMap<String, Vec<Document>> =
+      std::collections::HashMap::new();
+    for table in &tables {
       let allLocal = match self.jsonProvider.getDataTable(table).await {
         Ok(recs) => recs,
         Err(_) => continue,
       };
-      let idsToDelete: Vec<String> = allLocal
-        .into_iter()
-        .filter_map(|record| {
-          if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
-            record
-              .get("id")
-              .and_then(|v| v.as_str())
-              .map(|s| s.to_string())
-          } else {
-            None
-          }
-        })
-        .collect();
-
-      for id in idsToDelete {
-        if let Ok(mut existingDoc) = mongodbProvider.getByField(table, None, None, &id).await {
-          existingDoc.insert("isDeleted", true);
-          let _ = mongodbProvider.update(table, &id, existingDoc).await;
-        }
-        let _ = self.jsonProvider.hardDelete(table, &id).await;
-      }
-    }
-
-    let todos = match self
-      .jsonProvider
-      .getAllByField("todos", Some(json!({"userId": userId})), None)
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting todos from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-    let todoIds: Vec<String> = todos
-      .iter()
-      .filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
-      .collect();
-
-    let tasks = match self
-      .jsonProvider
-      .getAllByField("tasks", Some(json!({"todoId": todoIds})), None)
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting tasks from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-    let taskIds: Vec<String> = tasks
-      .iter()
-      .filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
-      .collect();
-
-    let subtasks = match self
-      .jsonProvider
-      .getAllByField("subtasks", Some(json!({"taskId": taskIds})), None)
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting subtasks from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    let categories = match self
-      .jsonProvider
-      .getAllByField(
-        "categories",
-        Some(serde_json::json!({"userId": userId})),
-        None,
-      )
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting categories from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    let dailyActivities = match self
-      .jsonProvider
-      .getAllByField(
-        "daily_activities",
-        Some(serde_json::json!({"userId": userId})),
-        None,
-      )
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting daily_activities from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    let profiles = match self
-      .jsonProvider
-      .getAllByField("profiles", None, None)
-      .await
-    {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting profiles from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    let users = match self.jsonProvider.getAllByField("users", None, None).await {
-      Ok(vals) => vals,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting users from JSON: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-
-    let dataSets = vec![
-      ("todos", todos),
-      ("tasks", tasks),
-      ("subtasks", subtasks),
-      ("categories", categories),
-      ("daily_activities", dailyActivities),
-      ("profiles", profiles),
-      ("users", users),
-    ];
-
-    for (table, values) in dataSets {
-      for mut value in values {
-        let id = Self::getId(&value).unwrap_or_default();
-        if let Some(obj) = value.as_object_mut() {
-          obj.remove("_id");
-        }
-        match mongodbProvider.getByField(table, None, None, &id).await {
-          Ok(existingDoc) => {
-            let existingVal = serde_json::to_value(&existingDoc).map_err(|e| ResponseModel {
+      for record in allLocal {
+        if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
+          if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
+            let mut doc: Document = from_bson(to_bson(&record).map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
-              message: format!("Error converting existing document to value: {}", e),
-              data: DataValue::String("".to_string()),
-            })?;
-            if Self::shouldUpdateTarget(&value, &existingVal) {
-              let doc: Document = from_bson(to_bson(&value).map_err(|e| ResponseModel {
-                status: ResponseStatus::Error,
-                message: format!("Error converting value to bson: {}", e),
-                data: DataValue::String("".to_string()),
-              })?)
-              .map_err(|e| ResponseModel {
-                status: ResponseStatus::Error,
-                message: format!("Error converting bson to document: {}", e),
-                data: DataValue::String("".to_string()),
-              })?;
-              if let Err(e) = mongodbProvider.update(table, &id, doc).await {
-                return Err(ResponseModel {
-                  status: ResponseStatus::Error,
-                  message: format!("Error updating record in {}: {}", table, e),
-                  data: DataValue::String("".to_string()),
-                });
-              }
-            }
-          }
-          Err(_) => {
-            let doc: Document = from_bson(to_bson(&value).map_err(|e| ResponseModel {
-              status: ResponseStatus::Error,
-              message: format!("Error converting value to bson: {}", e),
+              message: format!("Error converting record to bson: {}", e),
               data: DataValue::String("".to_string()),
             })?)
             .map_err(|e| ResponseModel {
@@ -483,14 +371,105 @@ impl ManageDbService {
               message: format!("Error converting bson to document: {}", e),
               data: DataValue::String("".to_string()),
             })?;
-            if let Err(e) = mongodbProvider.create(table, doc).await {
-              return Err(ResponseModel {
-                status: ResponseStatus::Error,
-                message: format!("Error creating record in {}: {}", table, e),
-                data: DataValue::String("".to_string()),
-              });
-            }
+            doc.insert("isDeleted", true);
+            deletedByTable
+              .entry(table.to_string())
+              .or_insert(Vec::new())
+              .push(doc);
+            let _ = self.jsonProvider.hardDelete(table, &id).await;
           }
+        }
+      }
+    }
+
+    for (table, docs) in deletedByTable {
+      if let Err(e) = mongodbProvider.updateAll(&table, docs).await {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error updating deleted records in {}: {}", table, e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    }
+
+    let localData = match self.getAllDataFromLocal(userId.clone()).await {
+      Ok(data) => data,
+      Err(e) => return Err(e),
+    };
+    let cloudData = match self.getAllDataFromCloud(userId).await {
+      Ok(data) => data,
+      Err(e) => return Err(e),
+    };
+
+    let mut allToUpsert: std::collections::HashMap<String, Vec<Document>> =
+      std::collections::HashMap::new();
+
+    for table in &tables {
+      let local = localData.get(*table).cloned().unwrap_or(vec![]);
+      let cloud = cloudData.get(*table).cloned().unwrap_or(vec![]);
+
+      let mut localMap: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+      for v in &local {
+        if let Some(id) = v.get("id").and_then(|i| i.as_str()) {
+          localMap.insert(id.to_string(), v.clone());
+        }
+      }
+
+      let mut cloudMap: std::collections::HashMap<String, Document> =
+        std::collections::HashMap::new();
+      for d in &cloud {
+        if let Some(id) = d.get_str("id").ok() {
+          cloudMap.insert(id.to_string(), d.clone());
+        }
+      }
+
+      let mut toUpsert = vec![];
+
+      for (id, localVal) in &localMap {
+        let needsUpdate = if let Some(cloudDoc) = cloudMap.get(id) {
+          let cloudVal = serde_json::to_value(cloudDoc).map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error converting cloud doc to value: {}", e),
+            data: DataValue::String("".to_string()),
+          })?;
+          Self::shouldUpdateTarget(localVal, &cloudVal)
+        } else {
+          true
+        };
+
+        if needsUpdate {
+          let doc: Document = from_bson(to_bson(localVal).map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error converting local val to bson: {}", e),
+            data: DataValue::String("".to_string()),
+          })?)
+          .map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error converting bson to document: {}", e),
+            data: DataValue::String("".to_string()),
+          })?;
+          toUpsert.push(doc);
+        }
+      }
+
+      for (id, mut cloudDoc) in cloudMap {
+        if !localMap.contains_key(&id) {
+          cloudDoc.insert("isDeleted", true);
+          toUpsert.push(cloudDoc);
+        }
+      }
+
+      allToUpsert.insert(table.to_string(), toUpsert);
+    }
+
+    for (table, docs) in allToUpsert {
+      if !docs.is_empty() {
+        if let Err(e) = mongodbProvider.updateAll(&table, docs).await {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error upserting records in {}: {}", table, e),
+            data: DataValue::String("".to_string()),
+          });
         }
       }
     }
