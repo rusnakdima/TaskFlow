@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -87,13 +87,13 @@ export class ManageTaskView implements OnInit {
     });
   }
 
-  todoId: string = "";
+  todoId = signal("");
   form: FormGroup;
-  isEdit: boolean = false;
-  isSubmitting: boolean = false;
+  isEdit = signal(false);
+  isSubmitting = signal(false);
 
-  projectInfo: Todo | null = null;
-  newSubtaskTitle: string = "";
+  projectInfo = signal<Todo | null>(null);
+  newSubtaskTitle = signal("");
 
   priorityOptions: PriorityOption[] = [
     {
@@ -119,13 +119,13 @@ export class ManageTaskView implements OnInit {
   ngOnInit() {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
-        this.todoId = params.todoId;
+        this.todoId.set(params.todoId);
         this.form.controls["todoId"].setValue(params.todoId);
         this.loadProjectInfo(params.todoId);
       }
       if (params.taskId) {
         this.getTaskInfo(params.taskId);
-        this.isEdit = true;
+        this.isEdit.set(true);
       }
     });
   }
@@ -169,7 +169,7 @@ export class ManageTaskView implements OnInit {
       .getByField<Todo>("todo", "id", todoId)
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.projectInfo = response.data;
+          this.projectInfo.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -191,8 +191,8 @@ export class ManageTaskView implements OnInit {
     }
 
     if (this.form.valid) {
-      this.isSubmitting = true;
-      if (this.isEdit) {
+      this.isSubmitting.set(true);
+      if (this.isEdit()) {
         this.updateTask();
       } else {
         this.createTask();
@@ -243,7 +243,7 @@ export class ManageTaskView implements OnInit {
   createTask() {
     if (this.form.valid) {
       this.mainService
-        .getAllByField<Task[]>("task", "todoId", this.todoId)
+        .getAllByField<Task[]>("task", "todoId", this.todoId())
         .then((response: Response<Task[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             const existingTasks = response.data;
@@ -275,7 +275,7 @@ export class ManageTaskView implements OnInit {
                 .then((updateResponse: Response<string>) => {
                   if (updateResponse.status !== ResponseStatus.SUCCESS) {
                     this.notifyService.showError("Failed to update existing tasks order");
-                    this.isSubmitting = false;
+                    this.isSubmitting.set(false);
                     return;
                   }
 
@@ -289,19 +289,19 @@ export class ManageTaskView implements OnInit {
                   this.mainService
                     .create<string, Task>("task", body)
                     .then((createResponse: Response<string>) => {
-                      this.isSubmitting = false;
+                      this.isSubmitting.set(false);
                       this.notifyService.showNotify(createResponse.status, createResponse.message);
                       if (createResponse.status == ResponseStatus.SUCCESS) {
                         this.back();
                       }
                     })
                     .catch((createErr: Response<string>) => {
-                      this.isSubmitting = false;
+                      this.isSubmitting.set(false);
                       this.notifyService.showError(createErr.message ?? createErr.toString());
                     });
                 })
                 .catch((updateErr: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showError(updateErr.message ?? updateErr.toString());
                 });
             } else {
@@ -315,28 +315,28 @@ export class ManageTaskView implements OnInit {
               this.mainService
                 .create<string, Task>("task", body)
                 .then((response: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showNotify(response.status, response.message);
                   if (response.status == ResponseStatus.SUCCESS) {
                     this.back();
                   }
                 })
                 .catch((err: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showError(err.message ?? err.toString());
                 });
             }
           } else {
-            this.isSubmitting = false;
+            this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing tasks count");
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError("Failed to get existing tasks count");
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
@@ -352,18 +352,18 @@ export class ManageTaskView implements OnInit {
       this.mainService
         .update<string, Task>("task", body.id, body)
         .then((response: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             this.back();
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }

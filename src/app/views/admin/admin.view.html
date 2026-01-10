@@ -12,8 +12,8 @@
     @for (type of dataTypes; track type.id) {
       <button
         class="flex flex-row gap-x-2 styleFloatBut w-full"
-        [class.bg-gray-300]="isDesktop && selectedType === type.id"
-        [class.dark:bg-zinc-700]="isDesktop && selectedType === type.id"
+        [class.bg-gray-300]="isDesktop && selectedType() === type.id"
+        [class.dark:bg-zinc-700]="isDesktop && selectedType() === type.id"
         (click)="selectDataType(type.id)"
       >
         <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
@@ -24,12 +24,12 @@
           </div>
         </div>
         <div class="flex flex-row gap-x-1">
-          @if (loading) {
+          @if (loading()) {
             <mat-icon class="w-5! h-5! text-xl! text-blue-500 animate-spin" fontIcon="sync" />
           }
           <mat-icon
             class="w-5! h-5! text-xl! textMuted"
-            [class.rotate-90]="!isDesktop && selectedType === type.id"
+            [class.rotate-90]="!isDesktop && selectedType() === type.id"
             fontIcon="chevron_right"
           />
         </div>
@@ -44,7 +44,7 @@
       class="flex flex-row items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
     >
       <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
-      <button mat-button class="min-w-0! w-9! h-9! p-0!" (click)="showFilters = false">
+      <button mat-button class="min-w-0! w-9! h-9! p-0!" (click)="closeFilters()">
         <mat-icon class="w-5! h-5! text-xl!" fontIcon="close" />
       </button>
     </div>
@@ -56,12 +56,19 @@
   <div class="flex flex-col gap-y-1 p-3">
     <mat-form-field class="w-full">
       <mat-label>Search Title</mat-label>
-      <input matInput [(ngModel)]="titleFilter" placeholder="Search by title..." />
+      <input
+        matInput
+        [ngModel]="titleFilter()"
+        (ngModelChange)="titleFilter.set($event)"
+        placeholder="Search by title..."
+      />
     </mat-form-field>
-    @if (selectedType === "todos" || selectedType === "tasks" || selectedType === "subtasks") {
+    @if (
+      selectedType() === "todos" || selectedType() === "tasks" || selectedType() === "subtasks"
+    ) {
       <mat-form-field class="w-full">
         <mat-label>Priority</mat-label>
-        <mat-select [(ngModel)]="priorityFilter">
+        <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
           <mat-option value="">All</mat-option>
           <mat-option value="low">Low</mat-option>
           <mat-option value="medium">Medium</mat-option>
@@ -70,63 +77,95 @@
       </mat-form-field>
       <mat-form-field class="w-full">
         <mat-label>Completion Status</mat-label>
-        <mat-select [(ngModel)]="isCompletedFilter">
+        <mat-select [ngModel]="isCompletedFilter()" (ngModelChange)="isCompletedFilter.set($event)">
           <mat-option value="all">All</mat-option>
           <mat-option value="completed">Completed</mat-option>
           <mat-option value="pending">Pending</mat-option>
         </mat-select>
       </mat-form-field>
     }
-    @if (selectedType === "todos") {
+    @if (selectedType() === "todos") {
       <mat-form-field class="w-full">
         <mat-label>Categories</mat-label>
-        <input matInput [(ngModel)]="categoriesFilter" placeholder="Search by categories..." />
+        <input
+          matInput
+          [ngModel]="categoriesFilter()"
+          (ngModelChange)="categoriesFilter.set($event)"
+          placeholder="Search by categories..."
+        />
       </mat-form-field>
     }
-    @if (selectedType === "todos" || selectedType === "categories") {
+    @if (selectedType() === "todos" || selectedType() === "categories") {
       <mat-form-field class="w-full">
         <mat-label>User</mat-label>
-        <input matInput [(ngModel)]="userFilter" placeholder="Search by user..." />
+        <input
+          matInput
+          [ngModel]="userFilter()"
+          (ngModelChange)="userFilter.set($event)"
+          placeholder="Search by user..."
+        />
       </mat-form-field>
     }
-    @if (selectedType === "tasks") {
+    @if (selectedType() === "tasks") {
       <mat-form-field class="w-full">
         <mat-label>Todo ID</mat-label>
-        <input matInput [(ngModel)]="todoIdFilter" placeholder="Search by todo ID..." />
+        <input
+          matInput
+          [ngModel]="todoIdFilter()"
+          (ngModelChange)="todoIdFilter.set($event)"
+          placeholder="Search by todo ID..."
+        />
       </mat-form-field>
     }
-    @if (selectedType === "subtasks") {
+    @if (selectedType() === "subtasks") {
       <mat-form-field class="w-full">
         <mat-label>Task ID</mat-label>
-        <input matInput [(ngModel)]="taskIdFilter" placeholder="Search by task ID..." />
+        <input
+          matInput
+          [ngModel]="taskIdFilter()"
+          (ngModelChange)="taskIdFilter.set($event)"
+          placeholder="Search by task ID..."
+        />
       </mat-form-field>
     }
 
     @if (
-      selectedType === "categories" ||
-      selectedType === "tasks" ||
-      selectedType === "todos" ||
-      selectedType === "subtasks"
+      selectedType() === "categories" ||
+      selectedType() === "tasks" ||
+      selectedType() === "todos" ||
+      selectedType() === "subtasks"
     ) {
       <mat-form-field class="w-full">
         <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="statusFilter">
+        <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
           <mat-option value="all">All Records</mat-option>
           <mat-option value="active">Active Only</mat-option>
           <mat-option value="deleted">Deleted Only</mat-option>
         </mat-select>
       </mat-form-field>
     }
-    @if (selectedType === "tasks" || selectedType === "todos" || selectedType === "categories") {
+    @if (
+      selectedType() === "tasks" || selectedType() === "todos" || selectedType() === "categories"
+    ) {
       <mat-form-field class="w-full">
         <mat-label>Start Date From</mat-label>
-        <input matInput [matDatepicker]="picker1" [(ngModel)]="startDateFilter" />
+        <input
+          matInput
+          [matDatepicker]="picker1"
+          [ngModel]="startDateFilter()"
+          (ngModelChange)="startDateFilter.set($event)"
+        />
         <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
         <mat-datepicker #picker1></mat-datepicker>
       </mat-form-field>
       <mat-form-field class="w-full">
         <mat-label>End Date To</mat-label>
-        <input matInput [matDatepicker]="picker2" [(ngModel)]="endDateFilter" />
+        <input
+          matInput
+          [matDatepicker]="picker2"
+          [ngModel]="endDateFilter()"
+          (ngModelChange)="endDateFilter.set($event)"
+        />
         <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
         <mat-datepicker #picker2></mat-datepicker>
       </mat-form-field>
@@ -140,7 +179,7 @@
       <button
         class="px-4 py-2 rounded-lg transition-colors font-medium"
         [ngClass]="
-          selectedType === type.id
+          selectedType() === type.id
             ? 'bg-blue-500 text-white'
             : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
         "
@@ -165,23 +204,23 @@
             <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
           </div>
           <div class="flex flex-row gap-2 items-center flex-wrap">
-            <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading">
+            <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading()">
               <mat-icon
                 class="w-5! h-5! text-xl! mr-2"
-                [ngClass]="loading ? 'animate-spin' : ''"
+                [ngClass]="loading() ? 'animate-spin' : ''"
                 fontIcon="sync"
               />
               Refresh
             </button>
             <button
               class="styleButDanger"
-              [disabled]="selectedRecords.size === 0"
+              [disabled]="selectedRecords().size === 0"
               (click)="deleteSelected()"
             >
               <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="delete_forever" />
-              Delete Selected ({{ selectedRecords.size }})
+              Delete Selected ({{ selectedRecords().size }})
             </button>
-            <button class="styleButInfo" (click)="showFilters = !showFilters">
+            <button class="styleButInfo" (click)="showFilters.set(!showFilters())">
               <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
               Filters
             </button>
@@ -190,7 +229,7 @@
       </div>
 
       <div class="p-4 lg:p-6">
-        @if (loading) {
+        @if (loading()) {
           <div class="flex items-center justify-center py-16">
             <mat-icon class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin" fontIcon="sync" />
             <span class="ml-3 textNormal">Loading data...</span>
@@ -297,12 +336,12 @@
 
   <div
     class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
-    [class.flex]="showFilters"
-    [class.hidden]="!showFilters"
+    [class.flex]="showFilters()"
+    [class.hidden]="!showFilters()"
   >
     <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
   </div>
-  @if (showFilters) {
+  @if (showFilters()) {
     <div class="fixed inset-0 z-30 bg-black/50" (click)="closeFilters()"></div>
   }
 </div>

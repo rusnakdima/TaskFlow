@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -70,14 +70,14 @@ export class ManageSubtaskView implements OnInit {
     });
   }
 
-  taskId: string = "";
-  todoId: string = "";
+  taskId = signal("");
+  todoId = signal("");
   form: FormGroup;
-  isEdit: boolean = false;
-  isSubmitting: boolean = false;
+  isEdit = signal(false);
+  isSubmitting = signal(false);
 
-  projectInfo: Todo | null = null;
-  taskInfo: Task | null = null;
+  projectInfo = signal<Todo | null>(null);
+  taskInfo = signal<Task | null>(null);
 
   priorityOptions: PriorityOption[] = [
     {
@@ -100,17 +100,17 @@ export class ManageSubtaskView implements OnInit {
   ngOnInit() {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
-        this.todoId = params.todoId;
+        this.todoId.set(params.todoId);
         this.loadProjectInfo(params.todoId);
       }
       if (params.taskId) {
-        this.taskId = params.taskId;
+        this.taskId.set(params.taskId);
         this.form.controls["taskId"].setValue(params.taskId);
         this.loadTaskInfo(params.taskId);
       }
       if (params.subtaskId) {
         this.getSubtaskInfo(params.subtaskId);
-        this.isEdit = true;
+        this.isEdit.set(true);
       }
     });
   }
@@ -138,7 +138,7 @@ export class ManageSubtaskView implements OnInit {
       .getByField<Todo>("todo", "id", todoId)
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.projectInfo = response.data;
+          this.projectInfo.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -151,7 +151,7 @@ export class ManageSubtaskView implements OnInit {
       .getByField<Task>("task", "id", taskId)
       .then((response: Response<Task>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.taskInfo = response.data;
+          this.taskInfo.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -162,7 +162,7 @@ export class ManageSubtaskView implements OnInit {
   duplicateSubtask() {
     if (this.form.valid) {
       this.mainService
-        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId)
+        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId())
         .then((response: Response<Subtask[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             const order = response.data.length;
@@ -198,8 +198,8 @@ export class ManageSubtaskView implements OnInit {
   }
 
   viewTaskDetails() {
-    if (this.todoId && this.taskId) {
-      this.router.navigate(["/todos", this.todoId, "tasks", this.taskId, "edit_task"]);
+    if (this.todoId() && this.taskId()) {
+      this.router.navigate(["/todos", this.todoId(), "tasks", this.taskId(), "edit_task"]);
     }
   }
 
@@ -213,8 +213,8 @@ export class ManageSubtaskView implements OnInit {
     }
 
     if (this.form.valid) {
-      this.isSubmitting = true;
-      if (this.isEdit) {
+      this.isSubmitting.set(true);
+      if (this.isEdit()) {
         this.updateSubtask();
       } else {
         this.createSubtask();
@@ -225,7 +225,7 @@ export class ManageSubtaskView implements OnInit {
   createSubtask() {
     if (this.form.valid) {
       this.mainService
-        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId)
+        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId())
         .then((response: Response<Subtask[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             const existingSubtasks = response.data;
@@ -255,7 +255,7 @@ export class ManageSubtaskView implements OnInit {
                 .then((updateResponse: Response<string>) => {
                   if (updateResponse.status !== ResponseStatus.SUCCESS) {
                     this.notifyService.showError("Failed to update existing subtasks order");
-                    this.isSubmitting = false;
+                    this.isSubmitting.set(false);
                     return;
                   }
 
@@ -267,19 +267,19 @@ export class ManageSubtaskView implements OnInit {
                   this.mainService
                     .create<string, Subtask>("subtask", body)
                     .then((createResponse: Response<string>) => {
-                      this.isSubmitting = false;
+                      this.isSubmitting.set(false);
                       this.notifyService.showNotify(createResponse.status, createResponse.message);
                       if (createResponse.status == ResponseStatus.SUCCESS) {
                         this.back();
                       }
                     })
                     .catch((createErr: Response<string>) => {
-                      this.isSubmitting = false;
+                      this.isSubmitting.set(false);
                       this.notifyService.showError(createErr.message ?? createErr.toString());
                     });
                 })
                 .catch((updateErr: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showError(updateErr.message ?? updateErr.toString());
                 });
             } else {
@@ -291,28 +291,28 @@ export class ManageSubtaskView implements OnInit {
               this.mainService
                 .create<string, Subtask>("subtask", body)
                 .then((response: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showNotify(response.status, response.message);
                   if (response.status == ResponseStatus.SUCCESS) {
                     this.back();
                   }
                 })
                 .catch((err: Response<string>) => {
-                  this.isSubmitting = false;
+                  this.isSubmitting.set(false);
                   this.notifyService.showError(err.message ?? err.toString());
                 });
             }
           } else {
-            this.isSubmitting = false;
+            this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing subtasks count");
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError("Failed to get existing subtasks count");
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
@@ -323,18 +323,18 @@ export class ManageSubtaskView implements OnInit {
       this.mainService
         .update<string, Subtask>("subtask", body.id, body)
         .then((response: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             this.back();
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }

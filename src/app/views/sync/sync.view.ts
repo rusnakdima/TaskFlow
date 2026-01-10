@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -26,14 +26,14 @@ export class SyncView {
     private notifyService: NotifyService
   ) {}
 
-  isSyncingAll = false;
-  isSyncingImport = false;
-  isSyncingExport = false;
+  isSyncingAll = signal(false);
+  isSyncingImport = signal(false);
+  isSyncingExport = signal(false);
 
   async syncAll() {
-    if (this.isSyncingAll) return;
+    if (this.isSyncingAll()) return;
 
-    this.isSyncingAll = true;
+    this.isSyncingAll.set(true);
     this.notifyService.showInfo("Starting full synchronization...");
 
     try {
@@ -47,14 +47,14 @@ export class SyncView {
       console.error(error);
       this.notifyService.showError("Full synchronization failed: " + error);
     } finally {
-      this.isSyncingAll = false;
+      this.isSyncingAll.set(false);
     }
   }
 
   async importToLocal() {
-    if (this.isSyncingImport) return;
+    if (this.isSyncingImport()) return;
 
-    this.isSyncingImport = true;
+    this.isSyncingImport.set(true);
     this.notifyService.showInfo("Importing data from cloud to local...");
 
     try {
@@ -68,14 +68,14 @@ export class SyncView {
       console.error(error);
       this.notifyService.showError("Import from cloud failed: " + error);
     } finally {
-      this.isSyncingImport = false;
+      this.isSyncingImport.set(false);
     }
   }
 
   async exportToCloud() {
-    if (this.isSyncingExport) return;
+    if (this.isSyncingExport()) return;
 
-    this.isSyncingExport = true;
+    this.isSyncingExport.set(true);
     this.notifyService.showInfo("Exporting local data to cloud...");
 
     try {
@@ -89,7 +89,7 @@ export class SyncView {
       console.error(error);
       this.notifyService.showError("Export to cloud failed: " + error);
     } finally {
-      this.isSyncingExport = false;
+      this.isSyncingExport.set(false);
     }
   }
 }

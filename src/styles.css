@@ -38,7 +38,7 @@
   }
 
   .styleBottomNav {
-    @apply fixed grid grid-cols-4 left-0 right-0 bottom-0 m-0 w-full text-black dark:text-white bg-white dark:bg-zinc-900;
+    @apply fixed grid grid-cols-5 left-0 right-0 bottom-0 m-0 w-full text-black dark:text-white bg-white dark:bg-zinc-900;
   }
 
   .styleBackWind {

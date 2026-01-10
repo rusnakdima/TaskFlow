@@ -35,9 +35,23 @@
             <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
           </div>
         </div>
+
+        <!-- Horizontal progress bar for mobile -->
+        <div class="block sm:hidden mt-4">
+          <div class="flex justify-between text-sm text-gray-200 mb-2">
+            <span>Progress</span>
+            <span>{{ getTaskProgress() }}%</span>
+          </div>
+          <div class="w-full bg-white/20 rounded-full h-2">
+            <div
+              class="bg-white h-2 rounded-full transition-all duration-300"
+              [style.width.%]="getTaskProgress()"
+            ></div>
+          </div>
+        </div>
       </div>
 
-      <div class="shrink-0 self-center sm:self-auto">
+      <div class="shrink-0 self-center sm:self-auto hidden sm:block">
         <div class="relative w-32 h-32">
           <app-circle-progress [percentCompletedTasks]="getTaskProgress()" />
         </div>

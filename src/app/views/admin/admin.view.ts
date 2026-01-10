@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
@@ -54,23 +54,23 @@ export class AdminView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  adminData: AdminData = {};
-  selectedType: string = "todos";
-  loading: boolean = false;
-  showMobileSidebar: boolean = false;
-  selectedRecords: Set<string> = new Set();
-  titleFilter: string = "";
-  descriptionFilter: string = "";
-  priorityFilter: string = "";
-  startDateFilter: string = "";
-  endDateFilter: string = "";
-  showFilters: boolean = false;
-  statusFilter: string = "all";
-  isCompletedFilter: string = "all";
-  userFilter: string = "";
-  categoriesFilter: string = "";
-  todoIdFilter: string = "";
-  taskIdFilter: string = "";
+  adminData = signal<AdminData>({});
+  selectedType = signal<string>("todos");
+  loading = signal<boolean>(false);
+  showMobileSidebar = signal<boolean>(false);
+  selectedRecords = signal<Set<string>>(new Set());
+  titleFilter = signal<string>("");
+  descriptionFilter = signal<string>("");
+  priorityFilter = signal<string>("");
+  startDateFilter = signal<string>("");
+  endDateFilter = signal<string>("");
+  showFilters = signal<boolean>(false);
+  statusFilter = signal<string>("all");
+  isCompletedFilter = signal<string>("all");
+  userFilter = signal<string>("");
+  categoriesFilter = signal<string>("");
+  todoIdFilter = signal<string>("");
+  taskIdFilter = signal<string>("");
 
   dataTypes = [
     {
@@ -110,14 +110,14 @@ export class AdminView implements OnInit {
   }
 
   async loadAdminData() {
-    this.loading = true;
+    this.loading.set(true);
     try {
       const response = await this.adminService.getAllDataForAdmin<AdminData>();
       if (response.status === ResponseStatus.SUCCESS) {
-        this.adminData = response.data;
+        this.adminData.set(response.data);
 
         this.dataTypes.forEach((type) => {
-          const data = this.adminData[type.id];
+          const data = this.adminData()[type.id];
           type.count = data ? data.length : 0;
         });
       } else {
@@ -126,76 +126,79 @@ export class AdminView implements OnInit {
     } catch (error) {
       this.notifyService.showError("Failed to load admin data: " + error);
     } finally {
-      this.loading = false;
+      this.loading.set(false);
     }
   }
 
   selectDataType(typeId: string) {
-    this.selectedType = typeId;
+    this.selectedType.set(typeId);
     this.clearSelection();
     this.clearFilters();
-    this.showMobileSidebar = false;
+    this.showMobileSidebar.set(false);
   }
 
   getCurrentData(): any[] {
-    let data = this.adminData[this.selectedType] || [];
+    let data = this.adminData()[this.selectedType()] || [];
 
-    if (this.titleFilter) {
+    if (this.titleFilter()) {
       data = data.filter(
-        (item) => item.title && item.title.toLowerCase().includes(this.titleFilter.toLowerCase())
+        (item) => item.title && item.title.toLowerCase().includes(this.titleFilter().toLowerCase())
       );
     }
 
-    if (this.descriptionFilter) {
+    if (this.descriptionFilter()) {
       data = data.filter(
         (item) =>
           item.description &&
-          item.description.toLowerCase().includes(this.descriptionFilter.toLowerCase())
+          item.description.toLowerCase().includes(this.descriptionFilter().toLowerCase())
       );
     }
 
-    if (this.priorityFilter && this.priorityFilter !== "") {
-      data = data.filter((item) => item.priority === this.priorityFilter);
+    if (this.priorityFilter() && this.priorityFilter() !== "") {
+      data = data.filter((item) => item.priority === this.priorityFilter());
     }
 
-    if (this.statusFilter === "active") {
+    if (this.statusFilter() === "active") {
       data = data.filter((item) => !item.isDeleted);
-    } else if (this.statusFilter === "deleted") {
+    } else if (this.statusFilter() === "deleted") {
       data = data.filter((item) => item.isDeleted);
     }
 
-    if (this.selectedType === "tasks" && this.isCompletedFilter === "completed") {
+    if (this.selectedType() === "tasks" && this.isCompletedFilter() === "completed") {
       data = data.filter((item) => item.status === TaskStatus.COMPLETED);
-    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "pending") {
+    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "pending") {
       data = data.filter((item) => item.status === TaskStatus.PENDING);
-    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "skipped") {
+    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "skipped") {
       data = data.filter((item) => item.status === TaskStatus.SKIPPED);
-    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "failed") {
+    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "failed") {
       data = data.filter((item) => item.status === TaskStatus.FAILED);
-    } else if (this.selectedType === "tasks" && this.isCompletedFilter === "done") {
+    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "done") {
       data = data.filter(
         (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
       );
     }
 
-    if (this.selectedType === "subtasks" && this.isCompletedFilter === "completed") {
+    if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "completed") {
       data = data.filter((item) => item.status === TaskStatus.COMPLETED);
-    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "pending") {
+    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "pending") {
       data = data.filter((item) => item.status === TaskStatus.PENDING);
-    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "skipped") {
+    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "skipped") {
       data = data.filter((item) => item.status === TaskStatus.SKIPPED);
-    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "failed") {
+    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "failed") {
       data = data.filter((item) => item.status === TaskStatus.FAILED);
-    } else if (this.selectedType === "subtasks" && this.isCompletedFilter === "done") {
+    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "done") {
       data = data.filter(
         (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
       );
     }
 
-    if (this.userFilter) {
-      const filter = this.userFilter.toLowerCase();
+    if (this.userFilter()) {
+      const filter = this.userFilter().toLowerCase();
       data = data.filter((item) => {
-        if ((this.selectedType === "todos" || this.selectedType === "categories") && item.user) {
+        if (
+          (this.selectedType() === "todos" || this.selectedType() === "categories") &&
+          item.user
+        ) {
           const { profile, username } = item.user;
           const firstName = profile?.name?.toLowerCase() || "";
           const lastName = profile?.lastName?.toLowerCase() || "";
@@ -208,8 +211,8 @@ export class AdminView implements OnInit {
       });
     }
 
-    if (this.categoriesFilter && this.selectedType === "todos") {
-      const filter = this.categoriesFilter.toLowerCase();
+    if (this.categoriesFilter() && this.selectedType() === "todos") {
+      const filter = this.categoriesFilter().toLowerCase();
       data = data.filter((item) => {
         if (item.categories && Array.isArray(item.categories)) {
           return item.categories.some((cat: any) => cat.title?.toLowerCase().includes(filter));
@@ -218,31 +221,31 @@ export class AdminView implements OnInit {
       });
     }
 
-    if (this.startDateFilter) {
-      const filterDate = new Date(this.startDateFilter);
+    if (this.startDateFilter()) {
+      const filterDate = new Date(this.startDateFilter());
       data = data.filter((item) => {
         const itemDate = new Date(item.startDate || item.createdAt);
         return itemDate >= filterDate;
       });
     }
 
-    if (this.endDateFilter) {
-      const filterDate = new Date(this.endDateFilter);
+    if (this.endDateFilter()) {
+      const filterDate = new Date(this.endDateFilter());
       data = data.filter((item) => {
         const itemDate = new Date(item.endDate || item.createdAt);
         return itemDate <= filterDate;
       });
     }
 
-    if (this.todoIdFilter && this.selectedType === "tasks") {
-      const filter = this.todoIdFilter.toLowerCase();
+    if (this.todoIdFilter() && this.selectedType() === "tasks") {
+      const filter = this.todoIdFilter().toLowerCase();
       data = data.filter((item) => {
         return item.todoId && item.todoId.toLowerCase().includes(filter);
       });
     }
 
-    if (this.taskIdFilter && this.selectedType === "subtasks") {
-      const filter = this.taskIdFilter.toLowerCase();
+    if (this.taskIdFilter() && this.selectedType() === "subtasks") {
+      const filter = this.taskIdFilter().toLowerCase();
       data = data.filter((item) => {
         return item.taskId && item.taskId.toLowerCase().includes(filter);
       });
@@ -259,8 +262,8 @@ export class AdminView implements OnInit {
   }
 
   getSelectedTypeLabel(): string {
-    const type = this.dataTypes.find((t) => t.id === this.selectedType);
-    return type ? type.label : this.selectedType;
+    const type = this.dataTypes.find((t) => t.id === this.selectedType());
+    return type ? type.label : this.selectedType();
   }
 
   formatDate(dateStr: string): string {
@@ -274,22 +277,24 @@ export class AdminView implements OnInit {
   }
 
   toggleMobileSidebar() {
-    this.showMobileSidebar = !this.showMobileSidebar;
+    this.showMobileSidebar.update((val) => !val);
   }
 
   closeMobileSidebar() {
-    this.showMobileSidebar = false;
+    this.showMobileSidebar.set(false);
   }
 
   closeFilters() {
-    this.showFilters = false;
+    this.showFilters.set(false);
   }
 
   async deleteRecord(record: any) {
-    if (confirm(`Are you sure you want to delete this ${this.selectedType.slice(0, -1)} record?`)) {
+    if (
+      confirm(`Are you sure you want to delete this ${this.selectedType().slice(0, -1)} record?`)
+    ) {
       try {
         const response = await this.adminService.permanentlyDeleteRecord(
-          this.selectedType,
+          this.selectedType(),
           record.id
         );
 
@@ -307,41 +312,45 @@ export class AdminView implements OnInit {
   }
 
   toggleSelect(id: string): void {
-    if (this.selectedRecords.has(id)) {
-      this.selectedRecords.delete(id);
-    } else {
-      this.selectedRecords.add(id);
-    }
+    this.selectedRecords.update((records) => {
+      const newRecords = new Set(records);
+      if (newRecords.has(id)) {
+        newRecords.delete(id);
+      } else {
+        newRecords.add(id);
+      }
+      return newRecords;
+    });
   }
 
   isSelected(id: string): boolean {
-    return this.selectedRecords.has(id);
+    return this.selectedRecords().has(id);
   }
 
   clearSelection(): void {
-    this.selectedRecords.clear();
+    this.selectedRecords.set(new Set());
   }
 
   clearFilters(): void {
-    this.titleFilter = "";
-    this.descriptionFilter = "";
-    this.priorityFilter = "";
-    this.startDateFilter = "";
-    this.endDateFilter = "";
-    this.statusFilter = "all";
-    this.isCompletedFilter = "all";
-    this.userFilter = "";
-    this.categoriesFilter = "";
-    this.todoIdFilter = "";
-    this.taskIdFilter = "";
+    this.titleFilter.set("");
+    this.descriptionFilter.set("");
+    this.priorityFilter.set("");
+    this.startDateFilter.set("");
+    this.endDateFilter.set("");
+    this.statusFilter.set("all");
+    this.isCompletedFilter.set("all");
+    this.userFilter.set("");
+    this.categoriesFilter.set("");
+    this.todoIdFilter.set("");
+    this.taskIdFilter.set("");
   }
 
   async deleteSelected(): Promise<void> {
-    const count = this.selectedRecords.size;
+    const count = this.selectedRecords().size;
     if (count === 0) return;
 
     const plural = count > 1 ? "records" : "record";
-    const typeSingular = this.selectedType.slice(0, -1).toLowerCase();
+    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
     if (
       !confirm(
         `Are you sure you want to permanently delete ${count} ${typeSingular} ${plural}? This cannot be undone.`
@@ -350,9 +359,9 @@ export class AdminView implements OnInit {
       return;
 
     let successCount = 0;
-    for (const id of this.selectedRecords) {
+    for (const id of this.selectedRecords()) {
       try {
-        const response = await this.adminService.permanentlyDeleteRecord(this.selectedType, id);
+        const response = await this.adminService.permanentlyDeleteRecord(this.selectedType(), id);
         if (response.status === ResponseStatus.SUCCESS) {
           successCount++;
         }

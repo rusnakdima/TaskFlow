@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -85,11 +85,11 @@ export class ManageTodoView implements OnInit {
     });
   }
 
-  userId: string = "";
+  userId = signal("");
 
   form: FormGroup;
-  isEdit: boolean = false;
-  isSubmitting: boolean = false;
+  isEdit = signal(false);
+  isSubmitting = signal(false);
 
   priorityOptions = [
     {
@@ -118,29 +118,29 @@ export class ManageTodoView implements OnInit {
     },
   ];
 
-  availableProfiles: Profile[] = [];
-  localTeamMembers: Profile[] = [];
-  userSearchQuery: string = "";
+  availableProfiles = signal<Profile[]>([]);
+  localTeamMembers = signal<Profile[]>([]);
+  userSearchQuery = signal("");
 
-  availableCategories: Category[] = [];
-  newCategoryTitle: string = "";
+  availableCategories = signal<Category[]>([]);
+  newCategoryTitle = signal("");
 
   async ngOnInit() {
-    this.userId = this.authService.getValueByKey("id");
-    if (this.userId && this.userId != "") {
-      this.form.controls["userId"].setValue(this.userId);
+    this.userId.set(this.authService.getValueByKey("id"));
+    if (this.userId() && this.userId() != "") {
+      this.form.controls["userId"].setValue(this.userId());
       await this.fetchProfiles();
       this.fetchCategories();
     }
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.getTodoInfo(params.todoId);
-        this.isEdit = true;
+        this.isEdit.set(true);
       }
     });
 
     setTimeout(() => {
-      if (!this.isEdit) {
+      if (!this.isEdit()) {
         this.fetchTodosCount();
       }
     }, 1000);
@@ -169,17 +169,17 @@ export class ManageTodoView implements OnInit {
 
   async fetchTodosCount() {
     this.mainService
-      .getAllByField<Todo[]>("todo", "userId", this.userId)
+      .getAllByField<Todo[]>("todo", "userId", this.userId())
       .then((response: Response<Todo[]>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.form.controls["order"].setValue(response.data.length + 1);
         } else {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError("Failed to get existing todos count");
         }
       })
       .catch((err: Response<string>) => {
-        this.isSubmitting = false;
+        this.isSubmitting.set(false);
         this.notifyService.showError(err.message ?? err.toString());
       });
   }
@@ -189,7 +189,7 @@ export class ManageTodoView implements OnInit {
       .getAllByField<Profile[]>("profile")
       .then((response: Response<Profile[]>) => {
         if (response.status == ResponseStatus.SUCCESS) {
-          this.availableProfiles = response.data;
+          this.availableProfiles.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -198,11 +198,11 @@ export class ManageTodoView implements OnInit {
   }
 
   getFilteredUsers() {
-    if (!this.userSearchQuery) return this.availableProfiles;
-    return this.availableProfiles.filter((p) =>
+    if (!this.userSearchQuery()) return this.availableProfiles();
+    return this.availableProfiles().filter((p) =>
       `${p.name} ${p.lastName} ${p.user.email}`
         .toLowerCase()
-        .includes(this.userSearchQuery.toLowerCase())
+        .includes(this.userSearchQuery().toLowerCase())
     );
   }
 
@@ -234,10 +234,10 @@ export class ManageTodoView implements OnInit {
 
   fetchCategories() {
     this.mainService
-      .getAllByField<Category[]>("category", "userId", this.userId)
+      .getAllByField<Category[]>("category", "userId", this.userId())
       .then((response: Response<Category[]>) => {
         if (response.status == ResponseStatus.SUCCESS) {
-          this.availableCategories = response.data;
+          this.availableCategories.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -246,23 +246,23 @@ export class ManageTodoView implements OnInit {
   }
 
   getFilteredAvailableCategories() {
-    if (!this.newCategoryTitle) return this.availableCategories;
-    return this.availableCategories.filter((category) =>
-      category.title.toLowerCase().includes(this.newCategoryTitle.toLowerCase())
+    if (!this.newCategoryTitle()) return this.availableCategories();
+    return this.availableCategories().filter((category) =>
+      category.title.toLowerCase().includes(this.newCategoryTitle().toLowerCase())
     );
   }
 
   addCategory() {
-    if (this.newCategoryTitle.trim()) {
+    if (this.newCategoryTitle().trim()) {
       const categoryData: any = {
-        title: this.newCategoryTitle.trim(),
-        userId: this.userId,
+        title: this.newCategoryTitle().trim(),
+        userId: this.userId(),
       };
       this.mainService
         .create<string, Category>("category", categoryData)
         .then((response: Response<string>) => {
           if (response.status == ResponseStatus.SUCCESS) {
-            this.newCategoryTitle = "";
+            this.newCategoryTitle.set("");
             this.fetchCategories();
             this.notifyService.showNotify(response.status, "Category added successfully");
           }
@@ -305,8 +305,8 @@ export class ManageTodoView implements OnInit {
     }
 
     if (this.form.valid) {
-      this.isSubmitting = true;
-      if (this.isEdit) {
+      this.isSubmitting.set(true);
+      if (this.isEdit()) {
         this.updateTask();
       } else {
         this.createTask();
@@ -328,18 +328,18 @@ export class ManageTodoView implements OnInit {
       this.mainService
         .create<string, Todo>("todo", body)
         .then((response: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             this.back();
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
@@ -357,18 +357,18 @@ export class ManageTodoView implements OnInit {
       this.mainService
         .update<string, Todo>("todo", body.id, body)
         .then((response: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showNotify(response.status, response.message);
           if (response.status == ResponseStatus.SUCCESS) {
             this.back();
           }
         })
         .catch((err: Response<string>) => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
           this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }

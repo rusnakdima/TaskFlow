@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -43,17 +43,17 @@ export class DashboardView implements OnInit {
     private router: Router
   ) {}
 
-  profile: Profile | null = null;
+  profile = signal<Profile | null>(null);
 
-  totalTasks: number = 0;
-  completedTasks: number = 0;
-  inProgressTasks: number = 0;
-  overdueTasks: number = 0;
+  totalTasks = signal(0);
+  completedTasks = signal(0);
+  inProgressTasks = signal(0);
+  overdueTasks = signal(0);
 
-  allTasks: Array<DisplayTask> = [];
-  filteredTasks: Array<DisplayTask> = [];
+  allTasks = signal<DisplayTask[]>([]);
+  filteredTasks = signal<DisplayTask[]>([]);
 
-  recentActivities: Array<string> = [];
+  recentActivities = signal<string[]>([]);
 
   ngOnInit(): void {
     const userId: string = this.authService.getValueByKey("id");
@@ -63,7 +63,7 @@ export class DashboardView implements OnInit {
         .getByField<Profile>("profile", "userId", userId)
         .then((response: Response<Profile>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.profile = response.data;
+            this.profile.set(response.data);
           } else {
             this.notifyService.showError(response.message);
           }
@@ -109,26 +109,32 @@ export class DashboardView implements OnInit {
 
   processTaskData(taskData: Array<{ task: Task; todoId: string }>): void {
     const tasks = taskData.map((item) => item.task);
-    this.totalTasks = tasks.length;
+    this.totalTasks.set(tasks.length);
 
     const now = new Date();
 
-    this.completedTasks = tasks.filter(
-      (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-    ).length;
-    this.inProgressTasks = tasks.filter((task) => {
-      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-      const start = task.startDate ? new Date(task.startDate) : null;
-      const end = task.endDate ? new Date(task.endDate) : null;
-      return start && end && start <= now && now <= end;
-    }).length;
-    this.overdueTasks = tasks.filter((task) => {
-      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-      const end = task.endDate ? new Date(task.endDate) : null;
-      return end && end < now;
-    }).length;
+    this.completedTasks.set(
+      tasks.filter(
+        (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+      ).length
+    );
+    this.inProgressTasks.set(
+      tasks.filter((task) => {
+        if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
+        const start = task.startDate ? new Date(task.startDate) : null;
+        const end = task.endDate ? new Date(task.endDate) : null;
+        return start && end && start <= now && now <= end;
+      }).length
+    );
+    this.overdueTasks.set(
+      tasks.filter((task) => {
+        if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
+        const end = task.endDate ? new Date(task.endDate) : null;
+        return end && end < now;
+      }).length
+    );
 
-    this.allTasks = taskData
+    const newAllTasks = taskData
       .map((item) => ({
         id: item.task.id,
         title: item.task.title,
@@ -145,22 +151,26 @@ export class DashboardView implements OnInit {
         return bTime - aTime;
       });
 
+    this.allTasks.set(newAllTasks);
+
     const sortedTasks = [...tasks].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    this.recentActivities = sortedTasks.slice(0, 4).map((task) => {
-      if (task.status === TaskStatus.COMPLETED) {
-        return `Completed task: ${task.title}`;
-      } else if (task.status === TaskStatus.SKIPPED) {
-        return `Skipped task: ${task.title}`;
-      } else if (task.status === TaskStatus.FAILED) {
-        return `Failed task: ${task.title}`;
-      } else {
-        return `Created task: ${task.title}`;
-      }
-    });
+    this.recentActivities.set(
+      sortedTasks.slice(0, 4).map((task) => {
+        if (task.status === TaskStatus.COMPLETED) {
+          return `Completed task: ${task.title}`;
+        } else if (task.status === TaskStatus.SKIPPED) {
+          return `Skipped task: ${task.title}`;
+        } else if (task.status === TaskStatus.FAILED) {
+          return `Failed task: ${task.title}`;
+        } else {
+          return `Created task: ${task.title}`;
+        }
+      })
+    );
 
-    this.filteredTasks = this.allTasks.slice(0, 10);
+    this.filteredTasks.set(newAllTasks.slice(0, 10));
   }
 
   getTaskStatus(task: Task): string {
@@ -180,8 +190,8 @@ export class DashboardView implements OnInit {
   }
 
   getProgressPercentage(): number {
-    if (this.totalTasks === 0) return 0;
-    return Math.round((this.completedTasks / this.totalTasks) * 100);
+    if (this.totalTasks() === 0) return 0;
+    return Math.round((this.completedTasks() / this.totalTasks()) * 100);
   }
 
   formatDate(dateString: string): string {

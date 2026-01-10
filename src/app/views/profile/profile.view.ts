@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 
 /* materials */
@@ -33,7 +33,7 @@ export class ProfileView implements OnInit {
   userId: string = "";
   queryId: string = "";
 
-  profile: Profile | null = null;
+  profile = signal<Profile | null>(null);
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
@@ -51,7 +51,7 @@ export class ProfileView implements OnInit {
       .getByField<Profile>("profile", "userId", userId)
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.profile = response.data;
+          this.profile.set(response.data);
         }
       })
       .catch((err: Response<string>) => {

@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  @if (showFilter) {
+  @if (showFilter()) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
     >
@@ -28,7 +28,7 @@
         <div class="flex-1 max-w-md">
           <app-search
             [isShowSearchField]="true"
-            [tempArray]="tempListTodos"
+            [tempArray]="tempListTodos()"
             [searchByFields]="['title']"
             (array)="searchFunc($event)"
           />
@@ -39,7 +39,7 @@
             <button
               class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
               [ngClass]="
-                activeFilter === filter.key
+                activeFilter() === filter.key
                   ? 'bg-blue-500 text-white'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
               "
@@ -103,18 +103,18 @@
     </div>
   </div>
 
-  @if (listTodos.length === 0) {
+  @if (listTodos().length === 0) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
       <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="assignment" />
       <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
       <p class="textMuted mb-6">
-        @if (activeFilter !== "all") {
+        @if (activeFilter() !== "all") {
           No tasks match the current filter
         }
       </p>
-      @if (activeFilter !== "all") {
+      @if (activeFilter() !== "all") {
         <button class="styleButInfo" (click)="changeFilter('all')">
           <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="clear_all" />
           Show all tasks
@@ -128,7 +128,7 @@
       cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTodoDrop($event)"
     >
-      @for (todo of listTodos; track $index) {
+      @for (todo of listTodos(); track $index) {
         <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
       }
     </div>

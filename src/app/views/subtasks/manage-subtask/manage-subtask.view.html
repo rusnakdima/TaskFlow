@@ -2,29 +2,33 @@
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold textNormal">
-        {{ isEdit ? "Edit Subtask" : "Create New Subtask" }}
+        {{ isEdit() ? "Edit Subtask" : "Create New Subtask" }}
       </h1>
       <p class="textMuted mt-1">
         {{
-          isEdit ? "Update subtask details and status" : "Add a specific action item to your task"
+          isEdit() ? "Update subtask details and status" : "Add a specific action item to your task"
         }}
       </p>
 
       <div class="flex items-center gap-2 mt-2 text-sm">
-        @if (projectInfo) {
+        @if (projectInfo()) {
           <mat-icon
             class="w-4! h-4! text-base! text-blue-600 dark:text-blue-400"
             fontIcon="folder"
           />
-          <span class="text-blue-600 dark:text-blue-400 font-medium">{{ projectInfo.title }}</span>
+          <span class="text-blue-600 dark:text-blue-400 font-medium">{{
+            projectInfo()?.title
+          }}</span>
           <mat-icon class="w-4! h-4! text-base! textMuted" fontIcon="chevron_right" />
         }
-        @if (taskInfo) {
+        @if (taskInfo()) {
           <mat-icon
             class="w-4! h-4! text-base! text-green-600 dark:text-green-400"
             fontIcon="task"
           />
-          <span class="text-green-600 dark:text-green-400 font-medium">{{ taskInfo.title }}</span>
+          <span class="text-green-600 dark:text-green-400 font-medium">{{
+            taskInfo()?.title
+          }}</span>
         }
       </div>
     </div>
@@ -119,7 +123,7 @@
       </div>
     </div>
 
-    @if (isEdit) {
+    @if (isEdit()) {
       <div
         class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
       >
@@ -168,15 +172,15 @@
 
     <div class="flex justify-end gap-3 pt-6">
       <button type="button" class="styleButDanger" (click)="back()">Cancel</button>
-      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting">
-        @if (isSubmitting) {
+      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
+        @if (isSubmitting()) {
           <div
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
-        {{ isEdit ? "Update" : "Create" }}
+        {{ isEdit() ? "Update" : "Create" }}
       </button>
     </div>
   </form>

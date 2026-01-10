@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -35,7 +35,7 @@ export class StatsView implements OnInit {
     private statisticsService: StatisticsService
   ) {}
 
-  selectedTimeRange: string = "week";
+  selectedTimeRange = signal<string>("week");
 
   timeRanges = [
     { key: "day", label: "This Day" },
@@ -45,7 +45,7 @@ export class StatsView implements OnInit {
     { key: "year", label: "This Year" },
   ];
 
-  statistics: Statistics = {
+  statistics = signal<Statistics>({
     totalTasks: 0,
     completionRate: 0,
     averageTaskTime: 0,
@@ -54,15 +54,15 @@ export class StatsView implements OnInit {
     previousCompletionRate: 0,
     previousAverageTime: 0,
     previousProductivityScore: 0,
-  };
+  });
 
-  chartData: ChartData = {
+  chartData = signal<ChartData>({
     completionTrend: [],
     categories: [],
     dailyActivity: [],
-  };
+  });
 
-  achievements: Achievement[] = [
+  achievements = signal<Achievement[]>([
     // {
     //   title: "10 Day Streak",
     //   description: "Completed tasks for 10 consecutive days",
@@ -84,9 +84,9 @@ export class StatsView implements OnInit {
     //   color: "#10B981",
     //   date: "2 weeks ago",
     // },
-  ];
+  ]);
 
-  detailedMetrics: DetailedMetric[] = [];
+  detailedMetrics = signal<DetailedMetric[]>([]);
 
   ngOnInit(): void {
     this.loadStatistics();
@@ -97,13 +97,13 @@ export class StatsView implements OnInit {
 
     if (userId && userId !== "") {
       await this.statisticsService
-        .getStatistics(userId, this.selectedTimeRange)
+        .getStatistics(userId, this.selectedTimeRange())
         .then((response: Response<StatisticsResponse>) => {
           if (response.status == ResponseStatus.SUCCESS) {
-            this.statistics = response.data.statistics;
-            this.chartData = response.data.chartData;
-            this.achievements = response.data.achievements;
-            this.detailedMetrics = response.data.detailedMetrics;
+            this.statistics.set(response.data.statistics);
+            this.chartData.set(response.data.chartData);
+            this.achievements.set(response.data.achievements);
+            this.detailedMetrics.set(response.data.detailedMetrics);
           }
         })
         .catch((err: Response<string>) => {
@@ -118,7 +118,7 @@ export class StatsView implements OnInit {
   }
 
   changeTimeRange(range: string): void {
-    this.selectedTimeRange = range;
+    this.selectedTimeRange.set(range);
     this.loadStatistics();
   }
 }

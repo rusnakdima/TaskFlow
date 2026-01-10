@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
@@ -42,15 +42,15 @@ export class TodosView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  listTodos: Array<Todo> = [];
-  tempListTodos: Array<Todo> = [];
+  listTodos = signal<Array<Todo>>([]);
+  tempListTodos = signal<Array<Todo>>([]);
 
   private isUpdatingOrder: boolean = false;
 
-  activeFilter: string = "all";
-  showFilter: boolean = false;
+  activeFilter = signal("all");
+  showFilter = signal(false);
 
-  userId: string = "";
+  userId = signal("");
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -60,17 +60,17 @@ export class TodosView implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
+    this.userId.set(this.authService.getValueByKey("id"));
     this.loadTodos();
   }
 
   loadTodos(): void {
-    if (this.userId && this.userId != "") {
+    if (this.userId() && this.userId() != "") {
       this.mainService
-        .getAllByField<Array<Todo>>("todo", "userId", this.userId)
+        .getAllByField<Array<Todo>>("todo", "userId", this.userId())
         .then((response: Response<Array<Todo>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.tempListTodos = response.data;
+            this.tempListTodos.set(response.data);
             this.applyFilter();
           } else {
             this.notifyService.showError(response.message);
@@ -83,22 +83,22 @@ export class TodosView implements OnInit {
   }
 
   searchFunc(data: Array<any>) {
-    this.listTodos = data;
+    this.listTodos.set(data);
   }
 
   toggleFilter() {
-    this.showFilter = !this.showFilter;
+    this.showFilter.update((val) => !val);
   }
 
   changeFilter(filter: string): void {
-    this.activeFilter = filter;
+    this.activeFilter.set(filter);
     this.applyFilter();
   }
 
   applyFilter(): void {
-    let filtered = [...this.tempListTodos];
+    let filtered = [...this.tempListTodos()];
 
-    switch (this.activeFilter) {
+    switch (this.activeFilter()) {
       case "active":
         filtered = filtered.filter((todo) => !this.isCompleted(todo));
         break;
@@ -129,17 +129,17 @@ export class TodosView implements OnInit {
         break;
     }
 
-    this.listTodos = filtered;
+    this.listTodos.set(filtered);
   }
 
   getFilteredCount(filter: string): number {
     switch (filter) {
       case "all":
-        return this.tempListTodos.length;
+        return this.tempListTodos().length;
       case "active":
-        return this.tempListTodos.filter((todo) => !this.isCompleted(todo)).length;
+        return this.tempListTodos().filter((todo) => !this.isCompleted(todo)).length;
       case "completed":
-        return this.tempListTodos.filter((todo) => this.isCompleted(todo)).length;
+        return this.tempListTodos().filter((todo) => this.isCompleted(todo)).length;
       case "week":
         const todayForWeek = new Date();
         const dayOfWeek = todayForWeek.getDay();
@@ -151,7 +151,7 @@ export class TodosView implements OnInit {
         endDateOfWeek.setDate(startDateOfWeek.getDate() + 6);
         endDateOfWeek.setHours(23, 59, 59, 999);
 
-        return this.tempListTodos.filter((todo) => {
+        return this.tempListTodos().filter((todo) => {
           if (todo.startDate && todo.endDate) {
             const todoStartDate = new Date(todo.startDate);
             const todoEndDate = new Date(todo.endDate);
@@ -192,18 +192,18 @@ export class TodosView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listTodos, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.listTodos(), event.previousIndex, event.currentIndex);
     this.updateTodoOrder();
   }
 
   updateTodoOrder(): void {
     this.isUpdatingOrder = true;
 
-    this.listTodos.forEach((todo, index) => {
+    this.listTodos().forEach((todo, index) => {
       todo.order = index;
     });
 
-    const transformedTodos = this.listTodos.map((todo) => ({
+    const transformedTodos = this.listTodos().map((todo) => ({
       _id: todo._id,
       id: todo.id,
       userId: todo.userId || "",
