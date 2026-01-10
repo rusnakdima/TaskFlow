@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -43,30 +43,34 @@ export class CalendarView implements OnInit {
     private router: Router
   ) {}
 
-  selectedDate: Date = new Date();
-  currentMonth: Date = new Date();
-  events: CalendarEvent[] = [];
-  filteredEvents: CalendarEvent[] = [];
+  selectedDate = signal<Date>(new Date());
+  currentMonth = signal<Date>(new Date());
+  events = signal<CalendarEvent[]>([]);
+  filteredEvents = signal<CalendarEvent[]>([]);
 
-  viewMode: "month" | "week" | "day" = "month";
+  viewMode = signal<"month" | "week" | "day">("month");
 
-  calendarDays: Array<{
-    date: Date;
-    isCurrentMonth: boolean;
-    isToday: boolean;
-    isSelected: boolean;
-    events: CalendarEvent[];
-  }> = [];
+  calendarDays = signal<
+    Array<{
+      date: Date;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      events: CalendarEvent[];
+    }>
+  >([]);
 
-  weekDays: Array<{
-    date: Date;
-    isCurrentMonth: boolean;
-    isToday: boolean;
-    isSelected: boolean;
-    events: CalendarEvent[];
-  }> = [];
+  weekDays = signal<
+    Array<{
+      date: Date;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      events: CalendarEvent[];
+    }>
+  >([]);
 
-  dayEvents: CalendarEvent[] = [];
+  dayEvents = signal<CalendarEvent[]>([]);
 
   ngOnInit(): void {
     this.loadCalendarData();
@@ -106,11 +110,11 @@ export class CalendarView implements OnInit {
   }
 
   processCalendarEvents(tasks: Array<Task>): void {
-    this.events = [];
+    const newEvents: CalendarEvent[] = [];
 
     tasks.forEach((task) => {
       if (task.startDate) {
-        this.events.push({
+        newEvents.push({
           id: task.id!,
           title: `Start: ${task.title}`,
           date: new Date(task.startDate),
@@ -122,7 +126,7 @@ export class CalendarView implements OnInit {
       }
 
       if (task.endDate) {
-        this.events.push({
+        newEvents.push({
           id: task.id!,
           title:
             task.status === TaskStatus.COMPLETED
@@ -148,83 +152,103 @@ export class CalendarView implements OnInit {
       }
     });
 
+    this.events.set(newEvents);
+
     this.filterEventsForSelectedDate();
-    if (this.viewMode === "month") {
+    if (this.viewMode() === "month") {
       this.generateCalendarDays();
-    } else if (this.viewMode === "week") {
+    } else if (this.viewMode() === "week") {
       this.generateWeekDays();
-    } else if (this.viewMode === "day") {
+    } else if (this.viewMode() === "day") {
       this.generateDayView();
     }
   }
 
   generateCalendarDays(): void {
-    const year = this.currentMonth.getFullYear();
-    const month = this.currentMonth.getMonth();
+    const year = this.currentMonth().getFullYear();
+    const month = this.currentMonth().getMonth();
 
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-    this.calendarDays = [];
+    const newCalendarDays: Array<{
+      date: Date;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      events: CalendarEvent[];
+    }> = [];
 
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
 
-      const dayEvents = this.events.filter((event) => this.isSameDay(event.date, date));
+      const dayEvents = this.events().filter((event) => this.isSameDay(event.date, date));
 
-      this.calendarDays.push({
+      newCalendarDays.push({
         date: new Date(date),
         isCurrentMonth: date.getMonth() === month,
         isToday: this.isSameDay(date, new Date()),
-        isSelected: this.isSameDay(date, this.selectedDate),
+        isSelected: this.isSameDay(date, this.selectedDate()),
         events: dayEvents,
       });
     }
+
+    this.calendarDays.set(newCalendarDays);
   }
 
   generateWeekDays(): void {
-    const startOfWeek = new Date(this.selectedDate);
-    startOfWeek.setDate(this.selectedDate.getDate() - this.selectedDate.getDay());
+    const startOfWeek = new Date(this.selectedDate());
+    startOfWeek.setDate(this.selectedDate().getDate() - this.selectedDate().getDay());
 
-    this.weekDays = [];
+    const newWeekDays: Array<{
+      date: Date;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      events: CalendarEvent[];
+    }> = [];
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
 
-      const dayEvents = this.events.filter((event) => this.isSameDay(event.date, date));
+      const dayEvents = this.events().filter((event) => this.isSameDay(event.date, date));
 
-      this.weekDays.push({
+      newWeekDays.push({
         date: new Date(date),
-        isCurrentMonth: date.getMonth() === this.currentMonth.getMonth(),
+        isCurrentMonth: date.getMonth() === this.currentMonth().getMonth(),
         isToday: this.isSameDay(date, new Date()),
-        isSelected: this.isSameDay(date, this.selectedDate),
+        isSelected: this.isSameDay(date, this.selectedDate()),
         events: dayEvents,
       });
     }
+
+    this.weekDays.set(newWeekDays);
   }
 
   generateDayView(): void {
-    this.dayEvents = this.events.filter((event) => this.isSameDay(event.date, this.selectedDate));
+    this.dayEvents.set(
+      this.events().filter((event) => this.isSameDay(event.date, this.selectedDate()))
+    );
   }
 
   selectDate(date: Date): void {
-    this.selectedDate = new Date(date);
+    this.selectedDate.set(new Date(date));
     this.filterEventsForSelectedDate();
-    if (this.viewMode === "month") {
+    if (this.viewMode() === "month") {
       this.generateCalendarDays();
-    } else if (this.viewMode === "week") {
+    } else if (this.viewMode() === "week") {
       this.generateWeekDays();
-    } else if (this.viewMode === "day") {
+    } else if (this.viewMode() === "day") {
       this.generateDayView();
     }
   }
 
   filterEventsForSelectedDate(): void {
-    this.filteredEvents = this.events.filter((event) =>
-      this.isSameDay(event.date, this.selectedDate)
+    this.filteredEvents.set(
+      this.events().filter((event) => this.isSameDay(event.date, this.selectedDate()))
     );
   }
 
@@ -233,64 +257,72 @@ export class CalendarView implements OnInit {
   }
 
   previous(): void {
-    if (this.viewMode === "month") {
-      this.currentMonth = new Date(
-        this.currentMonth.getFullYear(),
-        this.currentMonth.getMonth() - 1,
-        1
+    if (this.viewMode() === "month") {
+      this.currentMonth.set(
+        new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1)
       );
       this.generateCalendarDays();
-    } else if (this.viewMode === "week") {
-      this.selectedDate.setDate(this.selectedDate.getDate() - 7);
+    } else if (this.viewMode() === "week") {
+      this.selectedDate.update((date) => {
+        date.setDate(date.getDate() - 7);
+        return date;
+      });
       this.generateWeekDays();
-    } else if (this.viewMode === "day") {
-      this.selectedDate.setDate(this.selectedDate.getDate() - 1);
+    } else if (this.viewMode() === "day") {
+      this.selectedDate.update((date) => {
+        date.setDate(date.getDate() - 1);
+        return date;
+      });
       this.generateDayView();
     }
     this.filterEventsForSelectedDate();
   }
 
   next(): void {
-    if (this.viewMode === "month") {
-      this.currentMonth = new Date(
-        this.currentMonth.getFullYear(),
-        this.currentMonth.getMonth() + 1,
-        1
+    if (this.viewMode() === "month") {
+      this.currentMonth.set(
+        new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1)
       );
       this.generateCalendarDays();
-    } else if (this.viewMode === "week") {
-      this.selectedDate.setDate(this.selectedDate.getDate() + 7);
+    } else if (this.viewMode() === "week") {
+      this.selectedDate.update((date) => {
+        date.setDate(date.getDate() + 7);
+        return date;
+      });
       this.generateWeekDays();
-    } else if (this.viewMode === "day") {
-      this.selectedDate.setDate(this.selectedDate.getDate() + 1);
+    } else if (this.viewMode() === "day") {
+      this.selectedDate.update((date) => {
+        date.setDate(date.getDate() + 1);
+        return date;
+      });
       this.generateDayView();
     }
     this.filterEventsForSelectedDate();
   }
 
   goToToday(): void {
-    this.currentMonth = new Date();
-    this.selectedDate = new Date();
-    if (this.viewMode === "month") {
+    this.currentMonth.set(new Date());
+    this.selectedDate.set(new Date());
+    if (this.viewMode() === "month") {
       this.generateCalendarDays();
-    } else if (this.viewMode === "week") {
+    } else if (this.viewMode() === "week") {
       this.generateWeekDays();
-    } else if (this.viewMode === "day") {
+    } else if (this.viewMode() === "day") {
       this.generateDayView();
     }
     this.filterEventsForSelectedDate();
   }
 
   formatMonthYear(): string {
-    return this.currentMonth.toLocaleDateString("en-US", {
+    return this.currentMonth().toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
   }
 
   formatWeekRange(): string {
-    const startOfWeek = new Date(this.selectedDate);
-    startOfWeek.setDate(this.selectedDate.getDate() - this.selectedDate.getDay());
+    const startOfWeek = new Date(this.selectedDate());
+    startOfWeek.setDate(this.selectedDate().getDate() - this.selectedDate().getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
 
@@ -306,7 +338,7 @@ export class CalendarView implements OnInit {
   }
 
   formatSelectedDate(): string {
-    return this.selectedDate.toLocaleDateString("en-US", {
+    return this.selectedDate().toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -315,11 +347,11 @@ export class CalendarView implements OnInit {
   }
 
   getCurrentTitle(): string {
-    if (this.viewMode === "month") {
+    if (this.viewMode() === "month") {
       return this.formatMonthYear();
-    } else if (this.viewMode === "week") {
+    } else if (this.viewMode() === "week") {
       return this.formatWeekRange();
-    } else if (this.viewMode === "day") {
+    } else if (this.viewMode() === "day") {
       return this.formatSelectedDate();
     }
     return "";
@@ -334,7 +366,7 @@ export class CalendarView implements OnInit {
   }
 
   changeViewMode(mode: "month" | "week" | "day"): void {
-    this.viewMode = mode;
+    this.viewMode.set(mode);
     if (mode === "month") {
       this.generateCalendarDays();
     } else if (mode === "week") {
@@ -366,8 +398,9 @@ export class CalendarView implements OnInit {
         events: CalendarEvent[];
       }>
     > = [];
-    for (let i = 0; i < this.calendarDays.length; i += 7) {
-      weeks.push(this.calendarDays.slice(i, i + 7));
+    const calendarDays = this.calendarDays();
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      weeks.push(calendarDays.slice(i, i + 7));
     }
     return weeks;
   }

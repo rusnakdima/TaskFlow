@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
@@ -44,18 +44,18 @@ export class SubtasksView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  listSubtasks: Array<Subtask> = [];
-  tempListSubtasks: Array<Subtask> = [];
+  listSubtasks = signal<Array<Subtask>>([]);
+  tempListSubtasks = signal<Array<Subtask>>([]);
 
-  todoId: string = "";
-  todo: Todo | null = null;
-  task: Task | null = null;
-  projectTitle: string = "";
+  todoId = signal("");
+  todo = signal<Todo | null>(null);
+  task = signal<Task | null>(null);
+  projectTitle = signal("");
 
   private isUpdatingOrder: boolean = false;
 
-  activeFilter: string = "all";
-  showFilter: boolean = false;
+  activeFilter = signal("all");
+  showFilter = signal(false);
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -70,8 +70,8 @@ export class SubtasksView implements OnInit {
   ngOnInit(): void {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
-        this.todoId = params.todoId;
-        this.getTodoInfo(this.todoId);
+        this.todoId.set(params.todoId);
+        this.getTodoInfo(this.todoId());
       }
       if (params.taskId) {
         this.getTaskInfo(params.taskId);
@@ -85,8 +85,8 @@ export class SubtasksView implements OnInit {
       .getByField<Todo>("todo", "id", id)
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.todo = response.data;
-          this.projectTitle = this.todo?.title ?? "";
+          this.todo.set(response.data);
+          this.projectTitle.set(this.todo()?.title ?? "");
         } else {
           this.notifyService.showNotify(response.status, response.message);
         }
@@ -101,7 +101,7 @@ export class SubtasksView implements OnInit {
       .getByField<Task>("task", "id", id)
       .then((response: Response<Task>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.task = response.data;
+          this.task.set(response.data);
         } else {
           this.notifyService.showNotify(response.status, response.message);
         }
@@ -116,7 +116,7 @@ export class SubtasksView implements OnInit {
       .getAllByField<Array<Subtask>>("subtask", "taskId", taskId)
       .then((response: Response<Array<Subtask>>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.tempListSubtasks = response.data;
+          this.tempListSubtasks.set(response.data);
           this.applyFilter();
         } else {
           this.notifyService.showError(response.message);
@@ -137,22 +137,22 @@ export class SubtasksView implements OnInit {
         return -1;
       }
     });
-    this.listSubtasks = sortedData;
+    this.listSubtasks.set(sortedData);
   }
 
   toggleFilter() {
-    this.showFilter = !this.showFilter;
+    this.showFilter.update((val) => !val);
   }
 
   changeFilter(filter: string) {
-    this.activeFilter = filter;
+    this.activeFilter.set(filter);
     this.applyFilter();
   }
 
   applyFilter() {
-    let filtered = [...this.tempListSubtasks];
+    let filtered = [...this.tempListSubtasks()];
 
-    switch (this.activeFilter) {
+    switch (this.activeFilter()) {
       case "active":
         filtered = filtered.filter((subtask) => subtask.status === TaskStatus.PENDING);
         break;
@@ -188,7 +188,7 @@ export class SubtasksView implements OnInit {
       }
     });
 
-    this.listSubtasks = filtered;
+    this.listSubtasks.set(filtered);
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
@@ -222,11 +222,13 @@ export class SubtasksView implements OnInit {
         if (response.status === ResponseStatus.SUCCESS) {
           subtask.status = newStatus;
 
-          const index = this.tempListSubtasks.findIndex((s) => s.id === subtask.id);
+          const index = this.tempListSubtasks().findIndex((s) => s.id === subtask.id);
           if (index !== -1) {
-            this.tempListSubtasks[index] = { ...subtask };
-
-            this.tempListSubtasks = [...this.tempListSubtasks];
+            this.tempListSubtasks.update((arr) => {
+              const newArr = [...arr];
+              newArr[index] = { ...subtask };
+              return newArr;
+            });
           }
 
           this.applyFilter();
@@ -283,7 +285,7 @@ export class SubtasksView implements OnInit {
       .then((response: Response<string>) => {
         this.notifyService.showNotify(response.status, response.message);
         if (response.status === ResponseStatus.SUCCESS) {
-          this.getSubtasksByTaskId(this.task?.id ?? "");
+          this.getSubtasksByTaskId(this.task()?.id ?? "");
         }
       })
       .catch((err: Response<string>) => {
@@ -297,18 +299,18 @@ export class SubtasksView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listSubtasks, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.listSubtasks(), event.previousIndex, event.currentIndex);
     this.updateSubtaskOrder();
   }
 
   updateSubtaskOrder(): void {
     this.isUpdatingOrder = true;
 
-    this.listSubtasks.forEach((subtask, index) => {
+    this.listSubtasks().forEach((subtask, index) => {
       subtask.order = index;
     });
 
-    const transformedSubtasks = this.listSubtasks.map((subtask) => ({
+    const transformedSubtasks = this.listSubtasks().map((subtask) => ({
       _id: subtask._id,
       id: subtask.id,
       taskId: subtask.taskId || "",
@@ -331,13 +333,13 @@ export class SubtasksView implements OnInit {
             "Subtask order updated successfully"
           );
         } else {
-          this.getSubtasksByTaskId(this.task?.id ?? "");
+          this.getSubtasksByTaskId(this.task()?.id ?? "");
           this.notifyService.showError("Failed to update subtask order");
         }
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError("Failed to update subtask order");
-        this.getSubtasksByTaskId(this.task?.id ?? "");
+        this.getSubtasksByTaskId(this.task()?.id ?? "");
         console.error(err);
       })
       .finally(() => {

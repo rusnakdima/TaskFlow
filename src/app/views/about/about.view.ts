@@ -36,11 +36,11 @@ export class AboutView {
   companyName: string = environment.companyName;
   authors: Array<Author> = environment.authors;
   gitRepoName: string = environment.gitRepoName;
-  dateVersion: string = localStorage["dateVersion"] || "Unknown";
-  dateCheck: string = localStorage["dateCheck"] || "Unknown";
+  dateVersion = signal(localStorage["dateVersion"] || "Unknown");
+  dateCheck = signal(localStorage["dateCheck"] || "Unknown");
 
-  nameFile: string = "";
-  lastVersion: string = "";
+  nameFile = signal("");
+  lastVersion = signal("");
   pathUpdate = signal<string>("");
 
   windUpdates = signal<boolean>(false);
@@ -80,7 +80,7 @@ export class AboutView {
       next: (res: any) => {
         if (res && res.published_at) {
           localStorage["dateVersion"] = String(this.formatDate(res.published_at));
-          this.dateVersion = String(this.formatDate(res.published_at));
+          this.dateVersion.set(String(this.formatDate(res.published_at)));
         } else {
           throw Error("Invalid request");
         }
@@ -94,7 +94,7 @@ export class AboutView {
 
   checkUpdate() {
     localStorage["dateCheck"] = String(this.formatDate(new Date().toUTCString()));
-    this.dateCheck = localStorage["dateCheck"];
+    this.dateCheck.set(localStorage["dateCheck"]);
 
     this.aboutService.checkUpdate().subscribe({
       next: (res: any) => {
@@ -104,12 +104,12 @@ export class AboutView {
             if (this.matchVersion(lastVer)) {
               this.notifyService.showWarning("A new version is available!");
               this.windUpdates.set(true);
-              this.lastVersion = lastVer;
+              this.lastVersion.set(lastVer);
               this.aboutService
-                .getBinaryNameFile<string>(this.lastVersion)
+                .getBinaryNameFile<string>(this.lastVersion())
                 .then((res) => {
                   if (res.status == ResponseStatus.SUCCESS) {
-                    this.nameFile = res.data;
+                    this.nameFile.set(res.data);
                   } else {
                     this.notifyService.showNotify(res.status, res.message);
                     this.windUpdates.set(false);
@@ -135,7 +135,7 @@ export class AboutView {
   }
 
   async downloadFile() {
-    if (this.nameFile != "") {
+    if (this.nameFile() != "") {
       this.downloadProgress.set(true);
       this.downloadProgressValue.set(0);
 
@@ -149,8 +149,8 @@ export class AboutView {
 
       try {
         const data: Response<string> = await this.aboutService.downloadUpdate<string>(
-          this.lastVersion,
-          this.nameFile
+          this.lastVersion(),
+          this.nameFile()
         );
         if (data.status == ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess(

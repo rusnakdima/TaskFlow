@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -51,9 +51,9 @@ export class SignupView {
     });
   }
 
-  isShowPassword: boolean = false;
-  isShowConfirmPassword: boolean = false;
-  submitted: boolean = false;
+  isShowPassword = signal(false);
+  isShowConfirmPassword = signal(false);
+  submitted = signal(false);
 
   ngOnInit() {
     document.addEventListener("keydown", (e) => {
@@ -68,7 +68,7 @@ export class SignupView {
   }
 
   isInvalid(attr: string) {
-    return (this.submitted || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
+    return (this.submitted() || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
 
   checkPasswords(): ValidatorFn {
@@ -95,7 +95,7 @@ export class SignupView {
   }
 
   async send() {
-    this.submitted = true;
+    this.submitted.set(true);
 
     if (this.regForm.invalid) {
       Object.values(this.regForm.controls).forEach((control) => {
@@ -118,11 +118,11 @@ export class SignupView {
               this.router.navigate(["/login"]);
             }, 500);
           }
-          this.submitted = false;
+          this.submitted.set(false);
         })
         .catch((err: any) => {
           this.notifyService.showError(err.message ?? err.toString());
-          this.submitted = false;
+          this.submitted.set(false);
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");

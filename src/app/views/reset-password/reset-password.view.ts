@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -31,8 +31,8 @@ import { Response, ResponseStatus } from "@models/response.model";
 })
 export class ResetPasswordView {
   resetForm: FormGroup;
-  step: "email" | "code" = "email";
-  userEmail: string = "";
+  step = signal<"email" | "code">("email");
+  userEmail = signal("");
 
   constructor(
     private fb: FormBuilder,
@@ -81,14 +81,14 @@ export class ResetPasswordView {
     }
 
     const email = this.resetForm.controls["email"].value;
-    this.userEmail = email;
+    this.userEmail.set(email);
 
     this.authService
       .requestPasswordReset<string>(email)
       .then((response: Response<string>) => {
         this.notifyService.showNotify(response.status, response.message);
         if (response.status == ResponseStatus.SUCCESS) {
-          this.step = "code";
+          this.step.set("code");
           this.notifyService.showNotify(
             ResponseStatus.SUCCESS,
             "Check your email for the verification code"
@@ -118,11 +118,11 @@ export class ResetPasswordView {
     const code = this.resetForm.controls["code"].value;
 
     this.authService
-      .verifyCode<string>(email, code)
+      .verifyCode<string>(email(), code)
       .then((response: Response<string>) => {
         this.notifyService.showNotify(response.status, response.message);
         if (response.status == ResponseStatus.SUCCESS) {
-          sessionStorage.setItem("resetPasswordEmail", email);
+          sessionStorage.setItem("resetPasswordEmail", email());
           sessionStorage.setItem("resetPasswordCode", code);
 
           window.location.href = "/change-password";
@@ -134,14 +134,14 @@ export class ResetPasswordView {
   }
 
   skipToCode() {
-    this.step = "code";
-    if (!this.userEmail && this.resetForm.controls["email"].value) {
-      this.userEmail = this.resetForm.controls["email"].value;
+    this.step.set("code");
+    if (!this.userEmail() && this.resetForm.controls["email"].value) {
+      this.userEmail.set(this.resetForm.controls["email"].value);
     }
   }
 
   backToEmail() {
-    this.step = "email";
+    this.step.set("email");
     this.resetForm.controls["code"].setValue("");
     this.resetForm.controls["code"].markAsUntouched();
   }

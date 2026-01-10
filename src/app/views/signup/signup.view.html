@@ -37,21 +37,21 @@
         <div class="relative flex flex-row items-center">
           <input
             class="styleField bg-transparent! w-full"
-            [type]="isShowPassword ? 'text' : 'password'"
+            [type]="isShowPassword() ? 'text' : 'password'"
             formControlName="password"
           />
           <button class="absolute right-1 h-7.5!">
-            @if (isShowPassword) {
+            @if (isShowPassword()) {
               <mat-icon
                 class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility_off"
-                (click)="isShowPassword = false"
+                (click)="isShowPassword.set(false)"
               />
             } @else {
               <mat-icon
                 class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility"
-                (click)="isShowPassword = true"
+                (click)="isShowPassword.set(true)"
               />
             }
           </button>
@@ -72,21 +72,21 @@
         <div class="relative flex flex-row items-center">
           <input
             class="styleField bg-transparent! w-full"
-            [type]="isShowConfirmPassword ? 'text' : 'password'"
+            [type]="isShowConfirmPassword() ? 'text' : 'password'"
             formControlName="confirm_password"
           />
           <button class="absolute right-1 h-7.5!">
-            @if (isShowConfirmPassword) {
+            @if (isShowConfirmPassword()) {
               <mat-icon
                 class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility_off"
-                (click)="isShowConfirmPassword = false"
+                (click)="isShowConfirmPassword.set(false)"
               />
             } @else {
               <mat-icon
                 class="w-7.5! h-full! text-3xl! text-red-500!"
                 fontIcon="visibility"
-                (click)="isShowConfirmPassword = true"
+                (click)="isShowConfirmPassword.set(true)"
               />
             }
           </button>
@@ -105,8 +105,8 @@
         }
       </div>
 
-      <button class="styleButInfo" (click)="submitted == false && send()">
-        @if (submitted) {
+      <button class="styleButInfo" (click)="submitted() == false && send()">
+        @if (submitted()) {
           <span>...Loading</span>
         } @else {
           <span>Register</span>

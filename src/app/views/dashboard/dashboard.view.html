@@ -2,7 +2,7 @@
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold textNormal">
-        Welcome back, {{ profile?.name }} {{ profile?.lastName }}!
+        Welcome back, {{ profile()?.name }} {{ profile()?.lastName }}!
       </h1>
       <p class="textMuted mt-1">Here's what's happening with your tasks today.</p>
     </div>
@@ -22,7 +22,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-blue-100 text-sm">Total Tasks</p>
-          <p class="text-2xl font-bold">{{ totalTasks }}</p>
+          <p class="text-2xl font-bold">{{ totalTasks() }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
           <mat-icon class="w-6! h-6! text-2xl!" fontIcon="assignment" />
@@ -37,7 +37,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-green-100 text-sm">Completed</p>
-          <p class="text-2xl font-bold">{{ completedTasks }}</p>
+          <p class="text-2xl font-bold">{{ completedTasks() }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
           <mat-icon class="w-6! h-6! text-2xl!" fontIcon="task_alt" />
@@ -52,7 +52,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-orange-100 text-sm">In Progress</p>
-          <p class="text-2xl font-bold">{{ inProgressTasks }}</p>
+          <p class="text-2xl font-bold">{{ inProgressTasks() }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
           <mat-icon class="w-6! h-6! text-2xl!" fontIcon="pending" />
@@ -67,7 +67,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-red-100 text-sm">Overdue</p>
-          <p class="text-2xl font-bold">{{ overdueTasks }}</p>
+          <p class="text-2xl font-bold">{{ overdueTasks() }}</p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
           <mat-icon class="w-6! h-6! text-2xl!" fontIcon="warning" />
@@ -108,7 +108,7 @@
       <div class="mt-6">
         <h4 class="text-sm font-medium textMuted mb-3">Recent Activity</h4>
         <div class="space-y-3">
-          @for (activity of recentActivities; track $index) {
+          @for (activity of recentActivities(); track $index) {
             <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
               <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span class="text-sm textNormal">{{ activity }}</span>
@@ -167,13 +167,13 @@
     </div>
 
     <div class="space-y-3">
-      @if (filteredTasks.length === 0) {
+      @if (filteredTasks().length === 0) {
         <div class="text-center py-8">
           <mat-icon class="w-9! h-9! text-4xl! textMuted" fontIcon="assignment" />
           <p class="textMuted mt-2">No tasks found</p>
         </div>
       } @else {
-        @for (task of filteredTasks; track $index) {
+        @for (task of filteredTasks(); track $index) {
           <div
             class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-zinc-700 rounded-lg border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow cursor-pointer"
             (click)="navigateToTasks(task)"

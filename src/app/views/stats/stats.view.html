@@ -10,7 +10,7 @@
         <button
           class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
           [ngClass]="
-            selectedTimeRange === range.key
+            selectedTimeRange() === range.key
               ? 'bg-blue-500 text-white'
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
           "
@@ -29,10 +29,10 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-blue-100 text-sm">Total Tasks</p>
-          <p class="text-2xl font-bold">{{ statistics.totalTasks }}</p>
+          <p class="text-2xl font-bold">{{ statistics().totalTasks }}</p>
           <p class="text-blue-200 text-xs mt-1">
-            {{ getPercentageChange(statistics.totalTasks, statistics.previousTotalTasks) }}% from
-            last period
+            {{ getPercentageChange(statistics().totalTasks, statistics().previousTotalTasks) }}%
+            from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
@@ -47,10 +47,11 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-green-100 text-sm">Completion Rate</p>
-          <p class="text-2xl font-bold">{{ statistics.completionRate }}%</p>
+          <p class="text-2xl font-bold">{{ statistics().completionRate }}%</p>
           <p class="text-blue-200 text-xs mt-1">
-            {{ getPercentageChange(statistics.completionRate, statistics.previousCompletionRate) }}%
-            from last period
+            {{
+              getPercentageChange(statistics().completionRate, statistics().previousCompletionRate)
+            }}% from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
@@ -65,10 +66,11 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-purple-100 text-sm">Avg. Task Time</p>
-          <p class="text-2xl font-bold">{{ statistics.averageTaskTime }}h</p>
+          <p class="text-2xl font-bold">{{ statistics().averageTaskTime }}h</p>
           <p class="text-purple-200 text-xs mt-1">
-            {{ getPercentageChange(statistics.averageTaskTime, statistics.previousAverageTime) }}%
-            from last period
+            {{
+              getPercentageChange(statistics().averageTaskTime, statistics().previousAverageTime)
+            }}% from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
@@ -83,12 +85,12 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-orange-100 text-sm">Productivity Score</p>
-          <p class="text-2xl font-bold">{{ statistics.productivityScore }}</p>
+          <p class="text-2xl font-bold">{{ statistics().productivityScore }}</p>
           <p class="text-orange-200 text-xs mt-1">
             {{
               getPercentageChange(
-                statistics.productivityScore,
-                statistics.previousProductivityScore
+                statistics().productivityScore,
+                statistics().previousProductivityScore
               )
             }}% from last period
           </p>
@@ -110,7 +112,7 @@
       </div>
 
       <div class="space-y-4">
-        @for (data of chartData.completionTrend; track $index) {
+        @for (data of chartData().completionTrend; track $index) {
           <div class="flex items-center justify-between">
             <span class="text-sm textMuted">{{ data.label }}</span>
             <div class="flex items-center gap-2 flex-1 max-w-xs">
@@ -136,7 +138,7 @@
       </div>
 
       <div class="space-y-4 max-h-[300px] overflow-y-auto">
-        @for (category of chartData.categories; track $index) {
+        @for (category of chartData().categories; track $index) {
           <div class="flex items-center gap-4">
             <div class="w-4 h-4 rounded-full" [style.background-color]="category.color"></div>
             <div class="flex-1">
@@ -170,7 +172,7 @@
       </div>
 
       <div class="grid grid-cols-7 gap-1">
-        @for (day of chartData.dailyActivity; track $index) {
+        @for (day of chartData().dailyActivity; track $index) {
           <div class="text-center">
             <div class="text-xs textMuted mb-2">{{ day.dayName }}</div>
             <div
@@ -200,7 +202,7 @@
       </div>
 
       <div class="space-y-4">
-        @for (achievement of achievements; track $index) {
+        @for (achievement of achievements(); track $index) {
           <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
             <div
               class="w-10 h-10 rounded-full flex items-center justify-center"
@@ -244,7 +246,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (metric of detailedMetrics; track $index) {
+          @for (metric of detailedMetrics(); track $index) {
             <tr class="border-b border-gray-100 dark:border-zinc-700">
               <td class="py-3 px-4 textNormal">{{ metric.name }}</td>
               <td class="py-3 px-4 textNormal">{{ metric.current }}</td>

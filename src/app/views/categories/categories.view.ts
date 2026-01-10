@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 
@@ -44,26 +44,26 @@ export class CategoriesView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  listCategories: Array<Category> = [];
-  tempListCategories: Array<Category> = [];
+  listCategories = signal<Category[]>([]);
+  tempListCategories = signal<Category[]>([]);
 
-  userId: string = "";
-  showCreateForm: boolean = false;
-  editingCategory: Category | null = null;
+  userId = signal("");
+  showCreateForm = signal(false);
+  editingCategory = signal<Category | null>(null);
 
   ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
+    this.userId.set(this.authService.getValueByKey("id"));
     this.loadCategories();
   }
 
   loadCategories(): void {
-    if (this.userId && this.userId != "") {
+    if (this.userId() && this.userId() != "") {
       this.mainService
-        .getAllByField<Array<Category>>("category", "userId", this.userId)
+        .getAllByField<Array<Category>>("category", "userId", this.userId())
         .then((response: Response<Array<Category>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            this.tempListCategories = response.data;
-            this.listCategories = [...this.tempListCategories];
+            this.tempListCategories.set(response.data);
+            this.listCategories.set([...response.data]);
           } else {
             this.notifyService.showError(response.message);
           }
@@ -75,22 +75,22 @@ export class CategoriesView implements OnInit {
   }
 
   searchFunc(data: Array<any>) {
-    this.listCategories = data;
+    this.listCategories.set(data);
   }
 
   toggleCreateForm() {
-    this.showCreateForm = !this.showCreateForm;
-    this.editingCategory = null;
+    this.showCreateForm.update((val) => !val);
+    this.editingCategory.set(null);
   }
 
   editCategory(category: Category) {
-    this.editingCategory = category;
-    this.showCreateForm = true;
+    this.editingCategory.set(category);
+    this.showCreateForm.set(true);
   }
 
   onFormClose() {
-    this.showCreateForm = false;
-    this.editingCategory = null;
+    this.showCreateForm.set(false);
+    this.editingCategory.set(null);
   }
 
   onFormSaved() {

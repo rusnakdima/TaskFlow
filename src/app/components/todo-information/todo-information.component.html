@@ -4,8 +4,8 @@
   <div
     class="relative bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white"
   >
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div class="flex-1">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+      <div class="flex flex-col sm:flex-1 w-full">
         <div class="flex items-center gap-3 mb-2">
           <mat-icon class="w-6! h-6! text-2xl!" fontIcon="folder" />
           <h1 class="text-2xl font-bold">{{ todo.title }}</h1>
@@ -41,9 +41,23 @@
             <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
           </div>
         </div>
+
+        <!-- Horizontal progress bar for mobile -->
+        <div class="block sm:hidden mt-4">
+          <div class="flex justify-between text-sm text-gray-200 mb-2">
+            <span>Progress</span>
+            <span>{{ getProjectProgress() }}%</span>
+          </div>
+          <div class="w-full bg-white/20 rounded-full h-2">
+            <div
+              class="bg-white h-2 rounded-full transition-all duration-300"
+              [style.width.%]="getProjectProgress()"
+            ></div>
+          </div>
+        </div>
       </div>
 
-      <div class="shrink-0 self-center sm:self-auto">
+      <div class="shrink-0 self-center sm:self-auto hidden sm:block">
         <div class="relative w-32 h-32">
           <app-circle-progress [percentCompletedTasks]="getProjectProgress()" />
         </div>

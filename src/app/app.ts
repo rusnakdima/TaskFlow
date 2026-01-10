@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs";
@@ -12,6 +12,7 @@ import { User } from "@models/user.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { WebSocketService } from "@services/websocket.service";
 
 /* components */
 import { HeaderComponent } from "@components/header/header.component";
@@ -21,7 +22,7 @@ import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component"
 @Component({
   selector: "app-root",
   standalone: true,
-  providers: [AuthService, MainService],
+  providers: [AuthService, MainService, WebSocketService],
   imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent, BottomNavComponent],
   templateUrl: "./app.html",
 })
@@ -30,10 +31,11 @@ export class App {
     private router: Router,
     private authService: AuthService,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private webSocketService: WebSocketService
   ) {}
 
-  url: string = "";
+  url = signal<string>("");
 
   ngOnInit(): void {
     const theme = localStorage.getItem("theme") ?? "";
@@ -59,6 +61,7 @@ export class App {
         .then((response: Response<User>) => {
           if (response.status == ResponseStatus.SUCCESS) {
             this.checkUserProfile();
+            this.webSocketService.joinUserRoom();
           } else {
             this.notifyService.showNotify(response.status, response.message);
           }
@@ -74,7 +77,7 @@ export class App {
         this.router.url.lastIndexOf("?") > -1
           ? this.router.url.lastIndexOf("?")
           : this.router.url.length;
-      this.url = this.router.url.slice(0, lastIndex);
+      this.url.set(this.router.url.slice(0, lastIndex));
     });
   }
 
@@ -111,7 +114,7 @@ export class App {
         "/reset-password",
         "/change-password",
         "/profile/create-profile",
-      ].includes(this.url)
+      ].includes(this.url())
     ) {
       return false;
     } else {

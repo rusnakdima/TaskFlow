@@ -22,23 +22,14 @@
         <div class="relative flex flex-row items-center">
           <input
             class="styleField bg-transparent! w-full"
-            [type]="isShowPassword ? 'text' : 'password'"
+            [type]="isShowPassword() ? 'text' : 'password'"
             formControlName="password"
           />
-          <button class="absolute right-1.5 h-7.5!">
-            @if (isShowPassword) {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility_off"
-                (click)="isShowPassword = false"
-              />
-            } @else {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility"
-                (click)="isShowPassword = true"
-              />
-            }
+          <button class="absolute right-1.5 h-7.5!" (click)="isShowPassword.set(!isShowPassword())">
+            <mat-icon
+              class="w-7.5! h-full! text-3xl! text-red-500!"
+              [fontIcon]="isShowPassword() ? 'visibility_off' : 'visibility'"
+            />
           </button>
         </div>
 
@@ -60,8 +51,8 @@
         <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>
       </div>
 
-      <button class="styleButInfo" (click)="submitted == false && send()">
-        @if (submitted) {
+      <button class="styleButInfo" (click)="submitted() == false && send()">
+        @if (submitted()) {
           <span>...Loading</span>
         } @else {
           <span>Login</span>

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
@@ -47,18 +47,18 @@ export class TasksView implements OnInit {
     private notifyService: NotifyService
   ) {}
 
-  listTasks: Array<Task> = [];
-  tempListTasks: Array<Task> = [];
-  todo: Todo | null = null;
+  listTasks = signal<Task[]>([]);
+  tempListTasks = signal<Task[]>([]);
+  todo = signal<Todo | null>(null);
 
   private isUpdatingOrder: boolean = false;
 
-  activeFilter: string = "all";
-  showFilter: boolean = false;
+  activeFilter = signal("all");
+  showFilter = signal(false);
 
-  editingTask: string | null = null;
-  editingField: string | null = null;
-  editingValue: string = "";
+  editingTask = signal<string | null>(null);
+  editingField = signal<string | null>(null);
+  editingValue = signal("");
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -84,7 +84,7 @@ export class TasksView implements OnInit {
       .getByField<Todo>("todo", "id", id)
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.todo = response.data;
+          this.todo.set(response.data);
         } else {
           this.notifyService.showNotify(response.status, response.message);
         }
@@ -99,7 +99,7 @@ export class TasksView implements OnInit {
       .getAllByField<Array<Task>>("task", "todoId", todoId)
       .then((response: Response<Array<Task>>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.tempListTasks = response.data;
+          this.tempListTasks.set(response.data);
           this.applyFilter();
         } else {
           this.notifyService.showError(response.message);
@@ -120,7 +120,7 @@ export class TasksView implements OnInit {
         return -1;
       }
     });
-    this.listTasks = sortedData;
+    this.listTasks.set(sortedData);
   }
 
   toggleTaskCompletion(task: Task) {
@@ -153,19 +153,20 @@ export class TasksView implements OnInit {
       .then((response: Response<string>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           task.status = newStatus;
-          if (this.todo) {
-            const todoTask = this.todo.tasks.find((t) => t.id === task.id);
+          if (this.todo()) {
+            const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
             if (todoTask) {
               todoTask.status = newStatus;
             }
           }
 
-          const index = this.tempListTasks.findIndex((t) => t.id === task.id);
-          if (index !== -1) {
-            this.tempListTasks[index] = { ...task };
-
-            this.tempListTasks = [...this.tempListTasks];
-          }
+          this.tempListTasks.update((tasks) => {
+            const index = tasks.findIndex((t) => t.id === task.id);
+            if (index !== -1) {
+              tasks[index] = { ...task };
+            }
+            return [...tasks];
+          });
 
           this.applyFilter();
 
@@ -180,18 +181,18 @@ export class TasksView implements OnInit {
   }
 
   toggleFilter() {
-    this.showFilter = !this.showFilter;
+    this.showFilter.update((val) => !val);
   }
 
   changeFilter(filter: string) {
-    this.activeFilter = filter;
+    this.activeFilter.set(filter);
     this.applyFilter();
   }
 
   applyFilter() {
-    let filtered = [...this.tempListTasks];
+    let filtered = [...this.tempListTasks()];
 
-    switch (this.activeFilter) {
+    switch (this.activeFilter()) {
       case "active":
         filtered = filtered.filter((task) => task.status === TaskStatus.PENDING);
         break;
@@ -226,7 +227,7 @@ export class TasksView implements OnInit {
       }
     });
 
-    this.listTasks = filtered;
+    this.listTasks.set(filtered);
   }
 
   updateTaskInline(event: { task: Task; field: string; value: string }) {
@@ -272,9 +273,11 @@ export class TasksView implements OnInit {
         .then((response: Response<string>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status === ResponseStatus.SUCCESS) {
-            this.getTasksByTodoId(this.todo?.id ?? "");
-            if (this.todo) {
-              this.todo.tasks = this.todo.tasks.filter((t) => t.id !== id);
+            this.getTasksByTodoId(this.todo()?.id ?? "");
+            if (this.todo()) {
+              this.todo.update(
+                (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== id) }) as Todo
+              );
             }
           }
         })
@@ -290,18 +293,17 @@ export class TasksView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listTasks, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.listTasks(), event.previousIndex, event.currentIndex);
     this.updateTaskOrder();
   }
 
   updateTaskOrder(): void {
     this.isUpdatingOrder = true;
 
-    this.listTasks.forEach((task, index) => {
-      task.order = index;
-    });
+    const listTasks = this.listTasks();
+    const updatedTasks = listTasks.map((task, index) => ({ ...task, order: index }));
 
-    const transformedTasks = this.listTasks.map((task) => ({
+    const transformedTasks = updatedTasks.map((task) => ({
       _id: task._id,
       id: task.id,
       todoId: task.todoId || "",
@@ -321,15 +323,16 @@ export class TasksView implements OnInit {
       .updateAll<string, any>("task", transformedTasks)
       .then((response: Response<string>) => {
         if (response.status === ResponseStatus.SUCCESS) {
+          this.listTasks.set(updatedTasks);
           this.notifyService.showNotify(ResponseStatus.SUCCESS, "Task order updated successfully");
         } else {
-          this.getTasksByTodoId(this.todo?.id ?? "");
+          this.getTasksByTodoId(this.todo()?.id ?? "");
           this.notifyService.showError("Failed to update task order");
         }
       })
       .catch((err: Response<string>) => {
         this.notifyService.showError("Failed to update task order");
-        this.getTasksByTodoId(this.todo?.id ?? "");
+        this.getTasksByTodoId(this.todo()?.id ?? "");
         console.error(err);
       })
       .finally(() => {

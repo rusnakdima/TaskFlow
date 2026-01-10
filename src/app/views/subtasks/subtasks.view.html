@@ -1,10 +1,10 @@
 <div class="flex flex-col gap-6">
-  @if (task) {
+  @if (task()) {
     <app-task-information
-      [task]="task"
-      [todoId]="todoId"
-      [projectTitle]="projectTitle"
-      [listSubtasks]="tempListSubtasks"
+      [task]="task()!"
+      [todoId]="todoId()"
+      [projectTitle]="projectTitle()"
+      [listSubtasks]="tempListSubtasks()"
     />
   }
 
@@ -29,7 +29,7 @@
     </div>
   </div>
 
-  @if (showFilter) {
+  @if (showFilter()) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
     >
@@ -37,7 +37,7 @@
         <div class="flex-1 max-w-md">
           <app-search
             [isShowSearchField]="true"
-            [tempArray]="tempListSubtasks"
+            [tempArray]="tempListSubtasks()"
             [searchByFields]="['title']"
             (array)="searchFunc($event)"
           />
@@ -48,7 +48,7 @@
             <button
               class="px-3 py-1 text-sm font-medium rounded-full transition-colors"
               [ngClass]="
-                activeFilter === filter.key
+                activeFilter() === filter.key
                   ? 'bg-purple-500 text-white'
                   : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-600'
               "
@@ -62,7 +62,7 @@
     </div>
   }
 
-  @if (listSubtasks.length === 0) {
+  @if (listSubtasks().length === 0) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
@@ -76,7 +76,7 @@
       cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onSubtaskDrop($event)"
     >
-      @for (subtask of listSubtasks; track $index) {
+      @for (subtask of listSubtasks(); track $index) {
         <app-subtask
           [subtask]="subtask"
           [index]="$index"

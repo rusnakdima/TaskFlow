@@ -9,7 +9,7 @@
       <button
         class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
         [ngClass]="
-          viewMode === 'month'
+          viewMode() === 'month'
             ? 'bg-blue-500 text-white'
             : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
         "
@@ -20,7 +20,7 @@
       <button
         class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
         [ngClass]="
-          viewMode === 'week'
+          viewMode() === 'week'
             ? 'bg-blue-500 text-white'
             : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
         "
@@ -31,7 +31,7 @@
       <button
         class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
         [ngClass]="
-          viewMode === 'day'
+          viewMode() === 'day'
             ? 'bg-blue-500 text-white'
             : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
         "
@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      @if (viewMode === "month") {
+      @if (viewMode() === "month") {
         <!-- Mobile layout for screens < 500px -->
         <div class="block sm:hidden space-y-2">
           @for (week of getWeeksForMobile(); track $index) {
@@ -117,7 +117,7 @@
             <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
             <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
 
-            @for (day of calendarDays; track $index) {
+            @for (day of calendarDays(); track $index) {
               <div
                 class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
                 [ngClass]="{
@@ -163,10 +163,10 @@
         </div>
       }
 
-      @if (viewMode === "week") {
+      @if (viewMode() === "week") {
         <!-- Mobile layout for screens < 500px -->
         <div class="block sm:hidden space-y-3">
-          @for (day of weekDays; track day.date.getTime()) {
+          @for (day of weekDays(); track day.date.getTime()) {
             <div
               class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-zinc-600"
               [ngClass]="{
@@ -230,7 +230,7 @@
             <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
             <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
 
-            @for (day of weekDays; track $index) {
+            @for (day of weekDays(); track $index) {
               <div
                 class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
                 [ngClass]="{
@@ -272,7 +272,7 @@
         </div>
       }
 
-      @if (viewMode === "day") {
+      @if (viewMode() === "day") {
         <div class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-6">
           <h4 class="text-lg font-semibold textNormal mb-4">{{ formatSelectedDate() }}</h4>
 
@@ -283,7 +283,7 @@
                 <p class="text-sm textMuted mt-4">No events scheduled for this day</p>
               </div>
             } @else {
-              @for (event of dayEvents; track event.id) {
+              @for (event of dayEvents(); track event.id) {
                 <div
                   class="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
                   (click)="navigateToTasks(event)"
@@ -324,13 +324,13 @@
         <p class="text-sm textMuted mb-4">{{ formatSelectedDate() }}</p>
 
         <div class="space-y-3">
-          @if (filteredEvents.length === 0) {
+          @if (filteredEvents().length === 0) {
             <div class="text-center py-4">
               <mat-icon class="w-8! h-8! text-2xl! textMuted" fontIcon="event" />
               <p class="text-sm textMuted mt-2">No events today</p>
             </div>
           } @else {
-            @for (event of filteredEvents; track event.id) {
+            @for (event of filteredEvents(); track event.id) {
               <div
                 class="p-3 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
                 (click)="navigateToTasks(event)"

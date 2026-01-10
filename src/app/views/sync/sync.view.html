@@ -15,8 +15,8 @@
       Automatically sync all data: first upload local changes to cloud, then download cloud changes
       to local.
     </p>
-    <button class="styleButSuccess" (click)="syncAll()" [disabled]="isSyncingAll">
-      @if (isSyncingAll) {
+    <button class="styleButSuccess" (click)="syncAll()" [disabled]="isSyncingAll()">
+      @if (isSyncingAll()) {
         <mat-spinner diameter="20"></mat-spinner>
         <span>Synchronizing...</span>
       } @else {
@@ -47,8 +47,8 @@
           </div>
           <p class="text-sm textMuted mb-4">Download data from cloud database to local storage.</p>
         </div>
-        <button (click)="importToLocal()" [disabled]="isSyncingImport" class="styleButInfo">
-          @if (isSyncingImport) {
+        <button (click)="importToLocal()" [disabled]="isSyncingImport()" class="styleButInfo">
+          @if (isSyncingImport()) {
             <mat-spinner diameter="16"></mat-spinner>
             <span>Importing...</span>
           } @else {
@@ -70,8 +70,8 @@
           </div>
           <p class="text-sm textMuted mb-4">Upload local data to cloud database.</p>
         </div>
-        <button (click)="exportToCloud()" [disabled]="isSyncingExport" class="styleButInfo">
-          @if (isSyncingExport) {
+        <button (click)="exportToCloud()" [disabled]="isSyncingExport()" class="styleButInfo">
+          @if (isSyncingExport()) {
             <mat-spinner diameter="16"></mat-spinner>
             <span>Exporting...</span>
           } @else {

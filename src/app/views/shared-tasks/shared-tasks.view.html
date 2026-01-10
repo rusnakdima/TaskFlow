@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  @if (sharedProjects.length === 0) {
+  @if (sharedProjects().length === 0) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
@@ -21,7 +21,7 @@
       cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTodoDrop($event)"
     >
-      @for (todo of sharedProjects; track $index) {
+      @for (todo of sharedProjects(); track $index) {
         <app-todo [todo]="todo" [index]="$index" />
       }
     </div>

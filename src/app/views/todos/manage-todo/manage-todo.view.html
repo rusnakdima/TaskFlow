@@ -2,11 +2,11 @@
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold textNormal">
-        {{ isEdit ? "Edit Project" : "Create New Project" }}
+        {{ isEdit() ? "Edit Project" : "Create New Project" }}
       </h1>
       <p class="textMuted mt-1">
         {{
-          isEdit
+          isEdit()
             ? "Update your project details and settings"
             : "Set up a new project to organize your tasks"
         }}
@@ -260,15 +260,15 @@
 
     <div class="flex justify-end gap-3 pt-6">
       <button type="button" class="styleButDanger" (click)="back()">Cancel</button>
-      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting">
-        @if (isSubmitting) {
+      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
+        @if (isSubmitting()) {
           <div
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
           ></div>
         } @else {
-          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit ? 'save' : 'add'" />
+          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
-        {{ isEdit ? "Update" : "Create" }}
+        {{ isEdit() ? "Update" : "Create" }}
       </button>
     </div>
   </form>

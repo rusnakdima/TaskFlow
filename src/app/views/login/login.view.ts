@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -44,8 +44,8 @@ export class LoginView {
     });
   }
 
-  isShowPassword: boolean = false;
-  submitted: boolean = false;
+  isShowPassword = signal(false);
+  submitted = signal(false);
 
   ngOnInit() {
     document.addEventListener("keydown", (e) => {
@@ -58,11 +58,11 @@ export class LoginView {
   }
 
   isInvalid(attr: string) {
-    return (this.submitted || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
+    return (this.submitted() || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
 
   async send() {
-    this.submitted = true;
+    this.submitted.set(true);
 
     if (this.logForm.invalid) {
       Object.values(this.logForm.controls).forEach((control) => {
@@ -88,11 +88,11 @@ export class LoginView {
               });
             }, 500);
           }
-          this.submitted = false;
+          this.submitted.set(false);
         })
         .catch((err: any) => {
           this.notifyService.showError(err.message ?? err.toString());
-          this.submitted = false;
+          this.submitted.set(false);
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
