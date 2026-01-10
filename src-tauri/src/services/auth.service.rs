@@ -192,16 +192,24 @@ impl AuthService {
               }
             };
 
-            let userData = match serde_json::to_value(&userDoc) {
-              Ok(data) => data,
-              Err(e) => {
-                eprintln!("Warning: Failed to serialize user data: {}", e);
-                json!({})
-              }
-            };
+            let userExistsLocally = self
+              .jsonProvider
+              .getByField("users", Some(json!({"id": userId.clone()})), None, "")
+              .await
+              .is_ok();
 
-            if let Err(e) = self.jsonProvider.create("users", userData).await {
-              eprintln!("Warning: Failed to store user data locally: {}", e);
+            if !userExistsLocally {
+              let userData = match serde_json::to_value(&userDoc) {
+                Ok(data) => data,
+                Err(e) => {
+                  eprintln!("Warning: Failed to serialize user data: {}", e);
+                  json!({})
+                }
+              };
+
+              if let Err(e) = self.jsonProvider.create("users", userData).await {
+                eprintln!("Warning: Failed to store user data locally: {}", e);
+              }
             }
 
             let profileFilter = doc! { "userId": userId.clone() };
@@ -211,16 +219,29 @@ impl AuthService {
               .await
             {
               Ok(profileDoc) => {
-                let profileData = match serde_json::to_value(&profileDoc) {
-                  Ok(data) => data,
-                  Err(e) => {
-                    eprintln!("Warning: Failed to serialize profile data: {}", e);
-                    json!({})
-                  }
-                };
+                let profileExistsLocally = self
+                  .jsonProvider
+                  .getByField(
+                    "profiles",
+                    Some(json!({"userId": userId.clone()})),
+                    None,
+                    "",
+                  )
+                  .await
+                  .is_ok();
 
-                if let Err(e) = self.jsonProvider.create("profiles", profileData).await {
-                  eprintln!("Warning: Failed to store profile data locally: {}", e);
+                if !profileExistsLocally {
+                  let profileData = match serde_json::to_value(&profileDoc) {
+                    Ok(data) => data,
+                    Err(e) => {
+                      eprintln!("Warning: Failed to serialize profile data: {}", e);
+                      json!({})
+                    }
+                  };
+
+                  if let Err(e) = self.jsonProvider.create("profiles", profileData).await {
+                    eprintln!("Warning: Failed to store profile data locally: {}", e);
+                  }
                 }
               }
               Err(e) => {
