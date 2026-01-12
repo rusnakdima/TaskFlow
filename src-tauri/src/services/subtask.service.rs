@@ -3,15 +3,13 @@ use serde_json::{json, to_value, Value};
 
 /* helpers */
 use crate::helpers::{
+  activity_log::ActivityLogHelper,
   common::{convertDataToArray, convertDataToObject},
   json_provider::JsonProvider,
 };
 
 /* services */
-use crate::services::{
-  daily_activity_service::DailyActivityService, task_service::TaskService,
-  todo_service::TodoService,
-};
+use crate::services::{task_service::TaskService, todo_service::TodoService};
 
 /* models */
 use crate::models::{
@@ -26,7 +24,7 @@ pub struct SubtaskService {
   pub jsonProvider: JsonProvider,
   pub taskService: TaskService,
   pub todoService: TodoService,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
 }
 
 impl SubtaskService {
@@ -35,13 +33,13 @@ impl SubtaskService {
     jsonProvider: JsonProvider,
     taskService: TaskService,
     todoService: TodoService,
-    dailyActivityService: DailyActivityService,
+    activityLogHelper: ActivityLogHelper,
   ) -> Self {
     Self {
       jsonProvider,
       taskService,
       todoService,
-      dailyActivityService,
+      activityLogHelper,
     }
   }
 
@@ -119,6 +117,7 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let taskId = data.taskId.clone();
     let modelData: SubtaskModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let subtask = self.jsonProvider.create("subtasks", record).await;
@@ -126,6 +125,40 @@ impl SubtaskService {
     match subtask {
       Ok(result) => {
         if result {
+          let taskResult = self.taskService.getByField("id".to_string(), taskId).await;
+          let todoId = if let Ok(response) = &taskResult {
+            match &response.data {
+              DataValue::Object(obj) => obj
+                .get("todoId")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+              _ => "".to_string(),
+            }
+          } else {
+            "".to_string()
+          };
+          if !todoId.is_empty() {
+            let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+            let userId = if let Ok(response) = &todoResult {
+              match &response.data {
+                DataValue::Object(obj) => obj
+                  .get("userId")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("")
+                  .to_string(),
+                _ => "".to_string(),
+              }
+            } else {
+              "".to_string()
+            };
+            if !userId.is_empty() {
+              let _ = self
+                .activityLogHelper
+                .logActivity(userId, "subtask_created", 1)
+                .await;
+            }
+          }
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
@@ -172,6 +205,45 @@ impl SubtaskService {
             }
           };
 
+        let wasCompleted = matches!(
+          existingSubtask.status,
+          TaskStatus::Completed | TaskStatus::Skipped
+        );
+        let userId = {
+          let taskResult = self
+            .taskService
+            .getByField("id".to_string(), existingSubtask.taskId.clone())
+            .await;
+          let todoId = if let Ok(response) = &taskResult {
+            match &response.data {
+              DataValue::Object(obj) => obj
+                .get("todoId")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+              _ => "".to_string(),
+            }
+          } else {
+            "".to_string()
+          };
+          if !todoId.is_empty() {
+            let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+            if let Ok(response) = &todoResult {
+              match &response.data {
+                DataValue::Object(obj) => obj
+                  .get("userId")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("")
+                  .to_string(),
+                _ => "".to_string(),
+              }
+            } else {
+              "".to_string()
+            }
+          } else {
+            "".to_string()
+          }
+        };
         let updatedSubtask = data.applyTo(existingSubtask);
         let record: Value = match to_value(&updatedSubtask) {
           Ok(val) => val,
@@ -192,6 +264,22 @@ impl SubtaskService {
         match updateResult {
           Ok(success) => {
             if success {
+              if !userId.is_empty() {
+                let _ = self
+                  .activityLogHelper
+                  .logActivity(userId.clone(), "subtask_updated", 1)
+                  .await;
+                let isNowCompleted = matches!(
+                  updatedSubtask.status,
+                  TaskStatus::Completed | TaskStatus::Skipped
+                );
+                if isNowCompleted && !wasCompleted {
+                  let _ = self
+                    .activityLogHelper
+                    .logActivity(userId, "subtask_completed", 1)
+                    .await;
+                }
+              }
               Ok(ResponseModel {
                 status: ResponseStatus::Success,
                 message: "Subtask updated successfully".to_string(),
@@ -246,10 +334,64 @@ impl SubtaskService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let subtaskResult = self.getByField("id".to_string(), id.clone()).await;
+    let taskId = if let Ok(response) = &subtaskResult {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("taskId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+    let userId = if !taskId.is_empty() {
+      let taskResult = self.taskService.getByField("id".to_string(), taskId).await;
+      let todoId = if let Ok(response) = &taskResult {
+        match &response.data {
+          DataValue::Object(obj) => obj
+            .get("todoId")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+          _ => "".to_string(),
+        }
+      } else {
+        "".to_string()
+      };
+      if !todoId.is_empty() {
+        let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+        if let Ok(response) = &todoResult {
+          match &response.data {
+            DataValue::Object(obj) => obj
+              .get("userId")
+              .and_then(|v| v.as_str())
+              .unwrap_or("")
+              .to_string(),
+            _ => "".to_string(),
+          }
+        } else {
+          "".to_string()
+        }
+      } else {
+        "".to_string()
+      }
+    } else {
+      "".to_string()
+    };
+
     let subtask = self.jsonProvider.delete("subtasks", &id.as_str()).await;
     match subtask {
       Ok(result) => {
         if result {
+          if !userId.is_empty() {
+            let _ = self
+              .activityLogHelper
+              .logActivity(userId, "subtask_deleted", 1)
+              .await;
+          }
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
@@ -269,115 +411,5 @@ impl SubtaskService {
         data: DataValue::String("".to_string()),
       }),
     }
-  }
-
-  #[allow(non_snake_case)]
-  async fn logActivity(&self, taskId: String, action: &str, count: i32) {
-    let taskResult = self.taskService.getByField("id".to_string(), taskId).await;
-    let todoId = if let Ok(response) = &taskResult {
-      match &response.data {
-        DataValue::Object(obj) => obj
-          .get("todoId")
-          .and_then(|v| v.as_str())
-          .unwrap_or("")
-          .to_string(),
-        _ => "".to_string(),
-      }
-    } else {
-      "".to_string()
-    };
-    if !todoId.is_empty() {
-      let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
-      let userId = if let Ok(response) = &todoResult {
-        match &response.data {
-          DataValue::Object(obj) => obj
-            .get("userId")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-          _ => "".to_string(),
-        }
-      } else {
-        "".to_string()
-      };
-      if !userId.is_empty() {
-        let _ = self
-          .dailyActivityService
-          .logActivity(userId, action, count)
-          .await;
-      }
-    }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn createAndLog(
-    &self,
-    data: SubtaskCreateModel,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let result = self.create(data.clone()).await;
-    if result.is_ok() {
-      self.logActivity(data.taskId, "subtask_created", 1).await;
-    }
-    result
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn updateAndLog(
-    &self,
-    id: String,
-    data: SubtaskUpdateModel,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let oldSubtaskResult = self.getByField("id".to_string(), id.clone()).await;
-    let wasCompleted = if let Ok(response) = &oldSubtaskResult {
-      match &response.data {
-        DataValue::Object(obj) => {
-          if let Some(status_val) = obj.get("status").and_then(|v| v.as_str()) {
-            status_val == "completed" || status_val == "skipped"
-          } else {
-            false
-          }
-        }
-        _ => false,
-      }
-    } else {
-      false
-    };
-    let result = self.update(id, data.clone()).await;
-    if result.is_ok() {
-      if let Some(ref taskId) = data.taskId {
-        self.logActivity(taskId.clone(), "subtask_updated", 1).await;
-        if let Some(ref status) = data.status {
-          let isNowCompleted = matches!(status, TaskStatus::Completed | TaskStatus::Skipped);
-          if isNowCompleted && !wasCompleted {
-            self
-              .logActivity(taskId.clone(), "subtask_completed", 1)
-              .await;
-          }
-        }
-      }
-    }
-    result
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn deleteAndLog(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let subtaskResult = self.getByField("id".to_string(), id.clone()).await;
-    let taskId = if let Ok(response) = &subtaskResult {
-      match &response.data {
-        DataValue::Object(obj) => obj
-          .get("taskId")
-          .and_then(|v| v.as_str())
-          .unwrap_or("")
-          .to_string(),
-        _ => "".to_string(),
-      }
-    } else {
-      "".to_string()
-    };
-    let result = self.delete(id).await;
-    if result.is_ok() && !taskId.is_empty() {
-      self.logActivity(taskId, "subtask_deleted", 1).await;
-    }
-    result
   }
 }

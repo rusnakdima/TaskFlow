@@ -11,8 +11,6 @@ pub mod profile_service;
 #[path = "profile_sync.service.rs"]
 pub mod profile_sync_service;
 
-#[path = "daily_activity.service.rs"]
-pub mod daily_activity_service;
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
 

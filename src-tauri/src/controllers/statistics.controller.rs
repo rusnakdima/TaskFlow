@@ -2,7 +2,9 @@
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
 use crate::services::statistics_service::StatisticsService;
@@ -17,9 +19,13 @@ pub struct StatisticsController {
 
 impl StatisticsController {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    activityLogHelper: ActivityLogHelper,
+  ) -> Self {
     Self {
-      statisticsService: StatisticsService::new(jsonProvider, mongodbProvider),
+      statisticsService: StatisticsService::new(jsonProvider, mongodbProvider, activityLogHelper),
     }
   }
 
