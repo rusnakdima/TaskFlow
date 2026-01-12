@@ -8,6 +8,7 @@ import { catchError, map, finalize } from "rxjs/operators";
 import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { MainService } from "./main.service";
@@ -59,21 +60,29 @@ export class WebSocketService {
       console.log("WebSocketService: emitting get-todos with data:", requestData);
 
       this.socket.emit("get-todos", requestData);
-      this.socket.once("todos-retrieved", (data: { todos: Todo[]; timestamp: string }) => {
-        console.log("WebSocketService: received todos-retrieved:", data.todos);
+      this.socket.once(
+        "todos-retrieved",
+        (response: Response<{ todos: Todo[]; timestamp: string }>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            console.log("WebSocketService: received todos-retrieved:", response.data.todos);
 
-        // Join rooms for todos the user has access to
-        data.todos.forEach((todo) => {
-          const hasAccess =
-            todo.assignees?.some((profile) => profile.id === assignee) || todo.userId === assignee;
-          if (hasAccess) {
-            this.joinTodoRoom(todo.id);
+            // Join rooms for todos the user has access to
+            response.data.todos.forEach((todo) => {
+              const hasAccess =
+                todo.assignees?.some((profile) => profile.id === assignee) ||
+                todo.userId === assignee;
+              if (hasAccess) {
+                this.joinTodoRoom(todo.id);
+              }
+            });
+
+            observer.next(response.data.todos);
+          } else {
+            observer.error(new Error(response.message || "Failed to retrieve todos"));
           }
-        });
-
-        observer.next(data.todos);
-        observer.complete();
-      });
+          observer.complete();
+        }
+      );
       this.socket.once("todos-retrieve-error", (error: any) => {
         console.log("WebSocketService: server returned error, falling back to MainService:", error);
         // Fallback to MainService if server returns error
@@ -113,10 +122,17 @@ export class WebSocketService {
     return new Observable<any>((observer) => {
       const userId = this.authService.getValueByKey("id");
       this.socket.emit("get-by-field", { entity, nameField, value, userId });
-      this.socket.once(`${entity}-retrieved`, (data: { [key: string]: any; timestamp: string }) => {
-        observer.next(data[entity]);
-        observer.complete();
-      });
+      this.socket.once(
+        `${entity}-retrieved`,
+        (response: Response<{ [key: string]: any; timestamp: string }>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            observer.next(response.data[entity]);
+          } else {
+            observer.error(new Error(response.message || `Failed to retrieve ${entity}`));
+          }
+          observer.complete();
+        }
+      );
       this.socket.once("get-by-field-error", (error: any) => {
         console.log("WebSocketService: get-by-field error, falling back to MainService:", error);
         this.fallbackGetByField(entity, nameField, value).subscribe(observer);
@@ -155,8 +171,12 @@ export class WebSocketService {
   updateTodo(id: string, data: any): Observable<Todo> {
     return new Observable<Todo>((observer) => {
       this.socket.emit("update-todo", { todo: { id, ...data }, userId: data.userId });
-      this.socket.once("todo-updated", (data: { todo: Todo; timestamp: string }) => {
-        observer.next(data.todo);
+      this.socket.once("todo-updated", (response: Response<{ todo: Todo; timestamp: string }>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          observer.next(response.data.todo);
+        } else {
+          observer.error(new Error(response.message || "Failed to update todo"));
+        }
         observer.complete();
       });
       this.socket.once("connect_error", () => {
@@ -180,9 +200,17 @@ export class WebSocketService {
   deleteTodo(id: string): Observable<void> {
     return new Observable<void>((observer) => {
       this.socket.emit("delete-todo", { todoId: id, userId: "current-user" }); // userId will be set by auth
-      this.socket.once("todo-deleted", (data: { todoId: string; timestamp: string }) => {
-        observer.complete();
-      });
+      this.socket.once(
+        "todo-deleted",
+        (response: Response<{ todoId: string; timestamp: string }>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            observer.next(undefined);
+          } else {
+            observer.error(new Error(response.message || "Failed to delete todo"));
+          }
+          observer.complete();
+        }
+      );
       this.socket.once("connect_error", () => {
         this.fallbackDeleteTodo(id).subscribe(observer);
       });
@@ -203,8 +231,12 @@ export class WebSocketService {
   createTodo(data: any): Observable<Todo> {
     return new Observable((observer) => {
       this.socket.emit("create-todo", { todo: data, userId: data.userId });
-      this.socket.once("todo-create-success", (data: { todo: Todo }) => {
-        observer.next(data.todo);
+      this.socket.once("todo-create-success", (response: Response<{ todo: Todo }>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          observer.next(response.data.todo);
+        } else {
+          observer.error(new Error(response.message || "Failed to create todo"));
+        }
         observer.complete();
       });
       this.socket.once("todo-create-error", (error: any) => {
@@ -216,8 +248,12 @@ export class WebSocketService {
   createTask(data: any): Observable<any> {
     return new Observable((observer) => {
       this.socket.emit("create-task", { task: data, userId: data.userId });
-      this.socket.once("task-create-success", (data: { task: any }) => {
-        observer.next(data.task);
+      this.socket.once("task-create-success", (response: Response<{ task: any }>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          observer.next(response.data.task);
+        } else {
+          observer.error(new Error(response.message || "Failed to create task"));
+        }
         observer.complete();
       });
       this.socket.once("task-create-error", (error: any) => {
