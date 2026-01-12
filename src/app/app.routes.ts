@@ -61,8 +61,8 @@ export const routes: Routes = [
   {
     path: "shared-tasks",
     component: SharedTasksView,
-    title: "Shared Tasks",
-    data: { breadcrumb: "Shared Tasks" },
+    title: "Shared Projects",
+    data: { breadcrumb: "Shared Projects" },
     canActivate: [canActivateAuth],
   },
   {
