@@ -19,7 +19,6 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatMenuModule } from "@angular/material/menu";
-import { MatButtonModule } from "@angular/material/button";
 import { MatDividerModule } from "@angular/material/divider";
 
 /* models */
@@ -32,6 +31,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* helpers */
 import { normalizeTodoDates } from "@helpers/date-conversion.helper";
@@ -39,7 +39,7 @@ import { normalizeTodoDates } from "@helpers/date-conversion.helper";
 @Component({
   selector: "app-manage-todo",
   standalone: true,
-  providers: [AuthService, MainService],
+  providers: [AuthService, MainService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -52,7 +52,6 @@ import { normalizeTodoDates } from "@helpers/date-conversion.helper";
     MatNativeDateModule,
     MatRadioModule,
     MatMenuModule,
-    MatButtonModule,
     MatDividerModule,
   ],
   templateUrl: "./manage-todo.view.html",
@@ -64,7 +63,8 @@ export class ManageTodoView implements OnInit {
     private location: Location,
     private authService: AuthService,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider
   ) {
     this.form = fb.group({
       _id: [""],
@@ -90,6 +90,8 @@ export class ManageTodoView implements OnInit {
   form: FormGroup;
   isEdit = signal(false);
   isSubmitting = signal(false);
+  isSharedTodo = false;
+  isOwner = false;
 
   priorityOptions = [
     {
@@ -132,6 +134,23 @@ export class ManageTodoView implements OnInit {
       await this.fetchProfiles();
       this.fetchCategories();
     }
+
+    // Set up checkers for DataSyncProvider
+    this.dataSyncProvider.setOwnershipChecker((todoId: string) => {
+      return this.form.get("userId")?.value === this.authService.getValueByKey("id");
+    });
+
+    this.dataSyncProvider.setTeamChecker((todoId: string) => {
+      return this.form.get("visibility")?.value === "team";
+    });
+
+    this.dataSyncProvider.setAccessChecker((todoId: string) => {
+      const currentUserId = this.authService.getValueByKey("id");
+      const isOwner = this.form.get("userId")?.value === currentUserId;
+      const assignees = this.form.get("assignees")?.value || [];
+      const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
+      return isOwner || isAssignee;
+    });
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.getTodoInfo(params.todoId);
@@ -156,6 +175,17 @@ export class ManageTodoView implements OnInit {
           if (this.form.get("assignees")?.value.length > 0) {
             this.form.get("visibility")?.setValue("team");
           }
+
+          const currentUserId = this.authService.getValueByKey("id");
+          this.isOwner = todo.userId === currentUserId;
+          const hasAccess = todo.assignees?.some((assignee: any) => assignee.id === currentUserId);
+          this.isSharedTodo = hasAccess && !this.isOwner;
+
+          if (this.isSharedTodo) {
+            this.notifyService.showInfo(
+              "You're editing a shared todo. Changes will be sent to the owner."
+            );
+          }
         }
       })
       .catch((err: Response<string>) => {
@@ -172,7 +202,7 @@ export class ManageTodoView implements OnInit {
       .getAllByField<Todo[]>("todo", "userId", this.userId())
       .then((response: Response<Todo[]>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.form.controls["order"].setValue(response.data.length + 1);
+          this.form.controls["order"].setValue(response.data.length);
         } else {
           this.isSubmitting.set(false);
           this.notifyService.showError("Failed to get existing todos count");
@@ -307,14 +337,14 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       this.isSubmitting.set(true);
       if (this.isEdit()) {
-        this.updateTask();
+        this.updateTodo();
       } else {
-        this.createTask();
+        this.createTodo();
       }
     }
   }
 
-  createTask() {
+  createTodo() {
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTodoDates(formValue);
@@ -325,26 +355,24 @@ export class ManageTodoView implements OnInit {
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
       };
 
-      this.mainService
-        .create<string, Todo>("todo", body)
-        .then((response: Response<string>) => {
+      this.dataSyncProvider.create("todo", body).subscribe({
+        next: (result) => {
           this.isSubmitting.set(false);
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
-          }
-        })
-        .catch((err: Response<string>) => {
+          this.notifyService.showSuccess("Todo created successfully");
+          this.back();
+        },
+        error: (err) => {
           this.isSubmitting.set(false);
-          this.notifyService.showError(err.message ?? err.toString());
-        });
+          this.notifyService.showError(err.message || "Failed to create todo");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
 
-  updateTask() {
+  async updateTodo() {
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTodoDates(formValue);
@@ -352,21 +380,20 @@ export class ManageTodoView implements OnInit {
         ...normalizedFormValue,
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
+        updatedAt: new Date().toISOString(),
       };
 
-      this.mainService
-        .update<string, Todo>("todo", body.id, body)
-        .then((response: Response<string>) => {
+      this.dataSyncProvider.update<Todo>("todo", body.id, body).subscribe({
+        next: (result) => {
           this.isSubmitting.set(false);
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
-          }
-        })
-        .catch((err: Response<string>) => {
+          this.notifyService.showSuccess("Todo updated successfully");
+          this.back();
+        },
+        error: (err) => {
           this.isSubmitting.set(false);
-          this.notifyService.showError(err.message ?? err.toString());
-        });
+          this.notifyService.showError(err.message || "Failed to update todo");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");

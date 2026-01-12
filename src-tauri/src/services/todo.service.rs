@@ -97,18 +97,17 @@ impl TodoService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      Some(json!({ nameField: value }))
+    } else {
+      None
+    };
+
     let listTodos = self
       .jsonProvider
-      .getAllByField(
-        "todos",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-      )
+      .getAllByField("todos", filter, Some(self.relations.clone()))
       .await;
+
     match listTodos {
       Ok(mut todos) => {
         todos.sort_by(|a, b| {
@@ -136,19 +135,17 @@ impl TodoService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      Some(json!({ nameField: value }))
+    } else {
+      None
+    };
+
     let todo = self
       .jsonProvider
-      .getByField(
-        "todos",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-        "",
-      )
+      .getByField("todos", filter, Some(self.relations.clone()), "")
       .await;
+
     match todo {
       Ok(todo) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -173,6 +170,7 @@ impl TodoService {
         Some(self.relations.clone()),
       )
       .await;
+
     match listTodos {
       Ok(mut todos) => {
         todos.sort_by(|a, b| {
@@ -199,6 +197,7 @@ impl TodoService {
     let modelData: TodoModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let todo = self.jsonProvider.create("todos", record).await;
+
     match todo {
       Ok(result) => {
         if result {
@@ -289,9 +288,9 @@ impl TodoService {
           }),
         }
       }
-      Err(error) => Err(ResponseModel {
+      Err(_) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Couldn't get a list of todos! {}", error.to_string()),
+        message: "Todo not found".to_string(),
         data: DataValue::String("".to_string()),
       }),
     }
@@ -325,35 +324,29 @@ impl TodoService {
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let tasks = self
       .jsonProvider
-      .getAllByField("tasks", Some(json!({ "todoId": id })), None)
+      .getAllByField("tasks", Some(json!({ "todoId": id.clone() })), None)
       .await;
-
-    match tasks {
-      Ok(tasksList) => {
-        for task in tasksList {
-          if let Some(taskId) = task.get("id").and_then(|v| v.as_str()) {
-            let subtasks = self
-              .jsonProvider
-              .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
-              .await;
-            match subtasks {
-              Ok(subtasksList) => {
-                for subtask in subtasksList {
-                  if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
-                    let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
-                  }
-                }
+    if let Ok(listTasks) = tasks {
+      for task in listTasks {
+        if let Some(taskId) = task.get("id").and_then(|v| v.as_str()) {
+          let subtasks = self
+            .jsonProvider
+            .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
+            .await;
+          if let Ok(listSubtasks) = subtasks {
+            for subtask in listSubtasks {
+              if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
+                let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
               }
-              Err(_) => {}
             }
-            let _ = self.jsonProvider.delete("tasks", taskId).await;
           }
+          let _ = self.jsonProvider.delete("tasks", taskId).await;
         }
       }
-      Err(_) => {}
     }
 
     let todo = self.jsonProvider.delete("todos", &id.as_str()).await;
+
     match todo {
       Ok(result) => {
         if result {

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* models */
-use crate::models::todo_model::TodoFullModel;
+use crate::models::{sync_metadata_model::SyncMetadata, todo_model::TodoFullModel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -78,6 +78,8 @@ pub struct TaskCreateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -103,9 +105,9 @@ impl From<TaskCreateModel> for TaskModel {
       id: Uuid::new().to_string(),
       todoId: value.todoId,
       title: value.title,
-      description: value.description.unwrap_or_default(),
+      description: value.description.unwrap_or("".to_string()),
       status: TaskStatus::Pending,
-      priority: value.priority.to_string(),
+      priority: value.priority,
       startDate: formattedStartDate,
       endDate: formattedEndDate,
       order: value.order,
@@ -130,8 +132,9 @@ pub struct TaskUpdateModel {
   pub endDate: Option<String>,
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
-  pub createdAt: Option<String>,
   pub updatedAt: String,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -163,7 +166,7 @@ impl TaskUpdateModel {
     TaskModel {
       _id: existing._id,
       id: existing.id,
-      todoId: self.todoId.clone().unwrap_or(existing.todoId),
+      todoId: existing.todoId,
       title: self.title.clone().unwrap_or(existing.title),
       description: self.description.clone().unwrap_or(existing.description),
       status: self.status.clone().unwrap_or(existing.status),

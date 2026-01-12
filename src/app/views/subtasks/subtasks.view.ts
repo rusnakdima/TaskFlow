@@ -8,14 +8,13 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -25,7 +24,7 @@ import { TaskInformationComponent } from "@components/task-information/task-info
 @Component({
   selector: "app-subtasks",
   standalone: true,
-  providers: [MainService],
+  providers: [DataSyncProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -40,8 +39,8 @@ import { TaskInformationComponent } from "@components/task-information/task-info
 export class SubtasksView implements OnInit {
   constructor(
     private route: ActivatedRoute,
-    private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   listSubtasks = signal<Array<Subtask>>([]);
@@ -81,49 +80,41 @@ export class SubtasksView implements OnInit {
   }
 
   getTodoInfo(id: string) {
-    this.mainService
-      .getByField<Todo>("todo", "id", id)
-      .then((response: Response<Todo>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.todo.set(response.data);
-          this.projectTitle.set(this.todo()?.title ?? "");
-        } else {
-          this.notifyService.showNotify(response.status, response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    this.dataSyncProvider.getByField<Todo>("todo", "id", id).subscribe({
+      next: (todo) => {
+        this.todo.set(todo);
+        this.projectTitle.set(this.todo()?.title ?? "");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load todo");
+      },
+    });
   }
 
   getTaskInfo(id: string) {
-    this.mainService
-      .getByField<Task>("task", "id", id)
-      .then((response: Response<Task>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.task.set(response.data);
-        } else {
-          this.notifyService.showNotify(response.status, response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    // For task info, need to route based on parent todo access
+    this.dataSyncProvider.getByField<Task>("task", "id", id).subscribe({
+      next: (task) => {
+        this.task.set(task);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load task");
+      },
+    });
   }
 
   getSubtasksByTaskId(taskId: string) {
-    this.mainService
-      .getAllByField<Array<Subtask>>("subtask", "taskId", taskId)
-      .then((response: Response<Array<Subtask>>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.tempListSubtasks.set(response.data);
+    // For subtasks, route based on parent todo access
+    this.dataSyncProvider
+      .getAll<Subtask>("subtask", { field: "taskId", value: taskId }, this.todoId())
+      .subscribe({
+        next: (subtasks) => {
+          this.tempListSubtasks.set(subtasks);
           this.applyFilter();
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
       });
   }
 
@@ -178,15 +169,7 @@ export class SubtasksView implements OnInit {
         break;
     }
 
-    filtered.sort((a, b) => {
-      if (a.status === b.status) {
-        return 0;
-      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
-        return 1;
-      } else {
-        return -1;
-      }
-    });
+    filtered.sort((a, b) => b.order - a.order);
 
     this.listSubtasks.set(filtered);
   }
@@ -216,10 +199,10 @@ export class SubtasksView implements OnInit {
 
     const updatedSubtask = { ...subtask, status: newStatus };
 
-    this.mainService
-      .update<string, Subtask>("subtask", subtask.id, updatedSubtask)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
+    this.dataSyncProvider
+      .update<Subtask>("subtask", subtask.id, updatedSubtask, this.todoId())
+      .subscribe({
+        next: (result) => {
           subtask.status = newStatus;
 
           const index = this.tempListSubtasks().findIndex((s) => s.id === subtask.id);
@@ -234,12 +217,10 @@ export class SubtasksView implements OnInit {
           this.applyFilter();
 
           this.notifyService.showSuccess(message);
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
       });
   }
 
@@ -258,10 +239,10 @@ export class SubtasksView implements OnInit {
       };
     }
 
-    this.mainService
-      .update<string, Subtask>("subtask", event.subtask.id, updatedSubtask)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
+    this.dataSyncProvider
+      .update<Subtask>("subtask", event.subtask.id, updatedSubtask, this.todoId())
+      .subscribe({
+        next: (result) => {
           if (event.field === "title") {
             event.subtask.title = event.value;
           } else if (event.field === "description") {
@@ -270,27 +251,23 @@ export class SubtasksView implements OnInit {
             event.subtask.status = event.value as TaskStatus;
           }
           this.notifyService.showSuccess("Subtask updated successfully");
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
       });
   }
 
   deleteSubtask(id: string) {
-    this.mainService
-      .delete<string>("subtask", id)
-      .then((response: Response<string>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.getSubtasksByTaskId(this.task()?.id ?? "");
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      });
+    this.dataSyncProvider.delete<string>("subtask", id, this.todoId()).subscribe({
+      next: (result) => {
+        this.listSubtasks.set(this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id));
+        this.notifyService.showSuccess("Subtask deleted successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete subtask");
+      },
+    });
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
@@ -307,7 +284,7 @@ export class SubtasksView implements OnInit {
     this.isUpdatingOrder = true;
 
     this.listSubtasks().forEach((subtask, index) => {
-      subtask.order = index;
+      subtask.order = this.listSubtasks().length - 1 - index;
     });
 
     const transformedSubtasks = this.listSubtasks().map((subtask) => ({
@@ -324,26 +301,19 @@ export class SubtasksView implements OnInit {
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    this.mainService
-      .updateAll<string, any>("subtask", transformedSubtasks)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.notifyService.showNotify(
-            ResponseStatus.SUCCESS,
-            "Subtask order updated successfully"
-          );
-        } else {
+    this.dataSyncProvider
+      .updateAll<string>("subtask", transformedSubtasks, this.todoId())
+      .subscribe({
+        next: (result) => {
+          this.notifyService.showSuccess("Subtask order updated successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask order");
           this.getSubtasksByTaskId(this.task()?.id ?? "");
-          this.notifyService.showError("Failed to update subtask order");
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError("Failed to update subtask order");
-        this.getSubtasksByTaskId(this.task()?.id ?? "");
-        console.error(err);
-      })
-      .finally(() => {
-        this.isUpdatingOrder = false;
+        },
+        complete: () => {
+          this.isUpdatingOrder = false;
+        },
       });
   }
 }

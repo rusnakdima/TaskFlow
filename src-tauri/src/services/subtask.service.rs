@@ -51,18 +51,17 @@ impl SubtaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      Some(json!({ nameField: value }))
+    } else {
+      None
+    };
+
     let listSubtasks = self
       .jsonProvider
-      .getAllByField(
-        "subtasks",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        None,
-      )
+      .getAllByField("subtasks", filter, None)
       .await;
+
     match listSubtasks {
       Ok(mut subtasks) => {
         subtasks.sort_by(|a, b| {
@@ -103,6 +102,7 @@ impl SubtaskService {
         "",
       )
       .await;
+
     match subtask {
       Ok(subtask) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -122,6 +122,7 @@ impl SubtaskService {
     let modelData: SubtaskModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let subtask = self.jsonProvider.create("subtasks", record).await;
+
     match subtask {
       Ok(result) => {
         if result {

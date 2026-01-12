@@ -10,13 +10,12 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatExpansionModule } from "@angular/material/expansion";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
-import { Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
+import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -26,7 +25,7 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
 @Component({
   selector: "app-tasks",
   standalone: true,
-  providers: [MainService],
+  providers: [DataSyncProvider],
   imports: [
     CommonModule,
     FormsModule,
@@ -43,8 +42,8 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
 export class TasksView implements OnInit {
   constructor(
     private route: ActivatedRoute,
-    private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   listTasks = signal<Task[]>([]);
@@ -80,33 +79,27 @@ export class TasksView implements OnInit {
   }
 
   getTodoInfo(id: string) {
-    this.mainService
-      .getByField<Todo>("todo", "id", id)
-      .then((response: Response<Todo>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.todo.set(response.data);
-        } else {
-          this.notifyService.showNotify(response.status, response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    this.dataSyncProvider.getByField<Todo>("todo", "id", id).subscribe({
+      next: (todo) => {
+        this.todo.set(todo);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load todo");
+      },
+    });
   }
 
   getTasksByTodoId(todoId: string) {
-    this.mainService
-      .getAllByField<Array<Task>>("task", "todoId", todoId)
-      .then((response: Response<Array<Task>>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.tempListTasks.set(response.data);
+    this.dataSyncProvider
+      .getAll<Task>("task", { field: "todoId", value: todoId }, todoId)
+      .subscribe({
+        next: (tasks) => {
+          this.tempListTasks.set(tasks);
           this.applyFilter();
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load tasks");
+        },
       });
   }
 
@@ -148,36 +141,29 @@ export class TasksView implements OnInit {
 
     const updatedTask = { ...task, status: newStatus };
 
-    this.mainService
-      .update<string, Task>("task", task.id, updatedTask)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          task.status = newStatus;
-          if (this.todo()) {
-            const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
-            if (todoTask) {
-              todoTask.status = newStatus;
-            }
+    this.dataSyncProvider.update<Task>("task", task.id, updatedTask, task.todoId).subscribe({
+      next: (result) => {
+        task.status = newStatus;
+        if (this.todo()) {
+          const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
+          if (todoTask) {
+            todoTask.status = newStatus;
           }
-
-          this.tempListTasks.update((tasks) => {
-            const index = tasks.findIndex((t) => t.id === task.id);
-            if (index !== -1) {
-              tasks[index] = { ...task };
-            }
-            return [...tasks];
-          });
-
-          this.applyFilter();
-
-          this.notifyService.showSuccess(message);
-        } else {
-          this.notifyService.showError(response.message);
         }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      });
+        this.tempListTasks.update((tasks) => {
+          const index = tasks.findIndex((t) => t.id === task.id);
+          if (index !== -1) {
+            tasks[index].status = newStatus;
+          }
+          return tasks;
+        });
+        this.applyFilter();
+        this.notifyService.showSuccess(message);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to update task");
+      },
+    });
   }
 
   toggleFilter() {
@@ -217,15 +203,7 @@ export class TasksView implements OnInit {
         break;
     }
 
-    filtered.sort((a, b) => {
-      if (a.status === b.status) {
-        return 0;
-      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
-        return 1;
-      } else {
-        return -1;
-      }
-    });
+    filtered.sort((a, b) => b.order - a.order);
 
     this.listTasks.set(filtered);
   }
@@ -245,10 +223,10 @@ export class TasksView implements OnInit {
       };
     }
 
-    this.mainService
-      .update<string, Task>("task", event.task.id, updatedTask)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
+    this.dataSyncProvider
+      .update<Task>("task", event.task.id, updatedTask, event.task.todoId)
+      .subscribe({
+        next: (result) => {
           if (event.field === "title") {
             event.task.title = event.value;
           } else if (event.field === "description") {
@@ -257,33 +235,29 @@ export class TasksView implements OnInit {
             event.task.status = event.value as TaskStatus;
           }
           this.notifyService.showSuccess("Task updated successfully");
-        } else {
-          this.notifyService.showError(response.message);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
       });
   }
 
   deleteTask(id: string) {
     if (confirm("Are you sure you want to delete this task?")) {
-      this.mainService
-        .delete<string>("task", id)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.getTasksByTodoId(this.todo()?.id ?? "");
-            if (this.todo()) {
-              this.todo.update(
-                (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== id) }) as Todo
-              );
-            }
+      this.dataSyncProvider.delete<string>("task", id, this.todo()?.id).subscribe({
+        next: (result) => {
+          this.getTasksByTodoId(this.todo()?.id ?? "");
+          if (this.todo()) {
+            this.todo.update(
+              (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== id) }) as Todo
+            );
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
-        });
+          this.notifyService.showSuccess("Task deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete task");
+        },
+      });
     }
   }
 
@@ -301,7 +275,10 @@ export class TasksView implements OnInit {
     this.isUpdatingOrder = true;
 
     const listTasks = this.listTasks();
-    const updatedTasks = listTasks.map((task, index) => ({ ...task, order: index }));
+    const updatedTasks = listTasks.map((task, index) => ({
+      ...task,
+      order: listTasks.length - 1 - index,
+    }));
 
     const transformedTasks = updatedTasks.map((task) => ({
       _id: task._id,
@@ -319,24 +296,18 @@ export class TasksView implements OnInit {
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    this.mainService
-      .updateAll<string, any>("task", transformedTasks)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.listTasks.set(updatedTasks);
-          this.notifyService.showNotify(ResponseStatus.SUCCESS, "Task order updated successfully");
-        } else {
-          this.getTasksByTodoId(this.todo()?.id ?? "");
-          this.notifyService.showError("Failed to update task order");
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError("Failed to update task order");
+    this.dataSyncProvider.updateAll<string>("task", transformedTasks, this.todo()?.id).subscribe({
+      next: (result) => {
+        this.listTasks.set(updatedTasks);
+        this.notifyService.showSuccess("Task order updated successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to update task order");
         this.getTasksByTodoId(this.todo()?.id ?? "");
-        console.error(err);
-      })
-      .finally(() => {
+      },
+      complete: () => {
         this.isUpdatingOrder = false;
-      });
+      },
+    });
   }
 }

@@ -14,33 +14,70 @@ export class MainService {
   async getAllByField<R>(
     apiName: string,
     name: string = "",
-    value: string = ""
+    value: string = "",
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}GetAllByField`, { nameField: name, value: value });
+    return await invoke<Response<R>>(`${apiName}GetAllByField`, {
+      nameField: name,
+      value: value,
+      syncMetadata: syncMetadata,
+    });
   }
 
   async getByField<R>(
     apiName: string,
     name: string = "",
-    value: string = ""
+    value: string = "",
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}GetByField`, { nameField: name, value: value });
+    return await invoke<Response<R>>(`${apiName}GetByField`, {
+      nameField: name,
+      value: value,
+      syncMetadata: syncMetadata,
+    });
   }
 
-  async create<R, D>(apiName: string, data: D): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}Create`, { data: data });
+  async create<R, D>(
+    apiName: string,
+    data: D,
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+  ): Promise<Response<R>> {
+    return await invoke<Response<R>>(`${apiName}Create`, {
+      data: data,
+      syncMetadata: syncMetadata,
+    });
   }
 
-  async update<R, D>(apiName: string, id: string, data: D): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}Update`, { id: id, data: data });
+  async update<R, D>(
+    apiName: string,
+    id: string,
+    data: D,
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+  ): Promise<Response<R>> {
+    return await invoke<Response<R>>(`${apiName}Update`, {
+      id: id,
+      data: data,
+      syncMetadata: syncMetadata,
+    });
   }
 
-  async updateAll<R, D>(apiName: string, data: Array<D>): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}UpdateAll`, { data: data });
+  async updateAll<R, D>(
+    apiName: string,
+    data: Array<D>,
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+  ): Promise<Response<R>> {
+    return await invoke<Response<R>>(`${apiName}UpdateAll`, {
+      data: data,
+      syncMetadata: syncMetadata,
+    });
   }
 
-  async delete<R>(apiName: string, id: string): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}Delete`, { id: id });
+  async delete<R>(
+    apiName: string,
+    id: string,
+    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+  ): Promise<Response<R>> {
+    return await invoke<Response<R>>(`${apiName}Delete`, { id: id, syncMetadata: syncMetadata });
   }
 
   async getTodosByAssignee<R>(profieId: string): Promise<Response<R>> {
