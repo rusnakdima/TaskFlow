@@ -32,7 +32,6 @@ export class WebSocketService {
       },
     };
     this.socket = new Socket(config, this.appRef);
-    this.connect();
   }
 
   connect(): void {
@@ -55,7 +54,6 @@ export class WebSocketService {
   getTodosByAssignee(assignee: string): Observable<Todo[]> {
     console.log("WebSocketService: getTodosByAssignee called with assignee:", assignee);
     return new Observable<Todo[]>((observer) => {
-      // Emit request to WebSocket server - it will query Tauri backend directly
       const requestData = { userId: assignee, assignee };
       console.log("WebSocketService: emitting get-todos with data:", requestData);
 
@@ -66,7 +64,6 @@ export class WebSocketService {
           if (response.status === ResponseStatus.SUCCESS) {
             console.log("WebSocketService: received todos-retrieved:", response.data.todos);
 
-            // Join rooms for todos the user has access to
             response.data.todos.forEach((todo) => {
               const hasAccess =
                 todo.assignees?.some((profile) => profile.id === assignee) ||
@@ -85,18 +82,18 @@ export class WebSocketService {
       );
       this.socket.once("todos-retrieve-error", (error: any) => {
         console.log("WebSocketService: server returned error, falling back to MainService:", error);
-        // Fallback to MainService if server returns error
+
         this.fallbackGetTodosByAssignee(assignee).subscribe(observer);
       });
       this.socket.once("connect_error", () => {
         console.log("WebSocketService: connection error, falling back to MainService");
-        // Fallback to MainService if connection fails
+
         this.fallbackGetTodosByAssignee(assignee).subscribe(observer);
       });
     }).pipe(
       catchError((err) => {
         console.log("WebSocketService: socket error, falling back:", err);
-        // If socket fails, fallback
+
         return this.fallbackGetTodosByAssignee(assignee);
       })
     );
@@ -186,7 +183,9 @@ export class WebSocketService {
   }
 
   private fallbackUpdateTodo(id: string, data: any): Observable<Todo> {
-    return from(this.mainService.update<Todo, any>("todo", id, data)).pipe(
+    return from(
+      this.mainService.update<Todo, any>("todo", id, data, { isOwner: true, isPrivate: false })
+    ).pipe(
       map((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -199,7 +198,7 @@ export class WebSocketService {
 
   deleteTodo(id: string): Observable<void> {
     return new Observable<void>((observer) => {
-      this.socket.emit("delete-todo", { todoId: id, userId: "current-user" }); // userId will be set by auth
+      this.socket.emit("delete-todo", { todoId: id, userId: "current-user" });
       this.socket.once(
         "todo-deleted",
         (response: Response<{ todoId: string; timestamp: string }>) => {
@@ -218,13 +217,14 @@ export class WebSocketService {
   }
 
   private fallbackDeleteTodo(id: string): Observable<void> {
-    return from(this.mainService.delete<void>("todo", id)).pipe(
+    return from(
+      this.mainService.delete<void>("todo", id, { isOwner: true, isPrivate: false })
+    ).pipe(
       map((response: Response<void>) => {
         if (response.status !== ResponseStatus.SUCCESS) {
           throw new Error(response.message ?? "Failed to delete todo");
         }
-      }),
-      map(() => void 0)
+      })
     );
   }
 
@@ -325,7 +325,6 @@ export class WebSocketService {
     });
   }
 
-  // Listen for real-time updates
   onTodoCreated(): Observable<Todo> {
     return new Observable((observer) => {
       this.socket.on("todo-created", (data: { todo: Todo; timestamp: string }) => {

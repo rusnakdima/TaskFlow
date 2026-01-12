@@ -9,11 +9,10 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* components */
 import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
@@ -21,6 +20,7 @@ import { CircleProgressComponent } from "@components/circle-progress/circle-prog
 @Component({
   selector: "app-task-information",
   standalone: true,
+  providers: [DataSyncProvider],
   imports: [CommonModule, MatIconModule, RouterModule, CircleProgressComponent],
   templateUrl: "./task-information.component.html",
 })
@@ -28,9 +28,9 @@ export class TaskInformationComponent {
   public showActions = false;
 
   constructor(
-    private mainService: MainService,
     private notifyService: NotifyService,
-    private router: Router
+    private router: Router,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   @Input() task!: Task;
@@ -67,19 +67,15 @@ export class TaskInformationComponent {
   markTaskComplete() {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
-      this.mainService
-        .update<string, Task>("task", this.task.id, updatedTask)
-        .then((response: Response<string>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.task.status = TaskStatus.COMPLETED;
-            this.notifyService.showSuccess("Task marked as complete!");
-          } else {
-            this.notifyService.showError(response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
-        });
+      this.dataSyncProvider.update<Task>("task", this.task.id, updatedTask, this.todoId).subscribe({
+        next: (result) => {
+          this.task.status = TaskStatus.COMPLETED;
+          this.notifyService.showSuccess("Task marked as complete!");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
     }
   }
 
@@ -94,15 +90,15 @@ export class TaskInformationComponent {
   }
 
   deleteTask() {
-    this.mainService
-      .delete<string>("task", this.task?.id ?? "")
-      .then((response: Response<string>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.router.navigate(["/todos", this.todoId, "tasks"]);
-        }
-      })
-      .catch((err: Response<string>) => this.notifyService.showError(err.message));
+    this.dataSyncProvider.delete<string>("task", this.task?.id ?? "", this.todoId).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess("Task deleted successfully");
+        this.router.navigate(["/todos", this.todoId, "tasks"]);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete task");
+      },
+    });
   }
 
   get percentCompletedSubTasks(): number {

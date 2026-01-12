@@ -16,6 +16,7 @@ import { Profile } from "@models/profile.model";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 interface DisplayTask {
   id: string;
@@ -31,7 +32,7 @@ interface DisplayTask {
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  providers: [MainService],
+  providers: [MainService, DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./dashboard.view.html",
 })
@@ -40,6 +41,7 @@ export class DashboardView implements OnInit {
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider,
     private router: Router
   ) {}
 
@@ -80,17 +82,15 @@ export class DashboardView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.mainService
-        .getAllByField<Array<Todo>>("todo", "userId", userId)
-        .then((response: Response<Array<Todo>>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.processTodosData(response.data);
-          } else {
-            this.notifyService.showError(response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
+      this.dataSyncProvider
+        .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: userId })
+        .subscribe({
+          next: (todos) => {
+            this.processTodosData(todos);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to load dashboard data");
+          },
         });
     }
   }

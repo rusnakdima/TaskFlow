@@ -14,9 +14,9 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 interface CalendarEvent {
   id: string;
@@ -31,16 +31,16 @@ interface CalendarEvent {
 @Component({
   selector: "app-calendar",
   standalone: true,
-  providers: [MainService],
+  providers: [DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule, MatDatepickerModule, MatNativeDateModule],
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView implements OnInit {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
     private notifyService: NotifyService,
-    private router: Router
+    private router: Router,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   selectedDate = signal<Date>(new Date());
@@ -81,17 +81,15 @@ export class CalendarView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.mainService
-        .getAllByField<Array<Todo>>("todo", "userId", userId)
-        .then((response: Response<Array<Todo>>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.processTodosData(response.data);
-          } else {
-            this.notifyService.showError(response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
+      this.dataSyncProvider
+        .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: userId })
+        .subscribe({
+          next: (todos) => {
+            this.processTodosData(todos);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to load calendar data");
+          },
         });
     }
   }

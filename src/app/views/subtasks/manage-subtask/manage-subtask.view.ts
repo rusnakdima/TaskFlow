@@ -16,14 +16,12 @@ import { MatInputModule } from "@angular/material/input";
 import { MatRadioModule } from "@angular/material/radio";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { PriorityTask, Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
 
@@ -36,7 +34,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-subtask",
   standalone: true,
-  providers: [AuthService, MainService, DataSyncProvider],
+  providers: [AuthService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -53,7 +51,6 @@ export class ManageSubtaskView implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private location: Location,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider
@@ -119,17 +116,14 @@ export class ManageSubtaskView implements OnInit {
   }
 
   getSubtaskInfo(subtaskId: string) {
-    this.mainService
-      .getByField<Subtask>("subtask", "id", subtaskId)
-      .then((response: Response<Subtask>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          const subtaskData = response.data;
-          this.form.patchValue(subtaskData);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    this.dataSyncProvider.getByField<Subtask>("subtask", "id", subtaskId).subscribe({
+      next: (subtaskData) => {
+        this.form.patchValue(subtaskData);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load subtask");
+      },
+    });
   }
 
   back() {
@@ -137,55 +131,50 @@ export class ManageSubtaskView implements OnInit {
   }
 
   loadProjectInfo(todoId: string) {
-    this.mainService
-      .getByField<Todo>("todo", "id", todoId)
-      .then((response: Response<Todo>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.projectInfo.set(response.data);
+    this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
+      next: (todo) => {
+        this.projectInfo.set(todo);
 
-          // Set up checkers for DataSyncProvider based on loaded project info
-          this.dataSyncProvider.setOwnershipChecker((id: string) => {
-            return this.projectInfo()?.userId === this.authService.getValueByKey("id");
-          });
+        this.dataSyncProvider.setOwnershipChecker((id: string) => {
+          return this.projectInfo()?.userId === this.authService.getValueByKey("id");
+        });
 
-          this.dataSyncProvider.setTeamChecker((id: string) => {
-            return this.projectInfo()?.visibility === "team";
-          });
+        this.dataSyncProvider.setTeamChecker((id: string) => {
+          return this.projectInfo()?.visibility === "team";
+        });
 
-          this.dataSyncProvider.setAccessChecker((id: string) => {
-            const currentUserId = this.authService.getValueByKey("id");
-            const isOwner = this.projectInfo()?.userId === currentUserId;
-            const assignees = this.projectInfo()?.assignees || [];
-            const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
-            return isOwner || isAssignee;
-          });
-        }
-      })
-      .catch((err: Response<string>) => {
+        this.dataSyncProvider.setAccessChecker((id: string) => {
+          const currentUserId = this.authService.getValueByKey("id");
+          const isOwner = this.projectInfo()?.userId === currentUserId;
+          const assignees = this.projectInfo()?.assignees || [];
+          const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
+          return isOwner || isAssignee;
+        });
+      },
+      error: (err) => {
         console.error("Error loading project info:", err);
-      });
+      },
+    });
   }
 
   loadTaskInfo(taskId: string) {
-    this.mainService
-      .getByField<Task>("task", "id", taskId)
-      .then((response: Response<Task>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.taskInfo.set(response.data);
-        }
-      })
-      .catch((err: Response<string>) => {
+    this.dataSyncProvider.getByField<Task>("task", "id", taskId).subscribe({
+      next: (task) => {
+        this.taskInfo.set(task);
+      },
+      error: (err) => {
         console.error("Error loading task info:", err);
-      });
+      },
+    });
   }
 
   duplicateSubtask() {
     if (this.form.valid) {
-      this.mainService
-        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId())
-        .then((response: Response<Subtask[]>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const order = response.data.length;
+      this.dataSyncProvider
+        .getAll<Subtask>("subtask", { field: "taskId", value: this.taskId() }, this.todoId())
+        .subscribe({
+          next: (subtasks) => {
+            const order = subtasks.length;
             const currentData = this.form.value;
             const duplicateData = {
               ...currentData,
@@ -204,12 +193,10 @@ export class ManageSubtaskView implements OnInit {
                 this.notifyService.showError(err.message || "Failed to duplicate subtask");
               },
             });
-          } else {
+          },
+          error: (err) => {
             this.notifyService.showError("Failed to get existing subtasks count");
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError("Failed to get existing subtasks count");
+          },
         });
     }
   }
@@ -241,12 +228,11 @@ export class ManageSubtaskView implements OnInit {
 
   createSubtask() {
     if (this.form.valid) {
-      // First get the order
-      this.mainService
-        .getAllByField<Subtask[]>("subtask", "taskId", this.taskId())
-        .then((response: Response<Subtask[]>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const length = response.data.length;
+      this.dataSyncProvider
+        .getAll<Subtask>("subtask", { field: "taskId", value: this.taskId() }, this.todoId())
+        .subscribe({
+          next: (subtasks) => {
+            const length = subtasks.length;
             const body = {
               ...this.form.value,
               order: length,
@@ -264,14 +250,11 @@ export class ManageSubtaskView implements OnInit {
                 this.notifyService.showError(err.message || "Failed to create subtask");
               },
             });
-          } else {
+          },
+          error: (err) => {
             this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing subtasks count");
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError("Failed to get existing subtasks count");
+          },
         });
     } else {
       this.isSubmitting.set(false);
