@@ -5,6 +5,7 @@ use tauri::State;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
+  sync_metadata_model::SyncMetadata,
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
@@ -14,8 +15,12 @@ pub async fn todoGetAllByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.getAllByField(nameField, value).await
+  state
+    .todoController
+    .getAllByField(nameField, value, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -24,8 +29,12 @@ pub async fn todoGetByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.getByField(nameField, value).await
+  state
+    .todoController
+    .getByField(nameField, value, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -33,8 +42,12 @@ pub async fn todoGetByField(
 pub async fn todoGetByAssignee(
   state: State<'_, AppState>,
   assigneeId: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.getByAssignee(assigneeId).await
+  state
+    .todoController
+    .getByAssignee(assigneeId, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -42,8 +55,9 @@ pub async fn todoGetByAssignee(
 pub async fn todoCreate(
   state: State<'_, AppState>,
   data: TodoCreateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.create(data).await
+  state.todoController.create(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -52,8 +66,9 @@ pub async fn todoUpdate(
   state: State<'_, AppState>,
   id: String,
   data: TodoUpdateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.update(id, data).await
+  state.todoController.update(id, data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -61,8 +76,9 @@ pub async fn todoUpdate(
 pub async fn todoUpdateAll(
   state: State<'_, AppState>,
   data: Vec<TodoModel>,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.updateAll(data).await
+  state.todoController.updateAll(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -70,6 +86,7 @@ pub async fn todoUpdateAll(
 pub async fn todoDelete(
   state: State<'_, AppState>,
   id: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.delete(id).await
+  state.todoController.delete(id, syncMetadata).await
 }

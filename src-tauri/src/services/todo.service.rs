@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::doc;
+use mongodb::bson::{doc, Document};
 use serde_json::{json, to_value, Value};
 use std::sync::Arc;
 
@@ -13,8 +13,10 @@ use crate::helpers::{
 
 /* models */
 use crate::models::{
+  provider_type_model::ProviderType,
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
+  sync_metadata_model::SyncMetadata,
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
@@ -90,25 +92,60 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
+  fn getProviderType(&self, syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
+    match (syncMetadata.isOwner, syncMetadata.isPrivate) {
+      (true, true) => Ok(ProviderType::Json),
+      (false, false) => Ok(ProviderType::Mongo),
+      (true, false) => Ok(ProviderType::Mongo),
+      (false, true) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = if nameField != "" {
-      Some(json!({ nameField: value }))
-    } else {
-      None
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let listTodos = match providerType {
+      ProviderType::Json => {
+        let filter = if nameField != "" {
+          Some(json!({ nameField: value }))
+        } else {
+          None
+        };
+        self
+          .jsonProvider
+          .getAllByField("todos", filter, Some(self.relations.clone()))
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        };
+        let docs = self
+          .mongodbProvider
+          .getAllByField("todos", filter, Some(self.relations.clone()))
+          .await?;
+        let values: Result<Vec<Value>, _> = docs
+          .into_iter()
+          .map(|doc| serde_json::to_value(doc))
+          .collect();
+        values.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+      }
     };
-
-    let listTodos = self
-      .jsonProvider
-      .getAllByField("todos", filter, Some(self.relations.clone()))
-      .await;
 
     match listTodos {
       Ok(mut todos) => {
-        todos.sort_by(|a, b| {
+        todos.sort_by(|a: &serde_json::Value, b: &serde_json::Value| {
           let a_order = a.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
           a_order.cmp(&b_order)
@@ -132,17 +169,34 @@ impl TodoService {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = if nameField != "" {
-      Some(json!({ nameField: value }))
-    } else {
-      None
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let todo = match providerType {
+      ProviderType::Json => {
+        let filter = if nameField != "" {
+          Some(json!({ nameField: value }))
+        } else {
+          None
+        };
+        self
+          .jsonProvider
+          .getByField("todos", filter, Some(self.relations.clone()), "")
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        };
+        let doc = self
+          .mongodbProvider
+          .getByField("todos", filter, Some(self.relations.clone()), "")
+          .await?;
+        Ok(serde_json::to_value(doc)?)
+      }
     };
-
-    let todo = self
-      .jsonProvider
-      .getByField("todos", filter, Some(self.relations.clone()), "")
-      .await;
 
     match todo {
       Ok(todo) => Ok(ResponseModel {
@@ -159,15 +213,39 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
-    let listTodos = self
-      .mongodbProvider
-      .getAllByField(
-        "todos",
-        Some(doc! { "assignees": { "$in": [assigneeId] } }),
-        Some(self.relations.clone()),
-      )
-      .await;
+  pub async fn getByAssignee(
+    &self,
+    assigneeId: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let listTodos = match providerType {
+      ProviderType::Json => {
+        self
+          .jsonProvider
+          .getAllByField(
+            "todos",
+            Some(json!({ "assignees": assigneeId })),
+            Some(self.relations.clone()),
+          )
+          .await
+      }
+      ProviderType::Mongo => {
+        let docs = self
+          .mongodbProvider
+          .getAllByField(
+            "todos",
+            Some(doc! { "assignees": { "$in": [assigneeId] } }),
+            Some(self.relations.clone()),
+          )
+          .await?;
+        let values: Result<Vec<Value>, _> = docs
+          .into_iter()
+          .map(|doc| serde_json::to_value(doc))
+          .collect();
+        values.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+      }
+    };
 
     match listTodos {
       Ok(mut todos) => {
@@ -191,11 +269,24 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(
+    &self,
+    data: TodoCreateModel,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
     let userId = data.userId.clone();
     let modelData: TodoModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
-    let todo = self.jsonProvider.create("todos", record).await;
+
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let todo = match providerType {
+      ProviderType::Json => self.jsonProvider.create("todos", record).await,
+      ProviderType::Mongo => {
+        let doc = mongodb::bson::to_document(&record)
+          .map_err(|e| format!("Failed to convert to document: {}", e))?;
+        self.mongodbProvider.create("todos", doc).await
+      }
+    };
 
     match todo {
       Ok(result) => {
@@ -230,13 +321,29 @@ impl TodoService {
     &self,
     id: String,
     data: TodoUpdateModel,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let todo = self
-      .jsonProvider
-      .getByField("todos", None, None, id.as_str())
-      .await;
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let todoResult = match providerType {
+      ProviderType::Json => {
+        self
+          .jsonProvider
+          .getByField("todos", None, None, id.as_str())
+          .await
+      }
+      ProviderType::Mongo => {
+        let docResult = self
+          .mongodbProvider
+          .getByField("todos", None, None, id.as_str())
+          .await;
+        match docResult {
+          Ok(doc) => Ok(serde_json::to_value(doc)?),
+          Err(e) => Err(e),
+        }
+      }
+    };
 
-    match todo {
+    match todoResult {
       Ok(todo) => {
         let existingTodoResult: Result<TodoModel, _> =
           serde_json::from_value::<TodoModel>(todo.clone());
@@ -264,10 +371,22 @@ impl TodoService {
           }
         };
 
-        let updateResult = self
-          .jsonProvider
-          .update("todos", &id.as_str(), record)
-          .await;
+        let updateResult = match providerType {
+          ProviderType::Json => {
+            self
+              .jsonProvider
+              .update("todos", &id.as_str(), record)
+              .await
+          }
+          ProviderType::Mongo => {
+            let doc = mongodb::bson::to_document(&record)
+              .map_err(|e| format!("Failed to convert to document: {}", e))?;
+            self
+              .mongodbProvider
+              .update("todos", &id.as_str(), doc)
+              .await
+          }
+        };
 
         match updateResult {
           Ok(success) => {
@@ -305,7 +424,12 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn updateAll(&self, data: Vec<TodoModel>) -> Result<ResponseModel, ResponseModel> {
+  pub async fn updateAll(
+    &self,
+    data: Vec<TodoModel>,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let providerType = self.getProviderType(&syncMetadata)?;
     let records: Vec<Value> = data
       .into_iter()
       .map(|todo| {
@@ -314,23 +438,59 @@ impl TodoService {
       })
       .collect();
 
-    match self.jsonProvider.updateAll("todos", records).await {
-      Ok(_) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "All todos updated successfully".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-      Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Couldn't update todos! {}", error.to_string()),
-        data: DataValue::String("".to_string()),
-      }),
+    match providerType {
+      ProviderType::Json => match self.jsonProvider.updateAll("todos", records).await {
+        Ok(_) => Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "All todos updated successfully".to_string(),
+          data: DataValue::String("".to_string()),
+        }),
+        Err(error) => Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't update all todos! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        }),
+      },
+      ProviderType::Mongo => {
+        let docs: Result<Vec<Document>, _> = records
+          .into_iter()
+          .map(|record| {
+            mongodb::bson::to_document(&record).map_err(|e| format!("Failed to convert: {}", e))
+          })
+          .collect();
+        match docs {
+          Ok(docs) => match self.mongodbProvider.updateAll("todos", docs).await {
+            Ok(_) => Ok(ResponseModel {
+              status: ResponseStatus::Success,
+              message: "All todos updated successfully".to_string(),
+              data: DataValue::String("".to_string()),
+            }),
+            Err(error) => Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: format!("Couldn't update all todos! {}", error.to_string()),
+              data: DataValue::String("".to_string()),
+            }),
+          },
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: e,
+            data: DataValue::String("".to_string()),
+          }),
+        }
+      }
     }
   }
 
   #[allow(non_snake_case)]
-  pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todoResponse = self.getByField("id".to_string(), id.clone()).await;
+  pub async fn delete(
+    &self,
+    id: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let todoResponse = self
+      .getByField("id".to_string(), id.clone(), syncMetadata)
+      .await;
     let userId = if let Ok(response) = &todoResponse {
       match &response.data {
         DataValue::Object(obj) => obj
@@ -344,30 +504,74 @@ impl TodoService {
       "".to_string()
     };
 
-    let tasks = self
-      .jsonProvider
-      .getAllByField("tasks", Some(json!({ "todoId": id.clone() })), None)
-      .await;
+    let tasks = match providerType {
+      ProviderType::Json => {
+        self
+          .jsonProvider
+          .getAllByField("tasks", Some(json!({ "todoId": id.clone() })), None)
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = doc! { "todoId": id.clone() };
+        let docs = self
+          .mongodbProvider
+          .getAllByField("tasks", Some(filter), None)
+          .await?;
+        let values: Result<Vec<Value>, _> = docs
+          .into_iter()
+          .map(|doc| serde_json::to_value(doc))
+          .collect();
+        Ok(values.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?)
+      }
+    };
     if let Ok(listTasks) = tasks {
       for task in listTasks {
-        if let Some(taskId) = task.get("id").and_then(|v| v.as_str()) {
-          let subtasks = self
-            .jsonProvider
-            .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
-            .await;
+        if let Some(taskId) = task.get("id").and_then(|v: &serde_json::Value| v.as_str()) {
+          let subtasks = match providerType {
+            ProviderType::Json => {
+              self
+                .jsonProvider
+                .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
+                .await
+            }
+            ProviderType::Mongo => {
+              let filter = doc! { "taskId": taskId.to_string() };
+              let docs = self
+                .mongodbProvider
+                .getAllByField("subtasks", Some(filter), None)
+                .await?;
+              let values: Result<Vec<Value>, _> = docs
+                .into_iter()
+                .map(|doc| serde_json::to_value(doc))
+                .collect();
+              Ok(values?)
+            }
+          };
           if let Ok(listSubtasks) = subtasks {
             for subtask in listSubtasks {
-              if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
-                let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
+              if let Some(subtaskId) = subtask
+                .get("id")
+                .and_then(|v: &serde_json::Value| v.as_str())
+              {
+                let _ = match providerType {
+                  ProviderType::Json => self.jsonProvider.delete("subtasks", subtaskId).await,
+                  ProviderType::Mongo => self.mongodbProvider.delete("subtasks", subtaskId).await,
+                };
               }
             }
           }
-          let _ = self.jsonProvider.delete("tasks", taskId).await;
+          let _ = match providerType {
+            ProviderType::Json => self.jsonProvider.delete("tasks", taskId).await,
+            ProviderType::Mongo => self.mongodbProvider.delete("tasks", taskId).await,
+          };
         }
       }
     }
 
-    let todo = self.jsonProvider.delete("todos", &id.as_str()).await;
+    let todo = match providerType {
+      ProviderType::Json => self.jsonProvider.delete("todos", &id.as_str()).await,
+      ProviderType::Mongo => self.mongodbProvider.delete("todos", &id.as_str()).await,
+    };
 
     match todo {
       Ok(result) => {
