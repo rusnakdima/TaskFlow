@@ -92,7 +92,6 @@ export class SubtasksView implements OnInit {
   }
 
   getTaskInfo(id: string) {
-    // For task info, need to route based on parent todo access
     this.dataSyncProvider.getByField<Task>("task", "id", id).subscribe({
       next: (task) => {
         this.task.set(task);
@@ -104,7 +103,6 @@ export class SubtasksView implements OnInit {
   }
 
   getSubtasksByTaskId(taskId: string) {
-    // For subtasks, route based on parent todo access
     this.dataSyncProvider
       .getAll<Subtask>("subtask", { field: "taskId", value: taskId }, this.todoId())
       .subscribe({

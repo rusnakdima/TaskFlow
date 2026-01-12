@@ -12,8 +12,8 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* components */
 import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
@@ -21,6 +21,7 @@ import { CircleProgressComponent } from "@components/circle-progress/circle-prog
 @Component({
   selector: "app-todo-information",
   standalone: true,
+  providers: [DataSyncProvider],
   imports: [CommonModule, MatIconModule, RouterModule, CircleProgressComponent],
   templateUrl: "./todo-information.component.html",
 })
@@ -28,9 +29,9 @@ export class TodoInformationComponent {
   public showActions = false;
 
   constructor(
-    private mainService: MainService,
     private notifyService: NotifyService,
-    private router: Router
+    private router: Router,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   @Input() todo!: Todo;
@@ -80,14 +81,14 @@ export class TodoInformationComponent {
   }
 
   deleteTodo() {
-    this.mainService
-      .delete<string>("todo", this.todo?.id ?? "")
-      .then((response: Response<string>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.router.navigate(["/", "todos"]);
-        }
-      })
-      .catch((err: Response<string>) => this.notifyService.showError(err.message));
+    this.dataSyncProvider.delete<string>("todo", this.todo?.id ?? "").subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess("Todo deleted successfully");
+        this.router.navigate(["/", "todos"]);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete todo");
+      },
+    });
   }
 }

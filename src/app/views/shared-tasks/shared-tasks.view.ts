@@ -109,10 +109,8 @@ export class SharedTasksView implements OnInit {
   async loadSharedProjects() {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
-      // According to diagram: Shared page → MongoDB for accessible team todos
       this.dataSyncProvider.getAll<Todo>("todo", { queryType: "shared", userId }).subscribe({
         next: (todos) => {
-          // Split into my shared projects and shared with me
           const myShared = todos.filter(
             (todo) => todo.userId === userId && todo.visibility === "team"
           );

@@ -55,6 +55,8 @@ export class App {
       }, 1000);
     }
 
+    this.webSocketService.connect();
+
     if (token) {
       this.authService
         .checkToken<User>(token)

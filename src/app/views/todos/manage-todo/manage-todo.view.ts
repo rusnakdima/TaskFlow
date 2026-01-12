@@ -166,31 +166,28 @@ export class ManageTodoView implements OnInit {
   }
 
   getTodoInfo(todoId: string) {
-    this.mainService
-      .getByField<Todo>("todo", "id", todoId)
-      .then((response: Response<Todo>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          const todo = response.data;
-          this.form.patchValue(todo);
-          if (this.form.get("assignees")?.value.length > 0) {
-            this.form.get("visibility")?.setValue("team");
-          }
-
-          const currentUserId = this.authService.getValueByKey("id");
-          this.isOwner = todo.userId === currentUserId;
-          const hasAccess = todo.assignees?.some((assignee: any) => assignee.id === currentUserId);
-          this.isSharedTodo = hasAccess && !this.isOwner;
-
-          if (this.isSharedTodo) {
-            this.notifyService.showInfo(
-              "You're editing a shared todo. Changes will be sent to the owner."
-            );
-          }
+    this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
+      next: (todo) => {
+        this.form.patchValue(todo);
+        if (this.form.get("assignees")?.value.length > 0) {
+          this.form.get("visibility")?.setValue("team");
         }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+
+        const currentUserId = this.authService.getValueByKey("id");
+        this.isOwner = todo.userId === currentUserId;
+        const hasAccess = todo.assignees?.some((assignee: any) => assignee.id === currentUserId);
+        this.isSharedTodo = hasAccess && !this.isOwner;
+
+        if (this.isSharedTodo) {
+          this.notifyService.showInfo(
+            "You're editing a shared todo. Changes will be sent to the owner."
+          );
+        }
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load todo");
+      },
+    });
   }
 
   back() {
@@ -198,19 +195,16 @@ export class ManageTodoView implements OnInit {
   }
 
   async fetchTodosCount() {
-    this.mainService
-      .getAllByField<Todo[]>("todo", "userId", this.userId())
-      .then((response: Response<Todo[]>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.form.controls["order"].setValue(response.data.length);
-        } else {
+    this.dataSyncProvider
+      .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: this.userId() })
+      .subscribe({
+        next: (todos) => {
+          this.form.controls["order"].setValue(todos.length);
+        },
+        error: (err) => {
           this.isSubmitting.set(false);
           this.notifyService.showError("Failed to get existing todos count");
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.isSubmitting.set(false);
-        this.notifyService.showError(err.message ?? err.toString());
+        },
       });
   }
 

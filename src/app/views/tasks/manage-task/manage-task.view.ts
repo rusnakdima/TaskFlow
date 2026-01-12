@@ -18,13 +18,11 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatSelectModule } from "@angular/material/select";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { PriorityTask, Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
 
@@ -41,7 +39,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-task",
   standalone: true,
-  providers: [AuthService, MainService, DataSyncProvider],
+  providers: [AuthService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -59,7 +57,6 @@ export class ManageTaskView implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private location: Location,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider
@@ -144,23 +141,20 @@ export class ManageTaskView implements OnInit {
   }
 
   getTaskInfo(taskId: string) {
-    this.mainService
-      .getByField<Task>("task", "id", taskId)
-      .then((response: Response<Task>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          const taskData = response.data;
-          this.form.patchValue(taskData);
+    this.dataSyncProvider.getByField<Task>("task", "id", taskId).subscribe({
+      next: (taskData) => {
+        this.form.patchValue(taskData);
 
-          const startDate = taskData.startDate;
-          const endDate = taskData.endDate;
-          if (startDate && endDate) {
-            this.updateEndDateValidation(startDate, endDate);
-          }
+        const startDate = taskData.startDate;
+        const endDate = taskData.endDate;
+        if (startDate && endDate) {
+          this.updateEndDateValidation(startDate, endDate);
         }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load task");
+      },
+    });
   }
 
   back() {
@@ -168,33 +162,31 @@ export class ManageTaskView implements OnInit {
   }
 
   loadProjectInfo(todoId: string) {
-    this.mainService
-      .getByField<Todo>("todo", "id", todoId)
-      .then((response: Response<Todo>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.projectInfo.set(response.data);
+    this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
+      next: (todo) => {
+        this.projectInfo.set(todo);
 
-          // Set up checkers for DataSyncProvider based on loaded project info
-          this.dataSyncProvider.setOwnershipChecker((id: string) => {
-            return this.projectInfo()?.userId === this.authService.getValueByKey("id");
-          });
+        // Set up checkers for DataSyncProvider based on loaded project info
+        this.dataSyncProvider.setOwnershipChecker((id: string) => {
+          return this.projectInfo()?.userId === this.authService.getValueByKey("id");
+        });
 
-          this.dataSyncProvider.setTeamChecker((id: string) => {
-            return this.projectInfo()?.visibility === "team";
-          });
+        this.dataSyncProvider.setTeamChecker((id: string) => {
+          return this.projectInfo()?.visibility === "team";
+        });
 
-          this.dataSyncProvider.setAccessChecker((id: string) => {
-            const currentUserId = this.authService.getValueByKey("id");
-            const isOwner = this.projectInfo()?.userId === currentUserId;
-            const assignees = this.projectInfo()?.assignees || [];
-            const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
-            return isOwner || isAssignee;
-          });
-        }
-      })
-      .catch((err: Response<string>) => {
+        this.dataSyncProvider.setAccessChecker((id: string) => {
+          const currentUserId = this.authService.getValueByKey("id");
+          const isOwner = this.projectInfo()?.userId === currentUserId;
+          const assignees = this.projectInfo()?.assignees || [];
+          const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
+          return isOwner || isAssignee;
+        });
+      },
+      error: (err) => {
         console.error("Error loading project info:", err);
-      });
+      },
+    });
   }
 
   onSubmit() {
@@ -263,13 +255,13 @@ export class ManageTaskView implements OnInit {
   createTask() {
     if (this.form.valid) {
       // First get the order
-      this.mainService
-        .getAllByField<Task[]>("task", "todoId", this.todoId())
-        .then((response: Response<Task[]>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
+      this.dataSyncProvider
+        .getAll<Task>("task", { field: "todoId", value: this.todoId() }, this.todoId())
+        .subscribe({
+          next: (tasks) => {
             const formValue = this.form.value;
             const normalizedFormValue = normalizeTaskDates(formValue);
-            const length = response.data.length;
+            const length = tasks.length;
             const body = {
               ...normalizedFormValue,
               order: length,
@@ -287,14 +279,11 @@ export class ManageTaskView implements OnInit {
                 this.notifyService.showError(err.message || "Failed to create task");
               },
             });
-          } else {
+          },
+          error: (err) => {
             this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing tasks count");
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError("Failed to get existing tasks count");
+          },
         });
     } else {
       this.isSubmitting.set(false);
