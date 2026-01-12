@@ -31,3 +31,6 @@ pub mod subtask_model;
 pub mod task_model;
 #[path = "todo.model.rs"]
 pub mod todo_model;
+
+#[path = "sync_metadata.model.rs"]
+pub mod sync_metadata_model;

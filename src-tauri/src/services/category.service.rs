@@ -81,6 +81,7 @@ impl CategoriesService {
         Some(self.relations.clone()),
       )
       .await;
+
     match listCategories {
       Ok(categories) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -114,6 +115,7 @@ impl CategoriesService {
         "",
       )
       .await;
+
     match category {
       Ok(category) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -133,6 +135,7 @@ impl CategoriesService {
     let modelData: CategoryModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let category = self.jsonProvider.create("categories", record).await;
+
     match category {
       Ok(result) => {
         if result {
@@ -168,6 +171,7 @@ impl CategoriesService {
       .jsonProvider
       .update("categories", &id.as_str(), record)
       .await;
+
     match category {
       Ok(result) => {
         if result {
@@ -195,9 +199,10 @@ impl CategoriesService {
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let todos = self.jsonProvider.getAllByField("todos", None, None).await;
+
     match todos {
-      Ok(mut todos_list) => {
-        for todo in todos_list.iter_mut() {
+      Ok(mut listTodos) => {
+        for todo in listTodos.iter_mut() {
           if let Some(categories) = todo.get_mut("categories") {
             if let Some(categories_array) = categories.as_array_mut() {
               categories_array.retain(|cat_id| cat_id.as_str() != Some(&id));

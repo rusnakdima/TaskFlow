@@ -25,6 +25,7 @@ import { Todo } from "@models/todo.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -35,7 +36,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-subtask",
   standalone: true,
-  providers: [AuthService, MainService],
+  providers: [AuthService, MainService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -53,7 +54,9 @@ export class ManageSubtaskView implements OnInit {
     private router: Router,
     private location: Location,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private authService: AuthService,
+    private dataSyncProvider: DataSyncProvider
   ) {
     this.form = fb.group({
       _id: [""],
@@ -139,6 +142,23 @@ export class ManageSubtaskView implements OnInit {
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.projectInfo.set(response.data);
+
+          // Set up checkers for DataSyncProvider based on loaded project info
+          this.dataSyncProvider.setOwnershipChecker((id: string) => {
+            return this.projectInfo()?.userId === this.authService.getValueByKey("id");
+          });
+
+          this.dataSyncProvider.setTeamChecker((id: string) => {
+            return this.projectInfo()?.visibility === "team";
+          });
+
+          this.dataSyncProvider.setAccessChecker((id: string) => {
+            const currentUserId = this.authService.getValueByKey("id");
+            const isOwner = this.projectInfo()?.userId === currentUserId;
+            const assignees = this.projectInfo()?.assignees || [];
+            const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
+            return isOwner || isAssignee;
+          });
         }
       })
       .catch((err: Response<string>) => {
@@ -176,17 +196,14 @@ export class ManageSubtaskView implements OnInit {
               order: order,
             };
 
-            this.mainService
-              .create<string, Subtask>("subtask", duplicateData)
-              .then((response: Response<string>) => {
-                this.notifyService.showNotify(response.status, response.message);
-                if (response.status === ResponseStatus.SUCCESS) {
-                  this.notifyService.showSuccess("Subtask duplicated successfully");
-                }
-              })
-              .catch((err: Response<string>) => {
-                this.notifyService.showError(err.message ?? err.toString());
-              });
+            this.dataSyncProvider.create<any>("subtask", duplicateData, this.todoId()).subscribe({
+              next: (result) => {
+                this.notifyService.showSuccess("Subtask duplicated successfully");
+              },
+              error: (err) => {
+                this.notifyService.showError(err.message || "Failed to duplicate subtask");
+              },
+            });
           } else {
             this.notifyService.showError("Failed to get existing subtasks count");
           }
@@ -224,84 +241,29 @@ export class ManageSubtaskView implements OnInit {
 
   createSubtask() {
     if (this.form.valid) {
+      // First get the order
       this.mainService
         .getAllByField<Subtask[]>("subtask", "taskId", this.taskId())
         .then((response: Response<Subtask[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            const existingSubtasks = response.data;
+            const length = response.data.length;
+            const body = {
+              ...this.form.value,
+              order: length,
+              taskId: this.taskId(),
+            };
 
-            const updatedSubtasks = existingSubtasks.map((subtask) => ({
-              ...subtask,
-              order: subtask.order + 1,
-            }));
-
-            if (updatedSubtasks.length > 0) {
-              const transformedSubtasks = updatedSubtasks.map((subtask) => ({
-                _id: subtask._id,
-                id: subtask.id,
-                taskId: subtask.taskId || "",
-                title: subtask.title,
-                description: subtask.description,
-                status: subtask.status,
-                priority: subtask.priority,
-                order: subtask.order,
-                isDeleted: subtask.isDeleted,
-                createdAt: subtask.createdAt,
-                updatedAt: new Date().toISOString().split(".")[0],
-              }));
-
-              this.mainService
-                .updateAll<string, any>("subtask", transformedSubtasks)
-                .then((updateResponse: Response<string>) => {
-                  if (updateResponse.status !== ResponseStatus.SUCCESS) {
-                    this.notifyService.showError("Failed to update existing subtasks order");
-                    this.isSubmitting.set(false);
-                    return;
-                  }
-
-                  const body = {
-                    ...this.form.value,
-                    order: 0,
-                  };
-
-                  this.mainService
-                    .create<string, Subtask>("subtask", body)
-                    .then((createResponse: Response<string>) => {
-                      this.isSubmitting.set(false);
-                      this.notifyService.showNotify(createResponse.status, createResponse.message);
-                      if (createResponse.status == ResponseStatus.SUCCESS) {
-                        this.back();
-                      }
-                    })
-                    .catch((createErr: Response<string>) => {
-                      this.isSubmitting.set(false);
-                      this.notifyService.showError(createErr.message ?? createErr.toString());
-                    });
-                })
-                .catch((updateErr: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(updateErr.message ?? updateErr.toString());
-                });
-            } else {
-              const body = {
-                ...this.form.value,
-                order: 0,
-              };
-
-              this.mainService
-                .create<string, Subtask>("subtask", body)
-                .then((response: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showNotify(response.status, response.message);
-                  if (response.status == ResponseStatus.SUCCESS) {
-                    this.back();
-                  }
-                })
-                .catch((err: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(err.message ?? err.toString());
-                });
-            }
+            this.dataSyncProvider.create<any>("subtask", body, this.projectInfo()?.id).subscribe({
+              next: (result) => {
+                this.isSubmitting.set(false);
+                this.notifyService.showSuccess("Subtask created successfully");
+                this.back();
+              },
+              error: (err) => {
+                this.isSubmitting.set(false);
+                this.notifyService.showError(err.message || "Failed to create subtask");
+              },
+            });
           } else {
             this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing subtasks count");
@@ -319,19 +281,22 @@ export class ManageSubtaskView implements OnInit {
 
   updateSubtask() {
     if (this.form.valid) {
-      const body = this.form.value;
-      this.mainService
-        .update<string, Subtask>("subtask", body.id, body)
-        .then((response: Response<string>) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
+      const body = {
+        ...this.form.value,
+      };
+
+      this.dataSyncProvider
+        .update<any>("subtask", body.id, body, this.projectInfo()?.id)
+        .subscribe({
+          next: (result) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Subtask updated successfully");
             this.back();
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message ?? err.toString());
+          },
+          error: (err) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to update subtask");
+          },
         });
     } else {
       this.isSubmitting.set(false);

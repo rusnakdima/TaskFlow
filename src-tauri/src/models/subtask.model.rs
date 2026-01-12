@@ -3,7 +3,10 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::task_model::{PriorityTask, TaskFullModel, TaskStatus};
+use crate::models::{
+  sync_metadata_model::SyncMetadata,
+  task_model::{PriorityTask, TaskFullModel, TaskStatus},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -29,6 +32,8 @@ pub struct SubtaskCreateModel {
   pub description: Option<String>,
   pub priority: String,
   pub order: i32,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 impl From<SubtaskCreateModel> for SubtaskModel {
@@ -66,6 +71,8 @@ pub struct SubtaskUpdateModel {
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,
   pub updatedAt: String,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]

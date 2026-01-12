@@ -3,7 +3,9 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::{category_model::CategoryFullModel, user_model::UserFullModel};
+use crate::models::{
+  category_model::CategoryFullModel, sync_metadata_model::SyncMetadata, user_model::UserFullModel,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -17,6 +19,7 @@ pub struct TodoModel {
   pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub visibility: String,
   pub order: i32,
   pub isDeleted: bool,
   pub createdAt: String,
@@ -33,7 +36,10 @@ pub struct TodoCreateModel {
   pub endDate: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub visibility: String,
   pub order: i32,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -64,6 +70,7 @@ impl From<TodoCreateModel> for TodoModel {
       endDate: formattedEndDate,
       categories: value.categories,
       assignees: value.assignees,
+      visibility: value.visibility,
       order: value.order,
       isDeleted: false,
       createdAt: formatted.clone(),
@@ -84,10 +91,13 @@ pub struct TodoUpdateModel {
   pub endDate: Option<String>,
   pub categories: Option<Vec<String>>,
   pub assignees: Option<Vec<String>>,
+  pub visibility: Option<String>,
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,
   pub updatedAt: String,
+  #[serde(rename = "_syncMetadata")]
+  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -126,6 +136,7 @@ impl TodoUpdateModel {
       endDate: formattedEndDate,
       categories: self.categories.clone().unwrap_or(existing.categories),
       assignees: self.assignees.clone().unwrap_or(existing.assignees),
+      visibility: self.visibility.clone().unwrap_or(existing.visibility),
       order: self.order.unwrap_or(existing.order),
       isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
       createdAt: existing.createdAt,

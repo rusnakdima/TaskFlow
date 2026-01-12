@@ -8,14 +8,13 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -24,7 +23,7 @@ import { TodoComponent } from "@components/todo/todo.component";
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [MainService],
+  providers: [DataSyncProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -38,8 +37,8 @@ import { TodoComponent } from "@components/todo/todo.component";
 export class TodosView implements OnInit {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   listTodos = signal<Array<Todo>>([]);
@@ -66,18 +65,16 @@ export class TodosView implements OnInit {
 
   loadTodos(): void {
     if (this.userId() && this.userId() != "") {
-      this.mainService
-        .getAllByField<Array<Todo>>("todo", "userId", this.userId())
-        .then((response: Response<Array<Todo>>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.tempListTodos.set(response.data);
+      this.dataSyncProvider
+        .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: this.userId() })
+        .subscribe({
+          next: (todos) => {
+            this.tempListTodos.set(todos);
             this.applyFilter();
-          } else {
-            this.notifyService.showError(response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to load todos");
+          },
         });
     }
   }
@@ -129,6 +126,7 @@ export class TodosView implements OnInit {
         break;
     }
 
+    filtered.sort((a, b) => b.order - a.order);
     this.listTodos.set(filtered);
   }
 
@@ -173,17 +171,15 @@ export class TodosView implements OnInit {
   }
 
   deleteTodoById(todoId: string): void {
-    this.mainService
-      .delete<string>("todo", todoId)
-      .then((response: Response<string>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.loadTodos();
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      });
+    this.dataSyncProvider.delete<string>("todo", todoId).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess("Todo deleted successfully");
+        this.loadTodos();
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete todo");
+      },
+    });
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
@@ -200,7 +196,7 @@ export class TodosView implements OnInit {
     this.isUpdatingOrder = true;
 
     this.listTodos().forEach((todo, index) => {
-      todo.order = index;
+      todo.order = this.listTodos().length - 1 - index;
     });
 
     const transformedTodos = this.listTodos().map((todo) => ({
@@ -213,29 +209,24 @@ export class TodosView implements OnInit {
       endDate: todo.endDate,
       categories: todo.categories?.map((cat) => cat.id) || [],
       assignees: todo.assignees?.map((assignee) => assignee.id) || [],
+      visibility: todo.visibility,
       order: todo.order,
       isDeleted: todo.isDeleted,
       createdAt: todo.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    this.mainService
-      .updateAll<string, any>("todo", transformedTodos)
-      .then((response: Response<string>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.notifyService.showNotify(ResponseStatus.SUCCESS, "Order updated successfully");
-        } else {
-          this.loadTodos();
-          this.notifyService.showError("Failed to update order");
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError("Failed to update order");
+    this.dataSyncProvider.updateAll<string>("todo", transformedTodos).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess("Order updated successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to update order");
         this.loadTodos();
-        console.error(err);
-      })
-      .finally(() => {
+      },
+      complete: () => {
         this.isUpdatingOrder = false;
-      });
+      },
+    });
   }
 }

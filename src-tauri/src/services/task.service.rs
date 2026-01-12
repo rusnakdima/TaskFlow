@@ -53,18 +53,17 @@ impl TaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      Some(json!({ nameField.clone(): value.clone() }))
+    } else {
+      None
+    };
+
     let listTasks = self
       .jsonProvider
-      .getAllByField(
-        "tasks",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-      )
+      .getAllByField("tasks", filter, Some(self.relations.clone()))
       .await;
+
     match listTasks {
       Ok(mut tasks) => {
         tasks.sort_by(|a, b| {
@@ -92,19 +91,24 @@ impl TaskService {
     nameField: String,
     value: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    let filter = if nameField != "" {
+      Some(json!({ nameField: value.clone() }))
+    } else {
+      None
+    };
+
     let task = self
       .jsonProvider
-      .getByField(
-        "tasks",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-        "",
-      )
+      .getByField("tasks", filter.clone(), Some(self.relations.clone()), "")
       .await;
+    if let Ok(task) = task {
+      return Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convertDataToObject(&task),
+      });
+    }
+
     match task {
       Ok(task) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -124,6 +128,7 @@ impl TaskService {
     let modelData: TaskModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let task = self.jsonProvider.create("tasks", record).await;
+
     match task {
       Ok(result) => {
         if result {

@@ -16,6 +16,7 @@ export interface Todo {
   categories: Array<Category>;
   tasks: Array<Task>;
   assignees: Array<Profile>;
+  visibility: "private" | "team";
   order: number;
   isDeleted: boolean;
   createdAt?: string;

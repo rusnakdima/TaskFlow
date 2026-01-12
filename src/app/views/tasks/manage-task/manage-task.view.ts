@@ -26,6 +26,7 @@ import { Todo } from "@models/todo.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@services/data-sync.provider";
 
 /* helpers */
 import { normalizeTaskDates } from "@helpers/date-conversion.helper";
@@ -40,7 +41,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-task",
   standalone: true,
-  providers: [AuthService, MainService],
+  providers: [AuthService, MainService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -59,7 +60,9 @@ export class ManageTaskView implements OnInit {
     private route: ActivatedRoute,
     private location: Location,
     private mainService: MainService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private authService: AuthService,
+    private dataSyncProvider: DataSyncProvider
   ) {
     this.form = fb.group({
       _id: [""],
@@ -170,6 +173,23 @@ export class ManageTaskView implements OnInit {
       .then((response: Response<Todo>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.projectInfo.set(response.data);
+
+          // Set up checkers for DataSyncProvider based on loaded project info
+          this.dataSyncProvider.setOwnershipChecker((id: string) => {
+            return this.projectInfo()?.userId === this.authService.getValueByKey("id");
+          });
+
+          this.dataSyncProvider.setTeamChecker((id: string) => {
+            return this.projectInfo()?.visibility === "team";
+          });
+
+          this.dataSyncProvider.setAccessChecker((id: string) => {
+            const currentUserId = this.authService.getValueByKey("id");
+            const isOwner = this.projectInfo()?.userId === currentUserId;
+            const assignees = this.projectInfo()?.assignees || [];
+            const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
+            return isOwner || isAssignee;
+          });
         }
       })
       .catch((err: Response<string>) => {
@@ -242,90 +262,31 @@ export class ManageTaskView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
+      // First get the order
       this.mainService
         .getAllByField<Task[]>("task", "todoId", this.todoId())
         .then((response: Response<Task[]>) => {
           if (response.status === ResponseStatus.SUCCESS) {
-            const existingTasks = response.data;
+            const formValue = this.form.value;
+            const normalizedFormValue = normalizeTaskDates(formValue);
+            const length = response.data.length;
+            const body = {
+              ...normalizedFormValue,
+              order: length,
+              todoId: this.todoId(),
+            };
 
-            const updatedTasks = existingTasks.map((task) => ({
-              ...task,
-              order: task.order + 1,
-            }));
-
-            if (updatedTasks.length > 0) {
-              const transformedTasks = updatedTasks.map((task) => ({
-                _id: task._id,
-                id: task.id,
-                todoId: task.todoId || "",
-                title: task.title,
-                description: task.description,
-                status: task.status,
-                priority: task.priority,
-                startDate: task.startDate,
-                endDate: task.endDate,
-                order: task.order,
-                isDeleted: task.isDeleted,
-                createdAt: task.createdAt,
-                updatedAt: new Date().toISOString().split(".")[0],
-              }));
-
-              this.mainService
-                .updateAll<string, any>("task", transformedTasks)
-                .then((updateResponse: Response<string>) => {
-                  if (updateResponse.status !== ResponseStatus.SUCCESS) {
-                    this.notifyService.showError("Failed to update existing tasks order");
-                    this.isSubmitting.set(false);
-                    return;
-                  }
-
-                  const formValue = this.form.value;
-                  const normalizedFormValue = normalizeTaskDates(formValue);
-                  const body = {
-                    ...normalizedFormValue,
-                    order: 0,
-                  };
-
-                  this.mainService
-                    .create<string, Task>("task", body)
-                    .then((createResponse: Response<string>) => {
-                      this.isSubmitting.set(false);
-                      this.notifyService.showNotify(createResponse.status, createResponse.message);
-                      if (createResponse.status == ResponseStatus.SUCCESS) {
-                        this.back();
-                      }
-                    })
-                    .catch((createErr: Response<string>) => {
-                      this.isSubmitting.set(false);
-                      this.notifyService.showError(createErr.message ?? createErr.toString());
-                    });
-                })
-                .catch((updateErr: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(updateErr.message ?? updateErr.toString());
-                });
-            } else {
-              const formValue = this.form.value;
-              const normalizedFormValue = normalizeTaskDates(formValue);
-              const body = {
-                ...normalizedFormValue,
-                order: 0,
-              };
-
-              this.mainService
-                .create<string, Task>("task", body)
-                .then((response: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showNotify(response.status, response.message);
-                  if (response.status == ResponseStatus.SUCCESS) {
-                    this.back();
-                  }
-                })
-                .catch((err: Response<string>) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(err.message ?? err.toString());
-                });
-            }
+            this.dataSyncProvider.create<Task>("task", body, this.todoId()).subscribe({
+              next: (result) => {
+                this.isSubmitting.set(false);
+                this.notifyService.showSuccess("Task created successfully");
+                this.back();
+              },
+              error: (err) => {
+                this.isSubmitting.set(false);
+                this.notifyService.showError(err.message || "Failed to create task");
+              },
+            });
           } else {
             this.isSubmitting.set(false);
             this.notifyService.showError("Failed to get existing tasks count");
@@ -349,19 +310,17 @@ export class ManageTaskView implements OnInit {
         ...normalizedFormValue,
       };
 
-      this.mainService
-        .update<string, Task>("task", body.id, body)
-        .then((response: Response<string>) => {
+      this.dataSyncProvider.update<Task>("task", body.id, body, this.todoId()).subscribe({
+        next: (result) => {
           this.isSubmitting.set(false);
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.back();
-          }
-        })
-        .catch((err: Response<string>) => {
+          this.notifyService.showSuccess("Task updated successfully");
+          this.back();
+        },
+        error: (err) => {
           this.isSubmitting.set(false);
-          this.notifyService.showError(err.message ?? err.toString());
-        });
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
