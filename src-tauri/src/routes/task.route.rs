@@ -5,6 +5,7 @@ use tauri::State;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
+  sync_metadata_model::SyncMetadata,
   task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
 };
 
@@ -14,8 +15,12 @@ pub async fn taskGetAllByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.getAllByField(nameField, value).await
+  state
+    .taskController
+    .getAllByField(nameField, value, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -24,8 +29,12 @@ pub async fn taskGetByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.getByField(nameField, value).await
+  state
+    .taskController
+    .getByField(nameField, value, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -33,8 +42,9 @@ pub async fn taskGetByField(
 pub async fn taskCreate(
   state: State<'_, AppState>,
   data: TaskCreateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.create(data).await
+  state.taskController.create(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -43,8 +53,9 @@ pub async fn taskUpdate(
   state: State<'_, AppState>,
   id: String,
   data: TaskUpdateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.update(id, data).await
+  state.taskController.update(id, data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -52,8 +63,9 @@ pub async fn taskUpdate(
 pub async fn taskUpdateAll(
   state: State<'_, AppState>,
   data: Vec<TaskModel>,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.updateAll(data).await
+  state.taskController.updateAll(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -61,6 +73,7 @@ pub async fn taskUpdateAll(
 pub async fn taskDelete(
   state: State<'_, AppState>,
   id: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.taskController.delete(id).await
+  state.taskController.delete(id, syncMetadata).await
 }

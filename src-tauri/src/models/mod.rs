@@ -34,3 +34,6 @@ pub mod todo_model;
 
 #[path = "sync_metadata.model.rs"]
 pub mod sync_metadata_model;
+
+#[path = "provider_type.model.rs"]
+pub mod provider_type_model;

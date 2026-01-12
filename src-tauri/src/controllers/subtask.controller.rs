@@ -15,6 +15,7 @@ use crate::services::{
 use crate::models::{
   response_model::ResponseModel,
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
+  sync_metadata_model::SyncMetadata,
 };
 
 #[allow(non_snake_case)]
@@ -39,6 +40,7 @@ impl SubtaskController {
     );
     let taskService = TaskService::new(
       jsonProvider.clone(),
+      mongodbProvider.clone(),
       todoService.clone(),
       activityLogHelper.clone(),
     );
@@ -46,6 +48,7 @@ impl SubtaskController {
     Self {
       subtaskService: SubtaskService::new(
         jsonProvider.clone(),
+        mongodbProvider.clone(),
         taskService.clone(),
         todoService.clone(),
         activityLogHelper.clone(),
@@ -61,8 +64,12 @@ impl SubtaskController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.getAllByField(nameField, value).await
+    self
+      .subtaskService
+      .getAllByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
@@ -70,13 +77,21 @@ impl SubtaskController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.getByField(nameField, value).await
+    self
+      .subtaskService
+      .getByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.create(data).await
+  pub async fn create(
+    &self,
+    data: SubtaskCreateModel,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.subtaskService.create(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
@@ -84,17 +99,26 @@ impl SubtaskController {
     &self,
     id: String,
     data: SubtaskUpdateModel,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.update(id, data).await
+    self.subtaskService.update(id, data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn updateAll(&self, data: Vec<SubtaskModel>) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.updateAll(data).await
+  pub async fn updateAll(
+    &self,
+    data: Vec<SubtaskModel>,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.subtaskService.updateAll(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.delete(id).await
+  pub async fn delete(
+    &self,
+    id: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.subtaskService.delete(id, syncMetadata).await
   }
 }

@@ -1,4 +1,5 @@
 /* sys lib */
+use mongodb::bson::{doc, Document};
 use serde_json::{json, to_value, Value};
 
 /* helpers */
@@ -6,6 +7,7 @@ use crate::helpers::{
   activity_log::ActivityLogHelper,
   common::{convertDataToArray, convertDataToObject},
   json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
 
 /* services */
@@ -13,8 +15,10 @@ use crate::services::todo_service::TodoService;
 
 /* models */
 use crate::models::{
+  provider_type_model::ProviderType,
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
+  sync_metadata_model::SyncMetadata,
   task_model::{TaskCreateModel, TaskModel, TaskStatus, TaskUpdateModel},
 };
 
@@ -22,6 +26,7 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct TaskService {
   pub jsonProvider: JsonProvider,
+  pub mongodbProvider: std::sync::Arc<MongodbProvider>,
   pub todoService: TodoService,
   pub activityLogHelper: ActivityLogHelper,
   relations: Vec<RelationObj>,
@@ -31,11 +36,13 @@ impl TaskService {
   #[allow(non_snake_case)]
   pub fn new(
     jsonProvider: JsonProvider,
+    mongodbProvider: std::sync::Arc<MongodbProvider>,
     todoService: TodoService,
     activityLogHelper: ActivityLogHelper,
   ) -> Self {
     Self {
       jsonProvider,
+      mongodbProvider,
       todoService,
       activityLogHelper,
       relations: vec![RelationObj {
@@ -49,33 +56,68 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
+  fn getProviderType(&self, syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
+    match (syncMetadata.isOwner, syncMetadata.isPrivate) {
+      (true, true) => Ok(ProviderType::Json),
+      (false, false) => Ok(ProviderType::Mongo),
+      (true, false) => Ok(ProviderType::Mongo),
+      (false, true) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = if nameField != "" {
-      Some(json!({ nameField.clone(): value.clone() }))
-    } else {
-      None
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let listTasks = match providerType {
+      ProviderType::Json => {
+        let filter = if nameField != "" {
+          Some(json!({ nameField.clone(): value.clone() }))
+        } else {
+          None
+        };
+        self
+          .jsonProvider
+          .getAllByField("tasks", filter, Some(self.relations.clone()))
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        };
+        let docs = self
+          .mongodbProvider
+          .getAllByField("tasks", filter, Some(self.relations.clone()))
+          .await?;
+        let values: Result<Vec<Value>, _> = docs
+          .into_iter()
+          .map(|doc| serde_json::to_value(doc))
+          .collect();
+        values.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+      }
     };
 
-    let listTasks = self
-      .jsonProvider
-      .getAllByField("tasks", filter, Some(self.relations.clone()))
-      .await;
-
     match listTasks {
-      Ok(mut tasks) => {
-        tasks.sort_by(|a, b| {
-          let a_order = a.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
-          let b_order = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
-          a_order.cmp(&b_order)
+      Ok(mut tasksList) => {
+        tasksList.sort_by(|a: &serde_json::Value, b: &serde_json::Value| {
+          let aOrder = a.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          let bOrder = b.get("order").and_then(|v| v.as_i64()).unwrap_or(0);
+          aOrder.cmp(&bOrder)
         });
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "".to_string(),
-          data: convertDataToArray(&tasks),
+          data: convertDataToArray(&tasksList),
         })
       }
       Err(error) => Err(ResponseModel {
@@ -91,24 +133,34 @@ impl TaskService {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = if nameField != "" {
-      Some(json!({ nameField: value.clone() }))
-    } else {
-      None
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let task = match providerType {
+      ProviderType::Json => {
+        let filter = if nameField != "" {
+          Some(json!({ nameField: value }))
+        } else {
+          None
+        };
+        self
+          .jsonProvider
+          .getByField("tasks", filter, Some(self.relations.clone()), "")
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = if nameField != "" {
+          Some(doc! { nameField: value })
+        } else {
+          None
+        };
+        let doc = self
+          .mongodbProvider
+          .getByField("tasks", filter, Some(self.relations.clone()), "")
+          .await?;
+        Ok(serde_json::to_value(doc)?)
+      }
     };
-
-    let task = self
-      .jsonProvider
-      .getByField("tasks", filter.clone(), Some(self.relations.clone()), "")
-      .await;
-    if let Ok(task) = task {
-      return Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "".to_string(),
-        data: convertDataToObject(&task),
-      });
-    }
 
     match task {
       Ok(task) => Ok(ResponseModel {
@@ -125,16 +177,32 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
+  pub async fn create(
+    &self,
+    data: TaskCreateModel,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
     let todoId = data.todoId.clone();
     let modelData: TaskModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
-    let task = self.jsonProvider.create("tasks", record).await;
+
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let task = match providerType {
+      ProviderType::Json => self.jsonProvider.create("tasks", record).await,
+      ProviderType::Mongo => {
+        let doc = mongodb::bson::to_document(&record)
+          .map_err(|e| format!("Failed to convert to document: {}", e))?;
+        self.mongodbProvider.create("tasks", doc).await
+      }
+    };
 
     match task {
       Ok(result) => {
         if result {
-          let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+          let todoResult = self
+            .todoService
+            .getByField("id".to_string(), todoId, syncMetadata.clone())
+            .await;
           let userId = if let Ok(response) = &todoResult {
             match &response.data {
               DataValue::Object(obj) => obj
@@ -179,13 +247,29 @@ impl TaskService {
     &self,
     id: String,
     data: TaskUpdateModel,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let task = self
-      .jsonProvider
-      .getByField("tasks", None, None, id.as_str())
-      .await;
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let taskResult = match providerType {
+      ProviderType::Json => {
+        self
+          .jsonProvider
+          .getByField("tasks", None, None, id.as_str())
+          .await
+      }
+      ProviderType::Mongo => {
+        let docResult = self
+          .mongodbProvider
+          .getByField("tasks", None, None, id.as_str())
+          .await;
+        match docResult {
+          Ok(doc) => Ok(serde_json::to_value(doc)?),
+          Err(e) => Err(e),
+        }
+      }
+    };
 
-    match task {
+    match taskResult {
       Ok(task) => {
         let existingTask: TaskModel = match serde_json::from_value::<TaskModel>(task.clone()) {
           Ok(task) => task,
@@ -205,7 +289,11 @@ impl TaskService {
         let userId = {
           let todoResult = self
             .todoService
-            .getByField("id".to_string(), existingTask.todoId.clone())
+            .getByField(
+              "id".to_string(),
+              existingTask.todoId.clone(),
+              syncMetadata.clone(),
+            )
             .await;
           if let Ok(response) = &todoResult {
             match &response.data {
@@ -232,10 +320,22 @@ impl TaskService {
           }
         };
 
-        let updateResult = self
-          .jsonProvider
-          .update("tasks", &id.as_str(), record)
-          .await;
+        let updateResult = match providerType {
+          ProviderType::Json => {
+            self
+              .jsonProvider
+              .update("tasks", &id.as_str(), record)
+              .await
+          }
+          ProviderType::Mongo => {
+            let doc = mongodb::bson::to_document(&record)
+              .map_err(|e| format!("Failed to convert to document: {}", e))?;
+            self
+              .mongodbProvider
+              .update("tasks", &id.as_str(), doc)
+              .await
+          }
+        };
 
         match updateResult {
           Ok(success) => {
@@ -276,16 +376,21 @@ impl TaskService {
           }),
         }
       }
-      Err(error) => Err(ResponseModel {
+      Err(_) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Existing task not found: {}", error.to_string()),
+        message: "Task not found".to_string(),
         data: DataValue::String("".to_string()),
       }),
     }
   }
 
   #[allow(non_snake_case)]
-  pub async fn updateAll(&self, data: Vec<TaskModel>) -> Result<ResponseModel, ResponseModel> {
+  pub async fn updateAll(
+    &self,
+    data: Vec<TaskModel>,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let providerType = self.getProviderType(&syncMetadata)?;
     let records: Vec<Value> = data
       .into_iter()
       .map(|task| {
@@ -294,23 +399,58 @@ impl TaskService {
       })
       .collect();
 
-    match self.jsonProvider.updateAll("tasks", records).await {
-      Ok(_) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "All tasks updated successfully".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-      Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Couldn't update tasks! {}", error.to_string()),
-        data: DataValue::String("".to_string()),
-      }),
+    match providerType {
+      ProviderType::Json => match self.jsonProvider.updateAll("tasks", records).await {
+        Ok(_) => Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "All tasks updated successfully".to_string(),
+          data: DataValue::String("".to_string()),
+        }),
+        Err(error) => Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Couldn't update tasks! {}", error.to_string()),
+          data: DataValue::String("".to_string()),
+        }),
+      },
+      ProviderType::Mongo => {
+        let docs: Result<Vec<Document>, _> = records
+          .into_iter()
+          .map(|record| {
+            mongodb::bson::to_document(&record).map_err(|e| format!("Failed to convert: {}", e))
+          })
+          .collect();
+        match docs {
+          Ok(docs) => match self.mongodbProvider.updateAll("tasks", docs).await {
+            Ok(_) => Ok(ResponseModel {
+              status: ResponseStatus::Success,
+              message: "All tasks updated successfully".to_string(),
+              data: DataValue::String("".to_string()),
+            }),
+            Err(error) => Err(ResponseModel {
+              status: ResponseStatus::Error,
+              message: format!("Couldn't update all tasks! {}", error.to_string()),
+              data: DataValue::String("".to_string()),
+            }),
+          },
+          Err(e) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: e,
+            data: DataValue::String("".to_string()),
+          }),
+        }
+      }
     }
   }
 
   #[allow(non_snake_case)]
-  pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let taskResult = self.getByField("id".to_string(), id.clone()).await;
+  pub async fn delete(
+    &self,
+    id: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let taskResult = self
+      .getByField("id".to_string(), id.clone(), syncMetadata.clone())
+      .await;
     let todoId = if let Ok(response) = &taskResult {
       match &response.data {
         DataValue::Object(obj) => obj
@@ -324,7 +464,10 @@ impl TaskService {
       "".to_string()
     };
     let userId = if !todoId.is_empty() {
-      let todoResult = self.todoService.getByField("id".to_string(), todoId).await;
+      let todoResult = self
+        .todoService
+        .getByField("id".to_string(), todoId, syncMetadata.clone())
+        .await;
       if let Ok(response) = &todoResult {
         match &response.data {
           DataValue::Object(obj) => obj
@@ -341,23 +484,46 @@ impl TaskService {
       "".to_string()
     };
 
-    let subtasks = self
-      .jsonProvider
-      .getAllByField("subtasks", Some(json!({ "taskId": id })), None)
-      .await;
+    let providerType = self.getProviderType(&syncMetadata)?;
+    let subtasks = match providerType {
+      ProviderType::Json => {
+        self
+          .jsonProvider
+          .getAllByField("subtasks", Some(json!({ "taskId": id.clone() })), None)
+          .await
+      }
+      ProviderType::Mongo => {
+        let filter = doc! { "taskId": id.clone() };
+        let docs = self
+          .mongodbProvider
+          .getAllByField("subtasks", Some(filter), None)
+          .await?;
+        let values: Result<Vec<Value>, _> = docs
+          .into_iter()
+          .map(|doc| serde_json::to_value(doc))
+          .collect();
+        Ok(values.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?)
+      }
+    };
 
-    match subtasks {
-      Ok(subtasksList) => {
-        for subtask in subtasksList {
-          if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
-            let _ = self.jsonProvider.delete("subtasks", subtaskId).await;
-          }
+    if let Ok(subtasksList) = subtasks {
+      for subtask in subtasksList {
+        if let Some(subtaskId) = subtask
+          .get("id")
+          .and_then(|v: &serde_json::Value| v.as_str())
+        {
+          let _ = match providerType {
+            ProviderType::Json => self.jsonProvider.delete("subtasks", subtaskId).await,
+            ProviderType::Mongo => self.mongodbProvider.delete("subtasks", subtaskId).await,
+          };
         }
       }
-      Err(_) => {}
     }
 
-    let task = self.jsonProvider.delete("tasks", &id.as_str()).await;
+    let task = match providerType {
+      ProviderType::Json => self.jsonProvider.delete("tasks", &id.as_str()).await,
+      ProviderType::Mongo => self.mongodbProvider.delete("tasks", &id.as_str()).await,
+    };
     match task {
       Ok(result) => {
         if result {

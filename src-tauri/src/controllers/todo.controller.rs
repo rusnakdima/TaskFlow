@@ -12,6 +12,7 @@ use crate::services::todo_service::TodoService;
 /* models */
 use crate::models::{
   response_model::ResponseModel,
+  sync_metadata_model::SyncMetadata,
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
 };
 
@@ -39,8 +40,12 @@ impl TodoController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.getAllByField(nameField, value).await
+    self
+      .todoService
+      .getAllByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
@@ -48,18 +53,33 @@ impl TodoController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.getByField(nameField, value).await
+    self
+      .todoService
+      .getByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByAssignee(&self, assigneeId: String) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.getByAssignee(assigneeId).await
+  pub async fn getByAssignee(
+    &self,
+    assigneeId: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self
+      .todoService
+      .getByAssignee(assigneeId, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.create(data).await
+  pub async fn create(
+    &self,
+    data: TodoCreateModel,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.todoService.create(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
@@ -67,17 +87,26 @@ impl TodoController {
     &self,
     id: String,
     data: TodoUpdateModel,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.update(id, data).await
+    self.todoService.update(id, data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn updateAll(&self, data: Vec<TodoModel>) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.updateAll(data).await
+  pub async fn updateAll(
+    &self,
+    data: Vec<TodoModel>,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.todoService.updateAll(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.delete(id).await
+  pub async fn delete(
+    &self,
+    id: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.todoService.delete(id, syncMetadata).await
   }
 }

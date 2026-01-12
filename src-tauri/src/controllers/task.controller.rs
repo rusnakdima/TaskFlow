@@ -12,6 +12,7 @@ use crate::services::{task_service::TaskService, todo_service::TodoService};
 /* models */
 use crate::models::{
   response_model::ResponseModel,
+  sync_metadata_model::SyncMetadata,
   task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
 };
 
@@ -32,6 +33,7 @@ impl TaskController {
     Self {
       taskService: TaskService::new(
         jsonProvider.clone(),
+        mongodbProvider.clone(),
         TodoService::new(
           jsonProvider.clone(),
           mongodbProvider.clone(),
@@ -49,8 +51,12 @@ impl TaskController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.getAllByField(nameField, value).await
+    self
+      .taskService
+      .getAllByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
@@ -58,13 +64,21 @@ impl TaskController {
     &self,
     nameField: String,
     value: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.getByField(nameField, value).await
+    self
+      .taskService
+      .getByField(nameField, value, syncMetadata)
+      .await
   }
 
   #[allow(non_snake_case)]
-  pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.create(data).await
+  pub async fn create(
+    &self,
+    data: TaskCreateModel,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.taskService.create(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
@@ -72,17 +86,26 @@ impl TaskController {
     &self,
     id: String,
     data: TaskUpdateModel,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.update(id, data).await
+    self.taskService.update(id, data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn updateAll(&self, data: Vec<TaskModel>) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.updateAll(data).await
+  pub async fn updateAll(
+    &self,
+    data: Vec<TaskModel>,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.taskService.updateAll(data, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.delete(id).await
+  pub async fn delete(
+    &self,
+    id: String,
+    syncMetadata: SyncMetadata,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.taskService.delete(id, syncMetadata).await
   }
 }

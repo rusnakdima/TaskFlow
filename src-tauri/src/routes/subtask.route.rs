@@ -6,6 +6,7 @@ use tauri::State;
 use crate::models::{
   response_model::ResponseModel,
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
+  sync_metadata_model::SyncMetadata,
 };
 
 #[allow(non_snake_case)]
@@ -14,10 +15,11 @@ pub async fn subtaskGetAllByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .subtaskController
-    .getAllByField(nameField, value)
+    .getAllByField(nameField, value, syncMetadata)
     .await
 }
 
@@ -27,8 +29,12 @@ pub async fn subtaskGetByField(
   state: State<'_, AppState>,
   nameField: String,
   value: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.subtaskController.getByField(nameField, value).await
+  state
+    .subtaskController
+    .getByField(nameField, value, syncMetadata)
+    .await
 }
 
 #[allow(non_snake_case)]
@@ -36,8 +42,9 @@ pub async fn subtaskGetByField(
 pub async fn subtaskCreate(
   state: State<'_, AppState>,
   data: SubtaskCreateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.subtaskController.create(data).await
+  state.subtaskController.create(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -46,8 +53,9 @@ pub async fn subtaskUpdate(
   state: State<'_, AppState>,
   id: String,
   data: SubtaskUpdateModel,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.subtaskController.update(id, data).await
+  state.subtaskController.update(id, data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -55,8 +63,9 @@ pub async fn subtaskUpdate(
 pub async fn subtaskUpdateAll(
   state: State<'_, AppState>,
   data: Vec<SubtaskModel>,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.subtaskController.updateAll(data).await
+  state.subtaskController.updateAll(data, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
@@ -64,6 +73,7 @@ pub async fn subtaskUpdateAll(
 pub async fn subtaskDelete(
   state: State<'_, AppState>,
   id: String,
+  syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.subtaskController.delete(id).await
+  state.subtaskController.delete(id, syncMetadata).await
 }

@@ -25,3 +25,33 @@ pub struct ResponseModel {
   pub message: String,
   pub data: DataValue,
 }
+
+impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
+  fn from(error: Box<dyn std::error::Error + Send + Sync>) -> Self {
+    ResponseModel {
+      status: ResponseStatus::Error,
+      message: error.to_string(),
+      data: DataValue::String("".to_string()),
+    }
+  }
+}
+
+impl From<serde_json::Error> for ResponseModel {
+  fn from(error: serde_json::Error) -> Self {
+    ResponseModel {
+      status: ResponseStatus::Error,
+      message: error.to_string(),
+      data: DataValue::String("".to_string()),
+    }
+  }
+}
+
+impl From<String> for ResponseModel {
+  fn from(error: String) -> Self {
+    ResponseModel {
+      status: ResponseStatus::Error,
+      message: error,
+      data: DataValue::String("".to_string()),
+    }
+  }
+}

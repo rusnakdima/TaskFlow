@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* models */
-use crate::models::{sync_metadata_model::SyncMetadata, todo_model::TodoFullModel};
+use crate::models::todo_model::TodoFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -78,8 +78,6 @@ pub struct TaskCreateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -133,8 +131,6 @@ pub struct TaskUpdateModel {
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
   pub updatedAt: String,
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]

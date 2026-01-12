@@ -3,9 +3,7 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::{
-  category_model::CategoryFullModel, sync_metadata_model::SyncMetadata, user_model::UserFullModel,
-};
+use crate::models::{category_model::CategoryFullModel, user_model::UserFullModel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -38,8 +36,6 @@ pub struct TodoCreateModel {
   pub assignees: Vec<String>,
   pub visibility: String,
   pub order: i32,
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]
@@ -96,8 +92,6 @@ pub struct TodoUpdateModel {
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,
   pub updatedAt: String,
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
 }
 
 #[allow(non_snake_case)]

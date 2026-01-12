@@ -10,7 +10,7 @@ use crate::helpers::{
 use crate::services::statistics_service::StatisticsService;
 
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::models::{response_model::ResponseModel, sync_metadata_model::SyncMetadata};
 
 #[allow(non_snake_case)]
 pub struct StatisticsController {
@@ -34,10 +34,11 @@ impl StatisticsController {
     &self,
     userId: String,
     timeRange: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     self
       .statisticsService
-      .getStatistics(userId, timeRange)
+      .getStatistics(userId, timeRange, syncMetadata)
       .await
   }
 }

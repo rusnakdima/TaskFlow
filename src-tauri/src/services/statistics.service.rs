@@ -18,6 +18,7 @@ use crate::models::{
     AchievementModel, CategoryItem, ChartDataModel, CompletionTrendItem, DailyActivityItem,
     DetailedMetricModel, StatisticsModel, StatisticsResponseModel,
   },
+  sync_metadata_model::SyncMetadata,
 };
 
 #[derive(Clone)]
@@ -53,6 +54,7 @@ impl StatisticsService {
     &self,
     userId: String,
     timeRange: String,
+    syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let (startDate, endDate) = self.calculateDateRange(&timeRange);
 
@@ -62,7 +64,7 @@ impl StatisticsService {
 
     let todosResponse = self
       .todoService
-      .getAllByField("userId".to_string(), userId.clone())
+      .getAllByField("userId".to_string(), userId.clone(), syncMetadata.clone())
       .await;
     let mut todos = match todosResponse {
       Ok(response) => {
