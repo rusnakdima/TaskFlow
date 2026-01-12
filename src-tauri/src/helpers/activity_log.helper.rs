@@ -12,11 +12,11 @@ use crate::models::{
 
 #[derive(Clone)]
 #[allow(non_snake_case)]
-pub struct DailyActivityService {
+pub struct ActivityLogHelper {
   pub jsonProvider: JsonProvider,
 }
 
-impl DailyActivityService {
+impl ActivityLogHelper {
   #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
     Self { jsonProvider }
@@ -49,7 +49,7 @@ impl DailyActivityService {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!(
-          "Couldn't get a list of daily ctivities! {}",
+          "Couldn't get a list of daily activities! {}",
           error.to_string()
         ),
         data: DataValue::String("".to_string()),
@@ -67,7 +67,7 @@ impl DailyActivityService {
       .jsonProvider
       .getAllByField(
         "daily_activities",
-        Some(json!({ "userId": userId.clone(), "date": date.clone() })),
+        Some(serde_json::json!({ "userId": userId.clone(), "date": date.clone() })),
         None,
       )
       .await;
@@ -91,9 +91,9 @@ impl DailyActivityService {
     match self.jsonProvider.create("daily_activities", record).await {
       Ok(_) => Ok(model),
       Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
+        status: crate::models::response_model::ResponseStatus::Error,
         message: format!("Couldn't create daily activity! {}", error.to_string()),
-        data: DataValue::String("".to_string()),
+        data: crate::models::response_model::DataValue::String("".to_string()),
       }),
     }
   }
@@ -189,9 +189,9 @@ impl DailyActivityService {
     {
       Ok(_) => Ok(()),
       Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
+        status: crate::models::response_model::ResponseStatus::Error,
         message: format!("Couldn't update daily activity! {}", error.to_string()),
-        data: DataValue::String("".to_string()),
+        data: crate::models::response_model::DataValue::String("".to_string()),
       }),
     }
   }

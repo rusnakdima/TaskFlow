@@ -5,13 +5,11 @@ use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::{
+  activity_log::ActivityLogHelper,
   common::{convertDataToArray, convertDataToObject},
   json_provider::JsonProvider,
   mongodb_provider::MongodbProvider,
 };
-
-/* services */
-use crate::services::daily_activity_service::DailyActivityService;
 
 /* models */
 use crate::models::{
@@ -25,7 +23,7 @@ use crate::models::{
 pub struct TodoService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Arc<MongodbProvider>,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
   relations: Vec<RelationObj>,
 }
 
@@ -34,12 +32,12 @@ impl TodoService {
   pub fn new(
     jsonProvider: JsonProvider,
     mongodbProvider: Arc<MongodbProvider>,
-    dailyActivityService: DailyActivityService,
+    activityLogHelper: ActivityLogHelper,
   ) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
-      dailyActivityService,
+      activityLogHelper,
       relations: vec![
         RelationObj {
           nameTable: "tasks".to_string(),
@@ -194,6 +192,7 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let userId = data.userId.clone();
     let modelData: TodoModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
     let todo = self.jsonProvider.create("todos", record).await;
@@ -201,6 +200,10 @@ impl TodoService {
     match todo {
       Ok(result) => {
         if result {
+          let _ = self
+            .activityLogHelper
+            .logActivity(userId, "todo_created", 1)
+            .await;
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
@@ -248,6 +251,7 @@ impl TodoService {
           }
         };
 
+        let userId = existingTodo.userId.clone();
         let updatedTodo = data.applyTo(existingTodo);
         let record: Value = match to_value(&updatedTodo) {
           Ok(val) => val,
@@ -268,6 +272,10 @@ impl TodoService {
         match updateResult {
           Ok(success) => {
             if success {
+              let _ = self
+                .activityLogHelper
+                .logActivity(userId, "todo_updated", 1)
+                .await;
               Ok(ResponseModel {
                 status: ResponseStatus::Success,
                 message: "Todo updated successfully".to_string(),
@@ -322,6 +330,20 @@ impl TodoService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    let todoResponse = self.getByField("id".to_string(), id.clone()).await;
+    let userId = if let Ok(response) = &todoResponse {
+      match &response.data {
+        DataValue::Object(obj) => obj
+          .get("userId")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
+        _ => "".to_string(),
+      }
+    } else {
+      "".to_string()
+    };
+
     let tasks = self
       .jsonProvider
       .getAllByField("tasks", Some(json!({ "todoId": id.clone() })), None)
@@ -350,6 +372,12 @@ impl TodoService {
     match todo {
       Ok(result) => {
         if result {
+          if !userId.is_empty() {
+            let _ = self
+              .activityLogHelper
+              .logActivity(userId, "todo_deleted", 1)
+              .await;
+          }
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "".to_string(),
@@ -369,66 +397,5 @@ impl TodoService {
         data: DataValue::String("".to_string()),
       }),
     }
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn createAndLog(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let result = self.create(data.clone()).await;
-    if result.is_ok() {
-      let _ = self
-        .dailyActivityService
-        .logActivity(data.userId, "todo_created", 1)
-        .await;
-    }
-    result
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn updateAndLog(
-    &self,
-    id: String,
-    data: TodoUpdateModel,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let result = self.update(id.clone(), data.clone()).await;
-    if result.is_ok() {
-      if let Ok(currentTodo) = self.getByField("id".to_string(), id.clone()).await {
-        if let DataValue::Object(obj) = &currentTodo.data {
-          if let Some(userIdVal) = obj.get("userId") {
-            if let Some(userId) = userIdVal.as_str() {
-              let _ = self
-                .dailyActivityService
-                .logActivity(userId.to_string(), "todo_updated", 1)
-                .await;
-            }
-          }
-        }
-      }
-    }
-    result
-  }
-
-  #[allow(non_snake_case)]
-  pub async fn deleteAndLog(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todoResult = self.getByField("id".to_string(), id.clone()).await;
-    let userId = if let Ok(response) = &todoResult {
-      match &response.data {
-        DataValue::Object(obj) => obj
-          .get("userId")
-          .and_then(|v| v.as_str())
-          .unwrap_or("")
-          .to_string(),
-        _ => "".to_string(),
-      }
-    } else {
-      "".to_string()
-    };
-    let result = self.delete(id).await;
-    if result.is_ok() && !userId.is_empty() {
-      let _ = self
-        .dailyActivityService
-        .logActivity(userId, "todo_deleted", 1)
-        .await;
-    }
-    result
   }
 }

@@ -2,12 +2,13 @@
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
 use crate::services::{
-  daily_activity_service::DailyActivityService, subtask_service::SubtaskService,
-  task_service::TaskService, todo_service::TodoService,
+  subtask_service::SubtaskService, task_service::TaskService, todo_service::TodoService,
 };
 
 /* models */
@@ -21,7 +22,7 @@ pub struct SubtaskController {
   pub subtaskService: SubtaskService,
   pub taskService: TaskService,
   pub todoService: TodoService,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
 }
 
 impl SubtaskController {
@@ -29,17 +30,17 @@ impl SubtaskController {
   pub fn new(
     jsonProvider: JsonProvider,
     mongodbProvider: Arc<MongodbProvider>,
-    dailyActivityService: DailyActivityService,
+    activityLogHelper: ActivityLogHelper,
   ) -> Self {
     let todoService = TodoService::new(
       jsonProvider.clone(),
       mongodbProvider.clone(),
-      dailyActivityService.clone(),
+      activityLogHelper.clone(),
     );
     let taskService = TaskService::new(
       jsonProvider.clone(),
       todoService.clone(),
-      dailyActivityService.clone(),
+      activityLogHelper.clone(),
     );
 
     Self {
@@ -47,11 +48,11 @@ impl SubtaskController {
         jsonProvider.clone(),
         taskService.clone(),
         todoService.clone(),
-        dailyActivityService.clone(),
+        activityLogHelper.clone(),
       ),
       taskService,
       todoService,
-      dailyActivityService,
+      activityLogHelper,
     }
   }
 
@@ -75,7 +76,7 @@ impl SubtaskController {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: SubtaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.createAndLog(data).await
+    self.subtaskService.create(data).await
   }
 
   #[allow(non_snake_case)]
@@ -84,7 +85,7 @@ impl SubtaskController {
     id: String,
     data: SubtaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.updateAndLog(id, data).await
+    self.subtaskService.update(id, data).await
   }
 
   #[allow(non_snake_case)]
@@ -94,6 +95,6 @@ impl SubtaskController {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.deleteAndLog(id).await
+    self.subtaskService.delete(id).await
   }
 }

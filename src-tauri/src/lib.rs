@@ -11,7 +11,8 @@ use tauri::{async_runtime::block_on, Manager};
 
 /* helpers */
 use crate::helpers::{
-  config::ConfigHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+  activity_log::ActivityLogHelper, config::ConfigHelper, json_provider::JsonProvider,
+  mongodb_provider::MongodbProvider,
 };
 
 /* routes */
@@ -49,7 +50,6 @@ use controllers::{
 };
 
 /* services */
-use services::daily_activity_service::DailyActivityService;
 
 #[allow(non_snake_case)]
 pub struct AppState {
@@ -62,7 +62,7 @@ pub struct AppState {
   pub taskController: Arc<TaskController>,
   pub subtaskController: Arc<SubtaskController>,
   pub statisticsController: Arc<StatisticsController>,
-  pub dailyActivityService: Arc<DailyActivityService>,
+  pub activityLogHelper: Arc<ActivityLogHelper>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -92,6 +92,8 @@ pub fn run() {
         mongodbProvider.clone(),
       );
 
+      let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
+
       let managedbController = Arc::new(ManageDbController::new(
         jsonProvider.clone(),
         mongodbProvider.clone(),
@@ -114,29 +116,30 @@ pub fn run() {
           mongodbProvider
             .clone()
             .expect("MongoDB provider required for TaskController"),
-          DailyActivityService::new(jsonProvider.clone()),
+          (*activityLogHelper).clone(),
         )),
         taskController: Arc::new(TaskController::new(
           jsonProvider.clone(),
           mongodbProvider
             .clone()
             .expect("MongoDB provider required for TaskController"),
-          DailyActivityService::new(jsonProvider.clone()),
+          (*activityLogHelper).clone(),
         )),
         subtaskController: Arc::new(SubtaskController::new(
           jsonProvider.clone(),
           mongodbProvider
             .clone()
             .expect("MongoDB provider required for SubtaskController"),
-          DailyActivityService::new(jsonProvider.clone()),
+          (*activityLogHelper).clone(),
         )),
         statisticsController: Arc::new(StatisticsController::new(
           jsonProvider.clone(),
           mongodbProvider
             .clone()
             .expect("MongoDB provider required for StatisticsController"),
+          (*activityLogHelper).clone(),
         )),
-        dailyActivityService: Arc::new(DailyActivityService::new(jsonProvider.clone())),
+        activityLogHelper,
       });
 
       Ok(())

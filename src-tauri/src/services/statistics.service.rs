@@ -4,13 +4,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
-use crate::services::{
-  category_service::CategoriesService, daily_activity_service::DailyActivityService,
-  todo_service::TodoService,
-};
+use crate::services::{category_service::CategoriesService, todo_service::TodoService};
 
 /* models */
 use crate::models::{
@@ -27,22 +26,25 @@ pub struct StatisticsService {
   pub jsonProvider: JsonProvider,
   pub todoService: TodoService,
   pub categoriesService: CategoriesService,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
 }
 
 impl StatisticsService {
   #[allow(non_snake_case)]
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
-    let dailyActivityService = DailyActivityService::new(jsonProvider.clone());
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Arc<MongodbProvider>,
+    activityLogHelper: ActivityLogHelper,
+  ) -> Self {
     Self {
       jsonProvider: jsonProvider.clone(),
       todoService: TodoService::new(
         jsonProvider.clone(),
         mongodbProvider,
-        dailyActivityService.clone(),
+        activityLogHelper.clone(),
       ),
       categoriesService: CategoriesService::new(jsonProvider),
-      dailyActivityService,
+      activityLogHelper,
     }
   }
 
@@ -210,7 +212,7 @@ impl StatisticsService {
     endDate: &NaiveDate,
   ) -> Vec<serde_json::Value> {
     let activitiesResponse = self
-      .dailyActivityService
+      .activityLogHelper
       .getAllByField("userId".to_string(), userId.to_string())
       .await;
     let activities = match activitiesResponse {

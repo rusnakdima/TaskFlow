@@ -2,10 +2,12 @@
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
-use crate::services::{daily_activity_service::DailyActivityService, todo_service::TodoService};
+use crate::services::todo_service::TodoService;
 
 /* models */
 use crate::models::{
@@ -16,7 +18,7 @@ use crate::models::{
 #[allow(non_snake_case)]
 pub struct TodoController {
   pub todoService: TodoService,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
 }
 
 impl TodoController {
@@ -24,11 +26,11 @@ impl TodoController {
   pub fn new(
     jsonProvider: JsonProvider,
     mongodbProvider: Arc<MongodbProvider>,
-    dailyActivityService: DailyActivityService,
+    activityLogHelper: ActivityLogHelper,
   ) -> Self {
     Self {
-      todoService: TodoService::new(jsonProvider, mongodbProvider, dailyActivityService.clone()),
-      dailyActivityService,
+      todoService: TodoService::new(jsonProvider, mongodbProvider, activityLogHelper.clone()),
+      activityLogHelper,
     }
   }
 
@@ -57,7 +59,7 @@ impl TodoController {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TodoCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.createAndLog(data).await
+    self.todoService.create(data).await
   }
 
   #[allow(non_snake_case)]
@@ -66,7 +68,7 @@ impl TodoController {
     id: String,
     data: TodoUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.updateAndLog(id, data).await
+    self.todoService.update(id, data).await
   }
 
   #[allow(non_snake_case)]
@@ -76,6 +78,6 @@ impl TodoController {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.deleteAndLog(id).await
+    self.todoService.delete(id).await
   }
 }

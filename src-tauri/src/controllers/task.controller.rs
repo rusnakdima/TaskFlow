@@ -2,13 +2,12 @@
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::helpers::{
+  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* services */
-use crate::services::{
-  daily_activity_service::DailyActivityService, task_service::TaskService,
-  todo_service::TodoService,
-};
+use crate::services::{task_service::TaskService, todo_service::TodoService};
 
 /* models */
 use crate::models::{
@@ -20,7 +19,7 @@ use crate::models::{
 pub struct TaskController {
   pub taskService: TaskService,
   pub todoService: TodoService,
-  pub dailyActivityService: DailyActivityService,
+  pub activityLogHelper: ActivityLogHelper,
 }
 
 impl TaskController {
@@ -28,7 +27,7 @@ impl TaskController {
   pub fn new(
     jsonProvider: JsonProvider,
     mongodbProvider: Arc<MongodbProvider>,
-    dailyActivityService: DailyActivityService,
+    activityLogHelper: ActivityLogHelper,
   ) -> Self {
     Self {
       taskService: TaskService::new(
@@ -36,12 +35,12 @@ impl TaskController {
         TodoService::new(
           jsonProvider.clone(),
           mongodbProvider.clone(),
-          dailyActivityService.clone(),
+          activityLogHelper.clone(),
         ),
-        dailyActivityService.clone(),
+        activityLogHelper.clone(),
       ),
-      todoService: TodoService::new(jsonProvider, mongodbProvider, dailyActivityService.clone()),
-      dailyActivityService,
+      todoService: TodoService::new(jsonProvider, mongodbProvider, activityLogHelper.clone()),
+      activityLogHelper,
     }
   }
 
@@ -65,7 +64,7 @@ impl TaskController {
 
   #[allow(non_snake_case)]
   pub async fn create(&self, data: TaskCreateModel) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.createAndLog(data).await
+    self.taskService.create(data).await
   }
 
   #[allow(non_snake_case)]
@@ -74,7 +73,7 @@ impl TaskController {
     id: String,
     data: TaskUpdateModel,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.updateAndLog(id, data).await
+    self.taskService.update(id, data).await
   }
 
   #[allow(non_snake_case)]
@@ -84,6 +83,6 @@ impl TaskController {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    self.taskService.deleteAndLog(id).await
+    self.taskService.delete(id).await
   }
 }
