@@ -83,7 +83,7 @@ export class DashboardView implements OnInit {
 
     if (userId && userId !== "") {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: userId })
+        .getAll<Todo>("todo", { queryType: "private", field: "userId", value: userId })
         .subscribe({
           next: (todos) => {
             this.processTodosData(todos);

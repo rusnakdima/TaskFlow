@@ -1,3 +1,6 @@
+/* models */
+import { SyncMetadata } from "@models/sync-metadata";
+
 export class Common {
   static isJson(data: Object): boolean {
     return typeof data === "object";
@@ -201,5 +204,14 @@ export class Common {
   static isValidEmail(email: string): boolean {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yandex|outlook|yahoo|mail|xmail)\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
+  }
+
+  static getProviderType(syncMetadata: SyncMetadata) {
+    const { isOwner, isPrivate } = syncMetadata;
+    if (isOwner && isPrivate) return "json";
+    if (!isOwner && !isPrivate) return "mongo";
+    if (isOwner && !isPrivate) return "mongo";
+    if (!isOwner && isPrivate) return null;
+    return null;
   }
 }

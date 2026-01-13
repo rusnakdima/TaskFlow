@@ -66,7 +66,7 @@ export class TodosView implements OnInit {
   loadTodos(): void {
     if (this.userId() && this.userId() != "") {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { queryType: "owned", field: "userId", value: this.userId() })
+        .getAll<Todo>("todo", { queryType: "private", field: "userId", value: this.userId() })
         .subscribe({
           next: (todos) => {
             this.tempListTodos.set(todos);
