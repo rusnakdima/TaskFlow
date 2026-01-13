@@ -29,9 +29,9 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/todos",
+      url: "/projects",
       icon: "list_alt",
-      label: "Tasks",
+      label: "Projects",
       query: {},
     },
     {
