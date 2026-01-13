@@ -222,7 +222,7 @@ export class ManageTodoView implements OnInit {
   }
 
   getFilteredUsers() {
-    if (!this.userSearchQuery()) return this.availableProfiles().filter((p) => p.user);
+    if (!this.userSearchQuery()) return this.availableProfiles();
     return this.availableProfiles().filter(
       (p) =>
         p.user &&
