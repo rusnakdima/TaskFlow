@@ -1,5 +1,6 @@
 /* helpers */
 use crate::helpers::json_provider::JsonProvider;
+use serde_json::Value;
 
 /* services */
 use crate::services::profile_service::ProfileService;
@@ -24,21 +25,13 @@ impl ProfileController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
-    &self,
-    nameField: String,
-    value: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    self.profileService.getAllByField(nameField, value).await
+  pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    self.profileService.getAllByField(filter).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
-    &self,
-    nameField: String,
-    value: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    self.profileService.getByField(nameField, value).await
+  pub async fn getByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    self.profileService.getByField(filter).await
   }
 
   #[allow(non_snake_case)]

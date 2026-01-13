@@ -1,5 +1,6 @@
 /* sys lib */
 use crate::AppState;
+use serde_json::Value;
 use tauri::State;
 
 /* models */
@@ -12,26 +13,18 @@ use crate::models::{
 #[tauri::command]
 pub async fn categoryGetAllByField(
   state: State<'_, AppState>,
-  nameField: String,
-  value: String,
+  filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state
-    .categoriesController
-    .getAllByField(nameField, value)
-    .await
+  state.categoriesController.getAllByField(filter).await
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
 pub async fn categoryGetByField(
   state: State<'_, AppState>,
-  nameField: String,
-  value: String,
+  filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state
-    .categoriesController
-    .getByField(nameField, value)
-    .await
+  state.categoriesController.getByField(filter).await
 }
 
 #[allow(non_snake_case)]

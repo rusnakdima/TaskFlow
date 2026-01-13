@@ -1,5 +1,6 @@
 /* sys lib */
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -64,7 +65,7 @@ impl StatisticsService {
 
     let todosResponse = self
       .todoService
-      .getAllByField("userId".to_string(), userId.clone(), syncMetadata.clone())
+      .getAllByField(json!({ "userId": userId.clone() }), syncMetadata.clone())
       .await;
     let mut todos = match todosResponse {
       Ok(response) => {
@@ -97,7 +98,7 @@ impl StatisticsService {
 
     let categoriesResponse = self
       .categoriesService
-      .getAllByField("userId".to_string(), userId.clone())
+      .getAllByField(json!({ "userId": userId.clone() }))
       .await;
     let categories = match categoriesResponse {
       Ok(response) => {
