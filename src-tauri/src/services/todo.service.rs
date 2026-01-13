@@ -6,7 +6,7 @@ use std::sync::Arc;
 /* helpers */
 use crate::helpers::{
   activity_log::ActivityLogHelper,
-  common::{convertDataToArray, convertDataToObject},
+  common::{convertDataToArray, convertDataToObject, getProviderType},
   json_provider::JsonProvider,
   mongodb_provider::MongodbProvider,
 };
@@ -92,27 +92,13 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  fn getProviderType(&self, syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
-    match (syncMetadata.isOwner, syncMetadata.isPrivate) {
-      (true, true) => Ok(ProviderType::Json),
-      (false, false) => Ok(ProviderType::Mongo),
-      (true, false) => Ok(ProviderType::Mongo),
-      (false, true) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
     nameField: String,
     value: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let listTodos = match providerType {
       ProviderType::Json => {
         let filter = if nameField != "" {
@@ -171,7 +157,7 @@ impl TodoService {
     value: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let todo = match providerType {
       ProviderType::Json => {
         let filter = if nameField != "" {
@@ -218,7 +204,7 @@ impl TodoService {
     assigneeId: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let listTodos = match providerType {
       ProviderType::Json => {
         self
@@ -278,7 +264,7 @@ impl TodoService {
     let modelData: TodoModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
 
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let todo = match providerType {
       ProviderType::Json => self.jsonProvider.create("todos", record).await,
       ProviderType::Mongo => {
@@ -323,7 +309,7 @@ impl TodoService {
     data: TodoUpdateModel,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let todoResult = match providerType {
       ProviderType::Json => {
         self
@@ -429,7 +415,7 @@ impl TodoService {
     data: Vec<TodoModel>,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let records: Vec<Value> = data
       .into_iter()
       .map(|todo| {
@@ -487,7 +473,7 @@ impl TodoService {
     id: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let todoResponse = self
       .getByField("id".to_string(), id.clone(), syncMetadata)
       .await;

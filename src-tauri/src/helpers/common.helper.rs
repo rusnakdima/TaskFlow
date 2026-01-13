@@ -3,7 +3,12 @@ use chrono::Local;
 use serde::Serialize;
 
 /* models */
-use crate::models::response_model::DataValue;
+use crate::models::{
+  provider_type_model::ProviderType,
+  response_model::DataValue,
+  response_model::{ResponseModel, ResponseStatus},
+  sync_metadata_model::SyncMetadata,
+};
 
 #[allow(non_snake_case)]
 pub fn _getCurrentDate() -> String {
@@ -31,4 +36,18 @@ pub fn convertDataToObject<T: Serialize>(data: &T) -> DataValue {
 #[allow(non_snake_case)]
 pub fn _typeOf<T>(_: T) -> &'static str {
   std::any::type_name::<T>()
+}
+
+#[allow(non_snake_case)]
+pub fn getProviderType(syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
+  match (syncMetadata.isOwner, syncMetadata.isPrivate) {
+    (true, true) => Ok(ProviderType::Json),
+    (false, false) => Ok(ProviderType::Mongo),
+    (true, false) => Ok(ProviderType::Mongo),
+    (false, true) => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
+      data: DataValue::String("".to_string()),
+    }),
+  }
 }

@@ -5,7 +5,7 @@ use serde_json::{json, to_value, Value};
 /* helpers */
 use crate::helpers::{
   activity_log::ActivityLogHelper,
-  common::{convertDataToArray, convertDataToObject},
+  common::{convertDataToArray, convertDataToObject, getProviderType},
   json_provider::JsonProvider,
   mongodb_provider::MongodbProvider,
 };
@@ -56,27 +56,13 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  fn getProviderType(&self, syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
-    match (syncMetadata.isOwner, syncMetadata.isPrivate) {
-      (true, true) => Ok(ProviderType::Json),
-      (false, false) => Ok(ProviderType::Mongo),
-      (true, false) => Ok(ProviderType::Mongo),
-      (false, true) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
     nameField: String,
     value: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let listTasks = match providerType {
       ProviderType::Json => {
         let filter = if nameField != "" {
@@ -135,7 +121,7 @@ impl TaskService {
     value: String,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let task = match providerType {
       ProviderType::Json => {
         let filter = if nameField != "" {
@@ -186,7 +172,7 @@ impl TaskService {
     let modelData: TaskModel = data.into();
     let record: Value = to_value(&modelData).unwrap();
 
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let task = match providerType {
       ProviderType::Json => self.jsonProvider.create("tasks", record).await,
       ProviderType::Mongo => {
@@ -249,7 +235,7 @@ impl TaskService {
     data: TaskUpdateModel,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let taskResult = match providerType {
       ProviderType::Json => {
         self
@@ -390,7 +376,7 @@ impl TaskService {
     data: Vec<TaskModel>,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let records: Vec<Value> = data
       .into_iter()
       .map(|task| {
@@ -484,7 +470,7 @@ impl TaskService {
       "".to_string()
     };
 
-    let providerType = self.getProviderType(&syncMetadata)?;
+    let providerType = getProviderType(&syncMetadata)?;
     let subtasks = match providerType {
       ProviderType::Json => {
         self
