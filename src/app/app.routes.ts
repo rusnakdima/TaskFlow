@@ -140,7 +140,7 @@ export const routes: Routes = [
   },
 
   {
-    path: "projects",
+    path: "todos",
     title: "Projects",
     data: { breadcrumb: "Projects" },
     canActivate: [canActivateAuth],
