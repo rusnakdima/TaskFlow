@@ -29,7 +29,7 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/projects",
+      url: "/todos",
       icon: "list_alt",
       label: "Projects",
       query: {},
