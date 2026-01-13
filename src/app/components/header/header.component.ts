@@ -101,7 +101,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   getProfile() {
     this.mainService
-      .getByField<Profile>("profile", "userId", this.userId)
+      .getByField<Profile>("profile", { userId: this.userId })
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.profile = response.data;

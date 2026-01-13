@@ -257,7 +257,7 @@ export class SubtasksView implements OnInit {
   }
 
   deleteSubtask(id: string) {
-    this.dataSyncProvider.delete<string>("subtask", id, this.todoId()).subscribe({
+    this.dataSyncProvider.delete("subtask", id, this.todoId()).subscribe({
       next: (result) => {
         this.listSubtasks.set(this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id));
         this.notifyService.showSuccess("Subtask deleted successfully");

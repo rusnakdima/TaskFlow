@@ -81,7 +81,7 @@ export class TodoInformationComponent {
   }
 
   deleteTodo() {
-    this.dataSyncProvider.delete<string>("todo", this.todo?.id ?? "").subscribe({
+    this.dataSyncProvider.delete("todo", this.todo?.id ?? "").subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");
         this.router.navigate(["/", "todos"]);

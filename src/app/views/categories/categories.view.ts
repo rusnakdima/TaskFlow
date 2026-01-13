@@ -59,7 +59,7 @@ export class CategoriesView implements OnInit {
   loadCategories(): void {
     if (this.userId() && this.userId() != "") {
       this.mainService
-        .getAllByField<Array<Category>>("category", "userId", this.userId())
+        .getAllByField<Array<Category>>("category", { userId: this.userId() })
         .then((response: Response<Array<Category>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.tempListCategories.set(response.data);
@@ -105,14 +105,14 @@ export class CategoriesView implements OnInit {
       )
     ) {
       this.mainService
-        .delete<string>("category", categoryId)
-        .then((response: Response<string>) => {
+        .delete("category", categoryId)
+        .then((response: Response<any>) => {
           this.notifyService.showNotify(response.status, response.message);
           if (response.status === ResponseStatus.SUCCESS) {
             this.loadCategories();
           }
         })
-        .catch((err: Response<string>) => {
+        .catch((err: Response<any>) => {
           this.notifyService.showError(err.message);
         });
     }
