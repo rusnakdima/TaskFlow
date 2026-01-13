@@ -17,11 +17,21 @@ import { WebSocketService } from "./websocket.service";
   providedIn: "root",
 })
 export class DataSyncProvider {
+  private allowedEntities = ["todo", "task", "subtask"];
+
   constructor(
     private mainService: MainService,
     private authService: AuthService,
     private webSocketService: WebSocketService
   ) {}
+
+  private validateEntity(entity: string): void {
+    if (!this.allowedEntities.includes(entity)) {
+      throw new Error(
+        `Entity '${entity}' is not supported by DataSyncProvider. Use MainService directly for this entity.`
+      );
+    }
+  }
 
   getAll<T>(entity: string, params?: any, parentTodoId?: string): Observable<T[]> {
     console.log(entity, params, parentTodoId);
