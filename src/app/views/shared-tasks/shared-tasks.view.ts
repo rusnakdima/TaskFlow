@@ -57,49 +57,15 @@ export class SharedTasksView implements OnInit {
   }
 
   private listenForUpdates(): void {
-    const userId = this.authService.getValueByKey("id");
-    this.webSocketService.onTodoCreated().subscribe((todo: Todo) => {
-      if (todo.userId === userId && todo.visibility === "team") {
-        this.myProjects.update((todos) => [...todos, todo]);
-      } else if (todo.userId !== userId) {
-        this.sharedWithMe.update((todos) => [...todos, todo]);
-      }
-    });
-    this.webSocketService.onTodoUpdated().subscribe((updatedTodo: Todo) => {
-      if (updatedTodo.userId === userId && updatedTodo.visibility === "team") {
-        this.myProjects.update((todos) => {
-          const index = todos.findIndex((t) => t.id === updatedTodo.id);
-          if (index !== -1) {
-            todos[index] = updatedTodo;
-            return [...todos];
-          } else {
-            return [...todos, updatedTodo];
-          }
-        });
-      } else if (updatedTodo.userId === userId && updatedTodo.visibility !== "team") {
-        this.myProjects.update((todos) => todos.filter((t) => t.id !== updatedTodo.id));
-      } else if (updatedTodo.userId !== userId) {
-        this.sharedWithMe.update((todos) => {
-          const index = todos.findIndex((t) => t.id === updatedTodo.id);
-          if (index !== -1) {
-            todos[index] = updatedTodo;
-          }
-          return [...todos];
-        });
-      }
-    });
-    this.webSocketService.onTodoDeleted().subscribe((id: string) => {
-      this.myProjects.update((todos) => todos.filter((t) => t.id !== id));
-      this.sharedWithMe.update((todos) => todos.filter((t) => t.id !== id));
-    });
+    // TODO: Implement real-time updates for shared todos
+    // WebSocket event listeners have been removed as the service now uses Tauri invoke
+    console.log("Real-time updates for shared todos are not implemented yet");
   }
 
   async fetchProfile(userId: string): Promise<Profile | null> {
-    const response: Response<Profile> = await this.mainService.getByField<Profile>(
-      "profile",
-      "userId",
-      userId
-    );
+    const response: Response<Profile> = await this.mainService.getByField<Profile>("profile", {
+      userId,
+    });
 
     if (response.status !== ResponseStatus.SUCCESS) return null;
     const profile = response.data;
@@ -109,18 +75,21 @@ export class SharedTasksView implements OnInit {
   async loadSharedProjects() {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
-      this.dataSyncProvider.getAll<Todo>("todo", { queryType: "shared", userId }).subscribe({
+      this.dataSyncProvider.getAll<Todo>("todo", { isPrivate: false, isOwner: true }).subscribe({
         next: (todos) => {
-          const myShared = todos.filter(
-            (todo) => todo.userId === userId && todo.visibility === "team"
-          );
-          const sharedWithMe = todos.filter((todo) => todo.userId !== userId);
-
-          this.myProjects.set(myShared);
-          this.sharedWithMe.set(sharedWithMe);
+          this.myProjects.set(todos);
         },
         error: (err) => {
-          this.notifyService.showError(err.message || "Error loading shared projects");
+          this.notifyService.showError(err.message || "Error loading my shared projects");
+        },
+      });
+
+      this.dataSyncProvider.getAll<Todo>("todo", { isPrivate: false, isOwner: false }).subscribe({
+        next: (todos) => {
+          this.sharedWithMe.set(todos);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Error loading projects shared with me");
         },
       });
     }
@@ -162,9 +131,4 @@ export class SharedTasksView implements OnInit {
   createProject(): void {
     this.notifyService.showInfo("Project creation form would open here");
   }
-
-  // Removed drag and drop for now, as we have separate lists
-  // onTodoDrop(event: CdkDragDrop<Todo[]>): void {
-  //   // Handle for specific list if needed
-  // }
 }

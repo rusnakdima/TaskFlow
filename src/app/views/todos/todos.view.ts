@@ -66,7 +66,7 @@ export class TodosView implements OnInit {
   loadTodos(): void {
     if (this.userId() && this.userId() != "") {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { queryType: "private", field: "userId", value: this.userId() })
+        .getAll<Todo>("todo", { isPrivate: true, field: "userId", value: this.userId() })
         .subscribe({
           next: (todos) => {
             this.tempListTodos.set(todos);
@@ -171,7 +171,7 @@ export class TodosView implements OnInit {
   }
 
   deleteTodoById(todoId: string): void {
-    this.dataSyncProvider.delete<string>("todo", todoId).subscribe({
+    this.dataSyncProvider.delete("todo", todoId, { isPrivate: true }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");
         this.loadTodos();
@@ -216,17 +216,19 @@ export class TodosView implements OnInit {
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    this.dataSyncProvider.updateAll<string>("todo", transformedTodos).subscribe({
-      next: (result) => {
-        this.notifyService.showSuccess("Order updated successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to update order");
-        this.loadTodos();
-      },
-      complete: () => {
-        this.isUpdatingOrder = false;
-      },
-    });
+    this.dataSyncProvider
+      .updateAll<string>("todo", transformedTodos, { isPrivate: true })
+      .subscribe({
+        next: (result) => {
+          this.notifyService.showSuccess("Order updated successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update order");
+          this.loadTodos();
+        },
+        complete: () => {
+          this.isUpdatingOrder = false;
+        },
+      });
   }
 }

@@ -90,7 +90,7 @@ export class TaskInformationComponent {
   }
 
   deleteTask() {
-    this.dataSyncProvider.delete<string>("task", this.task?.id ?? "", this.todoId).subscribe({
+    this.dataSyncProvider.delete("task", this.task?.id ?? "", this.todoId).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Task deleted successfully");
         this.router.navigate(["/todos", this.todoId, "tasks"]);

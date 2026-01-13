@@ -55,15 +55,12 @@ export class App {
       }, 1000);
     }
 
-    this.webSocketService.connect();
-
     if (token) {
       this.authService
         .checkToken<User>(token)
         .then((response: Response<User>) => {
           if (response.status == ResponseStatus.SUCCESS) {
             this.checkUserProfile();
-            this.webSocketService.joinUserRoom();
           } else {
             this.notifyService.showNotify(response.status, response.message);
           }
@@ -87,7 +84,7 @@ export class App {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       await this.mainService
-        .getByField<string>("profile", "userId", userId)
+        .getByField<string>("profile", { userId })
         .then((response: Response<string>) => {
           if (response.status == ResponseStatus.SUCCESS) {
             if (this.router.url == "/profile/create-profile") {

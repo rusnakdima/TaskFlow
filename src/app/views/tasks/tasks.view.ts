@@ -1,6 +1,8 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
+import { Observable } from "rxjs";
+import { map, catchError } from "rxjs/operators";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
@@ -14,6 +16,7 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
+import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
 
@@ -42,6 +45,7 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
 export class TasksView implements OnInit {
   constructor(
     private route: ActivatedRoute,
+    private authService: AuthService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider
   ) {}
@@ -72,35 +76,66 @@ export class TasksView implements OnInit {
   ngOnInit(): void {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
-        this.getTodoInfo(params.todoId);
-        this.getTasksByTodoId(params.todoId);
+        this.getTodoInfo(params.todoId).subscribe(() => {
+          this.getTasksByTodoId(params.todoId);
+        });
       }
     });
   }
 
-  getTodoInfo(id: string) {
-    this.dataSyncProvider.getByField<Todo>("todo", "id", id).subscribe({
-      next: (todo) => {
+  getTodoInfo(id: string): Observable<Todo> {
+    return this.dataSyncProvider.getByField<Todo>("todo", "id", id, { isPrivate: true }).pipe(
+      map((todo) => {
         this.todo.set(todo);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load todo");
-      },
-    });
+        return todo;
+      }),
+      catchError((err) => {
+        return this.dataSyncProvider
+          .getByField<Todo>("todo", "id", id, { isPrivate: false, isOwner: false })
+          .pipe(
+            map((todo) => {
+              this.todo.set(todo);
+              return todo;
+            }),
+            catchError((err2) => {
+              return this.dataSyncProvider
+                .getByField<Todo>("todo", "id", id, { isPrivate: false, isOwner: true })
+                .pipe(
+                  map((todo) => {
+                    this.todo.set(todo);
+                    return todo;
+                  }),
+                  catchError((err3) => {
+                    this.notifyService.showError(err3.message || "Failed to load todo");
+                    throw err3;
+                  })
+                );
+            })
+          );
+      })
+    );
   }
 
   getTasksByTodoId(todoId: string) {
+    const todo = this.todo();
+    if (!todo) return;
+    const isPrivate = todo.visibility === "private";
+    const isOwner = todo.userId === this.authService.getValueByKey("id");
+
     this.dataSyncProvider
-      .getAll<Task>("task", { field: "todoId", value: todoId }, todoId)
-      .subscribe({
-        next: (tasks) => {
+      .getByField<Task[]>("task", "todoId", todoId, { isPrivate, isOwner })
+      .pipe(
+        map((tasks) => {
           this.tempListTasks.set(tasks);
           this.applyFilter();
-        },
-        error: (err) => {
+          return tasks;
+        }),
+        catchError((err) => {
           this.notifyService.showError(err.message || "Failed to load tasks");
-        },
-      });
+          throw err;
+        })
+      )
+      .subscribe();
   }
 
   searchFunc(data: Array<any>) {
@@ -242,22 +277,29 @@ export class TasksView implements OnInit {
       });
   }
 
-  deleteTask(id: string) {
+  deleteTask(taskId: string) {
     if (confirm("Are you sure you want to delete this task?")) {
-      this.dataSyncProvider.delete<string>("task", id, this.todo()?.id).subscribe({
-        next: (result) => {
-          this.getTasksByTodoId(this.todo()?.id ?? "");
-          if (this.todo()) {
-            this.todo.update(
-              (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== id) }) as Todo
-            );
-          }
-          this.notifyService.showSuccess("Task deleted successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete task");
-        },
-      });
+      const todo = this.todo();
+      if (!todo) return;
+      const isPrivate = todo.visibility === "private";
+      const isOwner = todo.userId === this.authService.getValueByKey("id");
+
+      this.dataSyncProvider
+        .delete("task", taskId, { isPrivate, isOwner }, this.todo()?.id)
+        .subscribe({
+          next: (result) => {
+            this.getTasksByTodoId(this.todo()?.id ?? "");
+            if (this.todo()) {
+              this.todo.update(
+                (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== taskId) }) as Todo
+              );
+            }
+            this.notifyService.showSuccess("Task deleted successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete task");
+          },
+        });
     }
   }
 
@@ -296,18 +338,25 @@ export class TasksView implements OnInit {
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
-    this.dataSyncProvider.updateAll<string>("task", transformedTasks, this.todo()?.id).subscribe({
-      next: (result) => {
-        this.listTasks.set(updatedTasks);
-        this.notifyService.showSuccess("Task order updated successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to update task order");
-        this.getTasksByTodoId(this.todo()?.id ?? "");
-      },
-      complete: () => {
-        this.isUpdatingOrder = false;
-      },
-    });
+    const todo = this.todo();
+    if (!todo) return;
+    const isPrivate = todo.visibility === "private";
+    const isOwner = todo.userId === this.authService.getValueByKey("id");
+
+    this.dataSyncProvider
+      .updateAll<string>("task", transformedTasks, { isPrivate, isOwner }, this.todo()?.id)
+      .subscribe({
+        next: (result) => {
+          this.listTasks.set(updatedTasks);
+          this.notifyService.showSuccess("Task order updated successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task order");
+          this.getTasksByTodoId(this.todo()?.id ?? "");
+        },
+        complete: () => {
+          this.isUpdatingOrder = false;
+        },
+      });
   }
 }

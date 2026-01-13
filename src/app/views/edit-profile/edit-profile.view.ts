@@ -95,7 +95,7 @@ export class EditProfileView {
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
       this.mainService
-        .getByField<Profile>("profile", "userId", userId)
+        .getByField<Profile>("profile", { userId })
         .then((response) => {
           if (response.status == ResponseStatus.SUCCESS) {
             this.form.patchValue(response.data);

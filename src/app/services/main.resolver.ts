@@ -21,11 +21,9 @@ export class MainResolver implements Resolve<any> {
     try {
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
-        const response: Response<Task> = await this.mainService.getByField<Task>(
-          "task",
-          "id",
-          taskId
-        );
+        const response: Response<Task> = await this.mainService.getByField<Task>("task", {
+          id: taskId,
+        });
 
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -34,11 +32,9 @@ export class MainResolver implements Resolve<any> {
         }
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
-        const response: Response<Todo> = await this.mainService.getByField<Todo>(
-          "todo",
-          "id",
-          todoId
-        );
+        const response: Response<Todo> = await this.mainService.getByField<Todo>("todo", {
+          id: todoId,
+        });
 
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;

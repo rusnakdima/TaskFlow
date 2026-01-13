@@ -258,7 +258,7 @@ export class ManageTodoView implements OnInit {
 
   fetchCategories() {
     this.mainService
-      .getAllByField<Category[]>("category", "userId", this.userId())
+      .getAllByField<Category[]>("category", { userId: this.userId() })
       .then((response: Response<Category[]>) => {
         if (response.status == ResponseStatus.SUCCESS) {
           this.availableCategories.set(response.data);
