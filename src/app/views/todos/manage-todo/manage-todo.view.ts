@@ -222,11 +222,13 @@ export class ManageTodoView implements OnInit {
   }
 
   getFilteredUsers() {
-    if (!this.userSearchQuery()) return this.availableProfiles();
-    return this.availableProfiles().filter((p) =>
-      `${p.name} ${p.lastName} ${p.user.email}`
-        .toLowerCase()
-        .includes(this.userSearchQuery().toLowerCase())
+    if (!this.userSearchQuery()) return this.availableProfiles().filter((p) => p.user);
+    return this.availableProfiles().filter(
+      (p) =>
+        p.user &&
+        `${p.name} ${p.lastName} ${p.user.email}`
+          .toLowerCase()
+          .includes(this.userSearchQuery().toLowerCase())
     );
   }
 
