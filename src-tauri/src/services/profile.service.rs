@@ -58,7 +58,7 @@ impl ProfileService {
   pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listProfiles = self
       .jsonProvider
-      .getAllByField("profiles", Some(filter), None)
+      .getAllByField("profiles", Some(filter), Some(self.relations.clone()))
       .await;
     match listProfiles {
       Ok(profiles) => Ok(ResponseModel {
