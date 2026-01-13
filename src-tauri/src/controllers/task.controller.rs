@@ -1,4 +1,5 @@
 /* sys lib */
+use serde_json::Value;
 use std::sync::Arc;
 
 /* helpers */
@@ -49,27 +50,19 @@ impl TaskController {
   #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .taskService
-      .getAllByField(nameField, value, syncMetadata)
-      .await
+    self.taskService.getAllByField(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
   pub async fn getByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .taskService
-      .getByField(nameField, value, syncMetadata)
-      .await
+    self.taskService.getByField(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]

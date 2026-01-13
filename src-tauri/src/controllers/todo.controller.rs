@@ -1,4 +1,5 @@
 /* sys lib */
+use serde_json::Value;
 use std::sync::Arc;
 
 /* helpers */
@@ -38,27 +39,19 @@ impl TodoController {
   #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .todoService
-      .getAllByField(nameField, value, syncMetadata)
-      .await
+    self.todoService.getAllByField(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
   pub async fn getByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .todoService
-      .getByField(nameField, value, syncMetadata)
-      .await
+    self.todoService.getByField(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]

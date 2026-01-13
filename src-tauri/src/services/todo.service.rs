@@ -1,5 +1,5 @@
 /* sys lib */
-use mongodb::bson::{doc, Document};
+use mongodb::bson::{doc, to_bson, Bson, Document};
 use serde_json::{json, to_value, Value};
 use std::sync::Arc;
 
@@ -30,6 +30,10 @@ pub struct TodoService {
 }
 
 impl TodoService {
+  #[allow(non_snake_case)]
+  pub fn getRelations(&self) -> &Vec<RelationObj> {
+    &self.relations
+  }
   #[allow(non_snake_case)]
   pub fn new(
     jsonProvider: JsonProvider,
@@ -94,32 +98,30 @@ impl TodoService {
   #[allow(non_snake_case)]
   pub async fn getAllByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let providerType = getProviderType(&syncMetadata)?;
     let listTodos = match providerType {
       ProviderType::Json => {
-        let filter = if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        };
         self
           .jsonProvider
-          .getAllByField("todos", filter, Some(self.relations.clone()))
+          .getAllByField("todos", Some(filter), Some(self.relations.clone()))
           .await
       }
       ProviderType::Mongo => {
-        let filter = if nameField != "" {
-          Some(doc! { nameField: value })
+        let docFilter = if let Some(obj) = filter.as_object() {
+          let mut doc = Document::new();
+          for (k, v) in obj {
+            doc.insert(k, to_bson(v).unwrap_or(Bson::Null));
+          }
+          Some(doc)
         } else {
-          None
+          Some(doc! {})
         };
         let docs = self
           .mongodbProvider
-          .getAllByField("todos", filter, Some(self.relations.clone()))
+          .getAllByField("todos", docFilter, Some(self.relations.clone()))
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()
@@ -153,32 +155,30 @@ impl TodoService {
   #[allow(non_snake_case)]
   pub async fn getByField(
     &self,
-    nameField: String,
-    value: String,
+    filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let providerType = getProviderType(&syncMetadata)?;
     let todo = match providerType {
       ProviderType::Json => {
-        let filter = if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        };
         self
           .jsonProvider
-          .getByField("todos", filter, Some(self.relations.clone()), "")
+          .getByField("todos", Some(filter), Some(self.relations.clone()), "")
           .await
       }
       ProviderType::Mongo => {
-        let filter = if nameField != "" {
-          Some(doc! { nameField: value })
+        let docFilter = if let Some(obj) = filter.as_object() {
+          let mut doc = Document::new();
+          for (k, v) in obj {
+            doc.insert(k, to_bson(v).unwrap_or(Bson::Null));
+          }
+          Some(doc)
         } else {
           None
         };
         let doc = self
           .mongodbProvider
-          .getByField("todos", filter, Some(self.relations.clone()), "")
+          .getByField("todos", docFilter, Some(self.relations.clone()), "")
           .await?;
         Ok(serde_json::to_value(doc)?)
       }
@@ -475,7 +475,7 @@ impl TodoService {
   ) -> Result<ResponseModel, ResponseModel> {
     let providerType = getProviderType(&syncMetadata)?;
     let todoResponse = self
-      .getByField("id".to_string(), id.clone(), syncMetadata)
+      .getByField(json!({ "id": id.clone() }), syncMetadata)
       .await;
     let userId = if let Ok(response) = &todoResponse {
       match &response.data {

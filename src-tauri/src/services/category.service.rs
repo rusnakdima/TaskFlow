@@ -1,5 +1,5 @@
 /* sys lib */
-use serde_json::{json, to_value, Value};
+use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::{
@@ -64,22 +64,10 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
-    &self,
-    nameField: String,
-    value: String,
-  ) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listCategories = self
       .jsonProvider
-      .getAllByField(
-        "categories",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-      )
+      .getAllByField("categories", Some(filter), Some(self.relations.clone()))
       .await;
 
     match listCategories {
@@ -97,23 +85,10 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
-    &self,
-    nameField: String,
-    value: String,
-  ) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let category = self
       .jsonProvider
-      .getByField(
-        "categories",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        Some(self.relations.clone()),
-        "",
-      )
+      .getByField("categories", Some(filter), Some(self.relations.clone()), "")
       .await;
 
     match category {
