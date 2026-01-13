@@ -13,26 +13,22 @@ export class MainService {
 
   async getAllByField<R>(
     apiName: string,
-    name: string = "",
-    value: string = "",
+    filter: object = {},
     syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}GetAllByField`, {
-      nameField: name,
-      value: value,
+      filter: filter,
       syncMetadata: syncMetadata,
     });
   }
 
   async getByField<R>(
     apiName: string,
-    name: string = "",
-    value: string = "",
+    filter: object = {},
     syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}GetByField`, {
-      nameField: name,
-      value: value,
+      filter: filter,
       syncMetadata: syncMetadata,
     });
   }
