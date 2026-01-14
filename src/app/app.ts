@@ -84,7 +84,7 @@ export class App {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       await this.mainService
-        .getByField<string>("profile", { userId })
+        .get<string>("profile", { userId })
         .then((response: Response<string>) => {
           if (response.status == ResponseStatus.SUCCESS) {
             if (this.router.url == "/profile/create-profile") {

@@ -37,21 +37,21 @@ impl TodoController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.getAllByField(filter, syncMetadata).await
+    self.todoService.getAll(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.todoService.getByField(filter, syncMetadata).await
+    self.todoService.get(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]

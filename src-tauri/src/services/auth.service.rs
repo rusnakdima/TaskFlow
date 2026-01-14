@@ -74,7 +74,7 @@ impl AuthService {
 
         match self
           .mongodbProvider
-          .getByField(&nameTable, Some(filter), None, &userId)
+          .get(&nameTable, Some(filter), None, &userId)
           .await
         {
           Ok(userDoc) => {
@@ -116,7 +116,7 @@ impl AuthService {
     let filter = doc! { "username": loginForm.username.clone() };
     match self
       .mongodbProvider
-      .getByField(&nameTable, Some(filter), None, "")
+      .get(&nameTable, Some(filter), None, "")
       .await
     {
       Ok(userDoc) => {
@@ -194,7 +194,7 @@ impl AuthService {
 
             let userExistsLocally = self
               .jsonProvider
-              .getByField("users", Some(json!({"id": userId.clone()})), None, "")
+              .get("users", Some(json!({"id": userId.clone()})), None, "")
               .await
               .is_ok();
 
@@ -215,13 +215,13 @@ impl AuthService {
             let profileFilter = doc! { "userId": userId.clone() };
             match self
               .mongodbProvider
-              .getByField("profiles", Some(profileFilter), None, "")
+              .get("profiles", Some(profileFilter), None, "")
               .await
             {
               Ok(profileDoc) => {
                 let profileExistsLocally = self
                   .jsonProvider
-                  .getByField(
+                  .get(
                     "profiles",
                     Some(json!({"userId": userId.clone()})),
                     None,
@@ -282,7 +282,7 @@ impl AuthService {
     let filter = doc! { "email": signupForm.email.clone() };
     match self
       .mongodbProvider
-      .getByField(&nameTable, Some(filter), None, "")
+      .get(&nameTable, Some(filter), None, "")
       .await
     {
       Ok(_) => Err(ResponseModel {
@@ -363,7 +363,7 @@ impl AuthService {
     let filter = doc! { "email": email.clone() };
     match self
       .mongodbProvider
-      .getByField(&nameTable, Some(filter), None, "")
+      .get(&nameTable, Some(filter), None, "")
       .await
     {
       Ok(userDoc) => {
@@ -425,7 +425,7 @@ impl AuthService {
     };
     match self
       .mongodbProvider
-      .getByField(&nameTable, Some(filter), None, "")
+      .get(&nameTable, Some(filter), None, "")
       .await
     {
       Ok(_) => Ok(ResponseModel {
@@ -454,7 +454,7 @@ impl AuthService {
     };
     match self
       .mongodbProvider
-      .getByField(&nameTable, Some(filter), None, "")
+      .get(&nameTable, Some(filter), None, "")
       .await
     {
       Ok(userDoc) => {

@@ -167,7 +167,7 @@ export class ManageTodoView implements OnInit {
   }
 
   getTodoInfo(todoId: string) {
-    this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
+    this.dataSyncProvider.get<Todo>("todo", { id: todoId }).subscribe({
       next: (todo) => {
         this.form.patchValue(todo);
 
@@ -208,7 +208,7 @@ export class ManageTodoView implements OnInit {
 
   async fetchProfiles(): Promise<void> {
     return this.mainService
-      .getAllByField<Profile[]>("profile")
+      .getAll<Profile[]>("profile")
       .then((response: Response<Profile[]>) => {
         if (response.status == ResponseStatus.SUCCESS) {
           this.availableProfiles.set(response.data);
@@ -258,7 +258,7 @@ export class ManageTodoView implements OnInit {
 
   fetchCategories() {
     this.mainService
-      .getAllByField<Category[]>("category", { userId: this.userId() })
+      .getAll<Category[]>("category", { userId: this.userId() })
       .then((response: Response<Category[]>) => {
         if (response.status == ResponseStatus.SUCCESS) {
           this.availableCategories.set(response.data);

@@ -51,7 +51,7 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -61,7 +61,7 @@ impl SubtaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField(
+          .getAll(
             "subtasks",
             Some(filter),
             Some(self.todoService.getRelations().clone()),
@@ -81,7 +81,7 @@ impl SubtaskService {
         let docs = self
           .todoService
           .mongodbProvider
-          .getAllByField("subtasks", docFilter, None)
+          .getAll("subtasks", docFilter, None)
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()
@@ -113,7 +113,7 @@ impl SubtaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -123,7 +123,7 @@ impl SubtaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField(
+          .get(
             "subtasks",
             Some(filter),
             Some(self.todoService.getRelations().clone()),
@@ -143,7 +143,7 @@ impl SubtaskService {
         };
         let doc = self
           .mongodbProvider
-          .getByField("subtasks", docFilter, None, "")
+          .get("subtasks", docFilter, None, "")
           .await?;
         Ok(serde_json::to_value(doc)?)
       }
@@ -188,7 +188,7 @@ impl SubtaskService {
         if result {
           let taskResult = self
             .taskService
-            .getByField(json!({ "id": taskId }), syncMetadata.clone())
+            .get(json!({ "id": taskId }), syncMetadata.clone())
             .await;
           let todoId = if let Ok(response) = &taskResult {
             match &response.data {
@@ -205,7 +205,7 @@ impl SubtaskService {
           if !todoId.is_empty() {
             let todoResult = self
               .todoService
-              .getByField(json!({ "id": todoId }), syncMetadata.clone())
+              .get(json!({ "id": todoId }), syncMetadata.clone())
               .await;
             let userId = if let Ok(response) = &todoResult {
               match &response.data {
@@ -260,14 +260,14 @@ impl SubtaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField("subtasks", None, None, id.as_str())
+          .get("subtasks", None, None, id.as_str())
           .await
       }
       ProviderType::Mongo => {
         let filter = Some(doc! { "id": &id });
         let doc = self
           .mongodbProvider
-          .getByField("subtasks", filter, None, "")
+          .get("subtasks", filter, None, "")
           .await?;
         Ok(serde_json::to_value(doc)?)
       }
@@ -294,7 +294,7 @@ impl SubtaskService {
         let userId = {
           let taskResult = self
             .taskService
-            .getByField(
+            .get(
               json!({ "id": existingSubtask.taskId.clone() }),
               syncMetadata.clone(),
             )
@@ -314,7 +314,7 @@ impl SubtaskService {
           if !todoId.is_empty() {
             let todoResult = self
               .todoService
-              .getByField(json!({ "id": todoId }), syncMetadata.clone())
+              .get(json!({ "id": todoId }), syncMetadata.clone())
               .await;
             if let Ok(response) = &todoResult {
               match &response.data {
@@ -477,7 +477,7 @@ impl SubtaskService {
   ) -> Result<ResponseModel, ResponseModel> {
     let providerType = getProviderType(&syncMetadata)?;
     let subtaskResult = self
-      .getByField(json!({ "id": id.clone() }), syncMetadata.clone())
+      .get(json!({ "id": id.clone() }), syncMetadata.clone())
       .await;
     let taskId = if let Ok(response) = &subtaskResult {
       match &response.data {
@@ -494,7 +494,7 @@ impl SubtaskService {
     let userId = if !taskId.is_empty() {
       let taskResult = self
         .taskService
-        .getByField(json!({ "id": taskId }), syncMetadata.clone())
+        .get(json!({ "id": taskId }), syncMetadata.clone())
         .await;
       let todoId = if let Ok(response) = &taskResult {
         match &response.data {
@@ -511,7 +511,7 @@ impl SubtaskService {
       if !todoId.is_empty() {
         let todoResult = self
           .todoService
-          .getByField(json!({ "id": todoId }), syncMetadata.clone())
+          .get(json!({ "id": todoId }), syncMetadata.clone())
           .await;
         if let Ok(response) = &todoResult {
           match &response.data {

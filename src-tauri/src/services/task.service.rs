@@ -56,7 +56,7 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -66,7 +66,7 @@ impl TaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField("tasks", Some(filter), Some(self.relations.clone()))
+          .getAll("tasks", Some(filter), Some(self.relations.clone()))
           .await
       }
       ProviderType::Mongo => {
@@ -81,7 +81,7 @@ impl TaskService {
         };
         let docs = self
           .mongodbProvider
-          .getAllByField("tasks", docFilter, Some(self.relations.clone()))
+          .getAll("tasks", docFilter, Some(self.relations.clone()))
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()
@@ -113,7 +113,7 @@ impl TaskService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -123,7 +123,7 @@ impl TaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField("tasks", Some(filter), Some(self.relations.clone()), "")
+          .get("tasks", Some(filter), Some(self.relations.clone()), "")
           .await
       }
       ProviderType::Mongo => {
@@ -138,7 +138,7 @@ impl TaskService {
         };
         let doc = self
           .mongodbProvider
-          .getByField("tasks", docFilter, Some(self.relations.clone()), "")
+          .get("tasks", docFilter, Some(self.relations.clone()), "")
           .await?;
         Ok(serde_json::to_value(doc)?)
       }
@@ -183,7 +183,7 @@ impl TaskService {
         if result {
           let todoResult = self
             .todoService
-            .getByField(json!({ "id": todoId }), syncMetadata.clone())
+            .get(json!({ "id": todoId }), syncMetadata.clone())
             .await;
           let userId = if let Ok(response) = &todoResult {
             match &response.data {
@@ -236,13 +236,13 @@ impl TaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField("tasks", None, None, id.as_str())
+          .get("tasks", None, None, id.as_str())
           .await
       }
       ProviderType::Mongo => {
         let docResult = self
           .mongodbProvider
-          .getByField("tasks", None, None, id.as_str())
+          .get("tasks", None, None, id.as_str())
           .await;
         match docResult {
           Ok(doc) => Ok(serde_json::to_value(doc)?),
@@ -271,7 +271,7 @@ impl TaskService {
         let userId = {
           let todoResult = self
             .todoService
-            .getByField(
+            .get(
               json!({ "id": existingTask.todoId.clone() }),
               syncMetadata.clone(),
             )
@@ -430,7 +430,7 @@ impl TaskService {
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let taskResult = self
-      .getByField(json!({ "id": id.clone() }), syncMetadata.clone())
+      .get(json!({ "id": id.clone() }), syncMetadata.clone())
       .await;
     let todoId = if let Ok(response) = &taskResult {
       match &response.data {
@@ -447,7 +447,7 @@ impl TaskService {
     let userId = if !todoId.is_empty() {
       let todoResult = self
         .todoService
-        .getByField(json!({ "id": todoId }), syncMetadata.clone())
+        .get(json!({ "id": todoId }), syncMetadata.clone())
         .await;
       if let Ok(response) = &todoResult {
         match &response.data {
@@ -470,14 +470,14 @@ impl TaskService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField("subtasks", Some(json!({ "taskId": id.clone() })), None)
+          .getAll("subtasks", Some(json!({ "taskId": id.clone() })), None)
           .await
       }
       ProviderType::Mongo => {
         let filter = doc! { "taskId": id.clone() };
         let docs = self
           .mongodbProvider
-          .getAllByField("subtasks", Some(filter), None)
+          .getAll("subtasks", Some(filter), None)
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()

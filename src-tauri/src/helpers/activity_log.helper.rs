@@ -1,5 +1,5 @@
 /* sys lib */
-use serde_json::{json, to_value, Value};
+use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::{common::convertDataToArray, json_provider::JsonProvider};
@@ -23,22 +23,10 @@ impl ActivityLogHelper {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
-    &self,
-    nameField: String,
-    value: String,
-  ) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listDailyActivities = self
       .jsonProvider
-      .getAllByField(
-        "daily_activities",
-        if nameField != "" {
-          Some(json!({ nameField: value }))
-        } else {
-          None
-        },
-        None,
-      )
+      .getAll("daily_activities", Some(filter), None)
       .await;
     match listDailyActivities {
       Ok(dailyActivities) => Ok(ResponseModel {
@@ -65,7 +53,7 @@ impl ActivityLogHelper {
   ) -> Result<DailyActivityModel, ResponseModel> {
     let existing = self
       .jsonProvider
-      .getAllByField(
+      .getAll(
         "daily_activities",
         Some(serde_json::json!({ "userId": userId.clone(), "date": date.clone() })),
         None,

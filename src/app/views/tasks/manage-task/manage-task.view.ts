@@ -141,7 +141,7 @@ export class ManageTaskView implements OnInit {
   }
 
   getTaskInfo(taskId: string) {
-    this.dataSyncProvider.getByField<Task>("task", "id", taskId).subscribe({
+    this.dataSyncProvider.get<Task>("task", { id: taskId }).subscribe({
       next: (taskData) => {
         this.form.patchValue(taskData);
 
@@ -162,7 +162,7 @@ export class ManageTaskView implements OnInit {
   }
 
   loadProjectInfo(todoId: string) {
-    this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
+    this.dataSyncProvider.get<Todo>("todo", { id: todoId }).subscribe({
       next: (todo) => {
         this.projectInfo.set(todo);
 

@@ -65,7 +65,7 @@ impl StatisticsService {
 
     let todosResponse = self
       .todoService
-      .getAllByField(json!({ "userId": userId.clone() }), syncMetadata.clone())
+      .getAll(json!({ "userId": userId.clone() }), syncMetadata.clone())
       .await;
     let mut todos = match todosResponse {
       Ok(response) => {
@@ -98,7 +98,7 @@ impl StatisticsService {
 
     let categoriesResponse = self
       .categoriesService
-      .getAllByField(json!({ "userId": userId.clone() }))
+      .getAll(json!({ "userId": userId.clone() }))
       .await;
     let categories = match categoriesResponse {
       Ok(response) => {
@@ -216,7 +216,7 @@ impl StatisticsService {
   ) -> Vec<serde_json::Value> {
     let activitiesResponse = self
       .activityLogHelper
-      .getAllByField("userId".to_string(), userId.to_string())
+      .getAll(json!({"userId".to_string(): userId.to_string()}))
       .await;
     let activities = match activitiesResponse {
       Ok(response) => {

@@ -64,10 +64,10 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listCategories = self
       .jsonProvider
-      .getAllByField("categories", Some(filter), Some(self.relations.clone()))
+      .getAll("categories", Some(filter), Some(self.relations.clone()))
       .await;
 
     match listCategories {
@@ -85,10 +85,10 @@ impl CategoriesService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let category = self
       .jsonProvider
-      .getByField("categories", Some(filter), Some(self.relations.clone()), "")
+      .get("categories", Some(filter), Some(self.relations.clone()), "")
       .await;
 
     match category {
@@ -173,7 +173,7 @@ impl CategoriesService {
 
   #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let todos = self.jsonProvider.getAllByField("todos", None, None).await;
+    let todos = self.jsonProvider.getAll("todos", None, None).await;
 
     match todos {
       Ok(mut listTodos) => {

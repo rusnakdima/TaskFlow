@@ -96,7 +96,7 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -106,7 +106,7 @@ impl TodoService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField("todos", Some(filter), Some(self.relations.clone()))
+          .getAll("todos", Some(filter), Some(self.relations.clone()))
           .await
       }
       ProviderType::Mongo => {
@@ -121,7 +121,7 @@ impl TodoService {
         };
         let docs = self
           .mongodbProvider
-          .getAllByField("todos", docFilter, Some(self.relations.clone()))
+          .getAll("todos", docFilter, Some(self.relations.clone()))
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()
@@ -153,7 +153,7 @@ impl TodoService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
@@ -163,7 +163,7 @@ impl TodoService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField("todos", Some(filter), Some(self.relations.clone()), "")
+          .get("todos", Some(filter), Some(self.relations.clone()), "")
           .await
       }
       ProviderType::Mongo => {
@@ -178,7 +178,7 @@ impl TodoService {
         };
         let doc = self
           .mongodbProvider
-          .getByField("todos", docFilter, Some(self.relations.clone()), "")
+          .get("todos", docFilter, Some(self.relations.clone()), "")
           .await?;
         Ok(serde_json::to_value(doc)?)
       }
@@ -209,7 +209,7 @@ impl TodoService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField(
+          .getAll(
             "todos",
             Some(json!({ "assignees": assigneeId })),
             Some(self.relations.clone()),
@@ -219,7 +219,7 @@ impl TodoService {
       ProviderType::Mongo => {
         let docs = self
           .mongodbProvider
-          .getAllByField(
+          .getAll(
             "todos",
             Some(doc! { "assignees": { "$in": [assigneeId] } }),
             Some(self.relations.clone()),
@@ -314,13 +314,13 @@ impl TodoService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getByField("todos", None, None, id.as_str())
+          .get("todos", None, None, id.as_str())
           .await
       }
       ProviderType::Mongo => {
         let docResult = self
           .mongodbProvider
-          .getByField("todos", None, None, id.as_str())
+          .get("todos", None, None, id.as_str())
           .await;
         match docResult {
           Ok(doc) => Ok(serde_json::to_value(doc)?),
@@ -474,9 +474,7 @@ impl TodoService {
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let providerType = getProviderType(&syncMetadata)?;
-    let todoResponse = self
-      .getByField(json!({ "id": id.clone() }), syncMetadata)
-      .await;
+    let todoResponse = self.get(json!({ "id": id.clone() }), syncMetadata).await;
     let userId = if let Ok(response) = &todoResponse {
       match &response.data {
         DataValue::Object(obj) => obj
@@ -494,14 +492,14 @@ impl TodoService {
       ProviderType::Json => {
         self
           .jsonProvider
-          .getAllByField("tasks", Some(json!({ "todoId": id.clone() })), None)
+          .getAll("tasks", Some(json!({ "todoId": id.clone() })), None)
           .await
       }
       ProviderType::Mongo => {
         let filter = doc! { "todoId": id.clone() };
         let docs = self
           .mongodbProvider
-          .getAllByField("tasks", Some(filter), None)
+          .getAll("tasks", Some(filter), None)
           .await?;
         let values: Result<Vec<Value>, _> = docs
           .into_iter()
@@ -517,14 +515,14 @@ impl TodoService {
             ProviderType::Json => {
               self
                 .jsonProvider
-                .getAllByField("subtasks", Some(json!({ "taskId": taskId })), None)
+                .getAll("subtasks", Some(json!({ "taskId": taskId })), None)
                 .await
             }
             ProviderType::Mongo => {
               let filter = doc! { "taskId": taskId.to_string() };
               let docs = self
                 .mongodbProvider
-                .getAllByField("subtasks", Some(filter), None)
+                .getAll("subtasks", Some(filter), None)
                 .await?;
               let values: Result<Vec<Value>, _> = docs
                 .into_iter()

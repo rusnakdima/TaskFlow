@@ -25,13 +25,13 @@ impl CategoriesController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    self.categoriesService.getAllByField(filter).await
+  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    self.categoriesService.getAll(filter).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    self.categoriesService.getByField(filter).await
+  pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    self.categoriesService.get(filter).await
   }
 
   #[allow(non_snake_case)]
