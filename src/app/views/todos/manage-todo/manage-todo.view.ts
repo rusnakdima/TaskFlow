@@ -24,6 +24,8 @@ import { MatDividerModule } from "@angular/material/divider";
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 
@@ -135,7 +137,6 @@ export class ManageTodoView implements OnInit {
       this.fetchCategories();
     }
 
-    // Set up checkers for DataSyncProvider
     this.dataSyncProvider.setOwnershipChecker((todoId: string) => {
       return this.form.get("userId")?.value === this.authService.getValueByKey("id");
     });
@@ -169,9 +170,6 @@ export class ManageTodoView implements OnInit {
     this.dataSyncProvider.getByField<Todo>("todo", "id", todoId).subscribe({
       next: (todo) => {
         this.form.patchValue(todo);
-        if (this.form.get("assignees")?.value.length > 0) {
-          this.form.get("visibility")?.setValue("team");
-        }
 
         const currentUserId = this.authService.getValueByKey("id");
         this.isOwner = todo.userId === currentUserId;
@@ -379,20 +377,66 @@ export class ManageTodoView implements OnInit {
         updatedAt: new Date().toISOString(),
       };
 
-      this.dataSyncProvider.update<Todo>("todo", body.id, body).subscribe({
-        next: (result) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Todo updated successfully");
-          this.back();
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to update todo");
-        },
-      });
+      const currentVisibility = this.form.get("visibility")?.value;
+
+      this.dataSyncProvider
+        .update<Todo>("todo", body.id, body, {
+          isOwner: true,
+          isPrivate: currentVisibility === "private",
+        })
+        .subscribe({
+          next: (result) => {
+            if (currentVisibility !== formValue.visibility) {
+              this.updateTasksAndSubtasksForTodo(body.id, formValue.visibility);
+            }
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Todo updated successfully");
+            this.back();
+          },
+          error: (err) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to update todo");
+          },
+        });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
+  }
+
+  private updateTasksAndSubtasksForTodo(todoId: string, visibility: string) {
+    const isPrivate = visibility === "private";
+    this.dataSyncProvider
+      .getAll<Task>("task", { field: "todoId", value: todoId, isPrivate }, todoId)
+      .subscribe({
+        next: (tasks) => {
+          tasks.forEach((task) => {
+            const updatedTask = { ...task, updatedAt: new Date().toISOString().split(".")[0] };
+            this.dataSyncProvider.update<Task>("task", task.id, updatedTask, { isPrivate });
+
+            this.dataSyncProvider
+              .getAll<Subtask>("subtask", { field: "taskId", value: task.id, isPrivate }, todoId)
+              .subscribe({
+                next: (subtasks) => {
+                  subtasks.forEach((subtask) => {
+                    const updatedSubtask = {
+                      ...subtask,
+                      updatedAt: new Date().toISOString().split(".")[0],
+                    };
+                    this.dataSyncProvider.update<Subtask>("subtask", subtask.id, updatedSubtask, {
+                      isPrivate,
+                    });
+                  });
+                },
+                error: (err) => {
+                  console.error("Failed to update subtasks for task:", task.id, err);
+                },
+              });
+          });
+        },
+        error: (err) => {
+          console.error("Failed to update tasks for todo:", err);
+        },
+      });
   }
 }

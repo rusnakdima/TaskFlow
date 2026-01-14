@@ -82,7 +82,7 @@
             @for (priority of priorityOptions; track priority.value) {
               <mat-radio-button
                 [value]="priority.value"
-                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
               >
                 <div class="flex items-center gap-2 flex-1">
                   <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
@@ -188,7 +188,7 @@
             </mat-radio-button>
             <mat-radio-button
               value="team"
-              class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+              class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
             >
               <div class="flex-1">
                 <div class="flex flex-row gap-x-3">
@@ -290,7 +290,7 @@
             <div class="flex flex-row justify-between items-center" (click)="addProfile(profile)">
               <div>
                 <div class="font-medium">{{ profile.name }} {{ profile.lastName }}</div>
-                <div class="text-sm textMuted">{{ profile.user?.email }}</div>
+                <div class="text-sm textMuted">{{ profile.user.email }}</div>
               </div>
               <button (click)="addProfile(profile)">
                 <mat-icon class="w-6! h-6! text-2xl! cursor-pointer" fontIcon="add" />
