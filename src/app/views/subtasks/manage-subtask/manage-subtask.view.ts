@@ -150,7 +150,11 @@ export class ManageSubtaskView implements OnInit {
 
   loadProjectInfo(todoId: string) {
     this.dataSyncProvider
-      .get<Todo>("todo", { id: todoId }, { isOwner: false, isPrivate: this.isPrivate })
+      .get<Todo>(
+        "todo",
+        { id: todoId },
+        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
+      )
       .subscribe({
         next: (todo) => {
           this.projectInfo.set(todo);

@@ -36,7 +36,7 @@ export class TodoInformationComponent {
     private dataSyncProvider: DataSyncProvider
   ) {}
 
-  @Input() todo!: Todo;
+  @Input() todo: Todo | null = null;
 
   get listTasks(): Array<Task> {
     return this.todo?.tasks ?? [];
@@ -83,8 +83,8 @@ export class TodoInformationComponent {
   }
 
   deleteTodo() {
-    const isPrivate = this.todo.visibility === "private";
-    const isOwner = this.todo.userId === this.authService.getValueByKey("id");
+    const isPrivate = this.todo?.visibility === "private";
+    const isOwner = this.todo?.userId === this.authService.getValueByKey("id");
     this.dataSyncProvider.delete("todo", this.todo?.id ?? "", { isOwner, isPrivate }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");

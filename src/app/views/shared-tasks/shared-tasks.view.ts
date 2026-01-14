@@ -95,7 +95,7 @@ export class SharedTasksView implements OnInit {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { userId }, { isPrivate: false, isOwner: true })
+        .getAll<Todo>("todo", { userId }, { isOwner: true, isPrivate: false })
         .subscribe({
           next: (todos) => {
             let listTodos = todos.filter((todo: Todo) => todo.userId == userId);
@@ -107,7 +107,7 @@ export class SharedTasksView implements OnInit {
         });
 
       this.dataSyncProvider
-        .getAll<Todo>("todo", {}, { isPrivate: false, isOwner: false })
+        .getAll<Todo>("todo", {}, { isOwner: false, isPrivate: false })
         .subscribe({
           next: (todos) => {
             let listTodos = todos.filter((todo: Todo) => todo.userId != userId);

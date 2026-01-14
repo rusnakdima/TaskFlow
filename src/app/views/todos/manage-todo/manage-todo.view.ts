@@ -160,7 +160,11 @@ export class ManageTodoView implements OnInit {
 
   getTodoInfo(todoId: string) {
     this.dataSyncProvider
-      .get<Todo>("todo", { id: todoId }, { isOwner: false, isPrivate: this.isPrivate })
+      .get<Todo>(
+        "todo",
+        { id: todoId },
+        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
+      )
       .subscribe({
         next: (todo) => {
           this.form.patchValue(todo);
@@ -189,7 +193,7 @@ export class ManageTodoView implements OnInit {
       .getAll<Todo>(
         "todo",
         { userId: this.userId() },
-        { isOwner: false, isPrivate: this.isPrivate }
+        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
       )
       .subscribe({
         next: (todos) => {
