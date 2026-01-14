@@ -201,8 +201,8 @@ export class WebSocketService {
     });
   }
 
-  getByField(entity: string, nameField: string, value: string): Observable<any> {
-    console.log("WebSocketService: getByField called with", entity, nameField, value);
+  get(entity: string, filter: { [key: string]: any }): Observable<any> {
+    console.log("WebSocketService: get called with", entity, filter);
 
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));

@@ -38,6 +38,12 @@ export class App {
   url = signal<string>("");
 
   ngOnInit(): void {
+    // Initialize WebSocket connection
+    console.log("App: Initializing WebSocket connection");
+    this.webSocketService.getConnectionStatus().subscribe((connected) => {
+      console.log("App: WebSocket connection status:", connected);
+    });
+
     const theme = localStorage.getItem("theme") ?? "";
     document.querySelector("html")!.setAttribute("class", theme);
 
@@ -60,6 +66,11 @@ export class App {
         .checkToken<User>(token)
         .then((response: Response<User>) => {
           if (response.status == ResponseStatus.SUCCESS) {
+            // Set current user for WebSocket connection
+            const userId = this.authService.getValueByKey("id");
+            if (userId) {
+              this.webSocketService.setCurrentUser(userId);
+            }
             this.checkUserProfile();
           } else {
             this.notifyService.showNotify(response.status, response.message);

@@ -171,7 +171,12 @@ export class ManageSubtaskView implements OnInit {
   duplicateSubtask() {
     if (this.form.valid) {
       this.dataSyncProvider
-        .getAll<Subtask>("subtask", { field: "taskId", value: this.taskId() }, this.todoId())
+        .getAll<Subtask>(
+          "subtask",
+          { taskId: this.taskId() },
+          { isOwner: true, isPrivate: true },
+          this.todoId()
+        )
         .subscribe({
           next: (subtasks) => {
             const order = subtasks.length;
