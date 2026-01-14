@@ -21,7 +21,7 @@ export class MainResolver implements Resolve<any> {
     try {
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
-        const response: Response<Task> = await this.mainService.getByField<Task>("task", {
+        const response: Response<Task> = await this.mainService.get<Task>("task", {
           id: taskId,
         });
 
@@ -32,7 +32,7 @@ export class MainResolver implements Resolve<any> {
         }
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
-        const response: Response<Todo> = await this.mainService.getByField<Todo>("todo", {
+        const response: Response<Todo> = await this.mainService.get<Todo>("todo", {
           id: todoId,
         });
 
