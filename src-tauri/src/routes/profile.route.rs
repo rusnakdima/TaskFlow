@@ -11,20 +11,20 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profileGetAllByField(
+pub async fn profileGetAll(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.getAllByField(filter).await
+  state.profileController.getAll(filter).await
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn profileGetByField(
+pub async fn profileGet(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.getByField(filter).await
+  state.profileController.get(filter).await
 }
 
 #[allow(non_snake_case)]

@@ -48,7 +48,7 @@ export class ProfileView implements OnInit {
 
   getProfile(userId: string) {
     this.mainService
-      .getByField<Profile>("profile", { userId })
+      .get<Profile>("profile", { userId })
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           this.profile.set(response.data);

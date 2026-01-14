@@ -61,24 +61,21 @@ impl SubtaskController {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .subtaskService
-      .getAllByField(filter, syncMetadata)
-      .await
+    self.subtaskService.getAll(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     filter: Value,
     syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.subtaskService.getByField(filter, syncMetadata).await
+    self.subtaskService.get(filter, syncMetadata).await
   }
 
   #[allow(non_snake_case)]

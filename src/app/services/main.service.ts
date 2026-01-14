@@ -11,23 +11,23 @@ import { Response } from "@models/response.model";
 export class MainService {
   constructor() {}
 
-  async getAllByField<R>(
+  async getAll<R>(
     apiName: string,
     filter: object = {},
     syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}GetAllByField`, {
+    return await invoke<Response<R>>(`${apiName}GetAll`, {
       filter: filter,
       syncMetadata: syncMetadata,
     });
   }
 
-  async getByField<R>(
+  async get<R>(
     apiName: string,
     filter: object = {},
     syncMetadata?: { isOwner: boolean; isPrivate: boolean }
   ): Promise<Response<R>> {
-    return await invoke<Response<R>>(`${apiName}GetByField`, {
+    return await invoke<Response<R>>(`${apiName}Get`, {
       filter: filter,
       syncMetadata: syncMetadata,
     });

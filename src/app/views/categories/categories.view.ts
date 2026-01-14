@@ -59,7 +59,7 @@ export class CategoriesView implements OnInit {
   loadCategories(): void {
     if (this.userId() && this.userId() != "") {
       this.mainService
-        .getAllByField<Array<Category>>("category", { userId: this.userId() })
+        .getAll<Array<Category>>("category", { userId: this.userId() })
         .then((response: Response<Array<Category>>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.tempListCategories.set(response.data);

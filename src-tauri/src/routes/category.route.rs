@@ -11,20 +11,20 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn categoryGetAllByField(
+pub async fn categoryGetAll(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.categoriesController.getAllByField(filter).await
+  state.categoriesController.getAll(filter).await
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn categoryGetByField(
+pub async fn categoryGet(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.categoriesController.getByField(filter).await
+  state.categoriesController.get(filter).await
 }
 
 #[allow(non_snake_case)]

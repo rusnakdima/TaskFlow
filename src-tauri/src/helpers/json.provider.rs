@@ -100,16 +100,16 @@ impl JsonProvider {
       let mongoProvider = self.mongodbProvider.as_ref().unwrap();
       let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
       let doc = mongoProvider
-        .getByField(nameTable, mongoFilter, relations, id)
+        .get(nameTable, mongoFilter, relations, id)
         .await?;
       self.convertDocToValue(doc)
     } else {
-      self.getByField(nameTable, filter, relations, id).await
+      self.get(nameTable, filter, relations, id).await
     }
   }
 
   #[allow(non_snake_case)]
-  async fn getAllByFieldJsonOrMongo(
+  async fn getAllJsonOrMongo(
     &self,
     nameTable: &str,
     filter: Option<Value>,
@@ -119,14 +119,14 @@ impl JsonProvider {
       let mongoProvider = self.mongodbProvider.as_ref().unwrap();
       let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
       let docs = mongoProvider
-        .getAllByField(nameTable, mongoFilter, relations)
+        .getAll(nameTable, mongoFilter, relations)
         .await?;
       docs
         .into_iter()
         .map(|doc| self.convertDocToValue(doc))
         .collect::<Result<Vec<_>, _>>()
     } else {
-      self.getAllByField(nameTable, filter, relations).await
+      self.getAll(nameTable, filter, relations).await
     }
   }
 
@@ -210,7 +210,7 @@ impl JsonProvider {
               if let Some(idStr) = idValue.as_str() {
                 let filter = json!({ relation.nameField: idStr });
                 let result = match self
-                  .getAllByFieldJsonOrMongo(&relation.nameTable, Some(filter), relation.relations)
+                  .getAllJsonOrMongo(&relation.nameTable, Some(filter), relation.relations)
                   .await
                 {
                   Ok(records) => Value::Array(records),
@@ -249,7 +249,7 @@ impl JsonProvider {
             if let Some(idValue) = recordObj.get("id").cloned() {
               if let Some(idStr) = idValue.as_str() {
                 let allRecords = match self
-                  .getAllByFieldJsonOrMongo(&relation.nameTable, None, relation.relations.clone())
+                  .getAllJsonOrMongo(&relation.nameTable, None, relation.relations.clone())
                   .await
                 {
                   Ok(records) => records,
@@ -281,7 +281,7 @@ impl JsonProvider {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     nameTable: &str,
     filter: Option<Value>,
@@ -348,7 +348,7 @@ impl JsonProvider {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     nameTable: &str,
     filter: Option<Value>,

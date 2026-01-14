@@ -58,7 +58,7 @@ impl ManageDbService {
     let mut result = std::collections::HashMap::new();
 
     let todos = match mongodbProvider
-      .getAllByField(
+      .getAll(
         "todos",
         Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
         None,
@@ -85,7 +85,7 @@ impl ManageDbService {
 
     let tasks = if !todoIds.is_empty() {
       match mongodbProvider
-        .getAllByField("tasks", Some(doc! {"todoId": {"$in": &todoIds}}), None)
+        .getAll("tasks", Some(doc! {"todoId": {"$in": &todoIds}}), None)
         .await
       {
         Ok(docs) => docs,
@@ -111,7 +111,7 @@ impl ManageDbService {
 
     let subtasks = if !taskIds.is_empty() {
       match mongodbProvider
-        .getAllByField("subtasks", Some(doc! {"taskId": {"$in": &taskIds}}), None)
+        .getAll("subtasks", Some(doc! {"taskId": {"$in": &taskIds}}), None)
         .await
       {
         Ok(docs) => docs,
@@ -129,7 +129,7 @@ impl ManageDbService {
     result.insert("subtasks".to_string(), subtasks);
 
     let categories = match mongodbProvider
-      .getAllByField(
+      .getAll(
         "categories",
         Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
         None,
@@ -148,7 +148,7 @@ impl ManageDbService {
     result.insert("categories".to_string(), categories);
 
     let dailyActivities = match mongodbProvider
-      .getAllByField(
+      .getAll(
         "daily_activities",
         Some(doc! {"userId": &userId, "isDeleted": {"$ne": true}}),
         None,
@@ -178,7 +178,7 @@ impl ManageDbService {
 
     let todos = match self
       .jsonProvider
-      .getAllByField("todos", Some(json!({"userId": userId.clone()})), None)
+      .getAll("todos", Some(json!({"userId": userId.clone()})), None)
       .await
     {
       Ok(vals) => vals
@@ -204,7 +204,7 @@ impl ManageDbService {
 
     let tasks = match self
       .jsonProvider
-      .getAllByField("tasks", Some(json!({"todoId": todoIds})), None)
+      .getAll("tasks", Some(json!({"todoId": todoIds})), None)
       .await
     {
       Ok(vals) => vals
@@ -230,7 +230,7 @@ impl ManageDbService {
 
     let subtasks = match self
       .jsonProvider
-      .getAllByField("subtasks", Some(json!({"taskId": taskIds})), None)
+      .getAll("subtasks", Some(json!({"taskId": taskIds})), None)
       .await
     {
       Ok(vals) => vals
@@ -249,7 +249,7 @@ impl ManageDbService {
 
     let categories = match self
       .jsonProvider
-      .getAllByField(
+      .getAll(
         "categories",
         Some(serde_json::json!({"userId": userId.clone()})),
         None,
@@ -272,7 +272,7 @@ impl ManageDbService {
 
     let dailyActivities = match self
       .jsonProvider
-      .getAllByField(
+      .getAll(
         "daily_activities",
         Some(serde_json::json!({"userId": userId})),
         None,
@@ -524,7 +524,7 @@ impl ManageDbService {
       } else {
         None
       };
-      let docs = match mongodbProvider.getAllByField(table, None, relations).await {
+      let docs = match mongodbProvider.getAll(table, None, relations).await {
         Ok(docs) => docs,
         Err(e) => {
           return Err(ResponseModel {

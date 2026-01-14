@@ -84,14 +84,14 @@ export class TasksView implements OnInit {
   }
 
   getTodoInfo(id: string): Observable<Todo> {
-    return this.dataSyncProvider.getByField<Todo>("todo", "id", id, { isPrivate: true }).pipe(
+    return this.dataSyncProvider.get<Todo>("todo", { id: id }, { isPrivate: true }).pipe(
       map((todo) => {
         this.todo.set(todo);
         return todo;
       }),
       catchError((err) => {
         return this.dataSyncProvider
-          .getByField<Todo>("todo", "id", id, { isPrivate: false, isOwner: false })
+          .get<Todo>("todo", { id: id }, { isPrivate: false, isOwner: false })
           .pipe(
             map((todo) => {
               this.todo.set(todo);
@@ -99,7 +99,7 @@ export class TasksView implements OnInit {
             }),
             catchError((err2) => {
               return this.dataSyncProvider
-                .getByField<Todo>("todo", "id", id, { isPrivate: false, isOwner: true })
+                .get<Todo>("todo", { id: id }, { isPrivate: false, isOwner: true })
                 .pipe(
                   map((todo) => {
                     this.todo.set(todo);
@@ -123,16 +123,16 @@ export class TasksView implements OnInit {
     const isOwner = todo.userId === this.authService.getValueByKey("id");
 
     this.dataSyncProvider
-      .getByField<Task[]>("task", "todoId", todoId, { isPrivate, isOwner })
+      .getAll<Task>("task", { field: "todoId", value: todoId, isPrivate, isOwner }, todoId)
       .pipe(
         map((tasks) => {
-          this.tempListTasks.set(tasks);
+          if (!Array.isArray(tasks)) {
+            this.tempListTasks.set([]);
+          } else {
+            this.tempListTasks.set(tasks);
+          }
           this.applyFilter();
           return tasks;
-        }),
-        catchError((err) => {
-          this.notifyService.showError(err.message || "Failed to load tasks");
-          throw err;
         })
       )
       .subscribe();

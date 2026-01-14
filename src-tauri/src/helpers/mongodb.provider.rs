@@ -52,7 +52,7 @@ impl MongodbProvider {
         TypesField::OneToOne => {
           if let Some(value) = record.get(relation.nameField).cloned() {
             let result = match self
-              .getByField(
+              .get(
                 &relation.nameTable,
                 None,
                 relation.relations,
@@ -69,7 +69,7 @@ impl MongodbProvider {
         TypesField::OneToMany => {
           if let Some(value) = record.get("id").cloned() {
             let result = match self
-              .getAllByField(
+              .getAll(
                 &relation.nameTable,
                 Some(doc! { relation.nameField: &value.as_str().unwrap().to_string() }),
                 relation.relations,
@@ -87,7 +87,7 @@ impl MongodbProvider {
             let mut listResult: Vec<Document> = vec![];
             for id in value {
               let result = match self
-                .getByField(
+                .get(
                   &relation.nameTable,
                   None,
                   relation.relations.clone(),
@@ -107,7 +107,7 @@ impl MongodbProvider {
           if let Some(idValue) = record.get("id").cloned() {
             if let Some(idStr) = idValue.as_str() {
               let allRecords = match self
-                .getAllByField(&relation.nameTable, None, relation.relations.clone())
+                .getAll(&relation.nameTable, None, relation.relations.clone())
                 .await
               {
                 Ok(records) => records,
@@ -134,7 +134,7 @@ impl MongodbProvider {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(
+  pub async fn getAll(
     &self,
     nameTable: &str,
     filter: Option<Document>,
@@ -165,7 +165,7 @@ impl MongodbProvider {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(
+  pub async fn get(
     &self,
     nameTable: &str,
     filter: Option<Document>,

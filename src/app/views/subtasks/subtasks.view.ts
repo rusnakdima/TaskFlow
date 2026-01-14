@@ -80,7 +80,7 @@ export class SubtasksView implements OnInit {
   }
 
   getTodoInfo(id: string) {
-    this.dataSyncProvider.getByField<Todo>("todo", "id", id).subscribe({
+    this.dataSyncProvider.get<Todo>("todo", { id: id }).subscribe({
       next: (todo) => {
         this.todo.set(todo);
         this.projectTitle.set(this.todo()?.title ?? "");
@@ -92,7 +92,7 @@ export class SubtasksView implements OnInit {
   }
 
   getTaskInfo(id: string) {
-    this.dataSyncProvider.getByField<Task>("task", "id", id).subscribe({
+    this.dataSyncProvider.get<Task>("task", { id: id }).subscribe({
       next: (task) => {
         this.task.set(task);
       },

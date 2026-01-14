@@ -12,25 +12,22 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todoGetAllByField(
+pub async fn todoGetAll(
   state: State<'_, AppState>,
   filter: Value,
   syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state
-    .todoController
-    .getAllByField(filter, syncMetadata)
-    .await
+  state.todoController.getAll(filter, syncMetadata).await
 }
 
 #[allow(non_snake_case)]
 #[tauri::command]
-pub async fn todoGetByField(
+pub async fn todoGet(
   state: State<'_, AppState>,
   filter: Value,
   syncMetadata: SyncMetadata,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.todoController.getByField(filter, syncMetadata).await
+  state.todoController.get(filter, syncMetadata).await
 }
 
 #[allow(non_snake_case)]

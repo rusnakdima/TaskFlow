@@ -63,7 +63,7 @@ impl ProfileSyncService {
 
     match self
       .mongodbProvider
-      .getByField("profiles", None, None, &profile.id)
+      .get("profiles", None, None, &profile.id)
       .await
     {
       Ok(existingDoc) => {
@@ -112,7 +112,7 @@ impl ProfileSyncService {
   pub async fn syncProfileFromCloud(&self, profileId: &str) -> Result<bool, ResponseModel> {
     match self
       .mongodbProvider
-      .getByField("profiles", None, None, profileId)
+      .get("profiles", None, None, profileId)
       .await
     {
       Ok(cloudDoc) => {
@@ -129,7 +129,7 @@ impl ProfileSyncService {
 
         match self
           .jsonProvider
-          .getByField("profiles", None, None, profileId)
+          .get("profiles", None, None, profileId)
           .await
         {
           Ok(localVal) => {
@@ -184,7 +184,7 @@ impl ProfileSyncService {
   ) -> Result<ResponseModel, ResponseModel> {
     let localProfiles = match self
       .jsonProvider
-      .getAllByField(
+      .getAll(
         "profiles",
         Some(serde_json::json!({ "userId": user_id })),
         None,
@@ -221,7 +221,7 @@ impl ProfileSyncService {
 
     let cloudProfiles = match self
       .mongodbProvider
-      .getAllByField("profiles", Some(doc! { "userId": user_id }), None)
+      .getAll("profiles", Some(doc! { "userId": user_id }), None)
       .await
     {
       Ok(profiles) => profiles,

@@ -55,10 +55,10 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getAllByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listProfiles = self
       .jsonProvider
-      .getAllByField("profiles", Some(filter), Some(self.relations.clone()))
+      .getAll("profiles", Some(filter), Some(self.relations.clone()))
       .await;
     match listProfiles {
       Ok(profiles) => Ok(ResponseModel {
@@ -75,10 +75,10 @@ impl ProfileService {
   }
 
   #[allow(non_snake_case)]
-  pub async fn getByField(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .jsonProvider
-      .getByField("profiles", Some(filter), Some(self.relations.clone()), "")
+      .get("profiles", Some(filter), Some(self.relations.clone()), "")
       .await;
     match profile {
       Ok(profile) => Ok(ResponseModel {
@@ -97,7 +97,7 @@ impl ProfileService {
   #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
     let userId = data.userId.clone();
-    let findByUserId = self.getByField(json!({ "userId": userId.clone() })).await;
+    let findByUserId = self.get(json!({ "userId": userId.clone() })).await;
     if findByUserId.is_ok() {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -145,7 +145,7 @@ impl ProfileService {
   ) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .jsonProvider
-      .getByField("profiles", None, None, id.as_str())
+      .get("profiles", None, None, id.as_str())
       .await;
 
     match profile {
