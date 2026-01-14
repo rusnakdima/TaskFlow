@@ -75,21 +75,10 @@
 
   @if (showActions) {
     <div class="p-4 bg-gray-50 dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
-      <div class="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3">
-        <a
-          routerLink="create_task"
-          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
-        >
-          <mat-icon
-            class="w-6! h-6! text-2xl! text-green-600 dark:text-green-400"
-            fontIcon="add_task"
-          />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Add Task</span>
-        </a>
-
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <a
           [routerLink]="['/todos', todo?.id, 'edit_todo']"
-          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
           <mat-icon class="w-6! h-6! text-2xl! text-blue-600 dark:text-blue-400" fontIcon="edit" />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Edit</span>
@@ -97,7 +86,7 @@
 
         <button
           (click)="shareProject()"
-          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
           <mat-icon
             class="w-6! h-6! text-2xl! text-purple-600 dark:text-purple-400"
@@ -108,7 +97,7 @@
 
         <button
           (click)="confirmDeleteTodo()"
-          class="flex flex-row min-[400px]:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
         >
           <mat-icon class="w-6! h-6! text-2xl! text-red-600 dark:text-red-400" fontIcon="delete" />
           <span class="text-sm font-medium text-red-700 dark:text-red-300">Delete</span>
