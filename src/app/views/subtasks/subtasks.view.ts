@@ -172,35 +172,35 @@ export class SubtasksView implements OnInit {
 
   applyFilter() {
     let filtered = [...this.tempListSubtasks()];
-
-    switch (this.activeFilter()) {
-      case "active":
-        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.PENDING);
-        break;
-      case "completed":
-        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.COMPLETED);
-        break;
-      case "skipped":
-        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.SKIPPED);
-        break;
-      case "failed":
-        filtered = filtered.filter((subtask) => subtask.status === TaskStatus.FAILED);
-        break;
-      case "done":
-        filtered = filtered.filter(
-          (subtask) =>
-            subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
-        );
-        break;
-      case "high":
-        filtered = filtered.filter((subtask) => subtask.priority === "high");
-        break;
-      default:
-        break;
+    if (this.activeFilter() !== "all") {
+      switch (this.activeFilter()) {
+        case "active":
+          filtered = filtered.filter((s) => s.status === TaskStatus.PENDING);
+          break;
+        case "completed":
+          filtered = filtered.filter((s) => s.status === TaskStatus.COMPLETED);
+          break;
+        case "skipped":
+          filtered = filtered.filter((s) => s.status === TaskStatus.SKIPPED);
+          break;
+        case "failed":
+          filtered = filtered.filter((s) => s.status === TaskStatus.FAILED);
+          break;
+        case "done":
+          filtered = filtered.filter(
+            (s) =>
+              s.status === TaskStatus.COMPLETED ||
+              s.status === TaskStatus.SKIPPED ||
+              s.status === TaskStatus.FAILED
+          );
+          break;
+        case "high":
+          filtered = filtered.filter((s) => s.priority === "high");
+          break;
+      }
     }
 
     filtered.sort((a, b) => b.order - a.order);
-
     this.listSubtasks.set(filtered);
   }
 

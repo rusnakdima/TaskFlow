@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, EventEmitter, OnDestroy, OnInit, Output } from "@angular/core";
+import { Component, EventEmitter, OnDestroy, OnInit, Output, signal } from "@angular/core";
 import { Subscription } from "rxjs";
 import {
   ActivatedRoute,
@@ -50,31 +50,31 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
-  themeVal: string = "";
-  title: string = "";
-  subtitle: string = "";
-  iconUrl: string = "";
-  userId: string = "";
-  role: string = "";
+  themeVal = signal("");
+  title = signal("");
+  subtitle = signal("");
+  iconUrl = signal("");
+  userId = signal("");
+  role = signal("");
 
-  profile: Profile | null = null;
-  todo: Todo | null = null;
-  task: Task | null = null;
+  profile = signal<Profile | null>(null);
+  todo = signal<Todo | null>(null);
+  task = signal<Task | null>(null);
 
-  isBack: boolean = false;
-  showUserMenu: boolean = false;
-  isSyncing: boolean = false;
+  isBack = signal(false);
+  showUserMenu = signal(false);
+  isSyncing = signal(false);
 
-  breadcrumbs: Breadcrumb[] = [];
+  breadcrumbs = signal<Breadcrumb[]>([]);
   private syncSubscription: Subscription | null = null;
 
   ngOnInit(): void {
-    this.themeVal = localStorage.getItem("theme") ?? "";
-    this.userId = this.authService.getValueByKey("id");
-    this.role = this.authService.getValueByKey("role");
+    this.themeVal.set(localStorage.getItem("theme") ?? "");
+    this.userId.set(this.authService.getValueByKey("id"));
+    this.role.set(this.authService.getValueByKey("role"));
 
-    this.syncSubscription = this.syncService.isSyncing$.subscribe(
-      (isSyncing) => (this.isSyncing = isSyncing)
+    this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
+      this.isSyncing.set(isSyncing)
     );
 
     this.getProfile();
@@ -86,12 +86,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
         map(async () => await this.createBreadcrumbs(this.route.root))
       )
       .subscribe(async (breadcrumbs) => {
-        this.breadcrumbs = await breadcrumbs;
-        this.isBack = this.breadcrumbs.length > 1;
-        this.title =
-          this.breadcrumbs.length > 0
-            ? this.breadcrumbs[this.breadcrumbs.length - 1].label
-            : "Home";
+        this.breadcrumbs.set(await breadcrumbs);
+        this.isBack.set(this.breadcrumbs().length > 1);
+        this.title.set(
+          this.breadcrumbs().length > 0
+            ? this.breadcrumbs()[this.breadcrumbs().length - 1].label
+            : "Home"
+        );
       });
   }
 
@@ -104,7 +105,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .get<Profile>("profile", { userId: this.userId })
       .then((response: Response<Profile>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          this.profile = response.data;
+          this.profile.set(response.data);
         }
       })
       .catch((err: Response<string>) => {
@@ -141,13 +142,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
           if (data.task) {
             const task = data.task as Task;
             if (task) {
-              this.task = task;
+              this.task.set(task);
               label = task.title;
             }
           } else if (data.todo) {
             const todo = data.todo as Todo;
             if (todo) {
-              this.todo = todo;
+              this.todo.set(todo);
               label = todo.title;
             }
           } else {
@@ -180,24 +181,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
   setTheme(theme: string) {
     document.querySelector("html")!.setAttribute("class", theme);
     localStorage.setItem("theme", theme);
-    this.themeVal = theme;
+    this.themeVal.set(theme);
   }
 
   toggleTheme() {
-    const newTheme = this.themeVal === "dark" ? "" : "dark";
+    const newTheme = this.themeVal() === "dark" ? "" : "dark";
     this.setTheme(newTheme);
   }
 
   toggleUserMenu() {
-    this.showUserMenu = !this.showUserMenu;
+    this.showUserMenu.set(!this.showUserMenu());
   }
 
   closeUserMenu() {
-    this.showUserMenu = false;
+    this.showUserMenu.set(false);
   }
 
   async syncAll() {
-    if (this.isSyncing) return;
+    if (this.isSyncing()) return;
 
     this.notifyService.showInfo("Starting synchronization...");
 

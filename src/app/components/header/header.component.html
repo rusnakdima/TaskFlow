@@ -3,7 +3,7 @@
 >
   <div class="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
     <div class="flex items-center gap-3">
-      @if (isBack) {
+      @if (isBack()) {
         <button
           class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
           (click)="goBack()"
@@ -13,13 +13,9 @@
       }
 
       <div class="flex flex-col">
-        <h1 class="text-lg font-semibold textNormal">{{ title }}</h1>
-        @if (todo) {
-          <p class="text-sm textMuted">{{ todo.description }}</p>
-        } @else if (task) {
-          <p class="text-sm textMuted">{{ task.description }}</p>
-        } @else if (subtitle) {
-          <p class="text-sm textMuted">{{ subtitle }}</p>
+        <h1 class="text-lg font-semibold textNormal">{{ title() }}</h1>
+        @if (todo()) {
+          <p class="text-sm textMuted">{{ todo()!.description }}</p>
         }
       </div>
     </div>
@@ -36,12 +32,12 @@
       <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
         (click)="syncAll()"
-        [disabled]="isSyncing"
-        [title]="isSyncing ? 'Synchronizing...' : 'Sync data with cloud'"
+        [disabled]="isSyncing()"
+        [title]="isSyncing() ? 'Synchronizing...' : 'Sync data with cloud'"
       >
         <mat-icon
           class="w-6! h-6! text-2xl! textMuted"
-          [ngClass]="isSyncing ? 'animate-spin' : ''"
+          [ngClass]="isSyncing() ? 'animate-spin' : ''"
           fontIcon="sync"
         />
       </button>
@@ -49,11 +45,11 @@
       <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
         (click)="toggleTheme()"
-        [title]="themeVal === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        [title]="themeVal() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
       >
         <mat-icon
           class="w-6! h-6! text-2xl! textMuted"
-          [fontIcon]="themeVal === 'dark' ? 'light_mode' : 'dark_mode'"
+          [fontIcon]="themeVal() === 'dark' ? 'light_mode' : 'dark_mode'"
         />
       </button>
 
@@ -62,7 +58,7 @@
         (click)="toggleUserMenu()"
       >
         <img
-          [src]="profile?.imageUrl ? profile?.imageUrl : 'assets/images/user.png'"
+          [src]="profile()?.imageUrl ? profile()!.imageUrl : 'assets/images/user.png'"
           class="w-8 h-8 rounded-full"
           alt=""
         />
@@ -71,22 +67,22 @@
   </div>
 </div>
 
-@if (showUserMenu) {
+@if (showUserMenu()) {
   <div
     class="fixed top-16 right-4 z-50 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 min-w-[200px]"
   >
     <div class="p-3 border-b border-gray-200 dark:border-zinc-700">
       <p class="font-medium textNormal">
-        {{ profile ? profile.name : "User" }} {{ profile ? profile.lastName : "" }}
+        {{ profile() ? profile()!.name : "User" }} {{ profile() ? profile()!.lastName : "" }}
       </p>
-      <p class="text-sm textMuted">{{ profile ? profile.user.email : "" }}</p>
+      <p class="text-sm textMuted">{{ profile() ? profile()!.user.email : "" }}</p>
     </div>
 
     <div class="py-2">
       <button
         class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
         routerLink="/profile"
-        [queryParams]="{ id: userId }"
+        [queryParams]="{ id: userId() }"
         (click)="closeUserMenu()"
       >
         <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="person" />
@@ -111,7 +107,7 @@
         <span class="textNormal">Sync Data</span>
       </button>
 
-      @if (role == "admin") {
+      @if (role() == "admin") {
         <button
           class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
           routerLink="/admin"
@@ -144,6 +140,6 @@
   </div>
 }
 
-@if (showUserMenu) {
+@if (showUserMenu()) {
   <div class="fixed inset-0 z-40" (click)="closeUserMenu()"></div>
 }

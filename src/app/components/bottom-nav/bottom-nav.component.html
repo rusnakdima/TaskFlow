@@ -6,7 +6,7 @@
         [routerLink]="nav.url"
         [queryParams]="nav.query"
         [ngClass]="
-          url === nav.url
+          url() === nav.url
             ? 'bg-blue-50 dark:bg-blue-900/30'
             : 'hover:bg-gray-50 dark:hover:bg-zinc-800'
         "
@@ -15,7 +15,7 @@
           class="w-6! h-6! text-2xl! transition-colors"
           [fontIcon]="nav.icon"
           [ngClass]="
-            url === nav.url
+            url() === nav.url
               ? 'text-blue-600! dark:text-blue-400!'
               : 'textMuted group-hover:textNormal'
           "
@@ -23,7 +23,7 @@
         <span
           class="text-xs mt-1 font-medium transition-colors"
           [ngClass]="
-            url === nav.url
+            url() === nav.url
               ? 'text-blue-600 dark:text-blue-400'
               : 'textMuted group-hover:textNormal'
           "

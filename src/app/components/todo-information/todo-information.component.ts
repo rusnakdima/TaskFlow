@@ -1,10 +1,11 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input } from "@angular/core";
+import { Component, Input, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatDialog, MatDialogModule } from "@angular/material/dialog";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -18,22 +19,24 @@ import { AuthService } from "@services/auth.service";
 
 /* components */
 import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
+import { ShareDialogComponent } from "@components/share-dialog/share-dialog.component";
 
 @Component({
   selector: "app-todo-information",
   standalone: true,
   providers: [DataSyncProvider],
-  imports: [CommonModule, MatIconModule, RouterModule, CircleProgressComponent],
+  imports: [CommonModule, MatIconModule, RouterModule, CircleProgressComponent, MatDialogModule],
   templateUrl: "./todo-information.component.html",
 })
 export class TodoInformationComponent {
-  public showActions = false;
+  public showActions = signal(false);
 
   constructor(
     private router: Router,
     private notifyService: NotifyService,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private dialog: MatDialog
   ) {}
 
   @Input() todo: Todo | null = null;
@@ -65,11 +68,23 @@ export class TodoInformationComponent {
   }
 
   toggleActions() {
-    this.showActions = !this.showActions;
+    this.showActions.set(!this.showActions());
   }
 
   shareProject() {
-    this.notifyService.showInfo("Project sharing functionality would be implemented here");
+    const dialogRef = this.dialog.open(ShareDialogComponent, {
+      data: { todo: this.todo },
+      width: "600px",
+      maxWidth: "90vw",
+      panelClass: "share-dialog-panel",
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Handle successful sharing update
+        this.notifyService.showSuccess("Project sharing updated successfully");
+      }
+    });
   }
 
   confirmDeleteTodo() {

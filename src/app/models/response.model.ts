@@ -1,16 +1,16 @@
 export enum ResponseStatus {
-  SUCCESS = 'Success',
-  INFO = 'info',
-  WARNING = 'Warning',
-  ERROR = 'Error',
+  SUCCESS = "Success",
+  INFO = "info",
+  WARNING = "Warning",
+  ERROR = "Error",
 }
 
 export enum ResponseStatusIcon {
-  SUCCESS = 'check_circle_outlined',
-  INFO = 'info_outlined',
-  WARNING = 'warning_outline',
-  ERROR = 'dangerous',
-  '' = 'notifications',
+  SUCCESS = "check_circle_outlined",
+  INFO = "info_outlined",
+  WARNING = "warning_outline",
+  ERROR = "dangerous",
+  "" = "notifications",
 }
 
 export interface INotify {
@@ -26,7 +26,7 @@ export interface ActiveNotification extends INotify {
 }
 
 export interface Response<T> {
-  status: ResponseStatus,
-  message: string,
-  data: T
+  status: ResponseStatus;
+  message: string;
+  data: T;
 }

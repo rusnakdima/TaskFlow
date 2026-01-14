@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -28,7 +28,7 @@ export class TodoComponent {
   @Input() isPrivate: boolean = true;
   @Output() deleteEvent: EventEmitter<string> = new EventEmitter<string>();
 
-  isExpandedDetails: boolean = false;
+  isExpandedDetails = signal(false);
 
   truncateString = Common.truncateString;
 
@@ -56,7 +56,7 @@ export class TodoComponent {
 
   toggleDetails(event: Event) {
     event.stopPropagation();
-    this.isExpandedDetails = !this.isExpandedDetails;
+    this.isExpandedDetails.set(!this.isExpandedDetails());
   }
 
   getProgressPercentage(): number {

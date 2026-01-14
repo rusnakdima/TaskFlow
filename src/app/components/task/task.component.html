@@ -41,10 +41,11 @@
             </button>
 
             <div class="flex-1 min-w-0 cursor-pointer">
-              @if (editingField === "title") {
+              @if (editingField() === "title") {
                 <input
                   type="text"
-                  [(ngModel)]="editingValue"
+                  [ngModel]="editingValue()"
+                  (ngModelChange)="editingValue.set($event)"
                   (blur)="saveInlineEdit()"
                   (keyup.enter)="saveInlineEdit()"
                   (keyup.escape)="cancelInlineEdit()"
@@ -69,9 +70,10 @@
                 </h3>
               }
 
-              @if (editingField === "description") {
+              @if (editingField() === "description") {
                 <textarea
-                  [(ngModel)]="editingValue"
+                  [ngModel]="editingValue()"
+                  (ngModelChange)="editingValue.set($event)"
                   (blur)="saveInlineEdit()"
                   (keyup.enter)="saveInlineEdit()"
                   (keyup.escape)="cancelInlineEdit()"

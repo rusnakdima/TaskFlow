@@ -1,0 +1,167 @@
+<div
+  class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-300 dark:border-gray-600 p-6"
+>
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div
+        class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+      >
+        <mat-icon class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400" fontIcon="share" />
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Share Project</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Configure project visibility and team access
+        </p>
+      </div>
+    </div>
+    <button
+      (click)="onCancel()"
+      class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+    >
+      <mat-icon class="w-5! h-5! text-xl! text-gray-500" fontIcon="close" />
+    </button>
+  </div>
+
+  <form [formGroup]="form" class="space-y-6">
+    <div class="space-y-3">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Project Visibility
+      </label>
+      <mat-radio-group formControlName="visibility" class="space-y-3">
+        <mat-radio-button
+          value="private"
+          class="flex flex-row items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 w-full cursor-pointer transition-colors"
+        >
+          <div class="flex-1">
+            <div class="flex flex-row gap-x-3">
+              <mat-icon class="w-5! h-5! text-xl! text-gray-500" fontIcon="lock" />
+              <div class="font-medium text-gray-900 dark:text-white">Private</div>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              Only you can access this project
+            </div>
+          </div>
+        </mat-radio-button>
+        <mat-radio-button
+          value="team"
+          class="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors w-full"
+        >
+          <div class="flex-1">
+            <div class="flex flex-row gap-x-3">
+              <mat-icon class="w-5! h-5! text-xl! text-gray-500" fontIcon="group" />
+              <div class="font-medium text-gray-900 dark:text-white">Team</div>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              Share with specific team members
+            </div>
+          </div>
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    @if (form.get("visibility")?.value === "team") {
+      <div class="space-y-3">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Team Members
+        </label>
+        <div class="flex gap-2">
+          <mat-form-field class="flex-1">
+            <mat-label>Select Team Members</mat-label>
+            <input
+              matInput
+              [value]="getSelectedUsersText()"
+              [matMenuTriggerFor]="userMenu"
+              readonly
+              placeholder="Click to select team members"
+            />
+            <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
+          </mat-form-field>
+        </div>
+
+        @if (form.get("assignees")?.value.length > 0) {
+          <div class="space-y-2">
+            @for (member of form.get("assignees")?.value; track member.id) {
+              <div
+                class="flex flex-row items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex items-center justify-center rounded-full bg-blue-500 w-8 h-8 text-white text-sm font-medium"
+                  >
+                    <img
+                      [src]="member?.imageUrl ? member?.imageUrl : 'assets/images/user.png'"
+                      class="w-8 h-8 rounded-full"
+                      alt=""
+                    />
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ member.name }} {{ member.lastName }}
+                    </h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ member.user?.email }}</p>
+                  </div>
+                </div>
+                <button mat-icon-button color="warn" type="button" (click)="removeProfile(member)">
+                  <mat-icon class="w-5! h-5! text-xl! cursor-pointer" fontIcon="remove" />
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </form>
+
+  <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+    <button type="button" class="styleButDanger" (click)="onCancel()">Cancel</button>
+    <button type="submit" class="styleButInfo" [disabled]="form.invalid" (click)="onShare()">
+      <mat-icon class="w-5! h-5! text-xl!" fontIcon="share" />
+      Share
+    </button>
+  </div>
+
+  <mat-menu #userMenu="matMenu" class="w-80!">
+    <div (click)="$event.stopPropagation()">
+      <div class="p-2">
+        <mat-form-field class="w-full">
+          <mat-label>Search users</mat-label>
+          <input
+            matInput
+            [ngModel]="userSearchQuery()"
+            (ngModelChange)="userSearchQuery.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </mat-form-field>
+      </div>
+      <mat-divider />
+      <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
+        @for (profile of getFilteredUsers(); track profile.id) {
+          <div
+            class="flex flex-col p-2 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+          >
+            <div class="flex flex-row justify-between items-center" (click)="addProfile(profile)">
+              <div>
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ profile.name }} {{ profile.lastName }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">{{ profile.user.email }}</div>
+              </div>
+              <button (click)="addProfile(profile)">
+                <mat-icon
+                  class="w-6! h-6! text-2xl! cursor-pointer text-green-600"
+                  fontIcon="add"
+                />
+              </button>
+            </div>
+          </div>
+        }
+        @if (getFilteredUsers().length === 0 && userSearchQuery()) {
+          <div class="p-3 text-center text-gray-500 dark:text-gray-400">
+            No users found matching "{{ userSearchQuery() }}"
+          </div>
+        }
+      </div>
+    </div>
+  </mat-menu>
+</div>

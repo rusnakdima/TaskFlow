@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -32,8 +32,8 @@ export class SubtaskComponent {
   @Output() updateSubtaskEvent: EventEmitter<{ subtask: Subtask; field: string; value: string }> =
     new EventEmitter();
 
-  editingField: string | null = null;
-  editingValue: string = "";
+  editingField = signal<string | null>(null);
+  editingValue = signal("");
 
   truncateString = Common.truncateString;
 
@@ -57,8 +57,8 @@ export class SubtaskComponent {
   }
 
   startInlineEdit(field: string, currentValue: string) {
-    this.editingField = field;
-    this.editingValue = currentValue;
+    this.editingField.set(field);
+    this.editingValue.set(currentValue);
 
     setTimeout(() => {
       const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
@@ -69,14 +69,14 @@ export class SubtaskComponent {
   }
 
   saveInlineEdit() {
-    if (this.editingValue.trim() && this.editingField && this.subtask) {
+    if (this.editingValue().trim() && this.editingField() && this.subtask) {
       const originalValue =
-        this.editingField === "title" ? this.subtask.title : this.subtask.description;
-      if (this.editingValue.trim() !== originalValue) {
+        this.editingField() === "title" ? this.subtask.title : this.subtask.description;
+      if (this.editingValue().trim() !== originalValue) {
         this.updateSubtaskEvent.emit({
           subtask: this.subtask,
-          field: this.editingField,
-          value: this.editingValue.trim(),
+          field: this.editingField()!,
+          value: this.editingValue().trim(),
         });
       }
     }
@@ -84,8 +84,8 @@ export class SubtaskComponent {
   }
 
   cancelInlineEdit() {
-    this.editingField = null;
-    this.editingValue = "";
+    this.editingField.set(null);
+    this.editingValue.set("");
   }
 
   deleteSubtask() {

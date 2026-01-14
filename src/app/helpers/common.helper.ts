@@ -73,9 +73,7 @@ export class Common {
       return `Yesterday ${this.formatTime(dateRec)}`;
     }
 
-    const twoDaysAgo = new Date(curDate);
-    twoDaysAgo.setDate(curDate.getDate() - 1);
-    if (dateRec < twoDaysAgo) {
+    if (dateRec < yesterday) {
       return this.formatLocaleDate(dateRec);
     }
     return "";

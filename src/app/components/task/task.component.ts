@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -33,8 +33,8 @@ export class TaskComponent {
   @Output() updateTaskEvent: EventEmitter<{ task: Task; field: string; value: string }> =
     new EventEmitter();
 
-  editingField: string | null = null;
-  editingValue: string = "";
+  editingField = signal<string | null>(null);
+  editingValue = signal("");
 
   truncateString = Common.truncateString;
 
@@ -163,8 +163,8 @@ export class TaskComponent {
   }
 
   startInlineEdit(field: string, currentValue: string) {
-    this.editingField = field;
-    this.editingValue = currentValue;
+    this.editingField.set(field);
+    this.editingValue.set(currentValue);
 
     setTimeout(() => {
       const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
@@ -175,13 +175,14 @@ export class TaskComponent {
   }
 
   saveInlineEdit() {
-    if (this.editingValue.trim() && this.editingField && this.task) {
-      const originalValue = this.editingField === "title" ? this.task.title : this.task.description;
-      if (this.editingValue.trim() !== originalValue) {
+    if (this.editingValue().trim() && this.editingField() && this.task) {
+      const originalValue =
+        this.editingField() === "title" ? this.task.title : this.task.description;
+      if (this.editingValue().trim() !== originalValue) {
         this.updateTaskEvent.emit({
           task: this.task,
-          field: this.editingField,
-          value: this.editingValue.trim(),
+          field: this.editingField()!,
+          value: this.editingValue().trim(),
         });
       }
     }
@@ -189,8 +190,8 @@ export class TaskComponent {
   }
 
   cancelInlineEdit() {
-    this.editingField = null;
-    this.editingValue = "";
+    this.editingField.set(null);
+    this.editingValue.set("");
   }
 
   deleteTask() {

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, Output, EventEmitter } from "@angular/core";
+import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -25,7 +25,7 @@ import { CircleProgressComponent } from "@components/circle-progress/circle-prog
   templateUrl: "./task-information.component.html",
 })
 export class TaskInformationComponent {
-  public showActions = false;
+  public showActions = signal(false);
 
   constructor(
     private notifyService: NotifyService,
@@ -64,7 +64,7 @@ export class TaskInformationComponent {
   }
 
   toggleActions() {
-    this.showActions = !this.showActions;
+    this.showActions.set(!this.showActions());
   }
 
   markTaskComplete() {
