@@ -73,7 +73,19 @@ export class TasksView implements OnInit {
     { key: "high", label: "High Priority" },
   ];
 
+  userId = "";
+  isOwner: boolean = true;
+  isPrivate: boolean = true;
+
   ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
+
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.getTodoInfo(params.todoId).subscribe(() => {
@@ -84,46 +96,31 @@ export class TasksView implements OnInit {
   }
 
   getTodoInfo(id: string): Observable<Todo> {
-    return this.dataSyncProvider.get<Todo>("todo", { id: id }, { isPrivate: true }).pipe(
-      map((todo) => {
-        this.todo.set(todo);
-        return todo;
-      }),
-      catchError((err) => {
-        return this.dataSyncProvider
-          .get<Todo>("todo", { id: id }, { isPrivate: false, isOwner: false })
-          .pipe(
-            map((todo) => {
-              this.todo.set(todo);
-              return todo;
-            }),
-            catchError((err2) => {
-              return this.dataSyncProvider
-                .get<Todo>("todo", { id: id }, { isPrivate: false, isOwner: true })
-                .pipe(
-                  map((todo) => {
-                    this.todo.set(todo);
-                    return todo;
-                  }),
-                  catchError((err3) => {
-                    this.notifyService.showError(err3.message || "Failed to load todo");
-                    throw err3;
-                  })
-                );
-            })
-          );
-      })
-    );
+    return this.dataSyncProvider
+      .get<Todo>("todo", { id: id }, { isOwner: false, isPrivate: this.isPrivate })
+      .pipe(
+        map((todo) => {
+          this.todo.set(todo);
+          this.isOwner = todo.userId === this.userId;
+          this.isPrivate = todo.visibility === "private";
+          return todo;
+        })
+      );
   }
 
   getTasksByTodoId(todoId: string) {
     const todo = this.todo();
     if (!todo) return;
-    const isPrivate = todo.visibility === "private";
-    const isOwner = todo.userId === this.authService.getValueByKey("id");
+    this.isPrivate = todo.visibility === "private";
+    this.isOwner = todo.userId === this.userId;
 
     this.dataSyncProvider
-      .getAll<Task>("task", { todoId }, { isOwner: true, isPrivate: true }, todoId)
+      .getAll<Task>(
+        "task",
+        { todoId },
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        todoId
+      )
       .pipe(
         map((tasks) => {
           if (!Array.isArray(tasks)) {
@@ -176,29 +173,37 @@ export class TasksView implements OnInit {
 
     const updatedTask = { ...task, status: newStatus };
 
-    this.dataSyncProvider.update<Task>("task", task.id, updatedTask, task.todoId).subscribe({
-      next: (result) => {
-        task.status = newStatus;
-        if (this.todo()) {
-          const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
-          if (todoTask) {
-            todoTask.status = newStatus;
+    this.dataSyncProvider
+      .update<Task>(
+        "task",
+        task.id,
+        updatedTask,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        task.todoId
+      )
+      .subscribe({
+        next: (result) => {
+          task.status = newStatus;
+          if (this.todo()) {
+            const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
+            if (todoTask) {
+              todoTask.status = newStatus;
+            }
           }
-        }
-        this.tempListTasks.update((tasks) => {
-          const index = tasks.findIndex((t) => t.id === task.id);
-          if (index !== -1) {
-            tasks[index].status = newStatus;
-          }
-          return tasks;
-        });
-        this.applyFilter();
-        this.notifyService.showSuccess(message);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to update task");
-      },
-    });
+          this.tempListTasks.update((tasks) => {
+            const index = tasks.findIndex((t) => t.id === task.id);
+            if (index !== -1) {
+              tasks[index].status = newStatus;
+            }
+            return tasks;
+          });
+          this.applyFilter();
+          this.notifyService.showSuccess(message);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
   }
 
   toggleFilter() {
@@ -259,7 +264,13 @@ export class TasksView implements OnInit {
     }
 
     this.dataSyncProvider
-      .update<Task>("task", event.task.id, updatedTask, event.task.todoId)
+      .update<Task>(
+        "task",
+        event.task.id,
+        updatedTask,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        event.task.todoId
+      )
       .subscribe({
         next: (result) => {
           if (event.field === "title") {
@@ -281,11 +292,14 @@ export class TasksView implements OnInit {
     if (confirm("Are you sure you want to delete this task?")) {
       const todo = this.todo();
       if (!todo) return;
-      const isPrivate = todo.visibility === "private";
-      const isOwner = todo.userId === this.authService.getValueByKey("id");
 
       this.dataSyncProvider
-        .delete("task", taskId, { isPrivate, isOwner }, this.todo()?.id)
+        .delete(
+          "task",
+          taskId,
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.todo()?.id
+        )
         .subscribe({
           next: (result) => {
             this.getTasksByTodoId(this.todo()?.id ?? "");
@@ -340,11 +354,14 @@ export class TasksView implements OnInit {
 
     const todo = this.todo();
     if (!todo) return;
-    const isPrivate = todo.visibility === "private";
-    const isOwner = todo.userId === this.authService.getValueByKey("id");
 
     this.dataSyncProvider
-      .updateAll<string>("task", transformedTasks, { isPrivate, isOwner }, this.todo()?.id)
+      .updateAll<string>(
+        "task",
+        transformedTasks,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todo()?.id
+      )
       .subscribe({
         next: (result) => {
           this.listTasks.set(updatedTasks);

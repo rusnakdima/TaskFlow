@@ -13,6 +13,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* services */
+import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
 
@@ -39,6 +40,7 @@ import { TaskInformationComponent } from "@components/task-information/task-info
 export class SubtasksView implements OnInit {
   constructor(
     private route: ActivatedRoute,
+    private authService: AuthService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider
   ) {}
@@ -52,6 +54,10 @@ export class SubtasksView implements OnInit {
   projectTitle = signal("");
 
   private isUpdatingOrder: boolean = false;
+
+  userId: string = "";
+  isOwner: boolean = true;
+  isPrivate: boolean = true;
 
   activeFilter = signal("all");
   showFilter = signal(false);
@@ -67,6 +73,14 @@ export class SubtasksView implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
+
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
@@ -80,31 +94,42 @@ export class SubtasksView implements OnInit {
   }
 
   getTodoInfo(id: string) {
-    this.dataSyncProvider.get<Todo>("todo", { id: id }).subscribe({
-      next: (todo) => {
-        this.todo.set(todo);
-        this.projectTitle.set(this.todo()?.title ?? "");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load todo");
-      },
-    });
+    this.dataSyncProvider
+      .get<Todo>("todo", { id: id }, { isOwner: false, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (todo) => {
+          this.todo.set(todo);
+          this.isOwner = todo.userId === this.userId;
+          this.isPrivate = todo.visibility === "private";
+          this.projectTitle.set(this.todo()?.title ?? "");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load todo");
+        },
+      });
   }
 
   getTaskInfo(id: string) {
-    this.dataSyncProvider.get<Task>("task", { id: id }).subscribe({
-      next: (task) => {
-        this.task.set(task);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load task");
-      },
-    });
+    this.dataSyncProvider
+      .get<Task>("task", { id: id }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (task) => {
+          this.task.set(task);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load task");
+        },
+      });
   }
 
   getSubtasksByTaskId(taskId: string) {
     this.dataSyncProvider
-      .getAll<Subtask>("subtask", { taskId }, { isOwner: true, isPrivate: true }, this.todoId())
+      .getAll<Subtask>(
+        "subtask",
+        { taskId },
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId()
+      )
       .subscribe({
         next: (subtasks) => {
           this.tempListSubtasks.set(subtasks);
@@ -198,7 +223,13 @@ export class SubtasksView implements OnInit {
     const updatedSubtask = { ...subtask, status: newStatus };
 
     this.dataSyncProvider
-      .update<Subtask>("subtask", subtask.id, updatedSubtask, this.todoId())
+      .update<Subtask>(
+        "subtask",
+        subtask.id,
+        updatedSubtask,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId()
+      )
       .subscribe({
         next: (result) => {
           subtask.status = newStatus;
@@ -238,7 +269,13 @@ export class SubtasksView implements OnInit {
     }
 
     this.dataSyncProvider
-      .update<Subtask>("subtask", event.subtask.id, updatedSubtask, this.todoId())
+      .update<Subtask>(
+        "subtask",
+        event.subtask.id,
+        updatedSubtask,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId()
+      )
       .subscribe({
         next: (result) => {
           if (event.field === "title") {
@@ -257,15 +294,19 @@ export class SubtasksView implements OnInit {
   }
 
   deleteSubtask(id: string) {
-    this.dataSyncProvider.delete("subtask", id, this.todoId()).subscribe({
-      next: (result) => {
-        this.listSubtasks.set(this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id));
-        this.notifyService.showSuccess("Subtask deleted successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to delete subtask");
-      },
-    });
+    this.dataSyncProvider
+      .delete("subtask", id, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todoId())
+      .subscribe({
+        next: (result) => {
+          this.listSubtasks.set(
+            this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id)
+          );
+          this.notifyService.showSuccess("Subtask deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete subtask");
+        },
+      });
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
@@ -300,7 +341,12 @@ export class SubtasksView implements OnInit {
     }));
 
     this.dataSyncProvider
-      .updateAll<string>("subtask", transformedSubtasks, this.todoId())
+      .updateAll<string>(
+        "subtask",
+        transformedSubtasks,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId()
+      )
       .subscribe({
         next: (result) => {
           this.notifyService.showSuccess("Subtask order updated successfully");

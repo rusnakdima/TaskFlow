@@ -38,6 +38,9 @@ export class TaskInformationComponent {
   @Input() projectTitle!: string;
   @Input() listSubtasks: Array<Subtask> = [];
 
+  @Input() isOwner: boolean = true;
+  @Input() isPrivate: boolean = true;
+
   getCompletedSubtasksCount(): number {
     return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.COMPLETED).length;
   }
@@ -67,15 +70,23 @@ export class TaskInformationComponent {
   markTaskComplete() {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
-      this.dataSyncProvider.update<Task>("task", this.task.id, updatedTask, this.todoId).subscribe({
-        next: (result) => {
-          this.task.status = TaskStatus.COMPLETED;
-          this.notifyService.showSuccess("Task marked as complete!");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
+      this.dataSyncProvider
+        .update<Task>(
+          "task",
+          this.task.id,
+          updatedTask,
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.todoId
+        )
+        .subscribe({
+          next: (result) => {
+            this.task.status = TaskStatus.COMPLETED;
+            this.notifyService.showSuccess("Task marked as complete!");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to update task");
+          },
+        });
     }
   }
 
@@ -90,15 +101,22 @@ export class TaskInformationComponent {
   }
 
   deleteTask() {
-    this.dataSyncProvider.delete("task", this.task?.id ?? "", this.todoId).subscribe({
-      next: (result) => {
-        this.notifyService.showSuccess("Task deleted successfully");
-        this.router.navigate(["/todos", this.todoId, "tasks"]);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to delete task");
-      },
-    });
+    this.dataSyncProvider
+      .delete(
+        "task",
+        this.task?.id ?? "",
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId
+      )
+      .subscribe({
+        next: (result) => {
+          this.notifyService.showSuccess("Task deleted successfully");
+          this.router.navigate(["/todos", this.todoId, "tasks"]);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete task");
+        },
+      });
   }
 
   get percentCompletedSubTasks(): number {

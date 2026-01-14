@@ -129,7 +129,12 @@
       (cdkDropListDropped)="onTodoDrop($event)"
     >
       @for (todo of listTodos(); track $index) {
-        <app-todo [todo]="todo" [index]="$index" (deleteEvent)="deleteTodoById($event)" />
+        <app-todo
+          [todo]="todo"
+          [index]="$index"
+          [isPrivate]="true"
+          (deleteEvent)="deleteTodoById($event)"
+        />
       }
     </div>
   }

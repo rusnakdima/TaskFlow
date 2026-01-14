@@ -79,6 +79,10 @@ export class ManageSubtaskView implements OnInit {
   projectInfo = signal<Todo | null>(null);
   taskInfo = signal<Task | null>(null);
 
+  userId: string = "";
+  isOwner: boolean = true;
+  isPrivate: boolean = true;
+
   priorityOptions: PriorityOption[] = [
     {
       value: PriorityTask.LOW,
@@ -98,6 +102,14 @@ export class ManageSubtaskView implements OnInit {
   ];
 
   ngOnInit() {
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
+    this.userId = this.authService.getValueByKey("id");
+
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
@@ -116,14 +128,20 @@ export class ManageSubtaskView implements OnInit {
   }
 
   getSubtaskInfo(subtaskId: string) {
-    this.dataSyncProvider.get<Subtask>("subtask", { id: subtaskId }).subscribe({
-      next: (subtaskData) => {
-        this.form.patchValue(subtaskData);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load subtask");
-      },
-    });
+    this.dataSyncProvider
+      .get<Subtask>(
+        "subtask",
+        { id: subtaskId },
+        { isOwner: this.isOwner, isPrivate: this.isPrivate }
+      )
+      .subscribe({
+        next: (subtaskData) => {
+          this.form.patchValue(subtaskData);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load subtask");
+        },
+      });
   }
 
   back() {
@@ -131,41 +149,32 @@ export class ManageSubtaskView implements OnInit {
   }
 
   loadProjectInfo(todoId: string) {
-    this.dataSyncProvider.get<Todo>("todo", { id: todoId }).subscribe({
-      next: (todo) => {
-        this.projectInfo.set(todo);
+    this.dataSyncProvider
+      .get<Todo>("todo", { id: todoId }, { isOwner: false, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (todo) => {
+          this.projectInfo.set(todo);
 
-        this.dataSyncProvider.setOwnershipChecker((id: string) => {
-          return this.projectInfo()?.userId === this.authService.getValueByKey("id");
-        });
-
-        this.dataSyncProvider.setTeamChecker((id: string) => {
-          return this.projectInfo()?.visibility === "team";
-        });
-
-        this.dataSyncProvider.setAccessChecker((id: string) => {
-          const currentUserId = this.authService.getValueByKey("id");
-          const isOwner = this.projectInfo()?.userId === currentUserId;
-          const assignees = this.projectInfo()?.assignees || [];
-          const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
-          return isOwner || isAssignee;
-        });
-      },
-      error: (err) => {
-        console.error("Error loading project info:", err);
-      },
-    });
+          this.isOwner = todo.userId === this.userId;
+          this.isPrivate = todo.visibility === "private";
+        },
+        error: (err) => {
+          console.error("Error loading project info:", err);
+        },
+      });
   }
 
   loadTaskInfo(taskId: string) {
-    this.dataSyncProvider.get<Task>("task", { id: taskId }).subscribe({
-      next: (task) => {
-        this.taskInfo.set(task);
-      },
-      error: (err) => {
-        console.error("Error loading task info:", err);
-      },
-    });
+    this.dataSyncProvider
+      .get<Task>("task", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (task) => {
+          this.taskInfo.set(task);
+        },
+        error: (err) => {
+          console.error("Error loading task info:", err);
+        },
+      });
   }
 
   duplicateSubtask() {
@@ -174,7 +183,7 @@ export class ManageSubtaskView implements OnInit {
         .getAll<Subtask>(
           "subtask",
           { taskId: this.taskId() },
-          { isOwner: true, isPrivate: true },
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todoId()
         )
         .subscribe({
@@ -190,14 +199,21 @@ export class ManageSubtaskView implements OnInit {
               order: order,
             };
 
-            this.dataSyncProvider.create<any>("subtask", duplicateData, this.todoId()).subscribe({
-              next: (result) => {
-                this.notifyService.showSuccess("Subtask duplicated successfully");
-              },
-              error: (err) => {
-                this.notifyService.showError(err.message || "Failed to duplicate subtask");
-              },
-            });
+            this.dataSyncProvider
+              .create<any>(
+                "subtask",
+                duplicateData,
+                { isOwner: this.isOwner, isPrivate: this.isPrivate },
+                this.todoId()
+              )
+              .subscribe({
+                next: (result) => {
+                  this.notifyService.showSuccess("Subtask duplicated successfully");
+                },
+                error: (err) => {
+                  this.notifyService.showError(err.message || "Failed to duplicate subtask");
+                },
+              });
           },
           error: (err) => {
             this.notifyService.showError("Failed to get existing subtasks count");
@@ -234,7 +250,12 @@ export class ManageSubtaskView implements OnInit {
   createSubtask() {
     if (this.form.valid) {
       this.dataSyncProvider
-        .getAll<Subtask>("subtask", { field: "taskId", value: this.taskId() }, this.todoId())
+        .getAll<Subtask>(
+          "subtask",
+          { field: "taskId", value: this.taskId() },
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.todoId()
+        )
         .subscribe({
           next: (subtasks) => {
             const length = subtasks.length;
@@ -244,17 +265,24 @@ export class ManageSubtaskView implements OnInit {
               taskId: this.taskId(),
             };
 
-            this.dataSyncProvider.create<any>("subtask", body, this.projectInfo()?.id).subscribe({
-              next: (result) => {
-                this.isSubmitting.set(false);
-                this.notifyService.showSuccess("Subtask created successfully");
-                this.back();
-              },
-              error: (err) => {
-                this.isSubmitting.set(false);
-                this.notifyService.showError(err.message || "Failed to create subtask");
-              },
-            });
+            this.dataSyncProvider
+              .create<any>(
+                "subtask",
+                body,
+                { isOwner: this.isOwner, isPrivate: this.isPrivate },
+                this.projectInfo()?.id
+              )
+              .subscribe({
+                next: (result) => {
+                  this.isSubmitting.set(false);
+                  this.notifyService.showSuccess("Subtask created successfully");
+                  this.back();
+                },
+                error: (err) => {
+                  this.isSubmitting.set(false);
+                  this.notifyService.showError(err.message || "Failed to create subtask");
+                },
+              });
           },
           error: (err) => {
             this.isSubmitting.set(false);
@@ -274,7 +302,13 @@ export class ManageSubtaskView implements OnInit {
       };
 
       this.dataSyncProvider
-        .update<any>("subtask", body.id, body, this.projectInfo()?.id)
+        .update<any>(
+          "subtask",
+          body.id,
+          body,
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.projectInfo()?.id
+        )
         .subscribe({
           next: (result) => {
             this.isSubmitting.set(false);

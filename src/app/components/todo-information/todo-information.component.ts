@@ -14,6 +14,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
+import { AuthService } from "@services/auth.service";
 
 /* components */
 import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
@@ -29,8 +30,9 @@ export class TodoInformationComponent {
   public showActions = false;
 
   constructor(
-    private notifyService: NotifyService,
     private router: Router,
+    private notifyService: NotifyService,
+    private authService: AuthService,
     private dataSyncProvider: DataSyncProvider
   ) {}
 
@@ -81,7 +83,9 @@ export class TodoInformationComponent {
   }
 
   deleteTodo() {
-    this.dataSyncProvider.delete("todo", this.todo?.id ?? "").subscribe({
+    const isPrivate = this.todo.visibility === "private";
+    const isOwner = this.todo.userId === this.authService.getValueByKey("id");
+    this.dataSyncProvider.delete("todo", this.todo?.id ?? "", { isOwner, isPrivate }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");
         this.router.navigate(["/", "todos"]);

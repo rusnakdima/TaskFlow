@@ -26,6 +26,7 @@ export class TaskComponent {
 
   @Input() task: Task | null = null;
   @Input() index: number = 0;
+  @Input() isPrivate: boolean = true;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();

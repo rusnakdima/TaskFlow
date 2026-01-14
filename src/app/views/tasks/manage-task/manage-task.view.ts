@@ -95,6 +95,10 @@ export class ManageTaskView implements OnInit {
   projectInfo = signal<Todo | null>(null);
   newSubtaskTitle = signal("");
 
+  userId = "";
+  isOwner: boolean = true;
+  isPrivate: boolean = true;
+
   priorityOptions: PriorityOption[] = [
     {
       value: PriorityTask.LOW,
@@ -117,6 +121,13 @@ export class ManageTaskView implements OnInit {
   ];
 
   ngOnInit() {
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
+    this.userId = this.authService.getValueByKey("id");
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
@@ -141,20 +152,22 @@ export class ManageTaskView implements OnInit {
   }
 
   getTaskInfo(taskId: string) {
-    this.dataSyncProvider.get<Task>("task", { id: taskId }).subscribe({
-      next: (taskData) => {
-        this.form.patchValue(taskData);
+    this.dataSyncProvider
+      .get<Task>("task", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (taskData) => {
+          this.form.patchValue(taskData);
 
-        const startDate = taskData.startDate;
-        const endDate = taskData.endDate;
-        if (startDate && endDate) {
-          this.updateEndDateValidation(startDate, endDate);
-        }
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load task");
-      },
-    });
+          const startDate = taskData.startDate;
+          const endDate = taskData.endDate;
+          if (startDate && endDate) {
+            this.updateEndDateValidation(startDate, endDate);
+          }
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load task");
+        },
+      });
   }
 
   back() {
@@ -162,30 +175,18 @@ export class ManageTaskView implements OnInit {
   }
 
   loadProjectInfo(todoId: string) {
-    this.dataSyncProvider.get<Todo>("todo", { id: todoId }).subscribe({
-      next: (todo) => {
-        this.projectInfo.set(todo);
-
-        this.dataSyncProvider.setOwnershipChecker((id: string) => {
-          return this.projectInfo()?.userId === this.authService.getValueByKey("id");
-        });
-
-        this.dataSyncProvider.setTeamChecker((id: string) => {
-          return this.projectInfo()?.visibility === "team";
-        });
-
-        this.dataSyncProvider.setAccessChecker((id: string) => {
-          const currentUserId = this.authService.getValueByKey("id");
-          const isOwner = this.projectInfo()?.userId === currentUserId;
-          const assignees = this.projectInfo()?.assignees || [];
-          const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
-          return isOwner || isAssignee;
-        });
-      },
-      error: (err) => {
-        console.error("Error loading project info:", err);
-      },
-    });
+    this.dataSyncProvider
+      .get<Todo>("todo", { id: todoId }, { isOwner: false, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (todo) => {
+          this.projectInfo.set(todo);
+          this.isOwner = todo.userId === this.authService.getValueByKey("id");
+          this.isPrivate = todo.visibility === "private";
+        },
+        error: (err) => {
+          console.error("Error loading project info:", err);
+        },
+      });
   }
 
   onSubmit() {
@@ -257,7 +258,7 @@ export class ManageTaskView implements OnInit {
         .getAll<Task>(
           "task",
           { todoId: this.todoId() },
-          { isOwner: true, isPrivate: true },
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todoId()
         )
         .subscribe({
@@ -271,17 +272,24 @@ export class ManageTaskView implements OnInit {
               todoId: this.todoId(),
             };
 
-            this.dataSyncProvider.create<Task>("task", body, this.todoId()).subscribe({
-              next: (result) => {
-                this.isSubmitting.set(false);
-                this.notifyService.showSuccess("Task created successfully");
-                this.back();
-              },
-              error: (err) => {
-                this.isSubmitting.set(false);
-                this.notifyService.showError(err.message || "Failed to create task");
-              },
-            });
+            this.dataSyncProvider
+              .create<Task>(
+                "task",
+                body,
+                { isOwner: this.isOwner, isPrivate: this.isPrivate },
+                this.todoId()
+              )
+              .subscribe({
+                next: (result) => {
+                  this.isSubmitting.set(false);
+                  this.notifyService.showSuccess("Task created successfully");
+                  this.back();
+                },
+                error: (err) => {
+                  this.isSubmitting.set(false);
+                  this.notifyService.showError(err.message || "Failed to create task");
+                },
+              });
           },
           error: (err) => {
             this.isSubmitting.set(false);
@@ -302,17 +310,25 @@ export class ManageTaskView implements OnInit {
         ...normalizedFormValue,
       };
 
-      this.dataSyncProvider.update<Task>("task", body.id, body, this.todoId()).subscribe({
-        next: (result) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Task updated successfully");
-          this.back();
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
+      this.dataSyncProvider
+        .update<Task>(
+          "task",
+          body.id,
+          body,
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.todoId()
+        )
+        .subscribe({
+          next: (result) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Task updated successfully");
+            this.back();
+          },
+          error: (err) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to update task");
+          },
+        });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");

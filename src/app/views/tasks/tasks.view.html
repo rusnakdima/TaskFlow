@@ -80,6 +80,7 @@
         <app-task
           [task]="task"
           [index]="$index"
+          [isPrivate]="isPrivate"
           (deleteTaskEvent)="deleteTask($event)"
           (toggleCompletionEvent)="toggleTaskCompletion($event)"
           (updateTaskEvent)="updateTaskInline($event)"

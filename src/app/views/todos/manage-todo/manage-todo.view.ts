@@ -92,8 +92,8 @@ export class ManageTodoView implements OnInit {
   form: FormGroup;
   isEdit = signal(false);
   isSubmitting = signal(false);
-  isSharedTodo = false;
-  isOwner = false;
+  isOwner: boolean = false;
+  isPrivate: boolean = true;
 
   priorityOptions = [
     {
@@ -130,28 +130,20 @@ export class ManageTodoView implements OnInit {
   newCategoryTitle = signal("");
 
   async ngOnInit() {
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
     this.userId.set(this.authService.getValueByKey("id"));
+
     if (this.userId() && this.userId() != "") {
       this.form.controls["userId"].setValue(this.userId());
       await this.fetchProfiles();
       this.fetchCategories();
     }
 
-    this.dataSyncProvider.setOwnershipChecker((todoId: string) => {
-      return this.form.get("userId")?.value === this.authService.getValueByKey("id");
-    });
-
-    this.dataSyncProvider.setTeamChecker((todoId: string) => {
-      return this.form.get("visibility")?.value === "team";
-    });
-
-    this.dataSyncProvider.setAccessChecker((todoId: string) => {
-      const currentUserId = this.authService.getValueByKey("id");
-      const isOwner = this.form.get("userId")?.value === currentUserId;
-      const assignees = this.form.get("assignees")?.value || [];
-      const isAssignee = assignees.some((assignee: any) => assignee.id === currentUserId);
-      return isOwner || isAssignee;
-    });
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.getTodoInfo(params.todoId);
@@ -167,25 +159,25 @@ export class ManageTodoView implements OnInit {
   }
 
   getTodoInfo(todoId: string) {
-    this.dataSyncProvider.get<Todo>("todo", { id: todoId }).subscribe({
-      next: (todo) => {
-        this.form.patchValue(todo);
+    this.dataSyncProvider
+      .get<Todo>("todo", { id: todoId }, { isOwner: false, isPrivate: this.isPrivate })
+      .subscribe({
+        next: (todo) => {
+          this.form.patchValue(todo);
 
-        const currentUserId = this.authService.getValueByKey("id");
-        this.isOwner = todo.userId === currentUserId;
-        const hasAccess = todo.assignees?.some((assignee: any) => assignee.id === currentUserId);
-        this.isSharedTodo = hasAccess && !this.isOwner;
+          this.isOwner = todo.userId === this.userId();
+          this.isPrivate = todo.visibility === "private";
 
-        if (this.isSharedTodo) {
-          this.notifyService.showInfo(
-            "You're editing a shared todo. Changes will be sent to the owner."
-          );
-        }
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load todo");
-      },
-    });
+          if (!this.isPrivate) {
+            this.notifyService.showInfo(
+              "You're editing a shared todo. Changes will be sent to the owner."
+            );
+          }
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load todo");
+        },
+      });
   }
 
   back() {
@@ -194,7 +186,11 @@ export class ManageTodoView implements OnInit {
 
   async fetchTodosCount() {
     this.dataSyncProvider
-      .getAll<Todo>("todo", { userId: this.userId() }, { isOwner: true, isPrivate: true })
+      .getAll<Todo>(
+        "todo",
+        { userId: this.userId() },
+        { isOwner: false, isPrivate: this.isPrivate }
+      )
       .subscribe({
         next: (todos) => {
           this.form.controls["order"].setValue(todos.length);
@@ -349,17 +345,19 @@ export class ManageTodoView implements OnInit {
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
       };
 
-      this.dataSyncProvider.create("todo", body).subscribe({
-        next: (result) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Todo created successfully");
-          this.back();
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to create todo");
-        },
-      });
+      this.dataSyncProvider
+        .create("todo", body, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+        .subscribe({
+          next: (result) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Todo created successfully");
+            this.back();
+          },
+          error: (err) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to create todo");
+          },
+        });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -381,8 +379,8 @@ export class ManageTodoView implements OnInit {
 
       this.dataSyncProvider
         .update<Todo>("todo", body.id, body, {
-          isOwner: true,
-          isPrivate: currentVisibility === "private",
+          isOwner: this.isOwner,
+          isPrivate: this.isPrivate,
         })
         .subscribe({
           next: (result) => {
@@ -407,18 +405,21 @@ export class ManageTodoView implements OnInit {
   private updateTasksAndSubtasksForTodo(todoId: string, visibility: string) {
     const isPrivate = visibility === "private";
     this.dataSyncProvider
-      .getAll<Task>("task", { todoId }, { isOwner: true, isPrivate: true }, todoId)
+      .getAll<Task>("task", { todoId }, { isOwner: this.isOwner, isPrivate: isPrivate }, todoId)
       .subscribe({
         next: (tasks) => {
           tasks.forEach((task) => {
             const updatedTask = { ...task, updatedAt: new Date().toISOString().split(".")[0] };
-            this.dataSyncProvider.update<Task>("task", task.id, updatedTask, { isPrivate });
+            this.dataSyncProvider.update<Task>("task", task.id, updatedTask, {
+              isOwner: this.isOwner,
+              isPrivate: isPrivate,
+            });
 
             this.dataSyncProvider
               .getAll<Subtask>(
                 "subtask",
                 { taskId: task.id },
-                { isOwner: true, isPrivate: true },
+                { isOwner: this.isOwner, isPrivate: isPrivate },
                 todoId
               )
               .subscribe({
@@ -429,7 +430,8 @@ export class ManageTodoView implements OnInit {
                       updatedAt: new Date().toISOString().split(".")[0],
                     };
                     this.dataSyncProvider.update<Subtask>("subtask", subtask.id, updatedSubtask, {
-                      isPrivate,
+                      isOwner: this.isOwner,
+                      isPrivate: this.isPrivate,
                     });
                   });
                 },
