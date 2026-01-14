@@ -14,7 +14,11 @@
 
       <div class="flex flex-col">
         <h1 class="text-lg font-semibold textNormal">{{ title }}</h1>
-        @if (subtitle) {
+        @if (todo) {
+          <p class="text-sm textMuted">{{ todo.description }}</p>
+        } @else if (task) {
+          <p class="text-sm textMuted">{{ task.description }}</p>
+        } @else if (subtitle) {
           <p class="text-sm textMuted">{{ subtitle }}</p>
         }
       </div>

@@ -1,46 +1,53 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { MainService } from "./main.service";
-import { Response, ResponseStatus } from "@models/response.model";
+import { firstValueFrom } from "rxjs";
+
+/* models */
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
+
+/* services */
+import { DataSyncProvider } from "./data-sync.provider";
 
 @Injectable({
   providedIn: "root",
 })
 export class MainResolver implements Resolve<any> {
-  constructor(private mainService: MainService) {}
+  constructor(private dataSyncProvider: DataSyncProvider) {}
 
   async resolve(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Promise<Object | string> {
     const paramsMap = route.paramMap;
+    const queryParams = route.queryParams;
 
     try {
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
-        const response: Response<Task> = await this.mainService.get<Task>("task", {
-          id: taskId,
-        });
+        const isPrivate = queryParams?.["isPrivate"] === "true";
 
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
-        } else {
-          return "Task Not Found";
-        }
+        const taskObservable = this.dataSyncProvider.get<Task>(
+          "task",
+          { id: taskId },
+          { isOwner: false, isPrivate }
+        );
+
+        const task = await firstValueFrom(taskObservable);
+        return task;
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
-        const response: Response<Todo> = await this.mainService.get<Todo>("todo", {
-          id: todoId,
-        });
+        const isPrivate = queryParams?.["isPrivate"] === "true";
 
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
-        } else {
-          return "Todo Not Found";
-        }
+        const todoObservable = this.dataSyncProvider.get<Todo>(
+          "todo",
+          { id: todoId },
+          { isOwner: true, isPrivate }
+        );
+
+        const todo = await firstValueFrom(todoObservable);
+        return todo;
       } else {
         return "";
       }

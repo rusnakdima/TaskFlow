@@ -2,7 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { Observable } from "rxjs";
-import { map, catchError } from "rxjs/operators";
+import { map } from "rxjs/operators";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
@@ -86,20 +86,26 @@ export class TasksView implements OnInit {
       }
     });
 
-    this.route.params.subscribe((params: any) => {
-      if (params.todoId) {
-        this.getTodoInfo(params.todoId).subscribe(() => {
-          this.getTasksByTodoId(params.todoId);
-        });
-      }
-    });
+    const routeData = this.route.snapshot.data;
+    if (routeData?.["todo"]) {
+      const todoData = routeData["todo"];
+      this.todo.set(todoData);
+      this.isOwner = todoData.userId === this.userId;
+      this.isPrivate = todoData.visibility === "private";
+      this.getTasksByTodoId(todoData.id);
+    }
   }
 
   getTodoInfo(id: string): Observable<Todo> {
     return this.dataSyncProvider
-      .get<Todo>("todo", { id: id }, { isOwner: false, isPrivate: this.isPrivate })
+      .get<Todo>(
+        "todo",
+        { id: id },
+        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
+      )
       .pipe(
         map((todo) => {
+          console.log(todo);
           this.todo.set(todo);
           this.isOwner = todo.userId === this.userId;
           this.isPrivate = todo.visibility === "private";

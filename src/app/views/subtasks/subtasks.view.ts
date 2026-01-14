@@ -81,21 +81,28 @@ export class SubtasksView implements OnInit {
       }
     });
 
+    const routeData = this.route.snapshot.data;
+    if (routeData?.["task"]) {
+      const taskData = routeData["task"];
+      this.task.set(taskData);
+      this.getSubtasksByTaskId(taskData.id);
+    }
+
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
         this.getTodoInfo(this.todoId());
-      }
-      if (params.taskId) {
-        this.getTaskInfo(params.taskId);
-        this.getSubtasksByTaskId(params.taskId);
       }
     });
   }
 
   getTodoInfo(id: string) {
     this.dataSyncProvider
-      .get<Todo>("todo", { id: id }, { isOwner: false, isPrivate: this.isPrivate })
+      .get<Todo>(
+        "todo",
+        { id: id },
+        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
+      )
       .subscribe({
         next: (todo) => {
           this.todo.set(todo);
