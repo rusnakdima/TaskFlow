@@ -35,7 +35,7 @@ interface TeamMember {
 @Component({
   selector: "app-shared-tasks",
   standalone: true,
-  providers: [MainService, WebSocketService, DataSyncProvider],
+  providers: [MainService, DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, TodoComponent],
   templateUrl: "./shared-tasks.view.html",
 })
@@ -56,6 +56,25 @@ export class SharedTasksView implements OnInit {
     this.listenForUpdates();
   }
 
+  private waitForWebSocketConnection(): void {
+    const connectionTimeout = 5000; // 5 seconds timeout
+
+    this.webSocketService.getConnectionStatus().subscribe((connected) => {
+      if (connected) {
+        console.log("WebSocket connected, loading shared projects via WS");
+        this.loadSharedProjects();
+      }
+    });
+
+    // If WS doesn't connect within timeout, fall back to HTTP
+    setTimeout(() => {
+      if (!this.webSocketService.isConnected()) {
+        console.log("WebSocket not connected within timeout, loading shared projects via HTTP");
+        this.loadSharedProjects();
+      }
+    }, connectionTimeout);
+  }
+
   private listenForUpdates(): void {
     // TODO: Implement real-time updates for shared todos
     // WebSocket event listeners have been removed as the service now uses Tauri invoke
@@ -63,7 +82,7 @@ export class SharedTasksView implements OnInit {
   }
 
   async fetchProfile(userId: string): Promise<Profile | null> {
-    const response: Response<Profile> = await this.mainService.getByField<Profile>("profile", {
+    const response: Response<Profile> = await this.mainService.get<Profile>("profile", {
       userId,
     });
 
@@ -75,23 +94,29 @@ export class SharedTasksView implements OnInit {
   async loadSharedProjects() {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
-      this.dataSyncProvider.getAll<Todo>("todo", { isPrivate: false, isOwner: true }).subscribe({
-        next: (todos) => {
-          this.myProjects.set(todos);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Error loading my shared projects");
-        },
-      });
+      this.dataSyncProvider
+        .getAll<Todo>("todo", { userId }, { isPrivate: false, isOwner: true })
+        .subscribe({
+          next: (todos) => {
+            let listTodos = todos.filter((todo: Todo) => todo.userId == userId);
+            this.myProjects.set(listTodos);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Error loading my shared projects");
+          },
+        });
 
-      this.dataSyncProvider.getAll<Todo>("todo", { isPrivate: false, isOwner: false }).subscribe({
-        next: (todos) => {
-          this.sharedWithMe.set(todos);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Error loading projects shared with me");
-        },
-      });
+      this.dataSyncProvider
+        .getAll<Todo>("todo", {}, { isPrivate: false, isOwner: false })
+        .subscribe({
+          next: (todos) => {
+            let listTodos = todos.filter((todo: Todo) => todo.userId != userId);
+            this.sharedWithMe.set(listTodos);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Error loading projects shared with me");
+          },
+        });
     }
   }
 

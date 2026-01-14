@@ -123,7 +123,7 @@ export class TasksView implements OnInit {
     const isOwner = todo.userId === this.authService.getValueByKey("id");
 
     this.dataSyncProvider
-      .getAll<Task>("task", { field: "todoId", value: todoId, isPrivate, isOwner }, todoId)
+      .getAll<Task>("task", { todoId }, { isOwner: true, isPrivate: true }, todoId)
       .pipe(
         map((tasks) => {
           if (!Array.isArray(tasks)) {

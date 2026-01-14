@@ -39,36 +39,45 @@ export class DataSyncProvider {
     } else if (params?.isPrivate === false) {
       return { isOwner: params?.isOwner ?? true, isPrivate: false };
     }
-    return { isOwner: true, isPrivate: true }; // default to private
+    return { isOwner: true, isPrivate: true };
   }
 
-  getAll<T>(entity: string, params?: any, parentTodoId?: string): Observable<T[]> {
-    console.log(entity, params, parentTodoId);
+  getAll<T>(
+    entity: string,
+    filter: { [key: string]: any },
+    params?: any,
+    parentTodoId?: string
+  ): Observable<T[]> {
     this.validateEntity(entity);
 
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+    const { isOwner, isPrivate } = params;
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
+    console.log(isOwner, isPrivate);
+
+    if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.getTodosByAssignee(userId).pipe(
-        map((todos) => todos as T[]),
+        map((todos) => (todos as T[]).filter((todo: any) => todo.visibility === "team")),
         catchError((error) => {
-          console.error("Failed to get shared todos:", error);
-          throw new Error("Unable to load shared todos. Please try again.");
+          console.error("Failed to get shared assignee todos:", error);
+          throw new Error("Unable to load shared assignee todos. Please try again.");
         })
       );
     }
 
-    const filter = params?.field && params?.value ? { [params.field]: params.value } : {};
-    return from(
-      this.mainService.getAllByField<any[]>(entity, filter, {
-        isOwner,
-        isPrivate,
-      })
-    ).pipe(
+    return from(this.mainService.getAll<any[]>(entity, filter, { isOwner, isPrivate })).pipe(
       map((response: Response<any[]>) => {
         if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
+          let filteredData = response.data;
+          if (entity === "todo") {
+            if (isPrivate === false) {
+              filteredData = response.data.filter((todo: any) => todo.visibility === "team");
+            } else {
+              filteredData = response.data.filter((todo: any) => todo.visibility === "private");
+            }
+          }
+
+          return filteredData;
         } else {
           throw new Error(response.message || "Failed to load data");
         }
@@ -76,26 +85,22 @@ export class DataSyncProvider {
     );
   }
 
-  getByField<T>(
+  get<T>(
     entity: string,
-    nameField: string,
-    value: string,
+    filter: { [key: string]: any },
     params?: any,
     parentTodoId?: string
   ): Observable<T> {
-    console.log(entity, nameField, value, params);
     this.validateEntity(entity);
 
     const userId = this.authService.getValueByKey("id");
     const { isOwner, isPrivate } = this.getSyncFlags(params);
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.getByField(entity, nameField, value);
+    if (isPrivate === false && this.webSocketService.isConnected()) {
+      return this.webSocketService.get(entity, filter);
     }
 
-    return from(
-      this.mainService.getByField<T>(entity, { [nameField]: value }, { isOwner, isPrivate })
-    ).pipe(
+    return from(this.mainService.get<T>(entity, filter, { isOwner, isPrivate })).pipe(
       map((response: Response<T>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -107,12 +112,10 @@ export class DataSyncProvider {
   }
 
   create<T>(entity: string, data: any, params?: any, parentTodoId?: string): Observable<T> {
-    console.log(entity, data, parentTodoId, params);
-
     const userId = this.authService.getValueByKey("id");
     const { isOwner, isPrivate } = this.getSyncFlags(params);
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
+    if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.create<T>(entity, data, userId);
     }
 
@@ -134,13 +137,47 @@ export class DataSyncProvider {
     params?: any,
     parentTodoId?: string
   ): Observable<T> {
-    console.log(entity, id, data, parentTodoId, params);
-
     const userId = this.authService.getValueByKey("id");
     const { isOwner, isPrivate } = this.getSyncFlags(params);
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.update<T>(entity, id, data, userId);
+    let isConectedWSS = this.webSocketService.isConnected();
+
+    if (isPrivate === false && isConectedWSS) {
+      from(this.webSocketService.update<Response<T>>(entity, id, data, userId)).pipe(
+        map((response: Response<T>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            return response.data;
+          } else {
+            throw new Error(response.message || "Failed to create");
+          }
+        })
+      );
+    }
+
+    if (entity == "todo" && isOwner === true) {
+      if (isPrivate == false && isConectedWSS) {
+        from(this.webSocketService.update<Response<T>>(entity, id, data, userId)).pipe(
+          map((response: Response<T>) => {
+            if (response.status === ResponseStatus.SUCCESS) {
+              return response.data;
+            } else {
+              throw new Error(response.message || "Failed to create");
+            }
+          })
+        );
+      } else {
+        from(
+          this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate: !isPrivate })
+        ).pipe(
+          map((response: Response<T>) => {
+            if (response.status === ResponseStatus.SUCCESS) {
+              return response.data;
+            } else {
+              throw new Error(response.message || "Failed to update");
+            }
+          })
+        );
+      }
     }
 
     return from(this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate })).pipe(
@@ -155,19 +192,18 @@ export class DataSyncProvider {
   }
 
   updateAll<T>(entity: string, data: any[], params?: any, parentTodoId?: string): Observable<T> {
-    console.log(entity, data, parentTodoId, params);
-
     const { isOwner, isPrivate } = this.getSyncFlags(params);
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
+    if (isPrivate === false && this.webSocketService.isConnected()) {
       throw new Error("Bulk update not supported for shared data.");
     }
 
     return from(
-      this.mainService.updateAll<T, any>(entity, data, {
-        isOwner,
-        isPrivate,
-      })
+      this.mainService.updateAll<T, any>(
+        entity,
+        data.map((item) => ({ ...item })),
+        { isOwner, isPrivate }
+      )
     ).pipe(
       map((response: Response<T>) => {
         if (response.status === ResponseStatus.SUCCESS) {
@@ -180,12 +216,10 @@ export class DataSyncProvider {
   }
 
   delete(entity: string, id: string, params?: any, parentTodoId?: string): Observable<void> {
-    console.log(entity, id, parentTodoId, params);
-
     const userId = this.authService.getValueByKey("id");
     const { isOwner, isPrivate } = this.getSyncFlags(params);
 
-    if (params?.isPrivate === false && this.webSocketService.isConnected()) {
+    if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.delete(entity, id, userId);
     }
 

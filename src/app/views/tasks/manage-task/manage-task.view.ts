@@ -166,7 +166,6 @@ export class ManageTaskView implements OnInit {
       next: (todo) => {
         this.projectInfo.set(todo);
 
-        // Set up checkers for DataSyncProvider based on loaded project info
         this.dataSyncProvider.setOwnershipChecker((id: string) => {
           return this.projectInfo()?.userId === this.authService.getValueByKey("id");
         });
@@ -254,9 +253,13 @@ export class ManageTaskView implements OnInit {
 
   createTask() {
     if (this.form.valid) {
-      // First get the order
       this.dataSyncProvider
-        .getAll<Task>("task", { field: "todoId", value: this.todoId() }, this.todoId())
+        .getAll<Task>(
+          "task",
+          { todoId: this.todoId() },
+          { isOwner: true, isPrivate: true },
+          this.todoId()
+        )
         .subscribe({
           next: (tasks) => {
             const formValue = this.form.value;

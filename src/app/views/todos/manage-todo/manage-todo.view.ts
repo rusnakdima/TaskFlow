@@ -194,7 +194,7 @@ export class ManageTodoView implements OnInit {
 
   async fetchTodosCount() {
     this.dataSyncProvider
-      .getAll<Todo>("todo", { queryType: "private", field: "userId", value: this.userId() })
+      .getAll<Todo>("todo", { userId: this.userId() }, { isOwner: true, isPrivate: true })
       .subscribe({
         next: (todos) => {
           this.form.controls["order"].setValue(todos.length);
@@ -407,7 +407,7 @@ export class ManageTodoView implements OnInit {
   private updateTasksAndSubtasksForTodo(todoId: string, visibility: string) {
     const isPrivate = visibility === "private";
     this.dataSyncProvider
-      .getAll<Task>("task", { field: "todoId", value: todoId, isPrivate }, todoId)
+      .getAll<Task>("task", { todoId }, { isOwner: true, isPrivate: true }, todoId)
       .subscribe({
         next: (tasks) => {
           tasks.forEach((task) => {
@@ -415,7 +415,12 @@ export class ManageTodoView implements OnInit {
             this.dataSyncProvider.update<Task>("task", task.id, updatedTask, { isPrivate });
 
             this.dataSyncProvider
-              .getAll<Subtask>("subtask", { field: "taskId", value: task.id, isPrivate }, todoId)
+              .getAll<Subtask>(
+                "subtask",
+                { taskId: task.id },
+                { isOwner: true, isPrivate: true },
+                todoId
+              )
               .subscribe({
                 next: (subtasks) => {
                   subtasks.forEach((subtask) => {

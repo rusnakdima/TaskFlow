@@ -82,7 +82,7 @@ export class CalendarView implements OnInit {
 
     if (userId && userId !== "") {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { queryType: "private", field: "userId", value: userId })
+        .getAll<Todo>("todo", { userId }, { isOwner: true, isPrivate: true })
         .subscribe({
           next: (todos) => {
             this.processTodosData(todos);

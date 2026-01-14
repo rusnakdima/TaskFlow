@@ -104,7 +104,7 @@ export class SubtasksView implements OnInit {
 
   getSubtasksByTaskId(taskId: string) {
     this.dataSyncProvider
-      .getAll<Subtask>("subtask", { field: "taskId", value: taskId }, this.todoId())
+      .getAll<Subtask>("subtask", { taskId }, { isOwner: true, isPrivate: true }, this.todoId())
       .subscribe({
         next: (subtasks) => {
           this.tempListSubtasks.set(subtasks);
