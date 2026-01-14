@@ -25,6 +25,7 @@ export class SubtaskComponent {
 
   @Input() subtask: Subtask | null = null;
   @Input() index: number = 0;
+  @Input() isPrivate: boolean = true;
 
   @Output() deleteSubtaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Subtask> = new EventEmitter();

@@ -129,6 +129,7 @@
           <button
             class="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
             [routerLink]="subtask.id + '/edit_subtask'"
+            [queryParams]="{ isPrivate: isPrivate }"
             title="Edit subtask"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />

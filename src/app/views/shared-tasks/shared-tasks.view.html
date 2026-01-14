@@ -11,7 +11,7 @@
       <h2 class="text-xl font-semibold textNormal mb-4">My Projects</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense">
         @for (todo of myProjects(); track $index) {
-          <app-todo [todo]="todo" [index]="$index" />
+          <app-todo [todo]="todo" [index]="$index" [isPrivate]="false" />
         }
       </div>
     </div>
@@ -22,7 +22,7 @@
       <h2 class="text-xl font-semibold textNormal mb-4">Shared with Me</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense">
         @for (todo of sharedWithMe(); track $index) {
-          <app-todo [todo]="todo" [index]="$index" />
+          <app-todo [todo]="todo" [index]="$index" [isPrivate]="false" />
         }
       </div>
     </div>

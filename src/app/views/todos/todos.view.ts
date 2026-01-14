@@ -171,7 +171,7 @@ export class TodosView implements OnInit {
   }
 
   deleteTodoById(todoId: string): void {
-    this.dataSyncProvider.delete("todo", todoId, { isPrivate: true }).subscribe({
+    this.dataSyncProvider.delete("todo", todoId, { isOwner: true, isPrivate: true }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");
         this.loadTodos();
@@ -217,7 +217,7 @@ export class TodosView implements OnInit {
     }));
 
     this.dataSyncProvider
-      .updateAll<string>("todo", transformedTodos, { isPrivate: true })
+      .updateAll<string>("todo", transformedTodos, { isOwner: true, isPrivate: true })
       .subscribe({
         next: (result) => {
           this.notifyService.showSuccess("Order updated successfully");

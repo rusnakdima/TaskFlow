@@ -5,6 +5,8 @@
       [todoId]="todoId()"
       [projectTitle]="projectTitle()"
       [listSubtasks]="tempListSubtasks()"
+      [isOwner]="isOwner"
+      [isPrivate]="isPrivate"
     />
   }
 
@@ -80,6 +82,7 @@
         <app-subtask
           [subtask]="subtask"
           [index]="$index"
+          [isPrivate]="isPrivate"
           (deleteSubtaskEvent)="deleteSubtask($event)"
           (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
           (updateSubtaskEvent)="updateSubtaskInline($event)"
