@@ -278,7 +278,12 @@
       <div class="p-2">
         <mat-form-field class="w-full">
           <mat-label>Search users</mat-label>
-          <input matInput [(ngModel)]="userSearchQuery" [ngModelOptions]="{ standalone: true }" />
+          <input
+            matInput
+            [ngModel]="userSearchQuery()"
+            (ngModelChange)="userSearchQuery.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
         </mat-form-field>
       </div>
       <mat-divider />
@@ -309,7 +314,8 @@
           <mat-label>Search/Add Category</mat-label>
           <input
             matInput
-            [(ngModel)]="newCategoryTitle"
+            [ngModel]="newCategoryTitle()"
+            (ngModelChange)="newCategoryTitle.set($event)"
             [ngModelOptions]="{ standalone: true }"
             (keydown.enter)="addCategory()"
           />

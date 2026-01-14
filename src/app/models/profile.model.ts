@@ -6,7 +6,7 @@ export interface Profile {
   name: string;
   lastName: string;
   bio: string;
-  imageUrl: String;
+  imageUrl: string;
   user: User;
   userId: string;
 }

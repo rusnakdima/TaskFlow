@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterModule } from "@angular/router";
 import { filter } from "rxjs";
 
@@ -8,7 +8,7 @@ import { filter } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { BottomNavLink } from "@models/bottome-nav.model";
+import { BottomNavLink } from "@models/bottom-nav.model";
 
 @Component({
   selector: "app-bottom-nav",
@@ -19,7 +19,7 @@ import { BottomNavLink } from "@models/bottome-nav.model";
 export class BottomNavComponent implements OnInit {
   constructor(private router: Router) {}
 
-  url: string = "";
+  url = signal("");
 
   listNavs: Array<BottomNavLink> = [
     {
@@ -60,7 +60,7 @@ export class BottomNavComponent implements OnInit {
         this.router.url.lastIndexOf("?") > -1
           ? this.router.url.lastIndexOf("?")
           : this.router.url.length;
-      this.url = this.router.url.slice(0, lastIndex);
+      this.url.set(this.router.url.slice(0, lastIndex));
     });
   }
 }

@@ -117,9 +117,6 @@ export class TasksView implements OnInit {
   getTasksByTodoId(todoId: string) {
     const todo = this.todo();
     if (!todo) return;
-    this.isPrivate = todo.visibility === "private";
-    this.isOwner = todo.userId === this.userId;
-
     this.dataSyncProvider
       .getAll<Task>(
         "task",
@@ -223,8 +220,9 @@ export class TasksView implements OnInit {
 
   applyFilter() {
     let filtered = [...this.tempListTasks()];
-
     switch (this.activeFilter()) {
+      case "all":
+        break;
       case "active":
         filtered = filtered.filter((task) => task.status === TaskStatus.PENDING);
         break;
@@ -239,7 +237,10 @@ export class TasksView implements OnInit {
         break;
       case "done":
         filtered = filtered.filter(
-          (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+          (task) =>
+            task.status === TaskStatus.COMPLETED ||
+            task.status === TaskStatus.SKIPPED ||
+            task.status === TaskStatus.FAILED
         );
         break;
       case "high":
@@ -248,9 +249,7 @@ export class TasksView implements OnInit {
       default:
         break;
     }
-
     filtered.sort((a, b) => b.order - a.order);
-
     this.listTasks.set(filtered);
   }
 

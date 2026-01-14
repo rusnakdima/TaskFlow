@@ -61,13 +61,13 @@
             <button (click)="toggleDetails($event)" class="cursor-pointer">
               <mat-icon
                 class="w-6! h-6! text-2xl!"
-                [fontIcon]="isExpandedDetails ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+                [fontIcon]="isExpandedDetails() ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
               />
             </button>
           </div>
         </div>
 
-        @if (isExpandedDetails) {
+        @if (isExpandedDetails()) {
           <div class="flex items-center gap-4 mb-4 text-sm textMuted">
             @if (todo.endDate) {
               <div class="flex items-center gap-1">

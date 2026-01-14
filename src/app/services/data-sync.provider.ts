@@ -33,27 +33,16 @@ export class DataSyncProvider {
     }
   }
 
-  private getSyncFlags(params?: any): { isOwner: boolean; isPrivate: boolean } {
-    if (params?.isPrivate === true) {
-      return { isOwner: true, isPrivate: true };
-    } else if (params?.isPrivate === false) {
-      return { isOwner: params?.isOwner ?? true, isPrivate: false };
-    }
-    return { isOwner: true, isPrivate: true };
-  }
-
   getAll<T>(
     entity: string,
     filter: { [key: string]: any },
-    params?: any,
+    params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T[]> {
     this.validateEntity(entity);
 
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = params;
-
-    console.log(isOwner, isPrivate);
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.getTodosByAssignee(userId).pipe(
@@ -88,13 +77,13 @@ export class DataSyncProvider {
   get<T>(
     entity: string,
     filter: { [key: string]: any },
-    params?: any,
+    params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
     this.validateEntity(entity);
 
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.get(entity, filter);
@@ -111,9 +100,14 @@ export class DataSyncProvider {
     );
   }
 
-  create<T>(entity: string, data: any, params?: any, parentTodoId?: string): Observable<T> {
+  create<T>(
+    entity: string,
+    data: any,
+    params?: { isOwner: boolean; isPrivate: boolean },
+    parentTodoId?: string
+  ): Observable<T> {
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.create<T>(entity, data, userId);
@@ -134,50 +128,24 @@ export class DataSyncProvider {
     entity: string,
     id: string,
     data: any,
-    params?: any,
+    params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
-    let isConectedWSS = this.webSocketService.isConnected();
+    let isConnectedWS = this.webSocketService.isConnected();
 
-    if (isPrivate === false && isConectedWSS) {
-      from(this.webSocketService.update<Response<T>>(entity, id, data, userId)).pipe(
+    if (isPrivate === false && isConnectedWS) {
+      return from(this.webSocketService.update<Response<T>>(entity, id, data, userId)).pipe(
         map((response: Response<T>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             return response.data;
           } else {
-            throw new Error(response.message || "Failed to create");
+            throw new Error(response.message || "Failed to update via WebSocket");
           }
         })
       );
-    }
-
-    if (entity == "todo" && isOwner === true) {
-      if (isPrivate == false && isConectedWSS) {
-        from(this.webSocketService.update<Response<T>>(entity, id, data, userId)).pipe(
-          map((response: Response<T>) => {
-            if (response.status === ResponseStatus.SUCCESS) {
-              return response.data;
-            } else {
-              throw new Error(response.message || "Failed to create");
-            }
-          })
-        );
-      } else {
-        from(
-          this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate: !isPrivate })
-        ).pipe(
-          map((response: Response<T>) => {
-            if (response.status === ResponseStatus.SUCCESS) {
-              return response.data;
-            } else {
-              throw new Error(response.message || "Failed to update");
-            }
-          })
-        );
-      }
     }
 
     return from(this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate })).pipe(
@@ -191,8 +159,13 @@ export class DataSyncProvider {
     );
   }
 
-  updateAll<T>(entity: string, data: any[], params?: any, parentTodoId?: string): Observable<T> {
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+  updateAll<T>(
+    entity: string,
+    data: any[],
+    params?: { isOwner: boolean; isPrivate: boolean },
+    parentTodoId?: string
+  ): Observable<T> {
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     if (isPrivate === false && this.webSocketService.isConnected()) {
       throw new Error("Bulk update not supported for shared data.");
@@ -215,9 +188,14 @@ export class DataSyncProvider {
     );
   }
 
-  delete(entity: string, id: string, params?: any, parentTodoId?: string): Observable<void> {
+  delete(
+    entity: string,
+    id: string,
+    params?: { isOwner: boolean; isPrivate: boolean },
+    parentTodoId?: string
+  ): Observable<void> {
     const userId = this.authService.getValueByKey("id");
-    const { isOwner, isPrivate } = this.getSyncFlags(params);
+    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.delete(entity, id, userId);
@@ -231,10 +209,4 @@ export class DataSyncProvider {
       })
     );
   }
-
-  setOwnershipChecker(checker: (todoId: string) => boolean) {}
-
-  setTeamChecker(checker: (todoId: string) => boolean) {}
-
-  setAccessChecker(checker: (todoId: string) => boolean) {}
 }
