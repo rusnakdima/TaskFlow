@@ -23,10 +23,11 @@ export class AboutService {
   constructor(private http: HttpClient) {}
 
   gitRepoName: string = environment.gitRepoName;
+  githubUser: string = environment.githubUser;
 
   getDate(version: string): Observable<any> {
     return this.http.get<any>(
-      `https://api.github.com/repos/rusnakdima/${this.gitRepoName}/releases/tags/v${version}`,
+      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/tags/v${version}`,
       httpOptions
     );
   }
@@ -37,14 +38,14 @@ export class AboutService {
 
   checkUpdate(): Observable<any> {
     return this.http.get<any>(
-      `https://api.github.com/repos/rusnakdima/${this.gitRepoName}/releases/latest`,
+      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/latest`,
       httpOptions
     );
   }
 
   async downloadUpdate<R>(version: string, nameFile: string): Promise<Response<R>> {
     return await invoke<Response<R>>("downloadUpdate", {
-      url: `https://github.com/rusnakdima/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
+      url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
       fileName: nameFile,
     });
   }
