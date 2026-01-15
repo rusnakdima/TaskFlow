@@ -3,12 +3,6 @@ import { Injectable } from "@angular/core";
 import { Observable, BehaviorSubject, throwError } from "rxjs";
 import { io, Socket } from "socket.io-client";
 
-/* models */
-import { Response, ResponseStatus } from "@models/response.model";
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-
 /* services */
 import { MainService } from "./main.service";
 
@@ -18,6 +12,7 @@ import { MainService } from "./main.service";
 export class WebSocketService {
   private socket: Socket | null = null;
   private wsUrl = "ws://localhost:3000";
+
   private isWsConnected$ = new BehaviorSubject<boolean>(false);
   private currentUserId: string | null = null;
 
@@ -28,14 +23,11 @@ export class WebSocketService {
   private initializeWebSocket(): void {
     try {
       this.socket = io(this.wsUrl, {
-        transports: ["websocket", "polling"],
-        upgrade: true,
-        rememberUpgrade: true,
+        transports: ["websocket"],
         timeout: 5000,
       });
 
       this.socket.on("connect", () => {
-        console.log("WebSocketService: Connected to WebSocket server");
         this.isWsConnected$.next(true);
 
         if (this.currentUserId) {
@@ -44,18 +36,27 @@ export class WebSocketService {
       });
 
       this.socket.on("disconnect", (reason) => {
-        console.log("WebSocketService: Disconnected from WebSocket server:", reason);
         this.isWsConnected$.next(false);
       });
 
       this.socket.on("connect_error", (error) => {
-        console.error("WebSocketService: Connection error:", error);
+        console.error("WebSocketService: Connection failed, error:", error);
+        console.error(
+          "WebSocketService: Ensure WSS is running on",
+          this.wsUrl,
+          "and check for CORS/network issues"
+        );
+        this.isWsConnected$.next(false);
+      });
+
+      this.socket.on("connect_timeout", (timeout) => {
+        console.error("WebSocketService: Connection timeout after", timeout, "ms");
         this.isWsConnected$.next(false);
       });
 
       this.setupRealTimeListeners();
     } catch (error) {
-      console.error("WebSocketService: Failed to initialize WebSocket:", error);
+      console.error("WebSocketService: Failed to initialize WebSocket, error:", error);
       this.isWsConnected$.next(false);
     }
   }
@@ -64,53 +65,46 @@ export class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on("todo-created", (data) => {
-      console.log("WebSocketService: Todo created event:", data);
       window.dispatchEvent(new CustomEvent("ws-todo-created", { detail: data }));
     });
 
     this.socket.on("todo-updated", (data) => {
-      console.log("WebSocketService: Todo updated event:", data);
       window.dispatchEvent(new CustomEvent("ws-todo-updated", { detail: data }));
     });
 
     this.socket.on("todo-deleted", (data) => {
-      console.log("WebSocketService: Todo deleted event:", data);
       window.dispatchEvent(new CustomEvent("ws-todo-deleted", { detail: data }));
     });
 
     this.socket.on("task-created", (data) => {
-      console.log("WebSocketService: Task created event:", data);
       window.dispatchEvent(new CustomEvent("ws-task-created", { detail: data }));
     });
 
     this.socket.on("task-updated", (data) => {
-      console.log("WebSocketService: Task updated event:", data);
       window.dispatchEvent(new CustomEvent("ws-task-updated", { detail: data }));
     });
 
     this.socket.on("task-deleted", (data) => {
-      console.log("WebSocketService: Task deleted event:", data);
       window.dispatchEvent(new CustomEvent("ws-task-deleted", { detail: data }));
     });
 
     this.socket.on("subtask-created", (data) => {
-      console.log("WebSocketService: Subtask created event:", data);
       window.dispatchEvent(new CustomEvent("ws-subtask-created", { detail: data }));
     });
 
     this.socket.on("subtask-updated", (data) => {
-      console.log("WebSocketService: Subtask updated event:", data);
       window.dispatchEvent(new CustomEvent("ws-subtask-updated", { detail: data }));
     });
 
     this.socket.on("subtask-deleted", (data) => {
-      console.log("WebSocketService: Subtask deleted event:", data);
       window.dispatchEvent(new CustomEvent("ws-subtask-deleted", { detail: data }));
     });
   }
 
   isConnected(): boolean {
-    return this.isWsConnected$.value;
+    const connected = this.isWsConnected$.value;
+
+    return connected;
   }
 
   getConnectionStatus(): Observable<boolean> {
@@ -159,184 +153,108 @@ export class WebSocketService {
     }
   }
 
-  getTodosByAssignee(assignee: string): Observable<Todo[]> {
-    console.log("WebSocketService: getTodosByAssignee called with assignee:", assignee);
+  testConnection(): void {
+    if (this.socket) {
+    } else {
+    }
+  }
 
+  getAll(entity: string, filter: { [key: string]: any }): Observable<any[]> {
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));
     }
 
-    return new Observable<Todo[]>((observer) => {
-      this.socket!.emit("get-all", { entity: "todo", assignee });
+    return new Observable<any[]>((observer) => {
+      this.socket!.emit("get-all", {
+        entity,
+        filter,
+      });
 
       const successHandler = (data: any) => {
-        console.log("WebSocketService: received todos via WS:", data);
-        if (data.status === ResponseStatus.SUCCESS) {
-          observer.next(data.data.todos || []);
+        if (data.status === "success") {
+          const items = (data.data && data.data[`${entity}s`]) || [];
+          observer.next(items);
           observer.complete();
         } else {
-          observer.error(new Error(data.message || "Failed to retrieve todos"));
+          observer.error(new Error(data.message || `Failed to retrieve ${entity}s`));
         }
-        this.socket!.off("todos-retrieved", successHandler);
-        this.socket!.off("todos-retrieve-error", errorHandler);
+        this.socket!.off(`${entity}s-retrieved`, successHandler);
+        this.socket!.off(`${entity}s-retrieve-error`, errorHandler);
       };
 
       const errorHandler = (data: any) => {
         console.error("WebSocketService: WS error:", data);
-        observer.error(new Error(data.error || "Failed to retrieve todos"));
-        this.socket!.off("todos-retrieved", successHandler);
-        this.socket!.off("todos-retrieve-error", errorHandler);
+        observer.error(new Error(data.error || `Failed to retrieve ${entity}s`));
+        this.socket!.off(`${entity}s-retrieved`, successHandler);
+        this.socket!.off(`${entity}s-retrieve-error`, errorHandler);
       };
 
-      this.socket!.on("todos-retrieved", successHandler);
-      this.socket!.on("todos-retrieve-error", errorHandler);
+      this.socket!.on(`${entity}s-retrieved`, successHandler);
+      this.socket!.on(`${entity}s-retrieve-error`, errorHandler);
 
       setTimeout(() => {
         if (!observer.closed) {
-          observer.error(new Error("WebSocket timeout for getTodosByAssignee"));
-          this.socket!.off("todos-retrieved", successHandler);
-          this.socket!.off("todos-retrieve-error", errorHandler);
+          observer.error(new Error(`WebSocket timeout for getAll ${entity}`));
+          this.socket!.off(`${entity}s-retrieved`, successHandler);
+          this.socket!.off(`${entity}s-retrieve-error`, errorHandler);
         }
       }, 5000);
     });
   }
 
   get(entity: string, filter: { [key: string]: any }): Observable<any> {
-    console.log("WebSocketService: get called with", entity, filter);
-
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));
     }
 
     return new Observable<any>((observer) => {
-      this.socket!.emit("get-by-field", { entity, nameField, value });
+      this.socket!.emit("get", {
+        entity,
+        filter,
+      });
 
       const successHandler = (data: any) => {
-        console.log("WebSocketService: received item via WS:", data);
-        observer.next(data);
-        observer.complete();
-        this.socket!.off("get-by-field-success", successHandler);
-        this.socket!.off("get-by-field-error", errorHandler);
-      };
-
-      const errorHandler = (data: any) => {
-        console.error("WebSocketService: WS getByField error:", data);
-        observer.error(new Error(data.error || "Failed to get by field"));
-        this.socket!.off("get-by-field-success", successHandler);
-        this.socket!.off("get-by-field-error", errorHandler);
-      };
-
-      this.socket!.on("get-by-field-success", successHandler);
-      this.socket!.on("get-by-field-error", errorHandler);
-
-      setTimeout(() => {
-        if (!observer.closed) {
-          observer.error(new Error("WebSocket timeout for getByField"));
-          this.socket!.off("get-by-field-success", successHandler);
-          this.socket!.off("get-by-field-error", errorHandler);
-        }
-      }, 5000);
-    });
-  }
-
-  getTasks(): Observable<Task[]> {
-    console.log("WebSocketService: getTasks called");
-
-    if (!this.socket || !this.isConnected()) {
-      return throwError(() => new Error("WebSocket not connected"));
-    }
-
-    return new Observable<Task[]>((observer) => {
-      this.socket!.emit("get-all", { entity: "task" });
-
-      const successHandler = (data: any) => {
-        console.log("WebSocketService: received tasks via WS:", data);
-        if (data.status === ResponseStatus.SUCCESS) {
-          observer.next(data.data.tasks || []);
+        if (data.status === "success") {
+          observer.next(data.data.item);
           observer.complete();
         } else {
-          observer.error(new Error(data.message || "Failed to retrieve tasks"));
+          observer.error(new Error(data.message || "Failed to get"));
         }
-        this.socket!.off("tasks-retrieved", successHandler);
-        this.socket!.off("tasks-retrieve-error", errorHandler);
+        this.socket!.off("get-success", successHandler);
+        this.socket!.off("get-error", errorHandler);
       };
 
       const errorHandler = (data: any) => {
-        console.error("WebSocketService: WS error:", data);
-        observer.error(new Error(data.error || "Failed to retrieve tasks"));
-        this.socket!.off("tasks-retrieved", successHandler);
-        this.socket!.off("tasks-retrieve-error", errorHandler);
+        console.error("WebSocketService: WS get error:", data);
+        observer.error(new Error(data.message || data.error || "Failed to get"));
+        this.socket!.off("get-success", successHandler);
+        this.socket!.off("get-error", errorHandler);
       };
 
-      this.socket!.on("tasks-retrieved", successHandler);
-      this.socket!.on("tasks-retrieve-error", errorHandler);
+      this.socket!.on("get-success", successHandler);
+      this.socket!.on("get-error", errorHandler);
 
       setTimeout(() => {
         if (!observer.closed) {
-          observer.error(new Error("WebSocket timeout for getTasks"));
-          this.socket!.off("tasks-retrieved", successHandler);
-          this.socket!.off("tasks-retrieve-error", errorHandler);
+          observer.error(new Error("WebSocket timeout for get"));
+          this.socket!.off("get-success", successHandler);
+          this.socket!.off("get-error", errorHandler);
         }
       }, 5000);
     });
   }
 
-  getSubtasksByTask(taskId: string): Observable<Subtask[]> {
-    console.log("WebSocketService: getSubtasksByTask called with taskId:", taskId);
-
-    if (!this.socket || !this.isConnected()) {
-      return throwError(() => new Error("WebSocket not connected"));
-    }
-
-    return new Observable<Subtask[]>((observer) => {
-      this.socket!.emit("get-all", { entity: "subtask", taskId });
-
-      const successHandler = (data: any) => {
-        console.log("WebSocketService: received subtasks via WS:", data);
-        if (data.status === ResponseStatus.SUCCESS) {
-          observer.next(data.data.subtasks || []);
-          observer.complete();
-        } else {
-          observer.error(new Error(data.message || "Failed to retrieve subtasks"));
-        }
-        this.socket!.off("subtasks-retrieved", successHandler);
-        this.socket!.off("subtasks-retrieve-error", errorHandler);
-      };
-
-      const errorHandler = (data: any) => {
-        console.error("WebSocketService: WS error:", data);
-        observer.error(new Error(data.error || "Failed to retrieve subtasks"));
-        this.socket!.off("subtasks-retrieved", successHandler);
-        this.socket!.off("subtasks-retrieve-error", errorHandler);
-      };
-
-      this.socket!.on("subtasks-retrieved", successHandler);
-      this.socket!.on("subtasks-retrieve-error", errorHandler);
-
-      setTimeout(() => {
-        if (!observer.closed) {
-          observer.error(new Error("WebSocket timeout for getSubtasksByTask"));
-          this.socket!.off("subtasks-retrieved", successHandler);
-          this.socket!.off("subtasks-retrieve-error", errorHandler);
-        }
-      }, 5000);
-    });
-  }
-
-  create<T>(entity: string, data: any, userId: string): Observable<T> {
-    console.log(`WebSocketService: create called with entity: ${entity}, data:`, data);
-
+  create<T>(entity: string, data: any, userId: string, todoId?: string): Observable<T> {
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));
     }
 
     return new Observable<T>((observer) => {
-      this.socket!.emit("create", { entity, data, userId });
+      this.socket!.emit("create", { entity, data, userId, todoId });
 
       const successHandler = (responseData: any) => {
-        console.log(`WebSocketService: ${entity} created via WS:`, responseData);
-        if (responseData.status === ResponseStatus.SUCCESS) {
-          const entityData = responseData.data ? responseData.data[entity] : responseData[entity];
+        if (responseData.status === "success") {
+          const entityData = responseData.data[entity];
           observer.next(entityData);
           observer.complete();
         } else {
@@ -348,7 +266,9 @@ export class WebSocketService {
 
       const errorHandler = (responseData: any) => {
         console.error(`WebSocketService: WS create error:`, responseData);
-        observer.error(new Error(responseData.error || `Failed to create ${entity}`));
+        observer.error(
+          new Error(responseData.message || responseData.error || `Failed to create ${entity}`)
+        );
         this.socket!.off(`${entity}-create-success`, successHandler);
         this.socket!.off(`${entity}-create-error`, errorHandler);
       };
@@ -366,20 +286,17 @@ export class WebSocketService {
     });
   }
 
-  update<T>(entity: string, id: string, data: any, userId: string): Observable<T> {
-    console.log(`WebSocketService: update called with entity: ${entity}, id: ${id}, data:`, data);
-
+  update<T>(entity: string, id: string, data: any, userId: string, todoId?: string): Observable<T> {
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));
     }
 
     return new Observable<T>((observer) => {
-      this.socket!.emit("update", { entity, data: { id, ...data }, userId });
+      this.socket!.emit("update", { entity, data: { id, ...data }, userId, todoId });
 
       const successHandler = (responseData: any) => {
-        console.log(`WebSocketService: ${entity} updated via WS:`, responseData);
-        if (responseData.status === ResponseStatus.SUCCESS) {
-          const entityData = responseData[entity];
+        if (responseData.status === "success") {
+          const entityData = responseData.data[entity];
           observer.next(entityData);
           observer.complete();
         } else {
@@ -391,7 +308,9 @@ export class WebSocketService {
 
       const errorHandler = (responseData: any) => {
         console.error(`WebSocketService: WS update error:`, responseData);
-        observer.error(new Error(responseData.error || `Failed to update ${entity}`));
+        observer.error(
+          new Error(responseData.message || responseData.error || `Failed to update ${entity}`)
+        );
         this.socket!.off(`${entity}-update-success`, successHandler);
         this.socket!.off(`${entity}-update-error`, errorHandler);
       };
@@ -409,27 +328,30 @@ export class WebSocketService {
     });
   }
 
-  delete(entity: string, id: string, userId: string): Observable<void> {
-    console.log(`WebSocketService: delete called with entity: ${entity}, id: ${id}`);
-
+  delete(entity: string, id: string, userId: string, todoId?: string): Observable<void> {
     if (!this.socket || !this.isConnected()) {
       return throwError(() => new Error("WebSocket not connected"));
     }
 
     return new Observable<void>((observer) => {
-      this.socket!.emit("delete", { entity, id, userId });
+      this.socket!.emit("delete", { entity, id, userId, todoId });
 
       const successHandler = (responseData: any) => {
-        console.log(`WebSocketService: ${entity} deleted via WS:`, responseData);
-        observer.next();
-        observer.complete();
+        if (responseData.status === "success") {
+          observer.next();
+          observer.complete();
+        } else {
+          observer.error(new Error(responseData.message || `Failed to delete ${entity}`));
+        }
         this.socket!.off(`${entity}-delete-success`, successHandler);
         this.socket!.off(`${entity}-delete-error`, errorHandler);
       };
 
       const errorHandler = (responseData: any) => {
         console.error(`WebSocketService: WS delete error:`, responseData);
-        observer.error(new Error(responseData.error || `Failed to delete ${entity}`));
+        observer.error(
+          new Error(responseData.message || responseData.error || `Failed to delete ${entity}`)
+        );
         this.socket!.off(`${entity}-delete-success`, successHandler);
         this.socket!.off(`${entity}-delete-error`, errorHandler);
       };
