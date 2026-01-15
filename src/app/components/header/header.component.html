@@ -14,8 +14,8 @@
 
       <div class="flex flex-col">
         <h1 class="text-lg font-semibold textNormal">{{ title() }}</h1>
-        @if (todo()) {
-          <p class="text-sm textMuted">{{ todo()!.description }}</p>
+        @if (description()) {
+          <p class="text-sm textMuted">{{ description() }}</p>
         }
       </div>
     </div>

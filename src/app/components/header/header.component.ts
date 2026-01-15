@@ -1,6 +1,14 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, EventEmitter, OnDestroy, OnInit, Output, signal } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  Output,
+  signal,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { Subscription } from "rxjs";
 import {
   ActivatedRoute,
@@ -28,6 +36,7 @@ import { SyncService } from "@services/sync.service";
 
 interface Breadcrumb {
   label: string;
+  description: string;
   url: string;
 }
 
@@ -39,19 +48,21 @@ interface Breadcrumb {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
-    private location: Location,
+    private route: ActivatedRoute,
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
-    private syncService: SyncService
+    private syncService: SyncService,
+    private cdr: ChangeDetectorRef,
+    private location: Location
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
   themeVal = signal("");
   title = signal("");
+  description = signal("");
   subtitle = signal("");
   iconUrl = signal("");
   userId = signal("");
@@ -91,8 +102,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.title.set(
           this.breadcrumbs().length > 0
             ? this.breadcrumbs()[this.breadcrumbs().length - 1].label
-            : "Home"
+            : "TaskFlow"
         );
+        this.description.set(
+          this.breadcrumbs().length > 0
+            ? this.breadcrumbs()[this.breadcrumbs().length - 1].description
+            : ""
+        );
+        this.cdr.detectChanges();
       });
   }
 
@@ -136,22 +153,34 @@ export class HeaderComponent implements OnInit, OnDestroy {
         const newUrl = url + "/" + routeURL;
 
         let label: string = "";
+        let description: string = "";
         const breadcrumbData = child.snapshot.data["breadcrumb"];
         if (typeof breadcrumbData === "function") {
           const data = await breadcrumbData(child.snapshot as ActivatedRouteSnapshot);
           if (data.task) {
-            const task = data.task as Task;
-            if (task) {
-              this.task.set(task);
-              label = task.title;
+            const object = data.task as { task: Task; todo: Todo };
+            if (object) {
+              const task = object.task as Task;
+              if (task) {
+                this.task.set(task);
+                label = (task as any).title || "Task";
+                description = task.description || "";
+                this.description.set(description);
+              }
             }
-          } else if (data.todo) {
+          }
+          if (data.todo) {
             const todo = data.todo as Todo;
             if (todo) {
               this.todo.set(todo);
-              label = todo.title;
+              if (!label) {
+                label = todo.title;
+              }
+              description = todo.description || "";
+              this.description.set(description);
             }
-          } else {
+          }
+          if (!label) {
             label = breadcrumbData;
           }
         } else {
@@ -160,6 +189,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
         breadcrumbs.push({
           label: label,
+          description: description,
           url: newUrl,
         });
 

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, ChangeDetectorRef } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
@@ -42,7 +42,8 @@ export class SubtasksView implements OnInit {
     private route: ActivatedRoute,
     private authService: AuthService,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private cdr: ChangeDetectorRef
   ) {}
 
   listSubtasks = signal<Array<Subtask>>([]);
@@ -95,6 +96,7 @@ export class SubtasksView implements OnInit {
       if (dataResolve?.["task"]) {
         const taskData = dataResolve["task"];
         this.task.set(taskData);
+        this.cdr.detectChanges();
         this.getSubtasksByTaskId(taskData.id);
       }
     }
