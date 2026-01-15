@@ -298,28 +298,76 @@ impl ManageDbService {
 
   #[allow(non_snake_case)]
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let cloudData = match self.getAllDataFromCloud(userId).await {
+    let cloudData = match self.getAllDataFromCloud(userId.clone()).await {
       Ok(data) => data,
       Err(e) => return Err(e),
     };
 
-    let mut allToUpdate = std::collections::HashMap::new();
+    let localData = match self.getAllDataFromLocal(userId.clone()).await {
+      Ok(data) => data,
+      Err(e) => return Err(e),
+    };
 
-    for (table, docs) in cloudData {
-      let values: Vec<Value> = docs
-        .into_iter()
-        .map(|doc| serde_json::to_value(&doc).unwrap())
-        .collect();
-      allToUpdate.insert(table, values);
+    let tables = vec![
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+
+    let mut allToUpsert: std::collections::HashMap<String, Vec<Value>> =
+      std::collections::HashMap::new();
+
+    for table in &tables {
+      let cloud = cloudData.get(*table).cloned().unwrap_or(vec![]);
+      let local = localData.get(*table).cloned().unwrap_or(vec![]);
+
+      let mut cloudMap: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+      for doc in &cloud {
+        let value = serde_json::to_value(doc).map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error converting cloud doc to value: {}", e),
+          data: DataValue::String("".to_string()),
+        })?;
+        if let Some(id) = value.get("id").and_then(|i| i.as_str()) {
+          cloudMap.insert(id.to_string(), value);
+        }
+      }
+
+      let mut localMap: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+      for v in &local {
+        if let Some(id) = v.get("id").and_then(|i| i.as_str()) {
+          localMap.insert(id.to_string(), v.clone());
+        }
+      }
+
+      let mut toUpsert = vec![];
+
+      for (id, cloudVal) in &cloudMap {
+        let needsUpdate = if let Some(localVal) = localMap.get(id) {
+          Self::shouldUpdateTarget(cloudVal, localVal)
+        } else {
+          true
+        };
+
+        if needsUpdate {
+          toUpsert.push(cloudVal.clone());
+        }
+      }
+
+      allToUpsert.insert(table.to_string(), toUpsert);
     }
 
-    for (table, values) in &allToUpdate {
-      if let Err(e) = self.jsonProvider.updateAll(table, values.clone()).await {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error updating records in {}: {}", table, e),
-          data: DataValue::String("".to_string()),
-        });
+    for (table, values) in allToUpsert {
+      if !values.is_empty() {
+        if let Err(e) = self.jsonProvider.updateAll(&table, values).await {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Error upserting records in {}: {}", table, e),
+            data: DataValue::String("".to_string()),
+          });
+        }
       }
     }
 

@@ -9,6 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
+import { firstValueFrom, Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -24,8 +25,6 @@ import { MatDividerModule } from "@angular/material/divider";
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 
@@ -349,8 +348,10 @@ export class ManageTodoView implements OnInit {
         deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
       };
 
+      this.isPrivate = body.visibility === "private";
+
       this.dataSyncProvider
-        .create("todo", body, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+        .create("todo", body, { isOwner: true, isPrivate: this.isPrivate })
         .subscribe({
           next: (result) => {
             this.isSubmitting.set(false);
@@ -379,23 +380,32 @@ export class ManageTodoView implements OnInit {
         updatedAt: new Date().toISOString(),
       };
 
-      const currentVisibility = this.form.get("visibility")?.value;
+      const newVisibility = this.form.get("visibility")?.value as "private" | "team";
+      const originalVisibility = this.isPrivate ? "private" : "team";
+      const visibilityChanged = originalVisibility !== newVisibility;
+      const isPrivate = newVisibility === "private";
 
       this.dataSyncProvider
         .update<Todo>("todo", body.id, body, {
-          isOwner: this.isOwner,
-          isPrivate: this.isPrivate,
+          isOwner: true,
+          isPrivate: !isPrivate,
         })
         .subscribe({
-          next: (result) => {
-            if (currentVisibility !== formValue.visibility) {
-              this.updateTasksAndSubtasksForTodo(body.id, formValue.visibility);
+          next: async (result) => {
+            if (visibilityChanged) {
+              try {
+                await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
+              } catch (syncError) {
+                console.error("Failed to sync after visibility change:", syncError);
+                this.notifyService.showWarning("Todo updated, but sync may not have completed.");
+              }
             }
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Todo updated successfully");
             this.back();
           },
           error: (err) => {
+            console.error("Failed to update todo:", err);
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to update todo");
           },
@@ -404,50 +414,5 @@ export class ManageTodoView implements OnInit {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
-  }
-
-  private updateTasksAndSubtasksForTodo(todoId: string, visibility: string) {
-    const isPrivate = visibility === "private";
-    this.dataSyncProvider
-      .getAll<Task>("task", { todoId }, { isOwner: this.isOwner, isPrivate: isPrivate }, todoId)
-      .subscribe({
-        next: (tasks) => {
-          tasks.forEach((task) => {
-            const updatedTask = { ...task, updatedAt: new Date().toISOString().split(".")[0] };
-            this.dataSyncProvider.update<Task>("task", task.id, updatedTask, {
-              isOwner: this.isOwner,
-              isPrivate: isPrivate,
-            });
-
-            this.dataSyncProvider
-              .getAll<Subtask>(
-                "subtask",
-                { taskId: task.id },
-                { isOwner: this.isOwner, isPrivate: isPrivate },
-                todoId
-              )
-              .subscribe({
-                next: (subtasks) => {
-                  subtasks.forEach((subtask) => {
-                    const updatedSubtask = {
-                      ...subtask,
-                      updatedAt: new Date().toISOString().split(".")[0],
-                    };
-                    this.dataSyncProvider.update<Subtask>("subtask", subtask.id, updatedSubtask, {
-                      isOwner: this.isOwner,
-                      isPrivate: this.isPrivate,
-                    });
-                  });
-                },
-                error: (err) => {
-                  console.error("Failed to update subtasks for task:", task.id, err);
-                },
-              });
-          });
-        },
-        error: (err) => {
-          console.error("Failed to update tasks for todo:", err);
-        },
-      });
   }
 }
