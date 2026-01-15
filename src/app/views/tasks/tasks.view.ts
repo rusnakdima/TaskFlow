@@ -102,7 +102,9 @@ export class TasksView implements OnInit {
     this.dataSyncProvider
       .getAll<Task>(
         "task",
-        { todoId },
+        {
+          todoId,
+        },
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
         todoId
       )
