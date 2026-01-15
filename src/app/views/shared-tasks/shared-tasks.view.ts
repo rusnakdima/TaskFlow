@@ -149,6 +149,10 @@ export class SharedTasksView implements OnInit {
       .toUpperCase();
   }
 
+  todoIsOwner(todo: Todo): boolean {
+    return todo.userId === this.authService.getValueByKey("id");
+  }
+
   inviteMember(): void {
     this.notifyService.showSuccess("Invite functionality would be implemented here");
   }

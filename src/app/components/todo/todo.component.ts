@@ -25,6 +25,7 @@ export class TodoComponent {
 
   @Input() todo: Todo | null = null;
   @Input() index: number = 0;
+  @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Output() deleteEvent: EventEmitter<string> = new EventEmitter<string>();
 
