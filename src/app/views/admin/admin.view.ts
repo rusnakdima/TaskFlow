@@ -345,6 +345,29 @@ export class AdminView implements OnInit {
     this.taskIdFilter.set("");
   }
 
+  isAllSelected(): boolean {
+    const currentData = this.getCurrentData();
+    return currentData.length > 0 && currentData.every((item) => this.isSelected(item.id));
+  }
+
+  toggleSelectAll(): void {
+    const currentData = this.getCurrentData();
+    const allSelected = this.isAllSelected();
+    if (allSelected) {
+      this.selectedRecords.update((records) => {
+        const newRecords = new Set(records);
+        currentData.forEach((item) => newRecords.delete(item.id));
+        return newRecords;
+      });
+    } else {
+      this.selectedRecords.update((records) => {
+        const newRecords = new Set(records);
+        currentData.forEach((item) => newRecords.add(item.id));
+        return newRecords;
+      });
+    }
+  }
+
   async deleteSelected(): Promise<void> {
     const count = this.selectedRecords().size;
     if (count === 0) return;
