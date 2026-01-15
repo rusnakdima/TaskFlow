@@ -44,19 +44,12 @@
             "outputPath": "dist/taskflow",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": [
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.css"
-            ],
-            "scripts": [
-              "node_modules/flowbite/dist/flowbite.min.js"
-            ]
+            "assets": ["src/assets"],
+            "styles": ["src/styles.css"],
+            "scripts": ["node_modules/flowbite/dist/flowbite.min.js"],
+            "allowedCommonJsDependencies": ["progressbar.js"]
           },
           "configurations": {
             "production": {
