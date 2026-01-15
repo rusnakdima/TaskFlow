@@ -26,24 +26,36 @@ export class MainResolver implements Resolve<any> {
     try {
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
+        const todoId = paramsMap.get("todoId") ?? "";
         const isPrivate = queryParams?.["isPrivate"] === "true";
+        const isOwner = isPrivate;
 
         const taskObservable = this.dataSyncProvider.get<Task>(
           "task",
           { id: taskId },
-          { isOwner: false, isPrivate }
+          { isOwner, isPrivate }
         );
 
         const task = await firstValueFrom(taskObservable);
-        return task;
+
+        const todoObservable = this.dataSyncProvider.get<Todo>(
+          "todo",
+          { id: todoId },
+          { isOwner: isPrivate ? true : false, isPrivate }
+        );
+
+        const todo = await firstValueFrom(todoObservable);
+
+        return { task, todo };
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
+        const isOwner = queryParams?.["isOwner"] === "true";
         const isPrivate = queryParams?.["isPrivate"] === "true";
 
         const todoObservable = this.dataSyncProvider.get<Todo>(
           "todo",
           { id: todoId },
-          { isOwner: true, isPrivate }
+          { isOwner, isPrivate }
         );
 
         const todo = await firstValueFrom(todoObservable);

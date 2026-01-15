@@ -132,6 +132,7 @@
         <app-todo
           [todo]="todo"
           [index]="$index"
+          [isOwner]="true"
           [isPrivate]="true"
           (deleteEvent)="deleteTodoById($event)"
         />

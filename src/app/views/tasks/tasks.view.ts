@@ -96,24 +96,6 @@ export class TasksView implements OnInit {
     }
   }
 
-  getTodoInfo(id: string): Observable<Todo> {
-    return this.dataSyncProvider
-      .get<Todo>(
-        "todo",
-        { id: id },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .pipe(
-        map((todo) => {
-          console.log(todo);
-          this.todo.set(todo);
-          this.isOwner = todo.userId === this.userId;
-          this.isPrivate = todo.visibility === "private";
-          return todo;
-        })
-      );
-  }
-
   getTasksByTodoId(todoId: string) {
     const todo = this.todo();
     if (!todo) return;

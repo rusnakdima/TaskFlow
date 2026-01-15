@@ -83,37 +83,21 @@ export class SubtasksView implements OnInit {
 
     const routeData = this.route.snapshot.data;
     if (routeData?.["task"]) {
-      const taskData = routeData["task"];
-      this.task.set(taskData);
-      this.getSubtasksByTaskId(taskData.id);
-    }
-
-    this.route.params.subscribe((params: any) => {
-      if (params.todoId) {
-        this.todoId.set(params.todoId);
-        this.getTodoInfo(this.todoId());
+      const dataResolve = routeData["task"];
+      if (dataResolve?.["todo"]) {
+        const todoData = dataResolve["todo"];
+        this.todo.set(todoData);
+        this.isOwner = todoData.userId === this.userId;
+        this.isPrivate = todoData.visibility === "private";
+        this.todoId.set(todoData.id);
+        this.projectTitle.set(todoData.title);
       }
-    });
-  }
-
-  getTodoInfo(id: string) {
-    this.dataSyncProvider
-      .get<Todo>(
-        "todo",
-        { id: id },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .subscribe({
-        next: (todo) => {
-          this.todo.set(todo);
-          this.isOwner = todo.userId === this.userId;
-          this.isPrivate = todo.visibility === "private";
-          this.projectTitle.set(this.todo()?.title ?? "");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load todo");
-        },
-      });
+      if (dataResolve?.["task"]) {
+        const taskData = dataResolve["task"];
+        this.task.set(taskData);
+        this.getSubtasksByTaskId(taskData.id);
+      }
+    }
   }
 
   getTaskInfo(id: string) {

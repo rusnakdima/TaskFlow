@@ -3,6 +3,7 @@
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [routerLink]="task.id + '/subtasks'"
+      [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
     >
       <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
