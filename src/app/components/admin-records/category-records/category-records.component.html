@@ -1,0 +1,63 @@
+<div class="grid grid-cols-1 gap-4">
+  @for (category of categories; track category.id) {
+    <mat-card class="p-4 hover:shadow-lg transition-shadow">
+      <div class="flex items-start gap-4">
+        <input
+          type="checkbox"
+          class="styleCheckbox mt-1"
+          [checked]="isSelected(category.id)"
+          (change)="onSelectChange(category.id)"
+        />
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold textNormal text-lg mb-1 truncate">{{ category.title }}</h4>
+              <div class="flex items-center gap-4 text-sm textMuted">
+                <span>ID: {{ category.id }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 ml-4 shrink-0">
+              <mat-chip class="h-7 text-xs" [ngClass]="getStatusColor(category.isDeleted)">
+                {{ getStatusText(category.isDeleted) }}
+              </mat-chip>
+              <button mat-icon-button class="w-8 h-8" (click)="toggleExpanded(category.id)">
+                <mat-icon class="w-5 h-5">
+                  {{ isExpanded(category.id) ? "expand_less" : "expand_more" }}
+                </mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="onDeleteRecord(category)"
+              >
+                <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            @if (category.user) {
+              <div>
+                <span class="text-sm font-medium textMuted">User:</span>
+                <p class="text-sm textNormal mt-1">
+                  {{ category.user.profile?.name }} {{ category.user.profile?.lastName }} ({{
+                    category.user.username
+                  }})
+                </p>
+              </div>
+            }
+          </div>
+
+          @if (isExpanded(category.id)) {
+            <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+              <div class="text-sm textMuted">
+                <span class="font-medium">No additional details available for categories.</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </mat-card>
+  }
+</div>

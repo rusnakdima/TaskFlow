@@ -214,6 +214,34 @@
               />
               <span class="text-sm font-medium">Select All</span>
             </label>
+            <mat-form-field class="w-32">
+              <mat-label>Sort By</mat-label>
+              <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+                <mat-option value="createdAt">Created Date</mat-option>
+                <mat-option value="updatedAt">Updated Date</mat-option>
+                <mat-option value="title">Title</mat-option>
+                @if (
+                  selectedType() === "todos" ||
+                  selectedType() === "tasks" ||
+                  selectedType() === "subtasks"
+                ) {
+                  <mat-option value="priority">Priority</mat-option>
+                }
+                @if (selectedType() === "todos" || selectedType() === "tasks") {
+                  <mat-option value="startDate">Start Date</mat-option>
+                  <mat-option value="endDate">End Date</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button
+              class="styleButInfo"
+              (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc')"
+            >
+              <mat-icon
+                class="w-5! h-5! text-xl!"
+                [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+              />
+            </button>
             <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading()">
               <mat-icon
                 class="w-5! h-5! text-xl! mr-2"
@@ -253,92 +281,56 @@
             </p>
           </div>
         } @else {
-          <div class="grid grid-cols-1 gap-4">
-            @for (item of getCurrentData(); track item.id; let i = $index) {
-              <mat-card class="p-4 lg:p-6 hover:shadow-lg transition-shadow">
-                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
-                  <div class="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      class="styleCheckbox"
-                      [checked]="isSelected(item.id)"
-                      (change)="toggleSelect(item.id)"
-                    />
-                    <div
-                      class="flex items-center justify-center shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-600 w-10 h-10"
-                    >
-                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="article" />
-                    </div>
-                    <div>
-                      <h4 class="font-semibold textNormal">Record {{ item.id }}</h4>
-                      <p class="text-sm textMuted">#{{ i + 1 }}</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    @if (item.isDeleted) {
-                      <mat-chip
-                        class="bg-red-100! text-red-600! dark:bg-red-900/30! dark:text-red-400! h-9!"
-                      >
-                        <div class="flex flex-row items-center gap-x-2">
-                          <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
-                          <span>Deleted</span>
-                        </div>
-                      </mat-chip>
-                    } @else {
-                      <mat-chip
-                        class="bg-green-100! text-green-600! dark:bg-green-900/30! dark:text-green-400! h-9!"
-                      >
-                        <div class="flex flex-row items-center gap-x-2">
-                          <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
-                          <span>Active</span>
-                        </div>
-                      </mat-chip>
-                    }
-                    <button class="styleButDanger cursor-pointer" (click)="deleteRecord(item)">
-                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
-                    </button>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
-                  @for (prop of getDataProperties(item); track prop.key) {
-                    @if (prop.key !== "id") {
-                      <div class="overflow-hidden">
-                        <span class="font-medium textMuted">{{ prop.key }}:</span>
-                        <div class="mt-1 wrap-break-word">
-                          @if (prop.key === "createdAt" || prop.key === "updatedAt") {
-                            <span class="textNormal">{{ formatDate(prop.value) }}</span>
-                          } @else if (prop.value === null || prop.value === "") {
-                            <span class="text-gray-400">—</span>
-                          } @else if (typeof prop.value === "boolean") {
-                            <span [class]="prop.value ? 'text-green-600' : 'text-red-600'">
-                              {{ prop.value ? "Yes" : "No" }}
-                            </span>
-                          } @else if (prop.key === "priority") {
-                            <span class="textNormal capitalize">{{ prop.value }}</span>
-                          } @else if (typeof prop.value == "object" && prop.value.length >= 0) {
-                            @for (item of prop.value; track $index) {
-                              <span class="textNormal">{{ item | json }}</span>
-                            }
-                          } @else if (prop.key === "user") {
-                            <span class="textNormal"
-                              >{{ prop.value.profile?.name }} {{ prop.value.profile?.lastName }} ({{
-                                prop.value.username
-                              }})</span
-                            >
-                          } @else if (typeof prop.value == "object") {
-                            <span class="textNormal">{{ prop.value | json }}</span>
-                          } @else {
-                            <span class="textNormal">{{ prop.value }}</span>
-                          }
-                        </div>
-                      </div>
-                    }
-                  }
-                </div>
-              </mat-card>
+          @switch (selectedType()) {
+            @case ("todos") {
+              <app-todo-records
+                [todos]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
             }
-          </div>
+            @case ("tasks") {
+              <app-task-records
+                [tasks]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
+            }
+            @case ("subtasks") {
+              <app-subtask-records
+                [subtasks]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
+            }
+            @case ("categories") {
+              <app-category-records
+                [categories]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
+            }
+            @case ("daily_activities") {
+              <app-daily-activity-records
+                [records]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
+            }
+            @default {
+              <app-daily-activity-records
+                [records]="getCurrentData()"
+                [selectedRecords]="selectedRecords()"
+                (selectRecord)="toggleSelect($event)"
+                (deleteRecord)="deleteRecord($event)"
+              />
+            }
+          }
         }
       </div>
     </div>

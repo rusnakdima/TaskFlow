@@ -24,6 +24,13 @@ import { TaskStatus } from "@models/task.model";
 import { AdminService } from "@services/admin.service";
 import { NotifyService } from "@services/notify.service";
 
+/* components */
+import { TodoRecordsComponent } from "@components/admin-records/todo-records/todo-records.component";
+import { TaskRecordsComponent } from "@components/admin-records/task-records/task-records.component";
+import { SubtaskRecordsComponent } from "@components/admin-records/subtask-records/subtask-records.component";
+import { CategoryRecordsComponent } from "@components/admin-records/category-records/category-records.component";
+import { DailyActivityRecordsComponent } from "@components/admin-records/daily-activity-records/daily-activity-records.component";
+
 interface AdminData {
   [key: string]: any[];
 }
@@ -45,6 +52,11 @@ interface AdminData {
     MatDatepickerModule,
     MatNativeDateModule,
     FormsModule,
+    TodoRecordsComponent,
+    TaskRecordsComponent,
+    SubtaskRecordsComponent,
+    CategoryRecordsComponent,
+    DailyActivityRecordsComponent,
   ],
   templateUrl: "./admin.view.html",
 })
@@ -71,6 +83,8 @@ export class AdminView implements OnInit {
   categoriesFilter = signal<string>("");
   todoIdFilter = signal<string>("");
   taskIdFilter = signal<string>("");
+  sortBy = signal<string>("createdAt");
+  sortOrder = signal<"asc" | "desc">("desc");
 
   dataTypes = [
     {
@@ -251,6 +265,35 @@ export class AdminView implements OnInit {
       });
     }
 
+    data = data.sort((a, b) => {
+      const sortField = this.sortBy();
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+
+      if (
+        sortField === "createdAt" ||
+        sortField === "updatedAt" ||
+        sortField === "startDate" ||
+        sortField === "endDate"
+      ) {
+        aValue = aValue ? new Date(aValue).getTime() : 0;
+        bValue = bValue ? new Date(bValue).getTime() : 0;
+      }
+
+      if (typeof aValue === "string") {
+        aValue = aValue.toLowerCase();
+        bValue = bValue?.toLowerCase() || "";
+      }
+
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return this.sortOrder() === "asc" ? -1 : 1;
+      if (bValue == null) return this.sortOrder() === "asc" ? 1 : -1;
+
+      if (aValue < bValue) return this.sortOrder() === "asc" ? -1 : 1;
+      if (aValue > bValue) return this.sortOrder() === "asc" ? 1 : -1;
+      return 0;
+    });
+
     return data;
   }
 
@@ -343,6 +386,8 @@ export class AdminView implements OnInit {
     this.categoriesFilter.set("");
     this.todoIdFilter.set("");
     this.taskIdFilter.set("");
+    this.sortBy.set("createdAt");
+    this.sortOrder.set("desc");
   }
 
   isAllSelected(): boolean {

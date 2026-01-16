@@ -1,0 +1,118 @@
+<div class="grid grid-cols-1 gap-4">
+  @for (record of records; track record.id) {
+    <mat-card class="p-4 hover:shadow-lg transition-shadow">
+      <div class="flex items-start gap-4">
+        <input
+          type="checkbox"
+          class="styleCheckbox mt-1"
+          [checked]="isSelected(record.id)"
+          (change)="onSelectChange(record.id)"
+        />
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold textNormal text-lg mb-1">Record {{ record.id }}</h4>
+              <div class="flex items-center gap-4 text-sm textMuted">
+                <span>ID: {{ record.id }}</span>
+                @if (record.createdAt) {
+                  <span>{{ formatDate(record.createdAt) }}</span>
+                }
+              </div>
+            </div>
+            <div class="flex items-center gap-2 ml-4 shrink-0">
+              @if (record.isDeleted !== undefined) {
+                <mat-chip class="h-7 text-xs" [ngClass]="getStatusColor(record.isDeleted)">
+                  {{ getStatusText(record.isDeleted) }}
+                </mat-chip>
+              }
+              <button mat-icon-button class="w-8 h-8" (click)="toggleExpanded(record.id)">
+                <mat-icon class="w-5 h-5">
+                  {{ isExpanded(record.id) ? "expand_less" : "expand_more" }}
+                </mat-icon>
+              </button>
+              <button mat-icon-button class="w-8 h-8 text-red-600" (click)="onDeleteRecord(record)">
+                <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+            @if (record.completedTasks !== undefined) {
+              <div>
+                <span class="text-sm font-medium textMuted">Completed Tasks:</span>
+                <p class="text-sm textNormal mt-1">{{ record.completedTasks }}</p>
+              </div>
+            }
+            @if (record.productivityScore !== undefined) {
+              <div>
+                <span class="text-sm font-medium textMuted">Productivity Score:</span>
+                <p class="text-sm textNormal mt-1">{{ record.productivityScore }}</p>
+              </div>
+            }
+            @if (record.totalActivity !== undefined) {
+              <div>
+                <span class="text-sm font-medium textMuted">Total Activity:</span>
+                <p class="text-sm textNormal mt-1">{{ record.totalActivity }}</p>
+              </div>
+            }
+            @if (record.date) {
+              <div>
+                <span class="text-sm font-medium textMuted">Date:</span>
+                <p class="text-sm textNormal mt-1">{{ formatDate(record.date) }}</p>
+              </div>
+            }
+          </div>
+
+          @if (isExpanded(record.id)) {
+            <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                @for (prop of getDataProperties(record); track prop.key) {
+                  @if (
+                    prop.key !== "id" &&
+                    prop.key !== "createdAt" &&
+                    prop.key !== "completedTasks" &&
+                    prop.key !== "productivityScore" &&
+                    prop.key !== "totalActivity" &&
+                    prop.key !== "date"
+                  ) {
+                    <div class="overflow-hidden">
+                      <span class="font-medium textMuted">{{ prop.key }}:</span>
+                      <div class="mt-1 textNormal break-words">
+                        @if (prop.key === "updatedAt") {
+                          <span>{{ formatDate(prop.value) }}</span>
+                        } @else if (prop.value === null || prop.value === "") {
+                          <span class="text-gray-400">—</span>
+                        } @else if (typeof prop.value === "boolean") {
+                          <span [class]="prop.value ? 'text-green-600' : 'text-red-600'">
+                            {{ prop.value ? "Yes" : "No" }}
+                          </span>
+                        } @else if (typeof prop.value === "object" && !isArray(prop.value)) {
+                          <pre
+                            class="text-xs bg-gray-100 dark:bg-zinc-800 p-2 rounded overflow-x-auto"
+                            >{{ prop.value | json }}</pre
+                          >
+                        } @else if (isArray(prop.value)) {
+                          <div>
+                            @for (item of prop.value; track $index) {
+                              <span
+                                class="inline-block mr-1 mb-1 px-2 py-1 bg-gray-200 dark:bg-zinc-700 rounded text-xs"
+                                >{{ item | json }}</span
+                              >
+                            }
+                          </div>
+                        } @else {
+                          <span>{{ prop.value }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </mat-card>
+  }
+</div>
