@@ -1,0 +1,93 @@
+<div class="grid grid-cols-1 gap-4">
+  @for (subtask of subtasks; track subtask.id) {
+    <mat-card class="p-4 hover:shadow-lg transition-shadow">
+      <div class="flex items-start gap-4">
+        <input
+          type="checkbox"
+          class="styleCheckbox mt-1"
+          [checked]="isSelected(subtask.id)"
+          (change)="onSelectChange(subtask.id)"
+        />
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold textNormal text-lg mb-1 truncate">{{ subtask.title }}</h4>
+              <div class="flex items-center gap-4 text-sm textMuted">
+                <span>ID: {{ subtask.id }}</span>
+                <span>{{ formatDate(subtask.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 ml-4 shrink-0">
+              <mat-chip class="h-7 text-xs" [ngClass]="getStatusColor(subtask.status)">
+                {{ getStatusText(subtask.status) }}
+              </mat-chip>
+              <mat-chip class="h-7 text-xs" [ngClass]="getPriorityColor(subtask.priority)">
+                {{ getPriorityText(subtask.priority) }}
+              </mat-chip>
+              <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(subtask.isDeleted)">
+                {{ getDeletedStatusText(subtask.isDeleted) }}
+              </mat-chip>
+              <button mat-icon-button class="w-8 h-8" (click)="toggleExpanded(subtask.id)">
+                <mat-icon class="w-5 h-5">
+                  {{ isExpanded(subtask.id) ? "expand_less" : "expand_more" }}
+                </mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="onDeleteRecord(subtask)"
+              >
+                <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+            @if (subtask.description) {
+              <div>
+                <span class="text-sm font-medium textMuted">Description:</span>
+                <p class="text-sm textNormal mt-1 line-clamp-2">{{ subtask.description }}</p>
+              </div>
+            }
+            @if (subtask.taskId) {
+              <div>
+                <span class="text-sm font-medium textMuted">Task ID:</span>
+                <p class="text-sm textNormal mt-1">{{ subtask.taskId }}</p>
+              </div>
+            }
+            @if (subtask.task?.title) {
+              <div>
+                <span class="text-sm font-medium textMuted">Task Title:</span>
+                <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.title }}</p>
+              </div>
+            }
+            @if (subtask.task?.todo?.title) {
+              <div>
+                <span class="text-sm font-medium textMuted">Todo Title:</span>
+                <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.todo.title }}</p>
+              </div>
+            }
+          </div>
+
+          @if (isExpanded(subtask.id)) {
+            <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="font-medium textMuted">Order:</span>
+                  <span class="textNormal ml-2">{{ subtask.order }}</span>
+                </div>
+                @if (subtask.updatedAt) {
+                  <div>
+                    <span class="font-medium textMuted">Updated:</span>
+                    <span class="textNormal ml-2">{{ formatDate(subtask.updatedAt) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </mat-card>
+  }
+</div>
