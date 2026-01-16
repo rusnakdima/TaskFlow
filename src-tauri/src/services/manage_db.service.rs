@@ -564,10 +564,47 @@ impl ManageDbService {
       }]),
     }];
 
+    let todoRelations = vec![
+      RelationObj {
+        nameTable: "users".to_string(),
+        typeField: TypesField::OneToOne,
+        nameField: "userId".to_string(),
+        newNameField: "user".to_string(),
+        relations: Some(vec![RelationObj {
+          nameTable: "profiles".to_string(),
+          typeField: TypesField::OneToOne,
+          nameField: "profileId".to_string(),
+          newNameField: "profile".to_string(),
+          relations: None,
+        }]),
+      },
+      RelationObj {
+        nameTable: "categories".to_string(),
+        typeField: TypesField::ManyToOne,
+        nameField: "categories".to_string(),
+        newNameField: "categories".to_string(),
+        relations: Some(vec![RelationObj {
+          nameTable: "users".to_string(),
+          typeField: TypesField::OneToOne,
+          nameField: "userId".to_string(),
+          newNameField: "user".to_string(),
+          relations: Some(vec![RelationObj {
+            nameTable: "profiles".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "profileId".to_string(),
+            newNameField: "profile".to_string(),
+            relations: None,
+          }]),
+        }]),
+      },
+    ];
+
     let mut allData = serde_json::Map::new();
 
     for table in tables {
-      let relations = if table == "todos" || table == "categories" {
+      let relations = if table == "todos" {
+        Some(todoRelations.clone())
+      } else if table == "categories" {
         Some(userRelations.clone())
       } else {
         None
