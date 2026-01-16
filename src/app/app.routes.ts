@@ -65,13 +65,7 @@ export const routes: Routes = [
     data: { breadcrumb: "Shared Projects" },
     canActivate: [canActivateAuth],
   },
-  {
-    path: "admin",
-    component: AdminView,
-    title: "Admin Panel",
-    data: { breadcrumb: "Admin Panel" },
-    canActivate: [canActivateAuth],
-  },
+
   {
     path: "about",
     component: AboutView,
@@ -95,6 +89,7 @@ export const routes: Routes = [
   },
 
   { path: "login", component: LoginView, title: "Login", data: { breadcrumb: "Login" } },
+
   {
     path: "signup",
     component: SignupView,

@@ -10,7 +10,12 @@ import { MatIconModule } from "@angular/material/icon";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
-import { ActiveNotification, INotify, ResponseStatus, ResponseStatusIcon } from "@models/response.model";
+import {
+  ActiveNotification,
+  INotify,
+  ResponseStatus,
+  ResponseStatusIcon,
+} from "@models/response.model";
 
 @Component({
   selector: "app-window-notify",
@@ -70,7 +75,7 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
       this.prepareToRemove(id);
     }, this.NOTIFICATION_DURATION);
 
-    notification.timeoutId = timeoutId;
+    notification.timeoutId = timeoutId as unknown as number;
   }
 
   prepareToRemove(id: number) {
