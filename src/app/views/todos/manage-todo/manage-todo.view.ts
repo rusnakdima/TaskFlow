@@ -9,7 +9,6 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { firstValueFrom, Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -383,12 +382,11 @@ export class ManageTodoView implements OnInit {
       const newVisibility = this.form.get("visibility")?.value as "private" | "team";
       const originalVisibility = this.isPrivate ? "private" : "team";
       const visibilityChanged = originalVisibility !== newVisibility;
-      const isPrivate = newVisibility === "private";
 
       this.dataSyncProvider
         .update<Todo>("todo", body.id, body, {
           isOwner: true,
-          isPrivate: !isPrivate,
+          isPrivate: !this.isPrivate,
         })
         .subscribe({
           next: async (result) => {
@@ -400,9 +398,10 @@ export class ManageTodoView implements OnInit {
                 this.notifyService.showWarning("Todo updated, but sync may not have completed.");
               }
             }
+            this.isPrivate = !this.isPrivate;
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Todo updated successfully");
-            this.back();
+            // this.back();
           },
           error: (err) => {
             console.error("Failed to update todo:", err);

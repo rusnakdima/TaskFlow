@@ -1,15 +1,10 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, Inject, OnInit, signal } from "@angular/core";
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from "@angular/forms";
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from "@angular/material/dialog";
 import { firstValueFrom } from "rxjs";
+import { ActivatedRoute } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -23,8 +18,6 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
 import { Profile } from "@models/profile.model";
 import { Response, ResponseStatus } from "@models/response.model";
 
@@ -33,12 +26,11 @@ import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@services/data-sync.provider";
-import { SyncService } from "@services/sync.service";
 
 @Component({
   selector: "app-share-dialog",
   standalone: true,
-  providers: [AuthService, MainService, DataSyncProvider, SyncService],
+  providers: [AuthService, MainService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -58,11 +50,11 @@ import { SyncService } from "@services/sync.service";
 export class ShareDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
+    private route: ActivatedRoute,
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
-    private syncService: SyncService,
     private dialogRef: MatDialogRef<ShareDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { todo: Todo }
   ) {
@@ -78,8 +70,17 @@ export class ShareDialogComponent implements OnInit {
   availableProfiles = signal<Profile[]>([]);
   userSearchQuery = signal("");
 
+  isPrivate: boolean = true;
+
   ngOnInit() {
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.isPrivate !== undefined) {
+        this.isPrivate = queryParams.isPrivate === "true";
+      }
+    });
+
     this.userId.set(this.authService.getValueByKey("id"));
+
     if (this.userId() && this.userId() != "") {
       this.fetchProfiles();
     }
@@ -159,13 +160,12 @@ export class ShareDialogComponent implements OnInit {
       const currentVisibility = this.data.todo.visibility;
       const newVisibility = formValue.visibility;
       const visibilityChanged = currentVisibility !== newVisibility;
-      const isPrivate = newVisibility === "private";
 
       try {
         const result = await firstValueFrom(
           this.dataSyncProvider.update<Todo>("todo", this.data.todo.id, body, {
             isOwner: true,
-            isPrivate: isPrivate,
+            isPrivate: !this.isPrivate,
           })
         );
 
