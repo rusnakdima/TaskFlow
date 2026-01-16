@@ -73,6 +73,29 @@
   </provides>
 
   <releases>
+    <release version="0.9.0" date="2026-01-16">
+      <description>
+        <p>Enhanced real-time data synchronization with WebSocket integration for improved
+          collaborative task management and shared project updates.</p>
+        <p>Implemented Angular signals throughout the application for better reactivity and
+          performance in task management components.</p>
+        <p>Added comprehensive admin features including category records management and bulk
+          selection capabilities for better data administration.</p>
+        <p>Improved task sharing functionality with enhanced privacy controls, ownership
+          verification, and query parameter handling.</p>
+        <p>Refactored routing system with flattened nested routes and enhanced component safety for
+          better navigation experience.</p>
+        <p>Added sync metadata support across statistics, tasks, and subtasks for better data
+          tracking and synchronization.</p>
+        <p>Integrated activity logging system for comprehensive task activity monitoring and history
+          tracking.</p>
+        <p>Enhanced form validation and UI responsiveness with improved date handling, optional
+          fields, and better mobile layouts.</p>
+        <p>Optimized API services with flexible filter parameters and standardized method calls for
+          improved maintainability.</p>
+        <p>Updated dependencies and Rust code formatting for better performance and security.</p>
+      </description>
+    </release>
     <release version="0.8.0" date="2026-01-08">
       <description>
         <p>Enhanced user experience with mobile-responsive calendar layout and improved component
