@@ -135,7 +135,7 @@ export class WebSocketService {
 
   joinTodoRoom(todoId: string): void {
     if (this.socket && this.isConnected()) {
-      this.socket.emit("join-todo-room", { todoId });
+      this.socket.emit("join-room", { todoId });
     }
   }
 

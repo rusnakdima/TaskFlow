@@ -29,15 +29,16 @@ import { NotifyService } from "@services/notify.service";
   templateUrl: "./login.view.html",
 })
 export class LoginView {
-  logForm: FormGroup<any>;
+  loginForm: FormGroup<any>;
+  isLoading = false;
 
   constructor(
     private fb: FormBuilder,
-    private router: Router,
     private authService: AuthService,
+    private router: Router,
     private notifyService: NotifyService
   ) {
-    this.logForm = fb.group({
+    this.loginForm = this.fb.group({
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
       password: ["", [Validators.required, Validators.minLength(6)]],
       remember: [false],
@@ -54,7 +55,7 @@ export class LoginView {
   }
 
   get f() {
-    return this.logForm.controls;
+    return this.loginForm.controls;
   }
 
   isInvalid(attr: string) {
@@ -64,13 +65,14 @@ export class LoginView {
   async send() {
     this.submitted.set(true);
 
-    if (this.logForm.invalid) {
-      Object.values(this.logForm.controls).forEach((control) => {
+    if (this.loginForm.invalid) {
+      Object.values(this.loginForm.controls).forEach((control: any) => {
         control.markAsTouched();
       });
+      return;
     }
 
-    if (this.logForm.valid) {
+    if (this.loginForm.valid) {
       const authData: LoginForm = {
         username: this.f["username"].value,
         password: this.f["password"].value,
