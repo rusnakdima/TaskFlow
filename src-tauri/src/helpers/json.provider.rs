@@ -421,6 +421,23 @@ impl JsonProvider {
     data: Value,
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let mut listRecords = self.getDataTable(nameTable).await?;
+
+    if nameTable == "daily_activities" {
+      if let (Some(userId), Some(date)) = (
+        data.get("userId").and_then(|v| v.as_str()),
+        data.get("date").and_then(|v| v.as_str()),
+      ) {
+        let filter = json!({ "userId": userId, "date": date });
+        let existing = self.getAll(nameTable, Some(filter), None).await?;
+        if !existing.is_empty() {
+          return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "Record already exists",
+          )));
+        }
+      }
+    }
+
     listRecords.push(data);
     self.saveDataTable(nameTable, &listRecords).await?;
 
