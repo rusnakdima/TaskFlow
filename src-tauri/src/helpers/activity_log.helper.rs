@@ -72,17 +72,44 @@ impl ActivityLogHelper {
       Err(_) => {}
     }
 
-    let createModel = DailyActivityCreateModel { userId, date };
+    let createModel = DailyActivityCreateModel {
+      userId: userId.clone(),
+      date: date.clone(),
+    };
     let model: DailyActivityModel = createModel.into();
     let record: Value = to_value(&model).unwrap();
 
     match self.jsonProvider.create("daily_activities", record).await {
       Ok(_) => Ok(model),
-      Err(error) => Err(ResponseModel {
-        status: crate::models::response_model::ResponseStatus::Error,
-        message: format!("Couldn't create daily activity! {}", error.to_string()),
-        data: crate::models::response_model::DataValue::String("".to_string()),
-      }),
+      Err(error) => {
+        if error.to_string().contains("already exists") {
+          let existing = self
+            .jsonProvider
+            .getAll(
+              "daily_activities",
+              Some(serde_json::json!({ "userId": userId, "date": date })),
+              None,
+            )
+            .await;
+          match existing {
+            Ok(activities) => {
+              if let Some(activityValue) = activities.first() {
+                if let Ok(activity) =
+                  serde_json::from_value::<DailyActivityModel>(activityValue.clone())
+                {
+                  return Ok(activity);
+                }
+              }
+            }
+            _ => {}
+          }
+        }
+        Err(ResponseModel {
+          status: crate::models::response_model::ResponseStatus::Error,
+          message: format!("Couldn't create daily activity! {}", error.to_string()),
+          data: crate::models::response_model::DataValue::String("".to_string()),
+        })
+      }
     }
   }
 
