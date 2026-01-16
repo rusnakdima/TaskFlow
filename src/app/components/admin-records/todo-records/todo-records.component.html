@@ -19,7 +19,7 @@
               </div>
               @if (todo.user) {
                 <div class="text-sm textMuted mt-1">
-                  User: {{ todo.user.profile?.name }} {{ todo.user.profile?.lastName }} ({{
+                  User: {{ todo.user.profile.name }} {{ todo.user.profile.lastName }} ({{
                     todo.user.username
                   }})
                 </div>
@@ -69,11 +69,11 @@
                 }
                 <div>
                   <span class="font-medium textMuted">Tasks Count:</span>
-                  <span class="textNormal ml-2">{{ todo.tasks?.length || 0 }}</span>
+                  <span class="textNormal ml-2">{{ todo.tasks.length || 0 }}</span>
                 </div>
                 <div>
                   <span class="font-medium textMuted">Assignees Count:</span>
-                  <span class="textNormal ml-2">{{ todo.assignees?.length || 0 }}</span>
+                  <span class="textNormal ml-2">{{ todo.assignees.length || 0 }}</span>
                 </div>
                 <div>
                   <span class="font-medium textMuted">Order:</span>
