@@ -56,13 +56,13 @@
                 <p class="text-sm textNormal mt-1">{{ subtask.taskId }}</p>
               </div>
             }
-            @if (subtask.task?.title) {
+            @if (subtask.task.title) {
               <div>
                 <span class="text-sm font-medium textMuted">Task Title:</span>
                 <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.title }}</p>
               </div>
             }
-            @if (subtask.task?.todo?.title) {
+            @if (subtask.task.todo.title) {
               <div>
                 <span class="text-sm font-medium textMuted">Todo Title:</span>
                 <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.todo.title }}</p>
