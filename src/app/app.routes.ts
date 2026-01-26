@@ -110,6 +110,13 @@ export const routes: Routes = [
   },
 
   {
+    path: "admin",
+    component: AdminView,
+    title: "Admin",
+    data: { breadcrumb: "Admin" },
+    canActivate: [canActivateAuth],
+  },
+  {
     path: "profile",
     title: "Profile",
     data: { breadcrumb: "Profile" },
