@@ -14,7 +14,10 @@ pub struct UserModel {
   pub username: String,
   pub password: String,
   pub role: String,
+  #[serde(default)]
   pub temporaryCode: String,
+  #[serde(default)]
+  pub codeExpiresAt: String,
   pub profileId: String,
   pub createdAt: String,
   pub updatedAt: String,
@@ -27,7 +30,10 @@ pub struct UserCreateModel {
   pub username: String,
   pub password: String,
   pub role: String,
+  #[serde(default)]
   pub temporaryCode: String,
+  #[serde(default)]
+  pub codeExpiresAt: String,
   pub profileId: String,
 }
 
@@ -44,6 +50,7 @@ impl From<UserCreateModel> for UserModel {
       password: value.password,
       role: value.role,
       temporaryCode: value.temporaryCode,
+      codeExpiresAt: value.codeExpiresAt,
       profileId: value.profileId,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
@@ -60,7 +67,10 @@ pub struct UserUpdateModel {
   pub username: String,
   pub password: String,
   pub role: String,
+  #[serde(default)]
   pub temporaryCode: String,
+  #[serde(default)]
+  pub codeExpiresAt: String,
   pub profileId: String,
   pub createdAt: String,
   pub updatedAt: String,
@@ -79,6 +89,7 @@ impl From<UserUpdateModel> for UserModel {
       password: value.password,
       role: value.role,
       temporaryCode: value.temporaryCode,
+      codeExpiresAt: value.codeExpiresAt,
       profileId: value.profileId,
       createdAt: value.createdAt,
       updatedAt: formatted.clone(),
@@ -95,7 +106,10 @@ pub struct UserFullModel {
   pub username: String,
   pub password: String,
   pub role: String,
+  #[serde(default)]
   pub temporaryCode: String,
+  #[serde(default)]
+  pub codeExpiresAt: String,
   pub profile: ProfileFullModel,
   pub createdAt: String,
   pub updatedAt: String,

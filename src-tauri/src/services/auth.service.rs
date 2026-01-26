@@ -308,6 +308,7 @@ impl AuthService {
           },
           role: "user".to_string(),
           temporaryCode: "".to_string(),
+          codeExpiresAt: "".to_string(),
           profileId: "".to_string(),
           createdAt: chrono::Utc::now().to_string(),
           updatedAt: chrono::Utc::now().to_string(),
@@ -368,6 +369,8 @@ impl AuthService {
     {
       Ok(userDoc) => {
         let code = format!("{:06}", rand::random::<u32>() % 1000000);
+        let expires_at =
+          (Utc::now() + Duration::minutes(15)).to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
 
         let emailService = EmailProvider::fromConfig(config)?;
         emailService.sendPasswordResetCode(&email, &code).await?;
@@ -383,6 +386,7 @@ impl AuthService {
 
         let updateData = doc! {
           "temporaryCode": code.clone(),
+          "codeExpiresAt": expires_at,
           "updatedAt": chrono::Utc::now().to_string()
         };
 
@@ -450,7 +454,8 @@ impl AuthService {
 
     let filter = doc! {
       "email": resetData.email.clone(),
-      "temporaryCode": resetData.code.clone()
+      "temporaryCode": resetData.code.clone(),
+      "codeExpiresAt": { "$gt": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false) }
     };
     match self
       .mongodbProvider
@@ -476,6 +481,7 @@ impl AuthService {
         let updateData = doc! {
           "password": hashedPassword,
           "temporaryCode": "",
+          "codeExpiresAt": "",
           "updatedAt": chrono::Utc::now().to_string()
         };
 
