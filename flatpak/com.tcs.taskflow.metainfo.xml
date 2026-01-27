@@ -73,6 +73,15 @@
   </provides>
 
   <releases>
+    <release version="0.9.2" date="2026-01-27">
+      <description>
+        <p>Included both private and shared tasks in the calendar display.</p>
+        <p>Implemented a 5-second task highlight effect when redirecting from the calendar to the task
+          list.</p>
+        <p>Added automatic scrolling to ensure the target task is within the visible area upon
+          redirection.</p>
+      </description>
+    </release>
     <release version="0.9.1" date="2026-01-26">
       <description>
         <p>Fixed 404 error when navigating to Admin page from header menu.</p>
