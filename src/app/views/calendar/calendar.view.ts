@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
+import { forkJoin } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -26,6 +27,8 @@ interface CalendarEvent {
   status: string;
   description?: string;
   todoId: string;
+  isPrivate: boolean;
+  isOwner: boolean;
 }
 
 @Component({
@@ -81,16 +84,37 @@ export class CalendarView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.dataSyncProvider
-        .getAll<Todo>("todo", { userId }, { isOwner: true, isPrivate: true })
-        .subscribe({
-          next: (todos) => {
-            this.processTodosData(todos);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load calendar data");
-          },
-        });
+      forkJoin({
+        privateTodos: this.dataSyncProvider.getAll<Todo>(
+          "todo",
+          { userId },
+          { isOwner: true, isPrivate: true }
+        ),
+        sharedOwnedTodos: this.dataSyncProvider.getAll<Todo>(
+          "todo",
+          { userId, visibility: "team" },
+          { isOwner: true, isPrivate: false }
+        ),
+        sharedAssignedTodos: this.dataSyncProvider.getAll<Todo>(
+          "todo",
+          { assignee: userId, visibility: "team" },
+          { isOwner: false, isPrivate: false }
+        ),
+      }).subscribe({
+        next: (result) => {
+          const allTodos = [
+            ...result.privateTodos,
+            ...result.sharedOwnedTodos,
+            ...result.sharedAssignedTodos,
+          ];
+          // Remove duplicates if any (though unlikely with these filters)
+          const uniqueTodos = Array.from(new Map(allTodos.map((item) => [item.id, item])).values());
+          this.processTodosData(uniqueTodos);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load calendar data");
+        },
+      });
     }
   }
 
@@ -109,8 +133,12 @@ export class CalendarView implements OnInit {
 
   processCalendarEvents(tasks: Array<Task>): void {
     const newEvents: CalendarEvent[] = [];
+    const userId: string = this.authService.getValueByKey("id");
 
     tasks.forEach((task) => {
+      const isPrivate = task.todo.visibility === "private";
+      const isOwner = task.todo.userId === userId;
+
       if (task.startDate) {
         newEvents.push({
           id: task.id!,
@@ -120,6 +148,8 @@ export class CalendarView implements OnInit {
           status: "start",
           description: task.description,
           todoId: task.todo.id,
+          isPrivate,
+          isOwner,
         });
       }
 
@@ -146,6 +176,8 @@ export class CalendarView implements OnInit {
                   : "due",
           description: task.description,
           todoId: task.todo.id,
+          isPrivate,
+          isOwner,
         });
       }
     });
@@ -375,7 +407,13 @@ export class CalendarView implements OnInit {
   }
 
   navigateToTasks(event: CalendarEvent): void {
-    this.router.navigate(["/todos", event.todoId, "tasks"]);
+    this.router.navigate(["/todos", event.todoId, "tasks"], {
+      queryParams: {
+        highlightTaskId: event.id,
+        isPrivate: event.isPrivate,
+        isOwner: event.isOwner,
+      },
+    });
   }
 
   getWeeksForMobile(): Array<

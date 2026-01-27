@@ -63,6 +63,8 @@ export class TasksView implements OnInit {
   editingField = signal<string | null>(null);
   editingValue = signal("");
 
+  highlightTaskId = signal<string | null>(null);
+
   filterOptions = [
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
@@ -83,6 +85,13 @@ export class TasksView implements OnInit {
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
+      }
+
+      if (queryParams.highlightTaskId) {
+        this.highlightTaskId.set(queryParams.highlightTaskId);
+        setTimeout(() => {
+          this.highlightTaskId.set(null);
+        }, 5000);
       }
     });
 
@@ -235,6 +244,15 @@ export class TasksView implements OnInit {
     }
     filtered.sort((a, b) => b.order - a.order);
     this.listTasks.set(filtered);
+
+    if (this.highlightTaskId()) {
+      setTimeout(() => {
+        const element = document.getElementById("task-" + this.highlightTaskId());
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+    }
   }
 
   updateTaskInline(event: { task: Task; field: string; value: string }) {
