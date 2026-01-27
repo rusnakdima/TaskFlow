@@ -28,6 +28,7 @@ export class TaskComponent {
   @Input() index: number = 0;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
+  @Input() highlight: boolean = false;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();

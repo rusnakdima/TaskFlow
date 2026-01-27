@@ -78,10 +78,12 @@
     >
       @for (task of listTasks(); track $index) {
         <app-task
+          [id]="'task-' + task.id"
           [task]="task"
           [index]="$index"
           [isOwner]="isOwner"
           [isPrivate]="isPrivate"
+          [highlight]="highlightTaskId() === task.id"
           (deleteTaskEvent)="deleteTask($event)"
           (toggleCompletionEvent)="toggleTaskCompletion($event)"
           (updateTaskEvent)="updateTaskInline($event)"
