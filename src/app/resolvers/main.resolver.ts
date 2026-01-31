@@ -8,7 +8,7 @@ import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 
 /* services */
-import { DataSyncProvider } from "./data-sync.provider";
+import { DataSyncProvider } from "../providers/data-sync.provider";
 
 @Injectable({
   providedIn: "root",
