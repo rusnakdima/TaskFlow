@@ -17,7 +17,9 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 interface CalendarEvent {
   id: string;

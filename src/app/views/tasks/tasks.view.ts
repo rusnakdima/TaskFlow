@@ -18,7 +18,9 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
