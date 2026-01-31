@@ -25,7 +25,9 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-share-dialog",

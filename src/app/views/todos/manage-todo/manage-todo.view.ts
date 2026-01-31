@@ -31,7 +31,9 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import { normalizeTodoDates } from "@helpers/date-conversion.helper";

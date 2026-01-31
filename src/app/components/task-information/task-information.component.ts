@@ -12,7 +12,9 @@ import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { NotifyService } from "@services/notify.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
 import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";

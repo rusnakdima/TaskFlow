@@ -23,7 +23,9 @@ import { Todo } from "@models/todo.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
-import { DataSyncProvider } from "@services/data-sync.provider";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 interface PriorityOption {
   value: PriorityTask;
