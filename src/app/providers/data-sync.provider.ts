@@ -7,10 +7,10 @@ import { map } from "rxjs/operators";
 import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
-import { MainService } from "./main.service";
-import { AuthService } from "./auth.service";
-import { WebSocketService } from "./websocket.service";
-import { SyncService } from "./sync.service";
+import { MainService } from "../services/main.service";
+import { AuthService } from "../services/auth.service";
+import { WebSocketService } from "../services/websocket.service";
+import { SyncService } from "../services/sync.service";
 
 @Injectable({
   providedIn: "root",
