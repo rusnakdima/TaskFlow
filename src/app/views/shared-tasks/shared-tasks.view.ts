@@ -144,6 +144,18 @@ export class SharedTasksView implements OnInit {
     return todo.userId === this.authService.getValueByKey("id");
   }
 
+  deleteTodoById(todoId: string, isOwner: boolean): void {
+    this.dataSyncProvider.delete("todo", todoId, { isOwner, isPrivate: false }).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess("Project deleted successfully");
+        this.loadSharedProjects();
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete project");
+      },
+    });
+  }
+
   inviteMember(): void {
     this.notifyService.showSuccess("Invite functionality would be implemented here");
   }
