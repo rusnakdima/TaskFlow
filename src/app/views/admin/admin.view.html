@@ -12,8 +12,7 @@
     @for (type of dataTypes; track type.id) {
       <button
         class="flex flex-row gap-x-2 styleFloatBut w-full"
-        [class.bg-gray-300]="isDesktop && selectedType() === type.id"
-        [class.dark:bg-zinc-700]="isDesktop && selectedType() === type.id"
+        [ngClass]="isDesktop && selectedType() === type.id ? 'bg-gray-300 dark:bg-zinc-700' : ''"
         (click)="selectDataType(type.id)"
       >
         <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
@@ -29,7 +28,7 @@
           }
           <mat-icon
             class="w-5! h-5! text-xl! textMuted"
-            [class.rotate-90]="!isDesktop && selectedType() === type.id"
+            [ngClass]="!isDesktop && selectedType() === type.id ? 'rotate-90' : ''"
             fontIcon="chevron_right"
           />
         </div>
@@ -338,8 +337,7 @@
 
   <div
     class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
-    [class.flex]="showFilters()"
-    [class.hidden]="!showFilters()"
+    [ngClass]="showFilters() ? 'flex' : 'hidden'"
   >
     <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
   </div>
