@@ -9,7 +9,11 @@ import { INotify, ResponseStatus } from "@models/response.model";
   providedIn: "root",
 })
 export class NotifyService {
-  protected notify = new Subject<INotify>();
+  private notify = new Subject<INotify>();
+
+  getNotifySubject(): Subject<INotify> {
+    return this.notify;
+  }
 
   showNotify(status: ResponseStatus, message: string) {
     try {
