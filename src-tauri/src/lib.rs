@@ -131,10 +131,13 @@ pub fn run() {
         Arc::new(subtaskController.subtaskService.clone()),
       ));
 
-      let wsClone = webSocketServerService.clone();
-      tauri::async_runtime::spawn(async move {
-        wsClone.start(8766).await;
-      });
+      #[cfg(not(mobile))]
+      {
+        let wsClone = webSocketServerService.clone();
+        tauri::async_runtime::spawn(async move {
+          wsClone.start(8766).await;
+        });
+      }
 
       app.manage(AppState {
         managedbController,
