@@ -33,6 +33,7 @@ import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { SyncService } from "@services/sync.service";
+import { NotificationCenterService } from "@services/notification-center.service";
 
 interface Breadcrumb {
   label: string;
@@ -54,6 +55,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private notifyService: NotifyService,
     private syncService: SyncService,
+    private notificationService: NotificationCenterService,
     private cdr: ChangeDetectorRef,
     private location: Location
   ) {}
@@ -74,7 +76,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   isBack = signal(false);
   showUserMenu = signal(false);
+  showNotificationMenu = signal(false);
   isSyncing = signal(false);
+
+  notifications = this.notificationService.notifications;
+  unreadCount = this.notificationService.unreadCount;
 
   breadcrumbs = signal<Breadcrumb[]>([]);
   private syncSubscription: Subscription | null = null;
@@ -221,10 +227,36 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   toggleUserMenu() {
     this.showUserMenu.set(!this.showUserMenu());
+    if (this.showUserMenu()) {
+      this.showNotificationMenu.set(false);
+    }
   }
 
   closeUserMenu() {
     this.showUserMenu.set(false);
+  }
+
+  toggleNotificationMenu() {
+    this.showNotificationMenu.set(!this.showNotificationMenu());
+    if (this.showNotificationMenu()) {
+      this.showUserMenu.set(false);
+    }
+  }
+
+  closeNotificationMenu() {
+    this.showNotificationMenu.set(false);
+  }
+
+  markAsRead(id: string) {
+    this.notificationService.markAsRead(id);
+  }
+
+  markAllAsRead() {
+    this.notificationService.markAllAsRead();
+  }
+
+  clearNotifications() {
+    this.notificationService.clearAll();
   }
 
   async syncAll() {
