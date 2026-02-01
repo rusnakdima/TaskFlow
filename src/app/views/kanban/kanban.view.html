@@ -1,0 +1,247 @@
+<div class="flex flex-col gap-6">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Kanban Board</h1>
+      <p class="textMuted mt-1">Visualize and manage your tasks with drag-and-drop simplicity.</p>
+    </div>
+
+    <div class="flex flex-row items-center gap-3">
+      <div class="hidden sm:flex flex-col items-end mr-2">
+        <span class="text-[10px] uppercase tracking-wider textMuted font-bold">Active Project</span>
+        <span class="text-sm font-medium textNormal">{{ selectedProjectTitle() }}</span>
+      </div>
+
+      <button
+        [matMenuTriggerFor]="projectMenu"
+        class="rounded-xl h-12 px-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-inherit"
+      >
+        <div class="flex items-center gap-2">
+          <mat-icon class="size-5! text-xl! text-blue-500" fontIcon="folder_open" />
+          <span class="font-semibold">Switch Project</span>
+          <mat-icon class="size-4! text-base!" fontIcon="expand_more" />
+        </div>
+      </button>
+
+      <mat-menu
+        #projectMenu="matMenu"
+        class="rounded-xl mt-2 overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-700"
+      >
+        <div
+          class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest textMuted border-b border-zinc-100 dark:border-zinc-700/50 mb-1"
+        >
+          Your Projects
+        </div>
+        @for (todo of todos(); track todo.id) {
+          <button
+            (click)="onTodoChange(todo.id)"
+            class="flex items-center gap-3 p-3 w-full"
+            [ngClass]="selectedTodoId() === todo.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+          >
+            <mat-icon
+              class="size-5! text-xl!"
+              [ngClass]="selectedTodoId() === todo.id ? 'text-blue-500!' : 'text-gray-400!'"
+              [fontIcon]="selectedTodoId() === todo.id ? 'check_circle' : 'circle'"
+            />
+            <span [class.font-bold]="selectedTodoId() === todo.id">{{ todo.title }}</span>
+          </button>
+        }
+        @if (todos().length === 0) {
+          <div class="px-4 py-3 text-sm textMuted italic">No projects found</div>
+        }
+      </mat-menu>
+    </div>
+  </div>
+
+  @if (selectedTodoId()) {
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      @for (column of columns; track column.id) {
+        <div
+          class="rounded-xl p-6 text-white shadow-lg cursor-pointer"
+          [ngClass]="getColumnColorClass(column.id)"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/80 text-sm">{{ column.label }}</p>
+              <p class="text-2xl font-bold">{{ getTasksByStatus(column.id).length }}</p>
+            </div>
+            <div class="bg-white/20 rounded-lg p-3">
+              <mat-icon class="size-6! text-2xl!" [fontIcon]="column.icon" />
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold textNormal">Task Board</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-sm textMuted">{{ tasks().length }} tasks total</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto pb-4">
+        <div class="flex flex-row gap-x-3 min-w-max">
+          @for (column of columns; track column.id) {
+            <div class="flex flex-col w-80">
+              <div class="rounded-t-xl p-4 text-white" [ngClass]="getColumnColorClass(column.id)">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="size-5! text-xl!" [fontIcon]="column.icon" />
+                    <h3 class="font-semibold">{{ column.label }}</h3>
+                  </div>
+                  <span class="bg-white/20 px-2 py-1 rounded-full text-sm">
+                    {{ getTasksByStatus(column.id).length }}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="flex flex-col gap-y-3 p-3 rounded-b-xl bg-gray-50 dark:bg-zinc-700/50 min-h-[200px] max-h-[600px] overflow-y-auto custom-scrollbar"
+                cdkDropList
+                [cdkDropListData]="getTasksByStatus(column.id)"
+                [cdkDropListConnectedTo]="getConnectedDropLists(column.id)"
+                (cdkDropListDropped)="onTaskDrop($event, column.id)"
+                [id]="'cdk-drop-list-' + column.id"
+              >
+                @for (task of getTasksByStatus(column.id); track task.id) {
+                  <div
+                    class="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-600 hover:shadow-md cursor-pointer group"
+                    (click)="navigateToTask(task)"
+                    cdkDrag
+                    [cdkDragData]="task"
+                  >
+                    <div class="mb-2">
+                      <h4 class="font-medium text-sm textNormal line-clamp-2">{{ task.title }}</h4>
+                    </div>
+
+                    @if (task.description) {
+                      <p class="text-xs textMuted line-clamp-2 mb-3">{{ task.description }}</p>
+                    }
+
+                    <div
+                      class="flex items-center justify-between mt-auto pt-2 border-t-2 border-gray-200! dark:border-zinc-700!"
+                    >
+                      <div class="flex space-x-1">
+                        @for (targetCol of columns; track targetCol.id) {
+                          @if (targetCol.id !== column.id) {
+                            <button
+                              (click)="moveTask(task.id, targetCol.id); $event.stopPropagation()"
+                              class="p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors"
+                              [title]="'Move to ' + targetCol.label"
+                            >
+                              <mat-icon
+                                class="size-5! text-xl! text-gray-400"
+                                [fontIcon]="targetCol.icon"
+                              />
+                            </button>
+                          }
+                        }
+                      </div>
+
+                      <div class="flex items-center gap-3">
+                        <button
+                          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-400 cursor-move"
+                          cdkDragHandle
+                          (click)="$event.stopPropagation()"
+                          title="Drag to move"
+                        >
+                          <mat-icon class="size-5! text-xl!" fontIcon="drag_indicator" />
+                        </button>
+
+                        <div class="flex items-center gap-1">
+                          <mat-icon
+                            class="size-5! text-base! text-gray-400"
+                            fontIcon="calendar_today"
+                          />
+                          <span class="text-sm text-gray-400">{{
+                            task.endDate | date: "shortDate"
+                          }}</span>
+                        </div>
+
+                        @if (task.assignees && task.assignees.length > 0) {
+                          <div class="flex items-center -space-x-2">
+                            @for (assignee of task.assignees.slice(0, 3); track assignee) {
+                              <div
+                                class="w-6 h-6 rounded-full border-2 border-white dark:border-zinc-800 flex items-center justify-center text-[10px] text-white font-bold"
+                                [ngClass]="getAssigneeColor(assignee)"
+                                [title]="assignee"
+                              >
+                                {{ getInitials(assignee) }}
+                              </div>
+                            }
+                            @if (task.assignees.length > 3) {
+                              <div
+                                class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white dark:border-zinc-800 flex items-center justify-center text-[10px] text-white font-bold"
+                              >
+                                +{{ task.assignees.length - 3 }}
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (getTasksByStatus(column.id).length === 0) {
+                  <div
+                    class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 dark:border-zinc-600 rounded-lg text-gray-400"
+                  >
+                    <mat-icon class="size-8! text-4xl! mb-2 opacity-50" fontIcon="inbox" />
+                    <span class="text-xs">No tasks</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+    >
+      <div class="bg-gray-100 dark:bg-zinc-700/50 p-8 rounded-full mb-4 inline-flex">
+        <mat-icon class="size-16! text-6xl! textMuted" fontIcon="view_kanban" />
+      </div>
+      <h2 class="text-xl font-medium textNormal mb-2">Select a Project</h2>
+      <p class="text-sm textMuted max-w-md mx-auto">
+        Choose a project from the dropdown above to view and manage its tasks in the kanban board.
+      </p>
+    </div>
+  }
+
+  @if (loading()) {
+    <div
+      class="fixed inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-50 backdrop-blur-[2px]"
+    >
+      <div
+        class="flex flex-col items-center space-y-2 bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-lg"
+      >
+        <div
+          class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+        ></div>
+        <span class="text-sm font-medium textNormal">Loading tasks...</span>
+      </div>
+    </div>
+  }
+</div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
+  }
+</style>

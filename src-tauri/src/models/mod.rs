@@ -37,3 +37,6 @@ pub mod sync_metadata_model;
 
 #[path = "provider_type.model.rs"]
 pub mod provider_type_model;
+
+#[path = "websocket.model.rs"]
+pub mod websocket_model;

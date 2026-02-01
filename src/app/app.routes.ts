@@ -2,7 +2,7 @@
 import { ActivatedRouteSnapshot, Routes } from "@angular/router";
 
 /* reslver */
-import { MainResolver } from "@services/main.resolver";
+import { MainResolver } from "@resolvers/main.resolver";
 
 /* guards */
 import { canActivateAuth } from "@guards/auth.guard";
@@ -20,6 +20,7 @@ import { StatsView } from "@views/stats/stats.view";
 import { AboutView } from "@views/about/about.view";
 import { SyncView } from "@views/sync/sync.view";
 import { CategoriesView } from "@views/categories/categories.view";
+import { KanbanView } from "@views/kanban/kanban.view";
 
 import { TodosView } from "@views/todos/todos.view";
 import { TasksView } from "@views/tasks/tasks.view";
@@ -65,7 +66,13 @@ export const routes: Routes = [
     data: { breadcrumb: "Shared Projects" },
     canActivate: [canActivateAuth],
   },
-
+  {
+    path: "kanban",
+    component: KanbanView,
+    title: "Kanban Board",
+    data: { breadcrumb: "Kanban" },
+    canActivate: [canActivateAuth],
+  },
   {
     path: "about",
     component: AboutView,
@@ -169,7 +176,9 @@ export const routes: Routes = [
         path: ":todoId/tasks",
         component: TasksView,
         title: "Tasks",
-        data: { breadcrumb: async (route: ActivatedRouteSnapshot) => route.data },
+        data: {
+          breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
+        },
         resolve: {
           todo: MainResolver,
         },
@@ -193,7 +202,9 @@ export const routes: Routes = [
         path: ":todoId/tasks/:taskId/subtasks",
         component: SubtasksView,
         title: "Task",
-        data: { breadcrumb: async (route: ActivatedRouteSnapshot) => route.data },
+        data: {
+          breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
+        },
         resolve: {
           task: MainResolver,
         },

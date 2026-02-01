@@ -12,7 +12,7 @@ import { User } from "@models/user.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
-import { WebSocketService } from "@services/websocket.service";
+import { LocalWebSocketService } from "@services/local-websocket.service";
 
 /* components */
 import { HeaderComponent } from "@components/header/header.component";
@@ -22,7 +22,7 @@ import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component"
 @Component({
   selector: "app-root",
   standalone: true,
-  providers: [AuthService, MainService, WebSocketService],
+  providers: [AuthService, MainService, LocalWebSocketService],
   imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent, BottomNavComponent],
   templateUrl: "./app.html",
 })
@@ -32,14 +32,14 @@ export class App {
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
-    private webSocketService: WebSocketService
+    private localWs: LocalWebSocketService
   ) {}
 
   url = signal<string>("");
 
   ngOnInit(): void {
-    this.webSocketService.getConnectionStatus().subscribe((connected) => {
-      console.log("App: WebSocket connection status:", connected);
+    this.localWs.getConnectionStatus().subscribe((connected) => {
+      console.log("App: Local WebSocket connection status:", connected);
     });
 
     const theme = localStorage.getItem("theme") ?? "";
@@ -67,7 +67,7 @@ export class App {
             // Set current user for WebSocket connection
             const userId = this.authService.getValueByKey("id");
             if (userId) {
-              this.webSocketService.setCurrentUser(userId);
+              // this.localWs.setCurrentUser(userId);
             }
             this.checkUserProfile();
           } else {

@@ -42,6 +42,7 @@ use controllers::{
 };
 
 /* services */
+use services::websocket_server_service::WebSocketServerService;
 
 #[allow(non_snake_case)]
 pub struct AppState {
@@ -55,6 +56,7 @@ pub struct AppState {
   pub subtaskController: Arc<SubtaskController>,
   pub statisticsController: Arc<StatisticsController>,
   pub activityLogHelper: Arc<ActivityLogHelper>,
+  pub webSocketServerService: Arc<WebSocketServerService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -91,6 +93,49 @@ pub fn run() {
         mongodbProvider.clone(),
       ));
 
+      let todoController = Arc::new(TodoController::new(
+        jsonProvider.clone(),
+        mongodbProvider
+          .clone()
+          .expect("MongoDB provider required for TaskController"),
+        (*activityLogHelper).clone(),
+      ));
+
+      let taskController = Arc::new(TaskController::new(
+        jsonProvider.clone(),
+        mongodbProvider
+          .clone()
+          .expect("MongoDB provider required for TaskController"),
+        (*activityLogHelper).clone(),
+      ));
+
+      let subtaskController = Arc::new(SubtaskController::new(
+        jsonProvider.clone(),
+        mongodbProvider
+          .clone()
+          .expect("MongoDB provider required for SubtaskController"),
+        (*activityLogHelper).clone(),
+      ));
+
+      let statisticsController = Arc::new(StatisticsController::new(
+        jsonProvider.clone(),
+        mongodbProvider
+          .clone()
+          .expect("MongoDB provider required for StatisticsController"),
+        (*activityLogHelper).clone(),
+      ));
+
+      let webSocketServerService = Arc::new(WebSocketServerService::new(
+        Arc::new(todoController.todoService.clone()),
+        Arc::new(taskController.taskService.clone()),
+        Arc::new(subtaskController.subtaskService.clone()),
+      ));
+
+      let wsClone = webSocketServerService.clone();
+      tauri::async_runtime::spawn(async move {
+        wsClone.start(8766).await;
+      });
+
       app.manage(AppState {
         managedbController,
         aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
@@ -103,35 +148,12 @@ pub fn run() {
         )),
         profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
         categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
-        todoController: Arc::new(TodoController::new(
-          jsonProvider.clone(),
-          mongodbProvider
-            .clone()
-            .expect("MongoDB provider required for TaskController"),
-          (*activityLogHelper).clone(),
-        )),
-        taskController: Arc::new(TaskController::new(
-          jsonProvider.clone(),
-          mongodbProvider
-            .clone()
-            .expect("MongoDB provider required for TaskController"),
-          (*activityLogHelper).clone(),
-        )),
-        subtaskController: Arc::new(SubtaskController::new(
-          jsonProvider.clone(),
-          mongodbProvider
-            .clone()
-            .expect("MongoDB provider required for SubtaskController"),
-          (*activityLogHelper).clone(),
-        )),
-        statisticsController: Arc::new(StatisticsController::new(
-          jsonProvider.clone(),
-          mongodbProvider
-            .clone()
-            .expect("MongoDB provider required for StatisticsController"),
-          (*activityLogHelper).clone(),
-        )),
+        todoController,
+        taskController,
+        subtaskController,
+        statisticsController,
         activityLogHelper,
+        webSocketServerService,
       });
 
       Ok(())

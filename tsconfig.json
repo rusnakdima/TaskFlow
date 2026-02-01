@@ -24,7 +24,7 @@
       "@helpers/*": ["./src/app/helpers/*"],
       "@models/*": ["./src/app/models/*"],
       "@providers/*": ["./src/app/providers/*"],
-      "@resover/*": ["./src/app/resover/*"],
+      "@resolvers/*": ["./src/app/resolvers/*"],
       "@services/*": ["./src/app/services/*"],
       "@env/*": ["./src/environments/*"],
       "@components/*": ["./src/app/components/*"],

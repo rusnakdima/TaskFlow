@@ -26,11 +26,12 @@ dotenv = "0.15.0"
 dotenvy = "0.15.7"
 futures = "0.3.31"
 futures-util = { version = "0.3", features = ["io"] }
-tokio = { version = "1", features = ["io-util"] }
+tokio = { version = "1", features = ["full"] }
 jsonwebtoken = "9.3.1"
 mongodb = "3.2.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio-tungstenite = "0.26"
 tauri = { version = "2", features = [] }
 tauri-plugin-http = "2.5.1"
 tauri-plugin-opener = "2"
