@@ -99,16 +99,19 @@ export class KanbanView implements OnInit {
           });
         });
       }
+      this.loadTodos();
     });
 
     this.localWs.onEvent("task-created").subscribe((data) => {
       if (data.todoId === this.selectedTodoId()) {
         this.tasks.update((tasks) => [...tasks, data]);
       }
+      this.loadTodos();
     });
 
     this.localWs.onEvent("task-deleted").subscribe((data) => {
       this.tasks.update((tasks) => tasks.filter((t) => t.id !== data.id));
+      this.loadTodos();
     });
   }
 

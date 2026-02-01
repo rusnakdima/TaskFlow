@@ -119,8 +119,6 @@ impl WebSocketServerService {
       }
     };
 
-    println!("Received request: {:?}", request);
-
     let requestId = request.requestId.clone();
 
     let syncMetadata = request.syncMetadata.unwrap_or(SyncMetadata {
@@ -131,11 +129,9 @@ impl WebSocketServerService {
     let res = match (request.entity.as_str(), request.action.as_str()) {
       ("todo", "get-all") => {
         let filter = request.filter.unwrap_or(json!({}));
-        self
-          .todoService
-          .getAll(filter, syncMetadata)
-          .await
-          .unwrap_or_else(|e| e)
+        let result = self.todoService.getAll(filter, syncMetadata).await;
+
+        result.unwrap_or_else(|e| e)
       }
       ("todo", "get") => {
         let filter = request.filter.unwrap_or(json!({}));
