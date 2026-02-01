@@ -13,7 +13,7 @@
   --colors-danger: #ef4444;
   --colors-light: #f9fafb;
   --colors-dark: #1f2937;
-  --font-family-sans: "Inter", "sans-serif";
+  --font-family-sans: "Roboto", "Inter", "sans-serif";
 }
 
 @layer components {
@@ -31,6 +31,7 @@
 
   .styleBody {
     @apply block top-0 left-0 m-0 w-full text-base text-black dark:text-white bg-white dark:bg-zinc-900;
+    font-family: "Roboto", "Inter", sans-serif;
   }
 
   .styleHeader {
@@ -228,7 +229,16 @@ button:disabled {
 }
 
 mat-icon {
-  @apply w-[30px]! h-[30px]! text-3xl!;
+  @apply w-7.5! h-7.5! text-3xl!;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  font-family:
+    "Material Icons", "Material Icons Outlined", "Material Icons Round", "Material Icons Sharp",
+    sans-serif !important;
+  overflow: hidden !important;
 }
 
 pre {
@@ -297,10 +307,6 @@ pre {
 
 .ngx-pagination .current {
   @apply px-4! py-2! z-0 text-xl text-blue-600! dark:text-white! hover:text-blue-700! bg-blue-50! dark:bg-zinc-600! hover:bg-blue-100! border border-blue-300 dark:border-zinc-400! dark:hover:bg-zinc-700!;
-}
-
-mat-icon {
-  @apply leading-none!;
 }
 
 .mat-calendar,
