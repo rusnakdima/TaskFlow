@@ -23,7 +23,7 @@ import {
   imports: [CommonModule, MatIconModule],
   templateUrl: "./window-notify.component.html",
 })
-export class WindowNotifyComponent extends NotifyService implements OnInit, OnDestroy {
+export class WindowNotifyComponent implements OnInit, OnDestroy {
   notifications: ActiveNotification[] = [];
   private nextId = 1;
   private readonly NOTIFICATION_DURATION = 3000;
@@ -32,8 +32,10 @@ export class WindowNotifyComponent extends NotifyService implements OnInit, OnDe
 
   isHover: boolean = false;
 
+  constructor(private notifyService: NotifyService) {}
+
   ngOnInit() {
-    this.subscription = this.notify.subscribe((value: INotify) => {
+    this.subscription = this.notifyService.getNotifySubject().subscribe((value: INotify) => {
       if (value) {
         this.addNotification(value);
       }
