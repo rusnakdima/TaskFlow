@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, inject, OnDestroy, OnInit } from "@angular/core";
 import { Subscription } from "rxjs";
 
 /* materials */
@@ -23,9 +23,7 @@ import {
   imports: [CommonModule, MatIconModule],
   templateUrl: "./window-notify.component.html",
 })
-export class WindowNotifyComponent implements OnInit, OnDestroy {
-  constructor(private notifyService: NotifyService) {}
-
+export class WindowNotifyComponent extends NotifyService implements OnInit, OnDestroy {
   notifications: ActiveNotification[] = [];
   private nextId = 1;
   private readonly NOTIFICATION_DURATION = 3000;
@@ -35,7 +33,7 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
   isHover: boolean = false;
 
   ngOnInit() {
-    this.subscription = this.notifyService.notify.subscribe((value: INotify) => {
+    this.subscription = this.notify.subscribe((value: INotify) => {
       if (value) {
         this.addNotification(value);
       }
