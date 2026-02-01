@@ -31,4 +31,5 @@ export interface Task {
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  assignees?: string[];
 }

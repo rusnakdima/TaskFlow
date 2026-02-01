@@ -22,3 +22,6 @@ pub mod subtask_service;
 pub mod task_service;
 #[path = "todo.service.rs"]
 pub mod todo_service;
+
+#[path = "websocket_server.service.rs"]
+pub mod websocket_server_service;

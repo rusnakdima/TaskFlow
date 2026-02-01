@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { map } from "rxjs/operators";
 
@@ -9,7 +9,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 /* services */
 import { MainService } from "../services/main.service";
 import { AuthService } from "../services/auth.service";
-import { WebSocketService } from "../services/websocket.service";
+import { LocalWebSocketService } from "../services/local-websocket.service";
 import { SyncService } from "../services/sync.service";
 
 @Injectable({
@@ -18,10 +18,12 @@ import { SyncService } from "../services/sync.service";
 export class DataSyncProvider {
   private allowedEntities = ["todo", "task", "subtask"];
 
+  userId = signal("");
+
   constructor(
     private mainService: MainService,
     private authService: AuthService,
-    private webSocketService: WebSocketService,
+    private localWebSocketService: LocalWebSocketService,
     private syncService: SyncService
   ) {}
 
@@ -41,9 +43,16 @@ export class DataSyncProvider {
   ): Observable<T[]> {
     this.validateEntity(entity);
 
-    const userId = this.authService.getValueByKey("id");
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.getAll(entity, filter, { isOwner, isPrivate });
+    }
+
+    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
+    /*
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.getAll(entity, {
         ...filter,
@@ -52,6 +61,7 @@ export class DataSyncProvider {
         isPrivate,
       });
     }
+    */
 
     return from(this.mainService.getAll<T[]>(entity, filter, { isOwner, isPrivate })).pipe(
       map((response: Response<T[]>) => {
@@ -72,12 +82,20 @@ export class DataSyncProvider {
   ): Observable<T> {
     this.validateEntity(entity);
 
-    const userId = this.authService.getValueByKey("id");
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.get(entity, filter, { isOwner, isPrivate });
+    }
+
+    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
+    /*
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.get(entity, { ...filter, userId, isOwner, isPrivate });
     }
+    */
 
     return from(this.mainService.get<T>(entity, filter, { isOwner, isPrivate })).pipe(
       map((response: Response<T>) => {
@@ -96,12 +114,23 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    const userId = this.authService.getValueByKey("id");
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.create<T>(entity, data, parentTodoId, {
+        isOwner,
+        isPrivate,
+      });
+    }
+
+    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
+    /*
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.create<T>(entity, data, userId, parentTodoId);
     }
+    */
 
     return from(this.mainService.create<T, any>(entity, data, { isOwner, isPrivate })).pipe(
       map((response: Response<T>) => {
@@ -121,12 +150,23 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    const userId = this.authService.getValueByKey("id");
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.update<T>(entity, id, data, parentTodoId, {
+        isOwner,
+        isPrivate,
+      });
+    }
+
+    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
+    /*
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.update<T>(entity, id, data, userId, parentTodoId);
     }
+    */
 
     return from(this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate })).pipe(
       map((response: Response<T>) => {
@@ -145,7 +185,17 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
+
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.request<T>("update-all", {
+        entity,
+        data,
+        syncMetadata: { isOwner, isPrivate },
+      });
+    }
 
     return from(
       this.mainService.updateAll<T, any>(
@@ -182,12 +232,23 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<void> {
-    const userId = this.authService.getValueByKey("id");
+    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
+    // 1. Try Local WebSocket (Rust backend)
+    if (this.localWebSocketService.isConnected()) {
+      return this.localWebSocketService.delete(entity, id, parentTodoId, {
+        isOwner,
+        isPrivate,
+      });
+    }
+
+    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
+    /*
     if (isPrivate === false && this.webSocketService.isConnected()) {
       return this.webSocketService.delete(entity, id, userId, parentTodoId);
     }
+    */
 
     return from(this.mainService.delete<void>(entity, id, { isOwner, isPrivate })).pipe(
       map((response: Response<void>) => {

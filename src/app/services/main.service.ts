@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 /* models */
 import { Response } from "@models/response.model";
+import { SyncMetadata } from "@models/sync-metadata";
 
 @Injectable({
   providedIn: "root",
@@ -14,7 +15,7 @@ export class MainService {
   async getAll<R>(
     apiName: string,
     filter: object = {},
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+    syncMetadata?: SyncMetadata
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}GetAll`, {
       filter: filter,
@@ -25,7 +26,7 @@ export class MainService {
   async get<R>(
     apiName: string,
     filter: object = {},
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+    syncMetadata?: SyncMetadata
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Get`, {
       filter: filter,
@@ -33,11 +34,7 @@ export class MainService {
     });
   }
 
-  async create<R, D>(
-    apiName: string,
-    data: D,
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
-  ): Promise<Response<R>> {
+  async create<R, D>(apiName: string, data: D, syncMetadata?: SyncMetadata): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Create`, {
       data: data,
       syncMetadata: syncMetadata,
@@ -48,7 +45,7 @@ export class MainService {
     apiName: string,
     id: string,
     data: D,
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+    syncMetadata?: SyncMetadata
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Update`, {
       id: id,
@@ -60,7 +57,7 @@ export class MainService {
   async updateAll<R, D>(
     apiName: string,
     data: Array<D>,
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
+    syncMetadata?: SyncMetadata
   ): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}UpdateAll`, {
       data: data,
@@ -68,11 +65,7 @@ export class MainService {
     });
   }
 
-  async delete<R>(
-    apiName: string,
-    id: string,
-    syncMetadata?: { isOwner: boolean; isPrivate: boolean }
-  ): Promise<Response<R>> {
+  async delete<R>(apiName: string, id: string, syncMetadata?: SyncMetadata): Promise<Response<R>> {
     return await invoke<Response<R>>(`${apiName}Delete`, { id: id, syncMetadata: syncMetadata });
   }
 

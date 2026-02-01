@@ -322,25 +322,37 @@ impl TaskService {
           Ok(success) => {
             if success {
               if !userId.is_empty() {
-                let _ = self
-                  .activityLogHelper
-                  .logActivity(userId.clone(), "task_updated", 1)
-                  .await;
+                let activityHelper = self.activityLogHelper.clone();
+                let userIdClone = userId.clone();
                 let isNowCompleted = matches!(
                   updatedTask.status,
                   TaskStatus::Completed | TaskStatus::Skipped
                 );
-                if isNowCompleted && !wasCompleted {
-                  let _ = self
-                    .activityLogHelper
-                    .logActivity(userId, "task_completed", 1)
+                tauri::async_runtime::spawn(async move {
+                  let _ = activityHelper
+                    .logActivity(userIdClone.clone(), "task_updated", 1)
                     .await;
-                }
+                  if isNowCompleted && !wasCompleted {
+                    let _ = activityHelper
+                      .logActivity(userIdClone, "task_completed", 1)
+                      .await;
+                  }
+                });
               }
+              let updatedTaskData = match to_value(&updatedTask) {
+                Ok(val) => val,
+                Err(_) => {
+                  return Err(ResponseModel {
+                    status: ResponseStatus::Error,
+                    message: "Failed to serialize updated task for response".to_string(),
+                    data: DataValue::String("".to_string()),
+                  });
+                }
+              };
               Ok(ResponseModel {
                 status: ResponseStatus::Success,
                 message: "Task updated successfully".to_string(),
-                data: DataValue::String("".to_string()),
+                data: convertDataToObject(&updatedTaskData),
               })
             } else {
               Ok(ResponseModel {

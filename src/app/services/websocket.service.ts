@@ -17,10 +17,11 @@ export class WebSocketService {
   private currentUserId: string | null = null;
 
   constructor(private mainService: MainService) {
-    this.initializeWebSocket();
+    // this.initializeWebSocket();
   }
 
   private initializeWebSocket(): void {
+    /* 
     try {
       this.socket = io(this.wsUrl, {
         transports: ["websocket"],
@@ -59,6 +60,7 @@ export class WebSocketService {
       console.error("WebSocketService: Failed to initialize WebSocket, error:", error);
       this.isWsConnected$.next(false);
     }
+    */
   }
 
   private setupRealTimeListeners(): void {
@@ -117,7 +119,7 @@ export class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
-    this.initializeWebSocket();
+    // this.initializeWebSocket();
   }
 
   setCurrentUser(userId: string): void {
