@@ -21,6 +21,7 @@
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
+            (deleteEvent)="deleteTodoById($event, true)"
           />
         }
       </div>
@@ -42,6 +43,7 @@
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
+            (deleteEvent)="deleteTodoById($event, todoIsOwner(todo))"
           />
         }
       </div>
