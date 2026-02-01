@@ -8,7 +8,7 @@
           class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
           (click)="goBack()"
         >
-          <mat-icon class="w-5! h-5! text-xl! textNormal" fontIcon="arrow_back" />
+          <mat-icon class="size-5! text-xl! textNormal" fontIcon="arrow_back" />
         </button>
       }
 
@@ -21,13 +21,20 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- <button
+      <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors h-9! relative"
         title="Notifications"
+        (click)="toggleNotificationMenu()"
       >
         <mat-icon class="w-6! h-6! text-2xl! textMuted" fontIcon="notifications_none" />
-        <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-      </button> -->
+        @if (unreadCount() > 0) {
+          <div
+            class="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold"
+          >
+            {{ unreadCount() > 9 ? "9+" : unreadCount() }}
+          </div>
+        }
+      </button>
 
       <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
@@ -85,7 +92,7 @@
         [queryParams]="{ id: userId() }"
         (click)="closeUserMenu()"
       >
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="person" />
+        <mat-icon class="size-5! text-xl! textMuted" fontIcon="person" />
         <span class="textNormal">Profile</span>
       </button>
 
@@ -94,7 +101,7 @@
         routerLink="/categories"
         (click)="closeUserMenu()"
       >
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="category" />
+        <mat-icon class="size-5! text-xl! textMuted" fontIcon="category" />
         <span class="textNormal">Categories</span>
       </button>
 
@@ -103,7 +110,7 @@
         routerLink="/sync"
         (click)="closeUserMenu()"
       >
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="sync" />
+        <mat-icon class="size-5! text-xl! textMuted" fontIcon="sync" />
         <span class="textNormal">Sync Data</span>
       </button>
 
@@ -113,7 +120,7 @@
           routerLink="/admin"
           (click)="closeUserMenu()"
         >
-          <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="manage_accounts" />
+          <mat-icon class="size-5! text-xl! textMuted" fontIcon="manage_accounts" />
           <span class="textNormal">Admin</span>
         </button>
       }
@@ -123,7 +130,7 @@
         routerLink="/about"
         (click)="closeUserMenu()"
       >
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="info_outlined" />
+        <mat-icon class="size-5! before:w-5! text-xl! textMuted" fontIcon="info_outlined" />
         <span class="textNormal">About</span>
       </button>
 
@@ -133,13 +140,100 @@
         class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
         (click)="logout()"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="logout" />
+        <mat-icon class="size-5! text-xl!" fontIcon="logout" />
         <span>Sign out</span>
       </button>
     </div>
   </div>
 }
 
-@if (showUserMenu()) {
-  <div class="fixed inset-0 z-40" (click)="closeUserMenu()"></div>
+@if (showNotificationMenu()) {
+  <div
+    class="fixed top-16 right-4 z-50 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 w-80 max-h-[400px] flex flex-col"
+  >
+    <div
+      class="p-3 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between"
+    >
+      <h3 class="font-semibold textNormal">Notifications</h3>
+      <div class="flex gap-2">
+        @if (unreadCount() > 0) {
+          <button
+            class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            (click)="markAllAsRead()"
+          >
+            Mark all read
+          </button>
+        }
+        <button
+          class="text-xs text-red-600 dark:text-red-400 hover:underline"
+          (click)="clearNotifications()"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <div class="overflow-y-auto flex-1">
+      @if (notifications().length === 0) {
+        <div class="p-8 text-center">
+          <mat-icon class="size-12! text-4xl! textMuted mb-2" fontIcon="notifications_off" />
+          <p class="textMuted text-sm">No notifications yet</p>
+        </div>
+      } @else {
+        <div class="flex flex-col">
+          @for (notif of notifications(); track notif.id) {
+            <div
+              class="p-3 border-b border-gray-100 dark:border-zinc-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors relative group"
+              [ngClass]="!notif.read ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''"
+            >
+              <div class="flex gap-3">
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  [ngClass]="{
+                    'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400':
+                      notif.type === 'todo',
+                    'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400':
+                      notif.type === 'task',
+                    'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400':
+                      notif.type === 'subtask',
+                  }"
+                >
+                  <mat-icon
+                    class="size-5! text-xl!"
+                    [fontIcon]="
+                      notif.type === 'todo'
+                        ? 'assignment'
+                        : notif.type === 'task'
+                          ? 'task_alt'
+                          : 'subdirectory_arrow_right'
+                    "
+                  />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium textNormal truncate">{{ notif.title }}</p>
+                  <p class="text-xs textMuted line-clamp-2">{{ notif.message }}</p>
+                  <p class="text-[10px] textMuted mt-1">
+                    {{ notif.timestamp | date: "shortTime" }}
+                  </p>
+                </div>
+                @if (!notif.read) {
+                  <button
+                    class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                    (click)="markAsRead(notif.id)"
+                    title="Mark as read"
+                  >
+                    <mat-icon class="size-5! text-xl! text-blue-500!" fontIcon="check_circle" />
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}
+
+@if (showUserMenu() || showNotificationMenu()) {
+  <div class="fixed inset-0 z-40" (click)="closeUserMenu(); closeNotificationMenu()"></div>
 }
