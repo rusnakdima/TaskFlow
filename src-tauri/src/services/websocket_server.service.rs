@@ -12,7 +12,7 @@ use crate::services::{
 
 /* models */
 use crate::models::{
-  response_model::{ResponseModel, ResponseStatus},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
   subtask_model::{SubtaskCreateModel, SubtaskUpdateModel},
   sync_metadata_model::SyncMetadata,
   task_model::{TaskCreateModel, TaskUpdateModel},
@@ -158,7 +158,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("todo-created", "todo", data);
+            // Broadcast the created todo data (with ID) instead of request data
+            match &res.data {
+              DataValue::Object(createdTodo) => {
+                self.broadcast("todo-created", "todo", createdTodo.clone());
+              }
+              _ => {
+                self.broadcast("todo-created", "todo", data);
+              }
+            }
           }
           res
         } else {
@@ -184,7 +192,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("todo-updated", "todo", data);
+            // Broadcast the updated todo data instead of request data
+            match &res.data {
+              DataValue::Object(updatedTodo) => {
+                self.broadcast("todo-updated", "todo", updatedTodo.clone());
+              }
+              _ => {
+                self.broadcast("todo-updated", "todo", data);
+              }
+            }
           }
           res
         } else {
@@ -223,7 +239,18 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("todo-updated-all", "todo", data);
+            // Broadcast the updated todos data if available, otherwise use request data
+            match &res.data {
+              DataValue::Array(updatedTodos) => {
+                self.broadcast("todo-updated-all", "todo", json!(updatedTodos));
+              }
+              DataValue::Object(updatedTodos) => {
+                self.broadcast("todo-updated-all", "todo", updatedTodos.clone());
+              }
+              _ => {
+                self.broadcast("todo-updated-all", "todo", data);
+              }
+            }
           }
           res
         } else {
@@ -263,7 +290,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("task-created", "task", data);
+            // Broadcast the created task data (with ID) instead of request data
+            match &res.data {
+              DataValue::Object(createdTask) => {
+                self.broadcast("task-created", "task", createdTask.clone());
+              }
+              _ => {
+                self.broadcast("task-created", "task", data);
+              }
+            }
           }
           res
         } else {
@@ -289,7 +324,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("task-updated", "task", data);
+            // Broadcast the updated task data instead of request data
+            match &res.data {
+              DataValue::Object(updatedTask) => {
+                self.broadcast("task-updated", "task", updatedTask.clone());
+              }
+              _ => {
+                self.broadcast("task-updated", "task", data);
+              }
+            }
           }
           res
         } else {
@@ -336,7 +379,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("subtask-created", "subtask", data);
+            // Broadcast the created subtask data (with ID) instead of request data
+            match &res.data {
+              DataValue::Object(createdSubtask) => {
+                self.broadcast("subtask-created", "subtask", createdSubtask.clone());
+              }
+              _ => {
+                self.broadcast("subtask-created", "subtask", data);
+              }
+            }
           }
           res
         } else {
@@ -362,7 +413,15 @@ impl WebSocketServerService {
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            self.broadcast("subtask-updated", "subtask", data);
+            // Broadcast the updated subtask data instead of request data
+            match &res.data {
+              DataValue::Object(updatedSubtask) => {
+                self.broadcast("subtask-updated", "subtask", updatedSubtask.clone());
+              }
+              _ => {
+                self.broadcast("subtask-updated", "subtask", data);
+              }
+            }
           }
           res
         } else {
