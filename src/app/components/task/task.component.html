@@ -1,10 +1,10 @@
 @if (task) {
-  <div cdkDrag class="h-full flex flex-col">
+  <div cdkDrag class="h-full flex flex-col" [class.expanded]="isExpanded">
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
-      [routerLink]="task.id + '/subtasks'"
-      [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
+      [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
+      [queryParams]="!isExpanded ? { isOwner: isOwner, isPrivate: isPrivate } : null"
     >
       <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
@@ -36,7 +36,7 @@
                 />
               } @else {
                 <mat-icon
-                  class="w-5! h-5! text-xl! textMuted hover:text-green-600!"
+                  class="w-5! h-5! text-xl! text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                   fontIcon="radio_button_unchecked"
                 />
               }
@@ -115,8 +115,14 @@
           }
           <div class="flex items-center gap-1">
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
-            <span>{{ countTasks }} subtasks</span>
+            <span>{{ totalSubtasks }} subtasks</span>
           </div>
+          @if (totalSubtasks > 0) {
+            <div class="flex items-center gap-1">
+              <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
+              <span>{{ countCompletedSubtasks }}/{{ totalSubtasks }}</span>
+            </div>
+          }
         </div>
 
         <div class="mb-4">
@@ -148,6 +154,53 @@
             }
           </div>
         </div>
+
+        @if (isExpanded && subtasks.length > 0) {
+          <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 mt-2">
+            <h4 class="text-sm font-medium textMuted mb-3 flex items-center gap-2">
+              <mat-icon class="w-4! h-4! text-xl!" fontIcon="list" />
+              Subtasks
+            </h4>
+            <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+              @for (subtask of subtasks; track subtask.id) {
+                <div
+                  class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
+                >
+                  <button
+                    class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                    (click)="onSubtaskToggleCompletion(subtask)"
+                  >
+                    <mat-icon
+                      class="w-5! h-5! text-xl!"
+                      [fontIcon]="getSubtaskStatusIcon(subtask.status)"
+                      [ngClass]="getSubtaskStatusColor(subtask.status)"
+                    />
+                  </button>
+                  <div class="flex-1 min-w-0">
+                    <p
+                      class="text-sm font-medium truncate"
+                      [ngClass]="
+                        subtask.status === 'completed' ||
+                        subtask.status === 'skipped' ||
+                        subtask.status === 'failed'
+                          ? 'line-through text-gray-500 dark:text-gray-400'
+                          : 'textNormal'
+                      "
+                    >
+                      {{ subtask.title }}
+                    </p>
+                  </div>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="getSubtaskPriorityColor(subtask.priority || 'medium')"
+                  >
+                    {{ (subtask.priority || "medium").toUpperCase() }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <div class="flex items-center justify-between mt-auto pt-4">
@@ -184,6 +237,23 @@
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
           </button>
+
+          <button
+            class="p-2 rounded-lg transition-colors"
+            [ngClass]="
+              isExpanded
+                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400'
+            "
+            (click)="toggleExpand()"
+            [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
+          >
+            <mat-icon
+              class="w-5! h-5! text-xl!"
+              [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
+            />
+          </button>
+
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
             [routerLink]="task.id + '/subtasks'"

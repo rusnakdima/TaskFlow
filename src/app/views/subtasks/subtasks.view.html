@@ -1,4 +1,19 @@
 <div class="flex flex-col gap-6">
+  @if (fromKanban()) {
+    <!-- Back button -->
+    <div class="flex items-center">
+      <button
+        class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+        [routerLink]="['/kanban']"
+        [queryParams]="{ projectId: todoId() }"
+        title="Back to Kanban"
+      >
+        <mat-icon class="w-5! h-5! text-xl!" fontIcon="arrow_back" />
+        <span class="font-medium">Back to Kanban</span>
+      </button>
+    </div>
+  }
+
   @if (task()) {
     <app-task-information
       [task]="task()!"

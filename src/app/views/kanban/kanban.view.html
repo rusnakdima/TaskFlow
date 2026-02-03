@@ -107,83 +107,17 @@
                 [id]="'cdk-drop-list-' + column.id"
               >
                 @for (task of getTasksByStatus(column.id); track task.id) {
-                  <div
-                    class="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-600 hover:shadow-md cursor-pointer group"
-                    (click)="navigateToTask(task)"
-                    cdkDrag
-                    [cdkDragData]="task"
-                  >
-                    <div class="mb-2">
-                      <h4 class="font-medium text-sm textNormal line-clamp-2">{{ task.title }}</h4>
-                    </div>
-
-                    @if (task.description) {
-                      <p class="text-xs textMuted line-clamp-2 mb-3">{{ task.description }}</p>
-                    }
-
-                    <div
-                      class="flex items-center justify-between mt-auto pt-2 border-t-2 border-gray-200! dark:border-zinc-700!"
-                    >
-                      <div class="flex space-x-1">
-                        @for (targetCol of columns; track targetCol.id) {
-                          @if (targetCol.id !== column.id) {
-                            <button
-                              (click)="moveTask(task.id, targetCol.id); $event.stopPropagation()"
-                              class="p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors"
-                              [title]="'Move to ' + targetCol.label"
-                            >
-                              <mat-icon
-                                class="size-5! text-xl! text-gray-400"
-                                [fontIcon]="targetCol.icon"
-                              />
-                            </button>
-                          }
-                        }
-                      </div>
-
-                      <div class="flex items-center gap-3">
-                        <button
-                          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-400 cursor-move"
-                          cdkDragHandle
-                          (click)="$event.stopPropagation()"
-                          title="Drag to move"
-                        >
-                          <mat-icon class="size-5! text-xl!" fontIcon="drag_indicator" />
-                        </button>
-
-                        <div class="flex items-center gap-1">
-                          <mat-icon
-                            class="size-5! text-base! text-gray-400"
-                            fontIcon="calendar_today"
-                          />
-                          <span class="text-sm text-gray-400">{{
-                            task.endDate | date: "shortDate"
-                          }}</span>
-                        </div>
-
-                        @if (task.assignees && task.assignees.length > 0) {
-                          <div class="flex items-center -space-x-2">
-                            @for (assignee of task.assignees.slice(0, 3); track assignee) {
-                              <div
-                                class="w-6 h-6 rounded-full border-2 border-white dark:border-zinc-800 flex items-center justify-center text-[10px] text-white font-bold"
-                                [ngClass]="getAssigneeColor(assignee)"
-                                [title]="assignee"
-                              >
-                                {{ getInitials(assignee) }}
-                              </div>
-                            }
-                            @if (task.assignees.length > 3) {
-                              <div
-                                class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white dark:border-zinc-800 flex items-center justify-center text-[10px] text-white font-bold"
-                              >
-                                +{{ task.assignees.length - 3 }}
-                              </div>
-                            }
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  </div>
+                  <app-kanban-task-card
+                    [task]="task"
+                    [columnId]="column.id"
+                    [columns]="columns"
+                    [subtasks]="getSubtasksForTask(task.id)"
+                    [isExpanded]="isTaskExpanded(task.id)"
+                    [todoId]="selectedTodoId()"
+                    (toggleExpand)="onToggleExpand($event)"
+                    (moveTaskEvent)="onMoveTask($event)"
+                    (toggleSubtaskCompletion)="onSubtaskToggleCompletion($event)"
+                  />
                 }
 
                 @if (getTasksByStatus(column.id).length === 0) {

@@ -2,7 +2,7 @@
 import { Component, OnInit, signal, effect, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
+import { Router, ActivatedRoute } from "@angular/router";
 import {
   CdkDragDrop,
   DragDropModule,
@@ -13,6 +13,7 @@ import {
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
@@ -28,6 +29,10 @@ import { MatSelectModule } from "@angular/material/select";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
+import { RouterModule } from "@angular/router";
+
+/* components */
+import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
 
 @Component({
   selector: "app-kanban",
@@ -41,14 +46,19 @@ import { MatButtonModule } from "@angular/material/button";
     MatFormFieldModule,
     MatMenuModule,
     MatButtonModule,
+    RouterModule,
+    KanbanTaskCardComponent,
   ],
   templateUrl: "./kanban.view.html",
 })
 export class KanbanView implements OnInit {
+  TaskStatus = TaskStatus;
   todos = signal<Todo[]>([]);
   selectedTodoId = signal<string>("");
   tasks = signal<Task[]>([]);
   loading = signal<boolean>(false);
+  subtasksMap = signal<Map<string, Subtask[]>>(new Map());
+  expandedTasks = signal<Set<string>>(new Set());
 
   userId = signal<string>("");
 
@@ -69,6 +79,7 @@ export class KanbanView implements OnInit {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private mainService: MainService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
@@ -78,7 +89,7 @@ export class KanbanView implements OnInit {
     effect(() => {
       const todoId = this.selectedTodoId();
       if (todoId) {
-        this.loadTasks(todoId);
+        this.loadTasksWithSubtasks(todoId);
       }
     });
   }
@@ -87,6 +98,13 @@ export class KanbanView implements OnInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     this.loadTodos();
+
+    // Handle projectId query param for deep linking
+    this.route.queryParams.subscribe((params) => {
+      if (params["projectId"]) {
+        this.selectedTodoId.set(params["projectId"]);
+      }
+    });
 
     this.localWs.onEvent("task-updated").subscribe((data) => {
       if (data.todoId === this.selectedTodoId()) {
@@ -113,6 +131,19 @@ export class KanbanView implements OnInit {
       this.tasks.update((tasks) => tasks.filter((t) => t.id !== data.id));
       this.loadTodos();
     });
+
+    // Listen for subtask events
+    this.localWs.onEvent("subtask-updated").subscribe((data) => {
+      this.loadSubtasksForTask(data.taskId);
+    });
+
+    this.localWs.onEvent("subtask-created").subscribe((data) => {
+      this.loadSubtasksForTask(data.taskId);
+    });
+
+    this.localWs.onEvent("subtask-deleted").subscribe((data) => {
+      this.loadSubtasksForTask(data.taskId);
+    });
   }
 
   async loadTodos() {
@@ -129,12 +160,16 @@ export class KanbanView implements OnInit {
     });
   }
 
-  async loadTasks(todoId: string) {
+  async loadTasksWithSubtasks(todoId: string) {
     this.loading.set(true);
     const userId = this.authService.getValueByKey("id");
     this.dataSyncProvider.getAll<Task>("task", { todoId, userId }).subscribe({
       next: (tasks) => {
         this.tasks.set(tasks);
+        // Load subtasks for each task
+        tasks.forEach((task) => {
+          this.loadSubtasksForTask(task.id);
+        });
         this.loading.set(false);
       },
       error: (error) => {
@@ -144,8 +179,99 @@ export class KanbanView implements OnInit {
     });
   }
 
+  loadSubtasksForTask(taskId: string) {
+    this.dataSyncProvider.getAll<Subtask>("subtask", { taskId }).subscribe({
+      next: (subtasks) => {
+        this.subtasksMap.update((map) => {
+          const newMap = new Map(map);
+          newMap.set(taskId, subtasks);
+          return newMap;
+        });
+      },
+      error: (error) => {
+        console.error("Failed to load subtasks for task:", taskId);
+      },
+    });
+  }
+
+  toggleExpandTask(task: Task) {
+    this.expandedTasks.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(task.id)) {
+        newSet.delete(task.id);
+      } else {
+        newSet.add(task.id);
+        // Load subtasks if not already loaded
+        if (!this.subtasksMap().has(task.id)) {
+          this.loadSubtasksForTask(task.id);
+        }
+      }
+      return newSet;
+    });
+  }
+
+  isTaskExpanded(taskId: string): boolean {
+    return this.expandedTasks().has(taskId);
+  }
+
+  onToggleExpand(task: Task): void {
+    this.toggleExpandTask(task);
+  }
+
+  onMoveTask(event: { taskId: string; newStatus: TaskStatus }): void {
+    this.moveTask(event.taskId, event.newStatus);
+  }
+
+  onSubtaskToggleCompletion(subtask: Subtask): void {
+    const newStatus =
+      subtask.status === TaskStatus.COMPLETED
+        ? TaskStatus.PENDING
+        : subtask.status === TaskStatus.PENDING
+          ? TaskStatus.COMPLETED
+          : subtask.status === TaskStatus.SKIPPED
+            ? TaskStatus.PENDING
+            : TaskStatus.PENDING;
+
+    const todoId = this.selectedTodoId();
+    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
+    if (!selectedTodo) return;
+
+    const isPrivate = selectedTodo.visibility === "private";
+    const isOwner = selectedTodo.userId === this.userId();
+
+    const updatedSubtask = { ...subtask, status: newStatus };
+
+    this.dataSyncProvider
+      .update<Subtask>("subtask", subtask.id, updatedSubtask, { isOwner, isPrivate }, todoId)
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Subtask updated");
+          this.loadSubtasksForTask(subtask.taskId);
+        },
+        error: (error) => {
+          this.notifyService.showError("Failed to update subtask");
+        },
+      });
+  }
+
+  getSubtasksForTask(taskId: string): Subtask[] {
+    return this.subtasksMap().get(taskId) || [];
+  }
+
+  getCompletedSubtasksCount(taskId: string): number {
+    const subtasks = this.getSubtasksForTask(taskId);
+    return subtasks.filter(
+      (s) => s.status === TaskStatus.COMPLETED || s.status === TaskStatus.SKIPPED
+    ).length;
+  }
+
+  getTotalSubtasksCount(taskId: string): number {
+    return this.getSubtasksForTask(taskId).length;
+  }
+
   onTodoChange(todoId: string) {
     this.selectedTodoId.set(todoId);
+    this.expandedTasks.set(new Set()); // Reset expanded tasks
   }
 
   getTasksByStatus(status: string): Task[] {
@@ -199,7 +325,7 @@ export class KanbanView implements OnInit {
           console.error("[Kanban] Failed to move task:", error);
           this.notifyService.showError("Failed to move task");
 
-          this.loadTasks(todoId);
+          this.loadTasksWithSubtasks(todoId);
         },
       });
   }
@@ -264,6 +390,89 @@ export class KanbanView implements OnInit {
     return this.columns
       .filter((col) => col.id !== currentColumnId)
       .map((col) => "cdk-drop-list-" + col.id);
+  }
+
+  formatDate(dateString: string): string {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  getTaskProgressPercentage(task: Task): number {
+    const subtasks = this.getSubtasksForTask(task.id);
+    if (subtasks.length === 0) {
+      return task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED ? 100 : 0;
+    }
+    const completed = subtasks.filter(
+      (s) => s.status === TaskStatus.COMPLETED || s.status === TaskStatus.SKIPPED
+    ).length;
+    return Math.round((completed / subtasks.length) * 100);
+  }
+
+  getTaskProgressSegments(task: Task): { status: TaskStatus; percentage: number; color: string }[] {
+    const subtasks = this.getSubtasksForTask(task.id);
+    const total = subtasks.length;
+
+    if (total === 0) {
+      const taskStatus = task.status || TaskStatus.PENDING;
+      let color = "bg-gray-400";
+      switch (taskStatus) {
+        case TaskStatus.COMPLETED:
+          color = "bg-green-500";
+          break;
+        case TaskStatus.SKIPPED:
+          color = "bg-orange-500";
+          break;
+        case TaskStatus.FAILED:
+          color = "bg-red-500";
+          break;
+        case TaskStatus.PENDING:
+        default:
+          color = "bg-gray-400";
+          break;
+      }
+      return [{ status: taskStatus, percentage: 100, color }];
+    }
+
+    const completed = subtasks.filter((s) => s.status === TaskStatus.COMPLETED).length;
+    const skipped = subtasks.filter((s) => s.status === TaskStatus.SKIPPED).length;
+    const failed = subtasks.filter((s) => s.status === TaskStatus.FAILED).length;
+    const pending = subtasks.filter((s) => s.status === TaskStatus.PENDING).length;
+
+    const segments = [];
+    if (completed > 0) {
+      segments.push({
+        status: TaskStatus.COMPLETED,
+        percentage: Math.round((completed / total) * 100),
+        color: "bg-green-500",
+      });
+    }
+    if (skipped > 0) {
+      segments.push({
+        status: TaskStatus.SKIPPED,
+        percentage: Math.round((skipped / total) * 100),
+        color: "bg-orange-500",
+      });
+    }
+    if (failed > 0) {
+      segments.push({
+        status: TaskStatus.FAILED,
+        percentage: Math.round((failed / total) * 100),
+        color: "bg-red-500",
+      });
+    }
+    if (pending > 0) {
+      segments.push({
+        status: TaskStatus.PENDING,
+        percentage: Math.round((pending / total) * 100),
+        color: "bg-gray-400",
+      });
+    }
+
+    return segments;
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {

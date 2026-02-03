@@ -1,0 +1,277 @@
+<div
+  class="rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-600 hover:shadow-md"
+  [class.expanded]="isExpanded"
+  cdkDrag
+  [cdkDragData]="task"
+>
+  <div class="p-4 cursor-pointer" (click)="toggleExpandTask()">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-start gap-2 flex-1 min-w-0">
+        <button
+          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors mt-0.5"
+          (click)="
+            moveTask(columnId === TaskStatus.PENDING ? TaskStatus.COMPLETED : TaskStatus.PENDING);
+            $event.stopPropagation()
+          "
+          [title]="task.status === TaskStatus.COMPLETED ? 'Mark as pending' : 'Mark as completed'"
+        >
+          <mat-icon
+            class="w-5! h-5! text-lg!"
+            [ngClass]="
+              task.status === TaskStatus.COMPLETED
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-gray-400 hover:text-green-600'
+            "
+            [fontIcon]="
+              task.status === TaskStatus.COMPLETED ? 'check_circle' : 'radio_button_unchecked'
+            "
+          />
+        </button>
+        <div class="flex-1 min-w-0">
+          <h4
+            class="font-medium text-sm textNormal line-clamp-2"
+            [ngClass]="
+              task.status === TaskStatus.COMPLETED ||
+              task.status === TaskStatus.SKIPPED ||
+              task.status === TaskStatus.FAILED
+                ? 'line-through text-gray-500 dark:text-gray-400'
+                : ''
+            "
+          >
+            {{ task.title }}
+          </h4>
+          @if (task.description) {
+            <p class="text-xs textMuted line-clamp-2 mt-1">
+              {{ task.description }}
+            </p>
+          }
+        </div>
+      </div>
+      <div class="flex items-center gap-2 ml-2">
+        <span
+          class="px-2 py-0.5 rounded-full text-xs font-medium"
+          [ngClass]="{
+            'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300':
+              task.priority === 'high',
+            'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300':
+              task.priority === 'medium',
+            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300':
+              task.priority === 'low',
+          }"
+        >
+          {{ (task.priority || "medium").toUpperCase() }}
+        </span>
+        <button
+          class="p-1.5 rounded-lg transition-colors"
+          [ngClass]="
+            isExpanded
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+              : 'hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-400'
+          "
+          [title]="isExpanded ? 'Collapse' : 'Expand'"
+        >
+          <mat-icon
+            class="w-5! h-5! text-lg!"
+            [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
+          />
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 text-xs textMuted mb-3">
+      @if (task.endDate) {
+        <div class="flex items-center gap-1">
+          <mat-icon class="w-4! h-4! text-base!" fontIcon="schedule" />
+          <span>{{ formatDate(task.endDate) }}</span>
+        </div>
+      }
+      <div class="flex items-center gap-1">
+        <mat-icon class="w-4! h-4! text-base!" fontIcon="list" />
+        <span>{{ getTotalSubtasksCount() }} subtasks</span>
+      </div>
+      @if (getTotalSubtasksCount() > 0) {
+        <div class="flex items-center gap-1">
+          <mat-icon class="w-4! h-4! text-base!" fontIcon="check_circle" />
+          <span>{{ getCompletedSubtasksCount() }}/{{ getTotalSubtasksCount() }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <div class="flex justify-between text-xs mb-1">
+        <span class="textMuted">Progress</span>
+        <span class="textNormal font-medium">{{ getTaskProgressPercentage() }}%</span>
+      </div>
+      <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+        <div class="flex h-full rounded-full overflow-hidden">
+          @for (segment of getTaskProgressSegments(); track segment.status) {
+            <div
+              class="h-full transition-all duration-300"
+              [ngClass]="segment.color"
+              [style.width.%]="segment.percentage"
+            ></div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-zinc-700"
+    >
+      <div class="flex space-x-1">
+        @for (targetCol of columns; track targetCol.id) {
+          @if (targetCol.id !== columnId) {
+            <button
+              (click)="moveTask(targetCol.id); $event.stopPropagation()"
+              class="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors"
+              [title]="'Move to ' + targetCol.label"
+            >
+              <mat-icon class="w-4! h-4! text-base! text-gray-400" [fontIcon]="targetCol.icon" />
+            </button>
+          }
+        }
+      </div>
+      <div class="flex items-center gap-1">
+        <button
+          class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-400 cursor-move"
+          cdkDragHandle
+          (click)="$event.stopPropagation()"
+          title="Drag to move"
+        >
+          <mat-icon class="w-4! h-4! text-base!" fontIcon="drag_indicator" />
+        </button>
+        <button
+          class="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+          [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks']"
+          [queryParams]="{
+            isPrivate: true,
+            fromKanban: true,
+            todoId: todoId,
+          }"
+          (click)="$event.stopPropagation()"
+          title="View subtasks"
+        >
+          <mat-icon class="w-4! h-4! text-base!" fontIcon="list" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (isExpanded) {
+    <div
+      class="border-t border-gray-200 dark:border-zinc-700 p-4 bg-gray-50 dark:bg-zinc-900/50 rounded-b-lg"
+    >
+      <div class="flex items-center justify-between mb-3">
+        <h5 class="text-xs font-medium textMuted uppercase tracking-wider flex items-center gap-2">
+          <mat-icon class="w-4! h-4! text-base!" fontIcon="list" />
+          Subtasks
+        </h5>
+        <button
+          class="px-2 py-1 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+          [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks']"
+          [queryParams]="{
+            isPrivate: true,
+            fromKanban: true,
+            todoId: todoId,
+          }"
+          (click)="$event.stopPropagation()"
+        >
+          View All
+        </button>
+      </div>
+
+      @if (getSubtasksForTask().length === 0) {
+        <div class="text-center py-4 textMuted text-sm">
+          <mat-icon class="w-8! h-8! text-3xl! mb-2 opacity-50" fontIcon="check_box" />
+          <p>No subtasks yet</p>
+          <button
+            class="mt-2 px-3 py-1 text-xs font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+            [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks', 'create_subtask']"
+            [queryParams]="{
+              isPrivate: true,
+              fromKanban: true,
+              todoId: todoId,
+            }"
+            (click)="$event.stopPropagation()"
+          >
+            + Add Subtask
+          </button>
+        </div>
+      } @else {
+        <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+          @for (subtask of getSubtasksForTask(); track subtask.id) {
+            <div
+              class="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+              [routerLink]="[
+                '/todos',
+                todoId,
+                'tasks',
+                task.id,
+                'subtasks',
+                subtask.id,
+                'edit_subtask',
+              ]"
+              [queryParams]="{
+                isPrivate: true,
+                fromKanban: true,
+                todoId: todoId,
+              }"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-zinc-600 transition-colors"
+                (click)="onSubtaskToggleCompletion(subtask); $event.stopPropagation()"
+              >
+                <mat-icon
+                  class="w-5! h-5! text-lg!"
+                  [ngClass]="{
+                    'text-green-600 dark:text-green-400': subtask.status === TaskStatus.COMPLETED,
+                    'text-orange-600 dark:text-orange-400': subtask.status === TaskStatus.SKIPPED,
+                    'text-red-600 dark:text-red-400': subtask.status === TaskStatus.FAILED,
+                    'text-gray-400': subtask.status === TaskStatus.PENDING,
+                  }"
+                  [fontIcon]="
+                    subtask.status === TaskStatus.COMPLETED
+                      ? 'check_circle'
+                      : subtask.status === TaskStatus.SKIPPED
+                        ? 'cancel'
+                        : subtask.status === TaskStatus.FAILED
+                          ? 'dangerous'
+                          : 'radio_button_unchecked'
+                  "
+                />
+              </button>
+              <div class="flex-1 min-w-0">
+                <p
+                  class="text-sm truncate"
+                  [ngClass]="
+                    subtask.status === TaskStatus.COMPLETED ||
+                    subtask.status === TaskStatus.SKIPPED ||
+                    subtask.status === TaskStatus.FAILED
+                      ? 'line-through text-gray-500 dark:text-gray-400'
+                      : 'textNormal'
+                  "
+                >
+                  {{ subtask.title }}
+                </p>
+              </div>
+              <span
+                class="px-1.5 py-0.5 rounded text-xs font-medium"
+                [ngClass]="{
+                  'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300':
+                    subtask.priority === 'high',
+                  'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300':
+                    subtask.priority === 'medium',
+                  'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300':
+                    subtask.priority === 'low',
+                }"
+              >
+                {{ (subtask.priority || "medium").substring(0, 1).toUpperCase() }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
