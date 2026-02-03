@@ -131,14 +131,17 @@ export class ManageSubtaskView implements OnInit {
 
   getSubtaskInfo(subtaskId: string) {
     this.dataSyncProvider
-      .get<Subtask>(
+      .getAll<Subtask>(
         "subtask",
         { id: subtaskId },
-        { isOwner: this.isOwner, isPrivate: this.isPrivate }
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        this.todoId()
       )
       .subscribe({
-        next: (subtaskData) => {
-          this.form.patchValue(subtaskData);
+        next: (subtasks) => {
+          if (subtasks.length > 0) {
+            this.form.patchValue(subtasks[0]);
+          }
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to load subtask");

@@ -61,6 +61,7 @@ export class SubtasksView implements OnInit {
   userId: string = "";
   isOwner: boolean = true;
   isPrivate: boolean = true;
+  fromKanban = signal(false);
 
   activeFilter = signal("all");
   showFilter = signal(false);
@@ -81,6 +82,9 @@ export class SubtasksView implements OnInit {
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
+      }
+      if (queryParams.fromKanban !== undefined) {
+        this.fromKanban.set(queryParams.fromKanban === "true");
       }
     });
 

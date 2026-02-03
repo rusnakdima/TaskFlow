@@ -29,16 +29,80 @@ export class TaskComponent {
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Input() highlight: boolean = false;
+  @Input() subtasks: Subtask[] = [];
+  @Input() isExpanded: boolean = false;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();
   @Output() updateTaskEvent: EventEmitter<{ task: Task; field: string; value: string }> =
     new EventEmitter();
+  @Output() toggleSubtasksEvent: EventEmitter<Task> = new EventEmitter();
+  @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
 
   truncateString = Common.truncateString;
+
+  toggleExpand() {
+    if (this.task) {
+      this.toggleSubtasksEvent.emit(this.task);
+    }
+  }
+
+  onSubtaskToggleCompletion(subtask: Subtask) {
+    this.toggleSubtaskCompletionEvent.emit(subtask);
+  }
+
+  getSubtaskPriorityColor(priority: string): string {
+    switch (priority.toLowerCase()) {
+      case "high":
+        return "text-red-600 dark:text-red-400";
+      case "medium":
+        return "text-yellow-600 dark:text-yellow-400";
+      case "low":
+        return "text-blue-600 dark:text-blue-400";
+      default:
+        return "text-gray-600 dark:text-gray-400";
+    }
+  }
+
+  getSubtaskStatusIcon(status: string): string {
+    switch (status) {
+      case "completed":
+        return "check_circle";
+      case "skipped":
+        return "cancel";
+      case "failed":
+        return "dangerous";
+      default:
+        return "radio_button_unchecked";
+    }
+  }
+
+  getSubtaskStatusColor(status: string): string {
+    switch (status) {
+      case "completed":
+        return "text-green-600 dark:text-green-400";
+      case "skipped":
+        return "text-orange-600 dark:text-orange-400";
+      case "failed":
+        return "text-red-600 dark:text-red-400";
+      default:
+        return "text-gray-400";
+    }
+  }
+
+  get countCompletedSubtasks(): number {
+    return this.subtasks.filter(
+      (subtask: Subtask) =>
+        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
+    ).length;
+  }
+
+  get totalSubtasks(): number {
+    return this.subtasks.length;
+  }
 
   get countCompletedTasks(): number {
     const listSubtasks = this.task?.subtasks ?? [];
