@@ -73,10 +73,32 @@
   </provides>
 
   <releases>
+    <release version="0.10.0" date="2026-02-01">
+      <description>
+        <p>Added WebSocket support for real-time task updates in Kanban board with improved data
+          broadcasting.</p>
+        <p>Enhanced task board with search functionality and extracted task card component for
+          better Kanban board performance.</p>
+        <p>Added delete functionality for shared tasks with improved task sharing controls.</p>
+        <p>Implemented toggle delete status functionality for admin records management.</p>
+        <p>Replaced custom dropdown menus with Angular Material menu components for improved UI
+          consistency.</p>
+        <p>Improved date handling with robust datetime utilities and standardized UTC datetime
+          handling across all modules.</p>
+        <p>Enhanced data synchronization with improved deleted record filtering and cloud deletion
+          handling.</p>
+        <p>Added cleanup of deleted records after cloud sync operations.</p>
+        <p>Enhanced calendar styling with improved visual indicators.</p>
+        <p>Improved production build optimization settings for better performance.</p>
+        <p>Multiple UI/UX improvements including notification system, icon styling, and component
+          refactoring.</p>
+      </description>
+    </release>
     <release version="0.9.2" date="2026-01-27">
       <description>
         <p>Included both private and shared tasks in the calendar display.</p>
-        <p>Implemented a 5-second task highlight effect when redirecting from the calendar to the task
+        <p>Implemented a 5-second task highlight effect when redirecting from the calendar to the
+          task
           list.</p>
         <p>Added automatic scrolling to ensure the target task is within the visible area upon
           redirection.</p>
