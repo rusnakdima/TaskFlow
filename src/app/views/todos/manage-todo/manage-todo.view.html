@@ -82,7 +82,7 @@
             @for (priority of priorityOptions; track priority.value) {
               <mat-radio-button
                 [value]="priority.value"
-                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
+                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-600 cursor-pointer transition-colors w-full"
               >
                 <div class="flex items-center gap-2 flex-1">
                   <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
@@ -106,14 +106,19 @@
             <mat-label>Start Date</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
             <mat-datepicker-toggle matSuffix [for]="startPicker" />
-            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-datepicker #startPicker [startAt]="today"></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field class="w-full">
             <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              formControlName="endDate"
+              [matDatepickerFilter]="endDateFilter"
+            />
             <mat-datepicker-toggle matSuffix [for]="endPicker" />
-            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-datepicker #endPicker [startAt]="form.get('startDate')?.value"></mat-datepicker>
           </mat-form-field>
 
           <div class="space-y-2">

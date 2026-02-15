@@ -46,14 +46,20 @@ impl From<TodoCreateModel> for TodoModel {
     let mut formattedStartDate = String::new();
     let mut formattedEndDate = String::new();
     if value.startDate != "" {
-      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
+        formattedStartDate = dt
+          .with_timezone(&chrono::Utc)
+          .format("%Y-%m-%dT%H:%M:%SZ")
+          .to_string();
+      }
     }
     if value.endDate != "" {
-      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
+        formattedEndDate = dt
+          .with_timezone(&chrono::Utc)
+          .format("%Y-%m-%dT%H:%M:%SZ")
+          .to_string();
+      }
     }
 
     TodoModel {
@@ -101,22 +107,20 @@ impl TodoUpdateModel {
     let mut formattedEndDate = existing.endDate.clone();
 
     if let Some(ref startDate) = self.startDate {
-      if startDate != "" {
-        formattedStartDate = chrono::DateTime::parse_from_rfc3339(startDate)
-          .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-      } else {
-        formattedStartDate = startDate.clone();
+      if !startDate.is_empty() {
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(startDate) {
+          let utc = dt.with_timezone(&chrono::Utc);
+          formattedStartDate = utc.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        }
       }
     }
 
     if let Some(ref endDate) = self.endDate {
-      if endDate != "" {
-        formattedEndDate = chrono::DateTime::parse_from_rfc3339(endDate)
-          .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-      } else {
-        formattedEndDate = endDate.clone();
+      if !endDate.is_empty() {
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(endDate) {
+          let utc = dt.with_timezone(&chrono::Utc);
+          formattedEndDate = utc.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        }
       }
     }
 

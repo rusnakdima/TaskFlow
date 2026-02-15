@@ -134,7 +134,7 @@
               (click)="startPicker.open()"
             />
             <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-datepicker #startPicker [startAt]="today"></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field class="w-full">
@@ -148,7 +148,29 @@
               (click)="endPicker.open()"
             />
             <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker [disabled]="!form.get('startDate')?.value"></mat-datepicker>
+            <mat-datepicker
+              #endPicker
+              [startAt]="form.get('startDate')?.value"
+              [disabled]="!form.get('startDate')?.value"
+            ></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field class="w-full">
+            <mat-label>End Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              formControlName="endDate"
+              [matDatepickerFilter]="endDateFilter"
+              readonly
+              (click)="endPicker.open()"
+            />
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker
+              #endPicker
+              [startAt]="form.get('startDate')?.value"
+              [disabled]="!form.get('startDate')?.value"
+            ></mat-datepicker>
           </mat-form-field>
         </div>
       </div>
