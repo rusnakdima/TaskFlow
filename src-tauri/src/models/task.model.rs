@@ -88,14 +88,20 @@ impl From<TaskCreateModel> for TaskModel {
     let mut formattedStartDate = String::new();
     let mut formattedEndDate = String::new();
     if value.startDate != "" {
-      formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
+        formattedStartDate = dt
+          .with_timezone(&chrono::Utc)
+          .format("%Y-%m-%dT%H:%M:%SZ")
+          .to_string();
+      }
     }
     if value.endDate != "" {
-      formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
-        .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
+        formattedEndDate = dt
+          .with_timezone(&chrono::Utc)
+          .format("%Y-%m-%dT%H:%M:%SZ")
+          .to_string();
+      }
     }
 
     TaskModel {
@@ -141,9 +147,12 @@ impl TaskUpdateModel {
 
     if let Some(ref startDate) = self.startDate {
       if startDate != "" {
-        formattedStartDate = chrono::DateTime::parse_from_rfc3339(startDate)
-          .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(startDate) {
+          formattedStartDate = dt
+            .with_timezone(&chrono::Utc)
+            .format("%Y-%m-%dT%H:%M:%SZ")
+            .to_string();
+        }
       } else {
         formattedStartDate = startDate.clone();
       }
@@ -151,9 +160,12 @@ impl TaskUpdateModel {
 
     if let Some(ref endDate) = self.endDate {
       if endDate != "" {
-        formattedEndDate = chrono::DateTime::parse_from_rfc3339(endDate)
-          .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(endDate) {
+          formattedEndDate = dt
+            .with_timezone(&chrono::Utc)
+            .format("%Y-%m-%dT%H:%M:%SZ")
+            .to_string();
+        }
       } else {
         formattedEndDate = endDate.clone();
       }

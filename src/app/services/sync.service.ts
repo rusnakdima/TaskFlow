@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { BehaviorSubject, Observable } from "rxjs";
 
 /* models */
-import { Response } from "@models/response.model";
+import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -15,7 +15,7 @@ import { AuthService } from "@services/auth.service";
 export class SyncService {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   get isSyncing$(): Observable<boolean> {
     return this.isSyncingSubject.asObservable();
@@ -51,7 +51,7 @@ export class SyncService {
     this.setSyncing(true);
     try {
       const exportResult = await this.exportToCloud<R>();
-      if (exportResult.status !== "Success") {
+      if (exportResult.status !== ResponseStatus.SUCCESS) {
         return exportResult;
       }
 

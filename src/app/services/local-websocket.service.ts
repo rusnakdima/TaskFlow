@@ -111,8 +111,6 @@ export class LocalWebSocketService {
       filter((response) => {
         const reqId = response.requestId || response.response?.requestId;
         const matches = reqId === requestId;
-        if (matches) {
-        }
         return matches;
       }),
       take(1),

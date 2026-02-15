@@ -29,7 +29,11 @@ import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
-import { normalizeTaskDates } from "@helpers/date-conversion.helper";
+import {
+  normalizeTaskDates,
+  convertDatesToUtc,
+  convertDatesFromUtcToLocal,
+} from "@helpers/date-conversion.helper";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -93,6 +97,7 @@ export class ManageTaskView implements OnInit {
   form: FormGroup;
   isEdit = signal(false);
   isSubmitting = signal(false);
+  today = new Date();
 
   projectInfo = signal<Todo | null>(null);
   newSubtaskTitle = signal("");
@@ -158,10 +163,11 @@ export class ManageTaskView implements OnInit {
       .get<Task>("task", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
       .subscribe({
         next: (taskData) => {
-          this.form.patchValue(taskData);
+          const localDates = convertDatesFromUtcToLocal(taskData);
+          this.form.patchValue(localDates);
 
-          const startDate = taskData.startDate;
-          const endDate = taskData.endDate;
+          const startDate = localDates.startDate;
+          const endDate = localDates.endDate;
           if (startDate && endDate) {
             this.updateEndDateValidation(startDate, endDate);
           }
@@ -242,7 +248,7 @@ export class ManageTaskView implements OnInit {
   endDateFilter = (date: Date | null): boolean => {
     const startDateValue = this.form.get("startDate")?.value;
     if (!startDateValue) {
-      return false;
+      return true;
     }
 
     if (!date) {
@@ -250,6 +256,7 @@ export class ManageTaskView implements OnInit {
     }
 
     const startDate = new Date(startDateValue);
+    startDate.setHours(0, 0, 0, 0);
     return date >= startDate;
   };
 
@@ -271,9 +278,10 @@ export class ManageTaskView implements OnInit {
           next: (tasks) => {
             const formValue = this.form.value;
             const normalizedFormValue = normalizeTaskDates(formValue);
+            const convertedDates = convertDatesToUtc(normalizedFormValue);
             const length = tasks.length;
             const body = {
-              ...normalizedFormValue,
+              ...convertedDates,
               order: length,
               todoId: this.todoId(),
             };
@@ -312,8 +320,9 @@ export class ManageTaskView implements OnInit {
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTaskDates(formValue);
+      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...normalizedFormValue,
+        ...convertedDates,
       };
 
       this.dataSyncProvider

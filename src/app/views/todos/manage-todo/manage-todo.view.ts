@@ -36,7 +36,11 @@ import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
-import { normalizeTodoDates } from "@helpers/date-conversion.helper";
+import {
+  normalizeTodoDates,
+  convertDatesToUtc,
+  convertDatesFromUtcToLocal,
+} from "@helpers/date-conversion.helper";
 
 @Component({
   selector: "app-manage-todo",
@@ -94,6 +98,7 @@ export class ManageTodoView implements OnInit {
   isSubmitting = signal(false);
   isOwner: boolean = false;
   isPrivate: boolean = true;
+  today = new Date();
 
   priorityOptions = [
     {
@@ -167,7 +172,8 @@ export class ManageTodoView implements OnInit {
       )
       .subscribe({
         next: (todo) => {
-          this.form.patchValue(todo);
+          const localDates = convertDatesFromUtcToLocal(todo);
+          this.form.patchValue(localDates);
 
           this.isOwner = todo.userId === this.userId();
           this.isPrivate = todo.visibility === "private";
@@ -320,21 +326,21 @@ export class ManageTodoView implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting()) {
       Object.values(this.form.controls).forEach((control) => {
         control.markAsTouched();
       });
-      this.notifyService.showError("Please fill in all required fields");
+      if (this.form.invalid) {
+        this.notifyService.showError("Please fill in all required fields");
+      }
       return;
     }
 
-    if (this.form.valid) {
-      this.isSubmitting.set(true);
-      if (this.isEdit()) {
-        this.updateTodo();
-      } else {
-        this.createTodo();
-      }
+    this.isSubmitting.set(true);
+    if (this.isEdit()) {
+      this.updateTodo();
+    } else {
+      this.createTodo();
     }
   }
 
@@ -342,11 +348,11 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTodoDates(formValue);
+      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...normalizedFormValue,
+        ...convertedDates,
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
-        deadline: this.form.value.deadline ? new Date(this.form.value.deadline) : "",
       };
 
       this.isPrivate = body.visibility === "private";
@@ -374,11 +380,11 @@ export class ManageTodoView implements OnInit {
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTodoDates(formValue);
+      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...normalizedFormValue,
+        ...convertedDates,
         categories: this.form.get("categories")?.value.map((category: Category) => category.id),
         assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
-        updatedAt: new Date().toISOString(),
       };
 
       const newVisibility = this.form.get("visibility")?.value as "private" | "team";
@@ -388,7 +394,7 @@ export class ManageTodoView implements OnInit {
       this.dataSyncProvider
         .update<Todo>("todo", body.id, body, {
           isOwner: true,
-          isPrivate: !this.isPrivate,
+          isPrivate: this.isPrivate,
         })
         .subscribe({
           next: async (result) => {
@@ -403,7 +409,9 @@ export class ManageTodoView implements OnInit {
             this.isPrivate = !this.isPrivate;
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Todo updated successfully");
-            // this.back();
+            setTimeout(() => {
+              this.back();
+            }, 1000);
           },
           error: (err) => {
             console.error("Failed to update todo:", err);
@@ -416,4 +424,19 @@ export class ManageTodoView implements OnInit {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
+
+  endDateFilter = (date: Date | null): boolean => {
+    const startDateValue = this.form.get("startDate")?.value;
+    if (!startDateValue) {
+      return true;
+    }
+
+    if (!date) {
+      return false;
+    }
+
+    const startDate = new Date(startDateValue);
+    startDate.setHours(0, 0, 0, 0);
+    return date >= startDate;
+  };
 }
