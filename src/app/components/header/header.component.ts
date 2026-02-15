@@ -21,6 +21,8 @@ import { distinctUntilChanged, filter, map } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -44,7 +46,7 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatMenuModule, MatButtonModule],
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
@@ -58,7 +60,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private notificationService: NotificationCenterService,
     private cdr: ChangeDetectorRef,
     private location: Location
-  ) {}
+  ) { }
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
@@ -75,8 +77,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   task = signal<Task | null>(null);
 
   isBack = signal(false);
-  showUserMenu = signal(false);
-  showNotificationMenu = signal(false);
   isSyncing = signal(false);
 
   notifications = this.notificationService.notifications;
@@ -225,28 +225,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.setTheme(newTheme);
   }
 
-  toggleUserMenu() {
-    this.showUserMenu.set(!this.showUserMenu());
-    if (this.showUserMenu()) {
-      this.showNotificationMenu.set(false);
-    }
-  }
-
-  closeUserMenu() {
-    this.showUserMenu.set(false);
-  }
-
-  toggleNotificationMenu() {
-    this.showNotificationMenu.set(!this.showNotificationMenu());
-    if (this.showNotificationMenu()) {
-      this.showUserMenu.set(false);
-    }
-  }
-
-  closeNotificationMenu() {
-    this.showNotificationMenu.set(false);
-  }
-
   markAsRead(id: string) {
     this.notificationService.markAsRead(id);
   }
@@ -277,7 +255,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    this.closeUserMenu();
     this.authService.logout();
   }
 }
