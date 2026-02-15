@@ -86,7 +86,11 @@ impl ManageDbService {
 
     let tasks = if !todoIds.is_empty() {
       match mongodbProvider
-        .getAll("tasks", Some(doc! {"todoId": {"$in": &todoIds}}), None)
+        .getAll(
+          "tasks",
+          Some(doc! {"todoId": {"$in": &todoIds}, "isDeleted": {"$ne": true}}),
+          None,
+        )
         .await
       {
         Ok(docs) => docs,
@@ -112,7 +116,11 @@ impl ManageDbService {
 
     let subtasks = if !taskIds.is_empty() {
       match mongodbProvider
-        .getAll("subtasks", Some(doc! {"taskId": {"$in": &taskIds}}), None)
+        .getAll(
+          "subtasks",
+          Some(doc! {"taskId": {"$in": &taskIds}, "isDeleted": {"$ne": true}}),
+          None,
+        )
         .await
       {
         Ok(docs) => docs,
@@ -182,10 +190,7 @@ impl ManageDbService {
       .getAll("todos", Some(json!({"userId": userId.clone()})), None)
       .await
     {
-      Ok(vals) => vals
-        .into_iter()
-        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
-        .collect(),
+      Ok(vals) => vals,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
@@ -208,10 +213,7 @@ impl ManageDbService {
       .getAll("tasks", Some(json!({"todoId": todoIds})), None)
       .await
     {
-      Ok(vals) => vals
-        .into_iter()
-        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
-        .collect(),
+      Ok(vals) => vals,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
@@ -234,10 +236,7 @@ impl ManageDbService {
       .getAll("subtasks", Some(json!({"taskId": taskIds})), None)
       .await
     {
-      Ok(vals) => vals
-        .into_iter()
-        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
-        .collect(),
+      Ok(vals) => vals,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
@@ -257,10 +256,7 @@ impl ManageDbService {
       )
       .await
     {
-      Ok(vals) => vals
-        .into_iter()
-        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
-        .collect(),
+      Ok(vals) => vals,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
@@ -280,10 +276,7 @@ impl ManageDbService {
       )
       .await
     {
-      Ok(vals) => vals
-        .into_iter()
-        .filter(|v| v.get("isDeleted").and_then(|v| v.as_bool()) != Some(true))
-        .collect(),
+      Ok(vals) => vals,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
@@ -445,7 +438,7 @@ impl ManageDbService {
       Ok(data) => data,
       Err(e) => return Err(e),
     };
-    let cloudData = match self.getAllDataFromCloud(userId).await {
+    let cloudData = match self.getAllDataFromCloud(userId.clone()).await {
       Ok(data) => data,
       Err(e) => return Err(e),
     };
@@ -503,8 +496,14 @@ impl ManageDbService {
 
       for (id, mut cloudDoc) in cloudMap {
         if !localMap.contains_key(&id) {
-          cloudDoc.insert("isDeleted", true);
-          toUpsert.push(cloudDoc);
+          let isDeletedInCloud = cloudDoc.get_bool("isDeleted").unwrap_or(false);
+          if isDeletedInCloud {
+            let now = chrono::Utc::now();
+            let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+            cloudDoc.insert("isDeleted", true);
+            cloudDoc.insert("updatedAt", formatted);
+            toUpsert.push(cloudDoc);
+          }
         }
       }
 
