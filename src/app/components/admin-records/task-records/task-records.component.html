@@ -36,6 +36,12 @@
                   {{ isExpanded(task.id) ? "expand_less" : "expand_more" }}
                 </mat-icon>
               </button>
+              <button mat-icon-button class="w-8 h-8 text-blue-600" (click)="onToggleDelete(task)">
+                <mat-icon
+                  class="w-5 h-5"
+                  [fontIcon]="task.isDeleted ? 'restore_from_trash' : 'delete'"
+                />
+              </button>
               <button mat-icon-button class="w-8 h-8 text-red-600" (click)="onDeleteRecord(task)">
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>

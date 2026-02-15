@@ -22,6 +22,7 @@ export class CategoryRecordsComponent {
   @Input() selectedRecords = new Set<string>();
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<Category>();
+  @Output() toggleDelete = new EventEmitter<Category>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
@@ -51,6 +52,10 @@ export class CategoryRecordsComponent {
 
   onDeleteRecord(category: Category): void {
     this.deleteRecord.emit(category);
+  }
+
+  onToggleDelete(category: Category): void {
+    this.toggleDelete.emit(category);
   }
 
   getStatusColor(isDeleted: boolean): string {

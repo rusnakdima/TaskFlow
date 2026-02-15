@@ -23,6 +23,7 @@ export class SubtaskRecordsComponent {
   @Input() selectedRecords = new Set<string>();
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<Subtask>();
+  @Output() toggleDelete = new EventEmitter<Subtask>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
@@ -52,6 +53,10 @@ export class SubtaskRecordsComponent {
 
   onDeleteRecord(subtask: Subtask): void {
     this.deleteRecord.emit(subtask);
+  }
+
+  onToggleDelete(subtask: Subtask): void {
+    this.toggleDelete.emit(subtask);
   }
 
   formatDate(dateStr: string): string {

@@ -22,6 +22,7 @@ export class TaskRecordsComponent {
   @Input() selectedRecords = new Set<string>();
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<Task>();
+  @Output() toggleDelete = new EventEmitter<Task>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
@@ -51,6 +52,10 @@ export class TaskRecordsComponent {
 
   onDeleteRecord(task: Task): void {
     this.deleteRecord.emit(task);
+  }
+
+  onToggleDelete(task: Task): void {
+    this.toggleDelete.emit(task);
   }
 
   formatDate(dateStr: string): string {

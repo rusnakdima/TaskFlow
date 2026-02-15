@@ -20,7 +20,9 @@ use routes::{
   about_route::{downloadUpdate, getBinaryNameFile, openFile},
   auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
   category_route::{categoryCreate, categoryDelete, categoryGet, categoryGetAll, categoryUpdate},
-  manage_db_route::{exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord},
+  manage_db_route::{
+    exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord, toggleDeleteStatus,
+  },
   profile_route::{profileCreate, profileDelete, profileGet, profileGetAll, profileUpdate},
   statistics_route::statisticsGet,
   subtask_route::{
@@ -205,6 +207,7 @@ pub fn run() {
       exportToCloud,
       getAllDataForAdmin,
       permanentlyDeleteRecord,
+      toggleDeleteStatus,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

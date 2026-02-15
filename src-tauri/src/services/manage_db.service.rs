@@ -663,4 +663,52 @@ impl ManageDbService {
       }),
     }
   }
+
+  #[allow(non_snake_case)]
+  pub async fn toggleDeleteStatus(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongodbProvider = match &self.mongodbProvider {
+      Some(p) => p,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "MongoDB not available".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    // First get the record to know current status
+    let record = match mongodbProvider.get(&table, None, None, &id).await {
+      Ok(doc) => doc,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Record not found: {}", e),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
+
+    let is_deleted = record.get_bool("isDeleted").unwrap_or(false);
+    let new_status = !is_deleted;
+
+    let update_doc = doc! { "isDeleted": new_status };
+
+    match mongodbProvider.update(&table, &id, update_doc).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: format!("Record delete status toggled to {}", new_status),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error updating record: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
 }
