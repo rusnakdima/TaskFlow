@@ -61,6 +61,7 @@ export class KanbanView implements OnInit {
   expandedTasks = signal<Set<string>>(new Set());
 
   userId = signal<string>("");
+  searchQuery = signal<string>("");
 
   private isUpdatingOrder = signal<boolean>(false);
 
@@ -275,7 +276,23 @@ export class KanbanView implements OnInit {
   }
 
   getTasksByStatus(status: string): Task[] {
-    return this.tasks().filter((t) => t.status === status);
+    const query = this.searchQuery().toLowerCase().trim();
+    return this.tasks().filter((t) => {
+      const matchesStatus = t.status === status;
+      const matchesSearch =
+        !query ||
+        t.title.toLowerCase().includes(query) ||
+        (t.description && t.description.toLowerCase().includes(query));
+      return matchesStatus && matchesSearch;
+    });
+  }
+
+  onSearchChange(query: string) {
+    this.searchQuery.set(query);
+  }
+
+  clearSearch() {
+    this.searchQuery.set("");
   }
 
   moveTask(taskId: string, newStatus: TaskStatus) {
