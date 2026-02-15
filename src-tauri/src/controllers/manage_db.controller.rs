@@ -49,4 +49,13 @@ impl ManageDbController {
       .permanentlyDeleteRecord(table, id)
       .await
   }
+
+  #[allow(non_snake_case)]
+  pub async fn toggleDeleteStatus(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.managedbService.toggleDeleteStatus(table, id).await
+  }
 }

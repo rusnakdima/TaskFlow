@@ -22,6 +22,7 @@ export class TodoRecordsComponent {
   @Input() selectedRecords = new Set<string>();
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<Todo>();
+  @Output() toggleDelete = new EventEmitter<Todo>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
@@ -51,6 +52,10 @@ export class TodoRecordsComponent {
 
   onDeleteRecord(todo: Todo): void {
     this.deleteRecord.emit(todo);
+  }
+
+  onToggleDelete(todo: Todo): void {
+    this.toggleDelete.emit(todo);
   }
 
   formatDate(dateStr: string): string {

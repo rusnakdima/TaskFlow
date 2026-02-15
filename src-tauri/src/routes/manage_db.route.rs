@@ -43,3 +43,13 @@ pub async fn permanentlyDeleteRecord(
     .permanentlyDeleteRecord(table, id)
     .await
 }
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn toggleDeleteStatus(
+  state: State<'_, AppState>,
+  table: String,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.managedbController.toggleDeleteStatus(table, id).await
+}

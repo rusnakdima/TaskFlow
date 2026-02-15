@@ -19,6 +19,7 @@ export class DailyActivityRecordsComponent {
   @Input() selectedRecords = new Set<string>();
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<any>();
+  @Output() toggleDelete = new EventEmitter<any>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
@@ -48,6 +49,10 @@ export class DailyActivityRecordsComponent {
 
   onDeleteRecord(record: any): void {
     this.deleteRecord.emit(record);
+  }
+
+  onToggleDelete(record: any): void {
+    this.toggleDelete.emit(record);
   }
 
   formatDate(dateStr: string): string {

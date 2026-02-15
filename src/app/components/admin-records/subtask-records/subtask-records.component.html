@@ -35,6 +35,16 @@
               </button>
               <button
                 mat-icon-button
+                class="w-8 h-8 text-blue-600"
+                (click)="onToggleDelete(subtask)"
+              >
+                <mat-icon
+                  class="w-5 h-5"
+                  [fontIcon]="subtask.isDeleted ? 'restore_from_trash' : 'delete'"
+                />
+              </button>
+              <button
+                mat-icon-button
                 class="w-8 h-8 text-red-600"
                 (click)="onDeleteRecord(subtask)"
               >
@@ -43,35 +53,35 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-            @if (subtask.description) {
-              <div>
-                <span class="text-sm font-medium textMuted">Description:</span>
-                <p class="text-sm textNormal mt-1 line-clamp-2">{{ subtask.description }}</p>
-              </div>
-            }
-            @if (subtask.taskId) {
-              <div>
-                <span class="text-sm font-medium textMuted">Task ID:</span>
-                <p class="text-sm textNormal mt-1">{{ subtask.taskId }}</p>
-              </div>
-            }
-            @if (subtask.task.title) {
-              <div>
-                <span class="text-sm font-medium textMuted">Task Title:</span>
-                <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.title }}</p>
-              </div>
-            }
-            @if (subtask.task.todo.title) {
-              <div>
-                <span class="text-sm font-medium textMuted">Todo Title:</span>
-                <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.todo.title }}</p>
-              </div>
-            }
-          </div>
-
           @if (isExpanded(subtask.id)) {
             <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+                @if (subtask.description) {
+                  <div>
+                    <span class="text-sm font-medium textMuted">Description:</span>
+                    <p class="text-sm textNormal mt-1 line-clamp-2">{{ subtask.description }}</p>
+                  </div>
+                }
+                @if (subtask.taskId) {
+                  <div>
+                    <span class="text-sm font-medium textMuted">Task ID:</span>
+                    <p class="text-sm textNormal mt-1">{{ subtask.taskId }}</p>
+                  </div>
+                }
+                @if (subtask.task?.title) {
+                  <div>
+                    <span class="text-sm font-medium textMuted">Task Title:</span>
+                    <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.title }}</p>
+                  </div>
+                }
+                @if (subtask.task?.todo?.title) {
+                  <div>
+                    <span class="text-sm font-medium textMuted">Todo Title:</span>
+                    <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.todo.title }}</p>
+                  </div>
+                }
+              </div>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="font-medium textMuted">Order:</span>

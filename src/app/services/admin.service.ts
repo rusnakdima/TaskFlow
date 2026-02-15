@@ -12,7 +12,7 @@ import { AuthService } from "@services/auth.service";
   providedIn: "root",
 })
 export class AdminService {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   async getAllDataForAdmin<R>(): Promise<Response<R>> {
     return await invoke<Response<R>>("getAllDataForAdmin");
@@ -20,5 +20,9 @@ export class AdminService {
 
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {
     return await invoke<Response<void>>("permanentlyDeleteRecord", { table, id });
+  }
+
+  async toggleDeleteStatus(table: string, id: string): Promise<Response<void>> {
+    return await invoke<Response<void>>("toggleDeleteStatus", { table, id });
   }
 }

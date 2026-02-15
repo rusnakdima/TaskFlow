@@ -64,7 +64,7 @@ export class AdminView implements OnInit {
   constructor(
     private adminService: AdminService,
     private notifyService: NotifyService
-  ) {}
+  ) { }
 
   adminData = signal<AdminData>({});
   selectedType = signal<string>("todos");
@@ -351,6 +351,21 @@ export class AdminView implements OnInit {
       } catch (error) {
         this.notifyService.showError("Error deleting record: " + error);
       }
+    }
+  }
+
+  async toggleDeleteStatus(record: any) {
+    try {
+      const response = await this.adminService.toggleDeleteStatus(this.selectedType(), record.id);
+
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Record status updated");
+        await this.loadAdminData();
+      } else {
+        this.notifyService.showError(response.message || "Failed to update record status");
+      }
+    } catch (error) {
+      this.notifyService.showError("Error updating record status: " + error);
     }
   }
 

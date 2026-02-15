@@ -9,8 +9,8 @@
           (change)="onSelectChange(category.id)"
         />
 
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between mb-3">
+        <div class="flex-1 gap-y-1 min-w-0">
+          <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <h4 class="font-semibold textNormal text-lg mb-1 truncate">{{ category.title }}</h4>
               <div class="flex items-center gap-4 text-sm textMuted">
@@ -28,6 +28,16 @@
               </button>
               <button
                 mat-icon-button
+                class="w-8 h-8 text-blue-600"
+                (click)="onToggleDelete(category)"
+              >
+                <mat-icon
+                  class="w-5 h-5"
+                  [fontIcon]="category.isDeleted ? 'restore_from_trash' : 'delete'"
+                />
+              </button>
+              <button
+                mat-icon-button
                 class="w-8 h-8 text-red-600"
                 (click)="onDeleteRecord(category)"
               >
@@ -38,24 +48,16 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             @if (category.user) {
-              <div>
+              <div class="flex flex-row gap-2 items-center">
                 <span class="text-sm font-medium textMuted">User:</span>
                 <p class="text-sm textNormal mt-1">
-                  {{ category.user.profile.name }} {{ category.user.profile.lastName }} ({{
+                  {{ category.user.profile?.name }} {{ category.user.profile?.lastName }} ({{
                     category.user.username
                   }})
                 </p>
               </div>
             }
           </div>
-
-          @if (isExpanded(category.id)) {
-            <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
-              <div class="text-sm textMuted">
-                <span class="font-medium">No additional details available for categories.</span>
-              </div>
-            </div>
-          }
         </div>
       </div>
     </mat-card>
