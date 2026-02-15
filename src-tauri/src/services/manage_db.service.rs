@@ -523,6 +523,8 @@ impl ManageDbService {
       }
     }
 
+    let _ = self.cleanDeletedRecordsFromLocal().await;
+
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Data exported to cloud MongoDB successfully".to_string(),
@@ -663,6 +665,34 @@ impl ManageDbService {
         data: DataValue::String("".to_string()),
       }),
     }
+  }
+
+  #[allow(non_snake_case)]
+  pub async fn cleanDeletedRecordsFromLocal(&self) -> Result<(), ResponseModel> {
+    let tables = vec![
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+
+    for table in &tables {
+      let allRecords = match self.jsonProvider.getDataTable(table).await {
+        Ok(recs) => recs,
+        Err(_) => continue,
+      };
+
+      for record in allRecords {
+        if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
+          if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
+            let _ = self.jsonProvider.hardDelete(table, id).await;
+          }
+        }
+      }
+    }
+
+    Ok(())
   }
 
   #[allow(non_snake_case)]
