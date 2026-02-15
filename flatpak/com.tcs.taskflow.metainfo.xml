@@ -73,6 +73,13 @@
   </provides>
 
   <releases>
+    <release version="0.10.1" date="2026-02-16">
+      <description>
+        <p>Fixed Tauri version mismatch between Rust crates and NPM packages to ensure build
+          compatibility.</p>
+        <p>Updated Tauri dependencies to v2.10.x.</p>
+      </description>
+    </release>
     <release version="0.10.0" date="2026-02-01">
       <description>
         <p>Added WebSocket support for real-time task updates in Kanban board with improved data
