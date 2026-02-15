@@ -355,6 +355,18 @@ pre {
   @apply border-black! dark:border-white!;
 }
 
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  @apply bg-red-500! dark:bg-red-600! text-white!;
+}
+
+.mat-calendar-body-selected {
+  @apply bg-green-700! dark:bg-green-600! text-white!;
+}
+
+.mat-calendar-body-active > span:not(.mat-calendar-body-selected):nth-child(1) {
+  @apply bg-blue-600! dark:bg-blue-500! text-white;
+}
+
 .mat-mdc-form-field-required-marker {
   @apply ml-2 text-red-500;
 }
