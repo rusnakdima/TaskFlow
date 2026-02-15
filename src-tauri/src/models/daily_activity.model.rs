@@ -41,8 +41,8 @@ pub struct DailyActivityCreateModel {
 #[allow(non_snake_case)]
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
       _id: ObjectId::new(),
@@ -99,8 +99,8 @@ pub struct DailyActivityUpdateModel {
 #[allow(non_snake_case)]
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
       _id: value._id,
@@ -123,7 +123,7 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
       completedTasks: value.completedTasks,
       productivityScore: value.productivityScore,
       createdAt: value.createdAt,
-      updatedAt: formatted.clone(),
+      updatedAt: formatted,
     }
   }
 }

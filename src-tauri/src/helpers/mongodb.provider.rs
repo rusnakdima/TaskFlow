@@ -269,9 +269,12 @@ impl MongodbProvider {
     nameTable: &str,
     id: &str,
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     let tableData = self.getDataTable(nameTable).await?;
     let filter = doc! { "id": id.to_string() };
-    tableData.delete_one(filter).await?;
+    let update = doc! { "$set": { "isDeleted": true, "updatedAt": formatted } };
+    tableData.update_one(filter, update).await?;
 
     Ok(true)
   }

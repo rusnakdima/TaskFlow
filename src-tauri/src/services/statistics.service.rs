@@ -1,5 +1,5 @@
 /* sys lib */
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
+use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Utc, Weekday};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -172,7 +172,7 @@ impl StatisticsService {
 
   #[allow(non_snake_case)]
   fn calculateDateRange(&self, timeRange: &str) -> (DateTime<Local>, DateTime<Local>) {
-    let now = Local::now();
+    let now = Utc::now().with_timezone(&Local);
     let endDate = now;
 
     let startDate = match timeRange {

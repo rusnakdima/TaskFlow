@@ -120,7 +120,7 @@ impl ActivityLogHelper {
     activityType: &str,
     count: i32,
   ) -> Result<(), ResponseModel> {
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
     let mut activity = self.getOrCreateDailyActivity(userId, today).await?;
 

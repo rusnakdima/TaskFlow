@@ -1,5 +1,5 @@
 /* sys lib */
-use chrono::Local;
+use chrono::Utc;
 use serde::Serialize;
 
 /* models */
@@ -12,7 +12,7 @@ use crate::models::{
 
 #[allow(non_snake_case)]
 pub fn _getCurrentDate() -> String {
-  let current_datetime = Local::now();
+  let current_datetime = Utc::now();
   format!("{}", current_datetime.format("%Y_%m_%d_%H_%M_%S"))
 }
 

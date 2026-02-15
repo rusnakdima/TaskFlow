@@ -83,19 +83,19 @@ pub struct TaskCreateModel {
 #[allow(non_snake_case)]
 impl From<TaskCreateModel> for TaskModel {
   fn from(value: TaskCreateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     let mut formattedStartDate = String::new();
     let mut formattedEndDate = String::new();
     if value.startDate != "" {
       formattedStartDate = chrono::DateTime::parse_from_rfc3339(&value.startDate)
         .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     }
     if value.endDate != "" {
       formattedEndDate = chrono::DateTime::parse_from_rfc3339(&value.endDate)
         .unwrap()
-        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     }
 
     TaskModel {
@@ -143,7 +143,7 @@ impl TaskUpdateModel {
       if startDate != "" {
         formattedStartDate = chrono::DateTime::parse_from_rfc3339(startDate)
           .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
       } else {
         formattedStartDate = startDate.clone();
       }
@@ -153,11 +153,14 @@ impl TaskUpdateModel {
       if endDate != "" {
         formattedEndDate = chrono::DateTime::parse_from_rfc3339(endDate)
           .unwrap()
-          .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+          .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
       } else {
         formattedEndDate = endDate.clone();
       }
     }
+
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     TaskModel {
       _id: existing._id,
@@ -172,7 +175,7 @@ impl TaskUpdateModel {
       order: self.order.unwrap_or(existing.order),
       isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
       createdAt: existing.createdAt,
-      updatedAt: self.updatedAt.clone(),
+      updatedAt: formatted,
     }
   }
 }

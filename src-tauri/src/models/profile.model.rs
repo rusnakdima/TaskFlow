@@ -31,8 +31,8 @@ pub struct ProfileCreateModel {
 
 impl From<ProfileCreateModel> for ProfileModel {
   fn from(value: ProfileCreateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     ProfileModel {
       _id: ObjectId::new(),
@@ -64,8 +64,8 @@ pub struct ProfileUpdateModel {
 
 impl From<ProfileUpdateModel> for ProfileModel {
   fn from(value: ProfileUpdateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     ProfileModel {
       _id: value._id,
@@ -76,7 +76,7 @@ impl From<ProfileUpdateModel> for ProfileModel {
       imageUrl: value.imageUrl,
       userId: value.userId,
       createdAt: value.createdAt,
-      updatedAt: formatted.clone(),
+      updatedAt: formatted,
     }
   }
 }
