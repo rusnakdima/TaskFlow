@@ -24,7 +24,7 @@
       <button
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors h-9! relative"
         title="Notifications"
-        (click)="toggleNotificationMenu()"
+        [matMenuTriggerFor]="notificationMenu"
       >
         <mat-icon class="w-6! h-6! text-2xl! textMuted" fontIcon="notifications_none" />
         @if (unreadCount() > 0) {
@@ -62,7 +62,7 @@
 
       <button
         class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-        (click)="toggleUserMenu()"
+        [matMenuTriggerFor]="userMenu"
       >
         <img
           [src]="profile()?.imageUrl ? profile()!.imageUrl : 'assets/images/user.png'"
@@ -74,85 +74,83 @@
   </div>
 </div>
 
-@if (showUserMenu()) {
+<mat-menu #userMenu="matMenu" xPosition="before" class="min-w-[200px]! max-w-[300px]!">
   <div
-    class="fixed top-16 right-4 z-50 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 min-w-[200px]"
+    class="p-3 border-b border-gray-200 dark:border-zinc-700 outline-none"
+    (click)="$event.stopPropagation()"
   >
-    <div class="p-3 border-b border-gray-200 dark:border-zinc-700">
-      <p class="font-medium textNormal">
-        {{ profile() ? profile()!.name : "User" }} {{ profile() ? profile()!.lastName : "" }}
-      </p>
-      <p class="text-sm textMuted">{{ profile() ? profile()!.user.email : "" }}</p>
-    </div>
-
-    <div class="py-2">
-      <button
-        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-        routerLink="/profile"
-        [queryParams]="{ id: userId() }"
-        (click)="closeUserMenu()"
-      >
-        <mat-icon class="size-5! text-xl! textMuted" fontIcon="person" />
-        <span class="textNormal">Profile</span>
-      </button>
-
-      <button
-        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-        routerLink="/categories"
-        (click)="closeUserMenu()"
-      >
-        <mat-icon class="size-5! text-xl! textMuted" fontIcon="category" />
-        <span class="textNormal">Categories</span>
-      </button>
-
-      <button
-        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-        routerLink="/sync"
-        (click)="closeUserMenu()"
-      >
-        <mat-icon class="size-5! text-xl! textMuted" fontIcon="sync" />
-        <span class="textNormal">Sync Data</span>
-      </button>
-
-      @if (role() == "admin") {
-        <button
-          class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-          routerLink="/admin"
-          (click)="closeUserMenu()"
-        >
-          <mat-icon class="size-5! text-xl! textMuted" fontIcon="manage_accounts" />
-          <span class="textNormal">Admin</span>
-        </button>
-      }
-
-      <button
-        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
-        routerLink="/about"
-        (click)="closeUserMenu()"
-      >
-        <mat-icon class="size-5! before:w-5! text-xl! textMuted" fontIcon="info_outlined" />
-        <span class="textNormal">About</span>
-      </button>
-
-      <hr class="my-2 border-gray-200 dark:border-zinc-700" />
-
-      <button
-        class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
-        (click)="logout()"
-      >
-        <mat-icon class="size-5! text-xl!" fontIcon="logout" />
-        <span>Sign out</span>
-      </button>
-    </div>
+    <p class="font-medium textNormal">
+      {{ profile() ? profile()!.name : "User" }} {{ profile() ? profile()!.lastName : "" }}
+    </p>
+    <p class="text-sm textMuted">{{ profile() ? profile()!.user.email : "" }}</p>
   </div>
-}
 
-@if (showNotificationMenu()) {
-  <div
-    class="fixed top-16 right-4 z-50 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 w-80 max-h-[400px] flex flex-col"
-  >
+  <div class="py-2">
+    <button
+      mat-menu-item
+      routerLink="/profile"
+      [queryParams]="{ id: userId() }"
+      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+    >
+      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="person" />
+      <span class="textNormal">Profile</span>
+    </button>
+
+    <button
+      mat-menu-item
+      routerLink="/categories"
+      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+    >
+      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="category" />
+      <span class="textNormal">Categories</span>
+    </button>
+
+    <button
+      mat-menu-item
+      routerLink="/sync"
+      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+    >
+      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="sync" />
+      <span class="textNormal">Sync Data</span>
+    </button>
+
+    @if (role() == "admin") {
+      <button
+        mat-menu-item
+        routerLink="/admin"
+        class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      >
+        <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="manage_accounts" />
+        <span class="textNormal">Admin</span>
+      </button>
+    }
+
+    <button
+      mat-menu-item
+      routerLink="/about"
+      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+    >
+      <mat-icon class="size-5! before:w-5! text-xl! textMuted mr-3" fontIcon="info_outlined" />
+      <span class="textNormal">About</span>
+    </button>
+
+    <hr class="my-2 border-gray-200 dark:border-zinc-700" />
+
+    <button
+      mat-menu-item
+      class="text-red-600 dark:text-red-400 hover:bg-red-50! dark:hover:bg-red-900/30! transition-colors"
+      (click)="logout()"
+    >
+      <mat-icon class="size-5! text-xl! mr-3 text-red-600 dark:text-red-400" fontIcon="logout" />
+      <span>Sign out</span>
+    </button>
+  </div>
+</mat-menu>
+
+<mat-menu #notificationMenu="matMenu" xPosition="before" class="min-w-[320px]! max-w-[320px]!">
+  <div class="w-80 max-h-[400px] flex flex-col outline-none" (click)="$event.stopPropagation()">
     <div
-      class="p-3 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between"
+      class="p-3 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-800 z-10"
     >
       <h3 class="font-semibold textNormal">Notifications</h3>
       <div class="flex gap-2">
@@ -173,7 +171,7 @@
       </div>
     </div>
 
-    <div class="overflow-y-auto flex-1">
+    <div class="overflow-y-auto flex-1 max-h-[350px]">
       @if (notifications().length === 0) {
         <div class="p-8 text-center">
           <mat-icon class="size-12! text-4xl! textMuted mb-2" fontIcon="notifications_off" />
@@ -232,8 +230,4 @@
       }
     </div>
   </div>
-}
-
-@if (showUserMenu() || showNotificationMenu()) {
-  <div class="fixed inset-0 z-40" (click)="closeUserMenu(); closeNotificationMenu()"></div>
-}
+</mat-menu>
