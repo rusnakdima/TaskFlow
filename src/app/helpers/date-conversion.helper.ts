@@ -4,6 +4,29 @@
  */
 
 /**
+ * Converts a UTC ISO string to local time string
+ * @param utcString ISO 8601 UTC string (e.g., "2024-01-15T10:30:00Z")
+ * @returns Local date string in ISO format without timezone
+ */
+export function convertUtcToLocal(utcString: string): string {
+  if (!utcString) return "";
+  const date = new Date(utcString);
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().replace("Z", "").split(".")[0];
+}
+
+/**
+ * Converts a UTC ISO string to local Date object
+ * @param utcString ISO 8601 UTC string
+ * @returns Date object in local time
+ */
+export function utcToLocalDate(utcString: string): Date | null {
+  if (!utcString) return null;
+  const date = new Date(utcString);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/**
  * Ensures date fields in a form value object are empty strings instead of null
  * @param formValue The form value object that may contain date fields
  * @param dateFieldNames Array of date field names to normalize
