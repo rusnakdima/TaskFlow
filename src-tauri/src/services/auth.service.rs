@@ -310,8 +310,8 @@ impl AuthService {
           temporaryCode: "".to_string(),
           codeExpiresAt: "".to_string(),
           profileId: "".to_string(),
-          createdAt: chrono::Utc::now().to_string(),
-          updatedAt: chrono::Utc::now().to_string(),
+          createdAt: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+          updatedAt: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
         };
 
         let recordUser = match to_bson(&user) {
@@ -387,7 +387,7 @@ impl AuthService {
         let updateData = doc! {
           "temporaryCode": code.clone(),
           "codeExpiresAt": expires_at,
-          "updatedAt": chrono::Utc::now().to_string()
+          "updatedAt": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
         };
 
         match self
@@ -482,7 +482,7 @@ impl AuthService {
           "password": hashedPassword,
           "temporaryCode": "",
           "codeExpiresAt": "",
-          "updatedAt": chrono::Utc::now().to_string()
+          "updatedAt": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
         };
 
         match self

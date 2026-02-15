@@ -163,8 +163,8 @@ impl ProfileService {
           }
         };
 
-        let now = chrono::Local::now();
-        let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+        let now = chrono::Utc::now();
+        let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
         let updatedProfile = ProfileModel {
           _id: existingProfile._id,

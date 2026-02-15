@@ -542,11 +542,14 @@ impl JsonProvider {
     id: &str,
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let mut listRecords = self.getDataTable(nameTable).await?;
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     for record in listRecords.iter_mut() {
       if record.get("id").and_then(|v| v.as_str()) == Some(id) {
         if let Some(obj) = record.as_object_mut() {
           obj.insert("isDeleted".to_string(), Value::Bool(true));
+          obj.insert("updatedAt".to_string(), Value::String(formatted));
           self.saveDataTable(nameTable, &listRecords).await?;
           return Ok(true);
         }

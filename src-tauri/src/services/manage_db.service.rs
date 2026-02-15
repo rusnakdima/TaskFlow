@@ -1,4 +1,5 @@
 /* sys */
+use chrono::Utc;
 use mongodb::bson::{doc, from_bson, to_bson, Document};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -696,7 +697,10 @@ impl ManageDbService {
     let is_deleted = record.get_bool("isDeleted").unwrap_or(false);
     let new_status = !is_deleted;
 
-    let update_doc = doc! { "isDeleted": new_status };
+    let update_doc = doc! {
+      "isDeleted": new_status,
+      "updatedAt": Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+    };
 
     match mongodbProvider.update(&table, &id, update_doc).await {
       Ok(_) => Ok(ResponseModel {

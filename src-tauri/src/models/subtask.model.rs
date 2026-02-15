@@ -38,8 +38,8 @@ pub struct SubtaskCreateModel {
 
 impl From<SubtaskCreateModel> for SubtaskModel {
   fn from(value: SubtaskCreateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     SubtaskModel {
       _id: ObjectId::new(),
@@ -78,6 +78,9 @@ pub struct SubtaskUpdateModel {
 #[allow(non_snake_case)]
 impl SubtaskUpdateModel {
   pub fn applyTo(&self, existing: SubtaskModel) -> SubtaskModel {
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
     SubtaskModel {
       _id: existing._id,
       id: existing.id,
@@ -89,7 +92,7 @@ impl SubtaskUpdateModel {
       order: self.order.unwrap_or(existing.order),
       isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
       createdAt: existing.createdAt,
-      updatedAt: self.updatedAt.clone(),
+      updatedAt: formatted,
     }
   }
 }

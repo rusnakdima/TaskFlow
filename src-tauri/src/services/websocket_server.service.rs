@@ -176,7 +176,8 @@ impl WebSocketServerService {
       ("todo", "update") => {
         if let (Some(id), Some(mut data)) = (request.id, request.data) {
           data["id"] = json!(id);
-          data["updatedAt"] = json!(chrono::Utc::now().to_rfc3339());
+          data["updatedAt"] =
+            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
           let updateModel: TodoUpdateModel = match serde_json::from_value(data.clone()) {
             Ok(m) => m,
             Err(e) => {
@@ -308,7 +309,8 @@ impl WebSocketServerService {
       ("task", "update") => {
         if let (Some(id), Some(mut data)) = (request.id, request.data) {
           data["id"] = json!(id);
-          data["updatedAt"] = json!(chrono::Utc::now().to_rfc3339());
+          data["updatedAt"] =
+            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
           let updateModel: TaskUpdateModel = match serde_json::from_value(data.clone()) {
             Ok(m) => m,
             Err(e) => {
@@ -397,7 +399,8 @@ impl WebSocketServerService {
       ("subtask", "update") => {
         if let (Some(id), Some(mut data)) = (request.id, request.data) {
           data["id"] = json!(id);
-          data["updatedAt"] = json!(chrono::Utc::now().to_rfc3339());
+          data["updatedAt"] =
+            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
           let updateModel: SubtaskUpdateModel = match serde_json::from_value(data.clone()) {
             Ok(m) => m,
             Err(e) => {

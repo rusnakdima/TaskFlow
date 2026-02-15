@@ -39,8 +39,8 @@ pub struct UserCreateModel {
 
 impl From<UserCreateModel> for UserModel {
   fn from(value: UserCreateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     UserModel {
       _id: ObjectId::new(),
@@ -78,8 +78,8 @@ pub struct UserUpdateModel {
 
 impl From<UserUpdateModel> for UserModel {
   fn from(value: UserUpdateModel) -> Self {
-    let now = chrono::Local::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     UserModel {
       _id: value._id,
@@ -92,7 +92,7 @@ impl From<UserUpdateModel> for UserModel {
       codeExpiresAt: value.codeExpiresAt,
       profileId: value.profileId,
       createdAt: value.createdAt,
-      updatedAt: formatted.clone(),
+      updatedAt: formatted,
     }
   }
 }
