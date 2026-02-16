@@ -4,7 +4,51 @@ Task Flow is a productivity application built with [Tauri](https://tauri.app/) t
 
 ## Screenshots
 
-here are screenshots of this project
+<details>
+  <summary>Spoiler</summary>
+  <details>
+    <summary>Authentication</summary>
+    <h3>Login page</h3>
+    <img src="imgREADME/login.png" alt="Login">
+    <h3>Sign Up page</h3>
+    <img src="imgREADME/signup.png" alt="Sign Up">
+    <h3>Reset Password page</h3>
+    <img src="imgREADME/reset-password.png" alt="Reset Password">
+  </details>
+  <details>
+    <summary>Main Views</summary>
+    <h3>Home page</h3>
+    <img src="imgREADME/home.png" alt="Home">
+    <h3>Projects page</h3>
+    <img src="imgREADME/projects.png" alt="Projects">
+    <h3>Profile page</h3>
+    <img src="imgREADME/profile.png" alt="Profile">
+    <h3>About page</h3>
+    <img src="imgREADME/about.png" alt="About">
+  </details>
+  <details>
+    <summary>Task Management</summary>
+    <h3>Tasks List</h3>
+    <img src="imgREADME/list-tasks.png" alt="Tasks List">
+    <h3>Subtasks List</h3>
+    <img src="imgREADME/list-subtasks.png" alt="Subtasks List">
+    <h3>Kanban Board</h3>
+    <img src="imgREADME/kanban-board.png" alt="Kanban Board">
+  </details>
+  <details>
+    <summary>Features</summary>
+    <h3>Calendar View</h3>
+    <img src="imgREADME/calendar.png" alt="Calendar">
+    <h3>Statistics</h3>
+    <img src="imgREADME/stats.png" alt="Statistics">
+    <h3>Categories</h3>
+    <img src="imgREADME/categories.png" alt="Categories">
+    <h3>Sync Settings</h3>
+    <img src="imgREADME/sync.png" alt="Sync">
+    <h3>Shared Tasks</h3>
+    <img src="imgREADME/shared-tasks.png" alt="Shared Tasks">
+  </details>
+</details>
 
 ## Installation
 
@@ -18,27 +62,13 @@ node -v
 ```
 
 ```bash
+npm -v
+```
+
+If you are using the bun package manager, then run this command:
+
+```bash
 bun -v
-```
-
-If Bun is not installed, you can install it from the [official website](https://bun.sh/). Here are the installation commands for different systems:
-
-**For macOS and Linux:**
-
-```bash
-curl -fsSL https://bun.sh/install | bash
-```
-
-**For Windows (using PowerShell):**
-
-```powershell
-irm bun.sh/install.ps1 | iex
-```
-
-**For all platforms using npm:**
-
-```bash
-npm install -g bun
 ```
 
 #### Installation dependencies
@@ -46,10 +76,16 @@ npm install -g bun
 After that, go to the folder with this project and run the following command:
 
 ```bash
+npm install
+```
+
+If you are using the bun package manager, then run this command:
+
+```bash
 bun install
 ```
 
-#### Checking the installed tools to launch the project
+#### Checking the Rust compiler
 
 In order to run a Rust application, you need to make sure that you have a compiler for Rust.
 To find out if you have one, enter the following command:
@@ -58,11 +94,17 @@ To find out if you have one, enter the following command:
 rustc --version
 ```
 
-If you get an error instead of a version, it means that you don't have a Rust compiler. In oreder to set it up, go to the [official website](https://www.rust-lang.org/tools/install) and follow the instructions on the website.
+If you get an error instead of a version, it means that you don't have a Rust compiler. In order to set it up, go to the [official website](https://www.rust-lang.org/tools/install) and follow the instructions on the website.
 
 ## Usage
 
-After installing the dependencies, use the following command to run:
+After installing the dependencies, use the following command to run, depending on the package manager you are using:
+
+```bash
+npm run tauri dev
+```
+
+Or
 
 ```bash
 bun run tauri dev
@@ -116,21 +158,14 @@ bun run tauri:build:android:aab
 4. **Build Caching**: Build timestamps are tracked to determine what needs rebuilding
 5. **CI/CD Integration**: The same optimized build script works in GitHub Actions for consistent builds across all platforms (desktop, Android, iOS)
 
-### Performance Tips
-
-- Use `bun run build:smart` for development builds to avoid unnecessary recompilation
-- The first build will always take longer as it establishes the baseline
-- Subsequent builds will be much faster if only small changes are made
-- Use `bun run build:clean` if you encounter build issues or want to start fresh
-
 ## Authors
 
 - [Dmitriy303](https://github.com/rusnakdima)
 
 ## License
 
-This project is licensed under the [License Name](LICENSE.MD).
+This project is licensed under the [MIT License](LICENSE.MD).
 
 ## Contact
 
-If you have any questions or comments about this project, please feel free to contact us at [contact email](rusnakdima03@gmail.com).
+If you have any questions or comments about this project, please feel free to contact us at [rusnakdima03@gmail.com](mailto:rusnakdima03@gmail.com).
