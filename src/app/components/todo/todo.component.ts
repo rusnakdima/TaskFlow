@@ -1,6 +1,15 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  signal,
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -9,6 +18,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -19,166 +29,85 @@ import { Task, TaskStatus } from "@models/task.model";
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, DragDropModule],
   templateUrl: "./todo.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoComponent {
-  constructor() {}
+  private baseHelper = inject(BaseItemHelper);
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   @Input() todo: Todo | null = null;
   @Input() index: number = 0;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Output() deleteEvent: EventEmitter<string> = new EventEmitter<string>();
+  @Output() saveAsBlueprintEvent: EventEmitter<Todo> = new EventEmitter<Todo>();
 
   isExpandedDetails = signal(false);
 
   truncateString = Common.truncateString;
 
+  onSaveAsBlueprint(event: Event) {
+    event.stopPropagation();
+    if (this.todo) {
+      this.saveAsBlueprintEvent.emit(this.todo);
+      this.cdr.markForCheck();
+    }
+  }
+
   get countCompletedTasks(): number {
-    const listTasks = this.todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter(
-      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-    );
-    return listCompletedTasks.length;
+    return this.baseHelper.countCompleted(this.todo?.tasks ?? []);
   }
 
   get countTasks(): number {
-    const listTasks = this.todo?.tasks ?? [];
-    return listTasks.length;
+    return this.todo?.tasks?.length ?? 0;
   }
 
   get percentCompletedTasks(): number {
-    const listTasks = this.todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter(
-      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-    );
-    const percent = listCompletedTasks.length / (listTasks.length == 0 ? 1 : listTasks.length);
-    return percent;
+    const completed = this.baseHelper.countCompleted(this.todo?.tasks ?? []);
+    const total = this.todo?.tasks?.length ?? 0;
+    return completed / (total === 0 ? 1 : total);
   }
 
   toggleDetails(event: Event) {
     event.stopPropagation();
     this.isExpandedDetails.set(!this.isExpandedDetails());
+    this.cdr.markForCheck();
   }
 
   getProgressPercentage(): number {
     return Math.round(this.percentCompletedTasks * 100);
   }
 
-  getProgressSegments(): { status: TaskStatus; percentage: number; color: string }[] {
-    const listTasks = this.todo?.tasks ?? [];
-    const total = listTasks.length;
-
-    if (total === 0) {
-      return [{ status: TaskStatus.PENDING, percentage: 100, color: "bg-gray-400" }];
-    }
-
-    const completed = listTasks.filter((t) => t.status === TaskStatus.COMPLETED).length;
-    const skipped = listTasks.filter((t) => t.status === TaskStatus.SKIPPED).length;
-    const failed = listTasks.filter((t) => t.status === TaskStatus.FAILED).length;
-    const pending = listTasks.filter((t) => t.status === TaskStatus.PENDING).length;
-
-    const segments = [];
-
-    if (completed > 0) {
-      segments.push({
-        status: TaskStatus.COMPLETED,
-        percentage: Math.round((completed / total) * 100),
-        color: "bg-green-500",
-      });
-    }
-    if (skipped > 0) {
-      segments.push({
-        status: TaskStatus.SKIPPED,
-        percentage: Math.round((skipped / total) * 100),
-        color: "bg-orange-500",
-      });
-    }
-    if (failed > 0) {
-      segments.push({
-        status: TaskStatus.FAILED,
-        percentage: Math.round((failed / total) * 100),
-        color: "bg-red-500",
-      });
-    }
-    if (pending > 0) {
-      segments.push({
-        status: TaskStatus.PENDING,
-        percentage: Math.round((pending / total) * 100),
-        color: "bg-gray-400",
-      });
-    }
-
-    return segments;
-  }
-
-  getProgressColor(): string {
-    const progress = this.getProgressPercentage();
-    if (progress >= 100) return "bg-green-500";
-    if (progress >= 75) return "bg-blue-500";
-    if (progress >= 50) return "bg-yellow-500";
-    if (progress >= 25) return "bg-orange-500";
-    return "bg-red-500";
-  }
+  getProgressSegments = () => this.baseHelper.getProgressSegments(this.todo?.tasks ?? []);
 
   getProjectStatusColor(): string {
-    const progress = this.getProgressPercentage();
-    if (progress >= 100) return "bg-green-500";
-    if (progress >= 50) return "bg-blue-500";
-    return "bg-orange-500";
+    if (!this.todo) return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
+    const completed = this.countCompletedTasks;
+    const total = this.countTasks;
+    if (total === 0) return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
+    if (completed === total)
+      return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+    if (completed > total / 2)
+      return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+    return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
   }
 
   getProjectStatusText(): string {
-    const progress = this.getProgressPercentage();
-    if (progress >= 100) return "Completed";
-    if (progress >= 50) return "In Progress";
-    return "Just Started";
+    if (!this.todo) return "Not Started";
+    const completed = this.countCompletedTasks;
+    const total = this.countTasks;
+    if (total === 0) return "Not Started";
+    if (completed === total) return "Completed";
+    if (completed > total / 2) return "In Progress";
+    return "In Progress";
   }
 
-  getPriorityColor(): string {
-    if (this.isOverdue()) {
-      return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
-    }
-    if (this.isDueSoon()) {
-      return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300";
-    }
-    return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
-  }
+  formatDate = this.baseHelper.formatDate;
 
-  getPriorityText(): string {
-    if (this.isOverdue()) return "Overdue";
-    if (this.isDueSoon()) return "Due Soon";
-    return "On Track";
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
-
-  isOverdue(): boolean {
-    if (!this.todo?.endDate) return false;
-    const now = new Date();
-    const deadline = new Date(this.todo.endDate);
-    return deadline < now && this.getProgressPercentage() < 100;
-  }
-
-  isDueSoon(): boolean {
-    if (!this.todo?.endDate) return false;
-    const now = new Date();
-    const deadline = new Date(this.todo.endDate);
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(now.getDate() + 3);
-    return deadline <= threeDaysFromNow && deadline > now;
-  }
-
-  deleteProject(event: Event) {
-    event.stopPropagation();
-    if (confirm(`Are you sure you want to delete "${this.todo?.title}"?`)) {
-      this.deleteEvent.emit(this.todo?.id || "");
+  deleteTodo() {
+    if (this.todo) {
+      this.deleteEvent.emit(this.todo.id);
     }
   }
 }

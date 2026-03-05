@@ -1,6 +1,15 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  signal,
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -10,6 +19,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* models */
 import { Subtask } from "@models/subtask.model";
@@ -19,9 +29,12 @@ import { Subtask } from "@models/subtask.model";
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, MatIconModule, DragDropModule],
   templateUrl: "./subtask.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubtaskComponent {
-  constructor() {}
+  private baseHelper = inject(BaseItemHelper);
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   @Input() subtask: Subtask | null = null;
   @Input() index: number = 0;
@@ -37,28 +50,19 @@ export class SubtaskComponent {
 
   truncateString = Common.truncateString;
 
-  getPriorityColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
-      case "medium":
-        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
-      case "low":
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
-      default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
-    }
-  }
+  getPriorityColor = this.baseHelper.getPriorityBadgeClass;
 
   toggleCompletion() {
     if (this.subtask) {
       this.toggleCompletionEvent.emit(this.subtask);
+      this.cdr.markForCheck();
     }
   }
 
   startInlineEdit(field: string, currentValue: string) {
     this.editingField.set(field);
     this.editingValue.set(currentValue);
+    this.cdr.markForCheck();
 
     setTimeout(() => {
       const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
@@ -86,10 +90,11 @@ export class SubtaskComponent {
   cancelInlineEdit() {
     this.editingField.set(null);
     this.editingValue.set("");
+    this.cdr.markForCheck();
   }
 
   deleteSubtask() {
-    if (this.subtask && confirm(`Are you sure you want to delete "${this.subtask.title}"?`)) {
+    if (this.subtask) {
       this.deleteSubtaskEvent.emit(this.subtask.id);
     }
   }

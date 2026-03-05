@@ -40,4 +40,5 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   assignees?: string[];
+  dependsOn?: string[];
 }

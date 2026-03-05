@@ -1,5 +1,6 @@
 @if (task) {
   <div cdkDrag class="h-full flex flex-col" [class.expanded]="isExpanded">
+    <ng-content></ng-content>
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
@@ -9,6 +10,18 @@
       <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
           <div class="flex flex-row flex-1 items-start gap-3">
+            <label
+              class="inline-flex items-center cursor-pointer select-none"
+              (click)="$event.stopPropagation()"
+            >
+              <input
+                type="checkbox"
+                [checked]="isSelected"
+                (change)="onSelectionChange()"
+                class="styleCheckbox"
+              />
+              <span class="checkmark ml-2"></span>
+            </label>
             <button
               class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
               (click)="toggleCompletion($event)"
@@ -55,21 +68,32 @@
                   (click)="$event.stopPropagation()"
                 />
               } @else {
-                <h3
-                  class="text-lg font-semibold textNormal"
-                  [ngClass]="
-                    task.status === 'completed' ||
-                    task.status === 'skipped' ||
-                    task.status === 'failed'
-                      ? 'line-through text-gray-500 dark:text-gray-400'
-                      : 'group-hover:text-green-600 dark:group-hover:text-green-400'
-                  "
-                  (dblclick)="startInlineEdit('title', task.title || '')"
-                  title="Double-click to edit title"
-                  (click)="$event.stopPropagation()"
-                >
-                  {{ task.title }}
-                </h3>
+                <div class="flex items-center gap-2">
+                  <h3
+                    class="text-lg font-semibold textNormal"
+                    [ngClass]="
+                      task.status === 'completed' ||
+                      task.status === 'skipped' ||
+                      task.status === 'failed'
+                        ? 'line-through text-gray-500 dark:text-gray-400'
+                        : 'group-hover:text-green-600 dark:group-hover:text-green-400'
+                    "
+                    (dblclick)="startInlineEdit('title', task.title || '')"
+                    title="Double-click to edit title"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ task.title }}
+                  </h3>
+                  @if (isBlocked) {
+                    <div
+                      class="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-bold"
+                      title="Waiting for dependencies to complete"
+                    >
+                      <mat-icon class="w-3! h-3! text-xs!" fontIcon="lock" />
+                      Blocked
+                    </div>
+                  }
+                </div>
               }
 
               @if (editingField() === "description") {
