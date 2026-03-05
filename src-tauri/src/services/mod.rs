@@ -8,6 +8,19 @@ pub mod manage_db_service;
 pub mod websocket_server_service;
 
 // Special services (not CRUD)
+// Auth services (split from auth.service.rs)
+#[path = "auth_token.service.rs"]
+pub mod auth_token;
+
+#[path = "auth_login.service.rs"]
+pub mod auth_login;
+
+#[path = "auth_register.service.rs"]
+pub mod auth_register;
+
+#[path = "auth_password.service.rs"]
+pub mod auth_password;
+
 #[path = "auth.service.rs"]
 pub mod auth_service;
 
