@@ -17,6 +17,7 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -47,7 +48,7 @@ export class CalendarView implements OnInit {
     private authService: AuthService,
     private notifyService: NotifyService,
     router: Router,
-    private dataSyncProvider: DataSyncProvider
+    private storageService: StorageService
   ) {
     this.router = router;
   }
@@ -90,32 +91,10 @@ export class CalendarView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      forkJoin({
-        privateTodos: this.dataSyncProvider.getAll<Todo>(
-          "todo",
-          { userId },
-          { isOwner: true, isPrivate: true }
-        ),
-        sharedOwnedTodos: this.dataSyncProvider.getAll<Todo>(
-          "todo",
-          { userId, visibility: "team" },
-          { isOwner: true, isPrivate: false }
-        ),
-        sharedAssignedTodos: this.dataSyncProvider.getAll<Todo>(
-          "todo",
-          { assignee: userId, visibility: "team" },
-          { isOwner: false, isPrivate: false }
-        ),
-      }).subscribe({
+      // Use storage service to load data (cached or from backend)
+      this.storageService.loadAllData().subscribe({
         next: (result) => {
-          const allTodos = [
-            ...result.privateTodos,
-            ...result.sharedOwnedTodos,
-            ...result.sharedAssignedTodos,
-          ];
-          // Remove duplicates if any (though unlikely with these filters)
-          const uniqueTodos = Array.from(new Map(allTodos.map((item) => [item.id, item])).values());
-          this.processTodosData(uniqueTodos);
+          this.processTodosData(result.todos);
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to load calendar data");
@@ -125,16 +104,18 @@ export class CalendarView implements OnInit {
   }
 
   processTodosData(todos: Array<Todo>): void {
-    const allTasks: Task[] = [];
-    todos.forEach((todo) => {
-      if (todo.tasks) {
-        todo.tasks.forEach((task) => {
-          task.todo = todo;
-          allTasks.push(task);
-        });
+    // Get tasks from storage service
+    const tasks = this.storageService.tasks();
+
+    // Associate todos with tasks
+    tasks.forEach((task) => {
+      const todo = todos.find((t) => t.id === task.todoId);
+      if (todo) {
+        (task as any).todo = todo;
       }
     });
-    this.processCalendarEvents(allTasks);
+
+    this.processCalendarEvents(tasks);
   }
 
   processCalendarEvents(tasks: Array<Task>): void {

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
@@ -10,51 +10,56 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { FilterService } from "@services/filter.service";
+import { SortService } from "@services/sort.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
-import { SearchComponent } from "@components/fields/search/search.component";
 import { TodoComponent } from "@components/todo/todo.component";
+import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
 
-interface SavedFilter {
-  id: string;
-  name: string;
-  filter: string;
-  searchQuery?: string;
-  createdAt: string;
-}
+/* controllers */
+import { TodosController } from "@controllers/todos.controller";
 
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [DataSyncProvider, TodosController],
   imports: [
     CommonModule,
     RouterModule,
     FormsModule,
     MatIconModule,
-    SearchComponent,
     TodoComponent,
+    FilterBarComponent,
     DragDropModule,
   ],
   templateUrl: "./todos.view.html",
 })
 export class TodosView implements OnInit {
+  private controller = inject(TodosController);
+  private filterService = inject(FilterService);
+  private sortService = inject(SortService);
+
   constructor(
     private authService: AuthService,
-    private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider
+    private notifyService: NotifyService
   ) {}
 
-  listTodos = signal<Array<Todo>>([]);
-  tempListTodos = signal<Array<Todo>>([]);
+  // Expose templateService for template
+  get templateService() {
+    return this.controller.templateService;
+  }
+
+  listTodos = signal<Todo[]>([]);
+  tempListTodos = signal<Todo[]>([]);
 
   private isUpdatingOrder: boolean = false;
 
@@ -64,67 +69,73 @@ export class TodosView implements OnInit {
 
   userId = signal("");
 
-  savedFilters = signal<SavedFilter[]>([]);
-  showSaveFilterDialog = signal(false);
-  newFilterName = signal("");
-
-  filterOptions = [
+  filterOptions: FilterOption[] = [
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
     { key: "completed", label: "Completed" },
     { key: "week", label: "This Week" },
   ];
 
+  get filterOptionsWithCounts(): FilterOption[] {
+    return this.filterOptions.map((option) => ({
+      ...option,
+      count: this.getFilteredCount(option.key),
+    }));
+  }
+
+  // Blueprint dialog state
+  showBlueprintDialog = signal(false);
+  showCreateBlueprintDialog = signal(false);
+  blueprintToSave = signal<Todo | null>(null);
+  newBlueprintName = signal("");
+  newBlueprintDescription = signal("");
+
+  showApplyBlueprintDialog = signal(false);
+  blueprintToApply = signal<any | null>(null);
+  applyBlueprintTitle = signal("");
+
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
-    this.loadSavedFilters();
+    this.controller.init(this.userId());
     this.loadTodos();
+
+    document.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
+        event.preventDefault();
+        this.showFilter.set(true);
+        setTimeout(() => {
+          const searchField = document.getElementById("searchField");
+          if (searchField) searchField.focus();
+        }, 100);
+      }
+    });
   }
 
-  loadSavedFilters(): void {
-    const stored = localStorage.getItem("savedFilters");
-    if (stored) {
-      this.savedFilters.set(JSON.parse(stored));
-    }
-  }
-
-  private saveFiltersToStorage(): void {
-    localStorage.setItem("savedFilters", JSON.stringify(this.savedFilters()));
+  trackByTodoId(index: number, todo: Todo): string {
+    return todo.id;
   }
 
   loadTodos(): void {
-    if (this.userId() && this.userId() != "") {
-      this.dataSyncProvider
-        .getAll<Todo>(
-          "todo",
-          { userId: this.userId(), visibility: "private" },
-          { isOwner: true, isPrivate: true }
-        )
-        .subscribe({
-          next: (todos) => {
-            this.tempListTodos.set(todos);
-            this.applyFilter();
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load todos");
-          },
-        });
-    }
+    this.controller.loadTodos().subscribe({
+      next: (todos) => {
+        this.tempListTodos.set(todos);
+        this.applyFilter();
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load todos");
+      },
+    });
   }
 
-  searchFunc(data: Array<any>) {
+  searchFunc(data: Todo[]) {
     this.listTodos.set(data);
-  }
-
-  onSearchChange(query: string): void {
-    this.searchQuery.set(query);
   }
 
   toggleFilter() {
     this.showFilter.update((val) => !val);
   }
 
-  changeFilter(filter: string): void {
+  changeFilter(filter: string) {
     this.activeFilter.set(filter);
     this.applyFilter();
   }
@@ -134,88 +145,40 @@ export class TodosView implements OnInit {
 
     switch (this.activeFilter()) {
       case "active":
-        filtered = filtered.filter((todo) => !this.isCompleted(todo));
+        filtered = filtered.filter((todo) => !this.controller.isCompleted(todo));
         break;
       case "completed":
-        filtered = filtered.filter((todo) => this.isCompleted(todo));
+        filtered = filtered.filter((todo) => this.controller.isCompleted(todo));
         break;
       case "week":
-        const todayForWeek = new Date();
-        const dayOfWeek = todayForWeek.getDay();
-        const startDateOfWeek = new Date(todayForWeek);
-        startDateOfWeek.setDate(todayForWeek.getDate() - dayOfWeek);
-        startDateOfWeek.setHours(0, 0, 0, 0);
-
-        const endDateOfWeek = new Date(startDateOfWeek);
-        endDateOfWeek.setDate(startDateOfWeek.getDate() + 6);
-        endDateOfWeek.setHours(23, 59, 59, 999);
-
-        filtered = filtered.filter((todo) => {
-          if (todo.startDate && todo.endDate) {
-            const todoStartDate = new Date(todo.startDate);
-            const todoEndDate = new Date(todo.endDate);
-            return todoStartDate <= endDateOfWeek && todoEndDate >= startDateOfWeek;
-          }
-          return false;
-        });
-        break;
-      default:
+        filtered = this.filterService.filterThisWeek(filtered);
         break;
     }
 
-    filtered.sort((a, b) => b.order - a.order);
+    filtered = this.sortService.sortByOrder(filtered, "desc");
     this.listTodos.set(filtered);
   }
 
   getFilteredCount(filter: string): number {
+    const todos = this.tempListTodos();
+
     switch (filter) {
       case "all":
-        return this.tempListTodos().length;
+        return todos.length;
       case "active":
-        return this.tempListTodos().filter((todo) => !this.isCompleted(todo)).length;
+        return todos.filter((todo) => !this.controller.isCompleted(todo)).length;
       case "completed":
-        return this.tempListTodos().filter((todo) => this.isCompleted(todo)).length;
+        return todos.filter((todo) => this.controller.isCompleted(todo)).length;
       case "week":
-        const todayForWeek = new Date();
-        const dayOfWeek = todayForWeek.getDay();
-        const startDateOfWeek = new Date(todayForWeek);
-        startDateOfWeek.setDate(todayForWeek.getDate() - dayOfWeek);
-        startDateOfWeek.setHours(0, 0, 0, 0);
-
-        const endDateOfWeek = new Date(startDateOfWeek);
-        endDateOfWeek.setDate(startDateOfWeek.getDate() + 6);
-        endDateOfWeek.setHours(23, 59, 59, 999);
-
-        return this.tempListTodos().filter((todo) => {
-          if (todo.startDate && todo.endDate) {
-            const todoStartDate = new Date(todo.startDate);
-            const todoEndDate = new Date(todo.endDate);
-            return todoStartDate <= endDateOfWeek && todoEndDate >= startDateOfWeek;
-          }
-          return false;
-        }).length;
+        return this.filterService.filterThisWeek(todos).length;
       default:
         return 0;
     }
   }
 
-  isCompleted(todo: Todo): boolean {
-    const listTasks = todo?.tasks ?? [];
-    const listCompletedTasks = listTasks.filter(
-      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-    );
-    return listCompletedTasks.length == listTasks.length;
-  }
-
   deleteTodoById(todoId: string): void {
-    this.dataSyncProvider.delete("todo", todoId, { isOwner: true, isPrivate: true }).subscribe({
-      next: (result) => {
-        this.notifyService.showSuccess("Todo deleted successfully");
-        this.loadTodos();
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to delete todo");
-      },
+    this.controller.deleteTodoById(todoId, () => {
+      this.loadTodos();
     });
   }
 
@@ -225,91 +188,78 @@ export class TodosView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listTodos(), event.previousIndex, event.currentIndex);
-    this.updateTodoOrder();
+    if (event.previousIndex !== event.currentIndex) {
+      const todos = this.listTodos();
+      const prevTodo = todos[event.previousIndex];
+      const currentTodo = todos[event.currentIndex];
+
+      const tempOrder = prevTodo.order;
+      prevTodo.order = currentTodo.order;
+      currentTodo.order = tempOrder;
+
+      moveItemInArray(todos, event.previousIndex, event.currentIndex);
+      this.controller.updateTwoTodoOrder(prevTodo, currentTodo, () => {
+        this.isUpdatingOrder = false;
+      });
+      this.isUpdatingOrder = true;
+    }
   }
 
   updateTodoOrder(): void {
     this.isUpdatingOrder = true;
-
-    this.listTodos().forEach((todo, index) => {
-      todo.order = this.listTodos().length - 1 - index;
+    this.controller.updateTodoOrder(this.listTodos(), (success) => {
+      this.isUpdatingOrder = false;
     });
+  }
 
-    const transformedTodos = this.listTodos().map((todo) => ({
-      _id: todo._id,
-      id: todo.id,
-      userId: todo.userId || "",
-      title: todo.title,
-      description: todo.description,
-      startDate: todo.startDate,
-      endDate: todo.endDate,
-      categories: todo.categories?.map((cat) => cat.id) || [],
-      assignees: todo.assignees?.map((assignee) => assignee.id) || [],
-      visibility: todo.visibility,
-      order: todo.order,
-      isDeleted: todo.isDeleted,
-      createdAt: todo.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString().split(".")[0],
-    }));
+  // Blueprint methods
+  saveAsBlueprint(todo: Todo) {
+    this.blueprintToSave.set(todo);
+    this.newBlueprintName.set(`${todo.title} Blueprint`);
+    this.newBlueprintDescription.set(todo.description || "");
+    this.showCreateBlueprintDialog.set(true);
+  }
 
-    this.dataSyncProvider
-      .updateAll<string>("todo", transformedTodos, { isOwner: true, isPrivate: true })
-      .subscribe({
-        next: (result) => {
-          this.notifyService.showSuccess("Order updated successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update order");
-          this.loadTodos();
-        },
-        complete: () => {
-          this.isUpdatingOrder = false;
-        },
+  confirmSaveAsBlueprint() {
+    const todo = this.blueprintToSave();
+    const name = this.newBlueprintName();
+    const description = this.newBlueprintDescription();
+
+    if (todo && name) {
+      this.controller.saveAsBlueprint(todo, name, description, () => {
+        this.closeCreateBlueprintDialog();
       });
-  }
-
-  openSaveFilterDialog(): void {
-    this.showSaveFilterDialog.set(true);
-    this.newFilterName.set("");
-  }
-
-  closeSaveFilterDialog(): void {
-    this.showSaveFilterDialog.set(false);
-    this.newFilterName.set("");
-  }
-
-  saveCurrentFilter(): void {
-    const name = this.newFilterName().trim();
-    if (!name) {
-      this.notifyService.showWarning("Please enter a filter name");
-      return;
     }
-
-    const newFilter: SavedFilter = {
-      id: Date.now().toString(),
-      name,
-      filter: this.activeFilter(),
-      searchQuery: this.searchQuery(),
-      createdAt: new Date().toISOString(),
-    };
-
-    this.savedFilters.update((filters) => [...filters, newFilter]);
-    this.saveFiltersToStorage();
-    this.notifyService.showSuccess("Filter saved successfully");
-    this.closeSaveFilterDialog();
   }
 
-  applySavedFilter(savedFilter: SavedFilter): void {
-    this.activeFilter.set(savedFilter.filter);
-    this.searchQuery.set(savedFilter.searchQuery || "");
-    this.applyFilter();
-    this.showFilter.set(true);
+  closeCreateBlueprintDialog() {
+    this.showCreateBlueprintDialog.set(false);
+    this.blueprintToSave.set(null);
+    this.newBlueprintName.set("");
+    this.newBlueprintDescription.set("");
   }
 
-  deleteSavedFilter(filterId: string): void {
-    this.savedFilters.update((filters) => filters.filter((f) => f.id !== filterId));
-    this.saveFiltersToStorage();
-    this.notifyService.showSuccess("Filter deleted");
+  confirmCreateFromBlueprint() {
+    const template = this.blueprintToApply();
+    const newTitle = this.applyBlueprintTitle();
+
+    if (template && newTitle) {
+      this.controller.createFromBlueprint(template, newTitle, () => {
+        this.loadTodos();
+        this.showApplyBlueprintDialog.set(false);
+        this.showCreateBlueprintDialog.set(false);
+      });
+    }
+  }
+
+  openApplyBlueprint(template: any) {
+    this.blueprintToApply.set(template);
+    this.applyBlueprintTitle.set(template.name);
+    this.showApplyBlueprintDialog.set(true);
+    this.showBlueprintDialog.set(false);
+  }
+
+  getSubtasksCount(template: any): number {
+    return template.tasks.reduce((sum: number, t: any) => sum + (t.subtasks?.length || 0), 0);
   }
 }

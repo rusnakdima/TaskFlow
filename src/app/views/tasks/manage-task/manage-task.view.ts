@@ -86,6 +86,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       isDeleted: [false],
       createdAt: [""],
       updatedAt: [""],
+      dependsOn: [[]],
     });
 
     this.form.get("startDate")?.valueChanges.subscribe((startDate) => {
@@ -121,6 +122,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   projectInfo = signal<Todo | null>(null);
   newSubtaskTitle = signal("");
+  availableTasksForDependency = signal<Task[]>([]);
 
   userId = "";
   isOwner: boolean = true;
@@ -383,5 +385,33 @@ export class ManageTaskView implements OnInit, OnDestroy {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
+  }
+
+  isTaskDependent(taskId: string): boolean {
+    const dependsOn = this.form.get("dependsOn")?.value || [];
+    return dependsOn.includes(taskId);
+  }
+
+  toggleDependency(taskId: string): void {
+    const dependsOn = this.form.get("dependsOn")?.value || [];
+    const index = dependsOn.indexOf(taskId);
+
+    if (index === -1) {
+      dependsOn.push(taskId);
+    } else {
+      dependsOn.splice(index, 1);
+    }
+
+    this.form.get("dependsOn")?.setValue([...dependsOn]);
+  }
+
+  checkDependenciesCompleted(dependsOn: string[]): boolean {
+    if (!dependsOn || dependsOn.length === 0) return true;
+
+    const tasks = this.projectInfo()?.tasks || [];
+    return dependsOn.every((depId) => {
+      const task = tasks.find((t) => t.id === depId);
+      return task && (task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED);
+    });
   }
 }

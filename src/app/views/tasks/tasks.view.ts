@@ -1,8 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { Component, OnInit, signal, inject } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
@@ -13,11 +11,14 @@ import { MatExpansionModule } from "@angular/material/expansion";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { FilterService } from "@services/filter.service";
+import { SortService } from "@services/sort.service";
+import { BulkActionService } from "@services/bulk-action.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -26,11 +27,15 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { SearchComponent } from "@components/fields/search/search.component";
 import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
+import { BulkActionBarComponent } from "@components/bulk-action-bar/bulk-action-bar.component";
+
+/* controllers */
+import { TasksController } from "@controllers/tasks.controller";
 
 @Component({
   selector: "app-tasks",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [DataSyncProvider, TasksController],
   imports: [
     CommonModule,
     FormsModule,
@@ -40,11 +45,17 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
     SearchComponent,
     TaskComponent,
     TodoInformationComponent,
+    BulkActionBarComponent,
     DragDropModule,
   ],
   templateUrl: "./tasks.view.html",
 })
 export class TasksView implements OnInit {
+  private controller = inject(TasksController);
+  private filterService = inject(FilterService);
+  private sortService = inject(SortService);
+  private bulkActionService = inject(BulkActionService);
+
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
@@ -56,16 +67,24 @@ export class TasksView implements OnInit {
   tempListTasks = signal<Task[]>([]);
   todo = signal<Todo | null>(null);
 
+  selectedTasks = signal<Set<string>>(new Set());
+  showBulkActions = signal(false);
+
   private isUpdatingOrder: boolean = false;
 
   activeFilter = signal("all");
   showFilter = signal(false);
 
-  editingTask = signal<string | null>(null);
-  editingField = signal<string | null>(null);
-  editingValue = signal("");
-
   highlightTaskId = signal<string | null>(null);
+
+  // Expose controller properties for template
+  get isOwner(): boolean {
+    return this.controller.isOwner;
+  }
+
+  get isPrivate(): boolean {
+    return this.controller.isPrivate;
+  }
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -77,23 +96,19 @@ export class TasksView implements OnInit {
     { key: "high", label: "High Priority" },
   ];
 
-  userId = "";
-  isOwner: boolean = true;
-  isPrivate: boolean = true;
+  bulkActions = [
+    { id: "priority", label: "Priority", icon: "flag", color: "primary" as const },
+    { id: "status", label: "Status", icon: "check_circle", color: "default" as const },
+    { id: "delete", label: "Delete", icon: "delete", color: "warn" as const },
+  ];
 
   ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
+    const userId = this.authService.getValueByKey("id");
 
     this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.isPrivate !== undefined) {
-        this.isPrivate = queryParams.isPrivate === "true";
-      }
-
       if (queryParams.highlightTaskId) {
         this.highlightTaskId.set(queryParams.highlightTaskId);
-        setTimeout(() => {
-          this.highlightTaskId.set(null);
-        }, 5000);
+        setTimeout(() => this.highlightTaskId.set(null), 5000);
       }
     });
 
@@ -101,167 +116,34 @@ export class TasksView implements OnInit {
     if (routeData?.["todo"]) {
       const todoData = routeData["todo"];
       this.todo.set(todoData);
-      this.isOwner = todoData.userId === this.userId;
-      this.isPrivate = todoData.visibility === "private";
+      this.controller.init(todoData, userId);
       this.getTasksByTodoId(todoData.id);
     }
   }
 
-  getTasksByTodoId(todoId: string) {
-    const todo = this.todo();
-    if (!todo) return;
-    this.dataSyncProvider
-      .getAll<Task>(
-        "task",
-        {
-          todoId,
-        },
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        todoId
-      )
-      .pipe(
-        map((tasks) => {
-          if (!Array.isArray(tasks)) {
-            this.tempListTasks.set([]);
-          } else {
-            this.tempListTasks.set(tasks);
-          }
-          this.applyFilter();
-          return tasks;
-        })
-      )
-      .subscribe();
+  trackByTaskId(index: number, task: Task): string {
+    return task.id;
   }
 
-  searchFunc(data: Array<any>) {
-    const sortedData = [...data].sort((a, b) => {
-      if (a.status === b.status) {
-        return 0;
-      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
-        return 1;
-      } else {
-        return -1;
-      }
+  getTasksByTodoId(todoId: string) {
+    this.controller.getTasksByTodoId(todoId).subscribe({
+      next: (tasks) => {
+        this.tempListTasks.set(tasks);
+        this.applyFilter();
+      },
+      error: () => {
+        this.notifyService.showError("Failed to load tasks");
+      },
     });
+  }
+
+  searchFunc(data: Task[]) {
+    const sortedData = this.sortService.sortByStatus(data, "asc");
     this.listTasks.set(sortedData);
   }
 
   toggleTaskCompletion(task: Task) {
-    let newStatus: TaskStatus;
-    let message = "";
-    switch (task.status) {
-      case TaskStatus.PENDING:
-        newStatus = TaskStatus.COMPLETED;
-        message = "Task skipped";
-        break;
-      case TaskStatus.COMPLETED:
-        newStatus = TaskStatus.SKIPPED;
-        message = "Task completed";
-        break;
-      case TaskStatus.SKIPPED:
-        newStatus = TaskStatus.FAILED;
-        message = "Task marked as failed";
-        break;
-      case TaskStatus.FAILED:
-      default:
-        newStatus = TaskStatus.PENDING;
-        message = "Task reopened";
-        break;
-    }
-
-    const updatedTask = { ...task, status: newStatus };
-
-    this.dataSyncProvider
-      .update<Task>(
-        "task",
-        task.id,
-        updatedTask,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        task.todoId
-      )
-      .subscribe({
-        next: (result) => {
-          task.status = newStatus;
-          if (this.todo()) {
-            const todoTask = this.todo()!.tasks.find((t) => t.id === task.id);
-            if (todoTask) {
-              todoTask.status = newStatus;
-            }
-          }
-          this.tempListTasks.update((tasks) => {
-            const index = tasks.findIndex((t) => t.id === task.id);
-            if (index !== -1) {
-              tasks[index].status = newStatus;
-            }
-            return tasks;
-          });
-
-          if (
-            newStatus === TaskStatus.COMPLETED &&
-            task.repeat &&
-            task.repeat !== RepeatInterval.NONE
-          ) {
-            this.generateNextRecurringTask(task);
-          }
-
-          this.applyFilter();
-          this.notifyService.showSuccess(message);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
-  }
-
-  generateNextRecurringTask(task: Task) {
-    const nextTask = { ...task };
-    delete (nextTask as any)._id;
-    nextTask.id = "";
-    nextTask.status = TaskStatus.PENDING;
-    nextTask.createdAt = new Date().toISOString().split(".")[0];
-    nextTask.updatedAt = nextTask.createdAt;
-
-    if (task.startDate) {
-      const nextStart = new Date(task.startDate);
-      const nextEnd = task.endDate ? new Date(task.endDate) : null;
-
-      switch (task.repeat) {
-        case RepeatInterval.DAILY:
-          nextStart.setDate(nextStart.getDate() + 1);
-          if (nextEnd) nextEnd.setDate(nextEnd.getDate() + 1);
-          break;
-        case RepeatInterval.WEEKLY:
-          nextStart.setDate(nextStart.getDate() + 7);
-          if (nextEnd) nextEnd.setDate(nextEnd.getDate() + 7);
-          break;
-        case RepeatInterval.MONTHLY:
-          nextStart.setMonth(nextStart.getMonth() + 1);
-          if (nextEnd) nextEnd.setMonth(nextEnd.getMonth() + 1);
-          break;
-      }
-
-      nextTask.startDate = nextStart.toISOString().split(".")[0] + "Z";
-      if (nextEnd) {
-        nextTask.endDate = nextEnd.toISOString().split(".")[0] + "Z";
-      }
-    }
-
-    this.dataSyncProvider
-      .create<Task>(
-        "task",
-        nextTask,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        task.todoId
-      )
-      .subscribe({
-        next: (result) => {
-          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-          this.getTasksByTodoId(task.todoId);
-        },
-        error: (err) => {
-          this.notifyService.showError("Failed to create next recurring task");
-        },
-      });
+    this.controller.toggleTaskCompletion(task);
   }
 
   toggleFilter() {
@@ -275,36 +157,29 @@ export class TasksView implements OnInit {
 
   applyFilter() {
     let filtered = [...this.tempListTasks()];
+
     switch (this.activeFilter()) {
-      case "all":
-        break;
       case "active":
-        filtered = filtered.filter((task) => task.status === TaskStatus.PENDING);
+        filtered = this.filterService.filterByCompletion(filtered, "active");
         break;
       case "completed":
-        filtered = filtered.filter((task) => task.status === TaskStatus.COMPLETED);
+        filtered = this.filterService.filterByCompletion(filtered, "completed");
         break;
       case "skipped":
-        filtered = filtered.filter((task) => task.status === TaskStatus.SKIPPED);
+        filtered = this.filterService.filterByStatus(filtered, "skipped");
         break;
       case "failed":
-        filtered = filtered.filter((task) => task.status === TaskStatus.FAILED);
+        filtered = this.filterService.filterByStatus(filtered, "failed");
         break;
       case "done":
-        filtered = filtered.filter(
-          (task) =>
-            task.status === TaskStatus.COMPLETED ||
-            task.status === TaskStatus.SKIPPED ||
-            task.status === TaskStatus.FAILED
-        );
+        filtered = this.filterService.filterByStatus(filtered, "done");
         break;
       case "high":
-        filtered = filtered.filter((task) => task.priority === "high");
-        break;
-      default:
+        filtered = this.filterService.filterByPriority(filtered, "high");
         break;
     }
-    filtered.sort((a, b) => b.order - a.order);
+
+    filtered = this.sortService.sortByOrder(filtered, "desc");
     this.listTasks.set(filtered);
 
     if (this.highlightTaskId()) {
@@ -318,71 +193,19 @@ export class TasksView implements OnInit {
   }
 
   updateTaskInline(event: { task: Task; field: string; value: string }) {
-    let updatedTask: Task;
-
-    if (event.field === "status") {
-      updatedTask = {
-        ...event.task,
-        status: event.value as TaskStatus,
-      };
-    } else {
-      updatedTask = {
-        ...event.task,
-        [event.field]: event.value,
-      };
-    }
-
-    this.dataSyncProvider
-      .update<Task>(
-        "task",
-        event.task.id,
-        updatedTask,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        event.task.todoId
-      )
-      .subscribe({
-        next: (result) => {
-          if (event.field === "title") {
-            event.task.title = event.value;
-          } else if (event.field === "description") {
-            event.task.description = event.value;
-          } else if (event.field === "status") {
-            event.task.status = event.value as TaskStatus;
-          }
-          this.notifyService.showSuccess("Task updated successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
+    this.controller.updateTaskInline(event.task, event.field, event.value);
   }
 
   deleteTask(taskId: string) {
     if (confirm("Are you sure you want to delete this task?")) {
-      const todo = this.todo();
-      if (!todo) return;
-
-      this.dataSyncProvider
-        .delete(
-          "task",
-          taskId,
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todo()?.id
-        )
-        .subscribe({
-          next: (result) => {
-            this.getTasksByTodoId(this.todo()?.id ?? "");
-            if (this.todo()) {
-              this.todo.update(
-                (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== taskId) }) as Todo
-              );
-            }
-            this.notifyService.showSuccess("Task deleted successfully");
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete task");
-          },
-        });
+      this.controller.deleteTask(taskId, () => {
+        this.getTasksByTodoId(this.todo()?.id ?? "");
+        if (this.todo()) {
+          this.todo.update(
+            (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== taskId) }) as Todo
+          );
+        }
+      });
     }
   }
 
@@ -392,57 +215,93 @@ export class TasksView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listTasks(), event.previousIndex, event.currentIndex);
-    this.updateTaskOrder();
+    if (event.previousIndex !== event.currentIndex) {
+      const tasks = this.listTasks();
+      const prevTask = tasks[event.previousIndex];
+      const currentTask = tasks[event.currentIndex];
+
+      const tempOrder = prevTask.order;
+      prevTask.order = currentTask.order;
+      currentTask.order = tempOrder;
+
+      moveItemInArray(tasks, event.previousIndex, event.currentIndex);
+      this.controller.updateTwoTaskOrder(prevTask, currentTask, () => {
+        this.isUpdatingOrder = false;
+      });
+      this.isUpdatingOrder = true;
+    }
   }
 
-  updateTaskOrder(): void {
-    this.isUpdatingOrder = true;
+  toggleTaskSelection(taskId: string): void {
+    const newSelected = this.bulkActionService.toggleSelection(this.selectedTasks(), taskId);
+    this.selectedTasks.set(newSelected);
+    this.showBulkActions.set(newSelected.size > 0);
+  }
 
-    const listTasks = this.listTasks();
-    const updatedTasks = listTasks.map((task, index) => ({
-      ...task,
-      order: listTasks.length - 1 - index,
-    }));
+  selectAllTasks(): void {
+    const allIds = this.bulkActionService.selectAll(this.listTasks());
+    this.selectedTasks.set(allIds);
+    this.showBulkActions.set(true);
+  }
 
-    const transformedTasks = updatedTasks.map((task) => ({
-      _id: task._id,
-      id: task.id,
-      todoId: task.todoId || "",
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      startDate: task.startDate,
-      endDate: task.endDate,
-      order: task.order,
-      isDeleted: task.isDeleted,
-      createdAt: task.createdAt,
-      updatedAt: new Date().toISOString().split(".")[0],
-    }));
+  clearSelection(): void {
+    this.selectedTasks.set(this.bulkActionService.clearSelection());
+    this.showBulkActions.set(false);
+  }
 
-    const todo = this.todo();
-    if (!todo) return;
+  isAllSelected(): boolean {
+    return this.bulkActionService.isAllSelected(this.selectedTasks(), this.listTasks());
+  }
 
-    this.dataSyncProvider
-      .updateAll<string>(
-        "task",
-        transformedTasks,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todo()?.id
-      )
-      .subscribe({
-        next: (result) => {
-          this.listTasks.set(updatedTasks);
-          this.notifyService.showSuccess("Task order updated successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update task order");
-          this.getTasksByTodoId(this.todo()?.id ?? "");
-        },
-        complete: () => {
-          this.isUpdatingOrder = false;
-        },
-      });
+  toggleSelectAll(): void {
+    if (this.isAllSelected()) {
+      this.clearSelection();
+    } else {
+      this.selectAllTasks();
+    }
+  }
+
+  bulkUpdatePriority(priority: string): void {
+    const selectedIds = Array.from(this.selectedTasks());
+    this.controller.bulkUpdatePriority(selectedIds, priority, () => {
+      this.clearSelection();
+      this.getTasksByTodoId(this.todo()?.id ?? "");
+    });
+  }
+
+  bulkUpdateStatus(status: string): void {
+    const selectedIds = Array.from(this.selectedTasks());
+    this.controller.bulkUpdateStatus(selectedIds, status, () => {
+      this.clearSelection();
+      this.getTasksByTodoId(this.todo()?.id ?? "");
+    });
+  }
+
+  bulkDelete(): void {
+    const selectedIds = Array.from(this.selectedTasks());
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} task(s)?`)) {
+      return;
+    }
+
+    this.controller.bulkDelete(selectedIds, () => {
+      this.clearSelection();
+      this.getTasksByTodoId(this.todo()?.id ?? "");
+    });
+  }
+
+  onBulkAction(actionId: string) {
+    switch (actionId) {
+      case "priority":
+        const priority = prompt("Enter priority (low/medium/high):", "medium");
+        if (priority) this.bulkUpdatePriority(priority);
+        break;
+      case "status":
+        const status = prompt("Enter status (pending/completed/skipped/failed):", "pending");
+        if (status) this.bulkUpdateStatus(status);
+        break;
+      case "delete":
+        this.bulkDelete();
+        break;
+    }
   }
 }

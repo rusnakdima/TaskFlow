@@ -147,7 +147,29 @@
   }
 
   .styleCheckbox {
-    @apply rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 dark:ring-offset-gray-800 bg-gray-200 dark:bg-zinc-600 w-5 h-5 text-blue-600 dark:text-red-600;
+    @apply hidden;
+  }
+
+  .styleCheckbox + .checkmark {
+    @apply relative inline-flex items-center cursor-pointer select-none w-5 h-5;
+  }
+
+  .styleCheckbox + .checkmark::before {
+    content: "";
+    @apply w-5 h-5 border border-zinc-300 dark:border-zinc-700 rounded bg-transparent transition-all duration-200 box-border flex items-center justify-center shrink-0;
+  }
+
+  .styleCheckbox:checked + .checkmark::before {
+    @apply bg-blue-600 border-blue-500;
+  }
+
+  .styleCheckbox:checked + .checkmark::after {
+    content: "";
+    @apply absolute w-2.5 h-2.5 bg-white rounded-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+  }
+
+  .styleCheckbox:focus + .checkmark::before {
+    @apply ring-2 ring-blue-500/30;
   }
 
   .styleToggle {
@@ -408,6 +430,22 @@ pre {
   @apply h-0!;
 }
 
+/* Hide check icon in checkboxes with no-check-icon class */
+mat-checkbox.no-check-icon .mdc-checkbox__checkmark {
+  display: none !important;
+}
+
+/* Custom checkbox styling for no-check-icon */
+mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.dark mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
 .mat-mdc-text-field-wrapper {
   @apply rounded-lg! border border-gray-400! dark:border-gray-600! focus:ring-blue-500! dark:focus:ring-blue-500! focus:border-blue-500! dark:focus:border-blue-500! bg-slate-300! dark:bg-neutral-800! placeholder:text-lg! text-gray-900! dark:text-white! dark:placeholder:text-gray-100!;
 }
@@ -430,23 +468,34 @@ pre {
 
 .cdk-drag-preview {
   box-sizing: border-box;
-  border-radius: 4px;
+  border-radius: 0.75rem;
   box-shadow:
     0 5px 5px -3px rgba(0, 0, 0, 0.2),
     0 8px 10px 1px rgba(0, 0, 0, 0.14),
     0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  @apply bg-white dark:bg-zinc-800 border-2 border-blue-500 opacity-90;
 }
 
 .cdk-drag-placeholder {
-  opacity: 0;
+  @apply opacity-30;
 }
 
 .cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  @apply transition-transform duration-200;
 }
 
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  @apply transition-transform duration-200;
+}
+
+/* Drag placeholder with border indicator */
+.cdk-drag-placeholder {
+  @apply bg-blue-500/20 border-2 border-dashed border-blue-500 rounded-lg transition-all;
+}
+
+/* Drag handle */
+.drag-handle {
+  @apply w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity;
 }
 
 .fc-theme-standard .fc-popover,

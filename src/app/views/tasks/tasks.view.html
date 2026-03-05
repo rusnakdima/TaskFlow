@@ -14,7 +14,7 @@
         class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
         (click)="toggleFilter()"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="filter_alt" />
+        <mat-icon class="w-5! h-5! text-xl!" fontIcon="filter_list" />
         Filter
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
@@ -23,6 +23,16 @@
       </button>
     </div>
   </div>
+
+  @if (showBulkActions()) {
+    <app-bulk-action-bar
+      [selectedCount]="selectedTasks().size"
+      [actions]="bulkActions"
+      entityType="tasks"
+      (action)="onBulkAction($event)"
+      (cancel)="clearSelection()"
+    />
+  }
 
   @if (showFilter()) {
     <div
@@ -39,17 +49,14 @@
         </div>
 
         <div class="flex gap-2 flex-wrap">
-          @for (filter of filterOptions; track $index) {
+          @for (option of filterOptions; track option.key) {
             <button
-              class="px-3 py-1 text-sm font-medium rounded-full transition-colors"
-              [ngClass]="
-                activeFilter() === filter.key
-                  ? 'bg-green-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-600'
-              "
-              (click)="changeFilter(filter.key)"
+              mat-button
+              [class.active]="activeFilter() === option.key"
+              (click)="changeFilter(option.key)"
+              class="filter-option"
             >
-              {{ filter.label }}
+              <span>{{ option.label }}</span>
             </button>
           }
         </div>
@@ -63,7 +70,7 @@
     >
       <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="assignment" />
       <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
-      <p class="textMuted mb-6">
+      <p class="textMuted">
         @if (activeFilter() !== "all") {
           No tasks match the current filter
         }
@@ -76,7 +83,7 @@
       cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTaskDrop($event)"
     >
-      @for (task of listTasks(); track $index) {
+      @for (task of listTasks(); track task.id) {
         <app-task
           [id]="'task-' + task.id"
           [task]="task"
@@ -84,9 +91,14 @@
           [isOwner]="isOwner"
           [isPrivate]="isPrivate"
           [highlight]="highlightTaskId() === task.id"
+          [isSelected]="selectedTasks().has(task.id)"
+          [allTasks]="todo()?.tasks || []"
+          [isExpanded]="false"
           (deleteTaskEvent)="deleteTask($event)"
           (toggleCompletionEvent)="toggleTaskCompletion($event)"
           (updateTaskEvent)="updateTaskInline($event)"
+          (toggleSubtasksEvent)="toggleTaskCompletion($event)"
+          (selectionChangeEvent)="toggleTaskSelection($event)"
         />
       }
     </div>

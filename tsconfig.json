@@ -29,6 +29,7 @@
       "@env/*": ["./src/environments/*"],
       "@components/*": ["./src/app/components/*"],
       "@views/*": ["./src/app/views/*"],
+      "@controllers/*": ["./src/app/controllers/*"],
       "@app/*": ["./src/app/*"],
       "@guards/*": ["./src/app/guards/*"]
     }
