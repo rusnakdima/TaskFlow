@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, OnInit, Output, signal } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, Output, signal, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -10,19 +10,23 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
+
+import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
 
 @Component({
   selector: "app-task",
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, MatIconModule, DragDropModule],
   templateUrl: "./task.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskComponent implements OnInit {
-  constructor() {}
+  private baseHelper = inject(BaseItemHelper);
 
   @Input() task: Task | null = null;
   @Input() index: number = 0;
@@ -31,6 +35,8 @@ export class TaskComponent implements OnInit {
   @Input() highlight: boolean = false;
   @Input() subtasks: Subtask[] = [];
   @Input() isExpanded: boolean = false;
+  @Input() isSelected: boolean = false;
+  @Input() allTasks: Task[] = [];
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();
@@ -38,17 +44,31 @@ export class TaskComponent implements OnInit {
     new EventEmitter();
   @Output() toggleSubtasksEvent: EventEmitter<Task> = new EventEmitter();
   @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
+  @Output() selectionChangeEvent: EventEmitter<string> = new EventEmitter();
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {}
 
   truncateString = Common.truncateString;
 
+  get isBlocked(): boolean {
+    return this.baseHelper.isBlockedByDependencies(this.task?.dependsOn, this.allTasks);
+  }
+
   toggleExpand() {
     if (this.task) {
       this.toggleSubtasksEvent.emit(this.task);
+      this.cdr.markForCheck();
+    }
+  }
+
+  onSelectionChange(): void {
+    if (this.task) {
+      this.selectionChangeEvent.emit(this.task.id);
     }
   }
 
@@ -56,50 +76,14 @@ export class TaskComponent implements OnInit {
     this.toggleSubtaskCompletionEvent.emit(subtask);
   }
 
-  getSubtaskPriorityColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "text-red-600 dark:text-red-400";
-      case "medium":
-        return "text-yellow-600 dark:text-yellow-400";
-      case "low":
-        return "text-blue-600 dark:text-blue-400";
-      default:
-        return "text-gray-600 dark:text-gray-400";
-    }
-  }
+  getSubtaskPriorityColor = this.baseHelper.getPriorityColor;
 
-  getSubtaskStatusIcon(status: string): string {
-    switch (status) {
-      case "completed":
-        return "check_circle";
-      case "skipped":
-        return "cancel";
-      case "failed":
-        return "dangerous";
-      default:
-        return "radio_button_unchecked";
-    }
-  }
+  getSubtaskStatusIcon = this.baseHelper.getStatusIcon;
 
-  getSubtaskStatusColor(status: string): string {
-    switch (status) {
-      case "completed":
-        return "text-green-600 dark:text-green-400";
-      case "skipped":
-        return "text-orange-600 dark:text-orange-400";
-      case "failed":
-        return "text-red-600 dark:text-red-400";
-      default:
-        return "text-gray-400";
-    }
-  }
+  getSubtaskStatusColor = this.baseHelper.getStatusColor;
 
   get countCompletedSubtasks(): number {
-    return this.subtasks.filter(
-      (subtask: Subtask) =>
-        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
-    ).length;
+    return this.baseHelper.countCompleted(this.subtasks);
   }
 
   get totalSubtasks(): number {
@@ -107,28 +91,17 @@ export class TaskComponent implements OnInit {
   }
 
   get countCompletedTasks(): number {
-    const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter(
-      (subtask: Subtask) =>
-        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
-    );
-    return listCompletedSubtasks.length;
+    return this.baseHelper.countCompleted(this.task?.subtasks ?? []);
   }
 
   get countTasks(): number {
-    const listSubtasks = this.task?.subtasks ?? [];
-    return listSubtasks.length;
+    return this.task?.subtasks?.length ?? 0;
   }
 
   get percentCompletedSubTasks(): number {
-    const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter(
-      (subtask: Subtask) =>
-        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
-    );
-    const percent =
-      listCompletedSubtasks.length / (listSubtasks.length == 0 ? 1 : listSubtasks.length);
-    return percent;
+    const completed = this.baseHelper.countCompleted(this.task?.subtasks ?? []);
+    const total = this.task?.subtasks?.length ?? 0;
+    return completed / (total === 0 ? 1 : total);
   }
 
   getProgressPercentage(): number {
@@ -137,102 +110,24 @@ export class TaskComponent implements OnInit {
     return Math.round(this.percentCompletedSubTasks * 100);
   }
 
-  getProgressSegments(): { status: TaskStatus; percentage: number; color: string }[] {
-    const listSubtasks = this.task?.subtasks ?? [];
-    const total = listSubtasks.length;
+  getProgressSegments = () => this.baseHelper.getProgressSegments(this.task?.subtasks ?? []);
 
-    if (total === 0) {
-      const taskStatus = this.task?.status || TaskStatus.PENDING;
-      let color = "bg-gray-400";
-      switch (taskStatus) {
-        case TaskStatus.COMPLETED:
-          color = "bg-green-500";
-          break;
-        case TaskStatus.SKIPPED:
-          color = "bg-orange-500";
-          break;
-        case TaskStatus.FAILED:
-          color = "bg-red-500";
-          break;
-        case TaskStatus.PENDING:
-        default:
-          color = "bg-gray-400";
-          break;
-      }
-      return [{ status: taskStatus, percentage: 100, color }];
-    }
+  getPriorityColor = this.baseHelper.getPriorityBadgeClass;
 
-    const completed = listSubtasks.filter((s) => s.status === TaskStatus.COMPLETED).length;
-    const skipped = listSubtasks.filter((s) => s.status === TaskStatus.SKIPPED).length;
-    const failed = listSubtasks.filter((s) => s.status === TaskStatus.FAILED).length;
-    const pending = listSubtasks.filter((s) => s.status === TaskStatus.PENDING).length;
-
-    const segments = [];
-
-    if (completed > 0) {
-      segments.push({
-        status: TaskStatus.COMPLETED,
-        percentage: Math.round((completed / total) * 100),
-        color: "bg-green-500",
-      });
-    }
-    if (skipped > 0) {
-      segments.push({
-        status: TaskStatus.SKIPPED,
-        percentage: Math.round((skipped / total) * 100),
-        color: "bg-orange-500",
-      });
-    }
-    if (failed > 0) {
-      segments.push({
-        status: TaskStatus.FAILED,
-        percentage: Math.round((failed / total) * 100),
-        color: "bg-red-500",
-      });
-    }
-    if (pending > 0) {
-      segments.push({
-        status: TaskStatus.PENDING,
-        percentage: Math.round((pending / total) * 100),
-        color: "bg-gray-400",
-      });
-    }
-
-    return segments;
-  }
-
-  getPriorityColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
-      case "medium":
-        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
-      case "low":
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
-      default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
-    }
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
+  formatDate = this.baseHelper.formatDate;
 
   toggleCompletion(event: any) {
     event.stopPropagation();
     if (this.task) {
       this.toggleCompletionEvent.emit(this.task);
+      this.cdr.markForCheck();
     }
   }
 
   startInlineEdit(field: string, currentValue: string) {
     this.editingField.set(field);
     this.editingValue.set(currentValue);
+    this.cdr.markForCheck();
 
     setTimeout(() => {
       const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
@@ -260,6 +155,7 @@ export class TaskComponent implements OnInit {
   cancelInlineEdit() {
     this.editingField.set(null);
     this.editingValue.set("");
+    this.cdr.markForCheck();
   }
 
   deleteTask() {

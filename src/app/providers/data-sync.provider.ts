@@ -2,9 +2,11 @@
 import { Injectable, signal } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { map } from "rxjs/operators";
+import { invoke } from "@tauri-apps/api/core";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
+import { RelationObj, TypesField } from "@models/relation-obj.model";
 
 /* services */
 import { MainService } from "../services/main.service";
@@ -16,7 +18,14 @@ import { SyncService } from "../services/sync.service";
   providedIn: "root",
 })
 export class DataSyncProvider {
-  private allowedEntities = ["todo", "task", "subtask"];
+  private allowedEntities = ["todo", "task", "subtask", "category", "profile"];
+  private tableMap: Record<string, string> = {
+    todo: "todos",
+    task: "tasks",
+    subtask: "subtasks",
+    category: "categories",
+    profile: "profiles",
+  };
 
   userId = signal("");
 
@@ -27,43 +36,107 @@ export class DataSyncProvider {
     private syncService: SyncService
   ) {}
 
+  private getTableName(entity: string): string {
+    return this.tableMap[entity] || `${entity}s`;
+  }
+
   private validateEntity(entity: string): void {
     if (!this.allowedEntities.includes(entity)) {
       throw new Error(
-        `Entity '${entity}' is not supported by DataSyncProvider. Use MainService directly for this entity.`
+        `Entity '${entity}' is not supported. Allowed: ${this.allowedEntities.join(", ")}`
       );
     }
+  }
+
+  /**
+   * Build default relations for entity
+   */
+  private getDefaultRelations(entity: string): RelationObj[] | undefined {
+    if (entity === "todo") {
+      return [
+        {
+          nameTable: "tasks",
+          typeField: TypesField.OneToMany,
+          nameField: "todoId",
+          newNameField: "tasks",
+          relations: [
+            {
+              nameTable: "subtasks",
+              typeField: TypesField.OneToMany,
+              nameField: "taskId",
+              newNameField: "subtasks",
+              relations: null,
+            },
+          ],
+        },
+        {
+          nameTable: "users",
+          typeField: TypesField.OneToOne,
+          nameField: "userId",
+          newNameField: "user",
+          relations: [
+            {
+              nameTable: "profiles",
+              typeField: TypesField.OneToOne,
+              nameField: "profileId",
+              newNameField: "profile",
+              relations: null,
+            },
+          ],
+        },
+        {
+          nameTable: "categories",
+          typeField: TypesField.ManyToOne,
+          nameField: "categories",
+          newNameField: "categories",
+          relations: null,
+        },
+      ];
+    }
+    if (entity === "task") {
+      return [
+        {
+          nameTable: "subtasks",
+          typeField: TypesField.OneToMany,
+          nameField: "taskId",
+          newNameField: "subtasks",
+          relations: null,
+        },
+      ];
+    }
+    return undefined;
   }
 
   getAll<T>(
     entity: string,
     filter: { [key: string]: any },
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T[]> {
     this.validateEntity(entity);
 
-    // this.userId.set(this.authService.getValueByKey("id"));
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
+    const { isOwner, isPrivate, relations } = params ?? {
+      isOwner: true,
+      isPrivate: true,
+    };
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
       return this.localWebSocketService.getAll(entity, filter, { isOwner, isPrivate });
     }
 
-    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
-    /*
-    if (isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.getAll(entity, {
-        ...filter,
-        userId,
-        isOwner,
-        isPrivate,
-      });
-    }
-    */
+    // 2. Use new unified manageData endpoint with relations
+    const defaultRelations = relations ?? this.getDefaultRelations(entity);
 
-    return from(this.mainService.getAll<T[]>(entity, filter, { isOwner, isPrivate })).pipe(
+    return from(
+      invoke<Response<T[]>>("manageData", {
+        operation: "getAll",
+        table: this.getTableName(entity),
+        filter,
+        relations: defaultRelations,
+        syncMetadata: { isOwner, isPrivate },
+      })
+    ).pipe(
       map((response: Response<T[]>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data || [];
@@ -77,27 +150,33 @@ export class DataSyncProvider {
   get<T>(
     entity: string,
     filter: { [key: string]: any },
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T> {
     this.validateEntity(entity);
 
-    // this.userId.set(this.authService.getValueByKey("id"));
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
+    const { isOwner, isPrivate, relations } = params ?? {
+      isOwner: true,
+      isPrivate: true,
+    };
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
       return this.localWebSocketService.get(entity, filter, { isOwner, isPrivate });
     }
 
-    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
-    /*
-    if (isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.get(entity, { ...filter, userId, isOwner, isPrivate });
-    }
-    */
+    // 2. Use new unified manageData endpoint with relations
+    const defaultRelations = relations ?? this.getDefaultRelations(entity);
 
-    return from(this.mainService.get<T>(entity, filter, { isOwner, isPrivate })).pipe(
+    return from(
+      invoke<Response<T>>("manageData", {
+        operation: "read",
+        table: this.getTableName(entity),
+        filter,
+        relations: defaultRelations,
+        syncMetadata: { isOwner, isPrivate },
+      })
+    ).pipe(
       map((response: Response<T>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -114,7 +193,6 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     // 1. Try Local WebSocket (Rust backend)
@@ -125,14 +203,15 @@ export class DataSyncProvider {
       });
     }
 
-    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
-    /*
-    if (isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.create<T>(entity, data, userId, parentTodoId);
-    }
-    */
-
-    return from(this.mainService.create<T, any>(entity, data, { isOwner, isPrivate })).pipe(
+    // 2. Use new unified manageData endpoint
+    return from(
+      invoke<Response<T>>("manageData", {
+        operation: "create",
+        table: this.getTableName(entity),
+        data,
+        syncMetadata: { isOwner, isPrivate },
+      })
+    ).pipe(
       map((response: Response<T>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -150,7 +229,6 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     // 1. Try Local WebSocket (Rust backend)
@@ -161,14 +239,16 @@ export class DataSyncProvider {
       });
     }
 
-    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
-    /*
-    if (isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.update<T>(entity, id, data, userId, parentTodoId);
-    }
-    */
-
-    return from(this.mainService.update<T, any>(entity, id, data, { isOwner, isPrivate })).pipe(
+    // 2. Use new unified manageData endpoint
+    return from(
+      invoke<Response<T>>("manageData", {
+        operation: "update",
+        table: this.getTableName(entity),
+        id,
+        data,
+        syncMetadata: { isOwner, isPrivate },
+      })
+    ).pipe(
       map((response: Response<T>) => {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data;
@@ -184,31 +264,38 @@ export class DataSyncProvider {
     data: any[],
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
-  ): Observable<T> {
-    // this.userId.set(this.authService.getValueByKey("id"));
+  ): Observable<T[]> {
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.request<T>("update-all", {
-        entity,
-        data,
-        syncMetadata: { isOwner, isPrivate },
+      // LocalWebSocketService returns Observable<T> but we cast to Observable<T[]>
+      return this.localWebSocketService.updateAll<T[]>(entity, data, parentTodoId, {
+        isOwner,
+        isPrivate,
       });
     }
 
+    // 2. Batch operations using unified manageData endpoint
     return from(
-      this.mainService.updateAll<T, any>(
-        entity,
-        data.map((item) => ({ ...item })),
-        { isOwner, isPrivate }
+      Promise.all(
+        data.map((item) =>
+          invoke<Response<T>>("manageData", {
+            operation: item.id ? "update" : "create",
+            table: this.getTableName(entity),
+            id: item.id,
+            data: item,
+            syncMetadata: { isOwner, isPrivate },
+          })
+        )
       )
     ).pipe(
-      map((response: Response<T>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
+      map((responses: Response<T>[]) => {
+        const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
+        if (success) {
+          return responses.map((r) => r.data).filter(Boolean) as T[];
         } else {
-          throw new Error(response.message || "Failed to update all");
+          throw new Error("Failed to update all records");
         }
       })
     );
@@ -232,7 +319,6 @@ export class DataSyncProvider {
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
   ): Observable<void> {
-    // this.userId.set(this.authService.getValueByKey("id"));
     const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
 
     // 1. Try Local WebSocket (Rust backend)
@@ -243,14 +329,15 @@ export class DataSyncProvider {
       });
     }
 
-    // 2. Fallback to Socket.IO (NestJS - commented for rollback)
-    /*
-    if (isPrivate === false && this.webSocketService.isConnected()) {
-      return this.webSocketService.delete(entity, id, userId, parentTodoId);
-    }
-    */
-
-    return from(this.mainService.delete<void>(entity, id, { isOwner, isPrivate })).pipe(
+    // 2. Use new unified manageData endpoint
+    return from(
+      invoke<Response<void>>("manageData", {
+        operation: "delete",
+        table: this.getTableName(entity),
+        id,
+        syncMetadata: { isOwner, isPrivate },
+      })
+    ).pipe(
       map((response: Response<void>) => {
         if (response.status !== ResponseStatus.SUCCESS) {
           throw new Error(response.message || "Failed to delete");

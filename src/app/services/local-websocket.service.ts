@@ -188,6 +188,20 @@ export class LocalWebSocketService {
     });
   }
 
+  updateAll<T>(
+    entity: string,
+    data: any[],
+    parentTodoId?: string,
+    syncMetadata?: SyncMetadata
+  ): Observable<T> {
+    return this.request<T>("update-all", {
+      entity,
+      data,
+      todoId: parentTodoId,
+      syncMetadata,
+    });
+  }
+
   delete(
     entity: string,
     id: string,
