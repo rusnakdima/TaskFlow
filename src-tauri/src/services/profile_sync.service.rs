@@ -3,8 +3,8 @@ use mongodb::bson::{doc, from_bson, to_bson, Document};
 use serde_json::Value;
 use std::sync::Arc;
 
-/* helpers */
-use crate::helpers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+/* providers */
+use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* models */
 use crate::models::{
@@ -13,14 +13,12 @@ use crate::models::{
 };
 
 #[derive(Clone)]
-#[allow(non_snake_case)]
 pub struct ProfileSyncService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Arc<MongodbProvider>,
 }
 
 impl ProfileSyncService {
-  #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
     Self {
       jsonProvider,
@@ -28,7 +26,6 @@ impl ProfileSyncService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn syncProfileToCloud(&self, profile: ProfileModel) -> Result<bool, ResponseModel> {
     let value: Value = match serde_json::to_value(&profile) {
       Ok(v) => v,
@@ -108,7 +105,6 @@ impl ProfileSyncService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn syncProfileFromCloud(&self, profileId: &str) -> Result<bool, ResponseModel> {
     match self
       .mongodbProvider
@@ -166,7 +162,6 @@ impl ProfileSyncService {
     }
   }
 
-  #[allow(non_snake_case)]
   fn shouldUpdateTarget(&self, source: &Value, target: &Value) -> bool {
     let sourceUpdatedAt = source.get("updatedAt").and_then(|v| v.as_str());
     let targetUpdatedAt = target.get("updatedAt").and_then(|v| v.as_str());
@@ -177,7 +172,6 @@ impl ProfileSyncService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn syncAllProfilesForUser(
     &self,
     user_id: &str,

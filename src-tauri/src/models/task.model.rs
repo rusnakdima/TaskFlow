@@ -7,7 +7,6 @@ use std::fmt::{Display, Formatter, Result};
 use crate::models::todo_model::TodoFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub enum PriorityTask {
   Low,
   Medium,
@@ -15,7 +14,6 @@ pub enum PriorityTask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub enum TaskStatus {
   #[serde(rename = "pending")]
   Pending,
@@ -28,7 +26,6 @@ pub enum TaskStatus {
 }
 
 impl Display for TaskStatus {
-  #[allow(non_snake_case)]
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     let statusStr = match self {
       TaskStatus::Pending => "pending",
@@ -51,7 +48,6 @@ impl Display for PriorityTask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TaskModel {
   pub _id: ObjectId,
   pub id: String,
@@ -69,7 +65,6 @@ pub struct TaskModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TaskCreateModel {
   pub todoId: String,
   pub title: String,
@@ -80,7 +75,6 @@ pub struct TaskCreateModel {
   pub order: i32,
 }
 
-#[allow(non_snake_case)]
 impl From<TaskCreateModel> for TaskModel {
   fn from(value: TaskCreateModel) -> Self {
     let now = chrono::Utc::now();
@@ -123,7 +117,6 @@ impl From<TaskCreateModel> for TaskModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TaskUpdateModel {
   pub _id: Option<ObjectId>,
   pub id: String,
@@ -139,7 +132,6 @@ pub struct TaskUpdateModel {
   pub updatedAt: String,
 }
 
-#[allow(non_snake_case)]
 impl TaskUpdateModel {
   pub fn applyTo(&self, existing: TaskModel) -> TaskModel {
     let mut formattedStartDate = existing.startDate.clone();
@@ -193,7 +185,6 @@ impl TaskUpdateModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 #[allow(unused)]
 pub struct TaskFullModel {
   pub _id: ObjectId,

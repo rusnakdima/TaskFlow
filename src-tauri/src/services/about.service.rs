@@ -9,18 +9,15 @@ use open;
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
-#[allow(non_snake_case)]
 pub struct AboutService {
   pub nameApp: String,
 }
 
 impl AboutService {
-  #[allow(non_snake_case)]
   pub fn new(envValue: String) -> Self {
     Self { nameApp: envValue }
   }
 
-  #[allow(non_snake_case)]
   pub async fn downloadFile(
     &self,
     window: &tauri::Window,
@@ -92,7 +89,6 @@ impl AboutService {
     })
   }
 
-  #[allow(non_snake_case)]
   pub async fn getBinaryNameFile(&self, version: String) -> Result<ResponseModel, ResponseModel> {
     let _nameApp = if cfg!(target_os = "linux") {
       format!("{}_{}_amd64.AppImage", self.nameApp, version)
@@ -117,7 +113,6 @@ impl AboutService {
     });
   }
 
-  #[allow(non_snake_case)]
   pub async fn openFile(&self, path: String) -> Result<ResponseModel, ResponseModel> {
     match open::that(&path) {
       Ok(()) => Ok(ResponseModel {

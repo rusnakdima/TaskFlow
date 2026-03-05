@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Deserialize, Serialize)]
-#[allow(non_snake_case)]
 pub struct WsRequest {
   pub action: String,
   pub entity: String,
@@ -15,7 +14,6 @@ pub struct WsRequest {
 }
 
 #[derive(Debug, Serialize)]
-#[allow(non_snake_case)]
 pub struct WsResponse {
   pub requestId: Option<String>,
   #[serde(flatten)]

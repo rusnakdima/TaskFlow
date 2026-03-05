@@ -2,7 +2,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct StatisticsModel {
   pub totalTasks: i32,
   pub completionRate: i32,
@@ -15,21 +14,18 @@ pub struct StatisticsModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct CompletionTrendItem {
   pub label: String,
   pub value: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct DailyActivityItem {
   pub dayName: String,
   pub activity: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct CategoryItem {
   pub name: String,
   pub count: i32,
@@ -38,7 +34,6 @@ pub struct CategoryItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct ChartDataModel {
   pub completionTrend: Vec<CompletionTrendItem>,
   pub categories: Vec<CategoryItem>,
@@ -46,7 +41,6 @@ pub struct ChartDataModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct AchievementModel {
   pub title: String,
   pub description: String,
@@ -56,7 +50,6 @@ pub struct AchievementModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct DetailedMetricModel {
   pub name: String,
   pub current: String,
@@ -65,7 +58,6 @@ pub struct DetailedMetricModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct StatisticsResponseModel {
   pub statistics: StatisticsModel,
   pub chartData: ChartDataModel,

@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-#[allow(non_snake_case)]
+
 pub struct ConfigHelper {
   pub nameApp: String,
   pub appHomeFolder: String,
@@ -18,7 +18,6 @@ pub struct ConfigHelper {
 }
 
 impl ConfigHelper {
-  #[allow(non_snake_case)]
   pub fn new() -> Self {
     let dotenvContent = include_str!("../../.env");
     let envVars = Self::parse_dotenv(dotenvContent);
@@ -74,7 +73,6 @@ impl ConfigHelper {
     }
   }
 
-  #[allow(non_snake_case)]
   fn parse_dotenv(dotenvContent: &str) -> HashMap<String, String> {
     dotenvContent
       .lines()

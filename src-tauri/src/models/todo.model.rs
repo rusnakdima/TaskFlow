@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use crate::models::{category_model::CategoryFullModel, user_model::UserFullModel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TodoModel {
   pub _id: ObjectId,
   pub id: String,
@@ -25,7 +24,6 @@ pub struct TodoModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TodoCreateModel {
   pub userId: String,
   pub title: String,
@@ -38,7 +36,6 @@ pub struct TodoCreateModel {
   pub order: i32,
 }
 
-#[allow(non_snake_case)]
 impl From<TodoCreateModel> for TodoModel {
   fn from(value: TodoCreateModel) -> Self {
     let now = chrono::Utc::now();
@@ -82,7 +79,6 @@ impl From<TodoCreateModel> for TodoModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TodoUpdateModel {
   pub _id: Option<ObjectId>,
   pub id: String,
@@ -100,7 +96,6 @@ pub struct TodoUpdateModel {
   pub updatedAt: String,
 }
 
-#[allow(non_snake_case)]
 impl TodoUpdateModel {
   pub fn applyTo(&self, existing: TodoModel) -> TodoModel {
     let mut formattedStartDate = existing.startDate.clone();
@@ -147,7 +142,6 @@ impl TodoUpdateModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct TodoFullModel {
   pub _id: ObjectId,
   pub id: String,
