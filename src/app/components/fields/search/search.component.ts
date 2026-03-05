@@ -39,80 +39,114 @@ export class SearchComponent implements OnInit {
   setFocusField() {
     this.isShowSearchField = true;
     setTimeout(() => {
-      document.getElementById("searchField")!.focus();
+      const searchField = document.getElementById("searchField");
+      if (searchField) {
+        searchField.focus();
+      }
     }, 100);
   }
 
   searchFunc() {
-    const tempArr = this.searchField.split(" ");
-    this.array.next(
-      this.tempArray.filter((item: any) => {
-        if (this.searchField !== "") {
-          return tempArr.every((term: any) => {
-            if (this.searchByFields.length > 0) {
-              return this.searchByFields.some((field: any) => {
-                if (typeof this.getValueObj(item, field) !== "object") {
-                  return String(this.getValueObj(item, field))
-                    .toLowerCase()
-                    .includes(term.toLowerCase());
-                } else if (Array.isArray(this.getValueObj(item, field))) {
-                  (this.getValueObj(item, field) as Array<any>).some((value: any) => {
-                    if (typeof value !== "object") {
-                      return String(value).toLowerCase().includes(term.toLowerCase());
-                    }
-                    return false;
-                  });
-                } else if (typeof this.getValueObj(item, field) === "object") {
-                  return Object.values(this.getValueObj(item, field)).some((value: any) => {
-                    if (typeof value !== "object") {
-                      return String(value).toLowerCase().includes(term.toLowerCase());
-                    } else if (Array.isArray(value)) {
-                      (value as Array<any>).some((value: any) => {
-                        if (typeof value !== "object") {
-                          return String(value).toLowerCase().includes(term.toLowerCase());
-                        }
-                        return false;
-                      });
-                    }
-                    return false;
-                  });
-                }
-                return false;
-              });
-            } else {
-              return Object.values(item).some((value: any) => {
-                if (typeof value !== "object") {
-                  return String(value).toLowerCase().includes(term.toLowerCase());
-                } else if (Array.isArray(value)) {
-                  (value as Array<any>).some((value: any) => {
-                    if (typeof value !== "object") {
-                      return String(value).toLowerCase().includes(term.toLowerCase());
-                    }
-                    return false;
-                  });
-                } else if (typeof value === "object") {
-                  return Object.values(value).some((value: any) => {
-                    if (typeof value !== "object") {
-                      return String(value).toLowerCase().includes(term.toLowerCase());
-                    } else if (Array.isArray(value)) {
-                      (value as Array<any>).some((value: any) => {
-                        if (typeof value !== "object") {
-                          return String(value).toLowerCase().includes(term.toLowerCase());
-                        }
-                        return false;
-                      });
-                    }
-                    return false;
-                  });
+    const tempArr = this.searchField.split(" ").filter((t) => t.length > 0);
+
+    const results = this.tempArray.filter((item: any) => {
+      if (this.searchField !== "") {
+        return tempArr.every((term: any) => {
+          if (this.searchByFields.length > 0) {
+            return this.searchByFields.some((field: any) => {
+              return this.fuzzyMatchInField(item, field, term);
+            });
+          } else {
+            return this.fuzzyMatchInItem(item, term);
+          }
+        });
+      }
+      return true;
+    });
+
+    this.array.next(results);
+  }
+
+  private fuzzyMatchInField(item: any, field: string, term: string): boolean {
+    const value = this.getValueObj(item, field);
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        return value.some((v: any) => {
+          if (typeof v !== "object") {
+            return this.fuzzyMatch(String(v).toLowerCase(), term.toLowerCase());
+          }
+          return false;
+        });
+      } else if (value !== null) {
+        return Object.values(value).some((v: any) => {
+          if (typeof v !== "object") {
+            return this.fuzzyMatch(String(v).toLowerCase(), term.toLowerCase());
+          } else if (Array.isArray(v)) {
+            return v.some((arrVal: any) => {
+              if (typeof arrVal !== "object") {
+                return this.fuzzyMatch(String(arrVal).toLowerCase(), term.toLowerCase());
+              }
+              return false;
+            });
+          }
+          return false;
+        });
+      }
+      return false;
+    }
+    return this.fuzzyMatch(String(value).toLowerCase(), term.toLowerCase());
+  }
+
+  private fuzzyMatchInItem(item: any, term: string): boolean {
+    return Object.keys(item).some((key) => {
+      const value = (item as any)[key];
+      if (typeof value === "object") {
+        if (Array.isArray(value)) {
+          return value.some((v: any) => {
+            if (typeof v !== "object") {
+              return this.fuzzyMatch(String(v).toLowerCase(), term.toLowerCase());
+            }
+            return false;
+          });
+        } else if (value !== null) {
+          return Object.values(value).some((v: any) => {
+            if (typeof v !== "object") {
+              return this.fuzzyMatch(String(v).toLowerCase(), term.toLowerCase());
+            } else if (Array.isArray(v)) {
+              return v.some((arrVal: any) => {
+                if (typeof arrVal !== "object") {
+                  return this.fuzzyMatch(String(arrVal).toLowerCase(), term.toLowerCase());
                 }
                 return false;
               });
             }
+            return false;
           });
         }
-        return true;
-      })
-    );
+        return false;
+      }
+      return this.fuzzyMatch(String(value).toLowerCase(), term.toLowerCase());
+    });
+  }
+
+  private fuzzyMatch(text: string, pattern: string): boolean {
+    if (!pattern) return true;
+    if (!text) return false;
+
+    if (text.includes(pattern)) {
+      return true;
+    }
+
+    const patternChars = pattern.split("");
+    let patternIdx = 0;
+
+    for (let i = 0; i < text.length && patternIdx < patternChars.length; i++) {
+      if (text[i] === patternChars[patternIdx]) {
+        patternIdx++;
+      }
+    }
+
+    return patternIdx === patternChars.length;
   }
 
   getValueObj(record: any, field: string) {
