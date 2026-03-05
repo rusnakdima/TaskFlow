@@ -7,10 +7,17 @@
 
     <div class="flex gap-2">
       <button
+        class="px-4 py-2 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2"
+        (click)="showBlueprintDialog.set(true)"
+      >
+        <mat-icon class="w-5! h-5! text-xl!" fontIcon="account_tree" />
+        Blueprints
+      </button>
+      <button
         class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
         (click)="toggleFilter()"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="filter_alt" />
+        <mat-icon class="w-5! h-5! text-xl!" fontIcon="filter_list" />
         Filter
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" routerLink="/todos/create_todo">
@@ -21,116 +28,12 @@
   </div>
 
   @if (showFilter()) {
-    <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
-    >
-      <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div class="flex-1 max-w-md">
-          <app-search
-            [isShowSearchField]="true"
-            [tempArray]="tempListTodos()"
-            [searchByFields]="['title']"
-            (array)="searchFunc($event)"
-          />
-        </div>
-
-        <div class="flex gap-2">
-          @for (filter of filterOptions; track $index) {
-            <button
-              class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-              [ngClass]="
-                activeFilter() === filter.key
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-              "
-              (click)="changeFilter(filter.key)"
-            >
-              {{ filter.label }}
-            </button>
-          }
-        </div>
-      </div>
-
-      @if (savedFilters().length > 0) {
-        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Saved Filters</span>
-            <button
-              class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
-              (click)="openSaveFilterDialog()"
-            >
-              <mat-icon class="w-4! h-4!" fontIcon="add" />
-              Save current filter
-            </button>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            @for (filter of savedFilters(); track filter.id) {
-              <div
-                class="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-zinc-700 rounded-lg group"
-              >
-                <button
-                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500"
-                  (click)="applySavedFilter(filter)"
-                >
-                  {{ filter.name }}
-                </button>
-                <button
-                  class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  (click)="deleteSavedFilter(filter.id)"
-                >
-                  <mat-icon class="w-4! h-4!" fontIcon="close" />
-                </button>
-              </div>
-            }
-          </div>
-        </div>
-      } @else {
-        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
-          <button
-            class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
-            (click)="openSaveFilterDialog()"
-          >
-            <mat-icon class="w-4! h-4!" fontIcon="bookmark_add" />
-            Save current filter
-          </button>
-        </div>
-      }
-    </div>
-  }
-
-  @if (showSaveFilterDialog()) {
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      (click)="closeSaveFilterDialog()"
-    >
-      <div
-        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-xl w-full max-w-md"
-        (click)="$event.stopPropagation()"
-      >
-        <h3 class="text-lg font-semibold textNormal mb-4">Save Filter</h3>
-        <input
-          type="text"
-          class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 textNormal"
-          placeholder="Enter filter name..."
-          [(ngModel)]="newFilterName"
-          (keyup.enter)="saveCurrentFilter()"
-        />
-        <div class="flex justify-end gap-2 mt-4">
-          <button
-            class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg"
-            (click)="closeSaveFilterDialog()"
-          >
-            Cancel
-          </button>
-          <button
-            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            (click)="saveCurrentFilter()"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-filter-bar
+      [filterOptions]="filterOptionsWithCounts"
+      [activeFilter]="activeFilter()"
+      [showFilter]="true"
+      (filterChange)="changeFilter($event)"
+    />
   }
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -151,10 +54,10 @@
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-orange-100 text-sm">In Progress</p>
+          <p class="text-orange-100 text-sm">Active</p>
           <p class="text-xl font-bold">{{ getFilteredCount("active") }}</p>
         </div>
-        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="pending" />
+        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="play_circle" />
       </div>
     </div>
 
@@ -166,7 +69,7 @@
           <p class="text-green-100 text-sm">Completed</p>
           <p class="text-xl font-bold">{{ getFilteredCount("completed") }}</p>
         </div>
-        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="task_alt" />
+        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="check_circle" />
       </div>
     </div>
 
@@ -178,7 +81,7 @@
           <p class="text-purple-100 text-sm">This Week</p>
           <p class="text-xl font-bold">{{ getFilteredCount("week") }}</p>
         </div>
-        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="today" />
+        <mat-icon class="w-6! h-6! text-2xl! opacity-80" fontIcon="calendar_today" />
       </div>
     </div>
   </div>
@@ -187,36 +90,135 @@
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
-      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="assignment" />
-      <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
-      <p class="textMuted mb-6">
+      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="folder_open" />
+      <h3 class="text-xl font-semibold textNormal mb-2">No projects found</h3>
+      <p class="textMuted">
         @if (activeFilter() !== "all") {
-          No tasks match the current filter
+          No projects match the current filter
+        } @else {
+          Create your first project to get started
         }
       </p>
-      @if (activeFilter() !== "all") {
-        <button class="styleButInfo" (click)="changeFilter('all')">
-          <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="clear_all" />
-          Show all tasks
-        </button>
-      }
     </div>
   } @else {
     <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
       cdkDropList
-      cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTodoDrop($event)"
     >
-      @for (todo of listTodos(); track $index) {
+      @for (todo of listTodos(); track todo.id) {
         <app-todo
           [todo]="todo"
           [index]="$index"
           [isOwner]="true"
           [isPrivate]="true"
           (deleteEvent)="deleteTodoById($event)"
+          (saveAsBlueprintEvent)="saveAsBlueprint($event)"
         />
       }
+    </div>
+  }
+
+  <!-- Create Blueprint Dialog -->
+  @if (showCreateBlueprintDialog()) {
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4">Save as Blueprint</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Blueprint Name</label>
+            <input
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              [(ngModel)]="newBlueprintName"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              rows="3"
+              [(ngModel)]="newBlueprintDescription"
+            ></textarea>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-6 justify-end">
+          <button
+            class="px-4 py-2 text-gray-600 dark:text-gray-300"
+            (click)="closeCreateBlueprintDialog()"
+          >
+            Cancel
+          </button>
+          <button class="styleButSuccess px-4 py-2" (click)="confirmSaveAsBlueprint()">
+            Save Blueprint
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Blueprint Selection Dialog -->
+  @if (showBlueprintDialog()) {
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">Project Blueprints</h3>
+          <button
+            class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg"
+            (click)="showBlueprintDialog.set(false)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <p class="textMuted mb-4">Select a blueprint to create a new project from</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (template of templateService.getTemplates(); track template.id) {
+            <div
+              class="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 hover:border-blue-500 cursor-pointer"
+              (click)="openApplyBlueprint(template)"
+            >
+              <h4 class="font-semibold">{{ template.name }}</h4>
+              <p class="text-sm textMuted mt-1">{{ template.description }}</p>
+              <div class="flex gap-4 mt-3 text-xs text-gray-500">
+                <span>{{ template.tasks.length }} tasks</span>
+                <span>{{ getSubtasksCount(template) }} subtasks</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Apply Blueprint Dialog -->
+  @if (showApplyBlueprintDialog()) {
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4">Create Project from Blueprint</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Project Name</label>
+            <input
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              [(ngModel)]="applyBlueprintTitle"
+            />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-6 justify-end">
+          <button
+            class="px-4 py-2 text-gray-600 dark:text-gray-300"
+            (click)="showApplyBlueprintDialog.set(false)"
+          >
+            Cancel
+          </button>
+          <button class="styleButSuccess px-4 py-2" (click)="confirmCreateFromBlueprint()">
+            Create Project
+          </button>
+        </div>
+      </div>
     </div>
   }
 </div>

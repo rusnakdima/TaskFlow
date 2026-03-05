@@ -93,7 +93,7 @@
       cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onSubtaskDrop($event)"
     >
-      @for (subtask of listSubtasks(); track $index) {
+      @for (subtask of listSubtasks(); track subtask.id) {
         <app-subtask
           [subtask]="subtask"
           [index]="$index"
