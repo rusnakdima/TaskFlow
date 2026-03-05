@@ -15,6 +15,8 @@ import { Subtask } from "@models/subtask.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { FilterService } from "@services/filter.service";
+import { SortService } from "@services/sort.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -45,7 +47,9 @@ export class SubtasksView implements OnInit {
     private authService: AuthService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private filterService: FilterService,
+    private sortService: SortService
   ) {}
 
   listSubtasks = signal<Array<Subtask>>([]);
@@ -98,6 +102,7 @@ export class SubtasksView implements OnInit {
         this.isPrivate = todoData.visibility === "private";
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
+        this.getSubtasksByTaskId(todoData.id);
       }
       if (dataResolve?.["task"]) {
         const taskData = dataResolve["task"];
@@ -106,6 +111,10 @@ export class SubtasksView implements OnInit {
         this.getSubtasksByTaskId(taskData.id);
       }
     }
+  }
+
+  trackBySubtaskId(index: number, subtask: Subtask): string {
+    return subtask.id;
   }
 
   getTaskInfo(id: string) {
@@ -164,19 +173,22 @@ export class SubtasksView implements OnInit {
 
   applyFilter() {
     let filtered = [...this.tempListSubtasks()];
-    if (this.activeFilter() !== "all") {
-      switch (this.activeFilter()) {
+
+    // Use FilterService for status filtering
+    const filter = this.activeFilter();
+    if (filter !== "all") {
+      switch (filter) {
         case "active":
-          filtered = filtered.filter((s) => s.status === TaskStatus.PENDING);
+          filtered = this.filterService.filterByStatus(filtered, "pending");
           break;
         case "completed":
-          filtered = filtered.filter((s) => s.status === TaskStatus.COMPLETED);
+          filtered = this.filterService.filterByStatus(filtered, "completed");
           break;
         case "skipped":
-          filtered = filtered.filter((s) => s.status === TaskStatus.SKIPPED);
+          filtered = this.filterService.filterByStatus(filtered, "skipped");
           break;
         case "failed":
-          filtered = filtered.filter((s) => s.status === TaskStatus.FAILED);
+          filtered = this.filterService.filterByStatus(filtered, "failed");
           break;
         case "done":
           filtered = filtered.filter(
@@ -192,7 +204,8 @@ export class SubtasksView implements OnInit {
       }
     }
 
-    filtered.sort((a, b) => b.order - a.order);
+    // Use SortService for ordering
+    filtered = this.sortService.sortByOrder(filtered, "desc");
     this.listSubtasks.set(filtered);
   }
 
