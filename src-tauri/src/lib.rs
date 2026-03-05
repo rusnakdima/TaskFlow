@@ -1,7 +1,9 @@
+#![allow(non_snake_case)]
+
 /* imports */
-mod controllers;
 mod helpers;
 mod models;
+mod providers;
 mod routes;
 mod services;
 
@@ -10,59 +12,44 @@ use std::sync::Arc;
 use tauri::{async_runtime::block_on, Manager};
 
 /* helpers */
-use crate::helpers::{
-  activity_log::ActivityLogHelper, config::ConfigHelper, json_provider::JsonProvider,
-  mongodb_provider::MongodbProvider,
-};
+use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
+
+/* providers */
+use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* routes */
 use routes::{
   about_route::{downloadUpdate, getBinaryNameFile, openFile},
   auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
-  category_route::{categoryCreate, categoryDelete, categoryGet, categoryGetAll, categoryUpdate},
   manage_db_route::{
-    exportToCloud, getAllDataForAdmin, importToLocal, permanentlyDeleteRecord, toggleDeleteStatus,
+    exportToCloud, getAllDataForAdmin, importToLocal, manageData, permanentlyDeleteRecord,
+    toggleDeleteStatus,
   },
   profile_route::{profileCreate, profileDelete, profileGet, profileGetAll, profileUpdate},
   statistics_route::statisticsGet,
-  subtask_route::{
-    subtaskCreate, subtaskDelete, subtaskGet, subtaskGetAll, subtaskUpdate, subtaskUpdateAll,
-  },
-  task_route::{taskCreate, taskDelete, taskGet, taskGetAll, taskUpdate, taskUpdateAll},
-  todo_route::{
-    todoCreate, todoDelete, todoGet, todoGetAll, todoGetByAssignee, todoUpdate, todoUpdateAll,
-  },
-};
-
-/* controllers */
-use controllers::{
-  about_controller::AboutController, auth_controller::AuthController,
-  category_controller::CategoriesController, manage_db_controller::ManageDbController,
-  profile_controller::ProfileController, statistics_controller::StatisticsController,
-  subtask_controller::SubtaskController, task_controller::TaskController,
-  todo_controller::TodoController,
 };
 
 /* services */
-use services::websocket_server_service::WebSocketServerService;
+use services::{
+  about_service::AboutService, auth_service::AuthService, crud_service::CrudService,
+  manage_db_service::ManageDbService, profile_service::ProfileService,
+  statistics_service::StatisticsService, websocket_server_service::WebSocketServerService,
+};
 
-#[allow(non_snake_case)]
 pub struct AppState {
-  pub managedbController: Arc<ManageDbController>,
-  pub aboutController: Arc<AboutController>,
-  pub authController: Arc<AuthController>,
-  pub profileController: Arc<ProfileController>,
-  pub categoriesController: Arc<CategoriesController>,
-  pub todoController: Arc<TodoController>,
-  pub taskController: Arc<TaskController>,
-  pub subtaskController: Arc<SubtaskController>,
-  pub statisticsController: Arc<StatisticsController>,
-  pub activityLogHelper: Arc<ActivityLogHelper>,
+  pub config: ConfigHelper,
+  pub crudService: Arc<CrudService>,
+  pub authService: Arc<AuthService>,
+  pub profileService: Arc<ProfileService>,
+  pub manageDbService: Arc<ManageDbService>,
+  pub aboutService: Arc<AboutService>,
+  pub statisticsService: Arc<StatisticsService>,
   pub webSocketServerService: Arc<WebSocketServerService>,
+  pub activityLogHelper: Arc<ActivityLogHelper>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-#[allow(non_snake_case)]
+
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
@@ -90,124 +77,95 @@ pub fn run() {
 
       let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
 
-      let managedbController = Arc::new(ManageDbController::new(
+      // Create unified CRUD service
+      let crudService = Arc::new(CrudService::new(
         jsonProvider.clone(),
         mongodbProvider.clone(),
       ));
 
-      let todoController = Arc::new(TodoController::new(
+      // Create auth service
+      let authService = Arc::new(AuthService::new(
         jsonProvider.clone(),
         mongodbProvider
           .clone()
-          .expect("MongoDB provider required for TaskController"),
-        (*activityLogHelper).clone(),
+          .expect("MongoDB provider required for AuthController"),
+        config.jwtSecret.clone(),
       ));
 
-      let taskController = Arc::new(TaskController::new(
+      // Create profile service
+      let profileService = Arc::new(ProfileService::new(jsonProvider.clone()));
+
+      // Create manage DB service for sync operations
+      let manageDbService = Arc::new(ManageDbService::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+      ));
+
+      // Create about service
+      let aboutService = Arc::new(AboutService::new(config.nameApp.clone()));
+
+      // Create statistics service
+      let statisticsService = Arc::new(StatisticsService::new(
         jsonProvider.clone(),
         mongodbProvider
           .clone()
-          .expect("MongoDB provider required for TaskController"),
-        (*activityLogHelper).clone(),
+          .expect("MongoDB provider required for StatisticsService"),
+        activityLogHelper.clone(),
       ));
 
-      let subtaskController = Arc::new(SubtaskController::new(
-        jsonProvider.clone(),
-        mongodbProvider
-          .clone()
-          .expect("MongoDB provider required for SubtaskController"),
-        (*activityLogHelper).clone(),
-      ));
-
-      let statisticsController = Arc::new(StatisticsController::new(
-        jsonProvider.clone(),
-        mongodbProvider
-          .clone()
-          .expect("MongoDB provider required for StatisticsController"),
-        (*activityLogHelper).clone(),
-      ));
-
-      let webSocketServerService = Arc::new(WebSocketServerService::new(
-        Arc::new(todoController.todoService.clone()),
-        Arc::new(taskController.taskService.clone()),
-        Arc::new(subtaskController.subtaskService.clone()),
-      ));
+      // Create WebSocket service for real-time updates using crud_service
+      let webSocketServerService = Arc::new(WebSocketServerService::new(crudService.clone()));
 
       #[cfg(not(mobile))]
       {
         let wsClone = webSocketServerService.clone();
         tauri::async_runtime::spawn(async move {
-          wsClone.start(8766).await;
+          let _ = wsClone.start(8766).await;
         });
       }
 
       app.manage(AppState {
-        managedbController,
-        aboutController: Arc::new(AboutController::new(config.nameApp.clone())),
-        authController: Arc::new(AuthController::new(
-          jsonProvider.clone(),
-          mongodbProvider
-            .clone()
-            .expect("MongoDB provider required for AuthController"),
-          config.clone(),
-        )),
-        profileController: Arc::new(ProfileController::new(jsonProvider.clone())),
-        categoriesController: Arc::new(CategoriesController::new(jsonProvider.clone())),
-        todoController,
-        taskController,
-        subtaskController,
-        statisticsController,
-        activityLogHelper,
+        config: config.clone(),
+        crudService,
+        authService,
+        profileService,
+        manageDbService,
+        aboutService,
+        statisticsService,
         webSocketServerService,
+        activityLogHelper,
       });
 
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      downloadUpdate,
-      getBinaryNameFile,
-      openFile,
+      // Unified CRUD endpoint
+      manageData,
+      // Auth endpoints (special logic, not CRUD)
       checkToken,
       login,
       register,
       requestPasswordReset,
       verifyCode,
       resetPassword,
+      // Profile endpoints (special logic, not CRUD)
       profileGetAll,
       profileGet,
       profileCreate,
       profileUpdate,
       profileDelete,
-      categoryGetAll,
-      categoryGet,
-      categoryCreate,
-      categoryUpdate,
-      categoryDelete,
-      todoGetAll,
-      todoGet,
-      todoGetByAssignee,
-      todoCreate,
-      todoUpdate,
-      todoUpdateAll,
-      todoDelete,
-      taskGetAll,
-      taskGet,
-      taskCreate,
-      taskUpdate,
-      taskUpdateAll,
-      taskDelete,
-      subtaskGetAll,
-      subtaskGet,
-      subtaskCreate,
-      subtaskUpdate,
-      subtaskUpdateAll,
-      subtaskDelete,
-      statisticsGet,
+      // Sync operations
       importToLocal,
       exportToCloud,
       getAllDataForAdmin,
       permanentlyDeleteRecord,
       toggleDeleteStatus,
+      // About endpoints
+      downloadUpdate,
+      getBinaryNameFile,
+      openFile,
+      // Statistics endpoints
+      statisticsGet,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
