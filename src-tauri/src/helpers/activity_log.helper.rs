@@ -2,7 +2,10 @@
 use serde_json::{to_value, Value};
 
 /* helpers */
-use crate::helpers::{common::convertDataToArray, json_provider::JsonProvider};
+use crate::helpers::common::convertDataToArray;
+
+/* providers */
+use crate::providers::json_provider::JsonProvider;
 
 /* models */
 use crate::models::{
@@ -11,18 +14,15 @@ use crate::models::{
 };
 
 #[derive(Clone)]
-#[allow(non_snake_case)]
 pub struct ActivityLogHelper {
   pub jsonProvider: JsonProvider,
 }
 
 impl ActivityLogHelper {
-  #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
     Self { jsonProvider }
   }
 
-  #[allow(non_snake_case)]
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listDailyActivities = self
       .jsonProvider
@@ -45,7 +45,6 @@ impl ActivityLogHelper {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn getOrCreateDailyActivity(
     &self,
     userId: String,
@@ -113,7 +112,6 @@ impl ActivityLogHelper {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn logActivity(
     &self,
     userId: String,

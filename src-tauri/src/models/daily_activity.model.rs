@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use crate::models::user_model::UserFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct DailyActivityModel {
   pub _id: ObjectId,
   pub id: String,
@@ -32,13 +31,11 @@ pub struct DailyActivityModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct DailyActivityCreateModel {
   pub userId: String,
   pub date: String,
 }
 
-#[allow(non_snake_case)]
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
     let now = chrono::Utc::now();
@@ -71,7 +68,6 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct DailyActivityUpdateModel {
   pub _id: ObjectId,
   pub id: String,
@@ -96,7 +92,6 @@ pub struct DailyActivityUpdateModel {
   pub updatedAt: String,
 }
 
-#[allow(non_snake_case)]
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
     let now = chrono::Utc::now();
@@ -129,7 +124,6 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 #[allow(unused)]
 pub struct DailyActivityFullModel {
   pub _id: ObjectId,

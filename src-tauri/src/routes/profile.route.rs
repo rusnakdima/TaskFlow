@@ -9,48 +9,43 @@ use crate::models::{
   response_model::ResponseModel,
 };
 
-#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn profileGetAll(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.getAll(filter).await
+  state.profileService.getAll(filter).await
 }
 
-#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn profileGet(
   state: State<'_, AppState>,
   filter: Value,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.get(filter).await
+  state.profileService.get(filter).await
 }
 
-#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn profileCreate(
   state: State<'_, AppState>,
   data: ProfileCreateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.create(data).await
+  state.profileService.create(data).await
 }
 
-#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn profileUpdate(
   state: State<'_, AppState>,
   id: String,
   data: ProfileUpdateModel,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.update(id, data).await
+  state.profileService.update(id, data).await
 }
 
-#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn profileDelete(
   state: State<'_, AppState>,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileController.delete(id).await
+  state.profileService.delete(id).await
 }

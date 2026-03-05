@@ -8,9 +8,11 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{
-  config::ConfigHelper, email_provider::EmailProvider, json_provider::JsonProvider,
-  mongodb_provider::MongodbProvider,
+use crate::helpers::config::ConfigHelper;
+
+/* providers */
+use crate::providers::{
+  email_provider::EmailProvider, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
 };
 
 /* models */
@@ -30,7 +32,6 @@ pub struct Claims {
   pub exp: usize,
 }
 
-#[allow(non_snake_case)]
 pub struct AuthService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Arc<MongodbProvider>,
@@ -38,7 +39,6 @@ pub struct AuthService {
 }
 
 impl AuthService {
-  #[allow(non_snake_case)]
   pub fn new(
     jsonProvider: JsonProvider,
     mongodbProvider: Arc<MongodbProvider>,
@@ -51,7 +51,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
     let secret = self.jwtSecret.clone();
     match decode::<Claims>(
@@ -109,7 +108,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
     let nameTable = "users".to_string();
 
@@ -275,7 +273,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn register(&self, signupForm: SignupForm) -> Result<ResponseModel, ResponseModel> {
     let nameTable = "users".to_string();
 
@@ -353,7 +350,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn requestPasswordReset(
     &self,
     email: String,
@@ -415,7 +411,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn verifyCode(
     &self,
     email: String,
@@ -445,7 +440,6 @@ impl AuthService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn resetPassword(
     &self,
     resetData: PasswordReset,

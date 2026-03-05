@@ -9,7 +9,6 @@ use crate::models::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct SubtaskModel {
   pub _id: ObjectId,
   pub id: String,
@@ -25,7 +24,6 @@ pub struct SubtaskModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct SubtaskCreateModel {
   pub taskId: String,
   pub title: String,
@@ -58,7 +56,6 @@ impl From<SubtaskCreateModel> for SubtaskModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct SubtaskUpdateModel {
   pub _id: Option<ObjectId>,
   pub id: String,
@@ -75,7 +72,6 @@ pub struct SubtaskUpdateModel {
   pub sync_metadata: Option<SyncMetadata>,
 }
 
-#[allow(non_snake_case)]
 impl SubtaskUpdateModel {
   pub fn applyTo(&self, existing: SubtaskModel) -> SubtaskModel {
     let now = chrono::Utc::now();
@@ -98,7 +94,6 @@ impl SubtaskUpdateModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 #[allow(unused)]
 pub struct SubtaskFullModel {
   pub _id: ObjectId,

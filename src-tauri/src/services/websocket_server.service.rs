@@ -6,42 +6,26 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 /* services */
-use crate::services::{
-  subtask_service::SubtaskService, task_service::TaskService, todo_service::TodoService,
-};
+use crate::services::crud_service::CrudService;
 
 /* models */
 use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  subtask_model::{SubtaskCreateModel, SubtaskUpdateModel},
+  response_model::{ResponseModel, ResponseStatus},
   sync_metadata_model::SyncMetadata,
-  task_model::{TaskCreateModel, TaskUpdateModel},
-  todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
   websocket_model::{WsBroadcast, WsRequest, WsResponse},
 };
 
 type Clients = Arc<Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>;
 
-#[allow(non_snake_case)]
 pub struct WebSocketServerService {
-  pub todoService: Arc<TodoService>,
-  pub taskService: Arc<TaskService>,
-  pub subtaskService: Arc<SubtaskService>,
+  pub crud_service: Arc<CrudService>,
   clients: Clients,
 }
 
-#[allow(non_snake_case)]
 impl WebSocketServerService {
-  #[allow(non_snake_case)]
-  pub fn new(
-    todoService: Arc<TodoService>,
-    taskService: Arc<TaskService>,
-    subtaskService: Arc<SubtaskService>,
-  ) -> Self {
+  pub fn new(crud_service: Arc<CrudService>) -> Self {
     Self {
-      todoService,
-      taskService,
-      subtaskService,
+      crud_service,
       clients: Arc::new(Mutex::new(Vec::new())),
     }
   }
@@ -54,15 +38,15 @@ impl WebSocketServerService {
     println!("WebSocket server listening on: {}", addr);
 
     while let Ok((stream, _)) = listener.accept().await {
-      let serviceClone = self.clone();
+      let service_clone = self.clone();
       tauri::async_runtime::spawn(async move {
-        serviceClone.handleConnection(stream).await;
+        service_clone.handle_connection(stream).await;
       });
     }
   }
 
-  async fn handleConnection(&self, stream: TcpStream) {
-    let wsStream = match accept_async(stream).await {
+  async fn handle_connection(&self, stream: TcpStream) {
+    let ws_stream = match accept_async(stream).await {
       Ok(ws) => ws,
       Err(e) => {
         eprintln!("Error during WebSocket handshake: {}", e);
@@ -73,28 +57,28 @@ impl WebSocketServerService {
     let (tx, mut rx) = futures::channel::mpsc::unbounded();
     self.clients.lock().unwrap().push(tx.clone());
 
-    let (mut wsSender, mut wsReceiver) = wsStream.split();
+    let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
-    let sendTask = tauri::async_runtime::spawn(async move {
+    let send_task = tauri::async_runtime::spawn(async move {
       while let Some(msg) = rx.next().await {
-        if let Err(e) = wsSender.send(msg).await {
+        if let Err(e) = ws_sender.send(msg).await {
           eprintln!("Error sending message to client: {}", e);
           break;
         }
       }
     });
 
-    while let Some(msg) = wsReceiver.next().await {
+    while let Some(msg) = ws_receiver.next().await {
       match msg {
         Ok(Message::Text(text)) => {
-          let (response, requestId) = self.processMessage(&text).await;
-          let wsResponse = WsResponse {
+          let (response, requestId) = self.process_message(&text).await;
+          let ws_response = WsResponse {
             requestId,
             response,
           };
-          let responseJson = to_string(&wsResponse).unwrap_or_default();
+          let response_json = to_string(&ws_response).unwrap_or_default();
 
-          let _ = tx.unbounded_send(Message::Text(responseJson.into()));
+          let _ = tx.unbounded_send(Message::Text(response_json.into()));
         }
         Ok(Message::Close(_)) => break,
         Err(e) => {
@@ -105,10 +89,10 @@ impl WebSocketServerService {
       }
     }
 
-    sendTask.abort();
+    send_task.abort();
   }
 
-  async fn processMessage(&self, text: &str) -> (ResponseModel, Option<String>) {
+  async fn process_message(&self, text: &str) -> (ResponseModel, Option<String>) {
     let request: WsRequest = match from_str(text) {
       Ok(req) => req,
       Err(e) => {
@@ -119,100 +103,197 @@ impl WebSocketServerService {
       }
     };
 
-    let requestId = request.requestId.clone();
+    let request_id = request.requestId.clone();
 
-    let syncMetadata = request.syncMetadata.unwrap_or(SyncMetadata {
+    let sync_metadata = request.syncMetadata.unwrap_or(SyncMetadata {
       isOwner: true,
       isPrivate: false,
     });
 
     let res = match (request.entity.as_str(), request.action.as_str()) {
-      ("todo", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        let result = self.todoService.getAll(filter, syncMetadata).await;
-
-        result.unwrap_or_else(|e| e)
-      }
-      ("todo", "get") => {
+      ("todo", "get-all") | ("task", "get-all") | ("subtask", "get-all") => {
         let filter = request.filter.unwrap_or(json!({}));
         self
-          .todoService
-          .get(filter, syncMetadata)
+          .crud_service
+          .execute(
+            "getAll".to_string(),
+            format!("{}s", request.entity),
+            None,
+            None,
+            Some(filter),
+            None,
+            Some(sync_metadata),
+          )
+          .await
+          .unwrap_or_else(|e| e)
+      }
+      ("todo", "get") | ("task", "get") | ("subtask", "get") => {
+        let filter = request.filter.unwrap_or(json!({}));
+        self
+          .crud_service
+          .execute(
+            "read".to_string(),
+            format!("{}s", request.entity),
+            None,
+            None,
+            Some(filter),
+            None,
+            Some(sync_metadata),
+          )
           .await
           .unwrap_or_else(|e| e)
       }
       ("todo", "create") => {
         if let Some(data) = request.data {
-          let createModel: TodoCreateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
           let res = self
-            .todoService
-            .create(createModel, syncMetadata)
+            .crud_service
+            .execute(
+              "create".to_string(),
+              "todos".to_string(),
+              None,
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            // Broadcast the created todo data (with ID) instead of request data
-            match &res.data {
-              DataValue::Object(createdTodo) => {
-                self.broadcast("todo-created", "todo", createdTodo.clone());
-              }
-              _ => {
-                self.broadcast("todo-created", "todo", data);
-              }
-            }
+            self.broadcast("todo-created", "todo", data);
           }
           res
         } else {
           ResponseModel::from("Missing data for create action".to_string())
         }
       }
-      ("todo", "update") => {
-        if let (Some(id), Some(mut data)) = (request.id, request.data) {
-          data["id"] = json!(id);
-          data["updatedAt"] =
-            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
-          let updateModel: TodoUpdateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
+      ("task", "create") => {
+        if let Some(data) = request.data {
           let res = self
-            .todoService
-            .update(id, updateModel, syncMetadata)
+            .crud_service
+            .execute(
+              "create".to_string(),
+              "tasks".to_string(),
+              None,
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
-            // Broadcast the updated todo data instead of request data
-            match &res.data {
-              DataValue::Object(updatedTodo) => {
-                self.broadcast("todo-updated", "todo", updatedTodo.clone());
-              }
-              _ => {
-                self.broadcast("todo-updated", "todo", data);
-              }
-            }
+            self.broadcast("task-created", "task", data);
+          }
+          res
+        } else {
+          ResponseModel::from("Missing data".to_string())
+        }
+      }
+      ("subtask", "create") => {
+        if let Some(data) = request.data {
+          let res = self
+            .crud_service
+            .execute(
+              "create".to_string(),
+              "subtasks".to_string(),
+              None,
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
+            .await
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            self.broadcast("subtask-created", "subtask", data);
+          }
+          res
+        } else {
+          ResponseModel::from("Missing data".to_string())
+        }
+      }
+      ("todo", "update") => {
+        if let (Some(id), Some(data)) = (request.id, request.data) {
+          let res = self
+            .crud_service
+            .execute(
+              "update".to_string(),
+              "todos".to_string(),
+              Some(id.clone()),
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
+            .await
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            self.broadcast("todo-updated", "todo", data);
           }
           res
         } else {
           ResponseModel::from("Missing id or data for update action".to_string())
         }
       }
+      ("task", "update") => {
+        if let (Some(id), Some(data)) = (request.id, request.data) {
+          let res = self
+            .crud_service
+            .execute(
+              "update".to_string(),
+              "tasks".to_string(),
+              Some(id.clone()),
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
+            .await
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            self.broadcast("task-updated", "task", data);
+          }
+          res
+        } else {
+          ResponseModel::from("Missing id for update action".to_string())
+        }
+      }
+      ("subtask", "update") => {
+        if let (Some(id), Some(data)) = (request.id, request.data) {
+          let res = self
+            .crud_service
+            .execute(
+              "update".to_string(),
+              "subtasks".to_string(),
+              Some(id.clone()),
+              Some(data.clone()),
+              None,
+              None,
+              Some(sync_metadata),
+            )
+            .await
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            self.broadcast("subtask-updated", "subtask", data);
+          }
+          res
+        } else {
+          ResponseModel::from("Missing id or data".to_string())
+        }
+      }
       ("todo", "delete") => {
         if let Some(id) = request.id {
           let res = self
-            .todoService
-            .delete(id.clone(), syncMetadata)
+            .crud_service
+            .execute(
+              "delete".to_string(),
+              "todos".to_string(),
+              Some(id.clone()),
+              None,
+              None,
+              None,
+              Some(sync_metadata),
+            )
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
@@ -223,129 +304,19 @@ impl WebSocketServerService {
           ResponseModel::from("Missing id for delete action".to_string())
         }
       }
-      ("todo", "update-all") => {
-        if let Some(data) = request.data {
-          let models: Vec<TodoModel> = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
-          let res = self
-            .todoService
-            .updateAll(models, syncMetadata)
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            // Broadcast the updated todos data if available, otherwise use request data
-            match &res.data {
-              DataValue::Array(updatedTodos) => {
-                self.broadcast("todo-updated-all", "todo", json!(updatedTodos));
-              }
-              DataValue::Object(updatedTodos) => {
-                self.broadcast("todo-updated-all", "todo", updatedTodos.clone());
-              }
-              _ => {
-                self.broadcast("todo-updated-all", "todo", data);
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data".to_string())
-        }
-      }
-      ("task", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .taskService
-          .getAll(filter, syncMetadata)
-          .await
-          .unwrap_or_else(|e| e)
-      }
-      ("task", "get") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .taskService
-          .get(filter, syncMetadata)
-          .await
-          .unwrap_or_else(|e| e)
-      }
-      ("task", "create") => {
-        if let Some(data) = request.data {
-          let createModel: TaskCreateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
-          let res = self
-            .taskService
-            .create(createModel, syncMetadata)
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            // Broadcast the created task data (with ID) instead of request data
-            match &res.data {
-              DataValue::Object(createdTask) => {
-                self.broadcast("task-created", "task", createdTask.clone());
-              }
-              _ => {
-                self.broadcast("task-created", "task", data);
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data".to_string())
-        }
-      }
-      ("task", "update") => {
-        if let (Some(id), Some(mut data)) = (request.id, request.data) {
-          data["id"] = json!(id);
-          data["updatedAt"] =
-            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
-          let updateModel: TaskUpdateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
-          let res = self
-            .taskService
-            .update(id, updateModel, syncMetadata)
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            // Broadcast the updated task data instead of request data
-            match &res.data {
-              DataValue::Object(updatedTask) => {
-                self.broadcast("task-updated", "task", updatedTask.clone());
-              }
-              _ => {
-                self.broadcast("task-updated", "task", data);
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id for update action".to_string())
-        }
-      }
       ("task", "delete") => {
         if let Some(id) = request.id {
           let res = self
-            .taskService
-            .delete(id.clone(), syncMetadata)
+            .crud_service
+            .execute(
+              "delete".to_string(),
+              "tasks".to_string(),
+              Some(id.clone()),
+              None,
+              None,
+              None,
+              Some(sync_metadata),
+            )
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
@@ -356,86 +327,19 @@ impl WebSocketServerService {
           ResponseModel::from("Missing id".to_string())
         }
       }
-      ("subtask", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .subtaskService
-          .getAll(filter, syncMetadata)
-          .await
-          .unwrap_or_else(|e| e)
-      }
-      ("subtask", "create") => {
-        if let Some(data) = request.data {
-          let createModel: SubtaskCreateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
-          let res = self
-            .subtaskService
-            .create(createModel, syncMetadata)
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            // Broadcast the created subtask data (with ID) instead of request data
-            match &res.data {
-              DataValue::Object(createdSubtask) => {
-                self.broadcast("subtask-created", "subtask", createdSubtask.clone());
-              }
-              _ => {
-                self.broadcast("subtask-created", "subtask", data);
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data".to_string())
-        }
-      }
-      ("subtask", "update") => {
-        if let (Some(id), Some(mut data)) = (request.id, request.data) {
-          data["id"] = json!(id);
-          data["updatedAt"] =
-            json!(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
-          let updateModel: SubtaskUpdateModel = match serde_json::from_value(data.clone()) {
-            Ok(m) => m,
-            Err(e) => {
-              return (
-                ResponseModel::from(format!("Invalid data format: {}", e)),
-                requestId,
-              )
-            }
-          };
-          let res = self
-            .subtaskService
-            .update(id, updateModel, syncMetadata)
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            // Broadcast the updated subtask data instead of request data
-            match &res.data {
-              DataValue::Object(updatedSubtask) => {
-                self.broadcast("subtask-updated", "subtask", updatedSubtask.clone());
-              }
-              _ => {
-                self.broadcast("subtask-updated", "subtask", data);
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id or data".to_string())
-        }
-      }
       ("subtask", "delete") => {
         if let Some(id) = request.id {
           let res = self
-            .subtaskService
-            .delete(id.clone(), syncMetadata)
+            .crud_service
+            .execute(
+              "delete".to_string(),
+              "subtasks".to_string(),
+              Some(id.clone()),
+              None,
+              None,
+              None,
+              Some(sync_metadata),
+            )
             .await
             .unwrap_or_else(|e| e);
           if res.status == ResponseStatus::Success {
@@ -452,7 +356,7 @@ impl WebSocketServerService {
       )),
     };
 
-    (res, requestId)
+    (res, request_id)
   }
 
   fn broadcast(&self, event: &str, entity: &str, data: Value) {

@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use crate::models::user_model::UserModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct ProfileModel {
   pub _id: ObjectId,
   pub id: String,
@@ -20,7 +19,6 @@ pub struct ProfileModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct ProfileCreateModel {
   pub name: String,
   pub lastName: String,
@@ -49,7 +47,6 @@ impl From<ProfileCreateModel> for ProfileModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct ProfileUpdateModel {
   pub _id: ObjectId,
   pub id: String,
@@ -82,7 +79,6 @@ impl From<ProfileUpdateModel> for ProfileModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
 pub struct ProfileFullModel {
   pub _id: ObjectId,
   pub id: String,

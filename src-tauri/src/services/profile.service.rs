@@ -3,11 +3,10 @@ use serde_json::{json, to_value, Value};
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{
-  common::{convertDataToArray, convertDataToObject},
-  json_provider::JsonProvider,
-  mongodb_provider::MongodbProvider,
-};
+use crate::helpers::common::{convertDataToArray, convertDataToObject};
+
+/* providers */
+use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* services */
 use crate::services::profile_sync_service::ProfileSyncService;
@@ -20,7 +19,6 @@ use crate::models::{
 };
 
 #[derive(Clone)]
-#[allow(non_snake_case)]
 pub struct ProfileService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongodbProvider>>,
@@ -29,9 +27,8 @@ pub struct ProfileService {
 }
 
 impl ProfileService {
-  #[allow(non_snake_case)]
   pub fn new(jsonProvider: JsonProvider) -> Self {
-    let mongodbProvider = jsonProvider.mongodbProvider.clone();
+    let mongodbProvider = jsonProvider.jsonSync.mongodbProvider.clone();
     let profileSyncService = match &mongodbProvider {
       Some(mongodbProvider) => Some(ProfileSyncService::new(
         jsonProvider.clone(),
@@ -54,7 +51,6 @@ impl ProfileService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listProfiles = self
       .jsonProvider
@@ -74,7 +70,6 @@ impl ProfileService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .jsonProvider
@@ -94,7 +89,6 @@ impl ProfileService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
     let userId = data.userId.clone();
     let findByUserId = self.get(json!({ "userId": userId.clone() })).await;
@@ -137,7 +131,6 @@ impl ProfileService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn update(
     &self,
     id: String,
@@ -249,7 +242,6 @@ impl ProfileService {
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
     let profile = self.jsonProvider.delete("profiles", &id.as_str()).await;
     match profile {
