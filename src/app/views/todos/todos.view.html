@@ -50,6 +50,86 @@
           }
         </div>
       </div>
+
+      @if (savedFilters().length > 0) {
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Saved Filters</span>
+            <button
+              class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              (click)="openSaveFilterDialog()"
+            >
+              <mat-icon class="w-4! h-4!" fontIcon="add" />
+              Save current filter
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            @for (filter of savedFilters(); track filter.id) {
+              <div
+                class="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-zinc-700 rounded-lg group"
+              >
+                <button
+                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500"
+                  (click)="applySavedFilter(filter)"
+                >
+                  {{ filter.name }}
+                </button>
+                <button
+                  class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  (click)="deleteSavedFilter(filter.id)"
+                >
+                  <mat-icon class="w-4! h-4!" fontIcon="close" />
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+          <button
+            class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
+            (click)="openSaveFilterDialog()"
+          >
+            <mat-icon class="w-4! h-4!" fontIcon="bookmark_add" />
+            Save current filter
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  @if (showSaveFilterDialog()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      (click)="closeSaveFilterDialog()"
+    >
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-xl w-full max-w-md"
+        (click)="$event.stopPropagation()"
+      >
+        <h3 class="text-lg font-semibold textNormal mb-4">Save Filter</h3>
+        <input
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 textNormal"
+          placeholder="Enter filter name..."
+          [(ngModel)]="newFilterName"
+          (keyup.enter)="saveCurrentFilter()"
+        />
+        <div class="flex justify-end gap-2 mt-4">
+          <button
+            class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg"
+            (click)="closeSaveFilterDialog()"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            (click)="saveCurrentFilter()"
+          >
+            Save
+          </button>
+        </div>
+      </div>
     </div>
   }
 
