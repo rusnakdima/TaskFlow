@@ -27,6 +27,8 @@ import { Todo } from "@models/todo.model";
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { ShortcutService } from "@services/shortcut.service";
+import { FormValidatorService } from "@services/form-validator.service";
+import { DateValidatorService } from "@services/date-validator.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -69,7 +71,9 @@ export class ManageTaskView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
-    private shortcutService: ShortcutService
+    private shortcutService: ShortcutService,
+    private formValidator: FormValidatorService,
+    private dateValidator: DateValidatorService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -94,7 +98,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
-        this.updateEndDateValidation(startDate, endDateControl?.value);
+        this.dateValidator.updateEndDateValidation(this.form, startDate);
       }
     });
   }
@@ -185,15 +189,9 @@ export class ManageTaskView implements OnInit, OnDestroy {
     this.saveSubscription?.unsubscribe();
   }
 
-  updateEndDateValidation(startDate: string, currentEndDate: string) {
-    if (startDate && currentEndDate) {
-      const start = new Date(startDate);
-      const end = new Date(currentEndDate);
-      if (end < start) {
-        this.form.get("endDate")?.setValue("");
-      }
-    }
-  }
+  endDateFilter = (date: Date | null): boolean => {
+    return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
+  };
 
   getTaskInfo(taskId: string) {
     this.dataSyncProvider
@@ -206,7 +204,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
           const startDate = localDates.startDate;
           const endDate = localDates.endDate;
           if (startDate && endDate) {
-            this.updateEndDateValidation(startDate, endDate);
+            this.dateValidator.updateEndDateValidation(this.form, startDate);
           }
         },
         error: (err) => {
@@ -239,63 +237,25 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!this.validateDates()) {
+    if (!this.dateValidator.validateDatesFromForm(this.form)) {
       return;
     }
 
-    if (this.form.invalid) {
-      Object.values(this.form.controls).forEach((control) => {
-        control.markAsTouched();
-      });
-      this.notifyService.showError("Please fill in all required fields");
+    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
       return;
     }
 
-    if (this.form.valid) {
-      this.isSubmitting.set(true);
-      if (this.isEdit()) {
-        this.updateTask();
-      } else {
-        this.createTask();
-      }
+    this.isSubmitting.set(true);
+    if (this.isEdit()) {
+      this.updateTask();
+    } else {
+      this.createTask();
     }
   }
 
   validateDates(): boolean {
-    const startDate = this.form.get("startDate")?.value;
-    const endDate = this.form.get("endDate")?.value;
-
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (end < start) {
-        this.notifyService.showError("End date cannot be earlier than start date");
-        return false;
-      }
-    }
-
-    if (!startDate && endDate) {
-      this.form.get("endDate")?.setValue("");
-    }
-
-    return true;
+    return this.dateValidator.validateDatesFromForm(this.form);
   }
-
-  endDateFilter = (date: Date | null): boolean => {
-    const startDateValue = this.form.get("startDate")?.value;
-    if (!startDateValue) {
-      return true;
-    }
-
-    if (!date) {
-      return false;
-    }
-
-    const startDate = new Date(startDateValue);
-    startDate.setHours(0, 0, 0, 0);
-    return date >= startDate;
-  };
 
   clearDates() {
     this.form.get("startDate")?.setValue("");

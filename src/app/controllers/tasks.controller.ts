@@ -9,6 +9,7 @@ import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
 
 /* services */
 import { NotifyService } from "@services/notify.service";
+import { BulkActionService } from "@services/bulk-action.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -21,7 +22,8 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 export class TasksController {
   constructor(
     private dataSyncProvider: DataSyncProvider,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private bulkActionService: BulkActionService
   ) {}
 
   todo: Todo | null = null;
@@ -317,34 +319,27 @@ export class TasksController {
   bulkUpdatePriority(taskIds: string[], priority: string, onComplete: () => void): void {
     if (!this.todo) return;
 
-    let completedCount = 0;
+    const tasks = taskIds.map((id) => ({ id }));
 
-    taskIds.forEach((taskId) => {
-      this.dataSyncProvider
-        .update<Task>(
+    this.bulkActionService
+      .bulkUpdateField(tasks, "priority", priority, (id, data) =>
+        this.dataSyncProvider.update<Task>(
           "task",
-          taskId,
-          { priority: priority as any },
+          id,
+          data,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todo!.id
         )
-        .subscribe({
-          next: () => {
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              this.notifyService.showSuccess(`Updated priority for ${taskIds.length} task(s)`);
-              onComplete();
-            }
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to update task");
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              onComplete();
-            }
-          },
-        });
-    });
+      )
+      .subscribe((result) => {
+        if (result.successCount > 0) {
+          this.notifyService.showSuccess(`Updated priority for ${result.successCount} task(s)`);
+        }
+        if (result.errorCount > 0) {
+          this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
+        }
+        onComplete();
+      });
   }
 
   /**
@@ -353,34 +348,27 @@ export class TasksController {
   bulkUpdateStatus(taskIds: string[], status: string, onComplete: () => void): void {
     if (!this.todo) return;
 
-    let completedCount = 0;
+    const tasks = taskIds.map((id) => ({ id, status: "" }));
 
-    taskIds.forEach((taskId) => {
-      this.dataSyncProvider
-        .update<Task>(
+    this.bulkActionService
+      .bulkUpdateStatus(tasks as any[], status, (id, data) =>
+        this.dataSyncProvider.update<Task>(
           "task",
-          taskId,
-          { status: status as any },
+          id,
+          data,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todo!.id
         )
-        .subscribe({
-          next: () => {
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              this.notifyService.showSuccess(`Updated status for ${taskIds.length} task(s)`);
-              onComplete();
-            }
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to update task");
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              onComplete();
-            }
-          },
-        });
-    });
+      )
+      .subscribe((result) => {
+        if (result.successCount > 0) {
+          this.notifyService.showSuccess(`Updated status for ${result.successCount} task(s)`);
+        }
+        if (result.errorCount > 0) {
+          this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
+        }
+        onComplete();
+      });
   }
 
   /**
@@ -389,27 +377,25 @@ export class TasksController {
   bulkDelete(taskIds: string[], onComplete: () => void): void {
     if (!this.todo) return;
 
-    let completedCount = 0;
+    const tasks = taskIds.map((id) => ({ id }));
 
-    taskIds.forEach((taskId) => {
-      this.dataSyncProvider
-        .delete("task", taskId, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todo!.id)
-        .subscribe({
-          next: () => {
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              this.notifyService.showSuccess(`Deleted ${taskIds.length} task(s)`);
-              onComplete();
-            }
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete task");
-            completedCount++;
-            if (completedCount === taskIds.length) {
-              onComplete();
-            }
-          },
-        });
-    });
+    this.bulkActionService
+      .bulkDelete(tasks, (id) =>
+        this.dataSyncProvider.delete(
+          "task",
+          id,
+          { isOwner: this.isOwner, isPrivate: this.isPrivate },
+          this.todo!.id
+        )
+      )
+      .subscribe((result) => {
+        if (result.successCount > 0) {
+          this.notifyService.showSuccess(`Deleted ${result.successCount} task(s)`);
+        }
+        if (result.errorCount > 0) {
+          this.notifyService.showError(`Failed to delete ${result.errorCount} task(s)`);
+        }
+        onComplete();
+      });
   }
 }
