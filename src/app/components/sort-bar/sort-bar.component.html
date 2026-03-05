@@ -1,0 +1,26 @@
+<div class="sort-bar">
+  <div class="sort-controls">
+    <span class="sort-label">Sort by:</span>
+
+    <!-- Sort Field Select -->
+    <mat-form-field appearance="outline" class="sort-field-select">
+      <mat-select [value]="sortBy" (selectionChange)="onSortFieldChange($event.value)">
+        @for (option of sortOptions; track option.field) {
+          <mat-option [value]="option.field">
+            {{ option.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Sort Order Toggle -->
+    <button
+      mat-icon-button
+      (click)="toggleSortOrder()"
+      class="sort-order-toggle"
+      aria-label="Toggle sort order"
+    >
+      <mat-icon>{{ sortOrder === "asc" ? "arrow_upward" : "arrow_downward" }}</mat-icon>
+    </button>
+  </div>
+</div>
