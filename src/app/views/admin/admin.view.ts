@@ -161,7 +161,7 @@ export class AdminView implements OnInit {
   getCurrentData(): any[] {
     let data = this.adminData()[this.selectedType()] || [];
 
-    // Build filter configs
+    // Build filter configs using FilterService
     const filterConfigs: FilterConfig[] = [];
 
     if (this.titleFilter()) {
@@ -187,44 +187,35 @@ export class AdminView implements OnInit {
       filterConfigs.push({ field: "isDeleted", value: true, operator: "equals" });
     }
 
-    // Task status filters
-    if (this.selectedType() === "tasks") {
-      if (this.isCompletedFilter() === "completed") {
-        filterConfigs.push({ field: "status", value: TaskStatus.COMPLETED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "pending") {
-        filterConfigs.push({ field: "status", value: TaskStatus.PENDING, operator: "equals" });
-      } else if (this.isCompletedFilter() === "skipped") {
-        filterConfigs.push({ field: "status", value: TaskStatus.SKIPPED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "failed") {
-        filterConfigs.push({ field: "status", value: TaskStatus.FAILED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "done") {
-        data = data.filter(
-          (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
+    // Task/Subtask status filters
+    const statusValue = this.isCompletedFilter();
+    if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
+      if (statusValue === "done") {
+        data = data.filter((item) =>
+          [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(item.status)
         );
+      } else if (statusValue !== "all") {
+        filterConfigs.push({
+          field: "status",
+          value: TaskStatus[statusValue.toUpperCase() as keyof typeof TaskStatus],
+          operator: "equals",
+        });
       }
     }
 
-    // Subtask status filters
-    if (this.selectedType() === "subtasks") {
-      if (this.isCompletedFilter() === "completed") {
-        filterConfigs.push({ field: "status", value: TaskStatus.COMPLETED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "pending") {
-        filterConfigs.push({ field: "status", value: TaskStatus.PENDING, operator: "equals" });
-      } else if (this.isCompletedFilter() === "skipped") {
-        filterConfigs.push({ field: "status", value: TaskStatus.SKIPPED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "failed") {
-        filterConfigs.push({ field: "status", value: TaskStatus.FAILED, operator: "equals" });
-      } else if (this.isCompletedFilter() === "done") {
-        data = data.filter(
-          (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
-        );
-      }
-    }
-
-    // Apply filters
+    // Apply filters using FilterService
     data = this.filterService.applyFilters(data, filterConfigs);
 
     // Custom filters (user, categories, dates, IDs)
+    data = this.applyCustomFilters(data);
+
+    // Sort using SortService
+    data = this.sortService.sortByField(data, { field: this.sortBy(), order: this.sortOrder() });
+
+    return data;
+  }
+
+  applyCustomFilters(data: any[]): any[] {
     if (this.userFilter()) {
       const filter = this.userFilter().toLowerCase();
       data = data.filter((item) => {
@@ -283,9 +274,6 @@ export class AdminView implements OnInit {
         return item.taskId && item.taskId.toLowerCase().includes(filter);
       });
     }
-
-    // Sort using SortService
-    data = this.sortService.sortByField(data, { field: this.sortBy(), order: this.sortOrder() });
 
     return data;
   }

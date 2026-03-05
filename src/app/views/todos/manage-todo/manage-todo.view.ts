@@ -33,6 +33,8 @@ import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { ShortcutService } from "@services/shortcut.service";
+import { FormValidatorService } from "@services/form-validator.service";
+import { DateValidatorService } from "@services/date-validator.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -73,7 +75,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private mainService: MainService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
-    private shortcutService: ShortcutService
+    private shortcutService: ShortcutService,
+    private formValidator: FormValidatorService,
+    private dateValidator: DateValidatorService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -356,13 +360,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (this.form.invalid || this.isSubmitting()) {
-      Object.values(this.form.controls).forEach((control) => {
-        control.markAsTouched();
-      });
-      if (this.form.invalid) {
-        this.notifyService.showError("Please fill in all required fields");
-      }
+    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
       return;
     }
 
@@ -456,17 +454,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    const startDateValue = this.form.get("startDate")?.value;
-    if (!startDateValue) {
-      return true;
-    }
-
-    if (!date) {
-      return false;
-    }
-
-    const startDate = new Date(startDateValue);
-    startDate.setHours(0, 0, 0, 0);
-    return date >= startDate;
+    return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
   };
 }

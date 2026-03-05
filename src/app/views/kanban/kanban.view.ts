@@ -3,12 +3,7 @@ import { Component, OnInit, signal, effect, computed, inject } from "@angular/co
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, ActivatedRoute } from "@angular/router";
-import {
-  CdkDragDrop,
-  DragDropModule,
-  moveItemInArray,
-  transferArrayItem,
-} from "@angular/cdk/drag-drop";
+import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -22,6 +17,8 @@ import { AuthService } from "@services/auth.service";
 import { DataSyncProvider } from "../../providers/data-sync.provider";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { NotifyService } from "@services/notify.service";
+import { KanbanDragDropService } from "@services/kanban-drag-drop.service";
+import { KanbanUIHelper } from "@services/kanban-ui-helper.service";
 
 /* controllers */
 import { KanbanController } from "@controllers/kanban.controller";
@@ -90,7 +87,9 @@ export class KanbanView implements OnInit {
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
     private localWs: LocalWebSocketService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dragDropService: KanbanDragDropService,
+    private uiHelper: KanbanUIHelper
   ) {
     effect(() => {
       const todoId = this.selectedTodoId();
@@ -219,7 +218,7 @@ export class KanbanView implements OnInit {
   }
 
   onMoveTask(event: { taskId: string; newStatus: TaskStatus }): void {
-    this.moveTask(event.taskId, event.newStatus);
+    this.moveTaskToStatus(event.taskId, event.newStatus);
   }
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
@@ -286,7 +285,30 @@ export class KanbanView implements OnInit {
     this.searchQuery.set("");
   }
 
-  moveTask(taskId: string, newStatus: TaskStatus) {
+  // Delegate UI helper methods to KanbanUIHelper
+  getColumnColorClass = this.uiHelper.getColumnColorClass;
+  getAssigneeColor = this.uiHelper.getAssigneeColor;
+  getInitials = this.uiHelper.getInitials;
+  formatDate = this.uiHelper.formatDate;
+  getTaskProgressPercentage = this.uiHelper.getTaskProgressPercentage;
+  getTaskProgressSegments = this.uiHelper.getTaskProgressSegments;
+  getConnectedDropLists = (currentColumnId: string) =>
+    this.dragDropService.getConnectedDropLists(currentColumnId, this.columns);
+
+  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {
+    const result = this.dragDropService.handleTaskDrop(
+      event,
+      targetStatus,
+      this.isUpdatingOrder(),
+      (taskId, newStatus) => this.moveTaskToStatus(taskId, newStatus)
+    );
+
+    if (result.moved && result.task) {
+      this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${result.newStatus}`);
+    }
+  }
+
+  moveTaskToStatus(taskId: string, newStatus: TaskStatus) {
     if (!this.userId()) {
       console.error("[Kanban] No userId found, aborting moveTask");
       return;
@@ -302,19 +324,9 @@ export class KanbanView implements OnInit {
     const isPrivate = selectedTodo.visibility === "private";
     const isOwner = selectedTodo.userId === this.userId();
 
-    this.tasks.update((tasks) => {
-      return tasks.map((t) => {
-        if (t.id === taskId) {
-          return { ...t, status: newStatus };
-        }
-        return t;
-      });
-    });
-
     this.controller.moveTask(taskId, newStatus, todoId, isOwner, isPrivate).subscribe({
-      next: (updatedTask: any) => {
+      next: () => {
         this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
-
         this.tasks.update((tasks) => {
           return tasks.map((t) => {
             if (t.id === taskId) {
@@ -346,159 +358,6 @@ export class KanbanView implements OnInit {
       this.router.navigate(["/todos", todoId, "tasks", task.id, "subtasks"], {
         queryParams: { isPrivate, isOwner },
       });
-    }
-  }
-
-  getColumnColorClass(status: string): string {
-    switch (status) {
-      case TaskStatus.PENDING:
-        return "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700";
-      case TaskStatus.COMPLETED:
-        return "bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700";
-      case TaskStatus.SKIPPED:
-        return "bg-linear-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700";
-      case TaskStatus.FAILED:
-        return "bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700";
-      default:
-        return "bg-linear-to-r from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700";
-    }
-  }
-
-  getAssigneeColor(assignee: string): string {
-    const colors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-purple-500",
-      "bg-orange-500",
-      "bg-pink-500",
-      "bg-teal-500",
-      "bg-indigo-500",
-      "bg-red-500",
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < assignee.length; i++) {
-      hash = assignee.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }
-
-  getInitials(name: string): string {
-    if (!name) return "?";
-    return name.substring(0, 1).toUpperCase();
-  }
-
-  getConnectedDropLists(currentColumnId: string): string[] {
-    return this.columns
-      .filter((col) => col.id !== currentColumnId)
-      .map((col) => "cdk-drop-list-" + col.id);
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
-
-  getTaskProgressPercentage(task: Task): number {
-    const subtasks = this.getSubtasksForTask(task.id);
-    if (subtasks.length === 0) {
-      return task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED ? 100 : 0;
-    }
-    const completed = subtasks.filter(
-      (s) => s.status === TaskStatus.COMPLETED || s.status === TaskStatus.SKIPPED
-    ).length;
-    return Math.round((completed / subtasks.length) * 100);
-  }
-
-  getTaskProgressSegments(task: Task): { status: TaskStatus; percentage: number; color: string }[] {
-    const subtasks = this.getSubtasksForTask(task.id);
-    const total = subtasks.length;
-
-    if (total === 0) {
-      const taskStatus = task.status || TaskStatus.PENDING;
-      let color = "bg-gray-400";
-      switch (taskStatus) {
-        case TaskStatus.COMPLETED:
-          color = "bg-green-500";
-          break;
-        case TaskStatus.SKIPPED:
-          color = "bg-orange-500";
-          break;
-        case TaskStatus.FAILED:
-          color = "bg-red-500";
-          break;
-        case TaskStatus.PENDING:
-        default:
-          color = "bg-gray-400";
-          break;
-      }
-      return [{ status: taskStatus, percentage: 100, color }];
-    }
-
-    const completed = subtasks.filter((s) => s.status === TaskStatus.COMPLETED).length;
-    const skipped = subtasks.filter((s) => s.status === TaskStatus.SKIPPED).length;
-    const failed = subtasks.filter((s) => s.status === TaskStatus.FAILED).length;
-    const pending = subtasks.filter((s) => s.status === TaskStatus.PENDING).length;
-
-    const segments = [];
-    if (completed > 0) {
-      segments.push({
-        status: TaskStatus.COMPLETED,
-        percentage: Math.round((completed / total) * 100),
-        color: "bg-green-500",
-      });
-    }
-    if (skipped > 0) {
-      segments.push({
-        status: TaskStatus.SKIPPED,
-        percentage: Math.round((skipped / total) * 100),
-        color: "bg-orange-500",
-      });
-    }
-    if (failed > 0) {
-      segments.push({
-        status: TaskStatus.FAILED,
-        percentage: Math.round((failed / total) * 100),
-        color: "bg-red-500",
-      });
-    }
-    if (pending > 0) {
-      segments.push({
-        status: TaskStatus.PENDING,
-        percentage: Math.round((pending / total) * 100),
-        color: "bg-gray-400",
-      });
-    }
-
-    return segments;
-  }
-
-  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {
-    if (this.isUpdatingOrder()) {
-      this.notifyService.showWarning("Please wait for previous operation to complete");
-      return;
-    }
-
-    const task = event.item.data as Task;
-
-    if (event.previousContainer === event.container) {
-      // Reordering within the same column - just visual reordering
-      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-    } else {
-      // Moving to a different column
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
-
-      // Update the task status in backend
-      this.moveTask(task.id, targetStatus);
     }
   }
 }
