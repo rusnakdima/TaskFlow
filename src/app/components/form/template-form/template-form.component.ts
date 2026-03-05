@@ -1,22 +1,22 @@
 /* sys lib */
-import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormArray, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from "@angular/common";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { FormArray, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatIconModule } from "@angular/material/icon";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
 
 /* models */
-import { FormField } from '@models/form-field.model';
+import { FormField } from "@models/form-field.model";
 
 /* components */
-import { BlockFieldsComponent } from '../block-fields/block-fields.component';
+import { BlockFieldsComponent } from "../block-fields/block-fields.component";
 
 @Component({
-  selector: 'app-template-form',
+  selector: "app-template-form",
   standalone: true,
   imports: [
     CommonModule,
@@ -28,7 +28,7 @@ import { BlockFieldsComponent } from '../block-fields/block-fields.component';
     MatMenuModule,
     BlockFieldsComponent,
   ],
-  templateUrl: './template-form.component.html',
+  templateUrl: "./template-form.component.html",
 })
 export class TemplateFormComponent {
   constructor() {}
@@ -37,7 +37,7 @@ export class TemplateFormComponent {
   @Input() form!: FormGroup;
   @Input() formFields!: Array<FormField>;
   @Input() index: number = -1;
-  @Input() direction: 'vertical' | 'horizontal' = 'vertical';
+  @Input() direction: "vertical" | "horizontal" = "vertical";
 
   @Output() addRecordToList: EventEmitter<void> = new EventEmitter<void>();
   @Output() insertRecordToList: EventEmitter<number> = new EventEmitter<number>();

@@ -60,7 +60,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private notificationService: NotificationCenterService,
     private cdr: ChangeDetectorRef,
     private location: Location
-  ) { }
+  ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 

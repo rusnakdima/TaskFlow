@@ -64,7 +64,7 @@ export class AdminView implements OnInit {
   constructor(
     private adminService: AdminService,
     private notifyService: NotifyService
-  ) { }
+  ) {}
 
   adminData = signal<AdminData>({});
   selectedType = signal<string>("todos");

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -9,13 +9,14 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatSelectModule } from "@angular/material/select";
-import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatDatepickerModule, MatCalendarCellCssClasses } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatMenuModule } from "@angular/material/menu";
@@ -31,6 +32,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { ShortcutService } from "@services/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -62,7 +64,7 @@ import {
   ],
   templateUrl: "./manage-todo.view.html",
 })
-export class ManageTodoView implements OnInit {
+export class ManageTodoView implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -70,7 +72,8 @@ export class ManageTodoView implements OnInit {
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private shortcutService: ShortcutService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -99,6 +102,21 @@ export class ManageTodoView implements OnInit {
   isOwner: boolean = false;
   isPrivate: boolean = true;
   today = new Date();
+
+  private saveSubscription: Subscription | null = null;
+
+  dateClass = (date: Date): MatCalendarCellCssClasses => {
+    const endDateValue = this.form.get("endDate")?.value;
+    if (endDateValue) {
+      const endDate = new Date(endDateValue);
+      return date.getDate() === endDate.getDate() &&
+        date.getMonth() === endDate.getMonth() &&
+        date.getFullYear() === endDate.getFullYear()
+        ? "end-date-marker"
+        : "";
+    }
+    return "";
+  };
 
   priorityOptions = [
     {
@@ -133,8 +151,13 @@ export class ManageTodoView implements OnInit {
 
   availableCategories = signal<Category[]>([]);
   newCategoryTitle = signal("");
+  isCategoryListExpanded = signal(false);
 
   async ngOnInit() {
+    this.saveSubscription = this.shortcutService.save$.subscribe(() => {
+      this.onSubmit();
+    });
+
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
@@ -161,6 +184,10 @@ export class ManageTodoView implements OnInit {
         this.fetchTodosCount();
       }
     }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    this.saveSubscription?.unsubscribe();
   }
 
   getTodoInfo(todoId: string) {
@@ -282,6 +309,31 @@ export class ManageTodoView implements OnInit {
     );
   }
 
+  isCategorySelected(category: Category): boolean {
+    const currentCategories = this.form.get("categories")?.value || [];
+    return currentCategories.some((c: Category) => c.id === category.id);
+  }
+
+  toggleCategory(category: Category) {
+    const currentCategories = this.form.get("categories")?.value || [];
+    const exists = currentCategories.some((c: Category) => c.id === category.id);
+
+    if (exists) {
+      this.form.patchValue({
+        categories: currentCategories.filter((c: Category) => c.id !== category.id),
+      });
+    } else {
+      this.form.patchValue({
+        categories: [...currentCategories, category],
+      });
+    }
+  }
+
+  getSelectedCategoriesText(): string {
+    const categories = this.form.get("categories")?.value || [];
+    return categories.map((c: Category) => c.title).join(", ");
+  }
+
   addCategory() {
     if (this.newCategoryTitle().trim()) {
       const categoryData: any = {
@@ -301,28 +353,6 @@ export class ManageTodoView implements OnInit {
           this.notifyService.showError(err.message ?? err.toString());
         });
     }
-  }
-
-  selectCategory(category: Category) {
-    const currentCategories = this.form.get("categories")?.value || [];
-    const exists = currentCategories.some((c: Category) => c.id === category.id);
-    if (!exists) {
-      this.form.patchValue({
-        categories: [...currentCategories, category],
-      });
-    }
-  }
-
-  removeCategory(category: Category) {
-    const currentCategories = this.form.get("categories")?.value || [];
-    this.form.patchValue({
-      categories: currentCategories.filter((c: Category) => c.id !== category.id),
-    });
-  }
-
-  getSelectedCategoriesText(): string {
-    const categories = this.form.get("categories")?.value || [];
-    return categories.map((c: Category) => c.title).join(", ");
   }
 
   onSubmit() {

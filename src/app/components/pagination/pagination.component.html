@@ -3,10 +3,10 @@
     <span>Showing</span>
     <span class="font-semibold text-xl">{{ perItem * page - perItem + 1 }}</span>
     <span>to</span>
-    @if (array.length > (perItem * page)) {
-    <span class="font-semibold text-xl">{{ perItem * page }}</span>
-    } @else if (array.length <= (perItem * page)) {
-    <span class="font-semibold text-xl">{{ array.length }}</span>
+    @if (array.length > perItem * page) {
+      <span class="font-semibold text-xl">{{ perItem * page }}</span>
+    } @else if (array.length <= perItem * page) {
+      <span class="font-semibold text-xl">{{ array.length }}</span>
     }
     <span>of</span>
     <span class="font-semibold text-xl">{{ array.length }}</span>

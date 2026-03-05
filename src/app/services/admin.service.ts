@@ -12,7 +12,7 @@ import { AuthService } from "@services/auth.service";
   providedIn: "root",
 })
 export class AdminService {
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   async getAllDataForAdmin<R>(): Promise<Response<R>> {
     return await invoke<Response<R>>("getAllDataForAdmin");

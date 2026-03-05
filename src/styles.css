@@ -501,3 +501,15 @@ td[role="presentation"] {
 .fc-button-group {
   @apply rounded-xl!;
 }
+
+/* Datepicker markers */
+.end-date-marker {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  border-radius: 100% !important;
+  border: 2px dashed #ef4444 !important;
+}
+
+.dark .end-date-marker {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  border: 2px dashed #f87171 !important;
+}

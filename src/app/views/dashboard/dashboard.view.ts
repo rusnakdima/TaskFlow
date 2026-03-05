@@ -29,6 +29,8 @@ interface DisplayTask {
   createdAt: string;
   updatedAt: string;
   todoId: string;
+  isPrivate: boolean;
+  isOwner: boolean;
 }
 
 @Component({
@@ -59,12 +61,14 @@ export class DashboardView implements OnInit {
 
   recentActivities = signal<string[]>([]);
 
-  ngOnInit(): void {
-    const userId: string = this.authService.getValueByKey("id");
+  userId = "";
 
-    if (userId && userId !== "") {
+  ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
+
+    if (this.userId && this.userId !== "") {
       this.mainService
-        .get<Profile>("profile", { userId })
+        .get<Profile>("profile", { userId: this.userId })
         .then((response: Response<Profile>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.profile.set(response.data);
@@ -81,11 +85,9 @@ export class DashboardView implements OnInit {
   }
 
   loadDashboardData(): void {
-    const userId: string = this.authService.getValueByKey("id");
-
-    if (userId && userId !== "") {
+    if (this.userId && this.userId !== "") {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { userId }, { isOwner: true, isPrivate: true })
+        .getAll<Todo>("todo", { userId: this.userId }, { isOwner: true, isPrivate: true })
         .subscribe({
           next: (todos) => {
             this.processTodosData(todos);
@@ -98,18 +100,18 @@ export class DashboardView implements OnInit {
   }
 
   processTodosData(todos: Array<Todo>): void {
-    const allTasks: { task: Task; todoId: string }[] = [];
+    const allTasks: { task: Task; todo: Todo }[] = [];
     todos.forEach((todo) => {
       if (todo.tasks) {
         todo.tasks.forEach((task) => {
-          allTasks.push({ task, todoId: todo.id });
+          allTasks.push({ task, todo: todo });
         });
       }
     });
     this.processTaskData(allTasks);
   }
 
-  processTaskData(taskData: Array<{ task: Task; todoId: string }>): void {
+  processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
     const tasks = taskData.map((item) => item.task);
     this.totalTasks.set(tasks.length);
 
@@ -145,7 +147,9 @@ export class DashboardView implements OnInit {
         dueDate: item.task.endDate,
         createdAt: item.task.createdAt,
         updatedAt: item.task.updatedAt,
-        todoId: item.todoId,
+        todoId: item.todo.id,
+        isPrivate: item.todo.visibility === "private",
+        isOwner: item.todo.userId === this.userId,
       }))
       .sort((a, b) => {
         const aTime = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime());
@@ -217,6 +221,12 @@ export class DashboardView implements OnInit {
   }
 
   navigateToTasks(task: DisplayTask): void {
-    this.router.navigate(["/todos", task.todoId, "tasks"]);
+    this.router.navigate(["/todos", task.todoId, "tasks"], {
+      queryParams: {
+        highlightTaskId: task.id,
+        isPrivate: task.isPrivate,
+        isOwner: task.isOwner,
+      },
+    });
   }
 }

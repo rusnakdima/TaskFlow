@@ -53,7 +53,7 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/Statistic",
+      url: "/stats",
       icon: "bar_chart",
       label: "Stats",
       query: {},

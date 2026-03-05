@@ -10,6 +10,8 @@ export interface Subtask {
   description: string;
   status: TaskStatus;
   priority: PriorityTask;
+  startDate?: string;
+  endDate?: string;
   order: number;
   isDeleted: boolean;
   createdAt: string;

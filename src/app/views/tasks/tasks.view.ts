@@ -13,7 +13,7 @@ import { MatExpansionModule } from "@angular/material/expansion";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
+import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -195,11 +195,71 @@ export class TasksView implements OnInit {
             }
             return tasks;
           });
+
+          if (
+            newStatus === TaskStatus.COMPLETED &&
+            task.repeat &&
+            task.repeat !== RepeatInterval.NONE
+          ) {
+            this.generateNextRecurringTask(task);
+          }
+
           this.applyFilter();
           this.notifyService.showSuccess(message);
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
+  }
+
+  generateNextRecurringTask(task: Task) {
+    const nextTask = { ...task };
+    delete (nextTask as any)._id;
+    nextTask.id = "";
+    nextTask.status = TaskStatus.PENDING;
+    nextTask.createdAt = new Date().toISOString().split(".")[0];
+    nextTask.updatedAt = nextTask.createdAt;
+
+    if (task.startDate) {
+      const nextStart = new Date(task.startDate);
+      const nextEnd = task.endDate ? new Date(task.endDate) : null;
+
+      switch (task.repeat) {
+        case RepeatInterval.DAILY:
+          nextStart.setDate(nextStart.getDate() + 1);
+          if (nextEnd) nextEnd.setDate(nextEnd.getDate() + 1);
+          break;
+        case RepeatInterval.WEEKLY:
+          nextStart.setDate(nextStart.getDate() + 7);
+          if (nextEnd) nextEnd.setDate(nextEnd.getDate() + 7);
+          break;
+        case RepeatInterval.MONTHLY:
+          nextStart.setMonth(nextStart.getMonth() + 1);
+          if (nextEnd) nextEnd.setMonth(nextEnd.getMonth() + 1);
+          break;
+      }
+
+      nextTask.startDate = nextStart.toISOString().split(".")[0] + "Z";
+      if (nextEnd) {
+        nextTask.endDate = nextEnd.toISOString().split(".")[0] + "Z";
+      }
+    }
+
+    this.dataSyncProvider
+      .create<Task>(
+        "task",
+        nextTask,
+        { isOwner: this.isOwner, isPrivate: this.isPrivate },
+        task.todoId
+      )
+      .subscribe({
+        next: (result) => {
+          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+          this.getTasksByTodoId(task.todoId);
+        },
+        error: (err) => {
+          this.notifyService.showError("Failed to create next recurring task");
         },
       });
   }
