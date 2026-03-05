@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, OnInit, signal, effect, computed } from "@angular/core";
+import { Component, OnInit, signal, effect, computed, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, ActivatedRoute } from "@angular/router";
@@ -23,6 +23,9 @@ import { DataSyncProvider } from "../../providers/data-sync.provider";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { NotifyService } from "@services/notify.service";
 
+/* controllers */
+import { KanbanController } from "@controllers/kanban.controller";
+
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatSelectModule } from "@angular/material/select";
@@ -37,6 +40,7 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 @Component({
   selector: "app-kanban",
   standalone: true,
+  providers: [DataSyncProvider, KanbanController],
   imports: [
     CommonModule,
     FormsModule,
@@ -52,6 +56,8 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
   templateUrl: "./kanban.view.html",
 })
 export class KanbanView implements OnInit {
+  private controller = inject(KanbanController);
+
   TaskStatus = TaskStatus;
   todos = signal<Todo[]>([]);
   selectedTodoId = signal<string>("");
@@ -81,7 +87,6 @@ export class KanbanView implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private mainService: MainService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
     private localWs: LocalWebSocketService,
@@ -97,6 +102,7 @@ export class KanbanView implements OnInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
+    this.controller.init(this.userId());
 
     this.loadTodos();
 
@@ -148,10 +154,7 @@ export class KanbanView implements OnInit {
   }
 
   async loadTodos() {
-    const userId = this.authService.getValueByKey("id");
-    if (!userId) return;
-
-    this.dataSyncProvider.getAll<Todo>("todo", { userId }).subscribe({
+    this.controller.loadTodos().subscribe({
       next: (todos) => {
         this.todos.set(todos);
       },
@@ -163,14 +166,10 @@ export class KanbanView implements OnInit {
 
   async loadTasksWithSubtasks(todoId: string) {
     this.loading.set(true);
-    const userId = this.authService.getValueByKey("id");
-    this.dataSyncProvider.getAll<Task>("task", { todoId, userId }).subscribe({
-      next: (tasks) => {
-        this.tasks.set(tasks);
-        // Load subtasks for each task
-        tasks.forEach((task) => {
-          this.loadSubtasksForTask(task.id);
-        });
+    this.controller.loadTasksWithSubtasks(todoId).subscribe({
+      next: (result) => {
+        this.tasks.set(result.tasks);
+        this.subtasksMap.set(result.subtasksMap);
         this.loading.set(false);
       },
       error: (error) => {
@@ -181,7 +180,7 @@ export class KanbanView implements OnInit {
   }
 
   loadSubtasksForTask(taskId: string) {
-    this.dataSyncProvider.getAll<Subtask>("subtask", { taskId }).subscribe({
+    this.controller.loadSubtasksForTask(taskId).subscribe({
       next: (subtasks) => {
         this.subtasksMap.update((map) => {
           const newMap = new Map(map);
@@ -276,15 +275,7 @@ export class KanbanView implements OnInit {
   }
 
   getTasksByStatus(status: string): Task[] {
-    const query = this.searchQuery().toLowerCase().trim();
-    return this.tasks().filter((t) => {
-      const matchesStatus = t.status === status;
-      const matchesSearch =
-        !query ||
-        t.title.toLowerCase().includes(query) ||
-        (t.description && t.description.toLowerCase().includes(query));
-      return matchesStatus && matchesSearch;
-    });
+    return this.controller.getTasksByStatus(this.tasks(), status, this.searchQuery());
   }
 
   onSearchChange(query: string) {
@@ -302,6 +293,14 @@ export class KanbanView implements OnInit {
     }
 
     const todoId = this.selectedTodoId();
+    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
+    if (!selectedTodo) {
+      console.error("[Kanban] No selected todo found, aborting moveTask");
+      return;
+    }
+
+    const isPrivate = selectedTodo.visibility === "private";
+    const isOwner = selectedTodo.userId === this.userId();
 
     this.tasks.update((tasks) => {
       return tasks.map((t) => {
@@ -312,39 +311,25 @@ export class KanbanView implements OnInit {
       });
     });
 
-    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
-    if (!selectedTodo) {
-      console.error("[Kanban] No selected todo found, aborting moveTask");
-      return;
-    }
+    this.controller.moveTask(taskId, newStatus, todoId, isOwner, isPrivate).subscribe({
+      next: (updatedTask: any) => {
+        this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
 
-    const isPrivate = selectedTodo.visibility === "private";
-    const isOwner = selectedTodo.userId === this.userId();
-
-    this.dataSyncProvider
-      .update("task", taskId, { status: newStatus, todoId }, { isOwner, isPrivate }, todoId)
-      .subscribe({
-        next: (updatedTask: any) => {
-          this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
-
-          if (updatedTask && typeof updatedTask === "object") {
-            this.tasks.update((tasks) => {
-              return tasks.map((t) => {
-                if (t.id === taskId) {
-                  return { ...t, status: newStatus };
-                }
-                return t;
-              });
-            });
-          }
-        },
-        error: (error) => {
-          console.error("[Kanban] Failed to move task:", error);
-          this.notifyService.showError("Failed to move task");
-
-          this.loadTasksWithSubtasks(todoId);
-        },
-      });
+        this.tasks.update((tasks) => {
+          return tasks.map((t) => {
+            if (t.id === taskId) {
+              return { ...t, status: newStatus };
+            }
+            return t;
+          });
+        });
+      },
+      error: (error) => {
+        console.error("[Kanban] Failed to move task:", error);
+        this.notifyService.showError("Failed to move task");
+        this.loadTasksWithSubtasks(todoId);
+      },
+    });
   }
 
   navigateToTask(task: Task) {

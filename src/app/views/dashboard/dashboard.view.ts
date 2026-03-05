@@ -16,6 +16,7 @@ import { Profile } from "@models/profile.model";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -45,7 +46,7 @@ export class DashboardView implements OnInit {
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider,
+    private storageService: StorageService,
     private router: Router
   ) {}
 
@@ -72,6 +73,7 @@ export class DashboardView implements OnInit {
         .then((response: Response<Profile>) => {
           if (response.status === ResponseStatus.SUCCESS) {
             this.profile.set(response.data);
+            this.storageService.setProfile(response.data);
           } else {
             this.notifyService.showError(response.message);
           }
@@ -81,33 +83,35 @@ export class DashboardView implements OnInit {
         });
     }
 
+    // Load data from cache or fetch from backend
     this.loadDashboardData();
   }
 
   loadDashboardData(): void {
-    if (this.userId && this.userId !== "") {
-      this.dataSyncProvider
-        .getAll<Todo>("todo", { userId: this.userId }, { isOwner: true, isPrivate: true })
-        .subscribe({
-          next: (todos) => {
-            this.processTodosData(todos);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load dashboard data");
-          },
-        });
-    }
+    // Use cached data if available, otherwise load from backend
+    this.storageService.loadAllData().subscribe({
+      next: (data) => {
+        this.processTodosData(data.todos);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load dashboard data");
+      },
+    });
   }
 
   processTodosData(todos: Array<Todo>): void {
+    // Get tasks from storage service
+    const tasks = this.storageService.tasks();
+
+    // Map tasks to their todos
     const allTasks: { task: Task; todo: Todo }[] = [];
-    todos.forEach((todo) => {
-      if (todo.tasks) {
-        todo.tasks.forEach((task) => {
-          allTasks.push({ task, todo: todo });
-        });
+    tasks.forEach((task) => {
+      const todo = todos.find((t) => t.id === task.todoId);
+      if (todo) {
+        allTasks.push({ task, todo });
       }
     });
+
     this.processTaskData(allTasks);
   }
 

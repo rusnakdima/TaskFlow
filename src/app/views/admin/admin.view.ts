@@ -2,6 +2,7 @@
 import { Component, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { from } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -23,6 +24,9 @@ import { TaskStatus } from "@models/task.model";
 /* services */
 import { AdminService } from "@services/admin.service";
 import { NotifyService } from "@services/notify.service";
+import { FilterService, FilterConfig } from "@services/filter.service";
+import { SortService } from "@services/sort.service";
+import { BulkActionService } from "@services/bulk-action.service";
 
 /* components */
 import { TodoRecordsComponent } from "@components/admin-records/todo-records/todo-records.component";
@@ -63,7 +67,10 @@ interface AdminData {
 export class AdminView implements OnInit {
   constructor(
     private adminService: AdminService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private filterService: FilterService,
+    private sortService: SortService,
+    private bulkActionService: BulkActionService
   ) {}
 
   adminData = signal<AdminData>({});
@@ -154,58 +161,70 @@ export class AdminView implements OnInit {
   getCurrentData(): any[] {
     let data = this.adminData()[this.selectedType()] || [];
 
+    // Build filter configs
+    const filterConfigs: FilterConfig[] = [];
+
     if (this.titleFilter()) {
-      data = data.filter(
-        (item) => item.title && item.title.toLowerCase().includes(this.titleFilter().toLowerCase())
-      );
+      filterConfigs.push({ field: "title", value: this.titleFilter(), operator: "contains" });
     }
 
     if (this.descriptionFilter()) {
-      data = data.filter(
-        (item) =>
-          item.description &&
-          item.description.toLowerCase().includes(this.descriptionFilter().toLowerCase())
-      );
+      filterConfigs.push({
+        field: "description",
+        value: this.descriptionFilter(),
+        operator: "contains",
+      });
     }
 
     if (this.priorityFilter() && this.priorityFilter() !== "") {
-      data = data.filter((item) => item.priority === this.priorityFilter());
+      filterConfigs.push({ field: "priority", value: this.priorityFilter(), operator: "equals" });
     }
 
+    // Status filter (active/deleted)
     if (this.statusFilter() === "active") {
-      data = data.filter((item) => !item.isDeleted);
+      filterConfigs.push({ field: "isDeleted", value: false, operator: "equals" });
     } else if (this.statusFilter() === "deleted") {
-      data = data.filter((item) => item.isDeleted);
+      filterConfigs.push({ field: "isDeleted", value: true, operator: "equals" });
     }
 
-    if (this.selectedType() === "tasks" && this.isCompletedFilter() === "completed") {
-      data = data.filter((item) => item.status === TaskStatus.COMPLETED);
-    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "pending") {
-      data = data.filter((item) => item.status === TaskStatus.PENDING);
-    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "skipped") {
-      data = data.filter((item) => item.status === TaskStatus.SKIPPED);
-    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "failed") {
-      data = data.filter((item) => item.status === TaskStatus.FAILED);
-    } else if (this.selectedType() === "tasks" && this.isCompletedFilter() === "done") {
-      data = data.filter(
-        (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
-      );
+    // Task status filters
+    if (this.selectedType() === "tasks") {
+      if (this.isCompletedFilter() === "completed") {
+        filterConfigs.push({ field: "status", value: TaskStatus.COMPLETED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "pending") {
+        filterConfigs.push({ field: "status", value: TaskStatus.PENDING, operator: "equals" });
+      } else if (this.isCompletedFilter() === "skipped") {
+        filterConfigs.push({ field: "status", value: TaskStatus.SKIPPED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "failed") {
+        filterConfigs.push({ field: "status", value: TaskStatus.FAILED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "done") {
+        data = data.filter(
+          (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
+        );
+      }
     }
 
-    if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "completed") {
-      data = data.filter((item) => item.status === TaskStatus.COMPLETED);
-    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "pending") {
-      data = data.filter((item) => item.status === TaskStatus.PENDING);
-    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "skipped") {
-      data = data.filter((item) => item.status === TaskStatus.SKIPPED);
-    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "failed") {
-      data = data.filter((item) => item.status === TaskStatus.FAILED);
-    } else if (this.selectedType() === "subtasks" && this.isCompletedFilter() === "done") {
-      data = data.filter(
-        (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
-      );
+    // Subtask status filters
+    if (this.selectedType() === "subtasks") {
+      if (this.isCompletedFilter() === "completed") {
+        filterConfigs.push({ field: "status", value: TaskStatus.COMPLETED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "pending") {
+        filterConfigs.push({ field: "status", value: TaskStatus.PENDING, operator: "equals" });
+      } else if (this.isCompletedFilter() === "skipped") {
+        filterConfigs.push({ field: "status", value: TaskStatus.SKIPPED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "failed") {
+        filterConfigs.push({ field: "status", value: TaskStatus.FAILED, operator: "equals" });
+      } else if (this.isCompletedFilter() === "done") {
+        data = data.filter(
+          (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
+        );
+      }
     }
 
+    // Apply filters
+    data = this.filterService.applyFilters(data, filterConfigs);
+
+    // Custom filters (user, categories, dates, IDs)
     if (this.userFilter()) {
       const filter = this.userFilter().toLowerCase();
       data = data.filter((item) => {
@@ -265,34 +284,8 @@ export class AdminView implements OnInit {
       });
     }
 
-    data = data.sort((a, b) => {
-      const sortField = this.sortBy();
-      let aValue = a[sortField];
-      let bValue = b[sortField];
-
-      if (
-        sortField === "createdAt" ||
-        sortField === "updatedAt" ||
-        sortField === "startDate" ||
-        sortField === "endDate"
-      ) {
-        aValue = aValue ? new Date(aValue).getTime() : 0;
-        bValue = bValue ? new Date(bValue).getTime() : 0;
-      }
-
-      if (typeof aValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = bValue?.toLowerCase() || "";
-      }
-
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return this.sortOrder() === "asc" ? -1 : 1;
-      if (bValue == null) return this.sortOrder() === "asc" ? 1 : -1;
-
-      if (aValue < bValue) return this.sortOrder() === "asc" ? -1 : 1;
-      if (aValue > bValue) return this.sortOrder() === "asc" ? 1 : -1;
-      return 0;
-    });
+    // Sort using SortService
+    data = this.sortService.sortByField(data, { field: this.sortBy(), order: this.sortOrder() });
 
     return data;
   }
@@ -441,30 +434,27 @@ export class AdminView implements OnInit {
     )
       return;
 
-    let successCount = 0;
-    for (const id of this.selectedRecords()) {
-      try {
-        const response = await this.adminService.permanentlyDeleteRecord(this.selectedType(), id);
-        if (response.status === ResponseStatus.SUCCESS) {
-          successCount++;
+    const currentData = this.getCurrentData();
+    const selectedItems = currentData.filter((item) => this.selectedRecords().has(item.id));
+
+    this.bulkActionService
+      .bulkDelete(selectedItems, (id: string) =>
+        from(this.adminService.permanentlyDeleteRecord(this.selectedType(), id))
+      )
+      .subscribe((result) => {
+        this.clearSelection();
+        if (result.successCount > 0) {
+          this.notifyService.showSuccess(
+            `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
+          );
+          this.loadAdminData();
         }
-      } catch (error) {
-        console.error(`Error deleting record ${id}:`, error);
-      }
-    }
 
-    this.clearSelection();
-    if (successCount > 0) {
-      this.notifyService.showSuccess(
-        `${successCount} ${successCount === 1 ? "record" : "records"} permanently deleted`
-      );
-      await this.loadAdminData();
-    }
-
-    if (successCount < count) {
-      this.notifyService.showError(
-        `Failed to delete ${count - successCount} ${count - successCount === 1 ? "record" : "records"}`
-      );
-    }
+        if (result.errorCount > 0) {
+          this.notifyService.showError(
+            `Failed to delete ${result.errorCount} ${result.errorCount === 1 ? "record" : "records"}`
+          );
+        }
+      });
   }
 }
