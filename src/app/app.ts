@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, signal } from "@angular/core";
+import { Component, signal, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs";
@@ -7,23 +7,36 @@ import { filter } from "rxjs";
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 import { User } from "@models/user.model";
+import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { LocalWebSocketService } from "@services/local-websocket.service";
+import { ShortcutService } from "@services/shortcut.service";
+import { SyncService } from "@services/sync.service";
 
 /* components */
 import { HeaderComponent } from "@components/header/header.component";
 import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
 import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component";
+import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
+import { CommandPaletteComponent } from "@components/command-palette/command-palette.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  providers: [AuthService, MainService, LocalWebSocketService],
-  imports: [CommonModule, RouterOutlet, HeaderComponent, WindowNotifyComponent, BottomNavComponent],
+  providers: [AuthService, MainService, LocalWebSocketService, ShortcutService],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    HeaderComponent,
+    WindowNotifyComponent,
+    BottomNavComponent,
+    ShortcutHelpComponent,
+    CommandPaletteComponent,
+  ],
   templateUrl: "./app.html",
 })
 export class App {
@@ -32,12 +45,24 @@ export class App {
     private authService: AuthService,
     private mainService: MainService,
     private notifyService: NotifyService,
-    private localWs: LocalWebSocketService
+    private localWs: LocalWebSocketService,
+    private shortcutService: ShortcutService,
+    private syncService: SyncService
   ) {}
+
+  @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
 
   url = signal<string>("");
 
   ngOnInit(): void {
+    this.shortcutService.help$.subscribe(() => {
+      this.shortcutHelp.show();
+    });
+
+    this.shortcutService.sync$.subscribe(() => {
+      this.triggerSync();
+    });
+
     this.localWs.getConnectionStatus().subscribe((connected) => {
       console.log("App: Local WebSocket connection status:", connected);
     });
@@ -111,6 +136,20 @@ export class App {
         });
     } else {
       this.router.navigate(["/login"]);
+    }
+  }
+
+  async triggerSync() {
+    this.notifyService.showInfo("Starting synchronization...");
+    try {
+      const response = await this.syncService.syncAll();
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Synchronization completed successfully!");
+      } else {
+        this.notifyService.showError(response.message || "Synchronization failed");
+      }
+    } catch (error) {
+      this.notifyService.showError("Synchronization failed: " + error);
     }
   }
 
