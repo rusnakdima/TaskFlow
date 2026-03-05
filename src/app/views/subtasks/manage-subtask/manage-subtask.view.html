@@ -99,27 +99,77 @@
         </div>
       </div>
 
-      <div class="space-y-3">
-        <label class="block text-sm font-medium textNormal">
-          Priority Level
-          <span class="text-red-500 ml-1">*</span>
-        </label>
-        <mat-radio-group formControlName="priority" class="space-y-3">
-          @for (priority of priorityOptions; track priority.value) {
-            <mat-radio-button
-              [value]="priority.value"
-              class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
-            >
-              <div class="flex items-center gap-2 flex-1">
-                <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
-                <span class="font-medium textNormal">{{ priority.label }}</span>
-              </div>
-            </mat-radio-button>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-3">
+          <label class="block text-sm font-medium textNormal">
+            Priority Level
+            <span class="text-red-500 ml-1">*</span>
+          </label>
+          <mat-radio-group formControlName="priority" class="space-y-3">
+            @for (priority of priorityOptions; track priority.value) {
+              <mat-radio-button
+                [value]="priority.value"
+                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
+              >
+                <div class="flex items-center gap-2 flex-1">
+                  <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
+                  <span class="font-medium textNormal">{{ priority.label }}</span>
+                </div>
+              </mat-radio-button>
+            }
+          </mat-radio-group>
+          @if (form.get("priority")?.invalid && form.get("priority")?.touched) {
+            <mat-error>Please select a priority level</mat-error>
           }
-        </mat-radio-group>
-        @if (form.get("priority")?.invalid && form.get("priority")?.touched) {
-          <mat-error>Please select a priority level</mat-error>
-        }
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <label class="block text-sm font-medium textNormal">Time periods</label>
+            @if (form.get("startDate")?.value || form.get("endDate")?.value) {
+              <button
+                type="button"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 py-1 rounded-md"
+                (click)="clearDates()"
+              >
+                Clear dates
+              </button>
+            }
+          </div>
+
+          <mat-form-field class="w-full">
+            <mat-label>Start Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="startPicker"
+              formControlName="startDate"
+              readonly
+              (click)="startPicker.open()"
+            />
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker [startAt]="today" [dateClass]="dateClass"></mat-datepicker>
+          </mat-form-field>
+
+          @if (form.get("startDate")?.value) {
+            <mat-form-field class="w-full">
+              <mat-label>End Date</mat-label>
+              <input
+                matInput
+                [matDatepicker]="endPicker"
+                formControlName="endDate"
+                [matDatepickerFilter]="endDateFilter"
+                readonly
+                (click)="endPicker.open()"
+              />
+              <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+              <mat-datepicker
+                #endPicker
+                [startAt]="form.get('startDate')?.value"
+                [disabled]="!form.get('startDate')?.value"
+              ></mat-datepicker>
+            </mat-form-field>
+          }
+        </div>
       </div>
     </div>
 
@@ -180,7 +230,14 @@
         } @else {
           <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
-        {{ isEdit() ? "Update" : "Create" }}
+        <span class="flex items-center gap-2">
+          {{ isEdit() ? "Update" : "Create" }}
+          <kbd
+            class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 bg-blue-700 border border-blue-800 rounded-md opacity-80"
+          >
+            Ctrl+S
+          </kbd>
+        </span>
       </button>
     </div>
   </form>

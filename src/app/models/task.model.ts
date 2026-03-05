@@ -15,6 +15,13 @@ export enum TaskStatus {
   FAILED = "failed",
 }
 
+export enum RepeatInterval {
+  NONE = "none",
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+}
+
 export interface Task {
   _id?: {} | undefined;
   id: string;
@@ -27,6 +34,7 @@ export interface Task {
   priority: PriorityTask;
   startDate: string;
   endDate: string;
+  repeat?: RepeatInterval;
   order: number;
   isDeleted: boolean;
   createdAt: string;

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -9,11 +9,14 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatInputModule } from "@angular/material/input";
 import { MatRadioModule } from "@angular/material/radio";
+import { MatDatepickerModule, MatCalendarCellCssClasses } from "@angular/material/datepicker";
+import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
 import { PriorityTask, Task, TaskStatus } from "@models/task.model";
@@ -23,9 +26,17 @@ import { Todo } from "@models/todo.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { ShortcutService } from "@services/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
+
+/* helpers */
+import {
+  normalizeSubtaskDates,
+  convertDatesToUtc,
+  convertDatesFromUtcToLocal,
+} from "@helpers/date-conversion.helper";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -44,10 +55,12 @@ interface PriorityOption {
     MatIconModule,
     MatInputModule,
     MatRadioModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
   ],
   templateUrl: "./manage-subtask.view.html",
 })
-export class ManageSubtaskView implements OnInit {
+export class ManageSubtaskView implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -55,7 +68,8 @@ export class ManageSubtaskView implements OnInit {
     private location: Location,
     private notifyService: NotifyService,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private shortcutService: ShortcutService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -65,10 +79,21 @@ export class ManageSubtaskView implements OnInit {
       description: [""],
       status: [TaskStatus.PENDING],
       priority: ["", Validators.required],
+      startDate: [""],
+      endDate: [""],
       order: [0],
       isDeleted: [false],
       createdAt: [""],
       updatedAt: [""],
+    });
+
+    this.form.get("startDate")?.valueChanges.subscribe((startDate) => {
+      const endDateControl = this.form.get("endDate");
+      if (!startDate) {
+        endDateControl?.setValue("");
+      } else {
+        this.updateEndDateValidation(startDate, endDateControl?.value);
+      }
     });
   }
 
@@ -77,6 +102,22 @@ export class ManageSubtaskView implements OnInit {
   form: FormGroup;
   isEdit = signal(false);
   isSubmitting = signal(false);
+  today = new Date();
+
+  private saveSubscription: Subscription | null = null;
+
+  dateClass = (date: Date): MatCalendarCellCssClasses => {
+    const endDateValue = this.form.get("endDate")?.value;
+    if (endDateValue) {
+      const endDate = new Date(endDateValue);
+      return date.getDate() === endDate.getDate() &&
+        date.getMonth() === endDate.getMonth() &&
+        date.getFullYear() === endDate.getFullYear()
+        ? "end-date-marker"
+        : "";
+    }
+    return "";
+  };
 
   projectInfo = signal<Todo | null>(null);
   taskInfo = signal<Task | null>(null);
@@ -104,6 +145,10 @@ export class ManageSubtaskView implements OnInit {
   ];
 
   ngOnInit() {
+    this.saveSubscription = this.shortcutService.save$.subscribe(() => {
+      this.onSubmit();
+    });
+
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
@@ -129,6 +174,20 @@ export class ManageSubtaskView implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.saveSubscription?.unsubscribe();
+  }
+
+  updateEndDateValidation(startDate: string, currentEndDate: string) {
+    if (startDate && currentEndDate) {
+      const start = new Date(startDate);
+      const end = new Date(currentEndDate);
+      if (end < start) {
+        this.form.get("endDate")?.setValue("");
+      }
+    }
+  }
+
   getSubtaskInfo(subtaskId: string) {
     this.dataSyncProvider
       .getAll<Subtask>(
@@ -140,7 +199,14 @@ export class ManageSubtaskView implements OnInit {
       .subscribe({
         next: (subtasks) => {
           if (subtasks.length > 0) {
-            this.form.patchValue(subtasks[0]);
+            const localDates = convertDatesFromUtcToLocal(subtasks[0]);
+            this.form.patchValue(localDates);
+
+            const startDate = localDates.startDate;
+            const endDate = localDates.endDate;
+            if (startDate && endDate) {
+              this.updateEndDateValidation(startDate, endDate);
+            }
           }
         },
         error: (err) => {
@@ -199,8 +265,10 @@ export class ManageSubtaskView implements OnInit {
           next: (subtasks) => {
             const order = subtasks.length;
             const currentData = this.form.value;
+            const normalizedFormValue = normalizeSubtaskDates(currentData);
+            const convertedDates = convertDatesToUtc(normalizedFormValue);
             const duplicateData = {
-              ...currentData,
+              ...convertedDates,
               id: "",
               _id: "",
               title: `${currentData.title} (Copy)`,
@@ -238,6 +306,10 @@ export class ManageSubtaskView implements OnInit {
   }
 
   onSubmit() {
+    if (!this.validateDates()) {
+      return;
+    }
+
     if (this.form.invalid) {
       Object.values(this.form.controls).forEach((control) => {
         control.markAsTouched();
@@ -256,6 +328,47 @@ export class ManageSubtaskView implements OnInit {
     }
   }
 
+  validateDates(): boolean {
+    const startDate = this.form.get("startDate")?.value;
+    const endDate = this.form.get("endDate")?.value;
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (end < start) {
+        this.notifyService.showError("End date cannot be earlier than start date");
+        return false;
+      }
+    }
+
+    if (!startDate && endDate) {
+      this.form.get("endDate")?.setValue("");
+    }
+
+    return true;
+  }
+
+  endDateFilter = (date: Date | null): boolean => {
+    const startDateValue = this.form.get("startDate")?.value;
+    if (!startDateValue) {
+      return true;
+    }
+
+    if (!date) {
+      return false;
+    }
+
+    const startDate = new Date(startDateValue);
+    startDate.setHours(0, 0, 0, 0);
+    return date >= startDate;
+  };
+
+  clearDates() {
+    this.form.get("startDate")?.setValue("");
+    this.form.get("endDate")?.setValue("");
+  }
+
   createSubtask() {
     if (this.form.valid) {
       this.dataSyncProvider
@@ -268,8 +381,11 @@ export class ManageSubtaskView implements OnInit {
         .subscribe({
           next: (subtasks) => {
             const length = subtasks.length;
+            const formValue = this.form.value;
+            const normalizedFormValue = normalizeSubtaskDates(formValue);
+            const convertedDates = convertDatesToUtc(normalizedFormValue);
             const body = {
-              ...this.form.value,
+              ...convertedDates,
               order: length,
               taskId: this.taskId(),
             };
@@ -306,8 +422,11 @@ export class ManageSubtaskView implements OnInit {
 
   updateSubtask() {
     if (this.form.valid) {
+      const formValue = this.form.value;
+      const normalizedFormValue = normalizeSubtaskDates(formValue);
+      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...this.form.value,
+        ...convertedDates,
       };
 
       this.dataSyncProvider

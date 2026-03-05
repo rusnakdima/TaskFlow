@@ -106,9 +106,8 @@
             <mat-label>Start Date</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
             <mat-datepicker-toggle matSuffix [for]="startPicker" />
-            <mat-datepicker #startPicker [startAt]="today"></mat-datepicker>
+            <mat-datepicker #startPicker [startAt]="today" [dateClass]="dateClass"></mat-datepicker>
           </mat-form-field>
-
           <mat-form-field class="w-full">
             <mat-label>End Date</mat-label>
             <input
@@ -121,35 +120,79 @@
             <mat-datepicker #endPicker [startAt]="form.get('startDate')?.value"></mat-datepicker>
           </mat-form-field>
 
-          <div class="space-y-2">
-            <label class="block text-sm font-medium textNormal">Categories</label>
-            <mat-form-field class="w-full">
-              <mat-label>Selected Categories</mat-label>
-              <input
-                matInput
-                [value]="getSelectedCategoriesText()"
-                [matMenuTriggerFor]="categoryMenu"
-                readonly
-                placeholder="Click to select categories"
-              />
-              <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
-            </mat-form-field>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-medium textNormal">Categories</label>
+              @if (isCategoryListExpanded()) {
+                <button
+                  type="button"
+                  (click)="isCategoryListExpanded.set(false)"
+                  class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <mat-icon class="w-4! h-4! text-base!" fontIcon="check_circle" />
+                  Done Selecting
+                </button>
+              }
+            </div>
 
-            @if (form.get("categories")?.value?.length > 0) {
-              <div class="flex flex-wrap gap-2 mt-2">
-                @for (category of form.get("categories")?.value; track category.id) {
-                  <span
-                    class="flex flex-row items-center gap-1 px-2 py-1 rounded-full bg-gray-300 dark:bg-zinc-600 text-black dark:text-white"
+            @if (!isCategoryListExpanded()) {
+              <mat-form-field class="w-full" (click)="isCategoryListExpanded.set(true)">
+                <mat-label>Selected Categories</mat-label>
+                <input
+                  matInput
+                  [value]="getSelectedCategoriesText()"
+                  readonly
+                  placeholder="Click to select categories"
+                  class="cursor-pointer"
+                />
+                <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
+              </mat-form-field>
+            } @else {
+              <div
+                class="space-y-4 p-4 border border-blue-500/30 rounded-xl bg-blue-50/30 dark:bg-blue-900/10"
+              >
+                <mat-form-field class="w-full">
+                  <mat-label>Search or Add Category</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="newCategoryTitle()"
+                    (ngModelChange)="newCategoryTitle.set($event)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (keydown.enter)="addCategory()"
+                    placeholder="Type to search or press Enter to add"
+                  />
+                  <button
+                    matSuffix
+                    class="mr-2"
+                    (click)="addCategory()"
+                    [disabled]="!newCategoryTitle().trim()"
                   >
-                    {{ category.title }}
+                    <mat-icon class="w-6! h-6! text-2xl!" fontIcon="add" />
+                  </button>
+                </mat-form-field>
+
+                <div
+                  class="flex flex-row flex-wrap items-center align-top content-start gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar"
+                >
+                  @for (category of getFilteredAvailableCategories(); track category.id) {
                     <button
-                      (click)="removeCategory(category)"
-                      class="h-4.5! text-red-500 hover:text-red-700 cursor-pointer"
+                      type="button"
+                      (click)="toggleCategory(category)"
+                      class="px-3 py-1.5 rounded-lg text-sm transition-all border flex items-center gap-2 cursor-pointer"
+                      [ngClass]="{
+                        'bg-blue-100 dark:bg-blue-900/40 border-blue-500 text-blue-700 dark:text-blue-300':
+                          isCategorySelected(category),
+                        'bg-gray-100 dark:bg-zinc-700 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-600':
+                          !isCategorySelected(category),
+                      }"
                     >
-                      <mat-icon class="w-4.5! h-4.5! text-lg!" fontIcon="close" />
+                      @if (isCategorySelected(category)) {
+                        <mat-icon class="w-4! h-4! text-base!" fontIcon="check" />
+                      }
+                      {{ category.title }}
                     </button>
-                  </span>
-                }
+                  }
+                </div>
               </div>
             }
           </div>
@@ -273,7 +316,14 @@
         } @else {
           <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
-        {{ isEdit() ? "Update" : "Create" }}
+        <span class="flex items-center gap-2">
+          {{ isEdit() ? "Update" : "Create" }}
+          <kbd
+            class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 bg-blue-700 border border-blue-800 rounded-md opacity-80"
+          >
+            Ctrl+S
+          </kbd>
+        </span>
       </button>
     </div>
   </form>
@@ -306,36 +356,6 @@
                 <mat-icon class="w-6! h-6! text-2xl! cursor-pointer" fontIcon="add" />
               </button>
             </div>
-          </div>
-        }
-      </div>
-    </div>
-  </mat-menu>
-
-  <mat-menu #categoryMenu="matMenu" class="w-100!">
-    <div (click)="$event.stopPropagation()">
-      <div class="p-2">
-        <mat-form-field class="w-full">
-          <mat-label>Search/Add Category</mat-label>
-          <input
-            matInput
-            [ngModel]="newCategoryTitle()"
-            (ngModelChange)="newCategoryTitle.set($event)"
-            [ngModelOptions]="{ standalone: true }"
-            (keydown.enter)="addCategory()"
-          />
-          <button matSuffix class="mr-2" (click)="addCategory()">
-            <mat-icon class="w-6! h-6! text-2xl!" fontIcon="add" />
-          </button>
-        </mat-form-field>
-      </div>
-      <mat-divider />
-      <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
-        @for (category of getFilteredAvailableCategories(); track category.id) {
-          <div class="flex flex-col p-2 styleBorderSolidLite border">
-            <button (click)="selectCategory(category)">
-              {{ category.title }}
-            </button>
           </div>
         }
       </div>

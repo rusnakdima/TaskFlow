@@ -132,3 +132,10 @@ export function normalizeTaskDates<T extends { startDate?: any; endDate?: any }>
 export function normalizeTodoDates<T extends { startDate?: any; endDate?: any }>(todo: T): T {
   return normalizeDateFields(todo, ["startDate", "endDate"]);
 }
+
+/**
+ * Normalizes and converts date fields for Subtask objects
+ */
+export function normalizeSubtaskDates<T extends { startDate?: any; endDate?: any }>(subtask: T): T {
+  return normalizeDateFields(subtask, ["startDate", "endDate"]);
+}

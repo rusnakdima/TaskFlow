@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -9,21 +9,24 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatInputModule } from "@angular/material/input";
-import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatDatepickerModule, MatCalendarCellCssClasses } from "@angular/material/datepicker";
 import { MatSelectModule } from "@angular/material/select";
+import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { PriorityTask, Task, TaskStatus, RepeatInterval } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { ShortcutService } from "@services/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -58,14 +61,15 @@ interface PriorityOption {
   ],
   templateUrl: "./manage-task.view.html",
 })
-export class ManageTaskView implements OnInit {
+export class ManageTaskView implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private location: Location,
     private notifyService: NotifyService,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private shortcutService: ShortcutService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -77,6 +81,7 @@ export class ManageTaskView implements OnInit {
       priority: ["", Validators.required],
       startDate: [""],
       endDate: [""],
+      repeat: [RepeatInterval.NONE],
       order: [0],
       isDeleted: [false],
       createdAt: [""],
@@ -98,6 +103,21 @@ export class ManageTaskView implements OnInit {
   isEdit = signal(false);
   isSubmitting = signal(false);
   today = new Date();
+
+  private saveSubscription: Subscription | null = null;
+
+  dateClass = (date: Date): MatCalendarCellCssClasses => {
+    const endDateValue = this.form.get("endDate")?.value;
+    if (endDateValue) {
+      const endDate = new Date(endDateValue);
+      return date.getDate() === endDate.getDate() &&
+        date.getMonth() === endDate.getMonth() &&
+        date.getFullYear() === endDate.getFullYear()
+        ? "end-date-marker"
+        : "";
+    }
+    return "";
+  };
 
   projectInfo = signal<Todo | null>(null);
   newSubtaskTitle = signal("");
@@ -127,7 +147,18 @@ export class ManageTaskView implements OnInit {
     },
   ];
 
+  repeatOptions = [
+    { value: RepeatInterval.NONE, label: "None" },
+    { value: RepeatInterval.DAILY, label: "Daily" },
+    { value: RepeatInterval.WEEKLY, label: "Weekly" },
+    { value: RepeatInterval.MONTHLY, label: "Monthly" },
+  ];
+
   ngOnInit() {
+    this.saveSubscription = this.shortcutService.save$.subscribe(() => {
+      this.onSubmit();
+    });
+
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
@@ -146,6 +177,10 @@ export class ManageTaskView implements OnInit {
         this.isEdit.set(true);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.saveSubscription?.unsubscribe();
   }
 
   updateEndDateValidation(startDate: string, currentEndDate: string) {

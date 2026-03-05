@@ -1,25 +1,25 @@
 /* sys lib */
-import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
-import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from "@angular/common";
+import { Component, Input } from "@angular/core";
+import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatRadioModule } from '@angular/material/radio';
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatRadioModule } from "@angular/material/radio";
 
 /* models */
-import { RadioField } from '@models/form-field.model';
+import { RadioField } from "@models/form-field.model";
 
 @Component({
-  selector: 'app-radio',
+  selector: "app-radio",
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatRadioModule],
-  templateUrl: './radio.component.html',
+  templateUrl: "./radio.component.html",
 })
 export class RadioComponent {
   constructor() {}
 
-  @Input() label: string = '';
+  @Input() label: string = "";
   @Input() parentForm!: FormGroup;
   @Input() form!: FormGroup;
   @Input() field!: RadioField;

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, Output, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -21,7 +21,7 @@ import { Subtask } from "@models/subtask.model";
   imports: [CommonModule, RouterModule, FormsModule, MatIconModule, DragDropModule],
   templateUrl: "./task.component.html",
 })
-export class TaskComponent {
+export class TaskComponent implements OnInit {
   constructor() {}
 
   @Input() task: Task | null = null;
@@ -41,6 +41,8 @@ export class TaskComponent {
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
+
+  ngOnInit() {}
 
   truncateString = Common.truncateString;
 

@@ -112,7 +112,7 @@
 
         <div class="space-y-2">
           <div class="flex justify-between items-center">
-            <label class="block text-sm font-medium textNormal">Time periods</label>
+            <label class="block text-sm font-medium textNormal">Time periods & Repeat</label>
             @if (form.get("startDate")?.value || form.get("endDate")?.value) {
               <button
                 type="button"
@@ -125,6 +125,15 @@
           </div>
 
           <mat-form-field class="w-full">
+            <mat-label>Repeat</mat-label>
+            <mat-select formControlName="repeat">
+              @for (option of repeatOptions; track option.value) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field class="w-full">
             <mat-label>Start Date</mat-label>
             <input
               matInput
@@ -134,44 +143,28 @@
               (click)="startPicker.open()"
             />
             <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker [startAt]="today"></mat-datepicker>
+            <mat-datepicker #startPicker [startAt]="today" [dateClass]="dateClass"></mat-datepicker>
           </mat-form-field>
 
-          <mat-form-field class="w-full">
-            <mat-label>End Date</mat-label>
-            <input
-              matInput
-              [matDatepicker]="endPicker"
-              formControlName="endDate"
-              [matDatepickerFilter]="endDateFilter"
-              readonly
-              (click)="endPicker.open()"
-            />
-            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker
-              #endPicker
-              [startAt]="form.get('startDate')?.value"
-              [disabled]="!form.get('startDate')?.value"
-            ></mat-datepicker>
-          </mat-form-field>
-
-          <mat-form-field class="w-full">
-            <mat-label>End Date</mat-label>
-            <input
-              matInput
-              [matDatepicker]="endPicker"
-              formControlName="endDate"
-              [matDatepickerFilter]="endDateFilter"
-              readonly
-              (click)="endPicker.open()"
-            />
-            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker
-              #endPicker
-              [startAt]="form.get('startDate')?.value"
-              [disabled]="!form.get('startDate')?.value"
-            ></mat-datepicker>
-          </mat-form-field>
+          @if (form.get("startDate")?.value) {
+            <mat-form-field class="w-full">
+              <mat-label>End Date</mat-label>
+              <input
+                matInput
+                [matDatepicker]="endPicker"
+                formControlName="endDate"
+                [matDatepickerFilter]="endDateFilter"
+                readonly
+                (click)="endPicker.open()"
+              />
+              <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+              <mat-datepicker
+                #endPicker
+                [startAt]="form.get('startDate')?.value"
+                [disabled]="!form.get('startDate')?.value"
+              ></mat-datepicker>
+            </mat-form-field>
+          }
         </div>
       </div>
     </div>
@@ -186,7 +179,14 @@
         } @else {
           <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
-        {{ isEdit() ? "Update" : "Create" }}
+        <span class="flex items-center gap-2">
+          {{ isEdit() ? "Update" : "Create" }}
+          <kbd
+            class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-green-100 bg-green-700 border border-green-800 rounded-md opacity-80"
+          >
+            Ctrl+S
+          </kbd>
+        </span>
       </button>
     </div>
   </form>

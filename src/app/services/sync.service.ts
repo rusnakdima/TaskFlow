@@ -15,7 +15,7 @@ import { AuthService } from "@services/auth.service";
 export class SyncService {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
 
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   get isSyncing$(): Observable<boolean> {
     return this.isSyncingSubject.asObservable();

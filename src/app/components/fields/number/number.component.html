@@ -11,10 +11,7 @@
       @if (form.get(field.name)?.errors?.["required"]) {
         <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
       } @else if (form.get(field.name)?.errors?.["min"]) {
-        <mat-error
-          >Field '{{ field.label }}' must be at least
-          {{ field.min }}.</mat-error
-        >
+        <mat-error>Field '{{ field.label }}' must be at least {{ field.min }}.</mat-error>
       }
     }
   </mat-form-field>
