@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
+import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* materials */
@@ -22,6 +23,14 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { SearchComponent } from "@components/fields/search/search.component";
 import { TodoComponent } from "@components/todo/todo.component";
 
+interface SavedFilter {
+  id: string;
+  name: string;
+  filter: string;
+  searchQuery?: string;
+  createdAt: string;
+}
+
 @Component({
   selector: "app-todos",
   standalone: true,
@@ -29,6 +38,7 @@ import { TodoComponent } from "@components/todo/todo.component";
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     MatIconModule,
     SearchComponent,
     TodoComponent,
@@ -50,8 +60,13 @@ export class TodosView implements OnInit {
 
   activeFilter = signal("all");
   showFilter = signal(false);
+  searchQuery = signal("");
 
   userId = signal("");
+
+  savedFilters = signal<SavedFilter[]>([]);
+  showSaveFilterDialog = signal(false);
+  newFilterName = signal("");
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -62,7 +77,19 @@ export class TodosView implements OnInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
+    this.loadSavedFilters();
     this.loadTodos();
+  }
+
+  loadSavedFilters(): void {
+    const stored = localStorage.getItem("savedFilters");
+    if (stored) {
+      this.savedFilters.set(JSON.parse(stored));
+    }
+  }
+
+  private saveFiltersToStorage(): void {
+    localStorage.setItem("savedFilters", JSON.stringify(this.savedFilters()));
   }
 
   loadTodos(): void {
@@ -87,6 +114,10 @@ export class TodosView implements OnInit {
 
   searchFunc(data: Array<any>) {
     this.listTodos.set(data);
+  }
+
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
   }
 
   toggleFilter() {
@@ -236,5 +267,49 @@ export class TodosView implements OnInit {
           this.isUpdatingOrder = false;
         },
       });
+  }
+
+  openSaveFilterDialog(): void {
+    this.showSaveFilterDialog.set(true);
+    this.newFilterName.set("");
+  }
+
+  closeSaveFilterDialog(): void {
+    this.showSaveFilterDialog.set(false);
+    this.newFilterName.set("");
+  }
+
+  saveCurrentFilter(): void {
+    const name = this.newFilterName().trim();
+    if (!name) {
+      this.notifyService.showWarning("Please enter a filter name");
+      return;
+    }
+
+    const newFilter: SavedFilter = {
+      id: Date.now().toString(),
+      name,
+      filter: this.activeFilter(),
+      searchQuery: this.searchQuery(),
+      createdAt: new Date().toISOString(),
+    };
+
+    this.savedFilters.update((filters) => [...filters, newFilter]);
+    this.saveFiltersToStorage();
+    this.notifyService.showSuccess("Filter saved successfully");
+    this.closeSaveFilterDialog();
+  }
+
+  applySavedFilter(savedFilter: SavedFilter): void {
+    this.activeFilter.set(savedFilter.filter);
+    this.searchQuery.set(savedFilter.searchQuery || "");
+    this.applyFilter();
+    this.showFilter.set(true);
+  }
+
+  deleteSavedFilter(filterId: string): void {
+    this.savedFilters.update((filters) => filters.filter((f) => f.id !== filterId));
+    this.saveFiltersToStorage();
+    this.notifyService.showSuccess("Filter deleted");
   }
 }
