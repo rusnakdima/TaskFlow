@@ -2,22 +2,34 @@
 use crate::AppState;
 use tauri::State;
 
-/* models */
-use crate::models::{response_model::ResponseModel, sync_metadata_model::SyncMetadata};
+/* services */
+use crate::services::statistics_service::StatisticsService;
 
-#[allow(non_snake_case)]
+/* models */
+use crate::models::sync_metadata_model::SyncMetadata;
+
 #[tauri::command]
 pub async fn statisticsGet(
   state: State<'_, AppState>,
   userId: String,
   timeRange: String,
-) -> Result<ResponseModel, ResponseModel> {
+) -> Result<serde_json::Value, serde_json::Value> {
+  let statisticsService = StatisticsService::new(
+    state.crudService.jsonProvider.clone(),
+    state.crudService.mongodbProvider.clone().unwrap(),
+    state.activityLogHelper.clone(),
+  );
+
   let syncMetadata = SyncMetadata {
     isOwner: true,
     isPrivate: true,
   };
-  state
-    .statisticsController
+
+  match statisticsService
     .getStatistics(userId, timeRange, syncMetadata)
     .await
+  {
+    Ok(response) => Ok(serde_json::to_value(response).unwrap()),
+    Err(e) => Err(serde_json::to_value(e).unwrap()),
+  }
 }

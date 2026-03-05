@@ -1,16 +1,14 @@
 /* sys lib */
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Utc, Weekday};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::{
-  activity_log::ActivityLogHelper, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
-};
+use crate::helpers::activity_log::ActivityLogHelper;
 
-/* services */
-use crate::services::{category_service::CategoriesService, todo_service::TodoService};
+/* providers */
+use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* models */
 use crate::models::{
@@ -23,39 +21,28 @@ use crate::models::{
 };
 
 #[derive(Clone)]
-#[allow(non_snake_case)]
 pub struct StatisticsService {
   pub jsonProvider: JsonProvider,
-  pub todoService: TodoService,
-  pub categoriesService: CategoriesService,
-  pub activityLogHelper: ActivityLogHelper,
+  pub activityLogHelper: Arc<ActivityLogHelper>,
 }
 
 impl StatisticsService {
-  #[allow(non_snake_case)]
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Arc<MongodbProvider>,
-    activityLogHelper: ActivityLogHelper,
+    _mongodbProvider: Arc<MongodbProvider>,
+    activityLogHelper: Arc<ActivityLogHelper>,
   ) -> Self {
     Self {
       jsonProvider: jsonProvider.clone(),
-      todoService: TodoService::new(
-        jsonProvider.clone(),
-        mongodbProvider,
-        activityLogHelper.clone(),
-      ),
-      categoriesService: CategoriesService::new(jsonProvider),
-      activityLogHelper,
+      activityLogHelper: activityLogHelper.clone(),
     }
   }
 
-  #[allow(non_snake_case)]
   pub async fn getStatistics(
     &self,
     userId: String,
     timeRange: String,
-    syncMetadata: SyncMetadata,
+    _syncMetadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
     let (startDate, endDate) = self.calculateDateRange(&timeRange);
 
@@ -63,23 +50,20 @@ impl StatisticsService {
     let prevEndDate = startDate;
     let prevStartDate = startDate - duration;
 
+    // Get all todos for the user
     let todosResponse = self
-      .todoService
-      .getAll(json!({ "userId": userId.clone() }), syncMetadata.clone())
-      .await;
-    let mut todos = match todosResponse {
-      Ok(response) => {
-        if let DataValue::Array(data) = response.data {
-          data
-        } else {
-          Vec::new()
-        }
-      }
-      Err(error) => {
-        return Err(error);
-      }
-    };
+      .jsonProvider
+      .getAll("todo", Some(json!({ "userId": userId.clone() })), None)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: e.to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
 
+    let todos = todosResponse;
+
+    // Extract tasks from todos
     let mut tasks = Vec::new();
     let mut subtasks = Vec::new();
 
@@ -96,29 +80,26 @@ impl StatisticsService {
       }
     }
 
+    // Get categories
     let categoriesResponse = self
-      .categoriesService
-      .getAll(json!({ "userId": userId.clone() }))
-      .await;
-    let categories = match categoriesResponse {
-      Ok(response) => {
-        if let DataValue::Array(data) = response.data {
-          data
-        } else {
-          Vec::new()
-        }
-      }
-      Err(error) => {
-        return Err(error);
-      }
-    };
+      .jsonProvider
+      .getAll("category", Some(json!({ "userId": userId.clone() })), None)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: e.to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    let categories = categoriesResponse;
 
     let originalTodos = todos.clone();
-    todos = self.filterByDateRange(todos, &startDate, &endDate, "createdAt");
-    tasks = self.filterByDateRange(tasks, &startDate, &endDate, "createdAt");
+    let filteredTodos = self.filterByDateRange(&todos, &startDate, &endDate, "createdAt");
+    let filteredTasks = self.filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
 
     let previousTodos =
-      self.filterByDateRange(originalTodos, &prevStartDate, &prevEndDate, "createdAt");
+      self.filterByDateRange(&originalTodos, &prevStartDate, &prevEndDate, "createdAt");
+
     let mut previousTasks = Vec::new();
     for todo in &previousTodos {
       if let Some(todoTasks) = todo.get("tasks").and_then(|v| v.as_array()) {
@@ -134,33 +115,33 @@ impl StatisticsService {
       .getDailyActivitiesFiltered(&userId, &startDateNaive, &endDateNaive)
       .await;
 
-    let prevStartDateNaive = prevStartDate.date_naive();
-    let prevEndDateNaive = prevEndDate.date_naive();
+    let prev_startDateNaive = prevStartDate.date_naive();
+    let prev_endDateNaive = prevEndDate.date_naive();
     let previousDailyActivities = self
-      .getDailyActivitiesFiltered(&userId, &prevStartDateNaive, &prevEndDateNaive)
+      .getDailyActivitiesFiltered(&userId, &prev_startDateNaive, &prev_endDateNaive)
       .await;
 
     let statistics = self.computeStatistics(
       &dailyActivities,
       &previousDailyActivities,
-      &tasks,
+      &filteredTasks,
       &previousTasks,
     );
     let chartData = self.computeChartData(
-      &tasks,
+      &filteredTasks,
       &categories,
       &dailyActivities,
       &startDateNaive,
       &endDateNaive,
     );
-    let achievements = self.computeAchievements(&todos, &tasks, &subtasks);
+    let achievements = self.computeAchievements(&filteredTodos, &filteredTasks, &subtasks);
     let detailedMetrics = self.computeDetailedMetrics(&dailyActivities, &previousDailyActivities);
 
     let response = StatisticsResponseModel {
       statistics,
-      chartData,
+      chartData: chartData,
       achievements,
-      detailedMetrics,
+      detailedMetrics: detailedMetrics,
     };
 
     Ok(ResponseModel {
@@ -170,7 +151,6 @@ impl StatisticsService {
     })
   }
 
-  #[allow(non_snake_case)]
   fn calculateDateRange(&self, timeRange: &str) -> (DateTime<Local>, DateTime<Local>) {
     let now = Utc::now().with_timezone(&Local);
     let endDate = now;
@@ -187,37 +167,39 @@ impl StatisticsService {
     (startDate, endDate)
   }
 
-  #[allow(non_snake_case)]
   fn filterByDateRange(
     &self,
-    mut items: Vec<serde_json::Value>,
+    items: &Vec<Value>,
     startDate: &DateTime<Local>,
     endDate: &DateTime<Local>,
     dateField: &str,
-  ) -> Vec<serde_json::Value> {
-    items.retain(|item| {
-      if let Some(dateStr) = item.get(dateField).and_then(|v| v.as_str()) {
-        if let Ok(dt) = DateTime::parse_from_rfc3339(dateStr) {
-          let dtLocal = dt.with_timezone(&Local);
-          return dtLocal >= *startDate && dtLocal <= *endDate;
-        }
-      }
-      false
-    });
+  ) -> Vec<Value> {
     items
+      .iter()
+      .filter(|item| {
+        if let Some(date_str) = item.get(dateField).and_then(|v| v.as_str()) {
+          if let Ok(dt) = DateTime::parse_from_rfc3339(date_str) {
+            let dtLocal = dt.with_timezone(&Local);
+            return dtLocal >= *startDate && dtLocal <= *endDate;
+          }
+        }
+        false
+      })
+      .cloned()
+      .collect()
   }
 
-  #[allow(non_snake_case)]
   async fn getDailyActivitiesFiltered(
     &self,
     userId: &str,
     startDate: &NaiveDate,
     endDate: &NaiveDate,
-  ) -> Vec<serde_json::Value> {
+  ) -> Vec<Value> {
     let activitiesResponse = self
       .activityLogHelper
       .getAll(json!({"userId".to_string(): userId.to_string()}))
       .await;
+
     let activities = match activitiesResponse {
       Ok(response) => {
         if let DataValue::Array(data) = response.data {
@@ -234,8 +216,8 @@ impl StatisticsService {
     activities
       .into_iter()
       .filter(|activity| {
-        if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
-          if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
+        if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
+          if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
             return date >= *startDate && date <= *endDate;
           }
         }
@@ -244,8 +226,7 @@ impl StatisticsService {
       .collect()
   }
 
-  #[allow(non_snake_case)]
-  fn calculateAverageTaskTime(&self, tasks: &Vec<serde_json::Value>) -> i32 {
+  fn calculateAverageTaskTime(&self, tasks: &Vec<Value>) -> i32 {
     let completedTasks: Vec<_> = tasks
       .iter()
       .filter(|task| {
@@ -264,10 +245,10 @@ impl StatisticsService {
 
     let mut totalDuration = 0.0;
     for task in completedTasks {
-      if let Some(createdStr) = task.get("createdAt").and_then(|v| v.as_str()) {
-        if let Some(updatedStr) = task.get("updatedAt").and_then(|v| v.as_str()) {
-          if let Ok(created) = DateTime::parse_from_rfc3339(createdStr) {
-            if let Ok(updated) = DateTime::parse_from_rfc3339(updatedStr) {
+      if let Some(created_str) = task.get("createdAt").and_then(|v| v.as_str()) {
+        if let Some(updated_str) = task.get("updatedAt").and_then(|v| v.as_str()) {
+          if let Ok(created) = DateTime::parse_from_rfc3339(created_str) {
+            if let Ok(updated) = DateTime::parse_from_rfc3339(updated_str) {
               let duration = updated.signed_duration_since(created);
               let seconds = duration.num_seconds() as f32;
               let hours = seconds / 3600.0;
@@ -280,18 +261,18 @@ impl StatisticsService {
     (totalDuration / count as f32) as i32
   }
 
-  #[allow(non_snake_case)]
   fn computeStatistics(
     &self,
-    dailyActivities: &Vec<serde_json::Value>,
-    previousDailyActivities: &Vec<serde_json::Value>,
-    tasks: &Vec<serde_json::Value>,
-    previousTasks: &Vec<serde_json::Value>,
+    dailyActivities: &Vec<Value>,
+    previousDailyActivities: &Vec<Value>,
+    tasks: &Vec<Value>,
+    previousTasks: &Vec<Value>,
   ) -> StatisticsModel {
     let totalTasks = dailyActivities
       .iter()
       .filter_map(|activity| activity.get("totalTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let completedTasks = dailyActivities
       .iter()
       .filter_map(|activity| activity.get("completedTasks").and_then(|v| v.as_i64()))
@@ -319,6 +300,7 @@ impl StatisticsService {
       .iter()
       .filter_map(|activity| activity.get("totalTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let previousCompletedTasks = previousDailyActivities
       .iter()
       .filter_map(|activity| activity.get("completedTasks").and_then(|v| v.as_i64()))
@@ -332,7 +314,7 @@ impl StatisticsService {
 
     let previousAverageTime = self.calculateAverageTaskTime(previousTasks);
 
-    let previousProductivityScore = if !previousDailyActivities.is_empty() {
+    let previous_productivityScore = if !previousDailyActivities.is_empty() {
       let totalScore: i32 = previousDailyActivities
         .iter()
         .filter_map(|activity| activity.get("productivityScore").and_then(|v| v.as_i64()))
@@ -350,25 +332,24 @@ impl StatisticsService {
       previousTotalTasks: previousTotalTasks,
       previousCompletionRate: previousCompletionRate,
       previousAverageTime: previousAverageTime,
-      previousProductivityScore: previousProductivityScore,
+      previousProductivityScore: previous_productivityScore,
     }
   }
 
-  #[allow(non_snake_case)]
   fn computeChartData(
     &self,
-    tasks: &Vec<serde_json::Value>,
-    categories: &Vec<serde_json::Value>,
-    dailyActivities: &Vec<serde_json::Value>,
+    tasks: &Vec<Value>,
+    categories: &Vec<Value>,
+    dailyActivities: &Vec<Value>,
     startDate: &NaiveDate,
     endDate: &NaiveDate,
   ) -> ChartDataModel {
     let mut completionByWeekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
 
     for task in tasks {
-      if let Some(updatedAt) = task.get("updatedAt").and_then(|v| v.as_str()) {
+      if let Some(updated_at) = task.get("updatedAt").and_then(|v| v.as_str()) {
         if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
-          if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updatedAt) {
+          if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updated_at) {
             let weekday = dtUpdated.weekday();
             let entry = completionByWeekday.entry(weekday).or_insert((0, 0));
             entry.1 += 1;
@@ -416,11 +397,11 @@ impl StatisticsService {
       });
     }
 
-    let mut dailyActivityMap: HashMap<String, i32> = HashMap::new();
+    let mut dailyActivity_map: HashMap<String, i32> = HashMap::new();
 
     let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     for day in &dayNames {
-      dailyActivityMap.insert(day.to_string(), 0);
+      dailyActivity_map.insert(day.to_string(), 0);
     }
 
     for activity in dailyActivities {
@@ -438,7 +419,7 @@ impl StatisticsService {
               Weekday::Sun => 6,
             };
             let dayName = dayNames[dayIndex];
-            *dailyActivityMap.get_mut(dayName).unwrap() += totalActivity as i32;
+            *dailyActivity_map.get_mut(dayName).unwrap() += totalActivity as i32;
           }
         }
       }
@@ -448,7 +429,7 @@ impl StatisticsService {
       .iter()
       .map(|day| DailyActivityItem {
         dayName: day.to_string(),
-        activity: *dailyActivityMap.get(*day).unwrap_or(&0),
+        activity: *dailyActivity_map.get(*day).unwrap_or(&0),
       })
       .collect();
 
@@ -464,8 +445,8 @@ impl StatisticsService {
 
         if let Some(todos) = category.get("todos").and_then(|v| v.as_array()) {
           for todo in todos {
-            if let Some(createdAt) = todo.get("createdAt").and_then(|v| v.as_str()) {
-              if let Ok(dt) = DateTime::parse_from_rfc3339(createdAt) {
+            if let Some(created_at) = todo.get("createdAt").and_then(|v| v.as_str()) {
+              if let Ok(dt) = DateTime::parse_from_rfc3339(created_at) {
                 let date = dt.date_naive();
                 if date >= *startDate && date <= *endDate {
                   if let Some(tasks) = todo.get("tasks").and_then(|v| v.as_array()) {
@@ -502,56 +483,34 @@ impl StatisticsService {
     ChartDataModel {
       completionTrend: completionTrend,
       categories: categoryItems,
-      dailyActivity,
+      dailyActivity: dailyActivity,
     }
   }
 
-  #[allow(non_snake_case)]
   fn computeAchievements(
     &self,
-    _todos: &Vec<serde_json::Value>,
-    _tasks: &Vec<serde_json::Value>,
-    _subtasks: &Vec<serde_json::Value>,
+    _todos: &Vec<Value>,
+    _tasks: &Vec<Value>,
+    _subtasks: &Vec<Value>,
   ) -> Vec<AchievementModel> {
-    vec![
-      // AchievementModel {
-      //   title: "10 Day Streak".to_string(),
-      //   description: "Completed tasks for 10 consecutive days".to_string(),
-      //   icon: "local_fire_department".to_string(),
-      //   color: "#F59E0B".to_string(),
-      //   date: "2 days ago".to_string(),
-      // },
-      // AchievementModel {
-      //   title: "Early Bird".to_string(),
-      //   description: "Completed 5 tasks before 9 AM".to_string(),
-      //   icon: "wb_sunny".to_string(),
-      //   color: "#3B82F6".to_string(),
-      //   date: "1 week ago".to_string(),
-      // },
-      // AchievementModel {
-      //   title: "Task Master".to_string(),
-      //   description: format!("Completed {} tasks total", tasks.len()),
-      //   icon: "emoji_events".to_string(),
-      //   color: "#10B981".to_string(),
-      //   date: "2 weeks ago".to_string(),
-      // },
-    ]
+    vec![]
   }
 
-  #[allow(non_snake_case)]
   fn computeDetailedMetrics(
     &self,
-    dailyActivities: &Vec<serde_json::Value>,
-    previousDailyActivities: &Vec<serde_json::Value>,
+    dailyActivities: &Vec<Value>,
+    previousDailyActivities: &Vec<Value>,
   ) -> Vec<DetailedMetricModel> {
     let currentTasksCreated = dailyActivities
       .iter()
       .filter_map(|activity| activity.get("totalTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let currentTasksCompleted = dailyActivities
       .iter()
       .filter_map(|activity| activity.get("completedTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let currentWeeklyActiveDays = dailyActivities
       .iter()
       .filter(|activity| {
@@ -567,10 +526,12 @@ impl StatisticsService {
       .iter()
       .filter_map(|activity| activity.get("totalTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let previousTasksCompleted = previousDailyActivities
       .iter()
       .filter_map(|activity| activity.get("completedTasks").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
+
     let previousWeeklyActiveDays = previousDailyActivities
       .iter()
       .filter(|activity| {
