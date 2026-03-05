@@ -46,7 +46,7 @@ export const routes: Routes = [
     canActivate: [canActivateAuth],
   },
   {
-    path: "Statistic",
+    path: "stats",
     component: StatsView,
     title: "Statistic",
     data: { breadcrumb: "Statistic" },

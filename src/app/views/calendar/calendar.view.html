@@ -28,17 +28,6 @@
       >
         Week
       </button>
-      <button
-        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-        [ngClass]="
-          viewMode() === 'day'
-            ? 'bg-blue-500 text-white'
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-        "
-        (click)="changeViewMode('day')"
-      >
-        Day
-      </button>
     </div>
   </div>
 
