@@ -14,8 +14,8 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
   statistics_model::{
-    AchievementModel, CategoryItem, ChartDataModel, CompletionTrendItem, DailyActivityItem,
-    DetailedMetricModel, StatisticsModel, StatisticsResponseModel,
+    CategoryItem, ChartDataModel, CompletionTrendItem, DailyActivityItem, DetailedMetricModel,
+    StatisticsModel, StatisticsResponseModel,
   },
   sync_metadata_model::SyncMetadata,
 };
@@ -134,7 +134,7 @@ impl StatisticsService {
       &startDateNaive,
       &endDateNaive,
     );
-    let achievements = self.computeAchievements(&filteredTodos, &filteredTasks, &subtasks);
+    let achievements = vec![]; // computeAchievements removed - not implemented
     let detailedMetrics = self.computeDetailedMetrics(&dailyActivities, &previousDailyActivities);
 
     let response = StatisticsResponseModel {
@@ -147,7 +147,11 @@ impl StatisticsService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::Object(serde_json::to_value(response).unwrap()),
+      data: DataValue::Object(serde_json::to_value(response).map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error serializing response: {}", e),
+        data: DataValue::String("".to_string()),
+      })?),
     })
   }
 
@@ -485,15 +489,6 @@ impl StatisticsService {
       categories: categoryItems,
       dailyActivity: dailyActivity,
     }
-  }
-
-  fn computeAchievements(
-    &self,
-    _todos: &Vec<Value>,
-    _tasks: &Vec<Value>,
-    _subtasks: &Vec<Value>,
-  ) -> Vec<AchievementModel> {
-    vec![]
   }
 
   fn computeDetailedMetrics(
