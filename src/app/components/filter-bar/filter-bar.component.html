@@ -1,0 +1,52 @@
+<div class="filter-bar">
+  <div class="filter-actions">
+    <!-- Filter Toggle Button -->
+    <button
+      mat-button
+      class="filter-toggle-btn"
+      (click)="toggleFilter()"
+      aria-label="Toggle filters"
+    >
+      <mat-icon>filter_list</mat-icon>
+      <span>Filter</span>
+    </button>
+
+    <!-- Select All Checkbox -->
+    @if (showSelectAll) {
+      <mat-checkbox
+        [checked]="isAllSelected"
+        (change)="isAllSelected ? onClearSelection() : onSelectAll()"
+        class="select-all-checkbox"
+      >
+        Select All
+      </mat-checkbox>
+    }
+
+    <!-- Selected Count Badge -->
+    @if (selectedCount > 0) {
+      <span class="selected-count"> {{ selectedCount }} selected </span>
+    }
+  </div>
+
+  <!-- Filter Options -->
+  @if (showFilter) {
+    <div class="filter-options">
+      @for (option of filterOptions; track option.key) {
+        <button
+          mat-button
+          [class.active]="activeFilter === option.key"
+          (click)="onFilterChange(option.key)"
+          class="filter-option"
+        >
+          @if (option.icon) {
+            <mat-icon>{{ option.icon }}</mat-icon>
+          }
+          <span>{{ option.label }}</span>
+          @if (option.count !== undefined) {
+            <span class="filter-count">{{ option.count }}</span>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>

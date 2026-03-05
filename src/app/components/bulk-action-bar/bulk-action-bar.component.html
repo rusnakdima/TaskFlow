@@ -1,0 +1,31 @@
+@if (showBar) {
+  <div class="bulk-action-bar">
+    <div class="bulk-action-info">
+      <mat-icon>checked_small</mat-icon>
+      <span>{{ selectedCount }} {{ entityType }} selected</span>
+    </div>
+
+    <div class="bulk-action-buttons">
+      @for (action of actions; track action.id) {
+        <button
+          mat-button
+          [color]="action.color || 'default'"
+          (click)="onAction(action.id)"
+          class="bulk-action-btn"
+        >
+          <mat-icon>{{ action.icon }}</mat-icon>
+          <span>{{ action.label }}</span>
+        </button>
+      }
+    </div>
+
+    <button
+      mat-icon-button
+      (click)="onCancel()"
+      class="bulk-cancel-btn"
+      aria-label="Cancel selection"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+}
