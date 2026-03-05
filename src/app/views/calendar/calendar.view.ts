@@ -41,12 +41,16 @@ interface CalendarEvent {
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView implements OnInit {
+  router: Router;
+
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService,
-    private router: Router,
+    router: Router,
     private dataSyncProvider: DataSyncProvider
-  ) {}
+  ) {
+    this.router = router;
+  }
 
   selectedDate = signal<Date>(new Date());
   currentMonth = signal<Date>(new Date());
