@@ -14,13 +14,8 @@ pub async fn statisticsGet(
   userId: String,
   timeRange: String,
 ) -> Result<serde_json::Value, serde_json::Value> {
-  let mongodbProvider = state.crudService.mongodbProvider.clone().ok_or_else(
-    || serde_json::json!({"status": "error", "message": "MongoDB provider not initialized"}),
-  )?;
-
   let statisticsService = StatisticsService::new(
     state.crudService.jsonProvider.clone(),
-    mongodbProvider,
     state.activityLogHelper.clone(),
   );
 
