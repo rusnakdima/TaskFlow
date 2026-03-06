@@ -19,11 +19,9 @@ import { MatButtonModule } from "@angular/material/button";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Profile } from "@models/profile.model";
-import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 
 /* providers */
@@ -32,7 +30,6 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 @Component({
   selector: "app-share-dialog",
   standalone: true,
-  providers: [AuthService, MainService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -54,7 +51,6 @@ export class ShareDialogComponent implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
     private dialogRef: MatDialogRef<ShareDialogComponent>,
@@ -75,6 +71,10 @@ export class ShareDialogComponent implements OnInit {
   isPrivate: boolean = true;
 
   ngOnInit() {
+    // Initialize visibility from todo data
+    this.isPrivate = this.data.todo?.visibility === "private";
+    this.form.patchValue({ visibility: this.isPrivate ? "private" : "team" });
+    
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
@@ -96,15 +96,15 @@ export class ShareDialogComponent implements OnInit {
   }
 
   async fetchProfiles(): Promise<void> {
-    return this.mainService
-      .getAll<Profile[]>("profile")
-      .then((response: Response<Profile[]>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          this.availableProfiles.set(response.data);
+    this.dataSyncProvider
+      .getAll<Profile>("profiles", { userId: this.userId() })
+      .subscribe({
+        next: (profiles) => {
+          this.availableProfiles.set(profiles);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profiles");
         }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
       });
   }
 
@@ -165,7 +165,7 @@ export class ShareDialogComponent implements OnInit {
 
       try {
         const result = await firstValueFrom(
-          this.dataSyncProvider.update<Todo>("todo", this.data.todo.id, body, {
+          this.dataSyncProvider.update<Todo>("todos", this.data.todo.id, body, {
             isOwner: true,
             isPrivate: !this.isPrivate,
           })

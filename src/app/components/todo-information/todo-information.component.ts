@@ -102,7 +102,7 @@ export class TodoInformationComponent {
   deleteTodo() {
     const isPrivate = this.todo?.visibility === "private";
     const isOwner = this.todo?.userId === this.authService.getValueByKey("id");
-    this.dataSyncProvider.delete("todo", this.todo?.id ?? "", { isOwner, isPrivate }).subscribe({
+    this.dataSyncProvider.delete("todos", this.todo?.id ?? "", { isOwner, isPrivate }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Todo deleted successfully");
         this.router.navigate(["/", "todos"]);

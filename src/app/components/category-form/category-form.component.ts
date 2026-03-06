@@ -16,13 +16,13 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Category } from "@models/category.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-category-form",
@@ -33,7 +33,8 @@ import { AuthService } from "@services/auth.service";
 export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
+    private storageService: StorageService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {}
 
@@ -104,19 +105,21 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
       userId: this.userId,
     };
 
-    this.mainService
-      .create<Category, typeof categoryData>("category", categoryData)
-      .then((response: Response<Category>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
+    this.dataSyncProvider
+      .create<Category>("categories", categoryData)
+      .subscribe({
+        next: (createdCategory) => {
+          // Update cache
+          this.storageService.addCategory(createdCategory);
+          this.notifyService.showSuccess("Category created successfully");
           this.closeModal();
           this.saved.emit();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to create category");
         }
       })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      })
-      .finally(() => {
+      .add(() => {
         this.isLoading = false;
       });
   }
@@ -129,23 +132,21 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
       title: this.categoryTitle.trim(),
     };
 
-    this.mainService
-      .update<Category, typeof updatedCategory>(
-        "category",
-        this.editingCategory.id,
-        updatedCategory
-      )
-      .then((response: Response<Category>) => {
-        this.notifyService.showNotify(response.status, response.message);
-        if (response.status === ResponseStatus.SUCCESS) {
+    this.dataSyncProvider
+      .update<Category>("categories", this.editingCategory.id, updatedCategory)
+      .subscribe({
+        next: () => {
+          // Update cache
+          this.storageService.updateCategory(this.editingCategory!.id, updatedCategory);
+          this.notifyService.showSuccess("Category updated successfully");
           this.closeModal();
           this.saved.emit();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update category");
         }
       })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message);
-      })
-      .finally(() => {
+      .add(() => {
         this.isLoading = false;
       });
   }

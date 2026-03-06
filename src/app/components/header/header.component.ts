@@ -25,17 +25,17 @@ import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
+import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { SyncService } from "@services/sync.service";
 import { NotificationCenterService } from "@services/notification-center.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 interface Breadcrumb {
   label: string;
@@ -54,7 +54,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private mainService: MainService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService,
     private syncService: SyncService,
     private notificationService: NotificationCenterService,
@@ -124,16 +124,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   getProfile() {
-    this.mainService
-      .get<Profile>("profile", { userId: this.userId })
-      .then((response: Response<Profile>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.profile.set(response.data);
-        }
-      })
-      .catch((err: Response<string>) => {
-        if (err.status === ResponseStatus.ERROR) {
-          this.notifyService.showError(err.message ?? err.toString());
+    this.dataSyncProvider
+      .get<Profile>("profiles", { userId: this.userId() })
+      .subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profile");
         }
       });
   }
