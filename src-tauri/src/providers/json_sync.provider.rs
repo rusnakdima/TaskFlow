@@ -17,11 +17,6 @@ impl JsonSyncProvider {
     Self { mongodbProvider }
   }
 
-  fn shouldUseMongo(&self, _nameTable: &str) -> bool {
-    // Currently disabled - all data stored locally
-    false
-  }
-
   fn convertDocToValue(
     &self,
     doc: Document,
@@ -46,41 +41,26 @@ impl JsonSyncProvider {
 
   pub async fn getByFieldJsonOrMongo(
     &self,
-    nameTable: &str,
-    filter: Option<Value>,
-    id: &str,
+    _nameTable: &str,
+    _filter: Option<Value>,
+    _id: &str,
   ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-    if self.shouldUseMongo(nameTable) {
-      let mongoProvider = self.mongodbProvider.as_ref().unwrap();
-      let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
-      let doc = mongoProvider.get(nameTable, mongoFilter, None, id).await?;
-      self.convertDocToValue(doc)
-    } else {
-      Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        "MongoDB sync disabled",
-      )))
-    }
+    // MongoDB sync disabled
+    Err(Box::new(std::io::Error::new(
+      std::io::ErrorKind::Other,
+      "MongoDB sync disabled",
+    )))
   }
 
   pub async fn getAllJsonOrMongo(
     &self,
-    nameTable: &str,
-    filter: Option<Value>,
+    _nameTable: &str,
+    _filter: Option<Value>,
   ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
-    if self.shouldUseMongo(nameTable) {
-      let mongoProvider = self.mongodbProvider.as_ref().unwrap();
-      let mongoFilter = filter.as_ref().and_then(|f| self.convertValueToDoc(f).ok());
-      let docs = mongoProvider.getAll(nameTable, mongoFilter, None).await?;
-      docs
-        .into_iter()
-        .map(|doc| self.convertDocToValue(doc))
-        .collect::<Result<Vec<_>, _>>()
-    } else {
-      Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        "MongoDB sync disabled",
-      )))
-    }
+    // MongoDB sync disabled
+    Err(Box::new(std::io::Error::new(
+      std::io::ErrorKind::Other,
+      "MongoDB sync disabled",
+    )))
   }
 }

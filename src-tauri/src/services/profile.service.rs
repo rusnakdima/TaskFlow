@@ -18,12 +18,21 @@ use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
 };
 
+fn getRelations() -> Vec<RelationObj> {
+  vec![RelationObj {
+    nameTable: "users".to_string(),
+    typeField: TypesField::OneToOne,
+    nameField: "userId".to_string(),
+    newNameField: "user".to_string(),
+    relations: None,
+  }]
+}
+
 #[derive(Clone)]
 pub struct ProfileService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongodbProvider>>,
   pub profileSyncService: Option<ProfileSyncService>,
-  relations: Vec<RelationObj>,
 }
 
 impl ProfileService {
@@ -41,20 +50,13 @@ impl ProfileService {
       jsonProvider,
       mongodbProvider,
       profileSyncService,
-      relations: vec![RelationObj {
-        nameTable: "users".to_string(),
-        typeField: TypesField::OneToOne,
-        nameField: "userId".to_string(),
-        newNameField: "user".to_string(),
-        relations: None,
-      }],
     }
   }
 
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listProfiles = self
       .jsonProvider
-      .getAll("profiles", Some(filter), Some(self.relations.clone()))
+      .getAll("profiles", Some(filter), Some(getRelations()))
       .await;
     match listProfiles {
       Ok(profiles) => Ok(ResponseModel {
@@ -73,7 +75,7 @@ impl ProfileService {
   pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let profile = self
       .jsonProvider
-      .get("profiles", Some(filter), Some(self.relations.clone()), "")
+      .get("profiles", Some(filter), Some(getRelations()), "")
       .await;
     match profile {
       Ok(profile) => Ok(ResponseModel {
@@ -101,7 +103,14 @@ impl ProfileService {
     }
 
     let modelData: ProfileModel = data.into();
-    let record: Value = to_value(&modelData).unwrap();
+    let record: Value = match to_value(&modelData) {
+      Ok(v) => v,
+      Err(e) => return Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Failed to serialize profile: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    };
     let profile = self.jsonProvider.create("profiles", record).await;
     match profile {
       Ok(result) => {
