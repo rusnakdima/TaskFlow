@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /* models */
 use crate::models::{
   sync_metadata_model::SyncMetadata,
-  task_model::{PriorityTask, TaskFullModel, TaskStatus},
+  task_model::TaskStatus,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +32,21 @@ pub struct SubtaskCreateModel {
   pub order: i32,
   #[serde(rename = "_syncMetadata")]
   pub sync_metadata: Option<SyncMetadata>,
+}
+
+impl SubtaskCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.taskId.is_empty() {
+      return Err("taskId cannot be empty".to_string());
+    }
+    if self.title.is_empty() {
+      return Err("title cannot be empty".to_string());
+    }
+    if self.priority.is_empty() {
+      return Err("priority cannot be empty".to_string());
+    }
+    Ok(())
+  }
 }
 
 impl From<SubtaskCreateModel> for SubtaskModel {
@@ -73,38 +88,17 @@ pub struct SubtaskUpdateModel {
 }
 
 impl SubtaskUpdateModel {
-  pub fn applyTo(&self, existing: SubtaskModel) -> SubtaskModel {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    SubtaskModel {
-      _id: existing._id,
-      id: existing.id,
-      taskId: self.taskId.clone().unwrap_or(existing.taskId),
-      title: self.title.clone().unwrap_or(existing.title),
-      description: self.description.clone().unwrap_or(existing.description),
-      status: self.status.clone().unwrap_or(existing.status),
-      priority: self.priority.clone().unwrap_or(existing.priority),
-      order: self.order.unwrap_or(existing.order),
-      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
-      createdAt: existing.createdAt,
-      updatedAt: formatted,
+  pub fn validate(&self) -> Result<(), String> {
+    if let Some(ref title) = self.title {
+      if title.is_empty() {
+        return Err("title cannot be empty".to_string());
+      }
     }
+    if let Some(ref priority) = self.priority {
+      if priority.is_empty() {
+        return Err("priority cannot be empty".to_string());
+      }
+    }
+    Ok(())
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(unused)]
-pub struct SubtaskFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub task: TaskFullModel,
-  pub title: String,
-  pub description: String,
-  pub status: TaskStatus,
-  pub priority: PriorityTask,
-  pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
-  pub updatedAt: String,
 }

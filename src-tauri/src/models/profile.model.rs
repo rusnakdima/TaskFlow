@@ -27,6 +27,18 @@ pub struct ProfileCreateModel {
   pub userId: String,
 }
 
+impl ProfileCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.name.is_empty() {
+      return Err("name cannot be empty".to_string());
+    }
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
+    }
+    Ok(())
+  }
+}
+
 impl From<ProfileCreateModel> for ProfileModel {
   fn from(value: ProfileCreateModel) -> Self {
     let now = chrono::Utc::now();
@@ -59,6 +71,18 @@ pub struct ProfileUpdateModel {
   pub updatedAt: String,
 }
 
+impl ProfileUpdateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.name.is_empty() {
+      return Err("name cannot be empty".to_string());
+    }
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
+    }
+    Ok(())
+  }
+}
+
 impl From<ProfileUpdateModel> for ProfileModel {
   fn from(value: ProfileUpdateModel) -> Self {
     let now = chrono::Utc::now();
@@ -76,15 +100,4 @@ impl From<ProfileUpdateModel> for ProfileModel {
       updatedAt: formatted,
     }
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProfileFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub name: String,
-  pub lastName: String,
-  pub bio: String,
-  pub imageUrl: String,
-  pub user: UserModel,
 }
