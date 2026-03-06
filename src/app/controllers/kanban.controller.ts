@@ -1,6 +1,7 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { tap } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -9,6 +10,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { KanbanUIHelper } from "@services/kanban-ui-helper.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -20,6 +22,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 @Injectable()
 export class KanbanController {
   constructor(
+    private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private uiHelper: KanbanUIHelper
   ) {}
@@ -37,7 +40,7 @@ export class KanbanController {
    * Load all todos for user
    */
   loadTodos(): Observable<Todo[]> {
-    return this.dataSyncProvider.getAll<Todo>("todo", { userId: this.userId });
+    return this.dataSyncProvider.getAll<Todo>("todos", { userId: this.userId });
   }
 
   /**
@@ -47,42 +50,62 @@ export class KanbanController {
     todoId: string
   ): Observable<{ tasks: Task[]; subtasksMap: Map<string, Subtask[]> }> {
     return new Observable((observer) => {
-      this.dataSyncProvider.getAll<Task>("task", { todoId, userId: this.userId }).subscribe({
-        next: (tasks) => {
-          // Load subtasks for each task
-          const subtasksMap = new Map<string, Subtask[]>();
-          let loadedCount = 0;
+      // Try to get from StorageService cache first
+      const cachedTasks = this.storageService.tasks();
+      const filteredTasks = cachedTasks.filter(task => task.todoId === todoId);
+      
+      if (filteredTasks && filteredTasks.length > 0) {
+        // Use cached data
+        const subtasksMap = new Map<string, Subtask[]>();
+        const cachedSubtasks = this.storageService.subtasks();
+        
+        filteredTasks.forEach((task) => {
+          const taskSubtasks = cachedSubtasks.filter(st => st.taskId === task.id);
+          subtasksMap.set(task.id, taskSubtasks);
+        });
+        
+        console.log("[KanbanController] Loaded tasks from cache:", filteredTasks.length);
+        observer.next({ tasks: filteredTasks, subtasksMap });
+        observer.complete();
+      } else {
+        // Fallback to backend if cache is empty
+        this.dataSyncProvider.getAll<Task>("tasks", { todoId, userId: this.userId }).subscribe({
+          next: (tasks) => {
+            // Load subtasks for each task
+            const subtasksMap = new Map<string, Subtask[]>();
+            let loadedCount = 0;
 
-          tasks.forEach((task) => {
-            this.loadSubtasksForTask(task.id).subscribe({
-              next: (subtasks) => {
-                subtasksMap.set(task.id, subtasks);
-                loadedCount++;
-                if (loadedCount === tasks.length) {
-                  observer.next({ tasks, subtasksMap });
-                  observer.complete();
-                }
-              },
-              error: (error) => {
-                console.error("Failed to load subtasks for task:", task.id);
-                loadedCount++;
-                if (loadedCount === tasks.length) {
-                  observer.next({ tasks, subtasksMap });
-                  observer.complete();
-                }
-              },
+            tasks.forEach((task) => {
+              this.loadSubtasksForTask(task.id).subscribe({
+                next: (subtasks) => {
+                  subtasksMap.set(task.id, subtasks);
+                  loadedCount++;
+                  if (loadedCount === tasks.length) {
+                    observer.next({ tasks, subtasksMap });
+                    observer.complete();
+                  }
+                },
+                error: (error) => {
+                  console.error("Failed to load subtasks for task:", task.id);
+                  loadedCount++;
+                  if (loadedCount === tasks.length) {
+                    observer.next({ tasks, subtasksMap });
+                    observer.complete();
+                  }
+                },
+              });
             });
-          });
 
-          if (tasks.length === 0) {
-            observer.next({ tasks, subtasksMap });
-            observer.complete();
-          }
-        },
-        error: (error) => {
-          observer.error(error);
-        },
-      });
+            if (tasks.length === 0) {
+              observer.next({ tasks, subtasksMap });
+              observer.complete();
+            }
+          },
+          error: (error) => {
+            observer.error(error);
+          },
+        });
+      }
     });
   }
 
@@ -90,7 +113,7 @@ export class KanbanController {
    * Load subtasks for a specific task
    */
   loadSubtasksForTask(taskId: string): Observable<Subtask[]> {
-    return this.dataSyncProvider.getAll<Subtask>("subtask", { taskId });
+    return this.dataSyncProvider.getAll<Subtask>("subtasks", { taskId });
   }
 
   /**
@@ -104,11 +127,15 @@ export class KanbanController {
     isPrivate: boolean
   ): Observable<Task> {
     return this.dataSyncProvider.update<Task>(
-      "task",
+      "tasks",
       taskId,
-      { status: newStatus, todoId },
+      { id: taskId, status: newStatus, todoId },
       { isOwner, isPrivate },
       todoId
+    ).pipe(
+      tap(() => {
+        this.storageService.updateTask(taskId, { status: newStatus });
+      })
     );
   }
 
@@ -124,11 +151,15 @@ export class KanbanController {
   ): Observable<Subtask> {
     const updatedSubtask = { ...subtask, status: newStatus };
     return this.dataSyncProvider.update<Subtask>(
-      "subtask",
+      "subtasks",
       subtask.id,
       updatedSubtask,
       { isOwner, isPrivate },
       todoId
+    ).pipe(
+      tap(() => {
+        this.storageService.updateSubtask(subtask.id, { status: newStatus });
+      })
     );
   }
 

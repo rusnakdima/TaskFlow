@@ -5,7 +5,7 @@ import { map } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
+import { Task, TaskStatus, RepeatInterval, PriorityTask } from "@models/task.model";
 
 /* services */
 import { NotifyService } from "@services/notify.service";
@@ -14,6 +14,9 @@ import { BulkActionService } from "@services/bulk-action.service";
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
+/* services */
+import { StorageService } from "@services/storage.service";
+
 /**
  * TasksController - Business logic for TasksView
  * Handles all task operations, filtering, and bulk actions
@@ -21,6 +24,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 @Injectable()
 export class TasksController {
   constructor(
+    private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService,
     private bulkActionService: BulkActionService
@@ -47,7 +51,7 @@ export class TasksController {
   getTasksByTodoId(todoId: string): Observable<Task[]> {
     return this.dataSyncProvider
       .getAll<Task>(
-        "task",
+        "tasks",
         { todoId },
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
         todoId
@@ -63,7 +67,7 @@ export class TasksController {
   }
 
   /**
-   * Toggle task completion
+   * Toggle task completion - Optimistic update with rollback on failure
    */
   toggleTaskCompletion(task: Task): void {
     let newStatus: TaskStatus;
@@ -97,11 +101,19 @@ export class TasksController {
         break;
     }
 
+    // Store previous state for rollback
+    const previousStatus = task.status;
+
+    // Optimistic update: update cache immediately
+    task.status = newStatus;
+    this.storageService.updateTask(task.id, { status: newStatus });
+    this.notifyService.showSuccess(message);
+
     const updatedTask = { ...task, status: newStatus };
 
     this.dataSyncProvider
       .update<Task>(
-        "task",
+        "tasks",
         task.id,
         updatedTask,
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -109,7 +121,7 @@ export class TasksController {
       )
       .subscribe({
         next: () => {
-          task.status = newStatus;
+          // Success - cache already updated
           if (
             newStatus === TaskStatus.COMPLETED &&
             task.repeat &&
@@ -117,9 +129,11 @@ export class TasksController {
           ) {
             this.generateNextRecurringTask(task);
           }
-          this.notifyService.showSuccess(message);
         },
         error: (err) => {
+          // Rollback on failure
+          task.status = previousStatus;
+          this.storageService.updateTask(task.id, { status: previousStatus });
           this.notifyService.showError(err.message || "Failed to update task status");
         },
       });
@@ -195,16 +209,30 @@ export class TasksController {
   }
 
   /**
-   * Update task inline
+   * Update task inline - Optimistic update with rollback on failure
    */
   updateTaskInline(task: Task, field: string, value: string): void {
+    // Store previous state for rollback
+    const previousValue = (task as any)[field];
+    const previousTask = { ...task };
+
+    // Optimistic update: update cache immediately
+    if (field === "status") {
+      task.status = value as TaskStatus;
+      this.storageService.updateTask(task.id, { status: value as TaskStatus });
+    } else {
+      (task as any)[field] = value;
+      this.storageService.updateTask(task.id, { [field]: value });
+    }
+    this.notifyService.showSuccess("Task updated successfully");
+
     const updatedTask: Partial<Task> = {
       [field]: field === "status" ? (value as TaskStatus) : value,
     };
 
     this.dataSyncProvider
       .update<Task>(
-        "task",
+        "tasks",
         task.id,
         { ...task, ...updatedTask },
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -212,55 +240,74 @@ export class TasksController {
       )
       .subscribe({
         next: () => {
-          if (field === "status") {
-            task.status = value as TaskStatus;
-          } else {
-            (task as any)[field] = value;
-          }
-          this.notifyService.showSuccess("Task updated successfully");
+          // Success - cache already updated
         },
         error: (err) => {
+          // Rollback on failure
+          (task as any)[field] = previousValue;
+          this.storageService.updateTask(task.id, { [field]: previousValue });
           this.notifyService.showError(err.message || "Failed to update task");
         },
       });
   }
 
   /**
-   * Delete task
+   * Delete task - Optimistic update with rollback on failure
    */
   deleteTask(taskId: string, onSuccess: () => void): void {
     if (!this.todo) return;
 
+    // Get the task before deleting for potential rollback
+    const taskToDelete = this.storageService.getTaskById(taskId);
+
+    // Optimistic update: remove from cache immediately
+    this.storageService.removeTask(taskId);
+    this.notifyService.showSuccess("Task deleted successfully");
+    onSuccess();
+
     this.dataSyncProvider
-      .delete("task", taskId, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todo.id)
+      .delete("tasks", taskId, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todo.id)
       .subscribe({
         next: () => {
-          this.notifyService.showSuccess("Task deleted successfully");
-          onSuccess();
+          // Success - cache already updated
         },
         error: (err) => {
+          // Rollback on failure
+          if (taskToDelete) {
+            this.storageService.rollbackRemoveTask(taskToDelete);
+          }
           this.notifyService.showError(err.message || "Failed to delete task");
         },
       });
   }
 
   /**
-   * Update task order
+   * Update task order - Optimistic update with rollback on failure
    */
   updateTaskOrder(tasks: Task[], onComplete: () => void): void {
     if (!this.todo) return;
+
+    // Store previous state for rollback
+    const previousOrders = tasks.map(task => ({ id: task.id, order: task.order }));
 
     const updatedTasks = tasks.map((task, index) => ({
       ...task,
       order: tasks.length - 1 - index,
     }));
 
+    // Optimistic update: update cache immediately
+    updatedTasks.forEach((task) => {
+      this.storageService.updateTask(task.id, { order: task.order });
+    });
+    this.notifyService.showSuccess("Task order updated successfully");
+    onComplete();
+
     let completedCount = 0;
 
     updatedTasks.forEach((task) => {
       this.dataSyncProvider
         .update<Task>(
-          "task",
+          "tasks",
           task.id,
           { order: task.order },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -269,12 +316,12 @@ export class TasksController {
         .subscribe({
           next: () => {
             completedCount++;
-            if (completedCount === updatedTasks.length) {
-              this.notifyService.showSuccess("Task order updated successfully");
-              onComplete();
-            }
           },
           error: (err) => {
+            // Rollback on failure
+            previousOrders.forEach(prev => {
+              this.storageService.updateTask(prev.id, { order: prev.order });
+            });
             this.notifyService.showError(err.message || "Failed to update task order");
           },
         });
@@ -282,17 +329,28 @@ export class TasksController {
   }
 
   /**
-   * Update two task order (for drag-drop swap)
+   * Update two task order (for drag-drop swap) - Optimistic update with rollback on failure
    */
   updateTwoTaskOrder(task1: Task, task2: Task, onComplete: () => void): void {
     if (!this.todo) return;
 
+    // Store previous state for rollback
+    const previousTask1Order = task1.order;
+    const previousTask2Order = task2.order;
+
+    // Optimistic update: update cache immediately
+    this.storageService.updateTask(task1.id, { order: task1.order });
+    this.storageService.updateTask(task2.id, { order: task2.order });
+    this.notifyService.showSuccess("Task order updated successfully");
+    onComplete();
+
     let completedCount = 0;
+    let hasError = false;
 
     [task1, task2].forEach((task) => {
       this.dataSyncProvider
         .update<Task>(
-          "task",
+          "tasks",
           task.id,
           { order: task.order },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -301,12 +359,12 @@ export class TasksController {
         .subscribe({
           next: () => {
             completedCount++;
-            if (completedCount === 2) {
-              this.notifyService.showSuccess("Task order updated successfully");
-              onComplete();
-            }
           },
           error: (err) => {
+            hasError = true;
+            // Rollback on failure
+            this.storageService.updateTask(task1.id, { order: previousTask1Order });
+            this.storageService.updateTask(task2.id, { order: previousTask2Order });
             this.notifyService.showError(err.message || "Failed to update task order");
           },
         });
@@ -314,17 +372,30 @@ export class TasksController {
   }
 
   /**
-   * Bulk update priority
+   * Bulk update priority - Optimistic update with rollback on failure
    */
   bulkUpdatePriority(taskIds: string[], priority: string, onComplete: () => void): void {
     if (!this.todo) return;
 
+    // Store previous state for rollback
+    const previousStates = taskIds.map(id => {
+      const task = this.storageService.getTaskById(id);
+      return { id, previousPriority: task?.priority || PriorityTask.MEDIUM };
+    });
+
     const tasks = taskIds.map((id) => ({ id }));
+
+    // Optimistic update: update cache immediately
+    taskIds.forEach((id) => {
+      this.storageService.updateTask(id, { priority: priority as PriorityTask });
+    });
+    this.notifyService.showSuccess(`Updated priority for ${taskIds.length} task(s)`);
+    onComplete();
 
     this.bulkActionService
       .bulkUpdateField(tasks, "priority", priority, (id, data) =>
         this.dataSyncProvider.update<Task>(
-          "task",
+          "tasks",
           id,
           data,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -333,27 +404,43 @@ export class TasksController {
       )
       .subscribe((result) => {
         if (result.successCount > 0) {
-          this.notifyService.showSuccess(`Updated priority for ${result.successCount} task(s)`);
+          // Cache already updated
         }
         if (result.errorCount > 0) {
+          // Rollback failed updates
+          previousStates.forEach(prev => {
+            this.storageService.updateTask(prev.id, { priority: prev.previousPriority });
+          });
           this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
         }
-        onComplete();
       });
   }
 
   /**
-   * Bulk update status
+   * Bulk update status - Optimistic update with rollback on failure
    */
   bulkUpdateStatus(taskIds: string[], status: string, onComplete: () => void): void {
     if (!this.todo) return;
 
+    // Store previous state for rollback
+    const previousStates = taskIds.map(id => {
+      const task = this.storageService.getTaskById(id);
+      return { id, previousStatus: task?.status || TaskStatus.PENDING };
+    });
+
     const tasks = taskIds.map((id) => ({ id, status: "" }));
+
+    // Optimistic update: update cache immediately
+    taskIds.forEach((id) => {
+      this.storageService.updateTask(id, { status: status as TaskStatus });
+    });
+    this.notifyService.showSuccess(`Updated status for ${taskIds.length} task(s)`);
+    onComplete();
 
     this.bulkActionService
       .bulkUpdateStatus(tasks as any[], status, (id, data) =>
         this.dataSyncProvider.update<Task>(
-          "task",
+          "tasks",
           id,
           data,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -362,27 +449,40 @@ export class TasksController {
       )
       .subscribe((result) => {
         if (result.successCount > 0) {
-          this.notifyService.showSuccess(`Updated status for ${result.successCount} task(s)`);
+          // Cache already updated
         }
         if (result.errorCount > 0) {
+          // Rollback failed updates
+          previousStates.forEach(prev => {
+            this.storageService.updateTask(prev.id, { status: prev.previousStatus });
+          });
           this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
         }
-        onComplete();
       });
   }
 
   /**
-   * Bulk delete tasks
+   * Bulk delete tasks - Optimistic update with rollback on failure
    */
   bulkDelete(taskIds: string[], onComplete: () => void): void {
     if (!this.todo) return;
 
+    // Store previous state for rollback
+    const tasksToDelete = taskIds.map(id => this.storageService.getTaskById(id)).filter(Boolean) as Task[];
+
     const tasks = taskIds.map((id) => ({ id }));
+
+    // Optimistic update: remove from cache immediately
+    taskIds.forEach((id) => {
+      this.storageService.removeTask(id);
+    });
+    this.notifyService.showSuccess(`Deleted ${taskIds.length} task(s)`);
+    onComplete();
 
     this.bulkActionService
       .bulkDelete(tasks, (id) =>
         this.dataSyncProvider.delete(
-          "task",
+          "tasks",
           id,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todo!.id
@@ -390,12 +490,17 @@ export class TasksController {
       )
       .subscribe((result) => {
         if (result.successCount > 0) {
-          this.notifyService.showSuccess(`Deleted ${result.successCount} task(s)`);
+          // Cache already updated
         }
         if (result.errorCount > 0) {
+          // Rollback failed deletions
+          tasksToDelete.forEach(task => {
+            if (task) {
+              this.storageService.rollbackRemoveTask(task);
+            }
+          });
           this.notifyService.showError(`Failed to delete ${result.errorCount} task(s)`);
         }
-        onComplete();
       });
   }
 }
