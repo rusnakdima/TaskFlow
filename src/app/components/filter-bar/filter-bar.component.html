@@ -1,52 +1,116 @@
-<div class="filter-bar">
-  <div class="filter-actions">
-    <!-- Filter Toggle Button -->
-    <button
-      mat-button
-      class="filter-toggle-btn"
-      (click)="toggleFilter()"
-      aria-label="Toggle filters"
-    >
-      <mat-icon>filter_list</mat-icon>
-      <span>Filter</span>
-    </button>
+<!-- Filter Sidebar Overlay -->
+@if (showFilter) {
+  <div class="filter-sidebar-overlay" (click)="closeSidebar()"></div>
 
-    <!-- Select All Checkbox -->
-    @if (showSelectAll) {
-      <mat-checkbox
-        [checked]="isAllSelected"
-        (change)="isAllSelected ? onClearSelection() : onSelectAll()"
-        class="select-all-checkbox"
-      >
-        Select All
-      </mat-checkbox>
-    }
+  <!-- Filter Sidebar -->
+  <div class="filter-sidebar" [class.open]="showFilter">
+    <div class="filter-sidebar-content">
+      <!-- Header -->
+      <div class="filter-sidebar-header">
+        <h3 class="text-lg font-semibold textNormal flex items-center gap-2">
+          <mat-icon class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400">filter_list</mat-icon>
+          Filters
+        </h3>
+        <button
+          mat-icon-button
+          (click)="toggleFilter()"
+          class="textMuted hover:textNormal"
+          aria-label="Close filters"
+        >
+          <mat-icon class="w-5! h-5! text-xl!">close</mat-icon>
+        </button>
+      </div>
 
-    <!-- Selected Count Badge -->
-    @if (selectedCount > 0) {
-      <span class="selected-count"> {{ selectedCount }} selected </span>
-    }
-  </div>
+      <!-- Search -->
+      <div class="filter-sidebar-section">
+        <label class="text-xs font-medium textMuted uppercase tracking-wide mb-2 block">
+          Search
+        </label>
+        <div class="relative">
+          <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 w-4! h-4! text-base! textMuted">search</mat-icon>
+          <input
+            type="text"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInputChange($event)"
+            placeholder="Search..."
+            class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 textNormal placeholder:textMuted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        @if (searchQuery) {
+          <button
+            mat-button
+            color="warn"
+            (click)="clearSearch()"
+            class="mt-2 text-xs"
+          >
+            <mat-icon class="w-3! h-3! text-xs! mr-1">close</mat-icon>
+            Clear Search
+          </button>
+        }
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="text-xs font-medium textMuted uppercase tracking-wide mb-2 block">
+          {{ filterLabel || 'Filter by' }}
+        </label>
+        <div class="flex flex-col gap-1">
+          @for (option of filterOptions; track option.key) {
+            <label
+              class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+              [class.bg-blue-50]="activeFilter === option.key"
+              [class.dark:bg-blue-900/20]="activeFilter === option.key"
+              [class.hover:bg-gray-50]="activeFilter !== option.key"
+              [class.dark:hover:bg-zinc-700]="activeFilter !== option.key"
+            >
+              <input
+                type="radio"
+                [name]="filterGroupName || 'filter'"
+                [value]="option.key"
+                [checked]="activeFilter === option.key"
+                (change)="onFilterChange(option.key)"
+                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <div class="flex-1 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  @if (option.icon) {
+                    <mat-icon class="w-4! h-4! text-base! textMuted">{{ option.icon }}</mat-icon>
+                  }
+                  <span class="text-sm font-medium textNormal">{{ option.label }}</span>
+                </div>
+                @if (option.count !== undefined) {
+                  <span
+                    class="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-zinc-600 textNormal font-medium"
+                  >
+                    {{ option.count }}
+                  </span>
+                }
+              </div>
+            </label>
+          }
+        </div>
+      </div>
 
-  <!-- Filter Options -->
-  @if (showFilter) {
-    <div class="filter-options">
-      @for (option of filterOptions; track option.key) {
+      <!-- Actions -->
+      <div class="filter-sidebar-actions">
         <button
           mat-button
-          [class.active]="activeFilter === option.key"
-          (click)="onFilterChange(option.key)"
-          class="filter-option"
+          color="primary"
+          (click)="closeSidebar()"
+          class="w-full"
         >
-          @if (option.icon) {
-            <mat-icon>{{ option.icon }}</mat-icon>
-          }
-          <span>{{ option.label }}</span>
-          @if (option.count !== undefined) {
-            <span class="filter-count">{{ option.count }}</span>
-          }
+          Done
         </button>
-      }
+        @if (activeFilter !== 'all' || searchQuery) {
+          <button
+            mat-button
+            color="warn"
+            (click)="clearAllFilters()"
+            class="w-full mt-2"
+          >
+            <mat-icon class="w-4! h-4! text-base! mr-1">clear_all</mat-icon>
+            Clear All Filters
+          </button>
+        }
+      </div>
     </div>
-  }
-</div>
+  </div>
+}

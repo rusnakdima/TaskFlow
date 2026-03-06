@@ -6,6 +6,7 @@
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
       [queryParams]="!isExpanded ? { isOwner: isOwner, isPrivate: isPrivate } : null"
+      (click)="$event.stopPropagation()"
     >
       <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
@@ -296,7 +297,7 @@
           </button>
           <button
             class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
-            (click)="deleteTask()"
+            (click)="deleteTask(); $event.stopPropagation()"
             title="Delete task"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
