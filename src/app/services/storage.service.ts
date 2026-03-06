@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, signal, computed } from "@angular/core";
-import { Observable, of, forkJoin } from "rxjs";
+import { Observable, of } from "rxjs";
 import { map, tap, switchMap } from "rxjs/operators";
 
 /* models */
@@ -14,6 +14,9 @@ import { RelationObj, TypesField } from "@models/relation-obj.model";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
+
+/* services */
+import { AuthService } from "@services/auth.service";
 
 /**
  * StorageService - Centralized data cache for the application
@@ -46,10 +49,13 @@ export class StorageService {
   private isOwner = true;
   private isPrivate = true;
 
-  // Cache expiry (5 minutes)
-  private readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
+  // Cache expiry (2 minutes - shorter for better freshness)
+  private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
 
-  constructor(private dataSyncProvider: DataSyncProvider) {}
+  constructor(
+    private authService: AuthService,
+    private dataSyncProvider: DataSyncProvider
+  ) {}
 
   // ==================== PUBLIC SIGNALS ====================
 
@@ -71,6 +77,27 @@ export class StorageService {
 
   get profile() {
     return this.profileSignal.asReadonly();
+  }
+
+  // Public setters for external use
+  setCategories(categories: Category[]): void {
+    this.categoriesSignal.set(categories);
+  }
+
+  setTodos(todos: Todo[]): void {
+    this.todosSignal.set(todos);
+  }
+
+  setTasks(tasks: Task[]): void {
+    this.tasksSignal.set(tasks);
+  }
+
+  setSubtasks(subtasks: Subtask[]): void {
+    this.subtasksSignal.set(subtasks);
+  }
+
+  setProfile(profile: Profile): void {
+    this.profileSignal.set(profile);
   }
 
   get loading() {
@@ -134,15 +161,16 @@ export class StorageService {
 
   // ==================== INITIALIZATION ====================
 
-  init(userId: string, isOwner: boolean = true, isPrivate: boolean = true): void {
-    this.userId = userId;
+  init(userId?: string, isOwner: boolean = true, isPrivate: boolean = true): void {
+    // Get userId from parameter or from AuthService
+    this.userId = userId || this.authService.getValueByKey("id") || "";
     this.isOwner = isOwner;
     this.isPrivate = isPrivate;
   }
 
   /**
    * Load all data (call once on app initialization or when needed)
-   * Loads todos with relations (tasks, subtasks) and extracts them to separate signals
+   * Loads todos with relations (tasks, subtasks, categories, users, profiles) and extracts them to separate signals
    */
   loadAllData(force: boolean = false): Observable<{
     todos: Todo[];
@@ -150,8 +178,29 @@ export class StorageService {
     subtasks: Subtask[];
     categories: Category[];
   }> {
+    // Ensure userId is set from AuthService
+    if (!this.userId) {
+      this.userId = this.authService.getValueByKey("id") || "";
+    }
+
+    // Force reload if cache is empty (no data loaded yet)
+    const hasData = this.todosSignal().length > 0 || this.categoriesSignal().length > 0;
+    if (!hasData) {
+      force = true;
+    }
+
     // Check if cache is still valid
     if (!force && this.isCacheValid()) {
+      return of({
+        todos: this.todosSignal(),
+        tasks: this.tasksSignal(),
+        subtasks: this.subtasksSignal(),
+        categories: this.categoriesSignal(),
+      });
+    }
+
+    // Prevent duplicate loading
+    if (this.loadingSignal()) {
       return of({
         todos: this.todosSignal(),
         tasks: this.tasksSignal(),
@@ -164,16 +213,58 @@ export class StorageService {
 
     const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: this.isPrivate };
 
-    // Step 1: Load todos with relations (tasks + subtasks)
+    // Define default relations for todos (tasks + subtasks + categories + users + profiles)
+    const todoRelations: RelationObj[] = [
+      {
+        nameTable: "tasks",
+        typeField: TypesField.OneToMany,
+        nameField: "todoId",
+        newNameField: "tasks",
+        relations: [
+          {
+            nameTable: "subtasks",
+            typeField: TypesField.OneToMany,
+            nameField: "taskId",
+            newNameField: "subtasks",
+            relations: null,
+          },
+        ],
+      },
+      {
+        nameTable: "users",
+        typeField: TypesField.OneToOne,
+        nameField: "userId",
+        newNameField: "user",
+        relations: [
+          {
+            nameTable: "profiles",
+            typeField: TypesField.OneToOne,
+            nameField: "profileId",
+            newNameField: "profile",
+            relations: null,
+          },
+        ],
+      },
+      {
+        nameTable: "categories",
+        typeField: TypesField.ManyToOne,
+        nameField: "categories",
+        newNameField: "categories",
+        relations: null,
+      },
+    ];
+
+    // Step 1: Load private todos with relations (for todos view)
     return this.dataSyncProvider
-      .getAll<Todo>("todo", { userId: this.userId, visibility: "private" }, metadata)
+      .getAll<Todo>("todos", { userId: this.userId, visibility: "private" }, { ...metadata, relations: todoRelations })
       .pipe(
         tap((todos) => {
-          // Extract tasks and subtasks from todos with relations
+          // Extract tasks and subtasks from todos with relations for separate storage
           const allTasks: Task[] = [];
           const allSubtasks: Subtask[] = [];
 
           todos.forEach((todo: any) => {
+            // Extract tasks with subtasks
             if (todo.tasks && Array.isArray(todo.tasks)) {
               todo.tasks.forEach((task: any) => {
                 allTasks.push(task);
@@ -186,17 +277,19 @@ export class StorageService {
             }
           });
 
-          // Set all signals
+          // Set all signals - todos already have tasks embedded from backend
           this.todosSignal.set(todos);
           this.tasksSignal.set(allTasks);
           this.subtasksSignal.set(allSubtasks);
         }),
         switchMap((todos) => {
-          // Step 2: Load categories
+          // Step 2: Load categories separately (they are not embedded in todos)
           return this.dataSyncProvider
-            .getAll<Category>("category", { userId: this.userId }, metadata)
+            .getAll<Category>("categories", { userId: this.userId }, metadata)
             .pipe(
-              tap((categories) => this.categoriesSignal.set(categories)),
+              tap((categories) => {
+                this.categoriesSignal.set(categories);
+              }),
               map((categories) => {
                 this.loadingSignal.set(false);
                 this.loadedSignal.set(true);
@@ -295,50 +388,14 @@ export class StorageService {
     this.categoriesSignal.update((categories) => categories.filter((cat) => cat.id !== categoryId));
   }
 
-  setProfile(profile: Profile): void {
-    this.profileSignal.set(profile);
+  // ==================== ROLLBACK METHODS (used by controllers) ====================
+
+  rollbackRemoveTodo(todo: Todo): void {
+    this.todosSignal.update((todos) => [todo, ...todos]);
   }
 
-  // ==================== REFRESH METHODS ====================
-
-  refreshAllData(): Observable<{
-    todos: Todo[];
-    tasks: Task[];
-    subtasks: Subtask[];
-    categories: Category[];
-  }> {
-    return this.loadAllData(true);
-  }
-
-  refreshTodos(): Observable<Todo[]> {
-    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: this.isPrivate };
-    return this.dataSyncProvider
-      .getAll<Todo>("todo", { userId: this.userId, visibility: "private" }, metadata)
-      .pipe(tap((todos) => this.todosSignal.set(todos)));
-  }
-
-  refreshTasks(todoId: string): Observable<Task[]> {
-    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: this.isPrivate };
-    return this.dataSyncProvider.getAll<Task>("task", { todoId }, metadata).pipe(
-      tap((tasks) => {
-        this.tasksSignal.update((currentTasks) => [
-          ...currentTasks.filter((t) => t.todoId !== todoId),
-          ...tasks,
-        ]);
-      })
-    );
-  }
-
-  refreshSubtasks(taskId: string): Observable<Subtask[]> {
-    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: this.isPrivate };
-    return this.dataSyncProvider.getAll<Subtask>("subtask", { taskId }, metadata).pipe(
-      tap((subtasks) => {
-        this.subtasksSignal.update((currentSubtasks) => [
-          ...currentSubtasks.filter((st) => st.taskId !== taskId),
-          ...subtasks,
-        ]);
-      })
-    );
+  rollbackRemoveTask(task: Task): void {
+    this.tasksSignal.update((tasks) => [...tasks, task]);
   }
 
   // ==================== UTILITY METHODS ====================
@@ -367,23 +424,5 @@ export class StorageService {
     this.profileSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
-  }
-
-  getStats(): {
-    todos: number;
-    tasks: number;
-    subtasks: number;
-    categories: number;
-    lastLoaded: Date | null;
-    isCached: boolean;
-  } {
-    return {
-      todos: this.todosSignal().length,
-      tasks: this.tasksSignal().length,
-      subtasks: this.subtasksSignal().length,
-      categories: this.categoriesSignal().length,
-      lastLoaded: this.lastLoadedSignal(),
-      isCached: this.isCacheValid(),
-    };
   }
 }

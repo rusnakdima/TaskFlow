@@ -100,26 +100,70 @@ export class ShortcutService {
           }
         }
 
-        // Navigation (only when not in input/ctrl mode)
+        // Alt + Letter shortcuts for quick navigation (only when Alt is pressed)
         const key = event.key.toLowerCase();
         const isModKey = event.ctrlKey || event.metaKey;
 
-        // H -> Home
-        if (key === "h" && !isModKey) this.zone.run(() => this.router.navigate(["/dashboard"]));
-        // P -> Projects
-        if (key === "p" && !isModKey) this.zone.run(() => this.router.navigate(["/todos"]));
-        // C -> Categories
-        if (key === "c" && !isModKey) this.zone.run(() => this.router.navigate(["/categories"]));
-        // K -> Kanban (only without Ctrl/Cmd to avoid conflict with Command Palette)
-        if (key === "k" && !isModKey) this.zone.run(() => this.router.navigate(["/kanban"]));
-        // S -> Stats
-        if (key === "s" && !isModKey) this.zone.run(() => this.router.navigate(["/stats"]));
-        // Y -> Sync
-        if (key === "y" && !isModKey) this.zone.run(() => this.router.navigate(["/sync"]));
-        // G -> Shared (Groups)
-        if (key === "g" && !isModKey) this.zone.run(() => this.router.navigate(["/shared-tasks"]));
-        // A -> About
-        if (key === "a" && !isModKey) this.zone.run(() => this.router.navigate(["/about"]));
+        if (event.altKey && !event.shiftKey && !isModKey) {
+          switch (key) {
+            case "h":
+              // Alt + H -> Home/Dashboard
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/dashboard"]));
+              break;
+            case "p":
+              // Alt + P -> Projects
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/todos"]));
+              break;
+            case "t":
+              // Alt + T -> Tasks
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/todos"]));
+              break;
+            case "c":
+              // Alt + C -> Categories
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/categories"]));
+              break;
+            case "k":
+              // Alt + K -> Kanban
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/kanban"]));
+              break;
+            case "s":
+              // Alt + S -> Stats
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/stats"]));
+              break;
+            case "y":
+              // Alt + Y -> Sync
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/sync"]));
+              break;
+            case "g":
+              // Alt + G -> Shared (Groups)
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/shared-tasks"]));
+              break;
+            case "a":
+              // Alt + A -> About
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/about"]));
+              break;
+            case "l":
+              // Alt + L -> Calendar
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/calendar"]));
+              break;
+            case "u":
+              // Alt + U -> Profile (User)
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/profile"]));
+              break;
+          }
+          return;
+        }
       }
     });
   }

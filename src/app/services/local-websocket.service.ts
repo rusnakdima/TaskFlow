@@ -1,11 +1,12 @@
 /* sys lib */
 import { inject, Injectable } from "@angular/core";
 import { Observable, BehaviorSubject, Subject, throwError } from "rxjs";
-import { take, map, timeout, filter, catchError } from "rxjs/operators";
+import { take, map, timeout, filter, catchError, tap } from "rxjs/operators";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 import { SyncMetadata } from "@models/sync-metadata";
+import { RelationObj } from "@models/relation-obj.model";
 
 /* services */
 import { NotifyService } from "./notify.service";
@@ -127,7 +128,6 @@ export class LocalWebSocketService {
         }
       }),
       catchError((error) => {
-        console.error("[LocalWebSocketService] Request failed:", error);
         if (error.name === "TimeoutError") {
           return throwError(() => new Error("Request timed out - no response from server"));
         }
@@ -137,81 +137,124 @@ export class LocalWebSocketService {
   }
 
   getAll<T>(
-    entity: string,
+    table: string,
     filter: { [key: string]: any },
-    syncMetadata?: SyncMetadata
+    syncMetadata?: SyncMetadata,
+    relations?: RelationObj[]
   ): Observable<T[]> {
     return this.request<T[]>("get-all", {
-      entity,
+      entity: table,
       filter,
+      relations,
       syncMetadata,
     });
   }
 
   get<T>(
-    entity: string,
+    table: string,
     filter: { [key: string]: any },
-    syncMetadata?: SyncMetadata
+    syncMetadata?: SyncMetadata,
+    relations?: RelationObj[]
   ): Observable<T> {
     return this.request<T>("get", {
-      entity,
+      entity: table,
       filter,
       syncMetadata,
+      relations,
     });
   }
 
   create<T>(
-    entity: string,
+    table: string,
     data: any,
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
+    console.log("[LocalWebSocketService] create:", { table, data });
     return this.request<T>("create", {
-      entity,
+      entity: table,
       data: { ...data, todoId: parentTodoId },
       syncMetadata,
-    });
+    }).pipe(
+      tap((result) => {
+        console.log("[LocalWebSocketService] Response received:", {
+          action: "create",
+          table: table,
+          status: "Success"
+        });
+      })
+    );
   }
 
   update<T>(
-    entity: string,
+    table: string,
     id: string,
     data: any,
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
+    console.log("[LocalWebSocketService] update:", { table, id, data });
     return this.request<T>("update", {
-      entity,
+      entity: table,
       id,
       data: { ...data, todoId: parentTodoId },
       syncMetadata,
-    });
+    }).pipe(
+      tap((result) => {
+        console.log("[LocalWebSocketService] Response received:", {
+          action: "update",
+          table: table,
+          id: id,
+          status: "Success"
+        });
+      })
+    );
   }
 
   updateAll<T>(
-    entity: string,
+    table: string,
     data: any[],
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
+    console.log("[LocalWebSocketService] updateAll:", { table, data });
     return this.request<T>("update-all", {
-      entity,
+      entity: table,
       data,
       todoId: parentTodoId,
       syncMetadata,
-    });
+    }).pipe(
+      tap((result) => {
+        console.log("[LocalWebSocketService] Response received:", {
+          action: "update-all",
+          table: table,
+          count: Array.isArray(result) ? result.length : 0,
+          status: "Success"
+        });
+      })
+    );
   }
 
   delete(
-    entity: string,
+    table: string,
     id: string,
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<void> {
+    console.log("[LocalWebSocketService] delete:", { table, id });
     return this.request<void>("delete", {
-      entity,
+      entity: table,
       id,
       syncMetadata,
-    });
+    }).pipe(
+      tap(() => {
+        console.log("[LocalWebSocketService] Response received:", {
+          action: "delete",
+          table: table,
+          id: id,
+          status: "Success"
+        });
+      })
+    );
   }
 }
