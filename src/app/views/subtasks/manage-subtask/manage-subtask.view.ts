@@ -29,6 +29,7 @@ import { NotifyService } from "@services/notify.service";
 import { ShortcutService } from "@services/shortcut.service";
 import { FormValidatorService } from "@services/form-validator.service";
 import { DateValidatorService } from "@services/date-validator.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -71,6 +72,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
+    private storageService: StorageService,
     private shortcutService: ShortcutService,
     private formValidator: FormValidatorService,
     private dateValidator: DateValidatorService
@@ -189,7 +191,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   getSubtaskInfo(subtaskId: string) {
     this.dataSyncProvider
       .getAll<Subtask>(
-        "subtask",
+        "subtasks",
         { id: subtaskId },
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
         this.todoId()
@@ -220,7 +222,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   loadProjectInfo(todoId: string) {
     this.dataSyncProvider
       .get<Todo>(
-        "todo",
+        "todos",
         { id: todoId },
         { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
       )
@@ -239,7 +241,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
   loadTaskInfo(taskId: string) {
     this.dataSyncProvider
-      .get<Task>("task", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .get<Task>("tasks", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
       .subscribe({
         next: (task) => {
           this.taskInfo.set(task);
@@ -254,7 +256,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       this.dataSyncProvider
         .getAll<Subtask>(
-          "subtask",
+          "subtasks",
           { taskId: this.taskId() },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todoId()
@@ -276,7 +278,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
             this.dataSyncProvider
               .create<any>(
-                "subtask",
+                "subtasks",
                 duplicateData,
                 { isOwner: this.isOwner, isPrivate: this.isPrivate },
                 this.todoId()
@@ -333,7 +335,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       this.dataSyncProvider
         .getAll<Subtask>(
-          "subtask",
+          "subtasks",
           { field: "taskId", value: this.taskId() },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todoId()
@@ -351,14 +353,16 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
             };
 
             this.dataSyncProvider
-              .create<any>(
-                "subtask",
+              .create<Subtask>(
+                "subtasks",
                 body,
                 { isOwner: this.isOwner, isPrivate: this.isPrivate },
                 this.projectInfo()?.id
               )
               .subscribe({
-                next: (result) => {
+                next: (result: Subtask) => {
+                  // Add the new subtask with real ID from backend to cache
+                  this.storageService.addSubtask(result);
                   this.isSubmitting.set(false);
                   this.notifyService.showSuccess("Subtask created successfully");
                   this.back();
@@ -389,9 +393,15 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         ...convertedDates,
       };
 
+      // Store previous state for rollback
+      const previousSubtask = this.storageService.getSubtaskById(body.id);
+
+      // Optimistic update: update cache immediately
+      this.storageService.updateSubtask(body.id, body);
+
       this.dataSyncProvider
         .update<any>(
-          "subtask",
+          "subtasks",
           body.id,
           body,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -404,6 +414,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
             this.back();
           },
           error: (err) => {
+            // Rollback on failure
+            if (previousSubtask) {
+              this.storageService.updateSubtask(body.id, previousSubtask);
+            }
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to update subtask");
           },

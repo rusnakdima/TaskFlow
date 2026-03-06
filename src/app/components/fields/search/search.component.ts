@@ -133,10 +133,25 @@ export class SearchComponent implements OnInit {
     if (!pattern) return true;
     if (!text) return false;
 
+    // Direct substring match (fastest and most common)
     if (text.includes(pattern)) {
       return true;
     }
 
+    // Word boundary match - split text into words and check each word
+    const words = text.split(/[\s_-]+/);
+    for (const word of words) {
+      // Check if pattern matches the start of any word
+      if (word.startsWith(pattern)) {
+        return true;
+      }
+      // Check if pattern is contained within any word
+      if (word.includes(pattern)) {
+        return true;
+      }
+    }
+
+    // Fuzzy match - characters appear in order (but not necessarily consecutive)
     const patternChars = pattern.split("");
     let patternIdx = 0;
 
