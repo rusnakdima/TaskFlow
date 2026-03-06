@@ -1,6 +1,5 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -38,38 +37,39 @@ export class TodosController {
   }
 
   /**
-   * Load all todos for user (from StorageService cache)
-   */
-  loadTodos(): Observable<Todo[]> {
-    // Use storage service which loads todos with relations
-    return new Observable<Todo[]>((observer) => {
-      const todos = this.storageService.todos();
-      observer.next(todos);
-      observer.complete();
-    });
-  }
-
-  /**
-   * Delete todo by ID
+   * Delete todo by ID - Optimistic update with rollback on failure
    */
   deleteTodoById(todoId: string, onSuccess: () => void): void {
-    this.dataSyncProvider.delete("todo", todoId, { isOwner: true, isPrivate: true }).subscribe({
+    // Get the todo before deleting for potential rollback
+    const todoToDelete = this.storageService.getTodoById(todoId);
+    
+    // Optimistic update: remove from cache immediately
+    this.storageService.removeTodo(todoId);
+    this.notifyService.showSuccess("Todo deleted successfully");
+    onSuccess();
+
+    // Send to backend
+    this.dataSyncProvider.delete("todos", todoId, { isOwner: true, isPrivate: true }).subscribe({
       next: () => {
-        // Update storage service cache
-        this.storageService.removeTodo(todoId);
-        this.notifyService.showSuccess("Todo deleted successfully");
-        onSuccess();
+        // Success - cache already updated
       },
       error: (err) => {
+        // Rollback on failure
+        if (todoToDelete) {
+          this.storageService.rollbackRemoveTodo(todoToDelete);
+        }
         this.notifyService.showError(err.message || "Failed to delete todo");
       },
     });
   }
 
   /**
-   * Update todo order
+   * Update todo order - Optimistic update with rollback on failure
    */
   updateTodoOrder(todos: Todo[], onComplete: (success: boolean) => void): void {
+    // Store previous state for rollback
+    const previousTodos = todos.map(todo => ({ ...todo }));
+    
     const transformedTodos = todos.map((todo) => ({
       _id: todo._id,
       id: todo.id,
@@ -87,44 +87,60 @@ export class TodosController {
       updatedAt: new Date().toISOString().split(".")[0],
     }));
 
+    // Optimistic update: update cache immediately
+    this.storageService.todosSignalAccessor.set(todos);
+    this.notifyService.showSuccess("Order updated successfully");
+    onComplete(true);
+
+    // Send to backend
     this.dataSyncProvider
-      .updateAll<string>("todo", transformedTodos, { isOwner: true, isPrivate: true })
+      .updateAll<string>("todos", transformedTodos, { isOwner: true, isPrivate: true })
       .subscribe({
         next: () => {
-          // Update storage service cache with new order
-          this.storageService.todosSignalAccessor.set(todos);
-          this.notifyService.showSuccess("Order updated successfully");
-          onComplete(true);
+          // Success - cache already updated
         },
         error: (err) => {
+          // Rollback on failure
+          this.storageService.todosSignalAccessor.set(previousTodos);
           this.notifyService.showError(err.message || "Failed to update order");
-          onComplete(false);
         },
         complete: () => {},
       });
   }
 
   /**
-   * Update two todo order (for drag-drop swap)
+   * Update two todo order (for drag-drop swap) - Optimistic update with rollback on failure
    */
   updateTwoTodoOrder(todo1: Todo, todo2: Todo, onComplete: () => void): void {
+    // Store previous state for rollback
+    const previousTodo1Order = todo1.order;
+    const previousTodo2Order = todo2.order;
+    
     let completedCount = 0;
+    let hasError = false;
+
+    // Optimistic update: update cache immediately
+    this.storageService.updateTodo(todo1.id, { order: todo1.order });
+    this.storageService.updateTodo(todo2.id, { order: todo2.order });
 
     [todo1, todo2].forEach((todo) => {
       this.dataSyncProvider
-        .update<Todo>("todo", todo.id, { order: todo.order }, { isOwner: true, isPrivate: true })
+        .update<Todo>("todos", todo.id, { order: todo.order }, { isOwner: true, isPrivate: true })
         .subscribe({
           next: () => {
             completedCount++;
             if (completedCount === 2) {
-              // Update storage service cache
-              this.storageService.updateTodo(todo1.id, { order: todo1.order });
-              this.storageService.updateTodo(todo2.id, { order: todo2.order });
-              this.notifyService.showSuccess("Project order updated successfully");
-              onComplete();
+              if (!hasError) {
+                this.notifyService.showSuccess("Project order updated successfully");
+                onComplete();
+              }
             }
           },
           error: (err) => {
+            hasError = true;
+            // Rollback on failure
+            this.storageService.updateTodo(todo1.id, { order: previousTodo1Order });
+            this.storageService.updateTodo(todo2.id, { order: previousTodo2Order });
             this.notifyService.showError(err.message || "Failed to update project order");
           },
         });
@@ -146,7 +162,7 @@ export class TodosController {
   }
 
   /**
-   * Create todo from blueprint
+   * Create todo from blueprint - Optimistic update with rollback on failure
    */
   createFromBlueprint(template: ProjectTemplate, title: string, onSuccess: () => void): void {
     if (!template || !title) {
@@ -174,9 +190,15 @@ export class TodosController {
 
     const clientTodoId = todo.id;
 
-    this.dataSyncProvider.create<Todo>("todo", todo, { isOwner: true, isPrivate: true }).subscribe({
+    // Optimistic update: add to cache immediately
+    this.storageService.addTodo(todo);
+
+    this.dataSyncProvider.create<Todo>("todos", todo, { isOwner: true, isPrivate: true }).subscribe({
       next: (createdTodo) => {
-        const todoId = clientTodoId;
+        // Update the cached todo with the real ID from backend
+        this.storageService.updateTodo(clientTodoId, { id: createdTodo.id });
+
+        const todoId = createdTodo.id;
         const tasks = this.templateService.applyTemplate(template, todoId, this.userId);
 
         if (tasks.length === 0) {
@@ -191,11 +213,17 @@ export class TodosController {
           const { subtasks, ...taskWithoutSubtasks } = task;
           const clientTaskId = task.id;
 
+          // Optimistic update: add task to cache
+          this.storageService.addTask(task);
+
           this.dataSyncProvider
-            .create<Task>("task", taskWithoutSubtasks, { isOwner: true, isPrivate: true }, todoId)
+            .create<Task>("tasks", taskWithoutSubtasks, { isOwner: true, isPrivate: true }, todoId)
             .subscribe({
-              next: () => {
-                const taskId = clientTaskId;
+              next: (createdTask) => {
+                // Update the cached task with the real ID from backend
+                this.storageService.updateTask(clientTaskId, { id: createdTask.id, todoId: createdTask.todoId });
+
+                const taskId = createdTask.id;
                 const subtasks = task.subtasks || [];
 
                 if (subtasks.length === 0) {
@@ -216,15 +244,24 @@ export class TodosController {
                     todoId: todoId,
                   };
 
+                  // Optimistic update: add subtask to cache
+                  this.storageService.addSubtask(subtask);
+
                   this.dataSyncProvider
                     .create<any>(
-                      "subtask",
+                      "subtasks",
                       subtaskWithActualTaskId,
                       { isOwner: true, isPrivate: true },
                       todoId
                     )
                     .subscribe({
-                      next: () => {
+                      next: (createdSubtask) => {
+                        // Update the cached subtask with the real ID from backend
+                        this.storageService.updateSubtask(subtask.id, { 
+                          id: createdSubtask.id,
+                          taskId: createdSubtask.taskId
+                        });
+                        
                         createdSubtasksCount++;
                         if (createdSubtasksCount === subtasks.length) {
                           createdTasksCount++;
@@ -248,6 +285,8 @@ export class TodosController {
         });
       },
       error: (err) => {
+        // Rollback: remove todo from cache on failure
+        this.storageService.removeTodo(clientTodoId);
         this.notifyService.showError(err.message || "Failed to create project");
       },
     });
