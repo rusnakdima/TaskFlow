@@ -17,6 +17,7 @@ import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -49,9 +50,14 @@ export class SubtasksView implements OnInit {
     private dataSyncProvider: DataSyncProvider,
     private cdr: ChangeDetectorRef,
     private filterService: FilterService,
-    private sortService: SortService
+    private sortService: SortService,
+    private storageService: StorageService
   ) {}
 
+  // Use storage signals directly for source data
+  subtasks = this.storageService.subtasks;
+  
+  // Separate signals for filtered/sorted display list
   listSubtasks = signal<Array<Subtask>>([]);
   tempListSubtasks = signal<Array<Subtask>>([]);
 
@@ -102,13 +108,13 @@ export class SubtasksView implements OnInit {
         this.isPrivate = todoData.visibility === "private";
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
-        this.getSubtasksByTaskId(todoData.id);
+        this.loadSubtasksByTaskId(todoData.id);
       }
       if (dataResolve?.["task"]) {
         const taskData = dataResolve["task"];
         this.task.set(taskData);
         this.cdr.detectChanges();
-        this.getSubtasksByTaskId(taskData.id);
+        this.loadSubtasksByTaskId(taskData.id);
       }
     }
   }
@@ -117,36 +123,14 @@ export class SubtasksView implements OnInit {
     return subtask.id;
   }
 
-  getTaskInfo(id: string) {
-    this.dataSyncProvider
-      .get<Task>("task", { id: id }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
-      .subscribe({
-        next: (task) => {
-          this.task.set(task);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load task");
-        },
-      });
-  }
-
-  getSubtasksByTaskId(taskId: string) {
-    this.dataSyncProvider
-      .getAll<Subtask>(
-        "subtask",
-        { taskId },
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId()
-      )
-      .subscribe({
-        next: (subtasks) => {
-          this.tempListSubtasks.set(subtasks);
-          this.applyFilter();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
-        },
-      });
+  loadSubtasksByTaskId(taskId: string) {
+    // Read subtasks directly from storage - filtered by taskId
+    const filteredSubtasks = this.subtasks().filter(st => st.taskId === taskId);
+    
+    if (filteredSubtasks && filteredSubtasks.length > 0) {
+      this.tempListSubtasks.set(filteredSubtasks);
+      this.applyFilter();
+    }
   }
 
   searchFunc(data: Array<any>) {
@@ -236,7 +220,7 @@ export class SubtasksView implements OnInit {
 
     this.dataSyncProvider
       .update<Subtask>(
-        "subtask",
+        "subtasks",
         subtask.id,
         updatedSubtask,
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -282,7 +266,7 @@ export class SubtasksView implements OnInit {
 
     this.dataSyncProvider
       .update<Subtask>(
-        "subtask",
+        "subtasks",
         event.subtask.id,
         updatedSubtask,
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -307,7 +291,7 @@ export class SubtasksView implements OnInit {
 
   deleteSubtask(id: string) {
     this.dataSyncProvider
-      .delete("subtask", id, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todoId())
+      .delete("subtasks", id, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todoId())
       .subscribe({
         next: (result) => {
           this.listSubtasks.set(
@@ -354,7 +338,7 @@ export class SubtasksView implements OnInit {
 
     this.dataSyncProvider
       .updateAll<string>(
-        "subtask",
+        "subtasks",
         transformedSubtasks,
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
         this.todoId()
@@ -365,7 +349,7 @@ export class SubtasksView implements OnInit {
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to update subtask order");
-          this.getSubtasksByTaskId(this.task()?.id ?? "");
+          // No need to reload - storage auto-updates
         },
         complete: () => {
           this.isUpdatingOrder = false;

@@ -8,12 +8,10 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 
@@ -36,14 +34,12 @@ interface TeamMember {
 @Component({
   selector: "app-shared-tasks",
   standalone: true,
-  providers: [MainService, DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, TodoComponent],
   templateUrl: "./shared-tasks.view.html",
 })
 export class SharedTasksView implements OnInit {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider
   ) {}
@@ -65,20 +61,25 @@ export class SharedTasksView implements OnInit {
   }
 
   async fetchProfile(userId: string): Promise<Profile | null> {
-    const response: Response<Profile> = await this.mainService.get<Profile>("profile", {
-      userId,
+    return new Promise((resolve) => {
+      this.dataSyncProvider
+        .get<Profile>("profiles", { userId })
+        .subscribe({
+          next: (profile) => {
+            resolve(profile);
+          },
+          error: () => {
+            resolve(null);
+          }
+        });
     });
-
-    if (response.status !== ResponseStatus.SUCCESS) return null;
-    const profile = response.data;
-    return profile;
   }
 
   async loadSharedProjects() {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
       this.dataSyncProvider
-        .getAll<Todo>("todo", { userId, visibility: "team" }, { isOwner: true, isPrivate: false })
+        .getAll<Todo>("todos", { userId, visibility: "team" }, { isOwner: true, isPrivate: false })
         .subscribe({
           next: (todos) => {
             if (todos) {
@@ -93,7 +94,7 @@ export class SharedTasksView implements OnInit {
 
       this.dataSyncProvider
         .getAll<Todo>(
-          "todo",
+          "todos",
           { assignee: userId, visibility: "team" },
           { isOwner: false, isPrivate: false }
         )
@@ -145,7 +146,7 @@ export class SharedTasksView implements OnInit {
   }
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
-    this.dataSyncProvider.delete("todo", todoId, { isOwner, isPrivate: false }).subscribe({
+    this.dataSyncProvider.delete("todos", todoId, { isOwner, isPrivate: false }).subscribe({
       next: (result) => {
         this.notifyService.showSuccess("Project deleted successfully");
         this.loadSharedProjects();
@@ -209,7 +210,7 @@ export class SharedTasksView implements OnInit {
     }));
 
     this.dataSyncProvider
-      .updateAll<string>("todo", transformedTodos, { isOwner: true, isPrivate: false })
+      .updateAll<string>("todos", transformedTodos, { isOwner: true, isPrivate: false })
       .subscribe({
         next: (result) => {
           this.notifyService.showSuccess("Order updated successfully");
@@ -249,7 +250,7 @@ export class SharedTasksView implements OnInit {
     }));
 
     this.dataSyncProvider
-      .updateAll<string>("todo", transformedTodos, { isOwner: false, isPrivate: false })
+      .updateAll<string>("todos", transformedTodos, { isOwner: false, isPrivate: false })
       .subscribe({
         next: (result) => {
           this.notifyService.showSuccess("Order updated successfully");

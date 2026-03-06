@@ -2,7 +2,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
-import { forkJoin } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -10,7 +9,6 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
@@ -18,26 +16,17 @@ import { Task, TaskStatus } from "@models/task.model";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StorageService } from "@services/storage.service";
-
-/* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  date: Date;
-  type: "todo" | "task";
-  status: string;
-  description?: string;
-  todoId: string;
-  isPrivate: boolean;
-  isOwner: boolean;
-}
+import { CalendarGeneratorService, CalendarDay } from "@services/calendar-generator.service";
+import {
+  CalendarEvent,
+  getEventColor,
+  getCurrentTitle,
+  getTaskEventTitle,
+} from "@services/calendar-helpers.service";
 
 @Component({
   selector: "app-calendar",
   standalone: true,
-  providers: [DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule, MatDatepickerModule, MatNativeDateModule],
   templateUrl: "./calendar.view.html",
 })
@@ -48,7 +37,8 @@ export class CalendarView implements OnInit {
     private authService: AuthService,
     private notifyService: NotifyService,
     router: Router,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private calendarGenerator: CalendarGeneratorService
   ) {
     this.router = router;
   }
@@ -60,26 +50,8 @@ export class CalendarView implements OnInit {
 
   viewMode = signal<"month" | "week" | "day">("month");
 
-  calendarDays = signal<
-    Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      isSelected: boolean;
-      events: CalendarEvent[];
-    }>
-  >([]);
-
-  weekDays = signal<
-    Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      isSelected: boolean;
-      events: CalendarEvent[];
-    }>
-  >([]);
-
+  calendarDays = signal<CalendarDay[]>([]);
+  weekDays = signal<CalendarDay[]>([]);
   dayEvents = signal<CalendarEvent[]>([]);
 
   ngOnInit(): void {
@@ -141,26 +113,22 @@ export class CalendarView implements OnInit {
       }
 
       if (task.endDate) {
+        const statusText = getTaskEventTitle(task.status, task.title);
+        const status =
+          task.status === TaskStatus.COMPLETED
+            ? "completed"
+            : task.status === TaskStatus.SKIPPED
+              ? "skipped"
+              : task.status === TaskStatus.FAILED
+                ? "failed"
+                : "due";
+
         newEvents.push({
           id: task.id!,
-          title:
-            task.status === TaskStatus.COMPLETED
-              ? `Completed: ${task.title}`
-              : task.status === TaskStatus.SKIPPED
-                ? `Skipped: ${task.title}`
-                : task.status === TaskStatus.FAILED
-                  ? `Failed: ${task.title}`
-                  : `Due: ${task.title}`,
+          title: statusText,
           date: new Date(task.endDate),
           type: "task",
-          status:
-            task.status === TaskStatus.COMPLETED
-              ? "completed"
-              : task.status === TaskStatus.SKIPPED
-                ? "skipped"
-                : task.status === TaskStatus.FAILED
-                  ? "failed"
-                  : "due",
+          status,
           description: task.description,
           todoId: task.todo.id,
           isPrivate,
@@ -172,6 +140,10 @@ export class CalendarView implements OnInit {
     this.events.set(newEvents);
 
     this.filterEventsForSelectedDate();
+    this.regenerateView();
+  }
+
+  regenerateView(): void {
     if (this.viewMode() === "month") {
       this.generateCalendarDays();
     } else if (this.viewMode() === "week") {
@@ -182,85 +154,31 @@ export class CalendarView implements OnInit {
   }
 
   generateCalendarDays(): void {
-    const year = this.currentMonth().getFullYear();
-    const month = this.currentMonth().getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-    const newCalendarDays: Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      isSelected: boolean;
-      events: CalendarEvent[];
-    }> = [];
-
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-
-      const dayEvents = this.events().filter((event) => this.isSameDay(event.date, date));
-
-      newCalendarDays.push({
-        date: new Date(date),
-        isCurrentMonth: date.getMonth() === month,
-        isToday: this.isSameDay(date, new Date()),
-        isSelected: this.isSameDay(date, this.selectedDate()),
-        events: dayEvents,
-      });
-    }
-
-    this.calendarDays.set(newCalendarDays);
+    const days = this.calendarGenerator.generateCalendarDays(
+      this.currentMonth(),
+      this.selectedDate(),
+      this.events()
+    );
+    this.calendarDays.set(days);
   }
 
   generateWeekDays(): void {
-    const startOfWeek = new Date(this.selectedDate());
-    startOfWeek.setDate(this.selectedDate().getDate() - this.selectedDate().getDay());
-
-    const newWeekDays: Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      isSelected: boolean;
-      events: CalendarEvent[];
-    }> = [];
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-
-      const dayEvents = this.events().filter((event) => this.isSameDay(event.date, date));
-
-      newWeekDays.push({
-        date: new Date(date),
-        isCurrentMonth: date.getMonth() === this.currentMonth().getMonth(),
-        isToday: this.isSameDay(date, new Date()),
-        isSelected: this.isSameDay(date, this.selectedDate()),
-        events: dayEvents,
-      });
-    }
-
-    this.weekDays.set(newWeekDays);
+    const days = this.calendarGenerator.generateWeekDays(
+      this.selectedDate(),
+      this.currentMonth(),
+      this.events()
+    );
+    this.weekDays.set(days);
   }
 
   generateDayView(): void {
-    this.dayEvents.set(
-      this.events().filter((event) => this.isSameDay(event.date, this.selectedDate()))
-    );
+    this.dayEvents.set(this.calendarGenerator.generateDayView(this.selectedDate(), this.events()));
   }
 
   selectDate(date: Date): void {
     this.selectedDate.set(new Date(date));
     this.filterEventsForSelectedDate();
-    if (this.viewMode() === "month") {
-      this.generateCalendarDays();
-    } else if (this.viewMode() === "week") {
-      this.generateWeekDays();
-    } else if (this.viewMode() === "day") {
-      this.generateDayView();
-    }
+    this.regenerateView();
   }
 
   filterEventsForSelectedDate(): void {
@@ -320,77 +238,33 @@ export class CalendarView implements OnInit {
   goToToday(): void {
     this.currentMonth.set(new Date());
     this.selectedDate.set(new Date());
-    if (this.viewMode() === "month") {
-      this.generateCalendarDays();
-    } else if (this.viewMode() === "week") {
-      this.generateWeekDays();
-    } else if (this.viewMode() === "day") {
-      this.generateDayView();
-    }
+    this.regenerateView();
     this.filterEventsForSelectedDate();
   }
 
   formatMonthYear(): string {
-    return this.currentMonth().toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    return getCurrentTitle("month", this.currentMonth(), this.selectedDate());
   }
 
   formatWeekRange(): string {
-    const startOfWeek = new Date(this.selectedDate());
-    startOfWeek.setDate(this.selectedDate().getDate() - this.selectedDate().getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-
-    const startMonth = startOfWeek.toLocaleDateString("en-US", { month: "short" });
-    const endMonth = endOfWeek.toLocaleDateString("en-US", { month: "short" });
-    const year = startOfWeek.getFullYear();
-
-    if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
-      return `${startMonth} ${startOfWeek.getDate()} - ${endOfWeek.getDate()}, ${year}`;
-    } else {
-      return `${startMonth} ${startOfWeek.getDate()} - ${endMonth} ${endOfWeek.getDate()}, ${year}`;
-    }
+    return getCurrentTitle("week", this.currentMonth(), this.selectedDate());
   }
 
   formatSelectedDate(): string {
-    return this.selectedDate().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return getCurrentTitle("day", this.currentMonth(), this.selectedDate());
   }
 
   getCurrentTitle(): string {
-    if (this.viewMode() === "month") {
-      return this.formatMonthYear();
-    } else if (this.viewMode() === "week") {
-      return this.formatWeekRange();
-    } else if (this.viewMode() === "day") {
-      return this.formatSelectedDate();
-    }
-    return "";
+    return getCurrentTitle(this.viewMode(), this.currentMonth(), this.selectedDate());
   }
 
   getEventColor(event: CalendarEvent): string {
-    if (event.status === "due") return "bg-red-500";
-    if (event.status === "completed") return "bg-green-500";
-    if (event.status === "skipped") return "bg-orange-500";
-    if (event.status === "failed") return "bg-gray-500";
-    return "bg-blue-500";
+    return getEventColor(event);
   }
 
   changeViewMode(mode: "month" | "week" | "day"): void {
     this.viewMode.set(mode);
-    if (mode === "month") {
-      this.generateCalendarDays();
-    } else if (mode === "week") {
-      this.generateWeekDays();
-    } else if (mode === "day") {
-      this.generateDayView();
-    }
+    this.regenerateView();
   }
 
   navigateToTasks(event: CalendarEvent): void {
@@ -403,29 +277,8 @@ export class CalendarView implements OnInit {
     });
   }
 
-  getWeeksForMobile(): Array<
-    Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      isSelected: boolean;
-      events: CalendarEvent[];
-    }>
-  > {
-    const weeks: Array<
-      Array<{
-        date: Date;
-        isCurrentMonth: boolean;
-        isToday: boolean;
-        isSelected: boolean;
-        events: CalendarEvent[];
-      }>
-    > = [];
-    const calendarDays = this.calendarDays();
-    for (let i = 0; i < calendarDays.length; i += 7) {
-      weeks.push(calendarDays.slice(i, i + 7));
-    }
-    return weeks;
+  getWeeksForMobile(): CalendarDay[][] {
+    return this.calendarGenerator.getWeeksForMobile(this.calendarDays());
   }
 
   getDayName(date: Date): string {

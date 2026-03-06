@@ -31,7 +31,7 @@ export class MainResolver implements Resolve<any> {
         const isOwner = isPrivate;
 
         const taskObservable = this.dataSyncProvider.get<Task>(
-          "task",
+          "tasks",
           { id: taskId },
           { isOwner, isPrivate }
         );
@@ -39,7 +39,7 @@ export class MainResolver implements Resolve<any> {
         const task = await firstValueFrom(taskObservable);
 
         const todoObservable = this.dataSyncProvider.get<Todo>(
-          "todo",
+          "todos",
           { id: todoId },
           { isOwner: isPrivate, isPrivate }
         );
@@ -53,7 +53,7 @@ export class MainResolver implements Resolve<any> {
         const isOwner = queryParams?.["isOwner"] === "true";
 
         const todoObservable = this.dataSyncProvider.get<Todo>(
-          "todo",
+          "todos",
           { id: todoId },
           { isOwner, isPrivate }
         );

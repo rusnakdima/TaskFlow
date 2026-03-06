@@ -19,15 +19,16 @@ import { NotifyService } from "@services/notify.service";
 import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
 import { BulkActionService } from "@services/bulk-action.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
-import { SearchComponent } from "@components/fields/search/search.component";
 import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
-import { BulkActionBarComponent } from "@components/bulk-action-bar/bulk-action-bar.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
 
 /* controllers */
 import { TasksController } from "@controllers/tasks.controller";
@@ -42,10 +43,10 @@ import { TasksController } from "@controllers/tasks.controller";
     MatIconModule,
     MatExpansionModule,
     RouterModule,
-    SearchComponent,
     TaskComponent,
     TodoInformationComponent,
-    BulkActionBarComponent,
+    BulkActionsComponent,
+    FilterBarComponent,
     DragDropModule,
   ],
   templateUrl: "./tasks.view.html",
@@ -60,12 +61,17 @@ export class TasksView implements OnInit {
     private route: ActivatedRoute,
     private authService: AuthService,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider
+    private dataSyncProvider: DataSyncProvider,
+    private storageService: StorageService
   ) {}
 
-  listTasks = signal<Task[]>([]);
-  tempListTasks = signal<Task[]>([]);
+  // Use storage signals directly for source data
+  tasks = this.storageService.tasks;
   todo = signal<Todo | null>(null);
+  
+  // Separate signals for filtered/sorted display list
+  tempListTasks = signal<Task[]>([]);
+  listTasks = signal<Task[]>([]);
 
   selectedTasks = signal<Set<string>>(new Set());
   showBulkActions = signal(false);
@@ -74,6 +80,7 @@ export class TasksView implements OnInit {
 
   activeFilter = signal("all");
   showFilter = signal(false);
+  searchQuery = signal("");
 
   highlightTaskId = signal<string | null>(null);
 
@@ -117,24 +124,26 @@ export class TasksView implements OnInit {
       const todoData = routeData["todo"];
       this.todo.set(todoData);
       this.controller.init(todoData, userId);
-      this.getTasksByTodoId(todoData.id);
+      this.loadTasksByTodoId(todoData.id);
     }
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup if needed
   }
 
   trackByTaskId(index: number, task: Task): string {
     return task.id;
   }
 
-  getTasksByTodoId(todoId: string) {
-    this.controller.getTasksByTodoId(todoId).subscribe({
-      next: (tasks) => {
-        this.tempListTasks.set(tasks);
-        this.applyFilter();
-      },
-      error: () => {
-        this.notifyService.showError("Failed to load tasks");
-      },
-    });
+  loadTasksByTodoId(todoId: string) {
+    // Read tasks directly from storage - filtered by todoId
+    const filteredTasks = this.tasks().filter(task => task.todoId === todoId);
+    
+    if (filteredTasks && filteredTasks.length > 0) {
+      this.tempListTasks.set(filteredTasks);
+      this.applyFilter();
+    }
   }
 
   searchFunc(data: Task[]) {
@@ -155,8 +164,32 @@ export class TasksView implements OnInit {
     this.applyFilter();
   }
 
+  onSearchChange(query: string) {
+    // This is called when search input changes
+    this.searchQuery.set(query);
+    // Re-apply filter with new search query
+    this.applyFilter();
+  }
+
+  onSearchResults(results: any[]) {
+    if (this.searchQuery()) {
+      this.listTasks.set(results);
+    }
+  }
+
+  clearFilters() {
+    this.activeFilter.set('all');
+    this.searchQuery.set('');
+    this.applyFilter();
+  }
+
   applyFilter() {
-    let filtered = [...this.tempListTasks()];
+    // Read tasks from storage service, filtered by current todoId
+    let filtered = this.tasks().filter(task => 
+      !this.todo() ? false : task.todoId === this.todo()!.id
+    );
+
+    console.log("[TasksView] applyFilter - tasks count:", filtered.length);
 
     switch (this.activeFilter()) {
       case "active":
@@ -179,7 +212,17 @@ export class TasksView implements OnInit {
         break;
     }
 
+    // Apply search filter
+    if (this.searchQuery()) {
+      const query = this.searchQuery().toLowerCase();
+      filtered = filtered.filter((task) =>
+        task.title.toLowerCase().includes(query) ||
+        task.description.toLowerCase().includes(query)
+      );
+    }
+
     filtered = this.sortService.sortByOrder(filtered, "desc");
+    console.log("[TasksView] applyFilter - filtered count:", filtered.length);
     this.listTasks.set(filtered);
 
     if (this.highlightTaskId()) {
@@ -199,10 +242,11 @@ export class TasksView implements OnInit {
   deleteTask(taskId: string) {
     if (confirm("Are you sure you want to delete this task?")) {
       this.controller.deleteTask(taskId, () => {
-        this.getTasksByTodoId(this.todo()?.id ?? "");
+        // Re-apply filter to update the list after deletion
+        this.applyFilter();
         if (this.todo()) {
           this.todo.update(
-            (todo) => ({ ...todo!, tasks: todo!.tasks!.filter((t) => t.id !== taskId) }) as Todo
+            (todo) => ({ ...todo!, tasks: (todo!.tasks || []).filter((t) => t.id !== taskId) }) as Todo
           );
         }
       });
@@ -265,7 +309,7 @@ export class TasksView implements OnInit {
     const selectedIds = Array.from(this.selectedTasks());
     this.controller.bulkUpdatePriority(selectedIds, priority, () => {
       this.clearSelection();
-      this.getTasksByTodoId(this.todo()?.id ?? "");
+      // No need to reload - storage auto-updates
     });
   }
 
@@ -273,7 +317,7 @@ export class TasksView implements OnInit {
     const selectedIds = Array.from(this.selectedTasks());
     this.controller.bulkUpdateStatus(selectedIds, status, () => {
       this.clearSelection();
-      this.getTasksByTodoId(this.todo()?.id ?? "");
+      // No need to reload - storage auto-updates
     });
   }
 
@@ -285,7 +329,7 @@ export class TasksView implements OnInit {
 
     this.controller.bulkDelete(selectedIds, () => {
       this.clearSelection();
-      this.getTasksByTodoId(this.todo()?.id ?? "");
+      // No need to reload - storage auto-updates
     });
   }
 

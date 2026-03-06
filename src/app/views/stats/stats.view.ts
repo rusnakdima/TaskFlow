@@ -19,6 +19,7 @@ import {
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StatisticsService } from "@services/statistics.service";
+import { StorageService } from "@services/storage.service";
 import { Response, ResponseStatus } from "@models/response.model";
 
 @Component({
@@ -32,7 +33,8 @@ export class StatsView implements OnInit {
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService,
-    private statisticsService: StatisticsService
+    private statisticsService: StatisticsService,
+    private storageService: StorageService
   ) {}
 
   selectedTimeRange = signal<string>("week");
@@ -89,7 +91,16 @@ export class StatsView implements OnInit {
   detailedMetrics = signal<DetailedMetric[]>([]);
 
   ngOnInit(): void {
-    this.loadStatistics();
+    // Ensure data is loaded from StorageService
+    if (this.storageService.todos().length === 0) {
+      this.storageService.loadAllData(true).subscribe({
+        next: () => {
+          this.loadStatistics();
+        }
+      });
+    } else {
+      this.loadStatistics();
+    }
   }
 
   async loadStatistics(): Promise<void> {

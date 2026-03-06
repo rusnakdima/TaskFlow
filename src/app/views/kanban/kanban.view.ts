@@ -9,10 +9,9 @@ import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-import { Response, ResponseStatus } from "@models/response.model";
+import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { AuthService } from "@services/auth.service";
 import { DataSyncProvider } from "../../providers/data-sync.provider";
 import { LocalWebSocketService } from "@services/local-websocket.service";

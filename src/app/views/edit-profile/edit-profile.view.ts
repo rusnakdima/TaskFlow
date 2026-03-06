@@ -19,17 +19,15 @@ import { FormComponent } from "@components/form/form.component";
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
 import { Profile } from "@models/profile.model";
-import { Response, ResponseStatus } from "@models/response.model";
-import { AuthService } from "@services/auth.service";
 
 /* services */
-import { MainService } from "@services/main.service";
+import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-edit-profile",
   standalone: true,
-  providers: [AuthService, MainService],
   imports: [
     CommonModule,
     FormsModule,
@@ -45,7 +43,7 @@ export class EditProfileView {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private mainService: MainService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {
     this.form = fb.group({
@@ -94,16 +92,16 @@ export class EditProfileView {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
-      this.mainService
-        .get<Profile>("profile", { userId })
-        .then((response) => {
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.form.patchValue(response.data);
+      this.dataSyncProvider
+        .get<Profile>("profiles", { userId })
+        .subscribe({
+          next: (profile) => {
+            this.form.patchValue(profile);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to load profile");
+            this.router.navigate(["/login"]);
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
-          this.router.navigate(["/login"]);
         });
     } else {
       this.router.navigate(["/login"]);
@@ -120,16 +118,16 @@ export class EditProfileView {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.mainService
-        .update<string, Profile>("profile", body.id, body)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
+      this.dataSyncProvider
+        .update<Profile>("profiles", body.id, body)
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Profile updated successfully");
             this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to update profile");
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");

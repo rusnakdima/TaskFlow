@@ -8,13 +8,13 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Category } from "@models/category.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
+import { StorageService } from "@services/storage.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -24,7 +24,6 @@ import { CategoryCardComponent } from "@components/category-card/category-card.c
 @Component({
   selector: "app-categories",
   standalone: true,
-  providers: [MainService],
   imports: [
     CommonModule,
     RouterModule,
@@ -40,10 +39,15 @@ import { CategoryCardComponent } from "@components/category-card/category-card.c
 export class CategoriesView implements OnInit {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
+    private storageService: StorageService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {}
 
+  // Use storage signals directly for source data
+  categories = this.storageService.categories;
+  
+  // Separate signals for filtered/sorted display list
   listCategories = signal<Category[]>([]);
   tempListCategories = signal<Category[]>([]);
 
@@ -53,28 +57,24 @@ export class CategoriesView implements OnInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
-    this.loadCategories();
+    // Load data once - storage will auto-populate categories signal
+    this.storageService.loadAllData().subscribe({
+      next: () => {
+        // Load categories after data is loaded
+        this.loadCategories();
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load categories");
+      }
+    });
   }
 
   loadCategories(): void {
-    if (this.userId() && this.userId() != "") {
-      this.mainService
-        .getAll<Array<Category>>(
-          "category",
-          { userId: this.userId() },
-          { isOwner: true, isPrivate: true }
-        )
-        .then((response: Response<Array<Category>>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.tempListCategories.set(response.data);
-            this.listCategories.set([...response.data]);
-          } else {
-            this.notifyService.showError(response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
-        });
+    // Read directly from storage
+    const cachedCategories = this.categories();
+    if (cachedCategories && cachedCategories.length > 0) {
+      this.listCategories.set(cachedCategories);
+      this.tempListCategories.set(cachedCategories);
     }
   }
 
@@ -98,7 +98,7 @@ export class CategoriesView implements OnInit {
   }
 
   onFormSaved() {
-    this.loadCategories();
+    // No need to reload - storage auto-updates
     this.onFormClose();
   }
 
@@ -108,16 +108,16 @@ export class CategoriesView implements OnInit {
         "Are you sure you want to delete this category? This will remove it from all associated todos."
       )
     ) {
-      this.mainService
-        .delete("category", categoryId)
-        .then((response: Response<any>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.loadCategories();
+      this.dataSyncProvider
+        .delete("categories", categoryId)
+        .subscribe({
+          next: () => {
+            // Storage auto-updates via optimistic update in controller
+            this.notifyService.showSuccess("Category deleted successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete category");
           }
-        })
-        .catch((err: Response<any>) => {
-          this.notifyService.showError(err.message);
         });
     }
   }

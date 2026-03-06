@@ -2,7 +2,6 @@
 import { Component, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { from } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -19,14 +18,12 @@ import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
 import { ResponseStatus } from "@models/response.model";
-import { TaskStatus } from "@models/task.model";
 
 /* services */
 import { AdminService } from "@services/admin.service";
 import { NotifyService } from "@services/notify.service";
-import { FilterService, FilterConfig } from "@services/filter.service";
-import { SortService } from "@services/sort.service";
-import { BulkActionService } from "@services/bulk-action.service";
+import { AdminFiltersService } from "@services/admin-filters.service";
+import { AdminRecordsService } from "@services/admin-records.service";
 
 /* components */
 import { TodoRecordsComponent } from "@components/admin-records/todo-records/todo-records.component";
@@ -68,9 +65,8 @@ export class AdminView implements OnInit {
   constructor(
     private adminService: AdminService,
     private notifyService: NotifyService,
-    private filterService: FilterService,
-    private sortService: SortService,
-    private bulkActionService: BulkActionService
+    private adminFiltersService: AdminFiltersService,
+    private adminRecordsService: AdminRecordsService
   ) {}
 
   adminData = signal<AdminData>({});
@@ -78,12 +74,14 @@ export class AdminView implements OnInit {
   loading = signal<boolean>(false);
   showMobileSidebar = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
+  showFilters = signal<boolean>(false);
+
+  // Filter state
   titleFilter = signal<string>("");
   descriptionFilter = signal<string>("");
   priorityFilter = signal<string>("");
   startDateFilter = signal<string>("");
   endDateFilter = signal<string>("");
-  showFilters = signal<boolean>(false);
   statusFilter = signal<string>("all");
   isCompletedFilter = signal<string>("all");
   userFilter = signal<string>("");
@@ -133,7 +131,8 @@ export class AdminView implements OnInit {
   async loadAdminData() {
     this.loading.set(true);
     try {
-      const response = await this.adminService.getAllDataForAdmin<AdminData>();
+      const response =
+        await this.adminService.getAllDataForAdmin<AdminData>();
       if (response.status === ResponseStatus.SUCCESS) {
         this.adminData.set(response.data);
 
@@ -142,7 +141,9 @@ export class AdminView implements OnInit {
           type.count = data ? data.length : 0;
         });
       } else {
-        this.notifyService.showError(response.message || "Failed to load admin data");
+        this.notifyService.showError(
+          response.message || "Failed to load admin data"
+        );
       }
     } catch (error) {
       this.notifyService.showError("Failed to load admin data: " + error);
@@ -161,119 +162,41 @@ export class AdminView implements OnInit {
   getCurrentData(): any[] {
     let data = this.adminData()[this.selectedType()] || [];
 
-    // Build filter configs using FilterService
-    const filterConfigs: FilterConfig[] = [];
-
-    if (this.titleFilter()) {
-      filterConfigs.push({ field: "title", value: this.titleFilter(), operator: "contains" });
+    // Apply status filter for tasks/subtasks
+    if (
+      this.selectedType() === "tasks" ||
+      this.selectedType() === "subtasks"
+    ) {
+      data = this.adminFiltersService.filterByStatus(
+        data,
+        this.isCompletedFilter(),
+        this.selectedType()
+      );
     }
 
-    if (this.descriptionFilter()) {
-      filterConfigs.push({
-        field: "description",
-        value: this.descriptionFilter(),
-        operator: "contains",
-      });
-    }
+    // Build filter state
+    const filterState = {
+      titleFilter: this.titleFilter(),
+      descriptionFilter: this.descriptionFilter(),
+      priorityFilter: this.priorityFilter(),
+      startDateFilter: this.startDateFilter(),
+      endDateFilter: this.endDateFilter(),
+      statusFilter: this.statusFilter(),
+      isCompletedFilter: this.isCompletedFilter(),
+      userFilter: this.userFilter(),
+      categoriesFilter: this.categoriesFilter(),
+      todoIdFilter: this.todoIdFilter(),
+      taskIdFilter: this.taskIdFilter(),
+      sortBy: this.sortBy(),
+      sortOrder: this.sortOrder(),
+    };
 
-    if (this.priorityFilter() && this.priorityFilter() !== "") {
-      filterConfigs.push({ field: "priority", value: this.priorityFilter(), operator: "equals" });
-    }
-
-    // Status filter (active/deleted)
-    if (this.statusFilter() === "active") {
-      filterConfigs.push({ field: "isDeleted", value: false, operator: "equals" });
-    } else if (this.statusFilter() === "deleted") {
-      filterConfigs.push({ field: "isDeleted", value: true, operator: "equals" });
-    }
-
-    // Task/Subtask status filters
-    const statusValue = this.isCompletedFilter();
-    if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
-      if (statusValue === "done") {
-        data = data.filter((item) =>
-          [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(item.status)
-        );
-      } else if (statusValue !== "all") {
-        filterConfigs.push({
-          field: "status",
-          value: TaskStatus[statusValue.toUpperCase() as keyof typeof TaskStatus],
-          operator: "equals",
-        });
-      }
-    }
-
-    // Apply filters using FilterService
-    data = this.filterService.applyFilters(data, filterConfigs);
-
-    // Custom filters (user, categories, dates, IDs)
-    data = this.applyCustomFilters(data);
-
-    // Sort using SortService
-    data = this.sortService.sortByField(data, { field: this.sortBy(), order: this.sortOrder() });
-
-    return data;
-  }
-
-  applyCustomFilters(data: any[]): any[] {
-    if (this.userFilter()) {
-      const filter = this.userFilter().toLowerCase();
-      data = data.filter((item) => {
-        if (
-          (this.selectedType() === "todos" || this.selectedType() === "categories") &&
-          item.user
-        ) {
-          const { profile, username } = item.user;
-          const firstName = profile?.name?.toLowerCase() || "";
-          const lastName = profile?.lastName?.toLowerCase() || "";
-          const userName = username?.toLowerCase() || "";
-          return (
-            firstName.includes(filter) || lastName.includes(filter) || userName.includes(filter)
-          );
-        }
-        return false;
-      });
-    }
-
-    if (this.categoriesFilter() && this.selectedType() === "todos") {
-      const filter = this.categoriesFilter().toLowerCase();
-      data = data.filter((item) => {
-        if (item.categories && Array.isArray(item.categories)) {
-          return item.categories.some((cat: any) => cat.title?.toLowerCase().includes(filter));
-        }
-        return false;
-      });
-    }
-
-    if (this.startDateFilter()) {
-      const filterDate = new Date(this.startDateFilter());
-      data = data.filter((item) => {
-        const itemDate = new Date(item.startDate || item.createdAt);
-        return itemDate >= filterDate;
-      });
-    }
-
-    if (this.endDateFilter()) {
-      const filterDate = new Date(this.endDateFilter());
-      data = data.filter((item) => {
-        const itemDate = new Date(item.endDate || item.createdAt);
-        return itemDate <= filterDate;
-      });
-    }
-
-    if (this.todoIdFilter() && this.selectedType() === "tasks") {
-      const filter = this.todoIdFilter().toLowerCase();
-      data = data.filter((item) => {
-        return item.todoId && item.todoId.toLowerCase().includes(filter);
-      });
-    }
-
-    if (this.taskIdFilter() && this.selectedType() === "subtasks") {
-      const filter = this.taskIdFilter().toLowerCase();
-      data = data.filter((item) => {
-        return item.taskId && item.taskId.toLowerCase().includes(filter);
-      });
-    }
+    // Apply all filters
+    data = this.adminFiltersService.applyFilters(
+      data,
+      filterState,
+      this.selectedType()
+    );
 
     return data;
   }
@@ -313,40 +236,22 @@ export class AdminView implements OnInit {
   }
 
   async deleteRecord(record: any) {
-    if (
-      confirm(`Are you sure you want to delete this ${this.selectedType().slice(0, -1)} record?`)
-    ) {
-      try {
-        const response = await this.adminService.permanentlyDeleteRecord(
-          this.selectedType(),
-          record.id
-        );
-
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.notifyService.showSuccess("Record permanently deleted");
-
-          await this.loadAdminData();
-        } else {
-          this.notifyService.showError(response.message || "Failed to delete record");
-        }
-      } catch (error) {
-        this.notifyService.showError("Error deleting record: " + error);
-      }
+    const success = await this.adminRecordsService.deleteRecord(
+      this.selectedType(),
+      record
+    );
+    if (success) {
+      await this.loadAdminData();
     }
   }
 
   async toggleDeleteStatus(record: any) {
-    try {
-      const response = await this.adminService.toggleDeleteStatus(this.selectedType(), record.id);
-
-      if (response.status === ResponseStatus.SUCCESS) {
-        this.notifyService.showSuccess("Record status updated");
-        await this.loadAdminData();
-      } else {
-        this.notifyService.showError(response.message || "Failed to update record status");
-      }
-    } catch (error) {
-      this.notifyService.showError("Error updating record status: " + error);
+    const success = await this.adminRecordsService.toggleDeleteStatus(
+      this.selectedType(),
+      record.id
+    );
+    if (success) {
+      await this.loadAdminData();
     }
   }
 
@@ -371,24 +276,28 @@ export class AdminView implements OnInit {
   }
 
   clearFilters(): void {
-    this.titleFilter.set("");
-    this.descriptionFilter.set("");
-    this.priorityFilter.set("");
-    this.startDateFilter.set("");
-    this.endDateFilter.set("");
-    this.statusFilter.set("all");
-    this.isCompletedFilter.set("all");
-    this.userFilter.set("");
-    this.categoriesFilter.set("");
-    this.todoIdFilter.set("");
-    this.taskIdFilter.set("");
-    this.sortBy.set("createdAt");
-    this.sortOrder.set("desc");
+    const cleared = this.adminFiltersService.clearFilters();
+    this.titleFilter.set(cleared.titleFilter);
+    this.descriptionFilter.set(cleared.descriptionFilter);
+    this.priorityFilter.set(cleared.priorityFilter);
+    this.startDateFilter.set(cleared.startDateFilter);
+    this.endDateFilter.set(cleared.endDateFilter);
+    this.statusFilter.set(cleared.statusFilter);
+    this.isCompletedFilter.set(cleared.isCompletedFilter);
+    this.userFilter.set(cleared.userFilter);
+    this.categoriesFilter.set(cleared.categoriesFilter);
+    this.todoIdFilter.set(cleared.todoIdFilter);
+    this.taskIdFilter.set(cleared.taskIdFilter);
+    this.sortBy.set(cleared.sortBy);
+    this.sortOrder.set(cleared.sortOrder);
   }
 
   isAllSelected(): boolean {
     const currentData = this.getCurrentData();
-    return currentData.length > 0 && currentData.every((item) => this.isSelected(item.id));
+    return (
+      currentData.length > 0 &&
+      currentData.every((item) => this.isSelected(item.id))
+    );
   }
 
   toggleSelectAll(): void {
@@ -410,24 +319,11 @@ export class AdminView implements OnInit {
   }
 
   async deleteSelected(): Promise<void> {
-    const count = this.selectedRecords().size;
-    if (count === 0) return;
-
-    const plural = count > 1 ? "records" : "record";
-    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
-    if (
-      !confirm(
-        `Are you sure you want to permanently delete ${count} ${typeSingular} ${plural}? This cannot be undone.`
-      )
-    )
-      return;
-
-    const currentData = this.getCurrentData();
-    const selectedItems = currentData.filter((item) => this.selectedRecords().has(item.id));
-
-    this.bulkActionService
-      .bulkDelete(selectedItems, (id: string) =>
-        from(this.adminService.permanentlyDeleteRecord(this.selectedType(), id))
+    this.adminRecordsService
+      .deleteSelected(
+        this.selectedType(),
+        this.selectedRecords(),
+        this.getCurrentData()
       )
       .subscribe((result) => {
         this.clearSelection();
