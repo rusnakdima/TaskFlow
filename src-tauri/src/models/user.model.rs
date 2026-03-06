@@ -2,9 +2,6 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-/* models */
-use crate::models::profile_model::ProfileFullModel;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserModel {
   pub _id: ObjectId,
@@ -33,6 +30,21 @@ pub struct UserCreateModel {
   #[serde(default)]
   pub codeExpiresAt: String,
   pub profileId: String,
+}
+
+impl UserCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.email.is_empty() {
+      return Err("email cannot be empty".to_string());
+    }
+    if self.username.is_empty() {
+      return Err("username cannot be empty".to_string());
+    }
+    if self.password.is_empty() {
+      return Err("password cannot be empty".to_string());
+    }
+    Ok(())
+  }
 }
 
 impl From<UserCreateModel> for UserModel {
@@ -73,6 +85,18 @@ pub struct UserUpdateModel {
   pub updatedAt: String,
 }
 
+impl UserUpdateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.email.is_empty() {
+      return Err("email cannot be empty".to_string());
+    }
+    if self.username.is_empty() {
+      return Err("username cannot be empty".to_string());
+    }
+    Ok(())
+  }
+}
+
 impl From<UserUpdateModel> for UserModel {
   fn from(value: UserUpdateModel) -> Self {
     let now = chrono::Utc::now();
@@ -92,21 +116,4 @@ impl From<UserUpdateModel> for UserModel {
       updatedAt: formatted,
     }
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub email: String,
-  pub username: String,
-  pub password: String,
-  pub role: String,
-  #[serde(default)]
-  pub temporaryCode: String,
-  #[serde(default)]
-  pub codeExpiresAt: String,
-  pub profile: ProfileFullModel,
-  pub createdAt: String,
-  pub updatedAt: String,
 }

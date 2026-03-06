@@ -1,3 +1,4 @@
+use crate::models::relation_obj::RelationObj;
 use crate::models::sync_metadata_model::SyncMetadata;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -11,6 +12,7 @@ pub struct WsRequest {
   pub id: Option<String>,
   pub requestId: Option<String>,
   pub syncMetadata: Option<SyncMetadata>,
+  pub relations: Option<Vec<RelationObj>>,
 }
 
 #[derive(Debug, Serialize)]

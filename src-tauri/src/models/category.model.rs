@@ -2,14 +2,24 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-/* models */
-use crate::models::user_model::UserFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct CategoryCreateModel {
   pub title: String,
   pub userId: String,
+}
+
+impl CategoryCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.title.is_empty() {
+      return Err("title cannot be empty".to_string());
+    }
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
+    }
+    Ok(())
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,6 +32,34 @@ pub struct CategoryModel {
   pub isDeleted: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryUpdateModel {
+  pub title: Option<String>,
+  pub userId: Option<String>,
+  pub isDeleted: Option<bool>,
+}
+
+impl CategoryUpdateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if let Some(ref title) = self.title {
+      if title.is_empty() {
+        return Err("title cannot be empty".to_string());
+      }
+    }
+    Ok(())
+  }
+
+  pub fn applyTo(&self, existing: CategoryModel) -> CategoryModel {
+    CategoryModel {
+      _id: existing._id,
+      id: existing.id,
+      title: self.title.clone().unwrap_or(existing.title),
+      userId: self.userId.clone().unwrap_or(existing.userId),
+      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
+    }
+  }
+}
+
 impl From<CategoryCreateModel> for CategoryModel {
   fn from(value: CategoryCreateModel) -> Self {
     CategoryModel {
@@ -32,14 +70,4 @@ impl From<CategoryCreateModel> for CategoryModel {
       isDeleted: false,
     }
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(unused)]
-pub struct CategoryFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub title: String,
-  pub user: UserFullModel,
-  pub isDeleted: bool,
 }

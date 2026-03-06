@@ -40,3 +40,6 @@ pub mod provider_type_model;
 
 #[path = "websocket.model.rs"]
 pub mod websocket_model;
+
+#[path = "table.model.rs"]
+pub mod table_model;

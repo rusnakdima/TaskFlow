@@ -2,8 +2,6 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-/* models */
-use crate::models::user_model::UserFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DailyActivityModel {
@@ -34,6 +32,18 @@ pub struct DailyActivityModel {
 pub struct DailyActivityCreateModel {
   pub userId: String,
   pub date: String,
+}
+
+impl DailyActivityCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
+    }
+    if self.date.is_empty() {
+      return Err("date cannot be empty".to_string());
+    }
+    Ok(())
+  }
 }
 
 impl From<DailyActivityCreateModel> for DailyActivityModel {
@@ -121,30 +131,4 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
       updatedAt: formatted,
     }
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(unused)]
-pub struct DailyActivityFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub user: UserFullModel,
-  pub date: String,
-  pub todosCreated: i32,
-  pub todosUpdated: i32,
-  pub todosDeleted: i32,
-  pub tasksCreated: i32,
-  pub tasksUpdated: i32,
-  pub tasksCompleted: i32,
-  pub tasksDeleted: i32,
-  pub subtasksCreated: i32,
-  pub subtasksUpdated: i32,
-  pub subtasksCompleted: i32,
-  pub subtasksDeleted: i32,
-  pub totalActivity: i32,
-  pub totalTasks: i32,
-  pub completedTasks: i32,
-  pub productivityScore: i32,
-  pub createdAt: String,
-  pub updatedAt: String,
 }

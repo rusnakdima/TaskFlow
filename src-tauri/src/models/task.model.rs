@@ -3,8 +3,6 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
-/* models */
-use crate::models::todo_model::TodoFullModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PriorityTask {
@@ -75,6 +73,21 @@ pub struct TaskCreateModel {
   pub order: i32,
 }
 
+impl TaskCreateModel {
+  pub fn validate(&self) -> std::result::Result<(), String> {
+    if self.todoId.is_empty() {
+      return Err("todoId cannot be empty".to_string());
+    }
+    if self.title.is_empty() {
+      return Err("title cannot be empty".to_string());
+    }
+    if self.priority.is_empty() {
+      return Err("priority cannot be empty".to_string());
+    }
+    Ok(())
+  }
+}
+
 impl From<TaskCreateModel> for TaskModel {
   fn from(value: TaskCreateModel) -> Self {
     let now = chrono::Utc::now();
@@ -133,71 +146,17 @@ pub struct TaskUpdateModel {
 }
 
 impl TaskUpdateModel {
-  pub fn applyTo(&self, existing: TaskModel) -> TaskModel {
-    let mut formattedStartDate = existing.startDate.clone();
-    let mut formattedEndDate = existing.endDate.clone();
-
-    if let Some(ref startDate) = self.startDate {
-      if startDate != "" {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(startDate) {
-          formattedStartDate = dt
-            .with_timezone(&chrono::Utc)
-            .format("%Y-%m-%dT%H:%M:%SZ")
-            .to_string();
-        }
-      } else {
-        formattedStartDate = startDate.clone();
+  pub fn validate(&self) -> std::result::Result<(), String> {
+    if let Some(ref title) = self.title {
+      if title.is_empty() {
+        return Err("title cannot be empty".to_string());
       }
     }
-
-    if let Some(ref endDate) = self.endDate {
-      if endDate != "" {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(endDate) {
-          formattedEndDate = dt
-            .with_timezone(&chrono::Utc)
-            .format("%Y-%m-%dT%H:%M:%SZ")
-            .to_string();
-        }
-      } else {
-        formattedEndDate = endDate.clone();
+    if let Some(ref priority) = self.priority {
+      if priority.is_empty() {
+        return Err("priority cannot be empty".to_string());
       }
     }
-
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    TaskModel {
-      _id: existing._id,
-      id: existing.id,
-      todoId: existing.todoId,
-      title: self.title.clone().unwrap_or(existing.title),
-      description: self.description.clone().unwrap_or(existing.description),
-      status: self.status.clone().unwrap_or(existing.status),
-      priority: self.priority.clone().unwrap_or(existing.priority),
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
-      order: self.order.unwrap_or(existing.order),
-      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
-      createdAt: existing.createdAt,
-      updatedAt: formatted,
-    }
+    Ok(())
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(unused)]
-pub struct TaskFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub todo: TodoFullModel,
-  pub title: String,
-  pub description: String,
-  pub status: TaskStatus,
-  pub priority: PriorityTask,
-  pub startDate: String,
-  pub endDate: String,
-  pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
-  pub updatedAt: String,
 }

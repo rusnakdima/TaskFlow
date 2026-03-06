@@ -2,9 +2,6 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-/* models */
-use crate::models::{category_model::CategoryFullModel, user_model::UserFullModel};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TodoModel {
   pub _id: ObjectId,
@@ -34,6 +31,21 @@ pub struct TodoCreateModel {
   pub assignees: Vec<String>,
   pub visibility: String,
   pub order: i32,
+}
+
+impl TodoCreateModel {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
+    }
+    if self.title.is_empty() {
+      return Err("title cannot be empty".to_string());
+    }
+    if self.visibility.is_empty() {
+      return Err("visibility cannot be empty".to_string());
+    }
+    Ok(())
+  }
 }
 
 impl From<TodoCreateModel> for TodoModel {
@@ -97,63 +109,17 @@ pub struct TodoUpdateModel {
 }
 
 impl TodoUpdateModel {
-  pub fn applyTo(&self, existing: TodoModel) -> TodoModel {
-    let mut formattedStartDate = existing.startDate.clone();
-    let mut formattedEndDate = existing.endDate.clone();
-
-    if let Some(ref startDate) = self.startDate {
-      if !startDate.is_empty() {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(startDate) {
-          let utc = dt.with_timezone(&chrono::Utc);
-          formattedStartDate = utc.format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        }
+  pub fn validate(&self) -> Result<(), String> {
+    if let Some(ref title) = self.title {
+      if title.is_empty() {
+        return Err("title cannot be empty".to_string());
       }
     }
-
-    if let Some(ref endDate) = self.endDate {
-      if !endDate.is_empty() {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(endDate) {
-          let utc = dt.with_timezone(&chrono::Utc);
-          formattedEndDate = utc.format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        }
+    if let Some(ref visibility) = self.visibility {
+      if visibility.is_empty() {
+        return Err("visibility cannot be empty".to_string());
       }
     }
-
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    TodoModel {
-      _id: existing._id,
-      id: existing.id,
-      userId: self.userId.clone().unwrap_or(existing.userId),
-      title: self.title.clone().unwrap_or(existing.title),
-      description: self.description.clone().unwrap_or(existing.description),
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
-      categories: self.categories.clone().unwrap_or(existing.categories),
-      assignees: self.assignees.clone().unwrap_or(existing.assignees),
-      visibility: self.visibility.clone().unwrap_or(existing.visibility),
-      order: self.order.unwrap_or(existing.order),
-      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
-      createdAt: existing.createdAt,
-      updatedAt: formatted,
-    }
+    Ok(())
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TodoFullModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub user: UserFullModel,
-  pub title: String,
-  pub description: String,
-  pub startDate: String,
-  pub endDate: String,
-  pub categories: Vec<CategoryFullModel>,
-  pub assignees: Vec<UserFullModel>,
-  pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
-  pub updatedAt: String,
 }
