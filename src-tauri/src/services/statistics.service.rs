@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::helpers::activity_log::ActivityLogHelper;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::providers::json_provider::JsonProvider;
 
 /* models */
 use crate::models::{
@@ -27,11 +27,7 @@ pub struct StatisticsService {
 }
 
 impl StatisticsService {
-  pub fn new(
-    jsonProvider: JsonProvider,
-    _mongodbProvider: Arc<MongodbProvider>,
-    activityLogHelper: Arc<ActivityLogHelper>,
-  ) -> Self {
+  pub fn new(jsonProvider: JsonProvider, activityLogHelper: Arc<ActivityLogHelper>) -> Self {
     Self {
       jsonProvider: jsonProvider.clone(),
       activityLogHelper: activityLogHelper.clone(),
@@ -51,9 +47,9 @@ impl StatisticsService {
     let prevStartDate = startDate - duration;
 
     // Get all todos for the user
-    let todosResponse = self
+    let todos = self
       .jsonProvider
-      .getAll("todo", Some(json!({ "userId": userId.clone() })), None)
+      .getAll("todos", Some(json!({ "userId": userId.clone() })), None)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -61,29 +57,42 @@ impl StatisticsService {
         data: DataValue::String("".to_string()),
       })?;
 
-    let todos = todosResponse;
+    let todoIds: Vec<Value> = todos
+      .iter()
+      .filter_map(|todo| todo.get("id").cloned())
+      .collect();
 
-    // Extract tasks from todos
-    let mut tasks = Vec::new();
-    let mut subtasks = Vec::new();
+    // Get all tasks for these todos
+    let tasks = self
+      .jsonProvider
+      .getAll("tasks", Some(json!({ "todoId": todoIds })), None)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: e.to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
 
-    for todo in &todos {
-      if let Some(todoTasks) = todo.get("tasks").and_then(|v| v.as_array()) {
-        for task in todoTasks {
-          tasks.push(task.clone());
-          if let Some(taskSubtasks) = task.get("subtasks").and_then(|v| v.as_array()) {
-            for subtask in taskSubtasks {
-              subtasks.push(subtask.clone());
-            }
-          }
-        }
-      }
-    }
+    let taskIds: Vec<Value> = tasks
+      .iter()
+      .filter_map(|task| task.get("id").cloned())
+      .collect();
+
+    // Get all subtasks for these tasks
+    let _subtasks = self
+      .jsonProvider
+      .getAll("subtasks", Some(json!({ "taskId": taskIds })), None)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: e.to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
 
     // Get categories
-    let categoriesResponse = self
+    let categories = self
       .jsonProvider
-      .getAll("category", Some(json!({ "userId": userId.clone() })), None)
+      .getAll("categories", Some(json!({ "userId": userId.clone() })), None)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -91,23 +100,10 @@ impl StatisticsService {
         data: DataValue::String("".to_string()),
       })?;
 
-    let categories = categoriesResponse;
-
-    let originalTodos = todos.clone();
-    let filteredTodos = self.filterByDateRange(&todos, &startDate, &endDate, "createdAt");
     let filteredTasks = self.filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
 
-    let previousTodos =
-      self.filterByDateRange(&originalTodos, &prevStartDate, &prevEndDate, "createdAt");
-
-    let mut previousTasks = Vec::new();
-    for todo in &previousTodos {
-      if let Some(todoTasks) = todo.get("tasks").and_then(|v| v.as_array()) {
-        for task in todoTasks {
-          previousTasks.push(task.clone());
-        }
-      }
-    }
+    let previousTasks =
+      self.filterByDateRange(&tasks, &prevStartDate, &prevEndDate, "createdAt");
 
     let startDateNaive = startDate.date_naive();
     let endDateNaive = endDate.date_naive();
@@ -115,10 +111,19 @@ impl StatisticsService {
       .getDailyActivitiesFiltered(&userId, &startDateNaive, &endDateNaive)
       .await;
 
-    let prev_startDateNaive = prevStartDate.date_naive();
-    let prev_endDateNaive = prevEndDate.date_naive();
+    // Calculate tasks per category from todos and tasks
+    let categoriesWithCounts = self.calculateCategoryTasks(
+      &categories,
+      &todos,
+      &tasks,
+      &startDateNaive,
+      &endDateNaive,
+    );
+
+    let prevStartDateNaive = prevStartDate.date_naive();
+    let prevEndDateNaive = prevEndDate.date_naive();
     let previousDailyActivities = self
-      .getDailyActivitiesFiltered(&userId, &prev_startDateNaive, &prev_endDateNaive)
+      .getDailyActivitiesFiltered(&userId, &prevStartDateNaive, &prevEndDateNaive)
       .await;
 
     let statistics = self.computeStatistics(
@@ -129,7 +134,7 @@ impl StatisticsService {
     );
     let chartData = self.computeChartData(
       &filteredTasks,
-      &categories,
+      &categoriesWithCounts,
       &dailyActivities,
       &startDateNaive,
       &endDateNaive,
@@ -139,9 +144,9 @@ impl StatisticsService {
 
     let response = StatisticsResponseModel {
       statistics,
-      chartData: chartData,
+      chartData,
       achievements,
-      detailedMetrics: detailedMetrics,
+      detailedMetrics,
     };
 
     Ok(ResponseModel {
@@ -181,8 +186,8 @@ impl StatisticsService {
     items
       .iter()
       .filter(|item| {
-        if let Some(date_str) = item.get(dateField).and_then(|v| v.as_str()) {
-          if let Ok(dt) = DateTime::parse_from_rfc3339(date_str) {
+        if let Some(dateStr) = item.get(dateField).and_then(|v| v.as_str()) {
+          if let Ok(dt) = DateTime::parse_from_rfc3339(dateStr) {
             let dtLocal = dt.with_timezone(&Local);
             return dtLocal >= *startDate && dtLocal <= *endDate;
           }
@@ -220,8 +225,8 @@ impl StatisticsService {
     activities
       .into_iter()
       .filter(|activity| {
-        if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
-          if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
+          if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
             return date >= *startDate && date <= *endDate;
           }
         }
@@ -249,10 +254,10 @@ impl StatisticsService {
 
     let mut totalDuration = 0.0;
     for task in completedTasks {
-      if let Some(created_str) = task.get("createdAt").and_then(|v| v.as_str()) {
-        if let Some(updated_str) = task.get("updatedAt").and_then(|v| v.as_str()) {
-          if let Ok(created) = DateTime::parse_from_rfc3339(created_str) {
-            if let Ok(updated) = DateTime::parse_from_rfc3339(updated_str) {
+      if let Some(createdStr) = task.get("createdAt").and_then(|v| v.as_str()) {
+        if let Some(updatedStr) = task.get("updatedAt").and_then(|v| v.as_str()) {
+          if let Ok(created) = DateTime::parse_from_rfc3339(createdStr) {
+            if let Ok(updated) = DateTime::parse_from_rfc3339(updatedStr) {
               let duration = updated.signed_duration_since(created);
               let seconds = duration.num_seconds() as f32;
               let hours = seconds / 3600.0;
@@ -318,7 +323,7 @@ impl StatisticsService {
 
     let previousAverageTime = self.calculateAverageTaskTime(previousTasks);
 
-    let previous_productivityScore = if !previousDailyActivities.is_empty() {
+    let previousProductivityScore = if !previousDailyActivities.is_empty() {
       let totalScore: i32 = previousDailyActivities
         .iter()
         .filter_map(|activity| activity.get("productivityScore").and_then(|v| v.as_i64()))
@@ -329,15 +334,117 @@ impl StatisticsService {
     };
 
     StatisticsModel {
-      totalTasks: totalTasks,
-      completionRate: completionRate,
-      averageTaskTime: averageTaskTime,
-      productivityScore: productivityScore,
-      previousTotalTasks: previousTotalTasks,
-      previousCompletionRate: previousCompletionRate,
-      previousAverageTime: previousAverageTime,
-      previousProductivityScore: previous_productivityScore,
+      totalTasks,
+      completionRate,
+      averageTaskTime,
+      productivityScore,
+      previousTotalTasks,
+      previousCompletionRate,
+      previousAverageTime,
+      previousProductivityScore,
     }
+  }
+
+  fn calculateCategoryTasks(
+    &self,
+    categories: &Vec<Value>,
+    todos: &Vec<Value>,
+    tasks: &Vec<Value>,
+    startDate: &NaiveDate,
+    endDate: &NaiveDate,
+  ) -> Vec<Value> {
+    let mut categoriesWithCounts = Vec::new();
+
+    // Group tasks by todoId for efficient lookup
+    let mut tasksByTodo: HashMap<String, Vec<Value>> = HashMap::new();
+    for task in tasks {
+      if let Some(todoId) = task.get("todoId").and_then(|v| v.as_str()) {
+        tasksByTodo
+          .entry(todoId.to_string())
+          .or_default()
+          .push(task.clone());
+      }
+    }
+
+    for category in categories {
+      let mut categoryClone = category.clone();
+      let mut categoryTodos = Vec::new();
+      let mut categoryTaskCount = 0;
+      let mut categoryCompletedTaskCount = 0;
+
+      let categoryId = category.get("id").and_then(|v| v.as_str()).unwrap_or("");
+
+      for todo in todos {
+        let mut hasCategory = false;
+        if let Some(todoCategories) = todo.get("categories").and_then(|v| v.as_array()) {
+          hasCategory = todoCategories.iter().any(|cat| {
+            if let Some(catId) = cat.get("id").and_then(|v| v.as_str()) {
+              return catId == categoryId;
+            }
+            if let Some(catId) = cat.as_str() {
+              return catId == categoryId;
+            }
+            false
+          });
+        }
+
+        if hasCategory {
+          let mut todoHasRelevantTasks = false;
+          let todoId = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
+          
+          if let Some(todoTasks) = tasksByTodo.get(todoId) {
+            for task in todoTasks {
+              let mut isTaskInRange = false;
+              if let Some(createdAtStr) = task.get("createdAt").and_then(|v| v.as_str()) {
+                if let Ok(dt) = DateTime::parse_from_rfc3339(createdAtStr) {
+                  let date = dt.date_naive();
+                  if date >= *startDate && date <= *endDate {
+                    isTaskInRange = true;
+                  }
+                }
+              }
+
+              if !isTaskInRange {
+                if let Some(updatedAtStr) = task.get("updatedAt").and_then(|v| v.as_str()) {
+                  if let Ok(dt) = DateTime::parse_from_rfc3339(updatedAtStr) {
+                    let date = dt.date_naive();
+                    if date >= *startDate && date <= *endDate {
+                      isTaskInRange = true;
+                    }
+                  }
+                }
+              }
+
+              if isTaskInRange {
+                categoryTaskCount += 1;
+                todoHasRelevantTasks = true;
+                if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
+                  if status == "completed" || status == "skipped" {
+                    categoryCompletedTaskCount += 1;
+                  }
+                }
+              }
+            }
+          }
+
+          if todoHasRelevantTasks {
+            categoryTodos.push(todo.clone());
+          }
+        }
+      }
+
+      if let Some(obj) = categoryClone.as_object_mut() {
+        obj.insert("todos".to_string(), serde_json::Value::Array(categoryTodos));
+        obj.insert("taskCount".to_string(), serde_json::Value::Number(categoryTaskCount.into()));
+        obj.insert(
+          "completedTaskCount".to_string(),
+          serde_json::Value::Number(categoryCompletedTaskCount.into()),
+        );
+      }
+      categoriesWithCounts.push(categoryClone);
+    }
+
+    categoriesWithCounts
   }
 
   fn computeChartData(
@@ -345,15 +452,15 @@ impl StatisticsService {
     tasks: &Vec<Value>,
     categories: &Vec<Value>,
     dailyActivities: &Vec<Value>,
-    startDate: &NaiveDate,
-    endDate: &NaiveDate,
+    _startDate: &NaiveDate,
+    _endDate: &NaiveDate,
   ) -> ChartDataModel {
     let mut completionByWeekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
 
     for task in tasks {
-      if let Some(updated_at) = task.get("updatedAt").and_then(|v| v.as_str()) {
+      if let Some(updatedAt) = task.get("updatedAt").and_then(|v| v.as_str()) {
         if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
-          if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updated_at) {
+          if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updatedAt) {
             let weekday = dtUpdated.weekday();
             let entry = completionByWeekday.entry(weekday).or_insert((0, 0));
             entry.1 += 1;
@@ -388,9 +495,9 @@ impl StatisticsService {
       }
       .to_string();
 
-      let (completed, total) = completionByWeekday.get(&weekday).unwrap_or(&(0, 0));
-      let percentage = if *total > 0 {
-        (*completed as f32 / *total as f32 * 100.0) as i32
+      let (completed, total) = completionByWeekday.get(&weekday).copied().unwrap_or((0, 0));
+      let percentage = if total > 0 {
+        (completed as f32 / total as f32 * 100.0) as i32
       } else {
         0
       };
@@ -401,17 +508,17 @@ impl StatisticsService {
       });
     }
 
-    let mut dailyActivity_map: HashMap<String, i32> = HashMap::new();
+    let mut dailyActivityMap: HashMap<String, i32> = HashMap::new();
 
     let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     for day in &dayNames {
-      dailyActivity_map.insert(day.to_string(), 0);
+      dailyActivityMap.insert(day.to_string(), 0);
     }
 
     for activity in dailyActivities {
-      if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
+      if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
         if let Some(totalActivity) = activity.get("totalActivity").and_then(|v| v.as_i64()) {
-          if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+          if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
             let weekday = date.weekday();
             let dayIndex = match weekday {
               Weekday::Mon => 0,
@@ -423,7 +530,9 @@ impl StatisticsService {
               Weekday::Sun => 6,
             };
             let dayName = dayNames[dayIndex];
-            *dailyActivity_map.get_mut(dayName).unwrap() += totalActivity as i32;
+            if let Some(count) = dailyActivityMap.get_mut(dayName) {
+              *count += totalActivity as i32;
+            }
           }
         }
       }
@@ -433,7 +542,7 @@ impl StatisticsService {
       .iter()
       .map(|day| DailyActivityItem {
         dayName: day.to_string(),
-        activity: *dailyActivity_map.get(*day).unwrap_or(&0),
+        activity: *dailyActivityMap.get(*day).unwrap_or(&0),
       })
       .collect();
 
@@ -444,30 +553,14 @@ impl StatisticsService {
 
     for (index, category) in categories.iter().enumerate() {
       if let Some(categoryTitle) = category.get("title").and_then(|v| v.as_str()) {
-        let mut totalTasks = 0;
-        let mut completedTasks = 0;
+        // Get task count from the pre-calculated taskCount field
+        let totalTasks = category.get("taskCount").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
 
-        if let Some(todos) = category.get("todos").and_then(|v| v.as_array()) {
-          for todo in todos {
-            if let Some(created_at) = todo.get("createdAt").and_then(|v| v.as_str()) {
-              if let Ok(dt) = DateTime::parse_from_rfc3339(created_at) {
-                let date = dt.date_naive();
-                if date >= *startDate && date <= *endDate {
-                  if let Some(tasks) = todo.get("tasks").and_then(|v| v.as_array()) {
-                    for task in tasks {
-                      totalTasks += 1;
-                      if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
-                        if status == "completed" || status == "skipped" {
-                          completedTasks += 1;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        // Get completed task count from the pre-calculated completedTaskCount field
+        let completedTasks = category
+          .get("completedTaskCount")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32;
 
         let percentage = if totalTasks > 0 {
           ((completedTasks as f32 / totalTasks as f32) * 100.0) as i32
@@ -485,9 +578,9 @@ impl StatisticsService {
     }
 
     ChartDataModel {
-      completionTrend: completionTrend,
+      completionTrend,
       categories: categoryItems,
-      dailyActivity: dailyActivity,
+      dailyActivity,
     }
   }
 

@@ -13,9 +13,15 @@ impl JsonCrudProvider {
     Self { dbFilePath }
   }
 
+  /// Table name mapping for file storage (keeps plural names)
+  fn getTableName(nameTable: &str) -> String {
+    nameTable.to_string()
+  }
+
   fn getTablePath(&self, nameTable: &str) -> PathBuf {
     let mut path = self.dbFilePath.clone();
-    path.push(format!("{}.json", nameTable));
+    let table_name = Self::getTableName(nameTable);
+    path.push(format!("{}.json", table_name));
     path
   }
 

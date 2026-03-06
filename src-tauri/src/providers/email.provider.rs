@@ -92,10 +92,14 @@ impl EmailProvider {
       self.config.smtpPassword.clone(),
     );
 
-    let mailer = SmtpTransport::relay(&self.config.smtpServer)
-      .unwrap()
-      .credentials(creds)
-      .build();
+    let mailer = match SmtpTransport::relay(&self.config.smtpServer) {
+      Ok(builder) => builder.credentials(creds).build(),
+      Err(e) => return Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Failed to create SMTP transport: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    };
 
     mailer.send(&email).map_err(|_| ResponseModel {
       status: ResponseStatus::Error,

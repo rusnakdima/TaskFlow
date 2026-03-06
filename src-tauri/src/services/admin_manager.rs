@@ -108,7 +108,7 @@ impl AdminManager {
 
       let values: Vec<Value> = docs
         .into_iter()
-        .map(|doc| serde_json::to_value(&doc).unwrap())
+        .filter_map(|doc| serde_json::to_value(&doc).ok())
         .collect();
 
       all_data.insert(table.to_string(), serde_json::Value::Array(values));
