@@ -10,6 +10,15 @@ pub mod json_relations_provider;
 #[path = "json.provider.rs"]
 pub mod json_provider;
 
+#[path = "mongodb_crud.provider.rs"]
+pub mod mongodb_crud_provider;
+
+#[path = "mongodb_relations.provider.rs"]
+pub mod mongodb_relations_provider;
+
+#[path = "mongodb_sync.provider.rs"]
+pub mod mongodb_sync_provider;
+
 #[path = "mongodb.provider.rs"]
 pub mod mongodb_provider;
 
