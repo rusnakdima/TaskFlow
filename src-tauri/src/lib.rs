@@ -107,9 +107,6 @@ pub fn run() {
       // Create statistics service
       let statisticsService = Arc::new(StatisticsService::new(
         jsonProvider.clone(),
-        mongodbProvider
-          .clone()
-          .expect("MongoDB provider required for StatisticsService"),
         activityLogHelper.clone(),
       ));
 
