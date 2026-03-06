@@ -8,7 +8,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute } from "@angular/router";
 import { Subscription } from "rxjs";
 
 /* materials */
@@ -29,6 +29,7 @@ import { NotifyService } from "@services/notify.service";
 import { ShortcutService } from "@services/shortcut.service";
 import { FormValidatorService } from "@services/form-validator.service";
 import { DateValidatorService } from "@services/date-validator.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -71,6 +72,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
+    private storageService: StorageService,
     private shortcutService: ShortcutService,
     private formValidator: FormValidatorService,
     private dateValidator: DateValidatorService
@@ -195,7 +197,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   getTaskInfo(taskId: string) {
     this.dataSyncProvider
-      .get<Task>("task", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .get<Task>("tasks", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
       .subscribe({
         next: (taskData) => {
           const localDates = convertDatesFromUtcToLocal(taskData);
@@ -220,7 +222,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
   loadProjectInfo(todoId: string) {
     this.dataSyncProvider
       .get<Todo>(
-        "todo",
+        "todos",
         { id: todoId },
         { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
       )
@@ -266,7 +268,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       this.dataSyncProvider
         .getAll<Task>(
-          "task",
+          "tasks",
           { todoId: this.todoId() },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todoId()
@@ -285,13 +287,15 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
             this.dataSyncProvider
               .create<Task>(
-                "task",
+                "tasks",
                 body,
                 { isOwner: this.isOwner, isPrivate: this.isPrivate },
                 this.todoId()
               )
               .subscribe({
-                next: (result) => {
+                next: (result: Task) => {
+                  // Add the new task with real ID from backend to cache
+                  this.storageService.addTask(result);
                   this.isSubmitting.set(false);
                   this.notifyService.showSuccess("Task created successfully");
                   this.back();
@@ -322,9 +326,15 @@ export class ManageTaskView implements OnInit, OnDestroy {
         ...convertedDates,
       };
 
+      // Store previous state for rollback
+      const previousTask = this.storageService.getTaskById(body.id);
+
+      // Optimistic update: update cache immediately
+      this.storageService.updateTask(body.id, body);
+
       this.dataSyncProvider
         .update<Task>(
-          "task",
+          "tasks",
           body.id,
           body,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -337,6 +347,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
             this.back();
           },
           error: (err) => {
+            // Rollback on failure
+            if (previousTask) {
+              this.storageService.updateTask(body.id, previousTask);
+            }
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to update task");
           },

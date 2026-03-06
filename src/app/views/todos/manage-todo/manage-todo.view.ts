@@ -23,18 +23,17 @@ import { MatMenuModule } from "@angular/material/menu";
 import { MatDividerModule } from "@angular/material/divider";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { ShortcutService } from "@services/shortcut.service";
 import { FormValidatorService } from "@services/form-validator.service";
 import { DateValidatorService } from "@services/date-validator.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -49,7 +48,7 @@ import {
 @Component({
   selector: "app-manage-todo",
   standalone: true,
-  providers: [AuthService, MainService, DataSyncProvider],
+  providers: [AuthService, DataSyncProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -72,7 +71,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private location: Location,
     private authService: AuthService,
-    private mainService: MainService,
+    private storageService: StorageService,
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
     private shortcutService: ShortcutService,
@@ -197,7 +196,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   getTodoInfo(todoId: string) {
     this.dataSyncProvider
       .get<Todo>(
-        "todo",
+        "todos",
         { id: todoId },
         { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
       )
@@ -226,33 +225,40 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   async fetchTodosCount() {
-    this.dataSyncProvider
-      .getAll<Todo>(
-        "todo",
-        { userId: this.userId() },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .subscribe({
-        next: (todos) => {
-          this.form.controls["order"].setValue(todos.length);
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError("Failed to get existing todos count");
-        },
-      });
+    // Get todos from StorageService cache instead of direct API call
+    const todos = this.storageService.todos();
+    if (todos && todos.length > 0) {
+      this.form.controls["order"].setValue(todos.length);
+    } else {
+      // Fallback: load from backend if cache is empty
+      this.dataSyncProvider
+        .getAll<Todo>(
+          "todos",
+          { userId: this.userId() },
+          { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
+        )
+        .subscribe({
+          next: (todos) => {
+            this.form.controls["order"].setValue(todos.length);
+          },
+          error: (err) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError("Failed to get existing todos count");
+          },
+        });
+    }
   }
 
   async fetchProfiles(): Promise<void> {
-    return this.mainService
-      .getAll<Profile[]>("profile")
-      .then((response: Response<Profile[]>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          this.availableProfiles.set(response.data);
+    this.dataSyncProvider
+      .getAll<Profile>("profiles", { userId: this.userId() })
+      .subscribe({
+        next: (profiles) => {
+          this.availableProfiles.set(profiles);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profiles");
         }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
       });
   }
 
@@ -294,16 +300,25 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   fetchCategories() {
-    this.mainService
-      .getAll<Category[]>("category", { userId: this.userId() })
-      .then((response: Response<Category[]>) => {
-        if (response.status == ResponseStatus.SUCCESS) {
-          this.availableCategories.set(response.data);
-        }
-      })
-      .catch((err: Response<string>) => {
-        this.notifyService.showError(err.message ?? err.toString());
-      });
+    // Get categories from StorageService cache instead of direct API call
+    const categories = this.storageService.categories();
+    if (categories && categories.length > 0) {
+      this.availableCategories.set(categories);
+    } else {
+      // Fallback: load from backend using DataSyncProvider (correct endpoint)
+      this.dataSyncProvider
+        .getAll<Category>("categories", { userId: this.userId() })
+        .subscribe({
+          next: (cats) => {
+            this.availableCategories.set(cats);
+            // Update StorageService cache
+            this.storageService.setCategories(cats);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message ?? err.toString());
+          }
+        });
+    }
   }
 
   getFilteredAvailableCategories() {
@@ -344,17 +359,19 @@ export class ManageTodoView implements OnInit, OnDestroy {
         title: this.newCategoryTitle().trim(),
         userId: this.userId(),
       };
-      this.mainService
-        .create<string, Category>("category", categoryData)
-        .then((response: Response<string>) => {
-          if (response.status == ResponseStatus.SUCCESS) {
+      this.dataSyncProvider
+        .create<Category>("categories", categoryData)
+        .subscribe({
+          next: (result) => {
             this.newCategoryTitle.set("");
             this.fetchCategories();
-            this.notifyService.showNotify(response.status, "Category added successfully");
+            this.notifyService.showSuccess("Category added successfully");
+            // Update StorageService cache
+            this.storageService.addCategory(result);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to add category");
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
         });
     }
   }
@@ -386,9 +403,11 @@ export class ManageTodoView implements OnInit, OnDestroy {
       this.isPrivate = body.visibility === "private";
 
       this.dataSyncProvider
-        .create("todo", body, { isOwner: true, isPrivate: this.isPrivate })
+        .create<Todo>("todos", body, { isOwner: true, isPrivate: this.isPrivate })
         .subscribe({
-          next: (result) => {
+          next: (result: Todo) => {
+            // Add the new todo with real ID from backend to cache
+            this.storageService.addTodo(result);
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Todo created successfully");
             this.back();
@@ -419,8 +438,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
       const originalVisibility = this.isPrivate ? "private" : "team";
       const visibilityChanged = originalVisibility !== newVisibility;
 
+      // Store previous state for rollback
+      const previousTodo = { ...body };
+
+      // Optimistic update: update cache immediately
+      this.storageService.updateTodo(body.id, body);
+
       this.dataSyncProvider
-        .update<Todo>("todo", body.id, body, {
+        .update<Todo>("todos", body.id, body, {
           isOwner: true,
           isPrivate: this.isPrivate,
         })
@@ -442,6 +467,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
             }, 1000);
           },
           error: (err) => {
+            // Rollback on failure
+            this.storageService.updateTodo(body.id, previousTodo);
             console.error("Failed to update todo:", err);
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to update todo");
