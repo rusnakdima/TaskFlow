@@ -11,11 +11,12 @@ import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { ShortcutService } from "@services/shortcut.service";
 import { SyncService } from "@services/sync.service";
+import { StorageService } from "@services/storage.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
 import { HeaderComponent } from "@components/header/header.component";
@@ -27,7 +28,7 @@ import { CommandPaletteComponent } from "@components/command-palette/command-pal
 @Component({
   selector: "app-root",
   standalone: true,
-  providers: [AuthService, MainService, LocalWebSocketService, ShortcutService],
+  providers: [AuthService, LocalWebSocketService, ShortcutService],
   imports: [
     CommonModule,
     RouterOutlet,
@@ -43,11 +44,12 @@ export class App {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private localWs: LocalWebSocketService,
     private shortcutService: ShortcutService,
-    private syncService: SyncService
+    private syncService: SyncService,
+    private storageService: StorageService,
+    private dataSyncProvider: DataSyncProvider
   ) {}
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
@@ -117,21 +119,21 @@ export class App {
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      await this.mainService
-        .get<string>("profile", { userId })
-        .then((response: Response<string>) => {
-          if (response.status == ResponseStatus.SUCCESS) {
-            if (this.router.url == "/profile/create-profile") {
-              this.router.navigate([""]);
+      this.dataSyncProvider
+        .get<Profile>("profiles", { userId })
+        .subscribe({
+          next: (profile) => {
+            // Profile exists - if on create-profile page, navigate away
+            if (this.router.url.indexOf("/profile/create-profile") > -1) {
+              this.router.navigate(["/dashboard"]);
             }
-          } else {
-            this.router.navigate(["/profile/create-profile"]);
-          }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
-          if (err.status === ResponseStatus.ERROR) {
-            this.router.navigate(["/profile/create-profile"]);
+          },
+          error: (err) => {
+            // Profile doesn't exist - redirect to create profile
+            // But don't redirect if already on create-profile page
+            if (this.router.url.indexOf("/profile/create-profile") === -1) {
+              this.router.navigate(["/profile/create-profile"]);
+            }
           }
         });
     } else {
