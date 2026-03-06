@@ -13,12 +13,9 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
-import { MainService } from "@services/main.service";
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StorageService } from "@services/storage.service";
-
-/* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 interface DisplayTask {
@@ -37,16 +34,15 @@ interface DisplayTask {
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  providers: [MainService, DataSyncProvider],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./dashboard.view.html",
 })
 export class DashboardView implements OnInit {
   constructor(
     private authService: AuthService,
-    private mainService: MainService,
     private notifyService: NotifyService,
     private storageService: StorageService,
+    private dataSyncProvider: DataSyncProvider,
     private router: Router
   ) {}
 
@@ -68,18 +64,16 @@ export class DashboardView implements OnInit {
     this.userId = this.authService.getValueByKey("id");
 
     if (this.userId && this.userId !== "") {
-      this.mainService
-        .get<Profile>("profile", { userId: this.userId })
-        .then((response: Response<Profile>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            this.profile.set(response.data);
-            this.storageService.setProfile(response.data);
-          } else {
-            this.notifyService.showError(response.message);
+      this.dataSyncProvider
+        .get<Profile>("profiles", { userId: this.userId })
+        .subscribe({
+          next: (profile) => {
+            this.profile.set(profile);
+            this.storageService.setProfile(profile);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to load profile");
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message);
         });
     }
 
@@ -102,7 +96,6 @@ export class DashboardView implements OnInit {
   processTodosData(todos: Array<Todo>): void {
     // Get tasks from storage service
     const tasks = this.storageService.tasks();
-
     // Map tasks to their todos
     const allTasks: { task: Task; todo: Todo }[] = [];
     tasks.forEach((task) => {

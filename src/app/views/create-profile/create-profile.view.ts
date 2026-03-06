@@ -19,17 +19,15 @@ import { FormComponent } from "@components/form/form.component";
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
 import { Profile } from "@models/profile.model";
-import { Response, ResponseStatus } from "@models/response.model";
-import { AuthService } from "@services/auth.service";
 
 /* services */
-import { MainService } from "@services/main.service";
+import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-create-profile",
   standalone: true,
-  providers: [AuthService, MainService],
   imports: [
     CommonModule,
     FormsModule,
@@ -45,7 +43,7 @@ export class CreateProfileView implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private mainService: MainService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {
     this.form = fb.group({
@@ -104,16 +102,16 @@ export class CreateProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.mainService
-        .create<string, Profile>("profile", body)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
+      this.dataSyncProvider
+        .create<Profile>("profiles", body)
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Profile created successfully");
             this.router.navigate([""]);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to create profile");
           }
-        })
-        .catch((err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
         });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");

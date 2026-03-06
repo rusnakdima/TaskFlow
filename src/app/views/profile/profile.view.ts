@@ -8,17 +8,15 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Profile } from "@models/profile.model";
-import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
-import { MainService } from "@services/main.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  providers: [AuthService, MainService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./profile.view.html",
 })
@@ -26,7 +24,7 @@ export class ProfileView implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
-    private mainService: MainService,
+    private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {}
 
@@ -47,16 +45,14 @@ export class ProfileView implements OnInit {
   }
 
   getProfile(userId: string) {
-    this.mainService
-      .get<Profile>("profile", { userId })
-      .then((response: Response<Profile>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.profile.set(response.data);
-        }
-      })
-      .catch((err: Response<string>) => {
-        if (err.status === ResponseStatus.ERROR) {
-          this.notifyService.showError(err.message ?? err.toString());
+    this.dataSyncProvider
+      .get<Profile>("profiles", { userId })
+      .subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profile");
         }
       });
   }

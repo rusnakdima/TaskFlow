@@ -17,6 +17,7 @@ import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -50,6 +51,7 @@ export class TodosView implements OnInit {
 
   constructor(
     private authService: AuthService,
+    private storageService: StorageService,
     private notifyService: NotifyService
   ) {}
 
@@ -58,8 +60,11 @@ export class TodosView implements OnInit {
     return this.controller.templateService;
   }
 
+  // Use storage signals directly for source data
+  todos = this.storageService.todos;
+
+  // Separate signal for filtered/sorted display list
   listTodos = signal<Todo[]>([]);
-  tempListTodos = signal<Todo[]>([]);
 
   private isUpdatingOrder: boolean = false;
 
@@ -97,7 +102,17 @@ export class TodosView implements OnInit {
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
     this.controller.init(this.userId());
-    this.loadTodos();
+
+    // Load data once on init
+    this.storageService.loadAllData().subscribe({
+      next: () => {
+        // Apply initial filter after data is loaded
+        this.applyFilter();
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load todos");
+      }
+    });
 
     document.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
@@ -111,28 +126,8 @@ export class TodosView implements OnInit {
     });
   }
 
-  trackByTodoId(index: number, todo: Todo): string {
-    return todo.id;
-  }
-
-  loadTodos(): void {
-    this.controller.loadTodos().subscribe({
-      next: (todos) => {
-        this.tempListTodos.set(todos);
-        this.applyFilter();
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load todos");
-      },
-    });
-  }
-
-  searchFunc(data: Todo[]) {
-    this.listTodos.set(data);
-  }
-
-  toggleFilter() {
-    this.showFilter.update((val) => !val);
+  ngOnDestroy(): void {
+    // Cleanup if needed
   }
 
   changeFilter(filter: string) {
@@ -140,8 +135,58 @@ export class TodosView implements OnInit {
     this.applyFilter();
   }
 
+  onFilterChange(filter: string) {
+    // This is called when filter radio button changes
+    this.activeFilter.set(filter);
+    this.applyFilter();
+  }
+
+  onSearchChange(query: string) {
+    // This is called when search input changes
+    this.searchQuery.set(query);
+    // Re-apply filter with new search query
+    this.applyFilter();
+  }
+
+  toggleFilter() {
+    this.showFilter.update((val) => !val);
+  }
+
+  onSearchResults(results: any[]) {
+    // Search results come from the search component
+    // We need to apply the current filter on top of search results
+    if (this.searchQuery()) {
+      // Apply the active filter to search results
+      let filtered = [...results];
+
+      switch (this.activeFilter()) {
+        case "active":
+          filtered = filtered.filter((todo) => !this.controller.isCompleted(todo));
+          break;
+        case "completed":
+          filtered = filtered.filter((todo) => this.controller.isCompleted(todo));
+          break;
+        case "week":
+          filtered = this.filterService.filterThisWeek(filtered);
+          break;
+      }
+
+      filtered = this.sortService.sortByOrder(filtered, "desc");
+      this.listTodos.set(filtered);
+    } else {
+      // No search query, just apply normal filter
+      this.applyFilter();
+    }
+  }
+
+  clearFilters() {
+    this.activeFilter.set('all');
+    this.searchQuery.set('');
+    this.applyFilter();
+  }
+
   applyFilter(): void {
-    let filtered = [...this.tempListTodos()];
+    let filtered = [...this.todos()];
 
     switch (this.activeFilter()) {
       case "active":
@@ -155,12 +200,21 @@ export class TodosView implements OnInit {
         break;
     }
 
+    // Apply search filter
+    if (this.searchQuery()) {
+      const query = this.searchQuery().toLowerCase();
+      filtered = filtered.filter((todo) =>
+        todo.title.toLowerCase().includes(query) ||
+        todo.description.toLowerCase().includes(query)
+      );
+    }
+
     filtered = this.sortService.sortByOrder(filtered, "desc");
     this.listTodos.set(filtered);
   }
 
   getFilteredCount(filter: string): number {
-    const todos = this.tempListTodos();
+    const todos = this.todos();
 
     switch (filter) {
       case "all":
@@ -178,7 +232,8 @@ export class TodosView implements OnInit {
 
   deleteTodoById(todoId: string): void {
     this.controller.deleteTodoById(todoId, () => {
-      this.loadTodos();
+      // Re-apply filter to update the list after deletion
+      this.applyFilter();
     });
   }
 
@@ -245,7 +300,7 @@ export class TodosView implements OnInit {
 
     if (template && newTitle) {
       this.controller.createFromBlueprint(template, newTitle, () => {
-        this.loadTodos();
+        // No need to reload - storage auto-updates
         this.showApplyBlueprintDialog.set(false);
         this.showCreateBlueprintDialog.set(false);
       });
@@ -257,6 +312,13 @@ export class TodosView implements OnInit {
     this.applyBlueprintTitle.set(template.name);
     this.showApplyBlueprintDialog.set(true);
     this.showBlueprintDialog.set(false);
+  }
+
+  removeBlueprint(templateId: string) {
+    if (confirm('Are you sure you want to remove this blueprint?')) {
+      this.controller.templateService.deleteTemplate(templateId);
+      this.notifyService.showSuccess('Blueprint removed successfully');
+    }
   }
 
   getSubtasksCount(template: any): number {

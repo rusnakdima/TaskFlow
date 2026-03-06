@@ -16,21 +16,32 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 import { LoginForm } from "@models/login-form.model";
+import { CheckboxField, TypeField } from "@models/form-field.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-login",
   standalone: true,
   providers: [AuthService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule, CheckboxComponent],
   templateUrl: "./login.view.html",
 })
 export class LoginView {
   loginForm: FormGroup<any>;
   isLoading = false;
+
+  rememberField: CheckboxField = {
+    name: "remember",
+    label: "Remember me",
+    type: TypeField.checkbox,
+    isShow: () => true,
+  };
 
   constructor(
     private fb: FormBuilder,
