@@ -42,18 +42,12 @@ export class TemplateService {
   }
 
   createTemplateFromTodo(todo: Todo, name: string, description: string): ProjectTemplate {
-    console.log("[Template Service] Creating template from todo:", todo.title);
-    console.log("[Template Service] Todo tasks:", todo.tasks.length);
-
     const templateTasks: TemplateTask[] = todo.tasks
       .filter((task) => !task.isDeleted)
       .map((task) => {
         const taskSubtasks = task.subtasks
           .filter((st) => !st.isDeleted)
           .map((st) => ({ title: st.title }));
-        console.log(
-          `[Template Service] Processing task: "${task.title}" with ${taskSubtasks.length} subtasks`
-        );
         return {
           title: task.title,
           description: task.description,
@@ -70,12 +64,6 @@ export class TemplateService {
       categories: todo.categories.map((cat) => cat.id),
       createdAt: new Date().toISOString(),
     };
-
-    console.log("[Template Service] Template created:", {
-      id: template.id,
-      name: template.name,
-      tasks: template.tasks.length,
-    });
 
     this.templates.update((templates) => [...templates, template]);
     this.saveTemplates();

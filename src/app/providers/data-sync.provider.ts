@@ -9,7 +9,6 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj, TypesField } from "@models/relation-obj.model";
 
 /* services */
-import { MainService } from "../services/main.service";
 import { AuthService } from "../services/auth.service";
 import { LocalWebSocketService } from "../services/local-websocket.service";
 import { SyncService } from "../services/sync.service";
@@ -18,41 +17,28 @@ import { SyncService } from "../services/sync.service";
   providedIn: "root",
 })
 export class DataSyncProvider {
-  private allowedEntities = ["todo", "task", "subtask", "category", "profile"];
-  private tableMap: Record<string, string> = {
-    todo: "todos",
-    task: "tasks",
-    subtask: "subtasks",
-    category: "categories",
-    profile: "profiles",
-  };
-
+  private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles"];
   userId = signal("");
 
   constructor(
-    private mainService: MainService,
     private authService: AuthService,
     private localWebSocketService: LocalWebSocketService,
     private syncService: SyncService
   ) {}
 
-  private getTableName(entity: string): string {
-    return this.tableMap[entity] || `${entity}s`;
-  }
-
-  private validateEntity(entity: string): void {
-    if (!this.allowedEntities.includes(entity)) {
+  private validateTable(table: string): void {
+    if (!this.allowedTables.includes(table)) {
       throw new Error(
-        `Entity '${entity}' is not supported. Allowed: ${this.allowedEntities.join(", ")}`
+        `Table '${table}' is not supported. Allowed: ${this.allowedTables.join(", ")}`
       );
     }
   }
 
   /**
-   * Build default relations for entity
+   * Build default relations for table
    */
-  private getDefaultRelations(entity: string): RelationObj[] | undefined {
-    if (entity === "todo") {
+  private getDefaultRelations(table: string): RelationObj[] | undefined {
+    if (table === "todos") {
       return [
         {
           nameTable: "tasks",
@@ -93,7 +79,7 @@ export class DataSyncProvider {
         },
       ];
     }
-    if (entity === "task") {
+    if (table === "tasks") {
       return [
         {
           nameTable: "subtasks",
@@ -104,16 +90,27 @@ export class DataSyncProvider {
         },
       ];
     }
+    if (table === "profiles") {
+      return [
+        {
+          nameTable: "users",
+          typeField: TypesField.OneToOne,
+          nameField: "userId",
+          newNameField: "user",
+          relations: null,
+        },
+      ];
+    }
     return undefined;
   }
 
   getAll<T>(
-    entity: string,
+    table: string,
     filter: { [key: string]: any },
     params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T[]> {
-    this.validateEntity(entity);
+    this.validateTable(table);
 
     const { isOwner, isPrivate, relations } = params ?? {
       isOwner: true,
@@ -122,16 +119,17 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.getAll(entity, filter, { isOwner, isPrivate });
+      const defaultRelations = relations ?? this.getDefaultRelations(table);
+      return this.localWebSocketService.getAll(table, filter, { isOwner, isPrivate }, defaultRelations);
     }
 
-    // 2. Use new unified manageData endpoint with relations
-    const defaultRelations = relations ?? this.getDefaultRelations(entity);
+    // 2. Fallback to Tauri invoke (unified manageData endpoint)
+    const defaultRelations = relations ?? this.getDefaultRelations(table);
 
     return from(
       invoke<Response<T[]>>("manageData", {
         operation: "getAll",
-        table: this.getTableName(entity),
+        table,
         filter,
         relations: defaultRelations,
         syncMetadata: { isOwner, isPrivate },
@@ -148,12 +146,12 @@ export class DataSyncProvider {
   }
 
   get<T>(
-    entity: string,
+    table: string,
     filter: { [key: string]: any },
     params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T> {
-    this.validateEntity(entity);
+    this.validateTable(table);
 
     const { isOwner, isPrivate, relations } = params ?? {
       isOwner: true,
@@ -162,16 +160,17 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.get(entity, filter, { isOwner, isPrivate });
+      const defaultRelations = relations ?? this.getDefaultRelations(table);
+      return this.localWebSocketService.get(table, filter, { isOwner, isPrivate }, defaultRelations);
     }
 
-    // 2. Use new unified manageData endpoint with relations
-    const defaultRelations = relations ?? this.getDefaultRelations(entity);
+    // 2. Fallback to Tauri invoke (unified manageData endpoint)
+    const defaultRelations = relations ?? this.getDefaultRelations(table);
 
     return from(
       invoke<Response<T>>("manageData", {
         operation: "read",
-        table: this.getTableName(entity),
+        table,
         filter,
         relations: defaultRelations,
         syncMetadata: { isOwner, isPrivate },
@@ -188,7 +187,7 @@ export class DataSyncProvider {
   }
 
   create<T>(
-    entity: string,
+    table: string,
     data: any,
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
@@ -197,17 +196,17 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.create<T>(entity, data, parentTodoId, {
+      return this.localWebSocketService.create<T>(table, data, parentTodoId, {
         isOwner,
         isPrivate,
       });
     }
 
-    // 2. Use new unified manageData endpoint
+    // 2. Fallback to Tauri invoke (unified manageData endpoint)
     return from(
       invoke<Response<T>>("manageData", {
         operation: "create",
-        table: this.getTableName(entity),
+        table,
         data,
         syncMetadata: { isOwner, isPrivate },
       })
@@ -223,7 +222,7 @@ export class DataSyncProvider {
   }
 
   update<T>(
-    entity: string,
+    table: string,
     id: string,
     data: any,
     params?: { isOwner: boolean; isPrivate: boolean },
@@ -233,17 +232,17 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.update<T>(entity, id, data, parentTodoId, {
+      return this.localWebSocketService.update<T>(table, id, data, parentTodoId, {
         isOwner,
         isPrivate,
       });
     }
 
-    // 2. Use new unified manageData endpoint
+    // 2. Fallback to Tauri invoke (unified manageData endpoint)
     return from(
       invoke<Response<T>>("manageData", {
         operation: "update",
-        table: this.getTableName(entity),
+        table,
         id,
         data,
         syncMetadata: { isOwner, isPrivate },
@@ -260,7 +259,7 @@ export class DataSyncProvider {
   }
 
   updateAll<T>(
-    entity: string,
+    table: string,
     data: any[],
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
@@ -269,8 +268,7 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      // LocalWebSocketService returns Observable<T> but we cast to Observable<T[]>
-      return this.localWebSocketService.updateAll<T[]>(entity, data, parentTodoId, {
+      return this.localWebSocketService.updateAll<T[]>(table, data, parentTodoId, {
         isOwner,
         isPrivate,
       });
@@ -282,7 +280,7 @@ export class DataSyncProvider {
         data.map((item) =>
           invoke<Response<T>>("manageData", {
             operation: item.id ? "update" : "create",
-            table: this.getTableName(entity),
+            table,
             id: item.id,
             data: item,
             syncMetadata: { isOwner, isPrivate },
@@ -314,7 +312,7 @@ export class DataSyncProvider {
   }
 
   delete(
-    entity: string,
+    table: string,
     id: string,
     params?: { isOwner: boolean; isPrivate: boolean },
     parentTodoId?: string
@@ -323,17 +321,17 @@ export class DataSyncProvider {
 
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.delete(entity, id, parentTodoId, {
+      return this.localWebSocketService.delete(table, id, parentTodoId, {
         isOwner,
         isPrivate,
       });
     }
 
-    // 2. Use new unified manageData endpoint
+    // 2. Fallback to Tauri invoke (unified manageData endpoint)
     return from(
       invoke<Response<void>>("manageData", {
         operation: "delete",
-        table: this.getTableName(entity),
+        table,
         id,
         syncMetadata: { isOwner, isPrivate },
       })
