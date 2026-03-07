@@ -78,6 +78,21 @@ export class DataSyncProvider {
           newNameField: "categories",
           relations: null,
         },
+        {
+          nameTable: "profiles",
+          typeField: TypesField.ManyToOne,
+          nameField: "assignees",
+          newNameField: "assignees",
+          relations: [
+            {
+              nameTable: "users",
+              typeField: TypesField.OneToOne,
+              nameField: "userId",
+              newNameField: "user",
+              relations: null,
+            },
+          ],
+        },
       ];
     }
     if (table === "tasks") {

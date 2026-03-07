@@ -250,7 +250,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   async fetchProfiles(): Promise<void> {
-    this.dataSyncProvider.getAll<Profile>("profiles", { userId: this.userId() }).subscribe({
+    this.dataSyncProvider.getAll<Profile>("profiles", {}).subscribe({
       next: (profiles) => {
         this.availableProfiles.set(profiles);
       },
