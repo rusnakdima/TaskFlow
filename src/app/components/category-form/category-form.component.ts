@@ -117,7 +117,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to create category");
-        }
+        },
       })
       .add(() => {
         this.isLoading = false;
@@ -144,7 +144,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to update category");
-        }
+        },
       })
       .add(() => {
         this.isLoading = false;

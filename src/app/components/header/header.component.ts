@@ -124,16 +124,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   getProfile() {
-    this.dataSyncProvider
-      .get<Profile>("profiles", { userId: this.userId() })
-      .subscribe({
-        next: (profile) => {
-          this.profile.set(profile);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load profile");
-        }
-      });
+    this.dataSyncProvider.get<Profile>("profiles", { userId: this.userId() }).subscribe({
+      next: (profile) => {
+        this.profile.set(profile);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load profile");
+      },
+    });
   }
 
   async createBreadcrumbs(
