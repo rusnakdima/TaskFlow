@@ -252,24 +252,27 @@ export class SubtasksView implements OnInit {
     switch (subtask.status) {
       case TaskStatus.PENDING:
         newStatus = TaskStatus.COMPLETED;
-        message = "Subtask reopened";
+        message = "Subtask completed";
         break;
       case TaskStatus.COMPLETED:
         newStatus = TaskStatus.SKIPPED;
-        message = "Subtask completed";
+        message = "Subtask skipped";
         break;
       case TaskStatus.SKIPPED:
         newStatus = TaskStatus.FAILED;
-        message = "Subtask skipped";
+        message = "Subtask marked as failed";
         break;
       case TaskStatus.FAILED:
       default:
         newStatus = TaskStatus.PENDING;
-        message = "Subtask marked as failed";
+        message = "Subtask reopened";
         break;
     }
 
     const updatedSubtask = { ...subtask, status: newStatus };
+
+    // Optimistic update: update cache immediately
+    this.storageService.updateSubtask(subtask.id, { status: newStatus });
 
     this.dataSyncProvider
       .update<Subtask>(
@@ -327,6 +330,9 @@ export class SubtasksView implements OnInit {
       )
       .subscribe({
         next: (result) => {
+          this.storageService.updateSubtask(event.subtask.id, {
+            [event.field]: event.value,
+          });
           if (event.field === "title") {
             event.subtask.title = event.value;
           } else if (event.field === "description") {
@@ -347,6 +353,7 @@ export class SubtasksView implements OnInit {
       .delete("subtasks", id, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todoId())
       .subscribe({
         next: (result) => {
+          this.storageService.removeSubtask(id);
           this.listSubtasks.set(
             this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id)
           );

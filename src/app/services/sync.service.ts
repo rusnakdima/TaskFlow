@@ -57,13 +57,13 @@ export class SyncService {
   async syncAll<R>(): Promise<Response<R>> {
     this.setSyncing(true);
     try {
-      const importResult = await this.importToLocal<R>();
-      if (importResult.status !== ResponseStatus.SUCCESS) {
-        return importResult;
+      const exportResult = await this.exportToCloud<R>();
+      if (exportResult.status !== ResponseStatus.SUCCESS) {
+        return exportResult;
       }
 
-      const exportResult = await this.exportToCloud<R>();
-      return exportResult;
+      const importResult = await this.importToLocal<R>();
+      return importResult;
     } finally {
       this.setSyncing(false);
     }

@@ -277,7 +277,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
             };
 
             this.dataSyncProvider
-              .create<any>(
+              .create<Subtask>(
                 "subtasks",
                 duplicateData,
                 { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -285,6 +285,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
               )
               .subscribe({
                 next: (result) => {
+                  this.storageService.addSubtask(result);
                   this.notifyService.showSuccess("Subtask duplicated successfully");
                 },
                 error: (err) => {

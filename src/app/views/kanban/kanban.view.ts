@@ -18,6 +18,7 @@ import { LocalWebSocketService } from "@services/local-websocket.service";
 import { NotifyService } from "@services/notify.service";
 import { KanbanDragDropService } from "@services/kanban-drag-drop.service";
 import { KanbanUIHelper } from "@services/kanban-ui-helper.service";
+import { StorageService } from "@services/storage.service";
 
 /* controllers */
 import { KanbanController } from "@controllers/kanban.controller";
@@ -88,7 +89,8 @@ export class KanbanView implements OnInit {
     private localWs: LocalWebSocketService,
     private notifyService: NotifyService,
     private dragDropService: KanbanDragDropService,
-    private uiHelper: KanbanUIHelper
+    private uiHelper: KanbanUIHelper,
+    private storageService: StorageService
   ) {
     effect(() => {
       const todoId = this.selectedTodoId();
@@ -221,14 +223,27 @@ export class KanbanView implements OnInit {
   }
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
-    const newStatus =
-      subtask.status === TaskStatus.COMPLETED
-        ? TaskStatus.PENDING
-        : subtask.status === TaskStatus.PENDING
-          ? TaskStatus.COMPLETED
-          : subtask.status === TaskStatus.SKIPPED
-            ? TaskStatus.PENDING
-            : TaskStatus.PENDING;
+    let newStatus: TaskStatus;
+    let message = "";
+    switch (subtask.status) {
+      case TaskStatus.PENDING:
+        newStatus = TaskStatus.COMPLETED;
+        message = "Subtask completed";
+        break;
+      case TaskStatus.COMPLETED:
+        newStatus = TaskStatus.SKIPPED;
+        message = "Subtask skipped";
+        break;
+      case TaskStatus.SKIPPED:
+        newStatus = TaskStatus.FAILED;
+        message = "Subtask marked as failed";
+        break;
+      case TaskStatus.FAILED:
+      default:
+        newStatus = TaskStatus.PENDING;
+        message = "Subtask reopened";
+        break;
+    }
 
     const todoId = this.selectedTodoId();
     const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
@@ -239,11 +254,14 @@ export class KanbanView implements OnInit {
 
     const updatedSubtask = { ...subtask, status: newStatus };
 
+    // Optimistic update: update cache immediately
+    this.storageService.updateSubtask(subtask.id, { status: newStatus });
+
     this.dataSyncProvider
-      .update<Subtask>("subtask", subtask.id, updatedSubtask, { isOwner, isPrivate }, todoId)
+      .update<Subtask>("subtasks", subtask.id, updatedSubtask, { isOwner, isPrivate }, todoId)
       .subscribe({
         next: () => {
-          this.notifyService.showSuccess("Subtask updated");
+          this.notifyService.showSuccess(message);
           this.loadSubtasksForTask(subtask.taskId);
         },
         error: (error) => {

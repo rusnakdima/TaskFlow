@@ -35,7 +35,7 @@ export class BulkActionService {
     }
 
     const updateObservables = items.map((item: any) =>
-      updateFn(item.id, { [field]: value }).pipe(
+      updateFn(item.id, { id: item.id, [field]: value }).pipe(
         map((result) => ({ success: true, id: item.id })),
         catchError((error) => of({ success: false, id: item.id, error: error.message }))
       )

@@ -248,12 +248,7 @@ export class LocalWebSocketService {
 
     return this.request<void>("delete", payload).pipe(
       tap(() => {
-        console.log("[LocalWebSocketService] Response received:", {
-          action: "delete",
-          table: table,
-          id: id,
-          status: "Success",
-        });
+        // Response handled by request method
       })
     );
   }
