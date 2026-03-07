@@ -34,7 +34,7 @@ pub async fn importToLocal(
   state: State<'_, AppState>,
   userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.import_to_local(userId).await
+  state.manageDbService.importToLocal(userId).await
 }
 
 #[tauri::command]
@@ -42,14 +42,14 @@ pub async fn exportToCloud(
   state: State<'_, AppState>,
   userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.export_to_cloud(userId).await
+  state.manageDbService.exportToCloud(userId).await
 }
 
 #[tauri::command]
 pub async fn getAllDataForAdmin(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.get_all_data_for_admin().await
+  state.manageDbService.getAllDataForAdmin().await
 }
 
 #[tauri::command]
@@ -60,7 +60,7 @@ pub async fn permanentlyDeleteRecord(
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .manageDbService
-    .permanently_delete_record(table, id)
+    .permanentlyDeleteRecord(table, id)
     .await
 }
 
@@ -70,5 +70,5 @@ pub async fn toggleDeleteStatus(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.toggle_delete_status(table, id).await
+  state.manageDbService.toggleDeleteStatus(table, id).await
 }

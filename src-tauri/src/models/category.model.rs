@@ -2,7 +2,6 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct CategoryCreateModel {
@@ -47,16 +46,6 @@ impl CategoryUpdateModel {
       }
     }
     Ok(())
-  }
-
-  pub fn applyTo(&self, existing: CategoryModel) -> CategoryModel {
-    CategoryModel {
-      _id: existing._id,
-      id: existing.id,
-      title: self.title.clone().unwrap_or(existing.title),
-      userId: self.userId.clone().unwrap_or(existing.userId),
-      isDeleted: self.isDeleted.unwrap_or(existing.isDeleted),
-    }
   }
 }
 

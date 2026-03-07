@@ -2,9 +2,6 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
-/* models */
-use crate::models::user_model::UserModel;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileModel {
   pub _id: ObjectId,

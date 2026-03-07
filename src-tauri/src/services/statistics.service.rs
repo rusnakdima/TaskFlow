@@ -92,7 +92,11 @@ impl StatisticsService {
     // Get categories
     let categories = self
       .jsonProvider
-      .getAll("categories", Some(json!({ "userId": userId.clone() })), None)
+      .getAll(
+        "categories",
+        Some(json!({ "userId": userId.clone() })),
+        None,
+      )
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -102,8 +106,7 @@ impl StatisticsService {
 
     let filteredTasks = self.filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
 
-    let previousTasks =
-      self.filterByDateRange(&tasks, &prevStartDate, &prevEndDate, "createdAt");
+    let previousTasks = self.filterByDateRange(&tasks, &prevStartDate, &prevEndDate, "createdAt");
 
     let startDateNaive = startDate.date_naive();
     let endDateNaive = endDate.date_naive();
@@ -112,13 +115,8 @@ impl StatisticsService {
       .await;
 
     // Calculate tasks per category from todos and tasks
-    let categoriesWithCounts = self.calculateCategoryTasks(
-      &categories,
-      &todos,
-      &tasks,
-      &startDateNaive,
-      &endDateNaive,
-    );
+    let categoriesWithCounts =
+      self.calculateCategoryTasks(&categories, &todos, &tasks, &startDateNaive, &endDateNaive);
 
     let prevStartDateNaive = prevStartDate.date_naive();
     let prevEndDateNaive = prevEndDate.date_naive();
@@ -206,7 +204,7 @@ impl StatisticsService {
   ) -> Vec<Value> {
     let activitiesResponse = self
       .activityLogHelper
-      .getAll(json!({"userId".to_string(): userId.to_string()}))
+      .getAll(json!({"userId": userId.to_string()}))
       .await;
 
     let activities = match activitiesResponse {
@@ -391,7 +389,7 @@ impl StatisticsService {
         if hasCategory {
           let mut todoHasRelevantTasks = false;
           let todoId = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
-          
+
           if let Some(todoTasks) = tasksByTodo.get(todoId) {
             for task in todoTasks {
               let mut isTaskInRange = false;
@@ -435,7 +433,10 @@ impl StatisticsService {
 
       if let Some(obj) = categoryClone.as_object_mut() {
         obj.insert("todos".to_string(), serde_json::Value::Array(categoryTodos));
-        obj.insert("taskCount".to_string(), serde_json::Value::Number(categoryTaskCount.into()));
+        obj.insert(
+          "taskCount".to_string(),
+          serde_json::Value::Number(categoryTaskCount.into()),
+        );
         obj.insert(
           "completedTaskCount".to_string(),
           serde_json::Value::Number(categoryCompletedTaskCount.into()),
@@ -554,7 +555,10 @@ impl StatisticsService {
     for (index, category) in categories.iter().enumerate() {
       if let Some(categoryTitle) = category.get("title").and_then(|v| v.as_str()) {
         // Get task count from the pre-calculated taskCount field
-        let totalTasks = category.get("taskCount").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+        let totalTasks = category
+          .get("taskCount")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32;
 
         // Get completed task count from the pre-calculated completedTaskCount field
         let completedTasks = category

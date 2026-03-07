@@ -105,11 +105,13 @@ impl ProfileService {
     let modelData: ProfileModel = data.into();
     let record: Value = match to_value(&modelData) {
       Ok(v) => v,
-      Err(e) => return Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Failed to serialize profile: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Failed to serialize profile: {}", e),
+          data: DataValue::String("".to_string()),
+        })
+      }
     };
     let profile = self.jsonProvider.create("profiles", record).await;
     match profile {

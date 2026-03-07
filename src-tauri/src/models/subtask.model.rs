@@ -3,10 +3,7 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::{
-  sync_metadata_model::SyncMetadata,
-  task_model::TaskStatus,
-};
+use crate::models::{sync_metadata_model::SyncMetadata, task_model::TaskStatus};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskModel {

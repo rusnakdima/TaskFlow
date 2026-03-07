@@ -20,8 +20,8 @@ impl JsonCrudProvider {
 
   fn getTablePath(&self, nameTable: &str) -> PathBuf {
     let mut path = self.dbFilePath.clone();
-    let table_name = Self::getTableName(nameTable);
-    path.push(format!("{}.json", table_name));
+    let tableName = Self::getTableName(nameTable);
+    path.push(format!("{}.json", tableName));
     path
   }
 
@@ -268,7 +268,11 @@ impl JsonCrudProvider {
                     } else if filterValue.is_array() {
                       filterValue.as_array().unwrap().contains(recordValue)
                     } else {
-                      recordValue == filterValue
+                      // Compare string values properly
+                      match (recordValue.as_str(), filterValue.as_str()) {
+                        (Some(recStr), Some(filterStr)) => recStr == filterStr,
+                        _ => recordValue == filterValue,
+                      }
                     }
                   })
                   .unwrap_or(false)

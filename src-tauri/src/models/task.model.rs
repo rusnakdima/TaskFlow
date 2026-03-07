@@ -3,14 +3,6 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PriorityTask {
-  Low,
-  Medium,
-  High,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
   #[serde(rename = "pending")]
@@ -32,16 +24,6 @@ impl Display for TaskStatus {
       TaskStatus::Failed => "failed",
     };
     write!(f, "{}", statusStr)
-  }
-}
-
-impl Display for PriorityTask {
-  fn fmt(&self, f: &mut Formatter) -> Result {
-    match self {
-      PriorityTask::Low => write!(f, "Low"),
-      PriorityTask::Medium => write!(f, "Medium"),
-      PriorityTask::High => write!(f, "High"),
-    }
   }
 }
 
