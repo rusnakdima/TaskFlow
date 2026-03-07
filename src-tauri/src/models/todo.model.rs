@@ -105,7 +105,7 @@ pub struct TodoUpdateModel {
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,
-  pub updatedAt: String,
+  pub updatedAt: Option<String>,
 }
 
 impl TodoUpdateModel {

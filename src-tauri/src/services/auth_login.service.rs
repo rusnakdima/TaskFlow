@@ -106,15 +106,12 @@ impl AuthLoginService {
             if !userExistsLocally {
               let userData = match serde_json::to_value(&userDoc) {
                 Ok(data) => data,
-                Err(e) => {
-                  eprintln!("Warning: Failed to serialize user data: {}", e);
+                Err(_) => {
                   json!({})
                 }
               };
 
-              if let Err(e) = self.jsonProvider.create("users", userData).await {
-                eprintln!("Warning: Failed to store user data locally: {}", e);
-              }
+              if let Err(_) = self.jsonProvider.create("users", userData).await {}
             }
 
             // Sync profile to local storage
@@ -139,20 +136,15 @@ impl AuthLoginService {
                 if !profileExistsLocally {
                   let profileData = match serde_json::to_value(&profileDoc) {
                     Ok(data) => data,
-                    Err(e) => {
-                      eprintln!("Warning: Failed to serialize profile data: {}", e);
+                    Err(_) => {
                       json!({})
                     }
                   };
 
-                  if let Err(e) = self.jsonProvider.create("profiles", profileData).await {
-                    eprintln!("Warning: Failed to store profile data locally: {}", e);
-                  }
+                  if let Err(_) = self.jsonProvider.create("profiles", profileData).await {}
                 }
               }
-              Err(e) => {
-                eprintln!("Warning: No profile found for user {}: {}", userId, e);
-              }
+              Err(_) => {}
             }
 
             Ok(ResponseModel {

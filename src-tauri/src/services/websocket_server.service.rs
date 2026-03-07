@@ -35,7 +35,6 @@ impl WebSocketServerService {
     let listener = TcpListener::bind(&addr)
       .await
       .expect("Failed to bind to address");
-    println!("WebSocket server listening on: {}", addr);
 
     while let Ok((stream, _)) = listener.accept().await {
       let serviceClone = self.clone();
@@ -48,8 +47,7 @@ impl WebSocketServerService {
   async fn handleConnection(&self, stream: TcpStream) {
     let wsStream = match accept_async(stream).await {
       Ok(ws) => ws,
-      Err(e) => {
-        eprintln!("Error during WebSocket handshake: {}", e);
+      Err(_) => {
         return;
       }
     };
@@ -61,8 +59,7 @@ impl WebSocketServerService {
 
     let sendTask = tauri::async_runtime::spawn(async move {
       while let Some(msg) = rx.next().await {
-        if let Err(e) = wsSender.send(msg).await {
-          eprintln!("Error sending message to client: {}", e);
+        if let Err(_) = wsSender.send(msg).await {
           break;
         }
       }
@@ -81,8 +78,7 @@ impl WebSocketServerService {
           let _ = tx.unbounded_send(Message::Text(responseJson.into()));
         }
         Ok(Message::Close(_)) => break,
-        Err(e) => {
-          eprintln!("WebSocket error: {}", e);
+        Err(_) => {
           break;
         }
         _ => (),

@@ -62,10 +62,7 @@ pub fn run() {
         config.mongoDbName.clone(),
       )) {
         Ok(provider) => Some(Arc::new(provider)),
-        Err(e) => {
-          println!("Failed to connect to MongoDB: {:?}", e);
-          None
-        }
+        Err(_) => None,
       };
 
       let jsonProvider = JsonProvider::new(

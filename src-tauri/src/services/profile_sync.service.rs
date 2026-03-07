@@ -195,17 +195,8 @@ impl ProfileSyncService {
     for profileValue in localProfiles {
       if let Some(profileId) = profileValue.get("id").and_then(|v| v.as_str()) {
         match serde_json::from_value::<ProfileModel>(profileValue.clone()) {
-          Ok(profile) => {
-            if let Err(e) = self.syncProfileToCloud(profile).await {
-              eprintln!(
-                "Error syncing profile {} to cloud: {}",
-                profileId, e.message
-              );
-            }
-          }
-          Err(e) => {
-            eprintln!("Error deserializing profile {}: {}", profileId, e);
-          }
+          Ok(profile) => if let Err(_) = self.syncProfileToCloud(profile).await {},
+          Err(_) => {}
         }
       }
     }
@@ -227,12 +218,7 @@ impl ProfileSyncService {
 
     for profileDoc in cloudProfiles {
       if let Ok(profileId) = profileDoc.get_str("id") {
-        if let Err(e) = self.syncProfileFromCloud(profileId).await {
-          eprintln!(
-            "Error syncing profile {} from cloud: {}",
-            profileId, e.message
-          );
-        }
+        if let Err(_) = self.syncProfileFromCloud(profileId).await {}
       }
     }
 
