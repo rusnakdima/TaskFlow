@@ -14,22 +14,13 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
+import { LocalWebSocketService } from "@services/local-websocket.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-  tasksCompleted: number;
-  tasksAssigned: number;
-}
 
 @Component({
   selector: "app-shared-tasks",
@@ -41,6 +32,7 @@ export class SharedTasksView implements OnInit {
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService,
+    private localWebSocketService: LocalWebSocketService,
     private dataSyncProvider: DataSyncProvider
   ) {}
 
@@ -62,24 +54,67 @@ export class SharedTasksView implements OnInit {
 
   async fetchProfile(userId: string): Promise<Profile | null> {
     return new Promise((resolve) => {
-      this.dataSyncProvider
-        .get<Profile>("profiles", { userId })
-        .subscribe({
-          next: (profile) => {
-            resolve(profile);
-          },
-          error: () => {
-            resolve(null);
-          }
-        });
+      this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
+        next: (profile) => {
+          resolve(profile);
+        },
+        error: () => {
+          resolve(null);
+        },
+      });
     });
   }
 
   async loadSharedProjects() {
     const userId = this.authService.getValueByKey("id");
-    if (userId) {
+    if (!userId) return;
+
+    // Use WebSocket to load team todos from MongoDB if connected
+    if (this.localWebSocketService.isConnected()) {
+      // Load my projects (team todos where I am owner)
+      this.localWebSocketService
+        .getAll<Todo>(
+          "todos",
+          { userId, visibility: "team", isDeleted: false },
+          { isOwner: true, isPrivate: false }
+        )
+        .subscribe({
+          next: (todos) => {
+            if (todos) {
+              this.myProjects.set(todos);
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Error loading my shared projects");
+          },
+        });
+
+      // Load shared with me (team todos where I am assignee but not owner)
+      this.localWebSocketService
+        .getAll<Todo>(
+          "todos",
+          { assignees: userId, visibility: "team", isDeleted: false },
+          { isOwner: false, isPrivate: false }
+        )
+        .subscribe({
+          next: (todos) => {
+            if (todos) {
+              const sharedTodos = todos.filter((todo: Todo) => todo.userId !== userId);
+              this.sharedWithMe.set(sharedTodos);
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Error loading projects shared with me");
+          },
+        });
+    } else {
+      // Fallback to regular provider if WebSocket not connected
       this.dataSyncProvider
-        .getAll<Todo>("todos", { userId, visibility: "team" }, { isOwner: true, isPrivate: false })
+        .getAll<Todo>(
+          "todos",
+          { userId, visibility: "team", isDeleted: false },
+          { isOwner: true, isPrivate: false }
+        )
         .subscribe({
           next: (todos) => {
             if (todos) {
@@ -95,7 +130,7 @@ export class SharedTasksView implements OnInit {
       this.dataSyncProvider
         .getAll<Todo>(
           "todos",
-          { assignee: userId, visibility: "team" },
+          { assignees: userId, visibility: "team", isDeleted: false },
           { isOwner: false, isPrivate: false }
         )
         .subscribe({
@@ -112,35 +147,6 @@ export class SharedTasksView implements OnInit {
     }
   }
 
-  getProgressColor(progress: number): string {
-    if (progress >= 80) return "bg-green-500";
-    if (progress >= 50) return "bg-blue-500";
-    if (progress >= 25) return "bg-yellow-500";
-    return "bg-red-500";
-  }
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-
-  getCompletionRate(member: TeamMember): number {
-    if (member.tasksAssigned === 0) return 0;
-    return Math.round((member.tasksCompleted / member.tasksAssigned) * 100);
-  }
-
-  getMemberInitials(name: string): string {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  }
-
   todoIsOwner(todo: Todo): boolean {
     return todo.userId === this.authService.getValueByKey("id");
   }
@@ -155,14 +161,6 @@ export class SharedTasksView implements OnInit {
         this.notifyService.showError(err.message || "Failed to delete project");
       },
     });
-  }
-
-  inviteMember(): void {
-    this.notifyService.showSuccess("Invite functionality would be implemented here");
-  }
-
-  createProject(): void {
-    this.notifyService.showInfo("Project creation form would open here");
   }
 
   onMyProjectsDrop(event: CdkDragDrop<Todo[]>): void {

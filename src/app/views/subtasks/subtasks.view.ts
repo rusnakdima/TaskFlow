@@ -1,8 +1,18 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, ChangeDetectorRef } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  ChangeDetectorRef,
+  effect,
+  inject,
+  runInInjectionContext,
+  Injector,
+} from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
+import { HostListener } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -23,9 +33,9 @@ import { StorageService } from "@services/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
-import { SearchComponent } from "@components/fields/search/search.component";
 import { SubtaskComponent } from "@components/subtask/subtask.component";
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
+import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
 
 @Component({
   selector: "app-subtasks",
@@ -35,14 +45,16 @@ import { TaskInformationComponent } from "@components/task-information/task-info
     CommonModule,
     RouterModule,
     MatIconModule,
-    SearchComponent,
     SubtaskComponent,
     TaskInformationComponent,
+    FilterBarComponent,
     DragDropModule,
   ],
   templateUrl: "./subtasks.view.html",
 })
 export class SubtasksView implements OnInit {
+  private injector = inject(Injector);
+
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
@@ -52,11 +64,21 @@ export class SubtasksView implements OnInit {
     private filterService: FilterService,
     private sortService: SortService,
     private storageService: StorageService
-  ) {}
+  ) {
+    runInInjectionContext(this.injector, () => {
+      effect(() => {
+        const currentSubtasks = this.subtasks();
+        const currentTask = this.task();
+        if (currentTask && currentSubtasks.length > 0) {
+          this.loadSubtasksByTaskId(currentTask.id);
+        }
+      });
+    });
+  }
 
   // Use storage signals directly for source data
   subtasks = this.storageService.subtasks;
-  
+
   // Separate signals for filtered/sorted display list
   listSubtasks = signal<Array<Subtask>>([]);
   tempListSubtasks = signal<Array<Subtask>>([]);
@@ -75,6 +97,20 @@ export class SubtasksView implements OnInit {
 
   activeFilter = signal("all");
   showFilter = signal(false);
+
+  @HostListener("window:keydown", ["$event"])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.ctrlKey && event.key === "f") {
+      event.preventDefault();
+      this.toggleFilter();
+    }
+    if (event.ctrlKey && event.key === "r") {
+      event.preventDefault();
+      if (this.task()) {
+        this.loadSubtasksByTaskId(this.task()!.id);
+      }
+    }
+  }
 
   filterOptions = [
     { key: "all", label: "All" },
@@ -108,7 +144,6 @@ export class SubtasksView implements OnInit {
         this.isPrivate = todoData.visibility === "private";
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
-        this.loadSubtasksByTaskId(todoData.id);
       }
       if (dataResolve?.["task"]) {
         const taskData = dataResolve["task"];
@@ -119,16 +154,21 @@ export class SubtasksView implements OnInit {
     }
   }
 
-  trackBySubtaskId(index: number, subtask: Subtask): string {
-    return subtask.id;
-  }
-
   loadSubtasksByTaskId(taskId: string) {
-    // Read subtasks directly from storage - filtered by taskId
-    const filteredSubtasks = this.subtasks().filter(st => st.taskId === taskId);
-    
-    if (filteredSubtasks && filteredSubtasks.length > 0) {
-      this.tempListSubtasks.set(filteredSubtasks);
+    let subtasksData: Subtask[] = [];
+
+    const storedSubtasks = this.subtasks();
+    if (storedSubtasks.length > 0) {
+      subtasksData = storedSubtasks.filter((st) => st.taskId === taskId);
+    }
+
+    const resolvedTask = this.task();
+    if (resolvedTask?.subtasks && resolvedTask.subtasks.length > 0 && subtasksData.length === 0) {
+      subtasksData = resolvedTask.subtasks;
+    }
+
+    if (subtasksData.length > 0) {
+      this.tempListSubtasks.set(subtasksData);
       this.applyFilter();
     }
   }
@@ -152,6 +192,19 @@ export class SubtasksView implements OnInit {
 
   changeFilter(filter: string) {
     this.activeFilter.set(filter);
+    this.applyFilter();
+  }
+
+  onSearchChange(query: string) {
+    this.applyFilter();
+  }
+
+  onSearchResults(results: any[]) {
+    // Handled by filter
+  }
+
+  clearFilters() {
+    this.activeFilter.set("");
     this.applyFilter();
   }
 
@@ -311,8 +364,12 @@ export class SubtasksView implements OnInit {
       return;
     }
 
-    moveItemInArray(this.listSubtasks(), event.previousIndex, event.currentIndex);
-    this.updateSubtaskOrder();
+    if (event.previousIndex !== event.currentIndex) {
+      moveItemInArray(this.listSubtasks(), event.previousIndex, event.currentIndex);
+      this.updateSubtaskOrder();
+    } else {
+      this.isUpdatingOrder = false;
+    }
   }
 
   updateSubtaskOrder(): void {
@@ -346,13 +403,12 @@ export class SubtasksView implements OnInit {
       .subscribe({
         next: (result) => {
           this.notifyService.showSuccess("Subtask order updated successfully");
+          this.isUpdatingOrder = false;
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to update subtask order");
-          // No need to reload - storage auto-updates
-        },
-        complete: () => {
           this.isUpdatingOrder = false;
+          // No need to reload - storage auto-updates
         },
       });
   }

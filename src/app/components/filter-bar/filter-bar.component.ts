@@ -19,91 +19,91 @@ export interface FilterOption {
 @Component({
   selector: "app-filter-bar",
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatCheckboxModule,
-  ],
+  imports: [CommonModule, FormsModule, MatIconModule, MatButtonModule, MatCheckboxModule],
   templateUrl: "./filter-bar.component.html",
-  styles: [`
-    .filter-sidebar-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 999;
-      animation: fadeIn 0.2s ease-out;
-    }
-
-    .filter-sidebar {
-      position: fixed;
-      top: 0;
-      right: -320px;
-      width: 320px;
-      max-width: 85vw;
-      height: 100vh;
-      background: white;
-      z-index: 1000;
-      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-      transition: right 0.3s ease-in-out;
-      overflow-y: auto;
-    }
-
-    :host-context(.dark) .filter-sidebar {
-      background: rgb(39 39 42);
-    }
-
-    .filter-sidebar.open {
-      right: 0;
-    }
-
-    .filter-sidebar-content {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 1.5rem;
-    }
-
-    .filter-sidebar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid rgb(229 231 235);
-      margin-bottom: 1.5rem;
-    }
-
-    :host-context(.dark) .filter-sidebar-header {
-      border-bottom-color: rgb(64 64 64);
-    }
-
-    .filter-sidebar-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .filter-sidebar-actions {
-      margin-top: auto;
-      padding-top: 1rem;
-      border-top: 1px solid rgb(229 231 235);
-    }
-
-    :host-context(.dark) .filter-sidebar-actions {
-      border-top-color: rgb(64 64 64);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @media (max-width: 640px) {
-      .filter-sidebar {
-        width: 100%;
-        max-width: 100%;
+  styles: [
+    `
+      .filter-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        animation: fadeIn 0.2s ease-out;
       }
-    }
-  `]
+
+      .filter-sidebar {
+        position: fixed;
+        top: 0;
+        right: -320px;
+        width: 320px;
+        max-width: 85vw;
+        height: 100vh;
+        background: white;
+        z-index: 1000;
+        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+        transition: right 0.3s ease-in-out;
+        overflow-y: auto;
+      }
+
+      :host-context(.dark) .filter-sidebar {
+        background: rgb(39 39 42);
+      }
+
+      .filter-sidebar.open {
+        right: 0;
+      }
+
+      .filter-sidebar-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1.5rem;
+      }
+
+      .filter-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgb(229 231 235);
+        margin-bottom: 1.5rem;
+      }
+
+      :host-context(.dark) .filter-sidebar-header {
+        border-bottom-color: rgb(64 64 64);
+      }
+
+      .filter-sidebar-section {
+        margin-bottom: 1.5rem;
+      }
+
+      .filter-sidebar-actions {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid rgb(229 231 235);
+      }
+
+      :host-context(.dark) .filter-sidebar-actions {
+        border-top-color: rgb(64 64 64);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .filter-sidebar {
+          width: 100%;
+          max-width: 100%;
+        }
+      }
+    `,
+  ],
 })
 export class FilterBarComponent {
   @Input() filterOptions: FilterOption[] = [];
@@ -127,7 +127,7 @@ export class FilterBarComponent {
   @Output() applyFiltersEvent = new EventEmitter<void>();
   @Output() clearFiltersEvent = new EventEmitter<void>();
 
-  @HostListener('document:keydown.escape')
+  @HostListener("document:keydown.escape")
   handleEscapeKey() {
     if (this.showFilter) {
       this.closeSidebar();
@@ -165,16 +165,16 @@ export class FilterBarComponent {
   }
 
   clearAllFilters() {
-    this.activeFilter = 'all';
-    this.searchQuery = '';
+    this.activeFilter = "all";
+    this.searchQuery = "";
     this.clearFiltersEvent.emit();
     // Also trigger filter change to re-apply with cleared filters
-    this.filterChange.emit('all');
+    this.filterChange.emit("all");
   }
 
   clearSearch() {
-    this.searchQuery = '';
-    this.searchChange.emit('');
+    this.searchQuery = "";
+    this.searchChange.emit("");
     // Trigger a re-filter with empty search
     this.filterChange.emit(this.activeFilter);
   }
@@ -184,8 +184,8 @@ export class FilterBarComponent {
   }
 
   clearFilters() {
-    this.activeFilter = 'all';
-    this.searchQuery = '';
+    this.activeFilter = "all";
+    this.searchQuery = "";
     this.clearFiltersEvent.emit();
   }
 

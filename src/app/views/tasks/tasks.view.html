@@ -14,7 +14,10 @@
         class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
         (click)="toggleFilter()"
       >
-        <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'" />
+        <mat-icon
+          class="w-5! h-5! text-xl!"
+          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
+        />
         Filter
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
@@ -74,6 +77,8 @@
     >
       @for (task of listTasks(); track task.id) {
         <app-task
+          cdkDrag
+          class="h-full"
           [id]="'task-' + task.id"
           [task]="task"
           [index]="$index"
@@ -88,7 +93,12 @@
           (updateTaskEvent)="updateTaskInline($event)"
           (toggleSubtasksEvent)="toggleTaskCompletion($event)"
           (selectionChangeEvent)="toggleTaskSelection($event)"
-        />
+        >
+          <div
+            *cdkDragPlaceholder
+            class="cdk-drag-placeholder rounded-xl h-full min-h-[200px]"
+          ></div>
+        </app-task>
       }
     </div>
   }

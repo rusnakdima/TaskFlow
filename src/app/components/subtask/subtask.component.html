@@ -1,149 +1,147 @@
 @if (subtask) {
-  <div cdkDrag>
-    <div
-      class="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow border border-gray-200 dark:border-zinc-700 hover:shadow-md transition-all duration-200 group"
-    >
-      <div class="flex flex-row items-start gap-3">
-        <div class="flex flex-row flex-1 items-start gap-3">
-          <button
-            class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-            (click)="toggleCompletion()"
-            [title]="
-              subtask.status === 'completed'
-                ? 'Mark as skipped'
-                : subtask.status === 'skipped'
-                  ? 'Mark as failed'
-                  : subtask.status === 'failed'
-                    ? 'Mark as pending'
-                    : 'Mark as completed'
-            "
-          >
-            @if (subtask.status === "completed") {
-              <mat-icon class="w-5! h-5! text-xl! text-green-600!" fontIcon="check_circle" />
-            } @else if (subtask.status === "skipped") {
-              <mat-icon
-                class="w-5! h-5! text-xl! text-orange-600! dark:text-orange-400!"
-                fontIcon="cancel"
-              />
-            } @else if (subtask.status === "failed") {
-              <mat-icon
-                class="w-5! h-5! text-xl! text-red-600! dark:text-red-400!"
-                fontIcon="dangerous"
-              />
-            } @else {
-              <mat-icon
-                class="w-5! h-5! text-xl! textMuted hover:text-green-600!"
-                fontIcon="radio_button_unchecked"
-              />
-            }
-          </button>
-
-          <div class="flex-1 min-w-0">
-            @if (editingField() === "title") {
-              <input
-                type="text"
-                [ngModel]="editingValue()"
-                (ngModelChange)="editingValue.set($event)"
-                (blur)="saveInlineEdit()"
-                (keyup.enter)="saveInlineEdit()"
-                (keyup.escape)="cancelInlineEdit()"
-                class="w-full px-2 py-1 font-medium bg-transparent border-b-2 border-purple-500 focus:outline-none textNormal"
-              />
-            } @else {
-              <h4
-                class="font-medium textNormal mb-1"
-                [ngClass]="
-                  subtask.status === 'completed' ||
-                  subtask.status === 'skipped' ||
-                  subtask.status === 'failed'
-                    ? 'line-through text-gray-500 dark:text-gray-400'
-                    : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
-                "
-                (dblclick)="startInlineEdit('title', subtask.title || '')"
-                title="Double-click to edit title"
-              >
-                {{ subtask.title }}
-              </h4>
-            }
-
-            @if (editingField() === "description") {
-              <textarea
-                [ngModel]="editingValue()"
-                (ngModelChange)="editingValue.set($event)"
-                (blur)="saveInlineEdit()"
-                (keyup.escape)="cancelInlineEdit()"
-                class="w-full px-2 py-1 text-sm bg-transparent border border-purple-500 rounded focus:outline-none textNormal resize-none"
-                rows="2"
-              ></textarea>
-            } @else if (subtask.description && subtask.description != "") {
-              <p
-                class="text-sm textMuted"
-                (dblclick)="startInlineEdit('description', subtask.description)"
-                title="Double-click to edit description"
-              >
-                {{ subtask.description }}
-              </p>
-            }
-          </div>
-
-          <div class="flex items-center gap-2 ml-2">
-            <span
-              class="px-2 py-1 rounded-full text-xs font-medium"
-              [ngClass]="getPriorityColor(subtask.priority || 'medium')"
-            >
-              {{ (subtask.priority || "medium").toUpperCase() }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-row justify-between items-center mt-3">
-        <div class="flex items-center gap-3">
+  <div
+    class="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow border border-gray-200 dark:border-zinc-700 hover:shadow-md transition-all duration-200 group"
+  >
+    <div class="flex flex-row items-start gap-3">
+      <div class="flex flex-row flex-1 items-start gap-3">
+        <button
+          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+          (click)="toggleCompletion()"
+          [title]="
+            subtask.status === 'completed'
+              ? 'Mark as skipped'
+              : subtask.status === 'skipped'
+                ? 'Mark as failed'
+                : subtask.status === 'failed'
+                  ? 'Mark as pending'
+                  : 'Mark as completed'
+          "
+        >
           @if (subtask.status === "completed") {
-            <span
-              class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-xs text-green-600 dark:text-green-400 font-medium"
-            >
-              Completed
-            </span>
+            <mat-icon class="w-5! h-5! text-xl! text-green-600!" fontIcon="check_circle" />
           } @else if (subtask.status === "skipped") {
-            <span
-              class="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs text-orange-600 dark:text-orange-400 font-medium"
-            >
-              Skipped
-            </span>
+            <mat-icon
+              class="w-5! h-5! text-xl! text-orange-600! dark:text-orange-400!"
+              fontIcon="cancel"
+            />
           } @else if (subtask.status === "failed") {
-            <span
-              class="px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-xs text-red-600 dark:text-red-400 font-medium"
+            <mat-icon
+              class="w-5! h-5! text-xl! text-red-600! dark:text-red-400!"
+              fontIcon="dangerous"
+            />
+          } @else {
+            <mat-icon
+              class="w-5! h-5! text-xl! textMuted hover:text-green-600!"
+              fontIcon="radio_button_unchecked"
+            />
+          }
+        </button>
+
+        <div class="flex-1 min-w-0">
+          @if (editingField() === "title") {
+            <input
+              type="text"
+              [ngModel]="editingValue()"
+              (ngModelChange)="editingValue.set($event)"
+              (blur)="saveInlineEdit()"
+              (keyup.enter)="saveInlineEdit()"
+              (keyup.escape)="cancelInlineEdit()"
+              class="w-full px-2 py-1 font-medium bg-transparent border-b-2 border-purple-500 focus:outline-none textNormal"
+            />
+          } @else {
+            <h4
+              class="font-medium textNormal mb-1"
+              [ngClass]="
+                subtask.status === 'completed' ||
+                subtask.status === 'skipped' ||
+                subtask.status === 'failed'
+                  ? 'line-through text-gray-500 dark:text-gray-400'
+                  : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
+              "
+              (dblclick)="startInlineEdit('title', subtask.title || '')"
+              title="Double-click to edit title"
             >
-              Failed
-            </span>
+              {{ subtask.title }}
+            </h4>
+          }
+
+          @if (editingField() === "description") {
+            <textarea
+              [ngModel]="editingValue()"
+              (ngModelChange)="editingValue.set($event)"
+              (blur)="saveInlineEdit()"
+              (keyup.escape)="cancelInlineEdit()"
+              class="w-full px-2 py-1 text-sm bg-transparent border border-purple-500 rounded focus:outline-none textNormal resize-none"
+              rows="2"
+            ></textarea>
+          } @else if (subtask.description && subtask.description != "") {
+            <p
+              class="text-sm textMuted"
+              (dblclick)="startInlineEdit('description', subtask.description)"
+              title="Double-click to edit description"
+            >
+              {{ subtask.description }}
+            </p>
           }
         </div>
 
-        <div class="flex flex-row gap-1">
-          <button
-            class="p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 transition-colors"
-            cdkDragHandle
-            title="Drag to reorder"
+        <div class="flex items-center gap-2 ml-2">
+          <span
+            class="px-2 py-1 rounded-full text-xs font-medium"
+            [ngClass]="getPriorityColor(subtask.priority || 'medium')"
           >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
-          </button>
-          <button
-            class="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-            [routerLink]="subtask.id + '/edit_subtask'"
-            [queryParams]="{ isPrivate: isPrivate }"
-            title="Edit subtask"
-          >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
-          </button>
-          <button
-            class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
-            (click)="deleteSubtask(); $event.stopPropagation()"
-            title="Delete subtask"
-          >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
-          </button>
+            {{ (subtask.priority || "medium").toUpperCase() }}
+          </span>
         </div>
+      </div>
+    </div>
+
+    <div class="flex flex-row justify-between items-center mt-3">
+      <div class="flex items-center gap-3">
+        @if (subtask.status === "completed") {
+          <span
+            class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-xs text-green-600 dark:text-green-400 font-medium"
+          >
+            Completed
+          </span>
+        } @else if (subtask.status === "skipped") {
+          <span
+            class="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs text-orange-600 dark:text-orange-400 font-medium"
+          >
+            Skipped
+          </span>
+        } @else if (subtask.status === "failed") {
+          <span
+            class="px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-xs text-red-600 dark:text-red-400 font-medium"
+          >
+            Failed
+          </span>
+        }
+      </div>
+
+      <div class="flex flex-row gap-1">
+        <button
+          class="p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 transition-colors"
+          cdkDragHandle
+          title="Drag to reorder"
+        >
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
+        </button>
+        <button
+          class="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+          [routerLink]="subtask.id + '/edit_subtask'"
+          [queryParams]="{ isPrivate: isPrivate }"
+          title="Edit subtask"
+        >
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
+        </button>
+        <button
+          class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+          (click)="deleteSubtask(); $event.stopPropagation()"
+          title="Delete subtask"
+        >
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
+        </button>
       </div>
     </div>
   </div>

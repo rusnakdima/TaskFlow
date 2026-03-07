@@ -1,9 +1,10 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, inject } from "@angular/core";
+import { Component, OnInit, signal, inject, effect } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
+import { HostListener } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -53,7 +54,15 @@ export class TodosView implements OnInit {
     private authService: AuthService,
     private storageService: StorageService,
     private notifyService: NotifyService
-  ) {}
+  ) {
+    // Watch for todos data changes and apply filter when data is loaded
+    effect(() => {
+      const todos = this.storageService.todos();
+      if (todos.length > 0) {
+        this.applyFilter();
+      }
+    });
+  }
 
   // Expose templateService for template
   get templateService() {
@@ -103,17 +112,6 @@ export class TodosView implements OnInit {
     this.userId.set(this.authService.getValueByKey("id"));
     this.controller.init(this.userId());
 
-    // Load data once on init
-    this.storageService.loadAllData().subscribe({
-      next: () => {
-        // Apply initial filter after data is loaded
-        this.applyFilter();
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load todos");
-      }
-    });
-
     document.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
         event.preventDefault();
@@ -148,6 +146,18 @@ export class TodosView implements OnInit {
     this.applyFilter();
   }
 
+  @HostListener("window:keydown", ["$event"])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.ctrlKey && event.key === "f") {
+      event.preventDefault();
+      this.toggleFilter();
+    }
+    if (event.ctrlKey && event.key === "r") {
+      event.preventDefault();
+      this.storageService.loadAllData(true).subscribe();
+    }
+  }
+
   toggleFilter() {
     this.showFilter.update((val) => !val);
   }
@@ -180,8 +190,8 @@ export class TodosView implements OnInit {
   }
 
   clearFilters() {
-    this.activeFilter.set('all');
-    this.searchQuery.set('');
+    this.activeFilter.set("all");
+    this.searchQuery.set("");
     this.applyFilter();
   }
 
@@ -203,9 +213,9 @@ export class TodosView implements OnInit {
     // Apply search filter
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
-      filtered = filtered.filter((todo) =>
-        todo.title.toLowerCase().includes(query) ||
-        todo.description.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (todo) =>
+          todo.title.toLowerCase().includes(query) || todo.description.toLowerCase().includes(query)
       );
     }
 
@@ -315,9 +325,9 @@ export class TodosView implements OnInit {
   }
 
   removeBlueprint(templateId: string) {
-    if (confirm('Are you sure you want to remove this blueprint?')) {
+    if (confirm("Are you sure you want to remove this blueprint?")) {
       this.controller.templateService.deleteTemplate(templateId);
-      this.notifyService.showSuccess('Blueprint removed successfully');
+      this.notifyService.showSuccess("Blueprint removed successfully");
     }
   }
 

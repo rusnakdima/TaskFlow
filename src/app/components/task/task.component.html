@@ -1,6 +1,5 @@
 @if (task) {
-  <div cdkDrag class="h-full flex flex-col" [class.expanded]="isExpanded">
-    <ng-content></ng-content>
+  <div class="h-full flex flex-col" [class.expanded]="isExpanded">
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
@@ -263,21 +262,23 @@
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
           </button>
 
-          <button
-            class="p-2 rounded-lg transition-colors"
-            [ngClass]="
-              isExpanded
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400'
-            "
-            (click)="toggleExpand()"
-            [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
-          >
-            <mat-icon
-              class="w-5! h-5! text-xl!"
-              [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
-            />
-          </button>
+          @if (showExpandButton) {
+            <button
+              class="p-2 rounded-lg transition-colors"
+              [ngClass]="
+                isExpanded
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400'
+              "
+              (click)="toggleExpand()"
+              [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
+            >
+              <mat-icon
+                class="w-5! h-5! text-xl!"
+                [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
+              />
+            </button>
+          }
 
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
