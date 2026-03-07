@@ -43,11 +43,7 @@
       </div>
 
       <div class="flex flex-row justify-between items-center">
-        <app-checkbox
-          label="Remember me"
-          [form]="loginForm"
-          [field]="rememberField"
-        />
+        <app-checkbox label="Remember me" [form]="loginForm" [field]="rememberField" />
 
         <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>
       </div>

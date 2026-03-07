@@ -29,7 +29,6 @@ export class ProfileView implements OnInit {
   ) {}
 
   userId: string = "";
-  queryId: string = "";
 
   profile = signal<Profile | null>(null);
 
@@ -38,23 +37,20 @@ export class ProfileView implements OnInit {
 
     this.route.queryParams.subscribe((params: any) => {
       if (params.id && params.id != "") {
-        this.queryId = params.id;
-        this.getProfile(this.queryId);
+        this.getProfile(params.id);
       }
     });
   }
 
   getProfile(userId: string) {
-    this.dataSyncProvider
-      .get<Profile>("profiles", { userId })
-      .subscribe({
-        next: (profile) => {
-          this.profile.set(profile);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load profile");
-        }
-      });
+    this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
+      next: (profile) => {
+        this.profile.set(profile);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load profile");
+      },
+    });
   }
 
   logout() {

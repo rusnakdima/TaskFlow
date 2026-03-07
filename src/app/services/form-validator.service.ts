@@ -37,34 +37,4 @@ export class FormValidatorService {
 
     return true;
   }
-
-  /**
-   * Mark all form controls as touched (for error display)
-   * @param form - FormGroup to mark
-   */
-  markAllControlsAsTouched(form: FormGroup): void {
-    Object.values(form.controls).forEach((control) => {
-      control.markAsTouched();
-    });
-  }
-
-  /**
-   * Validate required fields
-   * @param form - FormGroup to validate
-   * @param fieldNames - Array of field names to check
-   * @returns true if all required fields are filled, false otherwise
-   */
-  validateRequiredFields(form: FormGroup, fieldNames: string[]): boolean {
-    const missingFields = fieldNames.filter((fieldName) => {
-      const control = form.get(fieldName);
-      return !control?.value || control?.value === "";
-    });
-
-    if (missingFields.length > 0) {
-      this.notifyService.showError("Please fill in all required fields");
-      return false;
-    }
-
-    return true;
-  }
 }

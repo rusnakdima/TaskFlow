@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, effect } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -35,12 +35,19 @@ export class CalendarView implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private notifyService: NotifyService,
     router: Router,
     private storageService: StorageService,
     private calendarGenerator: CalendarGeneratorService
   ) {
     this.router = router;
+
+    // Watch for todos data changes and process when data is loaded
+    effect(() => {
+      const todos = this.storageService.todos();
+      if (todos.length > 0) {
+        this.processTodosData(todos);
+      }
+    });
   }
 
   selectedDate = signal<Date>(new Date());
@@ -55,24 +62,7 @@ export class CalendarView implements OnInit {
   dayEvents = signal<CalendarEvent[]>([]);
 
   ngOnInit(): void {
-    this.loadCalendarData();
     this.generateCalendarDays();
-  }
-
-  loadCalendarData(): void {
-    const userId: string = this.authService.getValueByKey("id");
-
-    if (userId && userId !== "") {
-      // Use storage service to load data (cached or from backend)
-      this.storageService.loadAllData().subscribe({
-        next: (result) => {
-          this.processTodosData(result.todos);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load calendar data");
-        },
-      });
-    }
   }
 
   processTodosData(todos: Array<Todo>): void {

@@ -29,12 +29,18 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
   selector: "app-login",
   standalone: true,
   providers: [AuthService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatIconModule, CheckboxComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatIconModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./login.view.html",
 })
 export class LoginView {
   loginForm: FormGroup<any>;
-  isLoading = false;
 
   rememberField: CheckboxField = {
     name: "remember",

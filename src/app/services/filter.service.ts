@@ -92,47 +92,6 @@ export class FilterService {
   }
 
   /**
-   * Filter by date range
-   */
-  filterByDateRange<T>(data: T[], field: string, startDate?: string, endDate?: string): T[] {
-    if (!startDate && !endDate) {
-      return data;
-    }
-
-    return data.filter((item: any) => {
-      const itemDate = new Date(this.getNestedValue(item, field));
-
-      if (startDate && itemDate < new Date(startDate)) {
-        return false;
-      }
-
-      if (endDate && itemDate > new Date(endDate)) {
-        return false;
-      }
-
-      return true;
-    });
-  }
-
-  /**
-   * Filter by search query (searches multiple fields)
-   */
-  filterBySearch<T>(data: T[], query: string, fields: string[]): T[] {
-    if (!query || query.trim() === "") {
-      return data;
-    }
-
-    const lowerQuery = query.toLowerCase();
-
-    return data.filter((item: any) => {
-      return fields.some((field) => {
-        const value = this.getNestedValue(item, field);
-        return value && String(value).toLowerCase().includes(lowerQuery);
-      });
-    });
-  }
-
-  /**
    * Filter by completion status
    */
   filterByCompletion<T extends { status: string }>(

@@ -1,13 +1,12 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, effect } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
@@ -44,7 +43,15 @@ export class DashboardView implements OnInit {
     private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private router: Router
-  ) {}
+  ) {
+    // Watch for todos data changes and process when data is loaded
+    effect(() => {
+      const todos = this.storageService.todos();
+      if (todos.length > 0) {
+        this.processTodosData(todos);
+      }
+    });
+  }
 
   profile = signal<Profile | null>(null);
 
@@ -64,33 +71,16 @@ export class DashboardView implements OnInit {
     this.userId = this.authService.getValueByKey("id");
 
     if (this.userId && this.userId !== "") {
-      this.dataSyncProvider
-        .get<Profile>("profiles", { userId: this.userId })
-        .subscribe({
-          next: (profile) => {
-            this.profile.set(profile);
-            this.storageService.setProfile(profile);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load profile");
-          }
-        });
+      this.dataSyncProvider.get<Profile>("profiles", { userId: this.userId }).subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+          this.storageService.setProfile(profile);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profile");
+        },
+      });
     }
-
-    // Load data from cache or fetch from backend
-    this.loadDashboardData();
-  }
-
-  loadDashboardData(): void {
-    // Use cached data if available, otherwise load from backend
-    this.storageService.loadAllData().subscribe({
-      next: (data) => {
-        this.processTodosData(data.todos);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load dashboard data");
-      },
-    });
   }
 
   processTodosData(todos: Array<Todo>): void {

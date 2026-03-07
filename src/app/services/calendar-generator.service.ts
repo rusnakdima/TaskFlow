@@ -31,9 +31,7 @@ export class CalendarGeneratorService {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
 
-      const dayEvents = events.filter((event) =>
-        this.isSameDay(event.date, date)
-      );
+      const dayEvents = events.filter((event) => this.isSameDay(event.date, date));
 
       newCalendarDays.push({
         date: new Date(date),
@@ -47,11 +45,7 @@ export class CalendarGeneratorService {
     return newCalendarDays;
   }
 
-  generateWeekDays(
-    selectedDate: Date,
-    currentMonth: Date,
-    events: CalendarEvent[]
-  ): CalendarDay[] {
+  generateWeekDays(selectedDate: Date, currentMonth: Date, events: CalendarEvent[]): CalendarDay[] {
     const startOfWeek = new Date(selectedDate);
     startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
 
@@ -61,9 +55,7 @@ export class CalendarGeneratorService {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
 
-      const dayEvents = events.filter((event) =>
-        this.isSameDay(event.date, date)
-      );
+      const dayEvents = events.filter((event) => this.isSameDay(event.date, date));
 
       newWeekDays.push({
         date: new Date(date),

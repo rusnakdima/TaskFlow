@@ -250,16 +250,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   async fetchProfiles(): Promise<void> {
-    this.dataSyncProvider
-      .getAll<Profile>("profiles", { userId: this.userId() })
-      .subscribe({
-        next: (profiles) => {
-          this.availableProfiles.set(profiles);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load profiles");
-        }
-      });
+    this.dataSyncProvider.getAll<Profile>("profiles", { userId: this.userId() }).subscribe({
+      next: (profiles) => {
+        this.availableProfiles.set(profiles);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load profiles");
+      },
+    });
   }
 
   getFilteredUsers() {
@@ -306,18 +304,16 @@ export class ManageTodoView implements OnInit, OnDestroy {
       this.availableCategories.set(categories);
     } else {
       // Fallback: load from backend using DataSyncProvider (correct endpoint)
-      this.dataSyncProvider
-        .getAll<Category>("categories", { userId: this.userId() })
-        .subscribe({
-          next: (cats) => {
-            this.availableCategories.set(cats);
-            // Update StorageService cache
-            this.storageService.setCategories(cats);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message ?? err.toString());
-          }
-        });
+      this.dataSyncProvider.getAll<Category>("categories", { userId: this.userId() }).subscribe({
+        next: (cats) => {
+          this.availableCategories.set(cats);
+          // Update StorageService cache
+          this.storageService.setCategories(cats);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message ?? err.toString());
+        },
+      });
     }
   }
 
@@ -359,20 +355,18 @@ export class ManageTodoView implements OnInit, OnDestroy {
         title: this.newCategoryTitle().trim(),
         userId: this.userId(),
       };
-      this.dataSyncProvider
-        .create<Category>("categories", categoryData)
-        .subscribe({
-          next: (result) => {
-            this.newCategoryTitle.set("");
-            this.fetchCategories();
-            this.notifyService.showSuccess("Category added successfully");
-            // Update StorageService cache
-            this.storageService.addCategory(result);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to add category");
-          }
-        });
+      this.dataSyncProvider.create<Category>("categories", categoryData).subscribe({
+        next: (result) => {
+          this.newCategoryTitle.set("");
+          this.fetchCategories();
+          this.notifyService.showSuccess("Category added successfully");
+          // Update StorageService cache
+          this.storageService.addCategory(result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add category");
+        },
+      });
     }
   }
 

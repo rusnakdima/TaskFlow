@@ -47,8 +47,6 @@ export class ChangePasswordView {
     });
   }
 
-  role: string = "";
-
   errorText: string = "";
   isVerified: boolean = false;
 
@@ -64,8 +62,6 @@ export class ChangePasswordView {
       this.errorText = "No verified email found. Please restart the password reset process.";
       this.isVerified = false;
     }
-
-    this.role = this.authService.getValueByKey("role") ?? "player";
   }
 
   back() {

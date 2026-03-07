@@ -46,11 +46,7 @@ export class ResetPasswordView {
     });
   }
 
-  role: string = "";
-
-  ngOnInit() {
-    this.role = this.authService.getValueByKey("role") ?? "player";
-  }
+  ngOnInit() {}
 
   back() {
     this.location.back();
