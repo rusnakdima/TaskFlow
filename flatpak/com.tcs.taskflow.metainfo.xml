@@ -73,6 +73,23 @@
   </provides>
 
   <releases>
+    <release version="0.11.0" date="2026-03-07">
+      <description>
+        <p>Introduced Command Palette (Ctrl+K) for quick navigation and fuzzy search functionality.</p>
+        <p>Added saved filters feature in Projects view and implemented a unified FilterBar for
+          better task management.</p>
+        <p>Significant architectural refactoring of the Rust backend into modular services and
+          providers for improved performance and maintainability.</p>
+        <p>Migrated backend data structures to camelCase and optimized CRUD operations with
+          enhanced activity logging.</p>
+        <p>Refactored frontend state management to leverage Angular Signals for better reactivity
+          and performance.</p>
+        <p>Enhanced Admin features with profile-to-user relation mapping and improved permanent
+          deletion controls.</p>
+        <p>Improved keyboard shortcuts and overall UI component optimization across all views.</p>
+        <p>Standardized code formatting across the entire codebase using Prettier and Rustfmt.</p>
+      </description>
+    </release>
     <release version="0.10.1" date="2026-02-16">
       <description>
         <p>Fixed Tauri version mismatch between Rust crates and NPM packages to ensure build
