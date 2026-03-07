@@ -37,6 +37,7 @@ export class TaskComponent implements OnInit {
   @Input() isExpanded: boolean = false;
   @Input() isSelected: boolean = false;
   @Input() allTasks: Task[] = [];
+  @Input() showExpandButton: boolean = false;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();

@@ -1,9 +1,18 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, inject } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  effect,
+  runInInjectionContext,
+  Injector,
+} from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
+import { HostListener } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -56,6 +65,7 @@ export class TasksView implements OnInit {
   private filterService = inject(FilterService);
   private sortService = inject(SortService);
   private bulkActionService = inject(BulkActionService);
+  private injector = inject(Injector);
 
   constructor(
     private route: ActivatedRoute,
@@ -63,12 +73,22 @@ export class TasksView implements OnInit {
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
     private storageService: StorageService
-  ) {}
+  ) {
+    runInInjectionContext(this.injector, () => {
+      effect(() => {
+        const currentTasks = this.tasks();
+        const currentTodo = this.todo();
+        if (currentTodo && currentTasks.length > 0) {
+          this.loadTasksByTodoId(currentTodo.id);
+        }
+      });
+    });
+  }
 
   // Use storage signals directly for source data
   tasks = this.storageService.tasks;
   todo = signal<Todo | null>(null);
-  
+
   // Separate signals for filtered/sorted display list
   tempListTasks = signal<Task[]>([]);
   listTasks = signal<Task[]>([]);
@@ -83,6 +103,20 @@ export class TasksView implements OnInit {
   searchQuery = signal("");
 
   highlightTaskId = signal<string | null>(null);
+
+  @HostListener("window:keydown", ["$event"])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.ctrlKey && event.key === "f") {
+      event.preventDefault();
+      this.toggleFilter();
+    }
+    if (event.ctrlKey && event.key === "r") {
+      event.preventDefault();
+      if (this.todo()) {
+        this.loadTasksByTodoId(this.todo()!.id);
+      }
+    }
+  }
 
   // Expose controller properties for template
   get isOwner(): boolean {
@@ -132,16 +166,21 @@ export class TasksView implements OnInit {
     // Cleanup if needed
   }
 
-  trackByTaskId(index: number, task: Task): string {
-    return task.id;
-  }
-
   loadTasksByTodoId(todoId: string) {
-    // Read tasks directly from storage - filtered by todoId
-    const filteredTasks = this.tasks().filter(task => task.todoId === todoId);
-    
-    if (filteredTasks && filteredTasks.length > 0) {
-      this.tempListTasks.set(filteredTasks);
+    let todoTasks: Task[] = [];
+
+    const storedTasks = this.tasks();
+    if (storedTasks.length > 0) {
+      todoTasks = storedTasks.filter((task) => task.todoId === todoId);
+    }
+
+    const resolvedTodo = this.todo();
+    if (resolvedTodo?.tasks && resolvedTodo.tasks.length > 0 && todoTasks.length === 0) {
+      todoTasks = resolvedTodo.tasks;
+    }
+
+    if (todoTasks.length > 0) {
+      this.tempListTasks.set(todoTasks);
       this.applyFilter();
     }
   }
@@ -178,18 +217,16 @@ export class TasksView implements OnInit {
   }
 
   clearFilters() {
-    this.activeFilter.set('all');
-    this.searchQuery.set('');
+    this.activeFilter.set("all");
+    this.searchQuery.set("");
     this.applyFilter();
   }
 
   applyFilter() {
     // Read tasks from storage service, filtered by current todoId
-    let filtered = this.tasks().filter(task => 
+    let filtered = this.tasks().filter((task) =>
       !this.todo() ? false : task.todoId === this.todo()!.id
     );
-
-    console.log("[TasksView] applyFilter - tasks count:", filtered.length);
 
     switch (this.activeFilter()) {
       case "active":
@@ -215,14 +252,13 @@ export class TasksView implements OnInit {
     // Apply search filter
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
-      filtered = filtered.filter((task) =>
-        task.title.toLowerCase().includes(query) ||
-        task.description.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) || task.description.toLowerCase().includes(query)
       );
     }
 
     filtered = this.sortService.sortByOrder(filtered, "desc");
-    console.log("[TasksView] applyFilter - filtered count:", filtered.length);
     this.listTasks.set(filtered);
 
     if (this.highlightTaskId()) {
@@ -246,7 +282,8 @@ export class TasksView implements OnInit {
         this.applyFilter();
         if (this.todo()) {
           this.todo.update(
-            (todo) => ({ ...todo!, tasks: (todo!.tasks || []).filter((t) => t.id !== taskId) }) as Todo
+            (todo) =>
+              ({ ...todo!, tasks: (todo!.tasks || []).filter((t) => t.id !== taskId) }) as Todo
           );
         }
       });
@@ -273,6 +310,8 @@ export class TasksView implements OnInit {
         this.isUpdatingOrder = false;
       });
       this.isUpdatingOrder = true;
+    } else {
+      this.isUpdatingOrder = false;
     }
   }
 

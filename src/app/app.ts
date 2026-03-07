@@ -55,6 +55,7 @@ export class App {
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
 
   url = signal<string>("");
+  private isDataLoaded = false;
 
   ngOnInit(): void {
     this.shortcutService.help$.subscribe(() => {
@@ -65,8 +66,8 @@ export class App {
       this.triggerSync();
     });
 
-    this.localWs.getConnectionStatus().subscribe((connected) => {
-      console.log("App: Local WebSocket connection status:", connected);
+    this.localWs.getConnectionStatus().subscribe(() => {
+      // WebSocket connection status changed
     });
 
     const theme = localStorage.getItem("theme") ?? "";
@@ -96,6 +97,13 @@ export class App {
             if (userId) {
               // this.localWs.setCurrentUser(userId);
             }
+            // Initialize storage service with user context
+            this.storageService.init();
+            // Load all data once on app initialization
+            this.loadAllData();
+            // Trigger automatic sync on app open
+            this.triggerSync();
+            // Check user profile after data is loaded
             this.checkUserProfile();
           } else {
             this.notifyService.showNotify(response.status, response.message);
@@ -116,26 +124,45 @@ export class App {
     });
   }
 
+  /**
+   * Load all application data once on initialization
+   * Data is cached in StorageService and reused across all views
+   */
+  private loadAllData(): void {
+    if (this.isDataLoaded) {
+      return; // Prevent duplicate loading
+    }
+    this.isDataLoaded = true;
+
+    this.storageService.loadAllData(false).subscribe({
+      next: () => {
+        // Data loaded successfully
+      },
+      error: (error) => {
+        console.error("App: Failed to load data", error);
+        this.notifyService.showError("Failed to load data. Please refresh the page.");
+      },
+    });
+  }
+
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      this.dataSyncProvider
-        .get<Profile>("profiles", { userId })
-        .subscribe({
-          next: (profile) => {
-            // Profile exists - if on create-profile page, navigate away
-            if (this.router.url.indexOf("/profile/create-profile") > -1) {
-              this.router.navigate(["/dashboard"]);
-            }
-          },
-          error: (err) => {
-            // Profile doesn't exist - redirect to create profile
-            // But don't redirect if already on create-profile page
-            if (this.router.url.indexOf("/profile/create-profile") === -1) {
-              this.router.navigate(["/profile/create-profile"]);
-            }
+      this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
+        next: () => {
+          // Profile exists - if on create-profile page, navigate away
+          if (this.router.url.indexOf("/profile/create-profile") > -1) {
+            this.router.navigate(["/dashboard"]);
           }
-        });
+        },
+        error: (err) => {
+          // Profile doesn't exist - redirect to create profile
+          // But don't redirect if already on create-profile page
+          if (this.router.url.indexOf("/profile/create-profile") === -1) {
+            this.router.navigate(["/profile/create-profile"]);
+          }
+        },
+      });
     } else {
       this.router.navigate(["/login"]);
     }

@@ -52,6 +52,18 @@ import { Subscription } from "rxjs";
                   <ng-container
                     *ngTemplateOutlet="
                       shortcutRow;
+                      context: { keys: ['Ctrl', 'F'], desc: 'Toggle Filter Sidebar' }
+                    "
+                  ></ng-container>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Ctrl', 'R'], desc: 'Reload Data' }
+                    "
+                  ></ng-container>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      shortcutRow;
                       context: { keys: ['Ctrl', 'S'], desc: 'Save current form' }
                     "
                   ></ng-container>
@@ -102,34 +114,58 @@ import { Subscription } from "rxjs";
                 </h4>
                 <div class="space-y-3">
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'H'], desc: 'Dashboard' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'H'], desc: 'Dashboard' }
+                    "
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'P'], desc: 'Projects' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'P'], desc: 'Projects' }
+                    "
                   ></ng-container>
                   <ng-container
                     *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'T'], desc: 'Tasks' }"
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'K'], desc: 'Kanban Board' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'K'], desc: 'Kanban Board' }
+                    "
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'C'], desc: 'Categories' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'C'], desc: 'Categories' }
+                    "
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'S'], desc: 'Statistics' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'S'], desc: 'Statistics' }
+                    "
                   ></ng-container>
                   <ng-container
                     *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'Y'], desc: 'Sync' }"
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'G'], desc: 'Shared Tasks' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'G'], desc: 'Shared Tasks' }
+                    "
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'L'], desc: 'Calendar' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'L'], desc: 'Calendar' }
+                    "
                   ></ng-container>
                   <ng-container
-                    *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'U'], desc: 'Profile' }"
+                    *ngTemplateOutlet="
+                      shortcutRow;
+                      context: { keys: ['Alt', 'U'], desc: 'Profile' }
+                    "
                   ></ng-container>
                   <ng-container
                     *ngTemplateOutlet="shortcutRow; context: { keys: ['Alt', 'A'], desc: 'About' }"

@@ -17,7 +17,10 @@
         class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
         (click)="toggleFilter()"
       >
-        <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'" />
+        <mat-icon
+          class="w-5! h-5! text-xl!"
+          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
+        />
         Filter
       </button>
       <button class="styleButSuccess text-sm px-4 py-2" routerLink="/todos/create_todo">
@@ -46,54 +49,54 @@
 
   <!-- Stats Cards -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-4 text-white shadow-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-blue-100 text-xs font-medium uppercase tracking-wide">Total Projects</p>
-            <p class="text-2xl font-bold mt-1">{{ getFilteredCount("all") }}</p>
-          </div>
-          <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="assignment" />
+    <div
+      class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-4 text-white shadow-sm"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-xs font-medium uppercase tracking-wide">Total Projects</p>
+          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("all") }}</p>
         </div>
-      </div>
-
-      <div
-        class="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-4 text-white shadow-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-orange-100 text-xs font-medium uppercase tracking-wide">Active</p>
-            <p class="text-2xl font-bold mt-1">{{ getFilteredCount("active") }}</p>
-          </div>
-          <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="play_circle" />
-        </div>
-      </div>
-
-      <div
-        class="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-4 text-white shadow-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-green-100 text-xs font-medium uppercase tracking-wide">Completed</p>
-            <p class="text-2xl font-bold mt-1">{{ getFilteredCount("completed") }}</p>
-          </div>
-          <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="check_circle" />
-        </div>
-      </div>
-
-      <div
-        class="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-4 text-white shadow-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-purple-100 text-xs font-medium uppercase tracking-wide">This Week</p>
-            <p class="text-2xl font-bold mt-1">{{ getFilteredCount("week") }}</p>
-          </div>
-          <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="calendar_today" />
-        </div>
+        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="assignment" />
       </div>
     </div>
+
+    <div
+      class="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-4 text-white shadow-sm"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-orange-100 text-xs font-medium uppercase tracking-wide">Active</p>
+          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("active") }}</p>
+        </div>
+        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="play_circle" />
+      </div>
+    </div>
+
+    <div
+      class="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-4 text-white shadow-sm"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-xs font-medium uppercase tracking-wide">Completed</p>
+          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("completed") }}</p>
+        </div>
+        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="check_circle" />
+      </div>
+    </div>
+
+    <div
+      class="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-4 text-white shadow-sm"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-xs font-medium uppercase tracking-wide">This Week</p>
+          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("week") }}</p>
+        </div>
+        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="calendar_today" />
+      </div>
+    </div>
+  </div>
 
   @if (listTodos().length === 0) {
     <div
@@ -209,12 +212,16 @@
                 <mat-icon class="w-5! h-5! text-base! text-red-500">delete</mat-icon>
               </button>
             </div>
-          }
-          @empty {
+          } @empty {
             <div class="col-span-full text-center py-8 textMuted">
-              <mat-icon class="w-12! h-12! text-4xl! mx-auto mb-2 opacity-50" fontIcon="account_tree"></mat-icon>
+              <mat-icon
+                class="w-12! h-12! text-4xl! mx-auto mb-2 opacity-50"
+                fontIcon="account_tree"
+              ></mat-icon>
               <p>No blueprints saved yet</p>
-              <p class="text-sm">Create a project and save it as a blueprint to use it as a template</p>
+              <p class="text-sm">
+                Create a project and save it as a blueprint to use it as a template
+              </p>
             </div>
           }
         </div>
