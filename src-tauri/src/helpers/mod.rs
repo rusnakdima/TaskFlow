@@ -6,9 +6,5 @@ pub mod bson_helper;
 pub mod common;
 #[path = "config.helper.rs"]
 pub mod config;
-#[path = "date.helper.rs"]
-pub mod date_helper;
-#[path = "index.helper.rs"]
-pub mod index_helper;
 #[path = "response.helper.rs"]
 pub mod response_helper;

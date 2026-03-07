@@ -1,6 +1,5 @@
 /* sys lib */
-use mongodb::bson::{to_bson, Bson, Document};
-use serde_json::{to_value, Value};
+use serde_json::Value;
 use std::sync::Arc;
 
 /* helpers */
@@ -15,28 +14,6 @@ pub struct JsonSyncProvider {
 impl JsonSyncProvider {
   pub fn new(mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
     Self { mongodbProvider }
-  }
-
-  fn convertDocToValue(
-    &self,
-    doc: Document,
-  ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-    Ok(to_value(doc)?)
-  }
-
-  fn convertValueToDoc(
-    &self,
-    value: &Value,
-  ) -> Result<Document, Box<dyn std::error::Error + Send + Sync>> {
-    let bsonValue = to_bson(value)?;
-    if let Bson::Document(doc) = bsonValue {
-      Ok(doc)
-    } else {
-      Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::InvalidData,
-        "Expected Document",
-      )))
-    }
   }
 
   pub async fn getByFieldJsonOrMongo(

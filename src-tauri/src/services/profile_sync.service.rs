@@ -172,15 +172,12 @@ impl ProfileSyncService {
     }
   }
 
-  pub async fn syncAllProfilesForUser(
-    &self,
-    user_id: &str,
-  ) -> Result<ResponseModel, ResponseModel> {
+  pub async fn syncAllProfilesForUser(&self, userId: &str) -> Result<ResponseModel, ResponseModel> {
     let localProfiles = match self
       .jsonProvider
       .getAll(
         "profiles",
-        Some(serde_json::json!({ "userId": user_id })),
+        Some(serde_json::json!({ "userId": userId })),
         None,
       )
       .await
@@ -215,7 +212,7 @@ impl ProfileSyncService {
 
     let cloudProfiles = match self
       .mongodbProvider
-      .getAll("profiles", Some(doc! { "userId": user_id }), None)
+      .getAll("profiles", Some(doc! { "userId": userId }), None)
       .await
     {
       Ok(profiles) => profiles,

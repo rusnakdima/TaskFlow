@@ -12,13 +12,6 @@ use crate::models::{
   user_model::{UserCreateModel, UserModel, UserUpdateModel},
 };
 
-#[derive(Debug, Clone)]
-pub struct TableModelInfo {
-  pub singular: &'static str,
-  pub plural: &'static str,
-  pub modelType: TableModelType,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TableModelType {
   Todo,
@@ -30,84 +23,20 @@ pub enum TableModelType {
   DailyActivity,
 }
 
-impl TableModelType {
-  pub fn getSingular(&self) -> &'static str {
-    match self {
-      TableModelType::Todo => "todo",
-      TableModelType::Task => "task",
-      TableModelType::Subtask => "subtask",
-      TableModelType::Category => "category",
-      TableModelType::User => "user",
-      TableModelType::Profile => "profile",
-      TableModelType::DailyActivity => "daily_activity",
-    }
-  }
-
-  pub fn getPlural(&self) -> &'static str {
-    match self {
-      TableModelType::Todo => "todos",
-      TableModelType::Task => "tasks",
-      TableModelType::Subtask => "subtasks",
-      TableModelType::Category => "categories",
-      TableModelType::User => "users",
-      TableModelType::Profile => "profiles",
-      TableModelType::DailyActivity => "daily_activities",
-    }
-  }
-}
-
-pub fn getTableModelInfo(tableName: &str) -> Option<TableModelInfo> {
-  let tableLower = tableName.to_lowercase();
-
-  match tableLower.as_str() {
-    "todo" | "todos" => Some(TableModelInfo {
-      singular: "todo",
-      plural: "todos",
-      modelType: TableModelType::Todo,
-    }),
-    "task" | "tasks" => Some(TableModelInfo {
-      singular: "task",
-      plural: "tasks",
-      modelType: TableModelType::Task,
-    }),
-    "subtask" | "subtasks" => Some(TableModelInfo {
-      singular: "subtask",
-      plural: "subtasks",
-      modelType: TableModelType::Subtask,
-    }),
-    "category" | "categories" => Some(TableModelInfo {
-      singular: "category",
-      plural: "categories",
-      modelType: TableModelType::Category,
-    }),
-    "user" | "users" => Some(TableModelInfo {
-      singular: "user",
-      plural: "users",
-      modelType: TableModelType::User,
-    }),
-    "profile" | "profiles" => Some(TableModelInfo {
-      singular: "profile",
-      plural: "profiles",
-      modelType: TableModelType::Profile,
-    }),
-    "daily_activity" | "daily_activities" => Some(TableModelInfo {
-      singular: "daily_activity",
-      plural: "daily_activities",
-      modelType: TableModelType::DailyActivity,
-    }),
-    _ => None,
-  }
-}
-
 pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
-  getTableModelInfo(tableName)
-    .map(|info| info.modelType)
-    .ok_or_else(|| {
-      format!(
-        "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities",
-        tableName
-      )
-    })
+  match tableName {
+    "todos" => Ok(TableModelType::Todo),
+    "tasks" => Ok(TableModelType::Task),
+    "subtasks" => Ok(TableModelType::Subtask),
+    "categories" => Ok(TableModelType::Category),
+    "users" => Ok(TableModelType::User),
+    "profiles" => Ok(TableModelType::Profile),
+    "daily_activities" => Ok(TableModelType::DailyActivity),
+    _ => Err(format!(
+      "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities",
+      tableName
+    )),
+  }
 }
 
 /// Validate data for create or update operation

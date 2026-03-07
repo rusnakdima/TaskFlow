@@ -28,11 +28,7 @@ impl MongodbRelationsProvider {
         TypesField::OneToOne => {
           if let Some(value) = record.get(&relation.nameField).cloned() {
             if let Some(idStr) = value.as_str() {
-              let result = match self
-                .mongodbCrud
-                .get(&relation.nameTable, None, idStr)
-                .await
-              {
+              let result = match self.mongodbCrud.get(&relation.nameTable, None, idStr).await {
                 Ok(doc) => doc,
                 Err(_) => continue,
               };
@@ -58,16 +54,17 @@ impl MongodbRelationsProvider {
                 Ok(records) => records,
                 Err(_) => continue,
               };
-              
+
               let mut enrichedRecords = Vec::new();
               if let Some(subRelations) = relation.relations {
                 for rec in result {
-                  enrichedRecords.push(Box::pin(self.getDataRelations(rec, subRelations.clone())).await?);
+                  enrichedRecords
+                    .push(Box::pin(self.getDataRelations(rec, subRelations.clone())).await?);
                 }
               } else {
                 enrichedRecords = result;
               }
-              
+
               record.insert(relation.newNameField.clone(), enrichedRecords);
             }
           }
@@ -77,15 +74,11 @@ impl MongodbRelationsProvider {
             let mut listResult: Vec<Document> = vec![];
             for id in value {
               if let Some(idStr) = id.as_str() {
-                let result = match self
-                  .mongodbCrud
-                  .get(&relation.nameTable, None, idStr)
-                  .await
-                {
+                let result = match self.mongodbCrud.get(&relation.nameTable, None, idStr).await {
                   Ok(doc) => doc,
                   Err(_) => continue,
                 };
-                
+
                 let enrichedResult = if let Some(subRelations) = relation.relations.clone() {
                   Box::pin(self.getDataRelations(result, subRelations)).await?
                 } else {
@@ -100,11 +93,7 @@ impl MongodbRelationsProvider {
         TypesField::ManyToMany => {
           if let Some(idValue) = record.get("id").cloned() {
             if let Some(idStr) = idValue.as_str() {
-              let allRecords = match self
-                .mongodbCrud
-                .getAll(&relation.nameTable, None)
-                .await
-              {
+              let allRecords = match self.mongodbCrud.getAll(&relation.nameTable, None).await {
                 Ok(records) => records,
                 Err(_) => continue,
               };
@@ -118,15 +107,16 @@ impl MongodbRelationsProvider {
                   }
                 })
                 .collect();
-                
+
               if let Some(subRelations) = relation.relations {
                 let mut enrichedRecords = Vec::new();
                 for rec in filteredRecords {
-                  enrichedRecords.push(Box::pin(self.getDataRelations(rec, subRelations.clone())).await?);
+                  enrichedRecords
+                    .push(Box::pin(self.getDataRelations(rec, subRelations.clone())).await?);
                 }
                 filteredRecords = enrichedRecords;
               }
-              
+
               record.insert(relation.newNameField.clone(), filteredRecords);
             }
           }
