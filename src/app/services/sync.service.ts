@@ -8,6 +8,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
 
 @Injectable({
   providedIn: "root",
@@ -15,7 +16,10 @@ import { AuthService } from "@services/auth.service";
 export class SyncService {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private storageService: StorageService
+  ) {}
 
   get isSyncing$(): Observable<boolean> {
     return this.isSyncingSubject.asObservable();
@@ -30,6 +34,9 @@ export class SyncService {
     try {
       const userId = this.authService.getValueByKey("id");
       const result = await invoke<Response<R>>("importToLocal", { userId });
+      if (result.status === ResponseStatus.SUCCESS) {
+        this.storageService.loadAllData(true).subscribe();
+      }
       return result;
     } finally {
       this.setSyncing(false);
@@ -50,13 +57,13 @@ export class SyncService {
   async syncAll<R>(): Promise<Response<R>> {
     this.setSyncing(true);
     try {
-      const exportResult = await this.exportToCloud<R>();
-      if (exportResult.status !== ResponseStatus.SUCCESS) {
-        return exportResult;
+      const importResult = await this.importToLocal<R>();
+      if (importResult.status !== ResponseStatus.SUCCESS) {
+        return importResult;
       }
 
-      const importResult = await this.importToLocal<R>();
-      return importResult;
+      const exportResult = await this.exportToCloud<R>();
+      return exportResult;
     } finally {
       this.setSyncing(false);
     }

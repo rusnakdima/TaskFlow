@@ -22,14 +22,17 @@ impl ExportManager {
   }
 
   /// Export data from local to cloud
-  pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodb_provider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
+  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
       status: ResponseStatus::Error,
       message: "MongoDB not available".to_string(),
       data: DataValue::String("".to_string()),
     })?;
 
-    match mongodb_provider.exportToCloud(user_id, &self.jsonProvider).await {
+    match mongodbProvider
+      .exportToCloud(userId, &self.jsonProvider)
+      .await
+    {
       Ok(_) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Data exported to cloud MongoDB successfully".to_string(),

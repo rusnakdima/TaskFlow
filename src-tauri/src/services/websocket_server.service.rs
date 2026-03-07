@@ -92,6 +92,15 @@ impl WebSocketServerService {
     sendTask.abort();
   }
 
+  fn getBroadcastName(entity: &str) -> String {
+    match entity {
+      "todos" => "todo".to_string(),
+      "tasks" => "task".to_string(),
+      "subtasks" => "subtask".to_string(),
+      s => s.to_string(),
+    }
+  }
+
   async fn processMessage(&self, text: &str) -> (ResponseModel, Option<String>) {
     let request: WsRequest = match from_str(text) {
       Ok(req) => req,
@@ -104,337 +113,13 @@ impl WebSocketServerService {
     };
 
     let requestId = request.requestId.clone();
-
     let syncMetadata = request.syncMetadata.unwrap_or(SyncMetadata {
       isOwner: true,
       isPrivate: false,
     });
 
-    let res = match (request.entity.as_str(), request.action.as_str()) {
-      // ==================== SPECIFIC HANDLERS WITH BROADCAST (todo/task/subtask) ====================
-
-      ("todo", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "getAll".to_string(),
-            "todos".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("todo", "get") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "read".to_string(),
-            "todos".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("todo", "create") => {
-        if let Some(data) = request.data {
-          let res = self
-            .crudService
-            .execute(
-              "create".to_string(),
-              "todos".to_string(),
-              None,
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("todo-created", "todo", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data for create action".to_string())
-        }
-      }
-
-      ("todo", "update") => {
-        if let (Some(id), Some(data)) = (request.id, request.data) {
-          let res = self
-            .crudService
-            .execute(
-              "update".to_string(),
-              "todos".to_string(),
-              Some(id.clone()),
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("todo-updated", "todo", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id or data for update action".to_string())
-        }
-      }
-
-      ("todo", "delete") => {
-        if let Some(id) = request.id {
-          let res = self
-            .crudService
-            .execute(
-              "delete".to_string(),
-              "todos".to_string(),
-              Some(id.clone()),
-              None,
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("todo-deleted", "todo", json!({ "id": id }));
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id for delete action".to_string())
-        }
-      }
-
-      ("task", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "getAll".to_string(),
-            "tasks".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("task", "get") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "read".to_string(),
-            "tasks".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("task", "create") => {
-        if let Some(data) = request.data {
-          let res = self
-            .crudService
-            .execute(
-              "create".to_string(),
-              "tasks".to_string(),
-              None,
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("task-created", "task", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data".to_string())
-        }
-      }
-
-      ("task", "update") => {
-        if let (Some(id), Some(data)) = (request.id, request.data) {
-          let res = self
-            .crudService
-            .execute(
-              "update".to_string(),
-              "tasks".to_string(),
-              Some(id.clone()),
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("task-updated", "task", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id for update action".to_string())
-        }
-      }
-
-      ("task", "delete") => {
-        if let Some(id) = request.id {
-          let res = self
-            .crudService
-            .execute(
-              "delete".to_string(),
-              "tasks".to_string(),
-              Some(id.clone()),
-              None,
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("task-deleted", "task", json!({ "id": id }));
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id".to_string())
-        }
-      }
-
-      ("subtask", "get-all") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "getAll".to_string(),
-            "subtasks".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("subtask", "get") => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "read".to_string(),
-            "subtasks".to_string(),
-            None,
-            None,
-            Some(filter),
-            None,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      ("subtask", "create") => {
-        if let Some(data) = request.data {
-          let res = self
-            .crudService
-            .execute(
-              "create".to_string(),
-              "subtasks".to_string(),
-              None,
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("subtask-created", "subtask", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data".to_string())
-        }
-      }
-
-      ("subtask", "update") => {
-        if let (Some(id), Some(data)) = (request.id, request.data) {
-          let res = self
-            .crudService
-            .execute(
-              "update".to_string(),
-              "subtasks".to_string(),
-              Some(id.clone()),
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("subtask-updated", "subtask", data);
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id or data".to_string())
-        }
-      }
-
-      ("subtask", "delete") => {
-        if let Some(id) = request.id {
-          let res = self
-            .crudService
-            .execute(
-              "delete".to_string(),
-              "subtasks".to_string(),
-              Some(id.clone()),
-              None,
-              None,
-              None,
-              Some(syncMetadata),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-          if res.status == ResponseStatus::Success {
-            self.broadcast("subtask-deleted", "subtask", json!({ "id": id }));
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id".to_string())
-        }
-      }
-
-      // ==================== GENERIC HANDLERS (for all other entities) ====================
-      // These handle: profiles, categories, users, daily_activities, and any future entities
-
-      (_, "get-all") => {
+    let res = match request.action.as_str() {
+      "get-all" => {
         let filter = request.filter.unwrap_or(json!({}));
         self
           .crudService
@@ -444,14 +129,14 @@ impl WebSocketServerService {
             None,
             None,
             Some(filter),
-            None,
+            request.relations,
             Some(syncMetadata),
           )
           .await
           .unwrap_or_else(|e| e)
       }
 
-      (_, "get") => {
+      "get" => {
         let filter = request.filter.unwrap_or(json!({}));
         self
           .crudService
@@ -461,75 +146,123 @@ impl WebSocketServerService {
             None,
             None,
             Some(filter),
-            None,
+            request.relations,
             Some(syncMetadata),
           )
           .await
           .unwrap_or_else(|e| e)
       }
 
-      (_, "create") => {
+      "create" => {
         if let Some(data) = request.data {
-          self
+          let res = self
             .crudService
             .execute(
               "create".to_string(),
               request.entity.clone(),
               None,
-              Some(data),
+              Some(data.clone()),
               None,
               None,
               Some(syncMetadata),
             )
             .await
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            let broadcastEntity = Self::getBroadcastName(&request.entity);
+            self.broadcast(
+              &format!("{}-created", broadcastEntity),
+              &broadcastEntity,
+              data,
+            );
+          }
+          res
         } else {
           ResponseModel::from("Missing data for create action".to_string())
         }
       }
 
-      (_, "update") => {
+      "update" => {
         if let (Some(id), Some(data)) = (request.id, request.data) {
-          self
+          let res = self
             .crudService
             .execute(
               "update".to_string(),
               request.entity.clone(),
-              Some(id),
+              Some(id.clone()),
+              Some(data.clone()),
+              None,
+              None,
+              Some(syncMetadata),
+            )
+            .await
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            let broadcastEntity = Self::getBroadcastName(&request.entity);
+            self.broadcast(
+              &format!("{}-updated", broadcastEntity),
+              &broadcastEntity,
+              data,
+            );
+          }
+          res
+        } else {
+          ResponseModel::from("Missing id or data for update action".to_string())
+        }
+      }
+
+      "update-all" => {
+        if let Some(data) = request.data {
+          let res = self
+            .crudService
+            .execute(
+              "updateAll".to_string(),
+              request.entity.clone(),
+              None,
               Some(data),
               None,
               None,
               Some(syncMetadata),
             )
             .await
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e);
+          res
         } else {
-          ResponseModel::from("Missing id or data for update action".to_string())
+          ResponseModel::from("Missing data for update-all action".to_string())
         }
       }
 
-      (_, "delete") => {
+      "delete" => {
         if let Some(id) = request.id {
-          self
+          let res = self
             .crudService
             .execute(
               "delete".to_string(),
               request.entity.clone(),
-              Some(id),
+              Some(id.clone()),
               None,
               None,
               None,
               Some(syncMetadata),
             )
             .await
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e);
+          if res.status == ResponseStatus::Success {
+            let broadcastEntity = Self::getBroadcastName(&request.entity);
+            self.broadcast(
+              &format!("{}-deleted", broadcastEntity),
+              &broadcastEntity,
+              json!({ "id": id }),
+            );
+          }
+          res
         } else {
           ResponseModel::from("Missing id for delete action".to_string())
         }
       }
 
       _ => ResponseModel::from(format!(
-        "Unknown action or entity: {} on {}",
+        "Unknown action: {} on {}",
         request.action, request.entity
       )),
     };

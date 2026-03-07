@@ -16,51 +16,81 @@ impl MongodbSyncProvider {
     Self { mongodbCrud }
   }
 
+  /// Compare updatedAt timestamps - returns true if source is newer than target
   fn shouldUpdateTarget(source: &Value, target: &Value) -> bool {
     let sourceTs = source.get("updatedAt").and_then(|v| v.as_str());
     let targetTs = target.get("updatedAt").and_then(|v| v.as_str());
+
     match (sourceTs, targetTs) {
       (Some(s), Some(t)) => s > t,
-      _ => true,
+      (Some(_), None) => true,
+      (None, Some(_)) => false,
+      (None, None) => true,
     }
   }
 
   /// Export data from local JSON to cloud MongoDB
+  /// Records with newer updatedAt in local will overwrite cloud records
+  /// NOTE: users and profiles are NOT exported for security reasons
   pub async fn exportToCloud(
     &self,
     userId: String,
     jsonProvider: &JsonProvider,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Exclude users and profiles from export for security
     let tables = vec![
       "todos",
       "tasks",
       "subtasks",
       "categories",
       "daily_activities",
-      "profiles",
-      "users",
     ];
 
     for table in tables {
-      // Handle deleted records first
+      // Handle deleted records first - propagate to cloud
       let allLocal = jsonProvider.getDataTable(table).await?;
-      let idsToDelete: Vec<String> = allLocal
-        .iter()
+      let idsToDelete: Vec<(String, Value)> = allLocal
+        .into_iter()
         .filter_map(|record| {
           if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
-            record.get("id").and_then(|v| v.as_str()).map(|s| s.to_string())
+            let id = record.get("id").and_then(|v| v.as_str())?.to_string();
+            Some((id, record))
           } else {
             None
           }
         })
         .collect();
 
-      for id in idsToDelete {
-        if let Ok(mut existingDoc) = self.mongodbCrud.get(table, None, &id).await {
-          existingDoc.insert("isDeleted", true);
-          let _ = self.mongodbCrud.update(table, &id, existingDoc).await;
+      for (id, localRecord) in idsToDelete {
+        let mut shouldHardDeleteLocal = true;
+
+        match self.mongodbCrud.get(table, None, &id).await {
+          Ok(mut existingDoc) => {
+            let existingVal = serde_json::to_value(&existingDoc)?;
+
+            // Only update cloud to deleted if local record is newer than cloud record
+            // If cloud record is newer, it might have been restored by admin
+            if Self::shouldUpdateTarget(&localRecord, &existingVal) {
+              existingDoc.insert("isDeleted", true);
+              existingDoc.insert(
+                "updatedAt",
+                chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+              );
+              let _ = self.mongodbCrud.update(table, &id, existingDoc).await;
+            } else {
+              // Cloud is newer (likely restored), so don't hard delete local yet
+              // The subsequent importToLocal will update the local record to active
+              shouldHardDeleteLocal = false;
+            }
+          }
+          Err(_) => {
+            // Record not in cloud, safe to delete locally
+          }
         }
-        let _ = jsonProvider.hardDelete(table, &id).await;
+
+        if shouldHardDeleteLocal {
+          let _ = jsonProvider.hardDelete(table, &id).await;
+        }
       }
 
       // Fetch local data for this user
@@ -69,15 +99,34 @@ impl MongodbSyncProvider {
           Some(serde_json::json!({ "userId": userId }))
         }
         "tasks" => {
-          let todos = jsonProvider.getAll("todos", Some(serde_json::json!({ "userId": userId })), None).await?;
-          let todoIds: Vec<String> = todos.iter().filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string())).collect();
+          let todos = jsonProvider
+            .getAll("todos", Some(serde_json::json!({ "userId": userId })), None)
+            .await?;
+          let todoIds: Vec<String> = todos
+            .iter()
+            .filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
+            .collect();
           Some(serde_json::json!({ "todoId": todoIds }))
         }
         "subtasks" => {
-          let todos = jsonProvider.getAll("todos", Some(serde_json::json!({ "userId": userId })), None).await?;
-          let todoIds: Vec<String> = todos.iter().filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string())).collect();
-          let tasks = jsonProvider.getAll("tasks", Some(serde_json::json!({ "todoId": todoIds })), None).await?;
-          let taskIds: Vec<String> = tasks.iter().filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string())).collect();
+          let todos = jsonProvider
+            .getAll("todos", Some(serde_json::json!({ "userId": userId })), None)
+            .await?;
+          let todoIds: Vec<String> = todos
+            .iter()
+            .filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
+            .collect();
+          let tasks = jsonProvider
+            .getAll(
+              "tasks",
+              Some(serde_json::json!({ "todoId": todoIds })),
+              None,
+            )
+            .await?;
+          let taskIds: Vec<String> = tasks
+            .iter()
+            .filter_map(|v| v.get("id").and_then(|i| i.as_str()).map(|s| s.to_string()))
+            .collect();
           Some(serde_json::json!({ "taskId": taskIds }))
         }
         _ => None,
@@ -85,7 +134,11 @@ impl MongodbSyncProvider {
 
       let localRecords = jsonProvider.getAll(table, filter, None).await?;
       for record in localRecords {
-        let id = record.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let id = record
+          .get("id")
+          .and_then(|v| v.as_str())
+          .unwrap_or_default()
+          .to_string();
         let mut record = record;
         if let Some(obj) = record.as_object_mut() {
           obj.remove("_id");
@@ -94,6 +147,7 @@ impl MongodbSyncProvider {
         match self.mongodbCrud.get(table, None, &id).await {
           Ok(existingDoc) => {
             let existingVal = serde_json::to_value(&existingDoc)?;
+            // Only update if local record has newer updatedAt
             if Self::shouldUpdateTarget(&record, &existingVal) {
               let doc: Document = from_bson(to_bson(&record)?)?;
               self.mongodbCrud.update(table, &id, doc).await?;
@@ -111,6 +165,7 @@ impl MongodbSyncProvider {
   }
 
   /// Import data from cloud MongoDB to local JSON
+  /// Records with newer updatedAt in cloud will overwrite local records
   pub async fn importToLocal(
     &self,
     userId: String,
@@ -132,15 +187,36 @@ impl MongodbSyncProvider {
           Some(doc! { "userId": &userId, "isDeleted": { "$ne": true } })
         }
         "tasks" => {
-          let todos = self.mongodbCrud.getAll("todos", Some(doc! { "userId": &userId })).await?;
-          let todoIds: Vec<String> = todos.iter().filter_map(|doc| doc.get_str("id").ok()).map(|s| s.to_string()).collect();
+          let todos = self
+            .mongodbCrud
+            .getAll("todos", Some(doc! { "userId": &userId }))
+            .await?;
+          let todoIds: Vec<String> = todos
+            .iter()
+            .filter_map(|doc| doc.get_str("id").ok())
+            .map(|s| s.to_string())
+            .collect();
           Some(doc! { "todoId": { "$in": todoIds }, "isDeleted": { "$ne": true } })
         }
         "subtasks" => {
-          let todos = self.mongodbCrud.getAll("todos", Some(doc! { "userId": &userId })).await?;
-          let todoIds: Vec<String> = todos.iter().filter_map(|doc| doc.get_str("id").ok()).map(|s| s.to_string()).collect();
-          let tasks = self.mongodbCrud.getAll("tasks", Some(doc! { "todoId": { "$in": todoIds } })).await?;
-          let taskIds: Vec<String> = tasks.iter().filter_map(|doc| doc.get_str("id").ok()).map(|s| s.to_string()).collect();
+          let todos = self
+            .mongodbCrud
+            .getAll("todos", Some(doc! { "userId": &userId }))
+            .await?;
+          let todoIds: Vec<String> = todos
+            .iter()
+            .filter_map(|doc| doc.get_str("id").ok())
+            .map(|s| s.to_string())
+            .collect();
+          let tasks = self
+            .mongodbCrud
+            .getAll("tasks", Some(doc! { "todoId": { "$in": todoIds } }))
+            .await?;
+          let taskIds: Vec<String> = tasks
+            .iter()
+            .filter_map(|doc| doc.get_str("id").ok())
+            .map(|s| s.to_string())
+            .collect();
           Some(doc! { "taskId": { "$in": taskIds }, "isDeleted": { "$ne": true } })
         }
         _ => None,
@@ -156,6 +232,7 @@ impl MongodbSyncProvider {
 
         match jsonProvider.get(table, None, None, id).await {
           Ok(existingVal) => {
+            // Only update if cloud record has newer updatedAt
             if Self::shouldUpdateTarget(&value, &existingVal) {
               jsonProvider.update(table, id, value).await?;
             }
@@ -167,6 +244,7 @@ impl MongodbSyncProvider {
       }
 
       // Hard delete local records that are not in cloud (and were supposed to be there)
+      // This handles cases where records were permanently deleted from admin (cloud)
       if table != "profiles" && table != "users" {
         let allLocal = jsonProvider.getDataTable(table).await?;
         for record in allLocal {

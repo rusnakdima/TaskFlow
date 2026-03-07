@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 /* managers */
 use crate::services::{
@@ -22,73 +22,75 @@ pub struct ManageDbService {
 
 impl ManageDbService {
   pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
-    let sync_manager = SyncManager::new(jsonProvider.clone(), mongodbProvider.clone());
-    let export_manager = ExportManager::new(jsonProvider.clone(), mongodbProvider.clone());
-    let admin_manager = mongodbProvider.clone().map(AdminManager::new);
+    let syncManager = SyncManager::new(jsonProvider.clone(), mongodbProvider.clone());
+    let exportManager = ExportManager::new(jsonProvider.clone(), mongodbProvider.clone());
+    let adminManager = mongodbProvider
+      .clone()
+      .map(|mp| AdminManager::new(jsonProvider.clone(), mp));
 
     Self {
-      syncManager: sync_manager,
-      exportManager: export_manager,
-      adminManager: admin_manager,
+      syncManager,
+      exportManager,
+      adminManager,
     }
   }
 
   /// Import data from cloud to local
-  pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    self.syncManager.import_to_local(user_id).await
+  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    self.syncManager.importToLocal(userId).await
   }
 
   /// Export data from local to cloud
-  pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    self.exportManager.export_to_cloud(user_id).await
+  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    self.exportManager.exportToCloud(userId).await
   }
 
   /// Get all data for admin view
-  pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
-      Some(manager) => manager.get_all_data_for_admin().await,
-      None => Err(crate::models::response_model::ResponseModel {
-        status: crate::models::response_model::ResponseStatus::Error,
+      Some(manager) => manager.getAllDataForAdmin().await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: crate::models::response_model::DataValue::String("".to_string()),
+        data: DataValue::String("".to_string()),
       }),
     }
   }
 
   /// Permanently delete a record
-  pub async fn permanently_delete_record(
+  pub async fn permanentlyDeleteRecord(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
-      Some(manager) => manager.permanently_delete_record(table, id).await,
-      None => Err(crate::models::response_model::ResponseModel {
-        status: crate::models::response_model::ResponseStatus::Error,
+      Some(manager) => manager.permanentlyDeleteRecord(table, id).await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: crate::models::response_model::DataValue::String("".to_string()),
+        data: DataValue::String("".to_string()),
       }),
     }
   }
 
   /// Toggle delete status of a record
-  pub async fn toggle_delete_status(
+  pub async fn toggleDeleteStatus(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
-      Some(manager) => manager.toggle_delete_status(table, id).await,
-      None => Err(crate::models::response_model::ResponseModel {
-        status: crate::models::response_model::ResponseStatus::Error,
+      Some(manager) => manager.toggleDeleteStatus(table, id).await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: crate::models::response_model::DataValue::String("".to_string()),
+        data: DataValue::String("".to_string()),
       }),
     }
   }
 
   /// Clean deleted records from local
-  pub async fn clean_deleted_records_from_local(&self) -> Result<(), ResponseModel> {
-    self.syncManager.clean_deleted_records_from_local().await
+  pub async fn cleanDeletedRecordsFromLocal(&self) -> Result<(), ResponseModel> {
+    self.syncManager.cleanDeletedRecordsFromLocal().await
   }
 }
