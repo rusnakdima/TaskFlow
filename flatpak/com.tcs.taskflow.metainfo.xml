@@ -73,6 +73,12 @@
   </provides>
 
   <releases>
+    <release version="0.11.1" date="2026-03-08">
+      <description>
+        <p>Aligned status colors and labels in admin records with the main application for
+          consistency.</p>
+      </description>
+    </release>
     <release version="0.11.0" date="2026-03-07">
       <description>
         <p>Introduced Command Palette (Ctrl+K) for quick navigation and fuzzy search functionality.</p>
