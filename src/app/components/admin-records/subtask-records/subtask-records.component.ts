@@ -82,28 +82,27 @@ export class SubtaskRecordsComponent {
   getStatusColor(status: TaskStatus): string {
     switch (status) {
       case TaskStatus.COMPLETED:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
       case TaskStatus.SKIPPED:
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
       case TaskStatus.FAILED:
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
       case TaskStatus.PENDING:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
     }
   }
 
   getPriorityColor(priority: PriorityTask): string {
     switch (priority) {
       case PriorityTask.HIGH:
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
       case PriorityTask.MEDIUM:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
       case PriorityTask.LOW:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
     }
   }
 
@@ -116,9 +115,9 @@ export class SubtaskRecordsComponent {
       case TaskStatus.FAILED:
         return "Failed";
       case TaskStatus.PENDING:
-        return "Pending";
+        return "In Progress";
       default:
-        return status;
+        return status || "In Progress";
     }
   }
 
@@ -137,8 +136,8 @@ export class SubtaskRecordsComponent {
 
   getDeletedStatusColor(isDeleted: boolean): string {
     return isDeleted
-      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-      : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
   }
 
   getDeletedStatusText(isDeleted: boolean): string {
