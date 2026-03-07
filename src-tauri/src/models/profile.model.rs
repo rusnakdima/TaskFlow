@@ -57,24 +57,23 @@ impl From<ProfileCreateModel> for ProfileModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileUpdateModel {
-  pub _id: ObjectId,
+  pub _id: Option<ObjectId>,
   pub id: String,
-  pub name: String,
-  pub lastName: String,
-  pub bio: String,
-  pub imageUrl: String,
-  pub userId: String,
-  pub createdAt: String,
-  pub updatedAt: String,
+  pub name: Option<String>,
+  pub lastName: Option<String>,
+  pub bio: Option<String>,
+  pub imageUrl: Option<String>,
+  pub userId: Option<String>,
+  pub createdAt: Option<String>,
+  pub updatedAt: Option<String>,
 }
 
 impl ProfileUpdateModel {
   pub fn validate(&self) -> Result<(), String> {
-    if self.name.is_empty() {
-      return Err("name cannot be empty".to_string());
-    }
-    if self.userId.is_empty() {
-      return Err("userId cannot be empty".to_string());
+    if let Some(ref name) = self.name {
+      if name.is_empty() {
+        return Err("name cannot be empty".to_string());
+      }
     }
     Ok(())
   }
@@ -86,14 +85,14 @@ impl From<ProfileUpdateModel> for ProfileModel {
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     ProfileModel {
-      _id: value._id,
+      _id: value._id.unwrap_or_else(ObjectId::new),
       id: value.id,
-      name: value.name,
-      lastName: value.lastName,
-      bio: value.bio,
-      imageUrl: value.imageUrl,
-      userId: value.userId,
-      createdAt: value.createdAt,
+      name: value.name.unwrap_or_default(),
+      lastName: value.lastName.unwrap_or_default(),
+      bio: value.bio.unwrap_or_default(),
+      imageUrl: value.imageUrl.unwrap_or_default(),
+      userId: value.userId.unwrap_or_default(),
+      createdAt: value.createdAt.unwrap_or_default(),
       updatedAt: formatted,
     }
   }

@@ -245,11 +245,16 @@ impl MongodbSyncProvider {
 
       // Hard delete local records that are not in cloud (and were supposed to be there)
       // This handles cases where records were permanently deleted from admin (cloud)
+      // We only delete if they are already marked as deleted locally to prevent losing new local work
       if table != "profiles" && table != "users" {
         let allLocal = jsonProvider.getDataTable(table).await?;
         for record in allLocal {
           if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
-            if !cloudIds.contains(&id.to_string()) {
+            let isDeletedLocally = record
+              .get("isDeleted")
+              .and_then(|v| v.as_bool())
+              .unwrap_or(false);
+            if !cloudIds.contains(&id.to_string()) && isDeletedLocally {
               jsonProvider.hardDelete(table, id).await?;
             }
           }

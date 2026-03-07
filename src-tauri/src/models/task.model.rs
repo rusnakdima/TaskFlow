@@ -124,7 +124,7 @@ pub struct TaskUpdateModel {
   pub endDate: Option<String>,
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
-  pub updatedAt: String,
+  pub updatedAt: Option<String>,
 }
 
 impl TaskUpdateModel {

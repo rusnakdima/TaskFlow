@@ -173,31 +173,11 @@ impl ProfileService {
         let updatedProfile = ProfileModel {
           _id: existingProfile._id,
           id: existingProfile.id,
-          name: if data.name != existingProfile.name {
-            data.name
-          } else {
-            existingProfile.name
-          },
-          lastName: if data.lastName != existingProfile.lastName {
-            data.lastName
-          } else {
-            existingProfile.lastName
-          },
-          bio: if data.bio != existingProfile.bio {
-            data.bio
-          } else {
-            existingProfile.bio
-          },
-          imageUrl: if data.imageUrl != existingProfile.imageUrl {
-            data.imageUrl
-          } else {
-            existingProfile.imageUrl
-          },
-          userId: if data.userId != existingProfile.userId {
-            data.userId
-          } else {
-            existingProfile.userId
-          },
+          name: data.name.unwrap_or(existingProfile.name),
+          lastName: data.lastName.unwrap_or(existingProfile.lastName),
+          bio: data.bio.unwrap_or(existingProfile.bio),
+          imageUrl: data.imageUrl.unwrap_or(existingProfile.imageUrl),
+          userId: data.userId.unwrap_or(existingProfile.userId),
           createdAt: existingProfile.createdAt,
           updatedAt: formatted,
         };

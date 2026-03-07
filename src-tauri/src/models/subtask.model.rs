@@ -79,7 +79,7 @@ pub struct SubtaskUpdateModel {
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,
-  pub updatedAt: String,
+  pub updatedAt: Option<String>,
   #[serde(rename = "_syncMetadata")]
   pub sync_metadata: Option<SyncMetadata>,
 }
