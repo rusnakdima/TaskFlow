@@ -1,9 +1,5 @@
 /* sys lib */
-use mongodb::{
-  bson::Document,
-  options::ClientOptions,
-  Client, Collection, Database,
-};
+use mongodb::{bson::Document, options::ClientOptions, Client, Collection};
 use std::time::Duration;
 
 /* models */
@@ -11,10 +7,8 @@ use crate::models::relation_obj::RelationObj;
 
 /* providers */
 use super::{
-  json_provider::JsonProvider,
-  mongodb_crud_provider::MongodbCrudProvider,
-  mongodb_relations_provider::MongodbRelationsProvider,
-  mongodb_sync_provider::MongodbSyncProvider,
+  json_provider::JsonProvider, mongodb_crud_provider::MongodbCrudProvider,
+  mongodb_relations_provider::MongodbRelationsProvider, mongodb_sync_provider::MongodbSyncProvider,
 };
 
 #[derive(Clone)]
@@ -132,6 +126,14 @@ impl MongodbProvider {
     id: &str,
   ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     self.mongodbCrud.delete(nameTable, id).await
+  }
+
+  pub async fn hardDelete(
+    &self,
+    nameTable: &str,
+    id: &str,
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    self.mongodbCrud.hardDelete(nameTable, id).await
   }
 
   // ==================== SYNC OPERATIONS ====================

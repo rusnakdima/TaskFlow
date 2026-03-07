@@ -12,10 +12,20 @@ import { MatCardModule } from "@angular/material/card";
 import { Subtask } from "@models/subtask.model";
 import { TaskStatus, PriorityTask } from "@models/task.model";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-subtask-records",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatChipsModule, MatCardModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatCardModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./subtask-records.component.html",
 })
 export class SubtaskRecordsComponent {

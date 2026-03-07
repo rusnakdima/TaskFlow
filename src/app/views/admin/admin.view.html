@@ -203,16 +203,12 @@
             <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
           </div>
           <div class="flex flex-row gap-2 items-center flex-wrap">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                class="styleCheckbox"
-                [checked]="isAllSelected()"
-                [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
-                (change)="toggleSelectAll()"
-              />
-              <span class="text-sm font-medium">Select All</span>
-            </label>
+            <app-checkbox
+              label="Select All"
+              [checked]="isAllSelected()"
+              [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
+              (checkedChange)="toggleSelectAll()"
+            />
             <mat-form-field class="w-32">
               <mat-label>Sort By</mat-label>
               <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">

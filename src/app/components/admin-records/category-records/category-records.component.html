@@ -2,14 +2,13 @@
   @for (category of categories; track category.id) {
     <mat-card class="p-4 hover:shadow-lg transition-shadow">
       <div class="flex items-start gap-4">
-        <input
-          type="checkbox"
-          class="styleCheckbox mt-1"
+        <app-checkbox
+          class="mt-1"
           [checked]="isSelected(category.id)"
-          (change)="onSelectChange(category.id)"
+          (checkedChange)="onSelectChange(category.id)"
         />
 
-        <div class="flex-1 gap-y-1 min-w-0">
+        <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <h4 class="font-semibold textNormal text-lg mb-1 truncate">{{ category.title }}</h4>
@@ -30,6 +29,7 @@
                 mat-icon-button
                 class="w-8 h-8 text-blue-600"
                 (click)="onToggleDelete(category)"
+                [title]="category.isDeleted ? 'Restore category' : 'Remove category (soft delete)'"
               >
                 <mat-icon
                   class="w-5 h-5"
@@ -40,6 +40,7 @@
                 mat-icon-button
                 class="w-8 h-8 text-red-600"
                 (click)="onDeleteRecord(category)"
+                title="Permanently delete category"
               >
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>

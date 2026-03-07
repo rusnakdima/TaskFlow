@@ -11,10 +11,20 @@ import { MatCardModule } from "@angular/material/card";
 /* models */
 import { Todo } from "@models/todo.model";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-todo-records",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatChipsModule, MatCardModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatCardModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./todo-records.component.html",
 })
 export class TodoRecordsComponent {

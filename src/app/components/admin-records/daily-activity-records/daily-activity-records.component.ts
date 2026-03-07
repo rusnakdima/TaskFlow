@@ -8,10 +8,20 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatChipsModule } from "@angular/material/chips";
 import { MatCardModule } from "@angular/material/card";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-daily-activity-records",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatChipsModule, MatCardModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatCardModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./daily-activity-records.component.html",
 })
 export class DailyActivityRecordsComponent {

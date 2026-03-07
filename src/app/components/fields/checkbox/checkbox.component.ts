@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input } from "@angular/core";
+import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
@@ -20,10 +20,19 @@ export class CheckboxComponent {
   constructor() {}
 
   @Input() label: string = "";
-  @Input() form!: FormGroup;
-  @Input() field!: CheckboxField;
+  @Input() form?: FormGroup;
+  @Input() field?: CheckboxField;
+  @Input() checked: boolean = false;
+  @Input() indeterminate: boolean = false;
+  @Output() checkedChange = new EventEmitter<boolean>();
 
-  isInvalid(attr: string) {
+  onToggle(event: any) {
+    this.checked = event.checked;
+    this.checkedChange.emit(this.checked);
+  }
+
+  isInvalid(attr?: string) {
+    if (!this.form || !attr) return false;
     return (
       (this.form.get(attr)?.touched || this.form.get(attr)?.dirty) && this.form.get(attr)?.errors
     );
