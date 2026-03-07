@@ -92,17 +92,15 @@ export class EditProfileView {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
-      this.dataSyncProvider
-        .get<Profile>("profiles", { userId })
-        .subscribe({
-          next: (profile) => {
-            this.form.patchValue(profile);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load profile");
-            this.router.navigate(["/login"]);
-          }
-        });
+      this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
+        next: (profile) => {
+          this.form.patchValue(profile);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profile");
+          this.router.navigate(["/login"]);
+        },
+      });
     } else {
       this.router.navigate(["/login"]);
       this.notifyService.showError("You are not logged in");
@@ -118,17 +116,15 @@ export class EditProfileView {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider
-        .update<Profile>("profiles", body.id, body)
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Profile updated successfully");
-            this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to update profile");
-          }
-        });
+      this.dataSyncProvider.update<Profile>("profiles", body.id, body).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Profile updated successfully");
+          this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update profile");
+        },
+      });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }

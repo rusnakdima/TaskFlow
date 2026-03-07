@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, effect } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 
@@ -42,11 +42,19 @@ export class CategoriesView implements OnInit {
     private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
-  ) {}
+  ) {
+    // Watch for categories data changes and load when data is available
+    effect(() => {
+      const cats = this.storageService.categories();
+      if (cats.length > 0) {
+        this.loadCategories();
+      }
+    });
+  }
 
   // Use storage signals directly for source data
   categories = this.storageService.categories;
-  
+
   // Separate signals for filtered/sorted display list
   listCategories = signal<Category[]>([]);
   tempListCategories = signal<Category[]>([]);
@@ -57,16 +65,6 @@ export class CategoriesView implements OnInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
-    // Load data once - storage will auto-populate categories signal
-    this.storageService.loadAllData().subscribe({
-      next: () => {
-        // Load categories after data is loaded
-        this.loadCategories();
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load categories");
-      }
-    });
   }
 
   loadCategories(): void {
@@ -108,17 +106,15 @@ export class CategoriesView implements OnInit {
         "Are you sure you want to delete this category? This will remove it from all associated todos."
       )
     ) {
-      this.dataSyncProvider
-        .delete("categories", categoryId)
-        .subscribe({
-          next: () => {
-            // Storage auto-updates via optimistic update in controller
-            this.notifyService.showSuccess("Category deleted successfully");
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete category");
-          }
-        });
+      this.dataSyncProvider.delete("categories", categoryId).subscribe({
+        next: () => {
+          // Storage auto-updates via optimistic update in controller
+          this.notifyService.showSuccess("Category deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete category");
+        },
+      });
     }
   }
 

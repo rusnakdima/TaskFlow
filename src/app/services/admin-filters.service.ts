@@ -77,11 +77,7 @@ export class AdminFiltersService {
     return filterConfigs;
   }
 
-  applyFilters(
-    data: any[],
-    filters: AdminFilterState,
-    selectedType: string
-  ): any[] {
+  applyFilters(data: any[], filters: AdminFilterState, selectedType: string): any[] {
     // Build filter configs using FilterService
     const filterConfigs = this.buildFilterConfigs(filters, selectedType);
 
@@ -100,26 +96,17 @@ export class AdminFiltersService {
     return data;
   }
 
-  private applyCustomFilters(
-    data: any[],
-    filters: AdminFilterState,
-    selectedType: string
-  ): any[] {
+  private applyCustomFilters(data: any[], filters: AdminFilterState, selectedType: string): any[] {
     if (filters.userFilter) {
       const filter = filters.userFilter.toLowerCase();
       data = data.filter((item) => {
-        if (
-          (selectedType === "todos" || selectedType === "categories") &&
-          item.user
-        ) {
+        if ((selectedType === "todos" || selectedType === "categories") && item.user) {
           const { profile, username } = item.user;
           const firstName = profile?.name?.toLowerCase() || "";
           const lastName = profile?.lastName?.toLowerCase() || "";
           const userName = username?.toLowerCase() || "";
           return (
-            firstName.includes(filter) ||
-            lastName.includes(filter) ||
-            userName.includes(filter)
+            firstName.includes(filter) || lastName.includes(filter) || userName.includes(filter)
           );
         }
         return false;
@@ -130,9 +117,7 @@ export class AdminFiltersService {
       const filter = filters.categoriesFilter.toLowerCase();
       data = data.filter((item) => {
         if (item.categories && Array.isArray(item.categories)) {
-          return item.categories.some((cat: any) =>
-            cat.title?.toLowerCase().includes(filter)
-          );
+          return item.categories.some((cat: any) => cat.title?.toLowerCase().includes(filter));
         }
         return false;
       });
@@ -189,11 +174,7 @@ export class AdminFiltersService {
     };
   }
 
-  filterByStatus(
-    data: any[],
-    statusFilter: string,
-    selectedType: string
-  ): any[] {
+  filterByStatus(data: any[], statusFilter: string, selectedType: string): any[] {
     if (statusFilter === "done") {
       return data.filter((item) =>
         [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(item.status)
@@ -202,8 +183,7 @@ export class AdminFiltersService {
       const filterConfigs: FilterConfig[] = [
         {
           field: "status",
-          value:
-            TaskStatus[statusFilter.toUpperCase() as keyof typeof TaskStatus],
+          value: TaskStatus[statusFilter.toUpperCase() as keyof typeof TaskStatus],
           operator: "equals",
         },
       ];

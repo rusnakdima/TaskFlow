@@ -16,31 +16,6 @@ export class DateValidatorService {
   constructor(private notifyService: NotifyService) {}
 
   /**
-   * Validate that end date is not earlier than start date
-   * @param startDate - Start date string
-   * @param endDate - End date string
-   * @returns true if dates are valid, false otherwise
-   */
-  validateDateRange(startDate: string | null, endDate: string | null): boolean {
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (end < start) {
-        this.notifyService.showError("End date cannot be earlier than start date");
-        return false;
-      }
-    }
-
-    // Clear end date if start date is empty
-    if (!startDate && endDate) {
-      return true; // Let the form handle clearing the field
-    }
-
-    return true;
-  }
-
-  /**
    * Validate dates from a FormGroup
    * @param form - FormGroup with startDate and endDate controls
    * @returns true if dates are valid, false otherwise

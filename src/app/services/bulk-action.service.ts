@@ -146,35 +146,4 @@ export class BulkActionService {
   isAllSelected<T extends { id: string }>(selected: Set<string>, items: T[]): boolean {
     return selected.size === items.length && items.length > 0;
   }
-
-  /**
-   * Get selected items from list
-   */
-  getSelectedItems<T extends { id: string }>(selected: Set<string>, items: T[]): T[] {
-    return items.filter((item) => selected.has(item.id));
-  }
-
-  /**
-   * Validate selection for operation
-   */
-  validateSelection<T>(
-    selected: Set<string>,
-    minCount: number = 1
-  ): { valid: boolean; message: string } {
-    if (selected.size === 0) {
-      return { valid: false, message: "No items selected" };
-    }
-    if (selected.size < minCount) {
-      return { valid: false, message: `Please select at least ${minCount} items` };
-    }
-    return { valid: true, message: "" };
-  }
-
-  /**
-   * Get confirmation message for bulk operation
-   */
-  getConfirmationMessage(operation: string, count: number, entityType: string): string {
-    const entityPlural = count > 1 ? entityType + "s" : entityType;
-    return `Are you sure you want to ${operation} ${count} ${entityPlural}?`;
-  }
 }

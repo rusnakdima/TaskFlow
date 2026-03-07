@@ -53,21 +53,6 @@ export class SortService {
   }
 
   /**
-   * Sort by multiple fields
-   */
-  sortByFields<T>(data: T[], configs: SortConfig[]): T[] {
-    return [...data].sort((a: any, b: any) => {
-      for (const config of configs) {
-        const comparison = this.compareByField(a, b, config);
-        if (comparison !== 0) {
-          return comparison;
-        }
-      }
-      return 0;
-    });
-  }
-
-  /**
    * Sort by order field (for drag-drop reordering)
    */
   sortByOrder<T extends { order: number }>(data: T[], order: "asc" | "desc" = "desc"): T[] {
@@ -109,24 +94,6 @@ export class SortService {
       const bOrder = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 0;
       return order === "asc" ? aOrder - bOrder : bOrder - aOrder;
     });
-  }
-
-  /**
-   * Sort by date field
-   */
-  sortByDate<T>(data: T[], field: string, order: "asc" | "desc" = "desc"): T[] {
-    return [...data].sort((a: any, b: any) => {
-      const aValue = a[field] ? new Date(a[field]).getTime() : 0;
-      const bValue = b[field] ? new Date(b[field]).getTime() : 0;
-      return order === "asc" ? aValue - bValue : bValue - aValue;
-    });
-  }
-
-  /**
-   * Toggle sort order
-   */
-  toggleOrder(currentOrder: "asc" | "desc"): "asc" | "desc" {
-    return currentOrder === "asc" ? "desc" : "asc";
   }
 
   /**

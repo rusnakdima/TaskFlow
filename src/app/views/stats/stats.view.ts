@@ -33,8 +33,7 @@ export class StatsView implements OnInit {
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService,
-    private statisticsService: StatisticsService,
-    private storageService: StorageService
+    private statisticsService: StatisticsService
   ) {}
 
   selectedTimeRange = signal<string>("week");
@@ -91,16 +90,8 @@ export class StatsView implements OnInit {
   detailedMetrics = signal<DetailedMetric[]>([]);
 
   ngOnInit(): void {
-    // Ensure data is loaded from StorageService
-    if (this.storageService.todos().length === 0) {
-      this.storageService.loadAllData(true).subscribe({
-        next: () => {
-          this.loadStatistics();
-        }
-      });
-    } else {
-      this.loadStatistics();
-    }
+    // Data is already loaded in app.ts, just load statistics
+    this.loadStatistics();
   }
 
   async loadStatistics(): Promise<void> {

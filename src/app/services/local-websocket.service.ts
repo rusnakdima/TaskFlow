@@ -142,12 +142,19 @@ export class LocalWebSocketService {
     syncMetadata?: SyncMetadata,
     relations?: RelationObj[]
   ): Observable<T[]> {
-    return this.request<T[]>("get-all", {
+    const payload: any = {
       entity: table,
       filter,
-      relations,
-      syncMetadata,
-    });
+    };
+
+    if (relations) {
+      payload.relations = relations;
+    }
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<T[]>("get-all", payload);
   }
 
   get<T>(
@@ -156,12 +163,19 @@ export class LocalWebSocketService {
     syncMetadata?: SyncMetadata,
     relations?: RelationObj[]
   ): Observable<T> {
-    return this.request<T>("get", {
+    const payload: any = {
       entity: table,
       filter,
-      syncMetadata,
-      relations,
-    });
+    };
+
+    if (relations) {
+      payload.relations = relations;
+    }
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<T>("get", payload);
   }
 
   create<T>(
@@ -170,20 +184,15 @@ export class LocalWebSocketService {
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
-    console.log("[LocalWebSocketService] create:", { table, data });
-    return this.request<T>("create", {
+    const payload: any = {
       entity: table,
       data: { ...data, todoId: parentTodoId },
-      syncMetadata,
-    }).pipe(
-      tap((result) => {
-        console.log("[LocalWebSocketService] Response received:", {
-          action: "create",
-          table: table,
-          status: "Success"
-        });
-      })
-    );
+    };
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<T>("create", payload);
   }
 
   update<T>(
@@ -193,22 +202,16 @@ export class LocalWebSocketService {
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
-    console.log("[LocalWebSocketService] update:", { table, id, data });
-    return this.request<T>("update", {
+    const payload: any = {
       entity: table,
       id,
       data: { ...data, todoId: parentTodoId },
-      syncMetadata,
-    }).pipe(
-      tap((result) => {
-        console.log("[LocalWebSocketService] Response received:", {
-          action: "update",
-          table: table,
-          id: id,
-          status: "Success"
-        });
-      })
-    );
+    };
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<T>("update", payload);
   }
 
   updateAll<T>(
@@ -217,22 +220,16 @@ export class LocalWebSocketService {
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<T> {
-    console.log("[LocalWebSocketService] updateAll:", { table, data });
-    return this.request<T>("update-all", {
+    const payload: any = {
       entity: table,
       data,
       todoId: parentTodoId,
-      syncMetadata,
-    }).pipe(
-      tap((result) => {
-        console.log("[LocalWebSocketService] Response received:", {
-          action: "update-all",
-          table: table,
-          count: Array.isArray(result) ? result.length : 0,
-          status: "Success"
-        });
-      })
-    );
+    };
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<T>("update-all", payload);
   }
 
   delete(
@@ -241,18 +238,21 @@ export class LocalWebSocketService {
     parentTodoId?: string,
     syncMetadata?: SyncMetadata
   ): Observable<void> {
-    console.log("[LocalWebSocketService] delete:", { table, id });
-    return this.request<void>("delete", {
+    const payload: any = {
       entity: table,
       id,
-      syncMetadata,
-    }).pipe(
+    };
+    if (syncMetadata) {
+      payload.syncMetadata = syncMetadata;
+    }
+
+    return this.request<void>("delete", payload).pipe(
       tap(() => {
         console.log("[LocalWebSocketService] Response received:", {
           action: "delete",
           table: table,
           id: id,
-          status: "Success"
+          status: "Success",
         });
       })
     );

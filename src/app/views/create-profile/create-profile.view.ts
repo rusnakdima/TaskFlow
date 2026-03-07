@@ -102,17 +102,15 @@ export class CreateProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider
-        .create<Profile>("profiles", body)
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Profile created successfully");
-            this.router.navigate([""]);
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to create profile");
-          }
-        });
+      this.dataSyncProvider.create<Profile>("profiles", body).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Profile created successfully");
+          this.router.navigate([""]);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to create profile");
+        },
+      });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
