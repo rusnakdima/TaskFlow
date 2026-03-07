@@ -42,7 +42,7 @@ export class TodosController {
   deleteTodoById(todoId: string, onSuccess: () => void): void {
     // Get the todo before deleting for potential rollback
     const todoToDelete = this.storageService.getTodoById(todoId);
-    
+
     // Optimistic update: remove from cache immediately
     this.storageService.removeTodo(todoId);
     this.notifyService.showSuccess("Todo deleted successfully");
@@ -68,8 +68,8 @@ export class TodosController {
    */
   updateTodoOrder(todos: Todo[], onComplete: (success: boolean) => void): void {
     // Store previous state for rollback
-    const previousTodos = todos.map(todo => ({ ...todo }));
-    
+    const previousTodos = todos.map((todo) => ({ ...todo }));
+
     const transformedTodos = todos.map((todo) => ({
       _id: todo._id,
       id: todo.id,
@@ -115,7 +115,8 @@ export class TodosController {
     // Store previous state for rollback
     const previousTodo1Order = todo1.order;
     const previousTodo2Order = todo2.order;
-    
+
+    const now = new Date().toISOString();
     let completedCount = 0;
     let hasError = false;
 
@@ -125,7 +126,12 @@ export class TodosController {
 
     [todo1, todo2].forEach((todo) => {
       this.dataSyncProvider
-        .update<Todo>("todos", todo.id, { order: todo.order }, { isOwner: true, isPrivate: true })
+        .update<Todo>(
+          "todos",
+          todo.id,
+          { id: todo.id, order: todo.order, updatedAt: now },
+          { isOwner: true, isPrivate: true }
+        )
         .subscribe({
           next: () => {
             completedCount++;
@@ -193,103 +199,113 @@ export class TodosController {
     // Optimistic update: add to cache immediately
     this.storageService.addTodo(todo);
 
-    this.dataSyncProvider.create<Todo>("todos", todo, { isOwner: true, isPrivate: true }).subscribe({
-      next: (createdTodo) => {
-        // Update the cached todo with the real ID from backend
-        this.storageService.updateTodo(clientTodoId, { id: createdTodo.id });
+    this.dataSyncProvider
+      .create<Todo>("todos", todo, { isOwner: true, isPrivate: true })
+      .subscribe({
+        next: (createdTodo) => {
+          // Update the cached todo with the real ID from backend
+          this.storageService.updateTodo(clientTodoId, { id: createdTodo.id });
 
-        const todoId = createdTodo.id;
-        const tasks = this.templateService.applyTemplate(template, todoId, this.userId);
+          const todoId = createdTodo.id;
+          const tasks = this.templateService.applyTemplate(template, todoId, this.userId);
 
-        if (tasks.length === 0) {
-          this.notifyService.showSuccess("Project created from Blueprint!");
-          onSuccess();
-          return;
-        }
+          if (tasks.length === 0) {
+            this.notifyService.showSuccess("Project created from Blueprint!");
+            onSuccess();
+            return;
+          }
 
-        let createdTasksCount = 0;
+          let createdTasksCount = 0;
 
-        tasks.forEach((task, taskIndex) => {
-          const { subtasks, ...taskWithoutSubtasks } = task;
-          const clientTaskId = task.id;
+          tasks.forEach((task, taskIndex) => {
+            const { subtasks, ...taskWithoutSubtasks } = task;
+            const clientTaskId = task.id;
 
-          // Optimistic update: add task to cache
-          this.storageService.addTask(task);
+            // Optimistic update: add task to cache
+            this.storageService.addTask(task);
 
-          this.dataSyncProvider
-            .create<Task>("tasks", taskWithoutSubtasks, { isOwner: true, isPrivate: true }, todoId)
-            .subscribe({
-              next: (createdTask) => {
-                // Update the cached task with the real ID from backend
-                this.storageService.updateTask(clientTaskId, { id: createdTask.id, todoId: createdTask.todoId });
+            this.dataSyncProvider
+              .create<Task>(
+                "tasks",
+                taskWithoutSubtasks,
+                { isOwner: true, isPrivate: true },
+                todoId
+              )
+              .subscribe({
+                next: (createdTask) => {
+                  // Update the cached task with the real ID from backend
+                  this.storageService.updateTask(clientTaskId, {
+                    id: createdTask.id,
+                    todoId: createdTask.todoId,
+                  });
 
-                const taskId = createdTask.id;
-                const subtasks = task.subtasks || [];
+                  const taskId = createdTask.id;
+                  const subtasks = task.subtasks || [];
 
-                if (subtasks.length === 0) {
-                  createdTasksCount++;
-                  if (createdTasksCount === tasks.length) {
-                    this.notifyService.showSuccess("Project created from Blueprint with tasks!");
-                    onSuccess();
+                  if (subtasks.length === 0) {
+                    createdTasksCount++;
+                    if (createdTasksCount === tasks.length) {
+                      this.notifyService.showSuccess("Project created from Blueprint with tasks!");
+                      onSuccess();
+                    }
+                    return;
                   }
-                  return;
-                }
 
-                let createdSubtasksCount = 0;
+                  let createdSubtasksCount = 0;
 
-                subtasks.forEach((subtask: any) => {
-                  const subtaskWithActualTaskId = {
-                    ...subtask,
-                    taskId: taskId,
-                    todoId: todoId,
-                  };
+                  subtasks.forEach((subtask: any) => {
+                    const subtaskWithActualTaskId = {
+                      ...subtask,
+                      taskId: taskId,
+                      todoId: todoId,
+                    };
 
-                  // Optimistic update: add subtask to cache
-                  this.storageService.addSubtask(subtask);
+                    // Optimistic update: add subtask to cache
+                    this.storageService.addSubtask(subtask);
 
-                  this.dataSyncProvider
-                    .create<any>(
-                      "subtasks",
-                      subtaskWithActualTaskId,
-                      { isOwner: true, isPrivate: true },
-                      todoId
-                    )
-                    .subscribe({
-                      next: (createdSubtask) => {
-                        // Update the cached subtask with the real ID from backend
-                        this.storageService.updateSubtask(subtask.id, { 
-                          id: createdSubtask.id,
-                          taskId: createdSubtask.taskId
-                        });
-                        
-                        createdSubtasksCount++;
-                        if (createdSubtasksCount === subtasks.length) {
-                          createdTasksCount++;
-                          if (createdTasksCount === tasks.length) {
-                            setTimeout(() => {
-                              onSuccess();
-                            }, 500);
+                    this.dataSyncProvider
+                      .create<any>(
+                        "subtasks",
+                        subtaskWithActualTaskId,
+                        { isOwner: true, isPrivate: true },
+                        todoId
+                      )
+                      .subscribe({
+                        next: (createdSubtask) => {
+                          // Update the cached subtask with the real ID from backend
+                          this.storageService.updateSubtask(subtask.id, {
+                            id: createdSubtask.id,
+                            taskId: createdSubtask.taskId,
+                          });
+
+                          createdSubtasksCount++;
+                          if (createdSubtasksCount === subtasks.length) {
+                            createdTasksCount++;
+                            if (createdTasksCount === tasks.length) {
+                              setTimeout(() => {
+                                onSuccess();
+                              }, 500);
+                            }
                           }
-                        }
-                      },
-                      error: (err) => {
-                        this.notifyService.showError(err.message || "Failed to create subtask");
-                      },
-                    });
-                });
-              },
-              error: (err) => {
-                this.notifyService.showError(err.message || "Failed to create task");
-              },
-            });
-        });
-      },
-      error: (err) => {
-        // Rollback: remove todo from cache on failure
-        this.storageService.removeTodo(clientTodoId);
-        this.notifyService.showError(err.message || "Failed to create project");
-      },
-    });
+                        },
+                        error: (err) => {
+                          this.notifyService.showError(err.message || "Failed to create subtask");
+                        },
+                      });
+                  });
+                },
+                error: (err) => {
+                  this.notifyService.showError(err.message || "Failed to create task");
+                },
+              });
+          });
+        },
+        error: (err) => {
+          // Rollback: remove todo from cache on failure
+          this.storageService.removeTodo(clientTodoId);
+          this.notifyService.showError(err.message || "Failed to create project");
+        },
+      });
   }
 
   /**

@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, signal } from "@angular/core";
+import { Injectable, Injector } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { map } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
@@ -9,7 +9,6 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj, TypesField } from "@models/relation-obj.model";
 
 /* services */
-import { AuthService } from "../services/auth.service";
 import { LocalWebSocketService } from "../services/local-websocket.service";
 import { SyncService } from "../services/sync.service";
 
@@ -18,13 +17,15 @@ import { SyncService } from "../services/sync.service";
 })
 export class DataSyncProvider {
   private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles"];
-  userId = signal("");
 
   constructor(
-    private authService: AuthService,
     private localWebSocketService: LocalWebSocketService,
-    private syncService: SyncService
+    private injector: Injector
   ) {}
+
+  private get syncService(): SyncService {
+    return this.injector.get(SyncService);
+  }
 
   private validateTable(table: string): void {
     if (!this.allowedTables.includes(table)) {
@@ -120,7 +121,12 @@ export class DataSyncProvider {
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
       const defaultRelations = relations ?? this.getDefaultRelations(table);
-      return this.localWebSocketService.getAll(table, filter, { isOwner, isPrivate }, defaultRelations);
+      return this.localWebSocketService.getAll(
+        table,
+        filter,
+        { isOwner, isPrivate },
+        defaultRelations
+      );
     }
 
     // 2. Fallback to Tauri invoke (unified manageData endpoint)
@@ -161,7 +167,12 @@ export class DataSyncProvider {
     // 1. Try Local WebSocket (Rust backend)
     if (this.localWebSocketService.isConnected()) {
       const defaultRelations = relations ?? this.getDefaultRelations(table);
-      return this.localWebSocketService.get(table, filter, { isOwner, isPrivate }, defaultRelations);
+      return this.localWebSocketService.get(
+        table,
+        filter,
+        { isOwner, isPrivate },
+        defaultRelations
+      );
     }
 
     // 2. Fallback to Tauri invoke (unified manageData endpoint)

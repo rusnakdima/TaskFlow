@@ -288,7 +288,7 @@ export class TasksController {
     if (!this.todo) return;
 
     // Store previous state for rollback
-    const previousOrders = tasks.map(task => ({ id: task.id, order: task.order }));
+    const previousOrders = tasks.map((task) => ({ id: task.id, order: task.order }));
 
     const updatedTasks = tasks.map((task, index) => ({
       ...task,
@@ -319,7 +319,7 @@ export class TasksController {
           },
           error: (err) => {
             // Rollback on failure
-            previousOrders.forEach(prev => {
+            previousOrders.forEach((prev) => {
               this.storageService.updateTask(prev.id, { order: prev.order });
             });
             this.notifyService.showError(err.message || "Failed to update task order");
@@ -338,27 +338,34 @@ export class TasksController {
     const previousTask1Order = task1.order;
     const previousTask2Order = task2.order;
 
+    const now = new Date().toISOString();
     // Optimistic update: update cache immediately
     this.storageService.updateTask(task1.id, { order: task1.order });
     this.storageService.updateTask(task2.id, { order: task2.order });
     this.notifyService.showSuccess("Task order updated successfully");
-    onComplete();
 
     let completedCount = 0;
     let hasError = false;
+
+    const checkComplete = () => {
+      completedCount++;
+      if (completedCount === 2 || hasError) {
+        onComplete();
+      }
+    };
 
     [task1, task2].forEach((task) => {
       this.dataSyncProvider
         .update<Task>(
           "tasks",
           task.id,
-          { order: task.order },
+          { id: task.id, order: task.order, updatedAt: now },
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
           this.todo!.id
         )
         .subscribe({
           next: () => {
-            completedCount++;
+            checkComplete();
           },
           error: (err) => {
             hasError = true;
@@ -366,6 +373,7 @@ export class TasksController {
             this.storageService.updateTask(task1.id, { order: previousTask1Order });
             this.storageService.updateTask(task2.id, { order: previousTask2Order });
             this.notifyService.showError(err.message || "Failed to update task order");
+            checkComplete();
           },
         });
     });
@@ -378,7 +386,7 @@ export class TasksController {
     if (!this.todo) return;
 
     // Store previous state for rollback
-    const previousStates = taskIds.map(id => {
+    const previousStates = taskIds.map((id) => {
       const task = this.storageService.getTaskById(id);
       return { id, previousPriority: task?.priority || PriorityTask.MEDIUM };
     });
@@ -408,7 +416,7 @@ export class TasksController {
         }
         if (result.errorCount > 0) {
           // Rollback failed updates
-          previousStates.forEach(prev => {
+          previousStates.forEach((prev) => {
             this.storageService.updateTask(prev.id, { priority: prev.previousPriority });
           });
           this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
@@ -423,7 +431,7 @@ export class TasksController {
     if (!this.todo) return;
 
     // Store previous state for rollback
-    const previousStates = taskIds.map(id => {
+    const previousStates = taskIds.map((id) => {
       const task = this.storageService.getTaskById(id);
       return { id, previousStatus: task?.status || TaskStatus.PENDING };
     });
@@ -453,7 +461,7 @@ export class TasksController {
         }
         if (result.errorCount > 0) {
           // Rollback failed updates
-          previousStates.forEach(prev => {
+          previousStates.forEach((prev) => {
             this.storageService.updateTask(prev.id, { status: prev.previousStatus });
           });
           this.notifyService.showError(`Failed to update ${result.errorCount} task(s)`);
@@ -468,7 +476,9 @@ export class TasksController {
     if (!this.todo) return;
 
     // Store previous state for rollback
-    const tasksToDelete = taskIds.map(id => this.storageService.getTaskById(id)).filter(Boolean) as Task[];
+    const tasksToDelete = taskIds
+      .map((id) => this.storageService.getTaskById(id))
+      .filter(Boolean) as Task[];
 
     const tasks = taskIds.map((id) => ({ id }));
 
@@ -494,7 +504,7 @@ export class TasksController {
         }
         if (result.errorCount > 0) {
           // Rollback failed deletions
-          tasksToDelete.forEach(task => {
+          tasksToDelete.forEach((task) => {
             if (task) {
               this.storageService.rollbackRemoveTask(task);
             }
