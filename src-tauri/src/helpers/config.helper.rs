@@ -20,7 +20,7 @@ pub struct ConfigHelper {
 impl ConfigHelper {
   pub fn new() -> Self {
     let dotenvContent = include_str!("../../.env");
-    let envVars = Self::parse_dotenv(dotenvContent);
+    let envVars = Self::parseDotenv(dotenvContent);
 
     Self {
       nameApp: envVars
@@ -73,7 +73,7 @@ impl ConfigHelper {
     }
   }
 
-  fn parse_dotenv(dotenvContent: &str) -> HashMap<String, String> {
+  fn parseDotenv(dotenvContent: &str) -> HashMap<String, String> {
     dotenvContent
       .lines()
       .filter_map(|line| {

@@ -22,14 +22,17 @@ impl SyncManager {
   }
 
   /// Import data from cloud to local
-  pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodb_provider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
+  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
       status: ResponseStatus::Error,
       message: "MongoDB not available".to_string(),
       data: DataValue::String("".to_string()),
     })?;
 
-    match mongodb_provider.importToLocal(user_id, &self.jsonProvider).await {
+    match mongodbProvider
+      .importToLocal(userId, &self.jsonProvider)
+      .await
+    {
       Ok(_) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Data imported to local JSON DB successfully".to_string(),
@@ -44,7 +47,7 @@ impl SyncManager {
   }
 
   /// Clean deleted records from local
-  pub async fn clean_deleted_records_from_local(&self) -> Result<(), ResponseModel> {
+  pub async fn cleanDeletedRecordsFromLocal(&self) -> Result<(), ResponseModel> {
     let tables = vec![
       "todos",
       "tasks",
@@ -54,12 +57,12 @@ impl SyncManager {
     ];
 
     for table in &tables {
-      let all_records = match self.jsonProvider.getDataTable(table).await {
+      let allRecords = match self.jsonProvider.getDataTable(table).await {
         Ok(recs) => recs,
         Err(_) => continue,
       };
 
-      for record in all_records {
+      for record in allRecords {
         if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
           if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
             let _ = self.jsonProvider.hardDelete(table, id).await;

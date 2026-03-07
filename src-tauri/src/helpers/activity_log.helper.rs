@@ -104,9 +104,9 @@ impl ActivityLogHelper {
           }
         }
         Err(ResponseModel {
-          status: crate::models::response_model::ResponseStatus::Error,
+          status: ResponseStatus::Error,
           message: format!("Couldn't create daily activity! {}", error.to_string()),
-          data: crate::models::response_model::DataValue::String("".to_string()),
+          data: DataValue::String("".to_string()),
         })
       }
     }
@@ -202,9 +202,9 @@ impl ActivityLogHelper {
     {
       Ok(_) => Ok(()),
       Err(error) => Err(ResponseModel {
-        status: crate::models::response_model::ResponseStatus::Error,
+        status: ResponseStatus::Error,
         message: format!("Couldn't update daily activity! {}", error.to_string()),
-        data: crate::models::response_model::DataValue::String("".to_string()),
+        data: DataValue::String("".to_string()),
       }),
     }
   }

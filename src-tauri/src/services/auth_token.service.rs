@@ -94,17 +94,17 @@ impl AuthTokenService {
     }
   }
 
-  pub fn generate_token(
+  pub fn generateToken(
     &self,
     userId: String,
     username: String,
     role: String,
-    expiration_days: i64,
+    expirationDays: i64,
   ) -> Result<String, ResponseModel> {
     use chrono::Duration;
     use jsonwebtoken::{encode, EncodingKey, Header};
 
-    let expiration = Utc::now() + Duration::days(expiration_days);
+    let expiration = Utc::now() + Duration::days(expirationDays);
     let claims = Claims {
       id: userId,
       username,

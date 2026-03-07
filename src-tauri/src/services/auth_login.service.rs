@@ -90,11 +90,11 @@ impl AuthLoginService {
             };
 
             // Generate token (7 days if remember, 24 hours otherwise)
-            let expiration_days = if loginForm.remember { 7 } else { 1 };
+            let expirationDays = if loginForm.remember { 7 } else { 1 };
             let token =
               self
                 .tokenService
-                .generate_token(userId.clone(), username, role, expiration_days)?;
+                .generateToken(userId.clone(), username, role, expirationDays)?;
 
             // Sync user to local storage
             let userExistsLocally = self

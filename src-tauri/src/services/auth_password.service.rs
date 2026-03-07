@@ -40,7 +40,7 @@ impl AuthPasswordService {
     {
       Ok(userDoc) => {
         let code = format!("{:06}", rand::random::<u32>() % 1000000);
-        let expires_at =
+        let expiresAt =
           (Utc::now() + Duration::minutes(15)).to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
 
         let emailService = EmailProvider::fromConfig(config)?;
@@ -57,7 +57,7 @@ impl AuthPasswordService {
 
         let updateData = doc! {
           "temporaryCode": code.clone(),
-          "codeExpiresAt": expires_at,
+          "codeExpiresAt": expiresAt,
           "updatedAt": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
         };
 

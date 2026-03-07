@@ -81,6 +81,7 @@ pub fn run() {
       let crudService = Arc::new(CrudService::new(
         jsonProvider.clone(),
         mongodbProvider.clone(),
+        activityLogHelper.clone(),
       ));
 
       // Create auth service
