@@ -74,7 +74,7 @@ export class ShareDialogComponent implements OnInit {
     // Initialize visibility from todo data
     this.isPrivate = this.data.todo?.visibility === "private";
     this.form.patchValue({ visibility: this.isPrivate ? "private" : "team" });
-    
+
     this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.isPrivate !== undefined) {
         this.isPrivate = queryParams.isPrivate === "true";
@@ -96,16 +96,14 @@ export class ShareDialogComponent implements OnInit {
   }
 
   async fetchProfiles(): Promise<void> {
-    this.dataSyncProvider
-      .getAll<Profile>("profiles", { userId: this.userId() })
-      .subscribe({
-        next: (profiles) => {
-          this.availableProfiles.set(profiles);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load profiles");
-        }
-      });
+    this.dataSyncProvider.getAll<Profile>("profiles", { userId: this.userId() }).subscribe({
+      next: (profiles) => {
+        this.availableProfiles.set(profiles);
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load profiles");
+      },
+    });
   }
 
   getFilteredUsers() {
