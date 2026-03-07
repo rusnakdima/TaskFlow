@@ -2,11 +2,10 @@
   @for (task of tasks; track task.id) {
     <mat-card class="p-4 hover:shadow-lg transition-shadow">
       <div class="flex items-start gap-4">
-        <input
-          type="checkbox"
-          class="styleCheckbox mt-1"
+        <app-checkbox
+          class="mt-1"
           [checked]="isSelected(task.id)"
-          (change)="onSelectChange(task.id)"
+          (checkedChange)="onSelectChange(task.id)"
         />
 
         <div class="flex-1 min-w-0">
@@ -36,13 +35,23 @@
                   {{ isExpanded(task.id) ? "expand_less" : "expand_more" }}
                 </mat-icon>
               </button>
-              <button mat-icon-button class="w-8 h-8 text-blue-600" (click)="onToggleDelete(task)">
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-blue-600"
+                (click)="onToggleDelete(task)"
+                [title]="task.isDeleted ? 'Restore task' : 'Remove task (soft delete)'"
+              >
                 <mat-icon
                   class="w-5 h-5"
                   [fontIcon]="task.isDeleted ? 'restore_from_trash' : 'delete'"
                 />
               </button>
-              <button mat-icon-button class="w-8 h-8 text-red-600" (click)="onDeleteRecord(task)">
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="onDeleteRecord(task)"
+                title="Permanently delete task"
+              >
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>
             </div>

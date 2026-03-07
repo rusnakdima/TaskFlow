@@ -26,6 +26,7 @@ import { AdminFiltersService } from "@services/admin-filters.service";
 import { AdminRecordsService } from "@services/admin-records.service";
 
 /* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { TodoRecordsComponent } from "@components/admin-records/todo-records/todo-records.component";
 import { TaskRecordsComponent } from "@components/admin-records/task-records/task-records.component";
 import { SubtaskRecordsComponent } from "@components/admin-records/subtask-records/subtask-records.component";
@@ -53,6 +54,7 @@ interface AdminData {
     MatDatepickerModule,
     MatNativeDateModule,
     FormsModule,
+    CheckboxComponent,
     TodoRecordsComponent,
     TaskRecordsComponent,
     SubtaskRecordsComponent,
@@ -72,7 +74,6 @@ export class AdminView implements OnInit {
   adminData = signal<AdminData>({});
   selectedType = signal<string>("todos");
   loading = signal<boolean>(false);
-  showMobileSidebar = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
 
@@ -131,8 +132,7 @@ export class AdminView implements OnInit {
   async loadAdminData() {
     this.loading.set(true);
     try {
-      const response =
-        await this.adminService.getAllDataForAdmin<AdminData>();
+      const response = await this.adminService.getAllDataForAdmin<AdminData>();
       if (response.status === ResponseStatus.SUCCESS) {
         this.adminData.set(response.data);
 
@@ -141,9 +141,7 @@ export class AdminView implements OnInit {
           type.count = data ? data.length : 0;
         });
       } else {
-        this.notifyService.showError(
-          response.message || "Failed to load admin data"
-        );
+        this.notifyService.showError(response.message || "Failed to load admin data");
       }
     } catch (error) {
       this.notifyService.showError("Failed to load admin data: " + error);
@@ -156,17 +154,14 @@ export class AdminView implements OnInit {
     this.selectedType.set(typeId);
     this.clearSelection();
     this.clearFilters();
-    this.showMobileSidebar.set(false);
+    this.showFilters.set(false);
   }
 
   getCurrentData(): any[] {
     let data = this.adminData()[this.selectedType()] || [];
 
     // Apply status filter for tasks/subtasks
-    if (
-      this.selectedType() === "tasks" ||
-      this.selectedType() === "subtasks"
-    ) {
+    if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = this.adminFiltersService.filterByStatus(
         data,
         this.isCompletedFilter(),
@@ -192,11 +187,7 @@ export class AdminView implements OnInit {
     };
 
     // Apply all filters
-    data = this.adminFiltersService.applyFilters(
-      data,
-      filterState,
-      this.selectedType()
-    );
+    data = this.adminFiltersService.applyFilters(data, filterState, this.selectedType());
 
     return data;
   }
@@ -223,23 +214,12 @@ export class AdminView implements OnInit {
     }
   }
 
-  toggleMobileSidebar() {
-    this.showMobileSidebar.update((val) => !val);
-  }
-
-  closeMobileSidebar() {
-    this.showMobileSidebar.set(false);
-  }
-
   closeFilters() {
     this.showFilters.set(false);
   }
 
   async deleteRecord(record: any) {
-    const success = await this.adminRecordsService.deleteRecord(
-      this.selectedType(),
-      record
-    );
+    const success = await this.adminRecordsService.deleteRecord(this.selectedType(), record);
     if (success) {
       await this.loadAdminData();
     }
@@ -294,10 +274,7 @@ export class AdminView implements OnInit {
 
   isAllSelected(): boolean {
     const currentData = this.getCurrentData();
-    return (
-      currentData.length > 0 &&
-      currentData.every((item) => this.isSelected(item.id))
-    );
+    return currentData.length > 0 && currentData.every((item) => this.isSelected(item.id));
   }
 
   toggleSelectAll(): void {
@@ -320,11 +297,7 @@ export class AdminView implements OnInit {
 
   async deleteSelected(): Promise<void> {
     this.adminRecordsService
-      .deleteSelected(
-        this.selectedType(),
-        this.selectedRecords(),
-        this.getCurrentData()
-      )
+      .deleteSelected(this.selectedType(), this.selectedRecords(), this.getCurrentData())
       .subscribe((result) => {
         this.clearSelection();
         if (result.successCount > 0) {

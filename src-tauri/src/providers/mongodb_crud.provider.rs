@@ -138,4 +138,15 @@ impl MongodbCrudProvider {
     tableData.update_one(filter, update).await?;
     Ok(true)
   }
+
+  pub async fn hardDelete(
+    &self,
+    nameTable: &str,
+    id: &str,
+  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
+    let filter = doc! { "id": id.to_string() };
+    tableData.delete_one(filter).await?;
+    Ok(true)
+  }
 }

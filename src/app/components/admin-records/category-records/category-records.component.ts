@@ -11,10 +11,20 @@ import { MatCardModule } from "@angular/material/card";
 /* models */
 import { Category } from "@models/category.model";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-category-records",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatChipsModule, MatCardModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatCardModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./category-records.component.html",
 })
 export class CategoryRecordsComponent {

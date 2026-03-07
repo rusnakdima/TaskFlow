@@ -2,11 +2,10 @@
   @for (todo of todos; track todo.id) {
     <mat-card class="p-4 hover:shadow-lg transition-shadow">
       <div class="flex items-start gap-4">
-        <input
-          type="checkbox"
-          class="styleCheckbox mt-1"
+        <app-checkbox
+          class="mt-1"
           [checked]="isSelected(todo.id)"
-          (change)="onSelectChange(todo.id)"
+          (checkedChange)="onSelectChange(todo.id)"
         />
 
         <div class="flex-1 min-w-0">
@@ -34,13 +33,23 @@
                   {{ isExpanded(todo.id) ? "expand_less" : "expand_more" }}
                 </mat-icon>
               </button>
-              <button mat-icon-button class="w-8 h-8 text-blue-600" (click)="onToggleDelete(todo)">
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-blue-600"
+                (click)="onToggleDelete(todo)"
+                [title]="todo.isDeleted ? 'Restore todo' : 'Remove todo (soft delete)'"
+              >
                 <mat-icon
                   class="w-5 h-5"
                   [fontIcon]="todo.isDeleted ? 'restore_from_trash' : 'delete'"
                 />
               </button>
-              <button mat-icon-button class="w-8 h-8 text-red-600" (click)="onDeleteRecord(todo)">
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="onDeleteRecord(todo)"
+                title="Permanently delete todo"
+              >
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>
             </div>
@@ -75,11 +84,11 @@
                 }
                 <div>
                   <span class="font-medium textMuted">Tasks Count:</span>
-                  <span class="textNormal ml-2">{{ todo.tasks.length || 0 }}</span>
+                  <span class="textNormal ml-2">{{ todo.tasks?.length || 0 }}</span>
                 </div>
                 <div>
                   <span class="font-medium textMuted">Assignees Count:</span>
-                  <span class="textNormal ml-2">{{ todo.assignees.length || 0 }}</span>
+                  <span class="textNormal ml-2">{{ todo.assignees?.length || 0 }}</span>
                 </div>
                 <div>
                   <span class="font-medium textMuted">Order:</span>

@@ -2,11 +2,10 @@
   @for (subtask of subtasks; track subtask.id) {
     <mat-card class="p-4 hover:shadow-lg transition-shadow">
       <div class="flex items-start gap-4">
-        <input
-          type="checkbox"
-          class="styleCheckbox mt-1"
+        <app-checkbox
+          class="mt-1"
           [checked]="isSelected(subtask.id)"
-          (change)="onSelectChange(subtask.id)"
+          (checkedChange)="onSelectChange(subtask.id)"
         />
 
         <div class="flex-1 min-w-0">
@@ -37,6 +36,7 @@
                 mat-icon-button
                 class="w-8 h-8 text-blue-600"
                 (click)="onToggleDelete(subtask)"
+                [title]="subtask.isDeleted ? 'Restore subtask' : 'Remove subtask (soft delete)'"
               >
                 <mat-icon
                   class="w-5 h-5"
@@ -47,6 +47,7 @@
                 mat-icon-button
                 class="w-8 h-8 text-red-600"
                 (click)="onDeleteRecord(subtask)"
+                title="Permanently delete subtask"
               >
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>
@@ -68,13 +69,13 @@
                     <p class="text-sm textNormal mt-1">{{ subtask.taskId }}</p>
                   </div>
                 }
-                @if (subtask.task.title) {
+                @if (subtask.task?.title) {
                   <div>
                     <span class="text-sm font-medium textMuted">Task Title:</span>
                     <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.title }}</p>
                   </div>
                 }
-                @if (subtask.task.todo.title) {
+                @if (subtask.task?.todo?.title) {
                   <div>
                     <span class="text-sm font-medium textMuted">Todo Title:</span>
                     <p class="text-sm textNormal mt-1 truncate">{{ subtask.task.todo.title }}</p>

@@ -11,10 +11,20 @@ import { MatCardModule } from "@angular/material/card";
 /* models */
 import { Task, TaskStatus, PriorityTask } from "@models/task.model";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 @Component({
   selector: "app-task-records",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatChipsModule, MatCardModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatCardModule,
+    CheckboxComponent,
+  ],
   templateUrl: "./task-records.component.html",
 })
 export class TaskRecordsComponent {

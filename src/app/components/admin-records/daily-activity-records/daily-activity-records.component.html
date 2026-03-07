@@ -2,11 +2,10 @@
   @for (record of records; track record.id) {
     <mat-card class="p-4 hover:shadow-lg transition-shadow">
       <div class="flex items-start gap-4">
-        <input
-          type="checkbox"
-          class="styleCheckbox mt-1"
+        <app-checkbox
+          class="mt-1"
           [checked]="isSelected(record.id)"
-          (change)="onSelectChange(record.id)"
+          (checkedChange)="onSelectChange(record.id)"
         />
 
         <div class="flex-1 min-w-0">
@@ -35,13 +34,19 @@
                 mat-icon-button
                 class="w-8 h-8 text-blue-600"
                 (click)="onToggleDelete(record)"
+                [title]="record.isDeleted ? 'Restore activity' : 'Remove activity (soft delete)'"
               >
                 <mat-icon
                   class="w-5 h-5"
                   [fontIcon]="record.isDeleted ? 'restore_from_trash' : 'delete'"
                 />
               </button>
-              <button mat-icon-button class="w-8 h-8 text-red-600" (click)="onDeleteRecord(record)">
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="onDeleteRecord(record)"
+                title="Permanently delete activity"
+              >
                 <mat-icon class="w-5 h-5" fontIcon="delete_forever" />
               </button>
             </div>
