@@ -18,16 +18,6 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 /* services */
 import { AuthService } from "@services/auth.service";
 
-/**
- * StorageService - Centralized data cache for the application
- *
- * Purpose:
- * - Load data once and share across multiple views
- * - Reduce redundant API calls
- * - Maintain data consistency across views
- * - Handle relations (Todo + Tasks + Subtasks) together
- * - Update cache when data changes
- */
 @Injectable({
   providedIn: "root",
 })
@@ -211,7 +201,7 @@ export class StorageService {
 
     this.loadingSignal.set(true);
 
-    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: this.isPrivate };
+    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: true };
 
     // Define default relations for todos (tasks + subtasks + categories + users + profiles)
     const todoRelations: RelationObj[] = [
@@ -254,9 +244,13 @@ export class StorageService {
       },
     ];
 
-    // Step 1: Load private todos with relations (for todos view)
+    // Step 1: Load private todos with relations (for /todos view)
     return this.dataSyncProvider
-      .getAll<Todo>("todos", { userId: this.userId, visibility: "private" }, { ...metadata, relations: todoRelations })
+      .getAll<Todo>(
+        "todos",
+        { userId: this.userId, visibility: "private" },
+        { isOwner: this.isOwner, isPrivate: this.isPrivate, relations: todoRelations }
+      )
       .pipe(
         tap((todos) => {
           // Extract tasks and subtasks from todos with relations for separate storage
@@ -304,6 +298,18 @@ export class StorageService {
             );
         })
       );
+  }
+
+  /**
+   * Load team todos via WebSocket from MongoDB (for /shared-tasks view)
+   * Returns team todos where user is assignee or owner
+   */
+  loadTeamTodos(): Observable<Todo[]> {
+    const userId = this.authService.getValueByKey("id") || "";
+    const metadata: SyncMetadata = { isOwner: false, isPrivate: false };
+
+    // Use WebSocket to load team todos from MongoDB
+    return this.dataSyncProvider.getAll<Todo>("todos", { visibility: "team" }, metadata);
   }
 
   private isCacheValid(): boolean {

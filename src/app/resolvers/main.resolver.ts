@@ -6,6 +6,7 @@ import { firstValueFrom } from "rxjs";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
+import { RelationObj, TypesField } from "@models/relation-obj.model";
 
 /* services */
 import { DataSyncProvider } from "../providers/data-sync.provider";
@@ -23,17 +24,40 @@ export class MainResolver implements Resolve<any> {
     const paramsMap = route.paramMap;
     const queryParams = route.queryParams;
 
+    const todoRelations: RelationObj[] = [
+      {
+        nameTable: "tasks",
+        typeField: TypesField.OneToMany,
+        nameField: "todoId",
+        newNameField: "tasks",
+        relations: [
+          {
+            nameTable: "subtasks",
+            typeField: TypesField.OneToMany,
+            nameField: "taskId",
+            newNameField: "subtasks",
+            relations: null,
+          },
+        ],
+      },
+      {
+        nameTable: "categories",
+        typeField: TypesField.ManyToOne,
+        nameField: "categories",
+        newNameField: "categories",
+        relations: null,
+      },
+    ];
+
     try {
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
-        const isPrivate = queryParams?.["isPrivate"] === "true";
-        const isOwner = isPrivate;
 
         const taskObservable = this.dataSyncProvider.get<Task>(
           "tasks",
           { id: taskId },
-          { isOwner, isPrivate }
+          { isOwner: true, isPrivate: true }
         );
 
         const task = await firstValueFrom(taskObservable);
@@ -41,7 +65,7 @@ export class MainResolver implements Resolve<any> {
         const todoObservable = this.dataSyncProvider.get<Todo>(
           "todos",
           { id: todoId },
-          { isOwner: isPrivate, isPrivate }
+          { isOwner: true, isPrivate: true, relations: todoRelations }
         );
 
         const todo = await firstValueFrom(todoObservable);
@@ -49,13 +73,11 @@ export class MainResolver implements Resolve<any> {
         return { task, todo };
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
-        const isPrivate = queryParams?.["isPrivate"] === "true";
-        const isOwner = queryParams?.["isOwner"] === "true";
 
         const todoObservable = this.dataSyncProvider.get<Todo>(
           "todos",
           { id: todoId },
-          { isOwner, isPrivate }
+          { isOwner: true, isPrivate: true, relations: todoRelations }
         );
 
         const todo = await firstValueFrom(todoObservable);

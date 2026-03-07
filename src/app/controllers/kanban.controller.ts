@@ -52,19 +52,18 @@ export class KanbanController {
     return new Observable((observer) => {
       // Try to get from StorageService cache first
       const cachedTasks = this.storageService.tasks();
-      const filteredTasks = cachedTasks.filter(task => task.todoId === todoId);
-      
+      const filteredTasks = cachedTasks.filter((task) => task.todoId === todoId);
+
       if (filteredTasks && filteredTasks.length > 0) {
         // Use cached data
         const subtasksMap = new Map<string, Subtask[]>();
         const cachedSubtasks = this.storageService.subtasks();
-        
+
         filteredTasks.forEach((task) => {
-          const taskSubtasks = cachedSubtasks.filter(st => st.taskId === task.id);
+          const taskSubtasks = cachedSubtasks.filter((st) => st.taskId === task.id);
           subtasksMap.set(task.id, taskSubtasks);
         });
-        
-        console.log("[KanbanController] Loaded tasks from cache:", filteredTasks.length);
+
         observer.next({ tasks: filteredTasks, subtasksMap });
         observer.complete();
       } else {
@@ -126,17 +125,19 @@ export class KanbanController {
     isOwner: boolean,
     isPrivate: boolean
   ): Observable<Task> {
-    return this.dataSyncProvider.update<Task>(
-      "tasks",
-      taskId,
-      { id: taskId, status: newStatus, todoId },
-      { isOwner, isPrivate },
-      todoId
-    ).pipe(
-      tap(() => {
-        this.storageService.updateTask(taskId, { status: newStatus });
-      })
-    );
+    return this.dataSyncProvider
+      .update<Task>(
+        "tasks",
+        taskId,
+        { id: taskId, status: newStatus, todoId },
+        { isOwner, isPrivate },
+        todoId
+      )
+      .pipe(
+        tap(() => {
+          this.storageService.updateTask(taskId, { status: newStatus });
+        })
+      );
   }
 
   /**
@@ -150,17 +151,13 @@ export class KanbanController {
     isPrivate: boolean
   ): Observable<Subtask> {
     const updatedSubtask = { ...subtask, status: newStatus };
-    return this.dataSyncProvider.update<Subtask>(
-      "subtasks",
-      subtask.id,
-      updatedSubtask,
-      { isOwner, isPrivate },
-      todoId
-    ).pipe(
-      tap(() => {
-        this.storageService.updateSubtask(subtask.id, { status: newStatus });
-      })
-    );
+    return this.dataSyncProvider
+      .update<Subtask>("subtasks", subtask.id, updatedSubtask, { isOwner, isPrivate }, todoId)
+      .pipe(
+        tap(() => {
+          this.storageService.updateSubtask(subtask.id, { status: newStatus });
+        })
+      );
   }
 
   /**
