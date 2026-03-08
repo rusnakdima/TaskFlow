@@ -1,15 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  OnInit,
-  signal,
-  ChangeDetectorRef,
-  effect,
-  inject,
-  runInInjectionContext,
-  Injector,
-} from "@angular/core";
+import { Component, OnInit, signal, ChangeDetectorRef, inject, computed } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
 import { HostListener } from "@angular/core";
@@ -53,166 +44,36 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
   templateUrl: "./subtasks.view.html",
 })
 export class SubtasksView implements OnInit {
-  private injector = inject(Injector);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private notifyService = inject(NotifyService);
+  private dataSyncProvider = inject(DataSyncProvider);
+  private cdr = inject(ChangeDetectorRef);
+  private filterService = inject(FilterService);
+  private sortService = inject(SortService);
+  private storageService = inject(StorageService);
 
-  constructor(
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider,
-    private cdr: ChangeDetectorRef,
-    private filterService: FilterService,
-    private sortService: SortService,
-    private storageService: StorageService
-  ) {
-    runInInjectionContext(this.injector, () => {
-      effect(() => {
-        const currentSubtasks = this.subtasks();
-        const currentTask = this.task();
-        if (currentTask && currentSubtasks.length > 0) {
-          this.loadSubtasksByTaskId(currentTask.id);
-        }
-      });
-    });
-  }
-
-  // Use storage signals directly for source data
-  subtasks = this.storageService.subtasks;
-
-  // Separate signals for filtered/sorted display list
-  listSubtasks = signal<Array<Subtask>>([]);
-  tempListSubtasks = signal<Array<Subtask>>([]);
-
-  todoId = signal("");
-  todo = signal<Todo | null>(null);
+  // State signals
   task = signal<Task | null>(null);
-  projectTitle = signal("");
-
-  private isUpdatingOrder: boolean = false;
-
-  userId: string = "";
-  isOwner: boolean = true;
-  isPrivate: boolean = true;
-  fromKanban = signal(false);
-
   activeFilter = signal("all");
   showFilter = signal(false);
+  searchQuery = signal("");
+  todoId = signal("");
+  todo = signal<Todo | null>(null);
+  projectTitle = signal("");
+  fromKanban = signal(false);
 
-  @HostListener("window:keydown", ["$event"])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "f") {
-      event.preventDefault();
-      this.toggleFilter();
-    }
-    if (event.ctrlKey && event.key === "r") {
-      event.preventDefault();
-      if (this.task()) {
-        this.loadSubtasksByTaskId(this.task()!.id);
-      }
-    }
-  }
+  // Computed signals for data flow
+  taskSubtasks = computed(() => {
+    const taskId = this.task()?.id;
+    return taskId ? this.storageService.getSubtasksByTaskId(taskId)() : [];
+  });
 
-  filterOptions = [
-    { key: "all", label: "All" },
-    { key: "active", label: "Active" },
-    { key: "completed", label: "Completed" },
-    { key: "skipped", label: "Skipped" },
-    { key: "failed", label: "Failed" },
-    { key: "done", label: "Done" },
-    { key: "high", label: "High Priority" },
-  ];
-
-  ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
-
-    this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.isPrivate !== undefined) {
-        this.isPrivate = queryParams.isPrivate === "true";
-      }
-      if (queryParams.fromKanban !== undefined) {
-        this.fromKanban.set(queryParams.fromKanban === "true");
-      }
-    });
-
-    const routeData = this.route.snapshot.data;
-    if (routeData?.["task"]) {
-      const dataResolve = routeData["task"];
-      if (dataResolve?.["todo"]) {
-        const todoData = dataResolve["todo"];
-        this.todo.set(todoData);
-        this.isOwner = todoData.userId === this.userId;
-        this.isPrivate = todoData.visibility === "private";
-        this.todoId.set(todoData.id);
-        this.projectTitle.set(todoData.title);
-      }
-      if (dataResolve?.["task"]) {
-        const taskData = dataResolve["task"];
-        this.task.set(taskData);
-        this.cdr.detectChanges();
-        this.loadSubtasksByTaskId(taskData.id);
-      }
-    }
-  }
-
-  loadSubtasksByTaskId(taskId: string) {
-    let subtasksData: Subtask[] = [];
-
-    const storedSubtasks = this.subtasks();
-    if (storedSubtasks.length > 0) {
-      subtasksData = storedSubtasks.filter((st) => st.taskId === taskId);
-    }
-
-    const resolvedTask = this.task();
-    if (resolvedTask?.subtasks && resolvedTask.subtasks.length > 0 && subtasksData.length === 0) {
-      subtasksData = resolvedTask.subtasks;
-    }
-
-    if (subtasksData.length > 0) {
-      this.tempListSubtasks.set(subtasksData);
-      this.applyFilter();
-    }
-  }
-
-  searchFunc(data: Array<any>) {
-    const sortedData = [...data].sort((a, b) => {
-      if (a.status === b.status) {
-        return 0;
-      } else if (a.status === TaskStatus.COMPLETED || a.status === TaskStatus.SKIPPED) {
-        return 1;
-      } else {
-        return -1;
-      }
-    });
-    this.listSubtasks.set(sortedData);
-  }
-
-  toggleFilter() {
-    this.showFilter.update((val) => !val);
-  }
-
-  changeFilter(filter: string) {
-    this.activeFilter.set(filter);
-    this.applyFilter();
-  }
-
-  onSearchChange(query: string) {
-    this.applyFilter();
-  }
-
-  onSearchResults(results: any[]) {
-    // Handled by filter
-  }
-
-  clearFilters() {
-    this.activeFilter.set("");
-    this.applyFilter();
-  }
-
-  applyFilter() {
-    let filtered = [...this.tempListSubtasks()];
-
-    // Use FilterService for status filtering
+  listSubtasks = computed(() => {
+    let filtered = this.taskSubtasks();
     const filter = this.activeFilter();
+    const query = this.searchQuery().toLowerCase().trim();
+
     if (filter !== "all") {
       switch (filter) {
         case "active":
@@ -241,182 +102,192 @@ export class SubtasksView implements OnInit {
       }
     }
 
-    // Use SortService for ordering
-    filtered = this.sortService.sortByOrder(filtered, "desc");
-    this.listSubtasks.set(filtered);
+    if (query) {
+      filtered = filtered.filter(
+        (s) =>
+          s.title.toLowerCase().includes(query) ||
+          (s.description && s.description.toLowerCase().includes(query))
+      );
+    }
+
+    return this.sortService.sortByOrder(filtered, "desc");
+  });
+
+  userId: string = "";
+  isOwner: boolean = true;
+  isPrivate: boolean = true;
+  private isUpdatingOrder: boolean = false;
+
+  @HostListener("window:keydown", ["$event"])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.ctrlKey && event.key === "f") {
+      event.preventDefault();
+      this.toggleFilter();
+    }
+  }
+
+  filterOptions = [
+    { key: "all", label: "All" },
+    { key: "active", label: "Active" },
+    { key: "completed", label: "Completed" },
+    { key: "skipped", label: "Skipped" },
+    { key: "failed", label: "Failed" },
+    { key: "done", label: "Done" },
+    { key: "high", label: "High Priority" },
+  ];
+
+  ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
+
+    this.route.queryParams.subscribe((queryParams: any) => {
+      if (queryParams.fromKanban !== undefined) {
+        this.fromKanban.set(queryParams.fromKanban === "true");
+      }
+    });
+
+    const routeData = this.route.snapshot.data;
+    if (routeData?.["task"]) {
+      const dataResolve = routeData["task"];
+      if (dataResolve?.["todo"]) {
+        const todoData = dataResolve["todo"];
+        this.todo.set(todoData);
+        this.isOwner = todoData.userId === this.userId;
+        this.isPrivate = todoData.visibility === "private";
+        this.todoId.set(todoData.id);
+        this.projectTitle.set(todoData.title);
+      }
+      if (dataResolve?.["task"]) {
+        this.task.set(dataResolve["task"]);
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  toggleFilter() {
+    this.showFilter.update((v) => !v);
+  }
+  changeFilter(filter: string) {
+    this.activeFilter.set(filter);
+  }
+  onSearchChange(query: string) {
+    this.searchQuery.set(query);
+  }
+  onSearchResults(results: any[]) {
+    /* Logic handled by computed listSubtasks */
+  }
+  clearFilters() {
+    this.activeFilter.set("all");
+    this.searchQuery.set("");
+  }
+  applyFilter() {
+    /* Purely reactive via computed listSubtasks */
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
+    const todoId = this.todoId();
+    if (!todoId) return;
+
     let newStatus: TaskStatus;
-    let message = "";
     switch (subtask.status) {
       case TaskStatus.PENDING:
         newStatus = TaskStatus.COMPLETED;
-        message = "Subtask completed";
         break;
       case TaskStatus.COMPLETED:
         newStatus = TaskStatus.SKIPPED;
-        message = "Subtask skipped";
         break;
       case TaskStatus.SKIPPED:
         newStatus = TaskStatus.FAILED;
-        message = "Subtask marked as failed";
         break;
-      case TaskStatus.FAILED:
       default:
         newStatus = TaskStatus.PENDING;
-        message = "Subtask reopened";
         break;
     }
 
-    const updatedSubtask = { ...subtask, status: newStatus };
-
-    // Optimistic update: update cache immediately
+    const previousStatus = subtask.status;
     this.storageService.updateSubtask(subtask.id, { status: newStatus });
 
     this.dataSyncProvider
-      .update<Subtask>(
-        "subtasks",
-        subtask.id,
-        updatedSubtask,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId()
-      )
+      .update<Subtask>("subtasks", subtask.id, { ...subtask, status: newStatus }, undefined, todoId)
       .subscribe({
-        next: (result) => {
-          subtask.status = newStatus;
-
-          const index = this.tempListSubtasks().findIndex((s) => s.id === subtask.id);
-          if (index !== -1) {
-            this.tempListSubtasks.update((arr) => {
-              const newArr = [...arr];
-              newArr[index] = { ...subtask };
-              return newArr;
-            });
-          }
-
-          this.applyFilter();
-
-          this.notifyService.showSuccess(message);
+        next: (result: Subtask) => {
+          // Manually update storage
+          this.storageService.updateSubtask(result.id, result);
+          this.notifyService.showSuccess("Status updated");
         },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
+        error: (err: any) => {
+          this.storageService.updateSubtask(subtask.id, { status: previousStatus });
+          this.notifyService.showError(err.message || "Failed to update status");
         },
       });
   }
 
-  updateSubtaskInline(event: { subtask: Subtask; field: string; value: string }) {
-    let updatedSubtask: Subtask;
+  updateSubtaskInline(event: { subtask: Subtask; field: string; value: any }) {
+    const todoId = this.todoId();
+    if (!todoId) return;
 
-    if (event.field === "status") {
-      updatedSubtask = {
-        ...event.subtask,
-        status: event.value as TaskStatus,
-      };
-    } else {
-      updatedSubtask = {
-        ...event.subtask,
-        [event.field]: event.value,
-      };
-    }
+    const previousValue = (event.subtask as any)[event.field];
+    this.storageService.updateSubtask(event.subtask.id, { [event.field]: event.value });
 
     this.dataSyncProvider
       .update<Subtask>(
         "subtasks",
         event.subtask.id,
-        updatedSubtask,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId()
+        { ...event.subtask, [event.field]: event.value },
+        undefined,
+        todoId
       )
       .subscribe({
-        next: (result) => {
-          this.storageService.updateSubtask(event.subtask.id, {
-            [event.field]: event.value,
-          });
-          if (event.field === "title") {
-            event.subtask.title = event.value;
-          } else if (event.field === "description") {
-            event.subtask.description = event.value;
-          } else if (event.field === "status") {
-            event.subtask.status = event.value as TaskStatus;
-          }
+        next: (result: Subtask) => {
+          // Manually update storage
+          this.storageService.updateSubtask(result.id, result);
           this.notifyService.showSuccess("Subtask updated successfully");
         },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
+        error: (err: any) => {
+          this.storageService.updateSubtask(event.subtask.id, { [event.field]: previousValue });
+          this.notifyService.showError(err.message || "Update failed");
         },
       });
   }
 
   deleteSubtask(id: string) {
-    this.dataSyncProvider
-      .delete("subtasks", id, { isOwner: this.isOwner, isPrivate: this.isPrivate }, this.todoId())
-      .subscribe({
-        next: (result) => {
-          this.storageService.removeSubtask(id);
-          this.listSubtasks.set(
-            this.listSubtasks().filter((subtask: Subtask) => subtask.id !== id)
-          );
-          this.notifyService.showSuccess("Subtask deleted successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete subtask");
-        },
-      });
+    const todoId = this.todoId();
+    if (!todoId) return;
+
+    if (!confirm("Are you sure?")) return;
+    const subtaskToDelete = this.storageService.getSubtaskById(id);
+    this.storageService.removeSubtask(id);
+
+    this.dataSyncProvider.delete("subtasks", id, undefined, todoId).subscribe({
+      error: (err: any) => {
+        if (subtaskToDelete) this.storageService.addSubtask(subtaskToDelete);
+        this.notifyService.showError(err.message || "Delete failed");
+      },
+    });
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
-    if (this.isUpdatingOrder) {
-      this.notifyService.showWarning("Please wait for previous operation to complete");
-      return;
-    }
+    const todoId = this.todoId();
+    if (!todoId) return;
 
-    if (event.previousIndex !== event.currentIndex) {
-      moveItemInArray(this.listSubtasks(), event.previousIndex, event.currentIndex);
-      this.updateSubtaskOrder();
-    } else {
-      this.isUpdatingOrder = false;
-    }
-  }
+    if (this.isUpdatingOrder) return;
+    if (event.previousIndex === event.currentIndex) return;
 
-  updateSubtaskOrder(): void {
+    const subtasks = [...this.listSubtasks()];
+    moveItemInArray(subtasks, event.previousIndex, event.currentIndex);
+
     this.isUpdatingOrder = true;
+    subtasks.forEach((s, i) => (s.order = subtasks.length - 1 - i));
 
-    this.listSubtasks().forEach((subtask, index) => {
-      subtask.order = this.listSubtasks().length - 1 - index;
+    this.dataSyncProvider.updateAll<string>("subtasks", subtasks, undefined, todoId).subscribe({
+      next: (results: any) => {
+        this.isUpdatingOrder = false;
+        this.notifyService.showSuccess("Order updated");
+      },
+      error: (err: any) => {
+        this.isUpdatingOrder = false;
+        this.notifyService.showError("Failed to update order");
+        this.storageService.loadAllData(true).subscribe();
+      },
     });
-
-    const transformedSubtasks = this.listSubtasks().map((subtask) => ({
-      _id: subtask._id,
-      id: subtask.id,
-      taskId: subtask.taskId || "",
-      title: subtask.title,
-      description: subtask.description,
-      status: subtask.status,
-      priority: subtask.priority,
-      order: subtask.order,
-      isDeleted: subtask.isDeleted,
-      createdAt: subtask.createdAt,
-      updatedAt: new Date().toISOString().split(".")[0],
-    }));
-
-    this.dataSyncProvider
-      .updateAll<string>(
-        "subtasks",
-        transformedSubtasks,
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId()
-      )
-      .subscribe({
-        next: (result) => {
-          this.notifyService.showSuccess("Subtask order updated successfully");
-          this.isUpdatingOrder = false;
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update subtask order");
-          this.isUpdatingOrder = false;
-          // No need to reload - storage auto-updates
-        },
-      });
   }
 }

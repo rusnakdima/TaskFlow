@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { CalendarEvent } from "./calendar-helpers.service";
+import { CalendarEvent } from "@services/calendar-helpers.service";
 
 export interface CalendarDay {
   date: Date;

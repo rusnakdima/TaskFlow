@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -167,12 +167,6 @@ export class ManageTaskView implements OnInit, OnDestroy {
       this.onSubmit();
     });
 
-    this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.isPrivate !== undefined) {
-        this.isPrivate = queryParams.isPrivate === "true";
-      }
-    });
-
     this.userId = this.authService.getValueByKey("id");
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
@@ -196,23 +190,21 @@ export class ManageTaskView implements OnInit, OnDestroy {
   };
 
   getTaskInfo(taskId: string) {
-    this.dataSyncProvider
-      .get<Task>("tasks", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
-      .subscribe({
-        next: (taskData) => {
-          const localDates = convertDatesFromUtcToLocal(taskData);
-          this.form.patchValue(localDates);
+    this.dataSyncProvider.get<Task>("tasks", { id: taskId }).subscribe({
+      next: (taskData) => {
+        const localDates = convertDatesFromUtcToLocal(taskData);
+        this.form.patchValue(localDates);
 
-          const startDate = localDates.startDate;
-          const endDate = localDates.endDate;
-          if (startDate && endDate) {
-            this.dateValidator.updateEndDateValidation(this.form, startDate);
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load task");
-        },
-      });
+        const startDate = localDates.startDate;
+        const endDate = localDates.endDate;
+        if (startDate && endDate) {
+          this.dateValidator.updateEndDateValidation(this.form, startDate);
+        }
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to load task");
+      },
+    });
   }
 
   back() {
@@ -220,22 +212,26 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   loadProjectInfo(todoId: string) {
-    this.dataSyncProvider
-      .get<Todo>(
-        "todos",
-        { id: todoId },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .subscribe({
-        next: (todo) => {
-          this.projectInfo.set(todo);
-          this.isOwner = todo.userId === this.authService.getValueByKey("id");
-          this.isPrivate = todo.visibility === "private";
-        },
-        error: (err) => {
-          console.error("Error loading project info:", err);
-        },
-      });
+    // Try to get from storage first
+    const cachedTodo = this.storageService.getTodoById(todoId);
+    if (cachedTodo) {
+      this.projectInfo.set(cachedTodo);
+      this.isOwner = cachedTodo.userId === this.userId;
+      this.isPrivate = cachedTodo.visibility === "private";
+      return;
+    }
+
+    // Fallback to fetch if not in storage
+    this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
+      next: (todo) => {
+        this.projectInfo.set(todo);
+        this.isOwner = todo.userId === this.userId;
+        this.isPrivate = todo.visibility === "private";
+      },
+      error: (err) => {
+        console.error("Error loading project info:", err);
+      },
+    });
   }
 
   onSubmit() {
@@ -264,53 +260,39 @@ export class ManageTaskView implements OnInit, OnDestroy {
     this.form.get("endDate")?.setValue("");
   }
 
-  createTask() {
+  async createTask() {
     if (this.form.valid) {
-      this.dataSyncProvider
-        .getAll<Task>(
-          "tasks",
-          { todoId: this.todoId() },
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todoId()
-        )
-        .subscribe({
-          next: (tasks) => {
-            const formValue = this.form.value;
-            const normalizedFormValue = normalizeTaskDates(formValue);
-            const convertedDates = convertDatesToUtc(normalizedFormValue);
-            const length = tasks.length;
-            const body = {
-              ...convertedDates,
-              order: length,
-              todoId: this.todoId(),
-            };
+      try {
+        const todoId = this.projectInfo()?.id;
+        if (!todoId) throw new Error("Project ID not found");
 
-            this.dataSyncProvider
-              .create<Task>(
-                "tasks",
-                body,
-                { isOwner: this.isOwner, isPrivate: this.isPrivate },
-                this.todoId()
-              )
-              .subscribe({
-                next: (result: Task) => {
-                  // Add the new task with real ID from backend to cache
-                  this.storageService.addTask(result);
-                  this.isSubmitting.set(false);
-                  this.notifyService.showSuccess("Task created successfully");
-                  this.back();
-                },
-                error: (err) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(err.message || "Failed to create task");
-                },
-              });
+        const tasks = await firstValueFrom(this.dataSyncProvider.getAll<Task>("tasks", { todoId }));
+        const formValue = this.form.value;
+        const normalizedFormValue = normalizeTaskDates(formValue);
+        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const body = {
+          ...convertedDates,
+          order: tasks.length,
+          todoId: todoId,
+        };
+
+        this.dataSyncProvider.create<Task>("tasks", body, undefined, todoId).subscribe({
+          next: (result: Task) => {
+            // Manually add to storage to ensure it shows up immediately
+            this.storageService.addTask(result);
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Task created successfully");
+            this.back();
           },
           error: (err) => {
             this.isSubmitting.set(false);
-            this.notifyService.showError("Failed to get existing tasks count");
+            this.notifyService.showError(err.message || "Failed to create task");
           },
         });
+      } catch (err) {
+        this.isSubmitting.set(false);
+        this.notifyService.showError("Failed to get existing tasks count");
+      }
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -319,42 +301,25 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   updateTask() {
     if (this.form.valid) {
+      const todoId = this.projectInfo()?.id;
       const formValue = this.form.value;
       const normalizedFormValue = normalizeTaskDates(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
-      const body = {
-        ...convertedDates,
-      };
+      const body = { ...convertedDates };
 
-      // Store previous state for rollback
-      const previousTask = this.storageService.getTaskById(body.id);
-
-      // Optimistic update: update cache immediately
-      this.storageService.updateTask(body.id, body);
-
-      this.dataSyncProvider
-        .update<Task>(
-          "tasks",
-          body.id,
-          body,
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todoId()
-        )
-        .subscribe({
-          next: (result) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showSuccess("Task updated successfully");
-            this.back();
-          },
-          error: (err) => {
-            // Rollback on failure
-            if (previousTask) {
-              this.storageService.updateTask(body.id, previousTask);
-            }
-            this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to update task");
-          },
-        });
+      this.dataSyncProvider.update<Task>("tasks", body.id, body, undefined, todoId).subscribe({
+        next: (result: Task) => {
+          // Manually update storage
+          this.storageService.updateTask(result.id, result);
+          this.isSubmitting.set(false);
+          this.notifyService.showSuccess("Task updated successfully");
+          this.back();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -369,19 +334,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
   toggleDependency(taskId: string): void {
     const dependsOn = this.form.get("dependsOn")?.value || [];
     const index = dependsOn.indexOf(taskId);
-
-    if (index === -1) {
-      dependsOn.push(taskId);
-    } else {
-      dependsOn.splice(index, 1);
-    }
-
+    if (index === -1) dependsOn.push(taskId);
+    else dependsOn.splice(index, 1);
     this.form.get("dependsOn")?.setValue([...dependsOn]);
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {
     if (!dependsOn || dependsOn.length === 0) return true;
-
     const tasks = this.projectInfo()?.tasks || [];
     return dependsOn.every((depId) => {
       const task = tasks.find((t) => t.id === depId);

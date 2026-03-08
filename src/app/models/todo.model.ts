@@ -1,8 +1,8 @@
 /* models */
-import { Category } from "./category.model";
-import { Profile } from "./profile.model";
-import { Task } from "./task.model";
-import { User } from "./user.model";
+import { Category } from "@models/category.model";
+import { Profile } from "@models/profile.model";
+import { Task } from "@models/task.model";
+import { User } from "@models/user.model";
 
 export interface Todo {
   _id?: {} | undefined;
@@ -17,6 +17,7 @@ export interface Todo {
   tasks: Array<Task>;
   assignees: Array<Profile>;
   visibility: "private" | "team";
+  priority: string;
   order: number;
   isDeleted: boolean;
   createdAt?: string;

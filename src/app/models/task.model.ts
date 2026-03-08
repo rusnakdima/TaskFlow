@@ -1,6 +1,7 @@
 /* models */
-import { Subtask } from "./subtask.model";
-import { Todo } from "./todo.model";
+import { Subtask } from "@models/subtask.model";
+import { Todo } from "@models/todo.model";
+import { Comment } from "@models/comment.model";
 
 export enum PriorityTask {
   LOW = "low",
@@ -41,4 +42,5 @@ export interface Task {
   updatedAt: string;
   assignees?: string[];
   dependsOn?: string[];
+  comments: Array<Comment>;
 }

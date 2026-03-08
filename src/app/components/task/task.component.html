@@ -4,7 +4,6 @@
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
-      [queryParams]="!isExpanded ? { isOwner: isOwner, isPrivate: isPrivate } : null"
       (click)="$event.stopPropagation()"
     >
       <div class="flex flex-col grow">
@@ -179,14 +178,14 @@
           </div>
         </div>
 
-        @if (isExpanded && subtasks.length > 0) {
+        @if (isExpanded && (task.subtasks?.length ?? 0) > 0) {
           <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 mt-2">
             <h4 class="text-sm font-medium textMuted mb-3 flex items-center gap-2">
               <mat-icon class="w-4! h-4! text-xl!" fontIcon="list" />
               Subtasks
             </h4>
             <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
-              @for (subtask of subtasks; track subtask.id) {
+              @for (subtask of task.subtasks; track subtask.id) {
                 <div
                   class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
                 >
@@ -224,6 +223,18 @@
               }
             </div>
           </div>
+        }
+
+        @if (showComments()) {
+          <app-comments
+            [comments]="task.comments || []"
+            [isOwner]="isOwner"
+            [isPrivate]="isPrivate"
+            (addCommentEvent)="onAddComment($event)"
+            (deleteCommentEvent)="onDeleteComment($event)"
+            (markAsReadEvent)="onMarkAsRead($event)"
+            (click)="$event.stopPropagation()"
+          />
         }
       </div>
 
@@ -283,15 +294,35 @@
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
             [routerLink]="task.id + '/subtasks'"
-            [queryParams]="{ isPrivate: isPrivate }"
             title="View subtasks"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
           </button>
           <button
+            class="p-2 rounded-lg transition-colors"
+            [ngClass]="
+              showComments()
+                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                : 'hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+            "
+            (click)="toggleComments(); $event.stopPropagation()"
+            [title]="showComments() ? 'Hide comments' : 'Show comments'"
+          >
+            <div class="flex items-center gap-1 relative">
+              <mat-icon class="w-5! h-5! text-xl!" fontIcon="forum" />
+              @if (hasUnreadComments) {
+                <div
+                  class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
+                ></div>
+              }
+              @if (task.comments && task.comments.length > 0) {
+                <span class="text-[10px] font-bold">{{ task.comments.length }}</span>
+              }
+            </div>
+          </button>
+          <button
             class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
             [routerLink]="task.id + '/edit_task'"
-            [queryParams]="{ isPrivate: isPrivate }"
             title="Edit task"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />

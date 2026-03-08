@@ -23,6 +23,7 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
+import { StorageService } from "@services/storage.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -52,6 +53,7 @@ export class ShareDialogComponent implements OnInit {
     private route: ActivatedRoute,
     private authService: AuthService,
     private notifyService: NotifyService,
+    private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private dialogRef: MatDialogRef<ShareDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { todo: Todo }
@@ -165,9 +167,12 @@ export class ShareDialogComponent implements OnInit {
         const result = await firstValueFrom(
           this.dataSyncProvider.update<Todo>("todos", this.data.todo.id, body, {
             isOwner: true,
-            isPrivate: !this.isPrivate,
+            isPrivate: this.isPrivate,
           })
         );
+
+        // Update cache
+        this.storageService.updateTodo(body.id, body);
 
         if (visibilityChanged) {
           try {
@@ -178,6 +183,7 @@ export class ShareDialogComponent implements OnInit {
           }
         }
 
+        this.isPrivate = newVisibility === "private";
         this.notifyService.showSuccess("Todo sharing updated successfully");
         this.dialogRef.close(result);
       } catch (err: any) {

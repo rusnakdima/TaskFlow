@@ -2,7 +2,7 @@
 import { Injectable, signal, inject } from "@angular/core";
 
 /* services */
-import { LocalWebSocketService } from "./local-websocket.service";
+import { LocalWebSocketService } from "@services/local-websocket.service";
 
 export interface NotificationAction {
   id: string;

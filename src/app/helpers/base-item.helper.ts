@@ -51,6 +51,8 @@ export class BaseItemHelper {
    */
   getPriorityColor(priority: string): string {
     switch (priority.toLowerCase()) {
+      case "urgent":
+        return "text-purple-600 dark:text-purple-400";
       case "high":
         return "text-red-600 dark:text-red-400";
       case "medium":
@@ -67,6 +69,8 @@ export class BaseItemHelper {
    */
   getPriorityBadgeClass(priority: string): string {
     switch (priority.toLowerCase()) {
+      case "urgent":
+        return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
       case "high":
         return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
       case "medium":

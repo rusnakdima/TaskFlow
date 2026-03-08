@@ -13,7 +13,7 @@ import { MatMenuModule } from "@angular/material/menu";
 import { FormField } from "@models/form-field.model";
 
 /* components */
-import { BlockFieldsComponent } from "../block-fields/block-fields.component";
+import { BlockFieldsComponent } from "@components/form/block-fields/block-fields.component";
 
 @Component({
   selector: "app-template-form",

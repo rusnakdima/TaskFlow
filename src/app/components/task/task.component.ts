@@ -8,32 +8,46 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
+/* components */
+import { CommentsComponent } from "@components/comments/comments.component";
+
 /* helpers */
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
+/* services */
+import { AuthService } from "@services/auth.service";
+
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
+import { Comment } from "@models/comment.model";
 
 import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
 
 @Component({
   selector: "app-task",
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, DragDropModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    MatIconModule,
+    DragDropModule,
+    CommentsComponent,
+  ],
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskComponent implements OnInit {
   private baseHelper = inject(BaseItemHelper);
+  private authService = inject(AuthService);
 
   @Input() task: Task | null = null;
   @Input() index: number = 0;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Input() highlight: boolean = false;
-  @Input() subtasks: Subtask[] = [];
   @Input() isExpanded: boolean = false;
   @Input() isSelected: boolean = false;
   @Input() allTasks: Task[] = [];
@@ -41,7 +55,7 @@ export class TaskComponent implements OnInit {
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();
-  @Output() updateTaskEvent: EventEmitter<{ task: Task; field: string; value: string }> =
+  @Output() updateTaskEvent: EventEmitter<{ task: Task; field: string; value: any }> =
     new EventEmitter();
   @Output() toggleSubtasksEvent: EventEmitter<Task> = new EventEmitter();
   @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
@@ -49,6 +63,7 @@ export class TaskComponent implements OnInit {
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
+  showComments = signal(false);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -56,8 +71,81 @@ export class TaskComponent implements OnInit {
 
   truncateString = Common.truncateString;
 
+  get hasUnreadComments(): boolean {
+    if (!this.task || !this.task.comments) return false;
+    const userId = this.authService.getValueByKey("id");
+    if (!userId) return false;
+    return this.task.comments.some((c) => !c.readBy || !c.readBy.includes(userId));
+  }
+
   get isBlocked(): boolean {
     return this.baseHelper.isBlockedByDependencies(this.task?.dependsOn, this.allTasks);
+  }
+
+  toggleComments() {
+    this.showComments.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  onAddComment(content: string) {
+    const userId = this.authService.getValueByKey("id");
+    const username = this.authService.getValueByKey("username");
+
+    if (this.task && userId) {
+      const newComment: Comment = {
+        id: crypto.randomUUID(),
+        authorId: userId,
+        authorName: username || "Unknown",
+        content: content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        taskId: this.task.id,
+        readBy: [userId],
+      };
+
+      const updatedComments = [...(this.task.comments || []), newComment];
+      this.updateTaskEvent.emit({
+        task: this.task,
+        field: "comments",
+        value: updatedComments,
+      });
+    }
+  }
+
+  onDeleteComment(commentId: string) {
+    if (this.task) {
+      const updatedComments = (this.task.comments || []).filter((c) => c.id !== commentId);
+      this.updateTaskEvent.emit({
+        task: this.task,
+        field: "comments",
+        value: updatedComments,
+      });
+    }
+  }
+
+  onMarkAsRead(commentIds: string[]) {
+    const userId = this.authService.getValueByKey("id");
+    if (this.task && userId && commentIds.length > 0) {
+      let changed = false;
+      const updatedComments = (this.task.comments || []).map((c) => {
+        if (commentIds.includes(c.id)) {
+          const readBy = c.readBy || [];
+          if (!readBy.includes(userId)) {
+            changed = true;
+            return { ...c, readBy: [...readBy, userId] };
+          }
+        }
+        return c;
+      });
+
+      if (changed) {
+        this.updateTaskEvent.emit({
+          task: this.task,
+          field: "comments",
+          value: updatedComments,
+        });
+      }
+    }
   }
 
   toggleExpand() {
@@ -84,11 +172,11 @@ export class TaskComponent implements OnInit {
   getSubtaskStatusColor = this.baseHelper.getStatusColor;
 
   get countCompletedSubtasks(): number {
-    return this.baseHelper.countCompleted(this.subtasks);
+    return this.baseHelper.countCompleted(this.task?.subtasks ?? []);
   }
 
   get totalSubtasks(): number {
-    return this.subtasks.length;
+    return this.task?.subtasks?.length ?? 0;
   }
 
   get countCompletedTasks(): number {
