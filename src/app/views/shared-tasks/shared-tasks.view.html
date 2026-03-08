@@ -22,6 +22,7 @@
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
             (deleteEvent)="deleteTodoById($event, true)"
+            (saveAsBlueprintEvent)="onSaveAsBlueprint($event)"
           />
         }
       </div>

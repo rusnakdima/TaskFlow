@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subscription } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -133,32 +133,14 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   isPrivate: boolean = true;
 
   priorityOptions: PriorityOption[] = [
-    {
-      value: PriorityTask.LOW,
-      label: "Low",
-      colorClass: "bg-blue-500",
-    },
-    {
-      value: PriorityTask.MEDIUM,
-      label: "Medium",
-      colorClass: "bg-yellow-500",
-    },
-    {
-      value: PriorityTask.HIGH,
-      label: "High",
-      colorClass: "bg-red-500",
-    },
+    { value: PriorityTask.LOW, label: "Low", colorClass: "bg-blue-500" },
+    { value: PriorityTask.MEDIUM, label: "Medium", colorClass: "bg-yellow-500" },
+    { value: PriorityTask.HIGH, label: "High", colorClass: "bg-red-500" },
   ];
 
   ngOnInit() {
     this.saveSubscription = this.shortcutService.save$.subscribe(() => {
       this.onSubmit();
-    });
-
-    this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.isPrivate !== undefined) {
-        this.isPrivate = queryParams.isPrivate === "true";
-      }
     });
 
     this.userId = this.authService.getValueByKey("id");
@@ -188,31 +170,21 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
   };
 
-  getSubtaskInfo(subtaskId: string) {
-    this.dataSyncProvider
-      .getAll<Subtask>(
-        "subtasks",
-        { id: subtaskId },
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId()
-      )
-      .subscribe({
-        next: (subtasks) => {
-          if (subtasks.length > 0) {
-            const localDates = convertDatesFromUtcToLocal(subtasks[0]);
-            this.form.patchValue(localDates);
-
-            const startDate = localDates.startDate;
-            const endDate = localDates.endDate;
-            if (startDate && endDate) {
-              this.dateValidator.updateEndDateValidation(this.form, startDate);
-            }
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load subtask");
-        },
-      });
+  async getSubtaskInfo(subtaskId: string) {
+    try {
+      const todoId = this.todoId();
+      const subtasks = await firstValueFrom(
+        this.dataSyncProvider.getAll<Subtask>("subtasks", { id: subtaskId }, undefined, todoId)
+      );
+      if (subtasks.length > 0) {
+        const localDates = convertDatesFromUtcToLocal(subtasks[0]);
+        this.form.patchValue(localDates);
+        if (localDates.startDate)
+          this.dateValidator.updateEndDateValidation(this.form, localDates.startDate);
+      }
+    } catch (err: any) {
+      this.notifyService.showError(err.message || "Failed to load subtask");
+    }
   }
 
   back() {
@@ -220,83 +192,69 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   loadProjectInfo(todoId: string) {
-    this.dataSyncProvider
-      .get<Todo>(
-        "todos",
-        { id: todoId },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .subscribe({
-        next: (todo) => {
-          this.projectInfo.set(todo);
+    const cachedTodo = this.storageService.getTodoById(todoId);
+    if (cachedTodo) {
+      this.projectInfo.set(cachedTodo);
+      this.isOwner = cachedTodo.userId === this.userId;
+      this.isPrivate = cachedTodo.visibility === "private";
+      return;
+    }
 
-          this.isOwner = todo.userId === this.userId;
-          this.isPrivate = todo.visibility === "private";
-        },
-        error: (err) => {
-          console.error("Error loading project info:", err);
-        },
-      });
+    this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
+      next: (todo) => {
+        this.projectInfo.set(todo);
+        this.isOwner = todo.userId === this.userId;
+        this.isPrivate = todo.visibility === "private";
+      },
+      error: (err) => console.error("Error loading project info:", err),
+    });
   }
 
   loadTaskInfo(taskId: string) {
-    this.dataSyncProvider
-      .get<Task>("tasks", { id: taskId }, { isOwner: this.isOwner, isPrivate: this.isPrivate })
-      .subscribe({
-        next: (task) => {
-          this.taskInfo.set(task);
-        },
-        error: (err) => {
-          console.error("Error loading task info:", err);
-        },
-      });
+    this.dataSyncProvider.get<Task>("tasks", { id: taskId }, undefined, this.todoId()).subscribe({
+      next: (task) => this.taskInfo.set(task),
+      error: (err) => console.error("Error loading task info:", err),
+    });
   }
 
-  duplicateSubtask() {
+  async duplicateSubtask() {
     if (this.form.valid) {
-      this.dataSyncProvider
-        .getAll<Subtask>(
-          "subtasks",
-          { taskId: this.taskId() },
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todoId()
-        )
-        .subscribe({
-          next: (subtasks) => {
-            const order = subtasks.length;
-            const currentData = this.form.value;
-            const normalizedFormValue = normalizeSubtaskDates(currentData);
-            const convertedDates = convertDatesToUtc(normalizedFormValue);
-            const duplicateData = {
-              ...convertedDates,
-              id: "",
-              _id: "",
-              title: `${currentData.title} (Copy)`,
-              status: TaskStatus.PENDING,
-              order: order,
-            };
+      try {
+        const todoId = this.todoId();
+        const subtasks = await firstValueFrom(
+          this.dataSyncProvider.getAll<Subtask>(
+            "subtasks",
+            { taskId: this.taskId() },
+            undefined,
+            todoId
+          )
+        );
+        const formValue = this.form.value;
+        const normalizedFormValue = normalizeSubtaskDates(formValue);
+        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const duplicateData = {
+          ...convertedDates,
+          id: "",
+          _id: "",
+          title: `${formValue.title} (Copy)`,
+          status: TaskStatus.PENDING,
+          order: subtasks.length,
+        };
 
-            this.dataSyncProvider
-              .create<Subtask>(
-                "subtasks",
-                duplicateData,
-                { isOwner: this.isOwner, isPrivate: this.isPrivate },
-                this.todoId()
-              )
-              .subscribe({
-                next: (result) => {
-                  this.storageService.addSubtask(result);
-                  this.notifyService.showSuccess("Subtask duplicated successfully");
-                },
-                error: (err) => {
-                  this.notifyService.showError(err.message || "Failed to duplicate subtask");
-                },
-              });
-          },
-          error: (err) => {
-            this.notifyService.showError("Failed to get existing subtasks count");
-          },
-        });
+        this.dataSyncProvider
+          .create<Subtask>("subtasks", duplicateData, undefined, todoId)
+          .subscribe({
+            next: (result: Subtask) => {
+              // Manually add to storage
+              this.storageService.addSubtask(result);
+              this.notifyService.showSuccess("Subtask duplicated successfully");
+            },
+            error: (err) =>
+              this.notifyService.showError(err.message || "Failed to duplicate subtask"),
+          });
+      } catch (err) {
+        this.notifyService.showError("Failed to get existing subtasks count");
+      }
     }
   }
 
@@ -307,20 +265,12 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!this.dateValidator.validateDatesFromForm(this.form)) {
-      return;
-    }
-
-    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
-      return;
-    }
+    if (!this.dateValidator.validateDatesFromForm(this.form)) return;
+    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) return;
 
     this.isSubmitting.set(true);
-    if (this.isEdit()) {
-      this.updateSubtask();
-    } else {
-      this.createSubtask();
-    }
+    if (this.isEdit()) this.updateSubtask();
+    else this.createSubtask();
   }
 
   validateDates(): boolean {
@@ -332,53 +282,40 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     this.form.get("endDate")?.setValue("");
   }
 
-  createSubtask() {
+  async createSubtask() {
     if (this.form.valid) {
-      this.dataSyncProvider
-        .getAll<Subtask>(
-          "subtasks",
-          { field: "taskId", value: this.taskId() },
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todoId()
-        )
-        .subscribe({
-          next: (subtasks) => {
-            const length = subtasks.length;
-            const formValue = this.form.value;
-            const normalizedFormValue = normalizeSubtaskDates(formValue);
-            const convertedDates = convertDatesToUtc(normalizedFormValue);
-            const body = {
-              ...convertedDates,
-              order: length,
-              taskId: this.taskId(),
-            };
+      try {
+        const todoId = this.todoId();
+        const subtasks = await firstValueFrom(
+          this.dataSyncProvider.getAll<Subtask>(
+            "subtasks",
+            { field: "taskId", value: this.taskId() },
+            undefined,
+            todoId
+          )
+        );
+        const formValue = this.form.value;
+        const normalizedFormValue = normalizeSubtaskDates(formValue);
+        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
 
-            this.dataSyncProvider
-              .create<Subtask>(
-                "subtasks",
-                body,
-                { isOwner: this.isOwner, isPrivate: this.isPrivate },
-                this.projectInfo()?.id
-              )
-              .subscribe({
-                next: (result: Subtask) => {
-                  // Add the new subtask with real ID from backend to cache
-                  this.storageService.addSubtask(result);
-                  this.isSubmitting.set(false);
-                  this.notifyService.showSuccess("Subtask created successfully");
-                  this.back();
-                },
-                error: (err) => {
-                  this.isSubmitting.set(false);
-                  this.notifyService.showError(err.message || "Failed to create subtask");
-                },
-              });
+        this.dataSyncProvider.create<Subtask>("subtasks", body, undefined, todoId).subscribe({
+          next: (result: Subtask) => {
+            // Manually add to storage
+            this.storageService.addSubtask(result);
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Subtask created successfully");
+            this.back();
           },
           error: (err) => {
             this.isSubmitting.set(false);
-            this.notifyService.showError("Failed to get existing subtasks count");
+            this.notifyService.showError(err.message || "Failed to create subtask");
           },
         });
+      } catch (err) {
+        this.isSubmitting.set(false);
+        this.notifyService.showError("Failed to get existing subtasks count");
+      }
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -387,42 +324,25 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
   updateSubtask() {
     if (this.form.valid) {
+      const todoId = this.todoId();
       const formValue = this.form.value;
       const normalizedFormValue = normalizeSubtaskDates(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
-      const body = {
-        ...convertedDates,
-      };
+      const body = { ...convertedDates };
 
-      // Store previous state for rollback
-      const previousSubtask = this.storageService.getSubtaskById(body.id);
-
-      // Optimistic update: update cache immediately
-      this.storageService.updateSubtask(body.id, body);
-
-      this.dataSyncProvider
-        .update<any>(
-          "subtasks",
-          body.id,
-          body,
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.projectInfo()?.id
-        )
-        .subscribe({
-          next: (result) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showSuccess("Subtask updated successfully");
-            this.back();
-          },
-          error: (err) => {
-            // Rollback on failure
-            if (previousSubtask) {
-              this.storageService.updateSubtask(body.id, previousSubtask);
-            }
-            this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to update subtask");
-          },
-        });
+      this.dataSyncProvider.update<any>("subtasks", body.id, body, undefined, todoId).subscribe({
+        next: (result: Subtask) => {
+          // Manually update storage
+          this.storageService.updateSubtask(result.id, result);
+          this.isSubmitting.set(false);
+          this.notifyService.showSuccess("Subtask updated successfully");
+          this.back();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect } from "@angular/core";
+import { Component, OnInit, signal, effect, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -24,6 +24,9 @@ import {
   getTaskEventTitle,
 } from "@services/calendar-helpers.service";
 
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
+
 @Component({
   selector: "app-calendar",
   standalone: true,
@@ -31,16 +34,14 @@ import {
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView implements OnInit {
-  router: Router;
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private calendarGenerator = inject(CalendarGeneratorService);
+  private dataSyncProvider = inject(DataSyncProvider);
+  private notifyService = inject(NotifyService);
 
-  constructor(
-    private authService: AuthService,
-    router: Router,
-    private storageService: StorageService,
-    private calendarGenerator: CalendarGeneratorService
-  ) {
-    this.router = router;
-
+  constructor() {
     // Watch for todos data changes and process when data is loaded
     effect(() => {
       const todos = this.storageService.todos();
@@ -66,14 +67,15 @@ export class CalendarView implements OnInit {
   }
 
   processTodosData(todos: Array<Todo>): void {
-    // Get tasks from storage service
-    const tasks = this.storageService.tasks();
+    const tasks: Array<Task> = [];
 
-    // Associate todos with tasks
-    tasks.forEach((task) => {
-      const todo = todos.find((t) => t.id === task.todoId);
-      if (todo) {
-        (task as any).todo = todo;
+    todos.forEach((todo) => {
+      if (todo.tasks) {
+        todo.tasks.forEach((task) => {
+          // Associate todo with task for event processing
+          (task as any).todo = todo;
+          tasks.push(task);
+        });
       }
     });
 
@@ -261,8 +263,6 @@ export class CalendarView implements OnInit {
     this.router.navigate(["/todos", event.todoId, "tasks"], {
       queryParams: {
         highlightTaskId: event.id,
-        isPrivate: event.isPrivate,
-        isOwner: event.isOwner,
       },
     });
   }

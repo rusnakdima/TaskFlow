@@ -18,9 +18,8 @@
               </div>
               @if (todo.user) {
                 <div class="text-sm textMuted mt-1">
-                  User: {{ todo.user.profile.name }} {{ todo.user.profile.lastName }} ({{
-                    todo.user.username
-                  }})
+                  User: {{ todo.user.profile?.name || "No Name" }}
+                  {{ todo.user.profile?.lastName || "" }} ({{ todo.user.username }})
                 </div>
               }
             </div>

@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -122,12 +122,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   };
 
   priorityOptions = [
-    {
-      value: "low",
-      label: "Low",
-      description: "Non-urgent tasks",
-      colorClass: "bg-blue-500",
-    },
+    { value: "low", label: "Low", description: "Non-urgent tasks", colorClass: "bg-blue-500" },
     {
       value: "medium",
       label: "Medium",
@@ -157,16 +152,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   isCategoryListExpanded = signal(false);
 
   async ngOnInit() {
-    this.saveSubscription = this.shortcutService.save$.subscribe(() => {
-      this.onSubmit();
-    });
-
-    this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.isPrivate !== undefined) {
-        this.isPrivate = queryParams.isPrivate === "true";
-      }
-    });
-
+    this.saveSubscription = this.shortcutService.save$.subscribe(() => this.onSubmit());
     this.userId.set(this.authService.getValueByKey("id"));
 
     if (this.userId() && this.userId() != "") {
@@ -183,9 +169,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     });
 
     setTimeout(() => {
-      if (!this.isEdit()) {
-        this.fetchTodosCount();
-      }
+      if (!this.isEdit()) this.fetchTodosCount();
     }, 1000);
   }
 
@@ -194,30 +178,19 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   getTodoInfo(todoId: string) {
-    this.dataSyncProvider
-      .get<Todo>(
-        "todos",
-        { id: todoId },
-        { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-      )
-      .subscribe({
-        next: (todo) => {
-          const localDates = convertDatesFromUtcToLocal(todo);
-          this.form.patchValue(localDates);
-
-          this.isOwner = todo.userId === this.userId();
-          this.isPrivate = todo.visibility === "private";
-
-          if (!this.isPrivate) {
-            this.notifyService.showInfo(
-              "You're editing a shared todo. Changes will be sent to the owner."
-            );
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load todo");
-        },
-      });
+    this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
+      next: (todo) => {
+        const localDates = convertDatesFromUtcToLocal(todo);
+        this.form.patchValue(localDates);
+        this.isOwner = todo.userId === this.userId();
+        this.isPrivate = todo.visibility === "private";
+        if (!this.isPrivate)
+          this.notifyService.showInfo(
+            "You're editing a shared todo. Changes will be sent to the owner."
+          );
+      },
+      error: (err) => this.notifyService.showError(err.message || "Failed to load todo"),
+    });
   }
 
   back() {
@@ -225,38 +198,21 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   async fetchTodosCount() {
-    // Get todos from StorageService cache instead of direct API call
     const todos = this.storageService.todos();
     if (todos && todos.length > 0) {
       this.form.controls["order"].setValue(todos.length);
     } else {
-      // Fallback: load from backend if cache is empty
-      this.dataSyncProvider
-        .getAll<Todo>(
-          "todos",
-          { userId: this.userId() },
-          { isOwner: this.isPrivate ? true : false, isPrivate: this.isPrivate }
-        )
-        .subscribe({
-          next: (todos) => {
-            this.form.controls["order"].setValue(todos.length);
-          },
-          error: (err) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showError("Failed to get existing todos count");
-          },
-        });
+      this.dataSyncProvider.getAll<Todo>("todos", { userId: this.userId() }).subscribe({
+        next: (todos) => this.form.controls["order"].setValue(todos.length),
+        error: () => this.notifyService.showError("Failed to get existing todos count"),
+      });
     }
   }
 
   async fetchProfiles(): Promise<void> {
     this.dataSyncProvider.getAll<Profile>("profiles", {}).subscribe({
-      next: (profiles) => {
-        this.availableProfiles.set(profiles);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load profiles");
-      },
+      next: (profiles) => this.availableProfiles.set(profiles),
+      error: (err) => this.notifyService.showError(err.message || "Failed to load profiles"),
     });
   }
 
@@ -273,11 +229,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   addProfile(profile: Profile) {
     const currentAssignees = this.form.get("assignees")?.value || [];
-    const exists = currentAssignees.some((p: Profile) => p.id === profile.id);
-    if (!exists) {
-      this.form.patchValue({
-        assignees: [...currentAssignees, profile],
-      });
+    if (!currentAssignees.some((p: Profile) => p.id === profile.id)) {
+      this.form.patchValue({ assignees: [...currentAssignees, profile] });
     }
   }
 
@@ -298,119 +251,93 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   fetchCategories() {
-    // Get categories from StorageService cache instead of direct API call
     const categories = this.storageService.categories();
     if (categories && categories.length > 0) {
       this.availableCategories.set(categories);
     } else {
-      // Fallback: load from backend using DataSyncProvider (correct endpoint)
       this.dataSyncProvider.getAll<Category>("categories", { userId: this.userId() }).subscribe({
         next: (cats) => {
           this.availableCategories.set(cats);
-          // Update StorageService cache
           this.storageService.setCategories(cats);
         },
-        error: (err) => {
-          this.notifyService.showError(err.message ?? err.toString());
-        },
+        error: (err) => this.notifyService.showError(err.message ?? err.toString()),
       });
     }
   }
 
   getFilteredAvailableCategories() {
     if (!this.newCategoryTitle()) return this.availableCategories();
-    return this.availableCategories().filter((category) =>
-      category.title.toLowerCase().includes(this.newCategoryTitle().toLowerCase())
+    return this.availableCategories().filter((cat) =>
+      cat.title.toLowerCase().includes(this.newCategoryTitle().toLowerCase())
     );
   }
 
   isCategorySelected(category: Category): boolean {
-    const currentCategories = this.form.get("categories")?.value || [];
-    return currentCategories.some((c: Category) => c.id === category.id);
+    return (this.form.get("categories")?.value || []).some((c: Category) => c.id === category.id);
   }
 
   toggleCategory(category: Category) {
-    const currentCategories = this.form.get("categories")?.value || [];
-    const exists = currentCategories.some((c: Category) => c.id === category.id);
-
-    if (exists) {
-      this.form.patchValue({
-        categories: currentCategories.filter((c: Category) => c.id !== category.id),
-      });
-    } else {
-      this.form.patchValue({
-        categories: [...currentCategories, category],
-      });
-    }
+    const current = this.form.get("categories")?.value || [];
+    const exists = current.some((c: Category) => c.id === category.id);
+    this.form.patchValue({
+      categories: exists
+        ? current.filter((c: Category) => c.id !== category.id)
+        : [...current, category],
+    });
   }
 
   getSelectedCategoriesText(): string {
-    const categories = this.form.get("categories")?.value || [];
-    return categories.map((c: Category) => c.title).join(", ");
+    return (this.form.get("categories")?.value || []).map((c: Category) => c.title).join(", ");
   }
 
   addCategory() {
     if (this.newCategoryTitle().trim()) {
-      const categoryData: any = {
-        title: this.newCategoryTitle().trim(),
-        userId: this.userId(),
-      };
-      this.dataSyncProvider.create<Category>("categories", categoryData).subscribe({
-        next: (result) => {
-          this.newCategoryTitle.set("");
-          this.fetchCategories();
-          this.notifyService.showSuccess("Category added successfully");
-          // Update StorageService cache
-          this.storageService.addCategory(result);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to add category");
-        },
-      });
+      this.dataSyncProvider
+        .create<Category>("categories", {
+          title: this.newCategoryTitle().trim(),
+          userId: this.userId(),
+        })
+        .subscribe({
+          next: (result: Category) => {
+            this.newCategoryTitle.set("");
+            this.fetchCategories();
+            this.notifyService.showSuccess("Category added successfully");
+            // Manually add to storage
+            this.storageService.addCategory(result);
+          },
+          error: (err) => this.notifyService.showError(err.message || "Failed to add category"),
+        });
     }
   }
 
   onSubmit() {
-    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
-      return;
-    }
-
+    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) return;
     this.isSubmitting.set(true);
-    if (this.isEdit()) {
-      this.updateTodo();
-    } else {
-      this.createTodo();
-    }
+    if (this.isEdit()) this.updateTodo();
+    else this.createTodo();
   }
 
   createTodo() {
     if (this.form.valid) {
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeTodoDates(formValue);
-      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...convertedDates,
-        categories: this.form.get("categories")?.value.map((category: Category) => category.id),
-        assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
+        ...convertDatesToUtc(normalizeTodoDates(formValue)),
+        categories: formValue.categories.map((c: Category) => c.id),
+        assignees: formValue.assignees.map((p: Profile) => p.id),
       };
-
-      this.isPrivate = body.visibility === "private";
-
-      this.dataSyncProvider
-        .create<Todo>("todos", body, { isOwner: true, isPrivate: this.isPrivate })
-        .subscribe({
-          next: (result: Todo) => {
-            // Add the new todo with real ID from backend to cache
-            this.storageService.addTodo(result);
-            this.isSubmitting.set(false);
-            this.notifyService.showSuccess("Todo created successfully");
-            this.back();
-          },
-          error: (err) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to create todo");
-          },
-        });
+      this.dataSyncProvider.create<Todo>("todos", body, undefined, body.id).subscribe({
+        next: (result: Todo) => {
+          // Manually add to storage
+          this.storageService.addTodo(result);
+          this.isSubmitting.set(false);
+          this.notifyService.showSuccess("Todo created successfully");
+          this.back();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.notifyService.showError(err.message || "Failed to create todo");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -420,61 +347,43 @@ export class ManageTodoView implements OnInit, OnDestroy {
   async updateTodo() {
     if (this.form.valid) {
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeTodoDates(formValue);
-      const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = {
-        ...convertedDates,
-        categories: this.form.get("categories")?.value.map((category: Category) => category.id),
-        assignees: this.form.get("assignees")?.value.map((p: Profile) => p.id),
+        ...convertDatesToUtc(normalizeTodoDates(formValue)),
+        categories: formValue.categories.map((c: Category) => c.id),
+        assignees: formValue.assignees.map((p: Profile) => p.id),
       };
 
-      const newVisibility = this.form.get("visibility")?.value as "private" | "team";
-      const originalVisibility = this.isPrivate ? "private" : "team";
-      const visibilityChanged = originalVisibility !== newVisibility;
+      const newVisibility = formValue.visibility as "private" | "team";
+      const visibilityChanged = (this.isPrivate ? "private" : "team") !== newVisibility;
 
-      // Store previous state for rollback
-      const previousTodo = { ...body };
-
-      // Optimistic update: update cache immediately
-      this.storageService.updateTodo(body.id, body);
-
-      this.dataSyncProvider
-        .update<Todo>("todos", body.id, body, {
-          isOwner: true,
-          isPrivate: this.isPrivate,
-        })
-        .subscribe({
-          next: async (result) => {
-            if (visibilityChanged) {
-              try {
-                await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
-              } catch (syncError) {
-                console.error("Failed to sync after visibility change:", syncError);
-                this.notifyService.showWarning("Todo updated, but sync may not have completed.");
-              }
+      this.dataSyncProvider.update<Todo>("todos", body.id, body, undefined, body.id).subscribe({
+        next: async (result: Todo) => {
+          // Manually update storage
+          this.storageService.updateTodo(result.id, result);
+          if (visibilityChanged) {
+            try {
+              await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
+            } catch (err) {
+              console.error("Sync failed:", err);
+              this.notifyService.showWarning("Todo updated, but sync may not have completed.");
             }
-            this.isPrivate = !this.isPrivate;
-            this.isSubmitting.set(false);
-            this.notifyService.showSuccess("Todo updated successfully");
-            setTimeout(() => {
-              this.back();
-            }, 1000);
-          },
-          error: (err) => {
-            // Rollback on failure
-            this.storageService.updateTodo(body.id, previousTodo);
-            console.error("Failed to update todo:", err);
-            this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to update todo");
-          },
-        });
+          }
+          this.isPrivate = newVisibility === "private";
+          this.isSubmitting.set(false);
+          this.notifyService.showSuccess("Todo updated successfully");
+          setTimeout(() => this.back(), 1000);
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.notifyService.showError(err.message || "Failed to update todo");
+        },
+      });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
 
-  endDateFilter = (date: Date | null): boolean => {
-    return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
-  };
+  endDateFilter = (date: Date | null): boolean =>
+    this.dateValidator.createEndDateFilter("startDate", this.form)(date);
 }

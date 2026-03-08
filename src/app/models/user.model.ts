@@ -1,5 +1,5 @@
 /* models */
-import { Profile } from "./profile.model";
+import { Profile } from "@models/profile.model";
 
 export interface User {
   id: string;

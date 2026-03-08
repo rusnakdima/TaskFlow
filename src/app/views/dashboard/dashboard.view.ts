@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect } from "@angular/core";
+import { Component, OnInit, signal, effect, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -17,11 +17,14 @@ import { AuthService } from "@services/auth.service";
 import { StorageService } from "@services/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
+/* helpers */
+import { BaseItemHelper } from "@helpers/base-item.helper";
+
 interface DisplayTask {
   id: string;
   title: string;
   description: string;
-  status: string;
+  status: TaskStatus;
   dueDate: string;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +40,9 @@ interface DisplayTask {
   templateUrl: "./dashboard.view.html",
 })
 export class DashboardView implements OnInit {
+  public baseHelper = inject(BaseItemHelper);
+  public TaskStatus = TaskStatus;
+
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService,
@@ -63,7 +69,7 @@ export class DashboardView implements OnInit {
   allTasks = signal<DisplayTask[]>([]);
   filteredTasks = signal<DisplayTask[]>([]);
 
-  recentActivities = signal<string[]>([]);
+  recentActivities = signal<{ text: string; status: TaskStatus }[]>([]);
 
   userId = "";
 
@@ -84,14 +90,13 @@ export class DashboardView implements OnInit {
   }
 
   processTodosData(todos: Array<Todo>): void {
-    // Get tasks from storage service
-    const tasks = this.storageService.tasks();
-    // Map tasks to their todos
+    // Map tasks from all todos
     const allTasks: { task: Task; todo: Todo }[] = [];
-    tasks.forEach((task) => {
-      const todo = todos.find((t) => t.id === task.todoId);
-      if (todo) {
-        allTasks.push({ task, todo });
+    todos.forEach((todo) => {
+      if (todo.tasks) {
+        todo.tasks.forEach((task) => {
+          allTasks.push({ task, todo });
+        });
       }
     });
 
@@ -99,7 +104,9 @@ export class DashboardView implements OnInit {
   }
 
   processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
-    const tasks = taskData.map((item) => item.task);
+    // Filter out deleted tasks and deleted todos
+    const activeTaskData = taskData.filter((item) => !item.task.isDeleted && !item.todo.isDeleted);
+    const tasks = activeTaskData.map((item) => item.task);
     this.totalTasks.set(tasks.length);
 
     const now = new Date();
@@ -125,12 +132,12 @@ export class DashboardView implements OnInit {
       }).length
     );
 
-    const newAllTasks = taskData
+    const newAllTasks = activeTaskData
       .map((item) => ({
         id: item.task.id,
         title: item.task.title,
         description: item.task.description,
-        status: this.getTaskStatus(item.task),
+        status: item.task.status,
         dueDate: item.task.endDate,
         createdAt: item.task.createdAt,
         updatedAt: item.task.updatedAt,
@@ -151,35 +158,35 @@ export class DashboardView implements OnInit {
     );
     this.recentActivities.set(
       sortedTasks.slice(0, 4).map((task) => {
+        let text = "";
         if (task.status === TaskStatus.COMPLETED) {
-          return `Completed task: ${task.title}`;
+          text = `Completed task: ${task.title}`;
         } else if (task.status === TaskStatus.SKIPPED) {
-          return `Skipped task: ${task.title}`;
+          text = `Skipped task: ${task.title}`;
         } else if (task.status === TaskStatus.FAILED) {
-          return `Failed task: ${task.title}`;
+          text = `Failed task: ${task.title}`;
         } else {
-          return `Created task: ${task.title}`;
+          text = `Created task: ${task.title}`;
         }
+        return { text, status: task.status };
       })
     );
 
     this.filteredTasks.set(newAllTasks.slice(0, 10));
   }
 
-  getTaskStatus(task: Task): string {
-    if (task.status === TaskStatus.COMPLETED) return "completed";
-    if (task.status === TaskStatus.SKIPPED) return "skipped";
-    if (task.status === TaskStatus.FAILED) return "failed";
-
-    const now = new Date();
-    const start = task.startDate ? new Date(task.startDate) : null;
-    const end = task.endDate ? new Date(task.endDate) : null;
-
-    if (end && end < now) return "ongoing";
-
-    if (start && end && start <= now && now <= end) return "progress";
-
-    return "ongoing";
+  getCircleColor(status: TaskStatus): string {
+    switch (status) {
+      case TaskStatus.COMPLETED:
+        return "bg-green-700 dark:bg-green-300";
+      case TaskStatus.SKIPPED:
+        return "bg-orange-700 dark:bg-orange-300";
+      case TaskStatus.FAILED:
+        return "bg-red-700 dark:bg-red-300";
+      case TaskStatus.PENDING:
+      default:
+        return "bg-blue-700 dark:bg-blue-300";
+    }
   }
 
   getProgressPercentage(): number {
@@ -211,8 +218,6 @@ export class DashboardView implements OnInit {
     this.router.navigate(["/todos", task.todoId, "tasks"], {
       queryParams: {
         highlightTaskId: task.id,
-        isPrivate: task.isPrivate,
-        isOwner: task.isOwner,
       },
     });
   }

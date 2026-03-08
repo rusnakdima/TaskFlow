@@ -1,7 +1,7 @@
 /* sys lib */
 import { inject, Injectable } from "@angular/core";
 import { Observable, BehaviorSubject, Subject, throwError } from "rxjs";
-import { take, map, timeout, filter, catchError, tap } from "rxjs/operators";
+import { take, map, timeout, filter, catchError } from "rxjs/operators";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -9,7 +9,19 @@ import { SyncMetadata } from "@models/sync-metadata";
 import { RelationObj } from "@models/relation-obj.model";
 
 /* services */
-import { NotifyService } from "./notify.service";
+import { NotifyService } from "@services/notify.service";
+
+type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+interface CrudParams {
+  table: string;
+  filter?: { [key: string]: any };
+  data?: any;
+  id?: string;
+  parentTodoId?: string;
+  relations?: RelationObj[];
+  syncMetadata?: SyncMetadata;
+}
 
 @Injectable({
   providedIn: "root",
@@ -94,7 +106,7 @@ export class LocalWebSocketService {
     this.socket.send(JSON.stringify({ action, ...payload }));
   }
 
-  request<T>(action: string, payload: any): Observable<T> {
+  private request<T>(action: string, payload: any): Observable<T> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       console.error(
         "[LocalWebSocketService] Socket not connected. Ready state:",
@@ -111,17 +123,14 @@ export class LocalWebSocketService {
     return this.messageSubject.asObservable().pipe(
       filter((response) => {
         const reqId = response.requestId || response.response?.requestId;
-        const matches = reqId === requestId;
-        return matches;
+        return reqId === requestId;
       }),
       take(1),
       timeout(30000),
       map((response: { response: Response<T>; requestId?: string }) => {
         const resp = response.response || response;
-        const status = resp.status;
-
-        this.notifyService.showNotify(status, resp.message);
-        if (status === ResponseStatus.SUCCESS) {
+        this.notifyService.showNotify(resp.status, resp.message);
+        if (resp.status === ResponseStatus.SUCCESS) {
           return resp.data;
         } else {
           throw new Error(resp.message || "Operation failed");
@@ -136,120 +145,59 @@ export class LocalWebSocketService {
     );
   }
 
-  getAll<T>(
-    table: string,
-    filter: { [key: string]: any },
-    syncMetadata?: SyncMetadata,
-    relations?: RelationObj[]
-  ): Observable<T[]> {
-    const payload: any = {
-      entity: table,
-      filter,
-    };
+  private buildPayload(operation: Operation, params: CrudParams): any {
+    const payload: any = { entity: params.table };
 
-    if (relations) {
-      payload.relations = relations;
-    }
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
+    switch (operation) {
+      case "getAll":
+      case "get":
+        if (params.filter) payload.filter = params.filter;
+        if (params.relations) payload.relations = params.relations;
+        break;
+      case "create":
+        payload.data = { ...params.data };
+        if (params.parentTodoId && params.table === "tasks") {
+          payload.data.todoId = params.parentTodoId;
+        }
+        break;
+      case "update":
+        payload.id = params.id;
+        payload.data = { ...params.data };
+        if (params.parentTodoId && params.table === "tasks") {
+          payload.data.todoId = params.parentTodoId;
+        }
+        break;
+      case "updateAll":
+        payload.data = params.data;
+        payload.todoId = params.parentTodoId;
+        break;
+      case "delete":
+        payload.id = params.id;
+        break;
     }
 
-    return this.request<T[]>("get-all", payload);
+    if (params.syncMetadata) {
+      payload.syncMetadata = params.syncMetadata;
+    }
+
+    return payload;
   }
 
-  get<T>(
-    table: string,
-    filter: { [key: string]: any },
-    syncMetadata?: SyncMetadata,
-    relations?: RelationObj[]
-  ): Observable<T> {
-    const payload: any = {
-      entity: table,
-      filter,
+  private mapOperation(operation: Operation): string {
+    const map: Record<Operation, string> = {
+      getAll: "get-all",
+      get: "get",
+      create: "create",
+      update: "update",
+      updateAll: "update-all",
+      delete: "delete",
     };
-
-    if (relations) {
-      payload.relations = relations;
-    }
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
-    }
-
-    return this.request<T>("get", payload);
+    return map[operation];
   }
 
-  create<T>(
-    table: string,
-    data: any,
-    parentTodoId?: string,
-    syncMetadata?: SyncMetadata
-  ): Observable<T> {
-    const payload: any = {
-      entity: table,
-      data: { ...data, todoId: parentTodoId },
-    };
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
-    }
-
-    return this.request<T>("create", payload);
-  }
-
-  update<T>(
-    table: string,
-    id: string,
-    data: any,
-    parentTodoId?: string,
-    syncMetadata?: SyncMetadata
-  ): Observable<T> {
-    const payload: any = {
-      entity: table,
-      id,
-      data: { ...data, todoId: parentTodoId },
-    };
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
-    }
-
-    return this.request<T>("update", payload);
-  }
-
-  updateAll<T>(
-    table: string,
-    data: any[],
-    parentTodoId?: string,
-    syncMetadata?: SyncMetadata
-  ): Observable<T> {
-    const payload: any = {
-      entity: table,
-      data,
-      todoId: parentTodoId,
-    };
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
-    }
-
-    return this.request<T>("update-all", payload);
-  }
-
-  delete(
-    table: string,
-    id: string,
-    parentTodoId?: string,
-    syncMetadata?: SyncMetadata
-  ): Observable<void> {
-    const payload: any = {
-      entity: table,
-      id,
-    };
-    if (syncMetadata) {
-      payload.syncMetadata = syncMetadata;
-    }
-
-    return this.request<void>("delete", payload).pipe(
-      tap(() => {
-        // Response handled by request method
-      })
-    );
+  crud<T>(operation: Operation, params: CrudParams): Observable<T> {
+    const payload = this.buildPayload(operation, params);
+    const action = this.mapOperation(operation);
+    return this.request<T>(action, payload);
   }
 }

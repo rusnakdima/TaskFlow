@@ -5,7 +5,7 @@ import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* models */
 import { FormField } from "@models/form-field.model";
-import { TemplateFormComponent } from "./template-form/template-form.component";
+import { TemplateFormComponent } from "@components/form/template-form/template-form.component";
 
 @Component({
   selector: "app-form",

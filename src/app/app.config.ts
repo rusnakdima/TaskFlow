@@ -5,7 +5,7 @@ import { provideHttpClient } from "@angular/common/http";
 import { provideNativeDateAdapter } from "@angular/material/core";
 
 /* routes */
-import { routes } from "./app.routes";
+import { routes } from "@app/app.routes";
 
 export const appConfig: ApplicationConfig = {
   providers: [provideRouter(routes), provideNativeDateAdapter(), provideHttpClient()],

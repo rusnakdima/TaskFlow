@@ -1,16 +1,33 @@
 /* sys lib */
-import { Injectable, Injector } from "@angular/core";
+import { Injectable, Injector, inject } from "@angular/core";
 import { Observable, from } from "rxjs";
-import { map } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { RelationObj, TypesField } from "@models/relation-obj.model";
+import { RelationObj } from "@models/relation-obj.model";
+import { SyncMetadata } from "@models/sync-metadata";
+
+/* helpers */
+import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
-import { LocalWebSocketService } from "../services/local-websocket.service";
-import { SyncService } from "../services/sync.service";
+import { LocalWebSocketService } from "@services/local-websocket.service";
+import { SyncService } from "@services/sync.service";
+import { StorageService } from "@services/storage.service";
+import { AuthService } from "@services/auth.service";
+
+type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+interface CrudParams {
+  table: string;
+  filter?: { [key: string]: any };
+  data?: any;
+  id?: string;
+  parentTodoId?: string;
+  relations?: RelationObj[];
+  syncMetadata?: SyncMetadata;
+}
 
 @Injectable({
   providedIn: "root",
@@ -18,13 +35,18 @@ import { SyncService } from "../services/sync.service";
 export class DataSyncProvider {
   private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles"];
 
-  constructor(
-    private localWebSocketService: LocalWebSocketService,
-    private injector: Injector
-  ) {}
+  private localWebSocketService = inject(LocalWebSocketService);
+  private authService = inject(AuthService);
+  private injector = inject(Injector);
+
+  constructor() {}
 
   private get syncService(): SyncService {
     return this.injector.get(SyncService);
+  }
+
+  private get storageService(): StorageService {
+    return this.injector.get(StorageService);
   }
 
   private validateTable(table: string): void {
@@ -35,294 +57,189 @@ export class DataSyncProvider {
     }
   }
 
-  /**
-   * Build default relations for table
-   */
+  private resolveMetadata(table: string, todoId?: string, record?: any): SyncMetadata {
+    const currentUserId = this.authService.getValueByKey("id");
+    let metadata: SyncMetadata = { isOwner: true, isPrivate: true };
+
+    if (table === "todos" && record) {
+      metadata.isPrivate = record.visibility === "private";
+      metadata.isOwner = record.userId === currentUserId;
+      return metadata;
+    }
+
+    if (todoId) {
+      const todo = this.storageService.getTodoById(todoId);
+      if (todo) {
+        metadata.isPrivate = todo.visibility === "private";
+        metadata.isOwner = todo.userId === currentUserId;
+      }
+    }
+
+    return metadata;
+  }
+
   private getDefaultRelations(table: string): RelationObj[] | undefined {
-    if (table === "todos") {
-      return [
-        {
-          nameTable: "tasks",
-          typeField: TypesField.OneToMany,
-          nameField: "todoId",
-          newNameField: "tasks",
-          relations: [
-            {
-              nameTable: "subtasks",
-              typeField: TypesField.OneToMany,
-              nameField: "taskId",
-              newNameField: "subtasks",
-              relations: null,
-            },
-          ],
-        },
-        {
-          nameTable: "users",
-          typeField: TypesField.OneToOne,
-          nameField: "userId",
-          newNameField: "user",
-          relations: [
-            {
-              nameTable: "profiles",
-              typeField: TypesField.OneToOne,
-              nameField: "profileId",
-              newNameField: "profile",
-              relations: null,
-            },
-          ],
-        },
-        {
-          nameTable: "categories",
-          typeField: TypesField.ManyToOne,
-          nameField: "categories",
-          newNameField: "categories",
-          relations: null,
-        },
-        {
-          nameTable: "profiles",
-          typeField: TypesField.ManyToOne,
-          nameField: "assignees",
-          newNameField: "assignees",
-          relations: [
-            {
-              nameTable: "users",
-              typeField: TypesField.OneToOne,
-              nameField: "userId",
-              newNameField: "user",
-              relations: null,
-            },
-          ],
-        },
-      ];
+    return RelationsHelper.getRelationsForTable(table, table === "todos");
+  }
+
+  private buildCrudParams(
+    table: string,
+    options: {
+      filter?: { [key: string]: any };
+      data?: any;
+      id?: string;
+      parentTodoId?: string;
+      relations?: RelationObj[];
+      isOwner?: boolean;
+      isPrivate?: boolean;
     }
-    if (table === "tasks") {
-      return [
-        {
-          nameTable: "subtasks",
-          typeField: TypesField.OneToMany,
-          nameField: "taskId",
-          newNameField: "subtasks",
-          relations: null,
-        },
-      ];
+  ): CrudParams {
+    const metadata =
+      options.isOwner !== undefined
+        ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
+        : this.resolveMetadata(table, options.parentTodoId || options.data?.todoId, options.data);
+
+    const relations = options.relations ?? this.getDefaultRelations(table);
+
+    return {
+      table,
+      filter: options.filter,
+      data: options.data,
+      id: options.id,
+      parentTodoId: options.parentTodoId,
+      relations,
+      syncMetadata: metadata,
+    };
+  }
+
+  private executeWithFallback<T>(
+    operation: Operation,
+    params: CrudParams,
+    isArray: boolean = false
+  ): Observable<T> {
+    return new Observable<T>((subscriber) => {
+      const makeRequest = (fallback: boolean) => {
+        if (!fallback && this.localWebSocketService.isConnected()) {
+          this.localWebSocketService.crud<T>(operation, params).subscribe({
+            next: (data) => subscriber.next(data),
+            error: (err) => this.fallbackToTauri(operation, params, subscriber, isArray),
+            complete: () => subscriber.complete(),
+          });
+        } else {
+          this.fallbackToTauri(operation, params, subscriber, isArray);
+        }
+      };
+      makeRequest(false);
+    });
+  }
+
+  private fallbackToTauri<T>(
+    operation: Operation,
+    params: CrudParams,
+    subscriber: any,
+    isArray: boolean
+  ): void {
+    const payload: any = {
+      operation: operation === "get" ? "read" : operation,
+      table: params.table,
+      syncMetadata: params.syncMetadata,
+    };
+
+    if (params.filter) payload.filter = params.filter;
+    if (params.relations) payload.relations = params.relations;
+    if (params.id) payload.id = params.id;
+    if (params.data) payload.data = params.data;
+
+    if (operation === "updateAll" && params.data) {
+      Promise.all(
+        params.data.map((item: any) =>
+          invoke<Response<T>>("manageData", {
+            operation: item.id ? "update" : "create",
+            table: params.table,
+            id: item.id,
+            data: item,
+            syncMetadata: params.syncMetadata,
+          })
+        )
+      )
+        .then((responses: Response<T>[]) => {
+          const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
+          if (success) {
+            subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
+          } else {
+            subscriber.error(new Error("Failed to update all records"));
+          }
+          subscriber.complete();
+        })
+        .catch((err) => subscriber.error(err));
+    } else {
+      invoke<Response<T>>("manageData", payload)
+        .then((response: Response<T>) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+          } else {
+            subscriber.error(new Error(response.message || `Failed to ${operation}`));
+          }
+          subscriber.complete();
+        })
+        .catch((err) => subscriber.error(err));
     }
-    if (table === "profiles") {
-      return [
-        {
-          nameTable: "users",
-          typeField: TypesField.OneToOne,
-          nameField: "userId",
-          newNameField: "user",
-          relations: null,
-        },
-      ];
-    }
-    return undefined;
   }
 
   getAll<T>(
     table: string,
     filter: { [key: string]: any },
-    params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
+    params?: { isOwner?: boolean; isPrivate?: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T[]> {
     this.validateTable(table);
-
-    const { isOwner, isPrivate, relations } = params ?? {
-      isOwner: true,
-      isPrivate: true,
-    };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      const defaultRelations = relations ?? this.getDefaultRelations(table);
-      return this.localWebSocketService.getAll(
-        table,
-        filter,
-        { isOwner, isPrivate },
-        defaultRelations
-      );
-    }
-
-    // 2. Fallback to Tauri invoke (unified manageData endpoint)
-    const defaultRelations = relations ?? this.getDefaultRelations(table);
-
-    return from(
-      invoke<Response<T[]>>("manageData", {
-        operation: "getAll",
-        table,
-        filter,
-        relations: defaultRelations,
-        syncMetadata: { isOwner, isPrivate },
-      })
-    ).pipe(
-      map((response: Response<T[]>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data || [];
-        } else {
-          throw new Error(response.message || "Failed to load data");
-        }
-      })
-    );
+    const crudParams = this.buildCrudParams(table, { filter, parentTodoId, ...params });
+    return this.executeWithFallback<T[]>("getAll", crudParams, true);
   }
 
   get<T>(
     table: string,
     filter: { [key: string]: any },
-    params?: { isOwner: boolean; isPrivate: boolean; relations?: RelationObj[] },
+    params?: { isOwner?: boolean; isPrivate?: boolean; relations?: RelationObj[] },
     parentTodoId?: string
   ): Observable<T> {
     this.validateTable(table);
-
-    const { isOwner, isPrivate, relations } = params ?? {
-      isOwner: true,
-      isPrivate: true,
-    };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      const defaultRelations = relations ?? this.getDefaultRelations(table);
-      return this.localWebSocketService.get(
-        table,
-        filter,
-        { isOwner, isPrivate },
-        defaultRelations
-      );
-    }
-
-    // 2. Fallback to Tauri invoke (unified manageData endpoint)
-    const defaultRelations = relations ?? this.getDefaultRelations(table);
-
-    return from(
-      invoke<Response<T>>("manageData", {
-        operation: "read",
-        table,
-        filter,
-        relations: defaultRelations,
-        syncMetadata: { isOwner, isPrivate },
-      })
-    ).pipe(
-      map((response: Response<T>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
-        } else {
-          throw new Error(response.message || "Failed to load data");
-        }
-      })
-    );
+    const crudParams = this.buildCrudParams(table, { filter, parentTodoId, ...params });
+    return this.executeWithFallback<T>("get", crudParams);
   }
 
   create<T>(
     table: string,
     data: any,
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner?: boolean; isPrivate?: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.create<T>(table, data, parentTodoId, {
-        isOwner,
-        isPrivate,
-      });
-    }
-
-    // 2. Fallback to Tauri invoke (unified manageData endpoint)
-    return from(
-      invoke<Response<T>>("manageData", {
-        operation: "create",
-        table,
-        data,
-        syncMetadata: { isOwner, isPrivate },
-      })
-    ).pipe(
-      map((response: Response<T>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
-        } else {
-          throw new Error(response.message || "Failed to create");
-        }
-      })
-    );
+    this.validateTable(table);
+    const crudParams = this.buildCrudParams(table, { data, parentTodoId, ...params });
+    return this.executeWithFallback<T>("create", crudParams);
   }
 
   update<T>(
     table: string,
     id: string,
     data: any,
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner?: boolean; isPrivate?: boolean },
     parentTodoId?: string
   ): Observable<T> {
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.update<T>(table, id, data, parentTodoId, {
-        isOwner,
-        isPrivate,
-      });
-    }
-
-    // 2. Fallback to Tauri invoke (unified manageData endpoint)
-    return from(
-      invoke<Response<T>>("manageData", {
-        operation: "update",
-        table,
-        id,
-        data,
-        syncMetadata: { isOwner, isPrivate },
-      })
-    ).pipe(
-      map((response: Response<T>) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data;
-        } else {
-          throw new Error(response.message || "Failed to update");
-        }
-      })
-    );
+    this.validateTable(table);
+    const crudParams = this.buildCrudParams(table, { id, data, parentTodoId, ...params });
+    return this.executeWithFallback<T>("update", crudParams);
   }
 
   updateAll<T>(
     table: string,
     data: any[],
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner?: boolean; isPrivate?: boolean },
     parentTodoId?: string
   ): Observable<T[]> {
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.updateAll<T[]>(table, data, parentTodoId, {
-        isOwner,
-        isPrivate,
-      });
-    }
-
-    // 2. Batch operations using unified manageData endpoint
-    return from(
-      Promise.all(
-        data.map((item) =>
-          invoke<Response<T>>("manageData", {
-            operation: item.id ? "update" : "create",
-            table,
-            id: item.id,
-            data: item,
-            syncMetadata: { isOwner, isPrivate },
-          })
-        )
-      )
-    ).pipe(
-      map((responses: Response<T>[]) => {
-        const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
-        if (success) {
-          return responses.map((r) => r.data).filter(Boolean) as T[];
-        } else {
-          throw new Error("Failed to update all records");
-        }
-      })
-    );
+    this.validateTable(table);
+    const crudParams = this.buildCrudParams(table, { data, parentTodoId, ...params });
+    return this.executeWithFallback<T[]>("updateAll", crudParams, true);
   }
 
   async syncAfterVisibilityChange(newVisibility: "private" | "team"): Promise<void> {
@@ -340,33 +257,11 @@ export class DataSyncProvider {
   delete(
     table: string,
     id: string,
-    params?: { isOwner: boolean; isPrivate: boolean },
+    params?: { isOwner?: boolean; isPrivate?: boolean },
     parentTodoId?: string
   ): Observable<void> {
-    const { isOwner, isPrivate } = params ?? { isOwner: true, isPrivate: true };
-
-    // 1. Try Local WebSocket (Rust backend)
-    if (this.localWebSocketService.isConnected()) {
-      return this.localWebSocketService.delete(table, id, parentTodoId, {
-        isOwner,
-        isPrivate,
-      });
-    }
-
-    // 2. Fallback to Tauri invoke (unified manageData endpoint)
-    return from(
-      invoke<Response<void>>("manageData", {
-        operation: "delete",
-        table,
-        id,
-        syncMetadata: { isOwner, isPrivate },
-      })
-    ).pipe(
-      map((response: Response<void>) => {
-        if (response.status !== ResponseStatus.SUCCESS) {
-          throw new Error(response.message || "Failed to delete");
-        }
-      })
-    );
+    this.validateTable(table);
+    const crudParams = this.buildCrudParams(table, { id, parentTodoId, ...params });
+    return this.executeWithFallback<void>("delete", crudParams);
   }
 }

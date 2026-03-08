@@ -1,7 +1,7 @@
 /* sys lib */
-import { Injectable, signal, computed } from "@angular/core";
-import { Observable, of } from "rxjs";
-import { map, tap, switchMap } from "rxjs/operators";
+import { Injectable, signal, computed, inject } from "@angular/core";
+import { Observable, of, forkJoin } from "rxjs";
+import { tap, switchMap, map } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -9,81 +9,76 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
-import { SyncMetadata } from "@models/sync-metadata";
-import { RelationObj, TypesField } from "@models/relation-obj.model";
+
+/* helpers */
+import { RelationsHelper } from "@helpers/relations.helper";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
 import { AuthService } from "@services/auth.service";
+import { LocalWebSocketService } from "@services/local-websocket.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class StorageService {
-  // Cache signals
-  private todosSignal = signal<Todo[]>([]);
-  private tasksSignal = signal<Task[]>([]);
-  private subtasksSignal = signal<Subtask[]>([]);
+  private authService = inject(AuthService);
+  private dataSyncProvider = inject(DataSyncProvider);
+  private localWs = inject(LocalWebSocketService);
+
+  private privateTodosSignal = signal<Todo[]>([]);
+  private sharedTodosSignal = signal<Todo[]>([]);
   private categoriesSignal = signal<Category[]>([]);
   private profileSignal = signal<Profile | null>(null);
 
-  // Loading states
   private loadingSignal = signal(false);
   private loadedSignal = signal(false);
   private lastLoadedSignal = signal<Date | null>(null);
 
-  // Metadata
   private userId = "";
-  private isOwner = true;
-  private isPrivate = true;
 
-  // Cache expiry (2 minutes - shorter for better freshness)
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
 
-  constructor(
-    private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider
-  ) {}
+  constructor() {
+    this.initWebSocketListeners();
+  }
 
   // ==================== PUBLIC SIGNALS ====================
 
+  get privateTodos() {
+    return this.privateTodosSignal.asReadonly();
+  }
+  get sharedTodos() {
+    return this.sharedTodosSignal.asReadonly();
+  }
   get todos() {
-    return this.todosSignal.asReadonly();
+    return computed(() => [...this.privateTodosSignal(), ...this.sharedTodosSignal()]);
   }
-
   get tasks() {
-    return this.tasksSignal.asReadonly();
+    return computed(() => this.todos().flatMap((todo) => todo.tasks || []));
   }
-
   get subtasks() {
-    return this.subtasksSignal.asReadonly();
+    return computed(() => this.tasks().flatMap((task) => task.subtasks || []));
   }
-
   get categories() {
     return this.categoriesSignal.asReadonly();
   }
-
   get profile() {
     return this.profileSignal.asReadonly();
   }
-
-  // Public setters for external use
+  // Setters
   setCategories(categories: Category[]): void {
     this.categoriesSignal.set(categories);
   }
 
-  setTodos(todos: Todo[]): void {
-    this.todosSignal.set(todos);
+  setPrivateTodos(todos: Todo[]): void {
+    this.privateTodosSignal.set(todos);
   }
 
-  setTasks(tasks: Task[]): void {
-    this.tasksSignal.set(tasks);
-  }
-
-  setSubtasks(subtasks: Subtask[]): void {
-    this.subtasksSignal.set(subtasks);
+  setSharedTodos(todos: Todo[]): void {
+    this.sharedTodosSignal.set(todos);
   }
 
   setProfile(profile: Profile): void {
@@ -93,292 +88,298 @@ export class StorageService {
   get loading() {
     return this.loadingSignal.asReadonly();
   }
-
   get loaded() {
     return this.loadedSignal.asReadonly();
   }
-
   get lastLoaded() {
     return this.lastLoadedSignal.asReadonly();
   }
 
-  // Expose signals for direct update (used by controllers)
-  get todosSignalAccessor() {
-    return this.todosSignal;
-  }
-
   // ==================== COMPUTED SIGNALS ====================
 
-  get todosWithRelations() {
-    return computed(() => {
-      const todos = this.todosSignal();
-      const tasks = this.tasksSignal();
-      const subtasks = this.subtasksSignal();
-
-      return todos.map((todo) => ({
-        ...todo,
-        tasks: tasks
-          .filter((task) => task.todoId === todo.id)
-          .map((task) => ({
-            ...task,
-            subtasks: subtasks.filter((st) => st.taskId === task.id),
-          })),
-      }));
-    });
-  }
-
   getTasksByTodoId(todoId: string) {
-    return computed(() => this.tasksSignal().filter((task) => task.todoId === todoId));
+    return computed(() => this.todos().find((t) => t.id === todoId)?.tasks || []);
   }
 
   getSubtasksByTaskId(taskId: string) {
-    return computed(() => this.subtasksSignal().filter((st) => st.taskId === taskId));
+    return computed(() => this.tasks().find((t) => t.id === taskId)?.subtasks || []);
   }
 
   get completedTasksCount() {
-    return computed(() => {
-      return this.tasksSignal().filter(
-        (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-      ).length;
-    });
-  }
-
-  get pendingTasksCount() {
-    return computed(() => {
-      return this.tasksSignal().filter((task) => task.status === TaskStatus.PENDING).length;
-    });
-  }
-
-  // ==================== INITIALIZATION ====================
-
-  init(userId?: string, isOwner: boolean = true, isPrivate: boolean = true): void {
-    // Get userId from parameter or from AuthService
-    this.userId = userId || this.authService.getValueByKey("id") || "";
-    this.isOwner = isOwner;
-    this.isPrivate = isPrivate;
-  }
-
-  /**
-   * Load all data (call once on app initialization or when needed)
-   * Loads todos with relations (tasks, subtasks, categories, users, profiles) and extracts them to separate signals
-   */
-  loadAllData(force: boolean = false): Observable<{
-    todos: Todo[];
-    tasks: Task[];
-    subtasks: Subtask[];
-    categories: Category[];
-  }> {
-    // Ensure userId is set from AuthService
-    if (!this.userId) {
-      this.userId = this.authService.getValueByKey("id") || "";
-    }
-
-    // Force reload if cache is empty (no data loaded yet)
-    const hasData = this.todosSignal().length > 0 || this.categoriesSignal().length > 0;
-    if (!hasData) {
-      force = true;
-    }
-
-    // Check if cache is still valid
-    if (!force && this.isCacheValid()) {
-      return of({
-        todos: this.todosSignal(),
-        tasks: this.tasksSignal(),
-        subtasks: this.subtasksSignal(),
-        categories: this.categoriesSignal(),
-      });
-    }
-
-    // Prevent duplicate loading
-    if (this.loadingSignal()) {
-      return of({
-        todos: this.todosSignal(),
-        tasks: this.tasksSignal(),
-        subtasks: this.subtasksSignal(),
-        categories: this.categoriesSignal(),
-      });
-    }
-
-    this.loadingSignal.set(true);
-
-    const metadata: SyncMetadata = { isOwner: this.isOwner, isPrivate: true };
-
-    // Define default relations for todos (tasks + subtasks + categories + users + profiles)
-    const todoRelations: RelationObj[] = [
-      {
-        nameTable: "tasks",
-        typeField: TypesField.OneToMany,
-        nameField: "todoId",
-        newNameField: "tasks",
-        relations: [
-          {
-            nameTable: "subtasks",
-            typeField: TypesField.OneToMany,
-            nameField: "taskId",
-            newNameField: "subtasks",
-            relations: null,
-          },
-        ],
-      },
-      {
-        nameTable: "users",
-        typeField: TypesField.OneToOne,
-        nameField: "userId",
-        newNameField: "user",
-        relations: [
-          {
-            nameTable: "profiles",
-            typeField: TypesField.OneToOne,
-            nameField: "profileId",
-            newNameField: "profile",
-            relations: null,
-          },
-        ],
-      },
-      {
-        nameTable: "categories",
-        typeField: TypesField.ManyToOne,
-        nameField: "categories",
-        newNameField: "categories",
-        relations: null,
-      },
-    ];
-
-    // Step 1: Load private todos with relations (for /todos view)
-    return this.dataSyncProvider
-      .getAll<Todo>(
-        "todos",
-        { userId: this.userId, visibility: "private" },
-        { isOwner: this.isOwner, isPrivate: this.isPrivate, relations: todoRelations }
-      )
-      .pipe(
-        tap((todos) => {
-          // Extract tasks and subtasks from todos with relations for separate storage
-          const allTasks: Task[] = [];
-          const allSubtasks: Subtask[] = [];
-
-          todos.forEach((todo: any) => {
-            // Extract tasks with subtasks
-            if (todo.tasks && Array.isArray(todo.tasks)) {
-              todo.tasks.forEach((task: any) => {
-                allTasks.push(task);
-                if (task.subtasks && Array.isArray(task.subtasks)) {
-                  task.subtasks.forEach((subtask: Subtask) => {
-                    allSubtasks.push(subtask);
-                  });
-                }
-              });
-            }
-          });
-
-          // Set all signals - todos already have tasks embedded from backend
-          this.todosSignal.set(todos);
-          this.tasksSignal.set(allTasks);
-          this.subtasksSignal.set(allSubtasks);
-        }),
-        switchMap((todos) => {
-          // Step 2: Load categories separately (they are not embedded in todos)
-          return this.dataSyncProvider
-            .getAll<Category>("categories", { userId: this.userId }, metadata)
-            .pipe(
-              tap((categories) => {
-                this.categoriesSignal.set(categories);
-              }),
-              map((categories) => {
-                this.loadingSignal.set(false);
-                this.loadedSignal.set(true);
-                this.lastLoadedSignal.set(new Date());
-                return {
-                  todos: this.todosSignal(),
-                  tasks: this.tasksSignal(),
-                  subtasks: this.subtasksSignal(),
-                  categories,
-                };
-              })
-            );
-        })
-      );
-  }
-
-  /**
-   * Load team todos via WebSocket from MongoDB (for /shared-tasks view)
-   * Returns team todos where user is assignee or owner
-   */
-  loadTeamTodos(): Observable<Todo[]> {
-    const userId = this.authService.getValueByKey("id") || "";
-    const metadata: SyncMetadata = { isOwner: false, isPrivate: false };
-
-    // Use WebSocket to load team todos from MongoDB
-    return this.dataSyncProvider.getAll<Todo>("todos", { visibility: "team" }, metadata);
-  }
-
-  private isCacheValid(): boolean {
-    if (!this.loadedSignal()) {
-      return false;
-    }
-
-    const lastLoaded = this.lastLoadedSignal();
-    if (!lastLoaded) {
-      return false;
-    }
-
-    const now = new Date().getTime();
-    const lastLoadedTime = lastLoaded.getTime();
-
-    return now - lastLoadedTime < this.CACHE_EXPIRY_MS;
-  }
-
-  // ==================== UPDATE METHODS ====================
-
-  addTodo(todo: Todo): void {
-    this.todosSignal.update((todos) => [todo, ...todos]);
-  }
-
-  updateTodo(todoId: string, updates: Partial<Todo>): void {
-    this.todosSignal.update((todos) =>
-      todos.map((todo) => (todo.id === todoId ? { ...todo, ...updates } : todo))
+    return computed(
+      () =>
+        this.tasks().filter(
+          (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+        ).length
     );
   }
 
-  removeTodo(todoId: string): void {
-    this.todosSignal.update((todos) => todos.filter((todo) => todo.id !== todoId));
-    this.tasksSignal.update((tasks) => tasks.filter((task) => task.todoId !== todoId));
-    this.subtasksSignal.update((subtasks) =>
-      subtasks.filter((st) => {
-        const task = this.tasksSignal().find((t) => t.id === st.taskId);
-        return task?.todoId !== todoId;
+  get pendingTasksCount() {
+    return computed(() => this.tasks().filter((task) => task.status === TaskStatus.PENDING).length);
+  }
+
+  // ==================== PRIVATE HELPERS ====================
+
+  private updateTodoSignal(todoId: string, updateFn: (todos: Todo[]) => Todo[]): void {
+    if (this.privateTodosSignal().some((t) => t.id === todoId)) {
+      this.privateTodosSignal.update(updateFn);
+    } else if (this.sharedTodosSignal().some((t) => t.id === todoId)) {
+      this.sharedTodosSignal.update(updateFn);
+    }
+  }
+
+  private updateTaskInTodo(
+    todoId: string,
+    taskId: string,
+    updateFn: (tasks: Task[]) => Task[]
+  ): void {
+    this.updateTodoSignal(todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== todoId) return todo;
+        return { ...todo, tasks: updateFn(todo.tasks || []) };
       })
     );
   }
 
+  private updateSubtaskInTask(
+    todoId: string,
+    taskId: string,
+    subtaskId: string,
+    updateFn: (subtasks: Subtask[]) => Subtask[]
+  ): void {
+    this.updateTodoSignal(todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((task) => {
+            if (task.id !== taskId) return task;
+            return { ...task, subtasks: updateFn(task.subtasks || []) };
+          }),
+        };
+      })
+    );
+  }
+
+  // ==================== INITIALIZATION ====================
+
+  init(userId?: string): void {
+    this.userId = userId || this.authService.getValueByKey("id") || "";
+  }
+
+  private initWebSocketListeners(): void {
+    window.addEventListener("ws-todo-created", () => this.loadAllData(true).subscribe());
+    window.addEventListener("ws-todo-updated", () => this.loadAllData(true).subscribe());
+    window.addEventListener("ws-todo-deleted", () => this.loadAllData(true).subscribe());
+
+    this.localWs.onEvent("task-updated").subscribe((data) => this.updateTask(data.id, data));
+    this.localWs.onEvent("task-deleted").subscribe((data) => this.removeTask(data.id));
+    this.localWs.onEvent("subtask-updated").subscribe((data) => this.updateSubtask(data.id, data));
+    this.localWs.onEvent("subtask-deleted").subscribe((data) => this.removeSubtask(data.id));
+  }
+
+  private isCacheValid(): boolean {
+    if (!this.loadedSignal()) return false;
+    const lastLoaded = this.lastLoadedSignal();
+    if (!lastLoaded) return false;
+    return new Date().getTime() - lastLoaded.getTime() < this.CACHE_EXPIRY_MS;
+  }
+
+  // ==================== DATA LOADING ====================
+
+  loadAllData(force: boolean = false): Observable<any> {
+    if (!this.userId) this.userId = this.authService.getValueByKey("id") || "";
+
+    const hasData = this.privateTodosSignal().length > 0 || this.sharedTodosSignal().length > 0;
+    if (!hasData) force = true;
+
+    if (!force && this.isCacheValid()) {
+      return of({ todos: this.todos(), categories: this.categoriesSignal() });
+    }
+
+    if (this.loadingSignal()) return of(null);
+
+    this.loadingSignal.set(true);
+    const todoRelations = RelationsHelper.getTodoRelations();
+
+    return this.dataSyncProvider.get<Profile>("profiles", { userId: this.userId }).pipe(
+      switchMap((profile) => {
+        this.profileSignal.set(profile);
+        const profileId = profile?.id || "";
+
+        return forkJoin({
+          privateTodos: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { userId: this.userId, visibility: "private" },
+            { isOwner: true, isPrivate: true, relations: todoRelations }
+          ),
+          teamTodosOwner: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { userId: this.userId, visibility: "team" },
+            { isOwner: true, isPrivate: false, relations: todoRelations }
+          ),
+          teamTodosAssignee: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { assignees: profileId, visibility: "team" },
+            { isOwner: false, isPrivate: false, relations: todoRelations }
+          ),
+          categories: this.dataSyncProvider.getAll<Category>("categories", { userId: this.userId }),
+        });
+      }),
+      tap(({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
+        this.privateTodosSignal.set(privateTodos);
+        const sharedTodoMap = new Map<string, Todo>();
+        [...teamTodosOwner, ...teamTodosAssignee].forEach((todo) =>
+          sharedTodoMap.set(todo.id, todo)
+        );
+        this.sharedTodosSignal.set(Array.from(sharedTodoMap.values()));
+        this.categoriesSignal.set(categories);
+        this.loadingSignal.set(false);
+        this.loadedSignal.set(true);
+        this.lastLoadedSignal.set(new Date());
+      })
+    );
+  }
+
+  loadTeamTodos(): Observable<Todo[]> {
+    const userId = this.authService.getValueByKey("id") || "";
+    const todoRelations = RelationsHelper.getTodoRelations();
+
+    return this.dataSyncProvider.get<Profile>("profiles", { userId }).pipe(
+      switchMap((profile) => {
+        this.profileSignal.set(profile);
+        const profileId = profile?.id || "";
+
+        return forkJoin({
+          myTeamProjects: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { userId, visibility: "team" },
+            { isOwner: true, isPrivate: false, relations: todoRelations }
+          ),
+          sharedTeamProjects: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { assignees: profileId, visibility: "team" },
+            { isOwner: false, isPrivate: false, relations: todoRelations }
+          ),
+        });
+      }),
+      map(({ myTeamProjects, sharedTeamProjects }) => {
+        const todoMap = new Map<string, Todo>();
+        [...myTeamProjects, ...sharedTeamProjects].forEach((todo) => todoMap.set(todo.id, todo));
+        const uniqueTodos = Array.from(todoMap.values());
+        this.sharedTodosSignal.set(uniqueTodos);
+        return uniqueTodos;
+      })
+    );
+  }
+
+  // ==================== TODO METHODS ====================
+
+  addTodo(todo: Todo): void {
+    if (this.getTodoById(todo.id)) return;
+    const signal = todo.visibility === "private" ? this.privateTodosSignal : this.sharedTodosSignal;
+    signal.update((todos) => [todo, ...todos]);
+  }
+
+  updateTodo(todoId: string, updates: Partial<Todo>): void {
+    const currentTodo = this.getTodoById(todoId);
+    if (!currentTodo) return;
+
+    if (updates.visibility && updates.visibility !== currentTodo.visibility) {
+      const updatedTodo = { ...currentTodo, ...updates };
+      if (updates.visibility === "private") {
+        this.privateTodosSignal.update((todos) => [updatedTodo, ...todos]);
+        this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+      } else {
+        this.sharedTodosSignal.update((todos) => [updatedTodo, ...todos]);
+        this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+      }
+    } else {
+      this.privateTodosSignal.update((todos) =>
+        todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+      );
+      this.sharedTodosSignal.update((todos) =>
+        todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+      );
+    }
+  }
+
+  removeTodo(todoId: string): void {
+    this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+    this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+  }
+
+  // ==================== TASK METHODS ====================
+
   addTask(task: Task): void {
-    this.tasksSignal.update((tasks) => [...tasks, task]);
+    if (this.getTaskById(task.id)) return;
+    this.updateTaskInTodo(task.todoId, task.id, (tasks) =>
+      tasks.some((t) => t.id === task.id) ? tasks : [...tasks, task]
+    );
   }
 
   updateTask(taskId: string, updates: Partial<Task>): void {
-    this.tasksSignal.update((tasks) =>
-      tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
+    const task = this.getTaskById(taskId);
+    if (!task) return;
+    this.updateTaskInTodo(task.todoId, taskId, (tasks) =>
+      tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))
     );
   }
 
   removeTask(taskId: string): void {
-    this.tasksSignal.update((tasks) => tasks.filter((task) => task.id !== taskId));
-    this.subtasksSignal.update((subtasks) => subtasks.filter((st) => st.taskId !== taskId));
+    const task = this.getTaskById(taskId);
+    if (!task) return;
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) =>
+        todo.id === task.todoId
+          ? { ...todo, tasks: (todo.tasks || []).filter((t) => t.id !== taskId) }
+          : todo
+      )
+    );
   }
 
+  // ==================== SUBTASK METHODS ====================
+
   addSubtask(subtask: Subtask): void {
-    this.subtasksSignal.update((subtasks) => [...subtasks, subtask]);
+    if (this.getSubtaskById(subtask.id)) return;
+    const task = this.getTaskById(subtask.taskId);
+    if (!task) return;
+    this.updateSubtaskInTask(task.todoId, subtask.taskId, subtask.id, (subtasks) =>
+      subtasks.some((s) => s.id === subtask.id) ? subtasks : [...subtasks, subtask]
+    );
   }
 
   updateSubtask(subtaskId: string, updates: Partial<Subtask>): void {
-    this.subtasksSignal.update((subtasks) =>
-      subtasks.map((st) => (st.id === subtaskId ? { ...st, ...updates } : st))
+    const subtask = this.getSubtaskById(subtaskId);
+    if (!subtask) return;
+    const task = this.getTaskById(subtask.taskId);
+    if (!task) return;
+    this.updateSubtaskInTask(task.todoId, subtask.taskId, subtaskId, (subtasks) =>
+      subtasks.map((s) => (s.id === subtaskId ? { ...s, ...updates } : s))
     );
   }
 
   removeSubtask(subtaskId: string): void {
-    this.subtasksSignal.update((subtasks) => subtasks.filter((st) => st.id !== subtaskId));
+    const subtask = this.getSubtaskById(subtaskId);
+    if (!subtask) return;
+    const task = this.getTaskById(subtask.taskId);
+    if (!task) return;
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== task.todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((t) =>
+            t.id === subtask.taskId
+              ? { ...t, subtasks: (t.subtasks || []).filter((s) => s.id !== subtaskId) }
+              : t
+          ),
+        };
+      })
+    );
   }
+
+  // ==================== CATEGORY METHODS ====================
 
   addCategory(category: Category): void {
     this.categoriesSignal.update((categories) => [...categories, category]);
@@ -386,36 +387,26 @@ export class StorageService {
 
   updateCategory(categoryId: string, updates: Partial<Category>): void {
     this.categoriesSignal.update((categories) =>
-      categories.map((cat) => (cat.id === categoryId ? { ...cat, ...updates } : cat))
+      categories.map((c) => (c.id === categoryId ? { ...c, ...updates } : c))
     );
   }
 
   removeCategory(categoryId: string): void {
-    this.categoriesSignal.update((categories) => categories.filter((cat) => cat.id !== categoryId));
+    this.categoriesSignal.update((categories) => categories.filter((c) => c.id !== categoryId));
   }
 
-  // ==================== ROLLBACK METHODS (used by controllers) ====================
-
-  rollbackRemoveTodo(todo: Todo): void {
-    this.todosSignal.update((todos) => [todo, ...todos]);
-  }
-
-  rollbackRemoveTask(task: Task): void {
-    this.tasksSignal.update((tasks) => [...tasks, task]);
-  }
-
-  // ==================== UTILITY METHODS ====================
+  // ==================== GETTERS ====================
 
   getTodoById(todoId: string): Todo | undefined {
-    return this.todosSignal().find((todo) => todo.id === todoId);
+    return this.todos().find((todo) => todo.id === todoId);
   }
 
   getTaskById(taskId: string): Task | undefined {
-    return this.tasksSignal().find((task) => task.id === taskId);
+    return this.tasks().find((task) => task.id === taskId);
   }
 
   getSubtaskById(subtaskId: string): Subtask | undefined {
-    return this.subtasksSignal().find((st) => st.id === subtaskId);
+    return this.subtasks().find((subtask) => subtask.id === subtaskId);
   }
 
   getCategoryById(categoryId: string): Category | undefined {
@@ -423,9 +414,8 @@ export class StorageService {
   }
 
   clear(): void {
-    this.todosSignal.set([]);
-    this.tasksSignal.set([]);
-    this.subtasksSignal.set([]);
+    this.privateTodosSignal.set([]);
+    this.sharedTodosSignal.set([]);
     this.categoriesSignal.set([]);
     this.profileSignal.set(null);
     this.loadedSignal.set(false);

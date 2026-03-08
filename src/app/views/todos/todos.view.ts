@@ -11,7 +11,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -19,6 +19,7 @@ import { NotifyService } from "@services/notify.service";
 import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
 import { StorageService } from "@services/storage.service";
+import { TemplateService, ProjectTemplate } from "@services/template.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -27,13 +28,10 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { TodoComponent } from "@components/todo/todo.component";
 import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
 
-/* controllers */
-import { TodosController } from "@controllers/todos.controller";
-
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [DataSyncProvider, TodosController],
+  providers: [DataSyncProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -46,14 +44,15 @@ import { TodosController } from "@controllers/todos.controller";
   templateUrl: "./todos.view.html",
 })
 export class TodosView implements OnInit {
-  private controller = inject(TodosController);
   private filterService = inject(FilterService);
   private sortService = inject(SortService);
+  public templateService = inject(TemplateService);
 
   constructor(
     private authService: AuthService,
     private storageService: StorageService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataSyncProvider: DataSyncProvider
   ) {
     // Watch for todos data changes and apply filter when data is loaded
     effect(() => {
@@ -62,11 +61,6 @@ export class TodosView implements OnInit {
         this.applyFilter();
       }
     });
-  }
-
-  // Expose templateService for template
-  get templateService() {
-    return this.controller.templateService;
   }
 
   // Use storage signals directly for source data
@@ -88,6 +82,10 @@ export class TodosView implements OnInit {
     { key: "active", label: "Active" },
     { key: "completed", label: "Completed" },
     { key: "week", label: "This Week" },
+    { key: "low", label: "Low Priority" },
+    { key: "medium", label: "Medium Priority" },
+    { key: "high", label: "High Priority" },
+    { key: "urgent", label: "Urgent Priority" },
   ];
 
   get filterOptionsWithCounts(): FilterOption[] {
@@ -110,7 +108,6 @@ export class TodosView implements OnInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
-    this.controller.init(this.userId());
 
     document.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
@@ -171,13 +168,19 @@ export class TodosView implements OnInit {
 
       switch (this.activeFilter()) {
         case "active":
-          filtered = filtered.filter((todo) => !this.controller.isCompleted(todo));
+          filtered = filtered.filter((todo) => !this.isCompleted(todo));
           break;
         case "completed":
-          filtered = filtered.filter((todo) => this.controller.isCompleted(todo));
+          filtered = filtered.filter((todo) => this.isCompleted(todo));
           break;
         case "week":
           filtered = this.filterService.filterThisWeek(filtered);
+          break;
+        case "low":
+        case "medium":
+        case "high":
+        case "urgent":
+          filtered = this.filterService.filterByPriority(filtered, this.activeFilter());
           break;
       }
 
@@ -196,17 +199,23 @@ export class TodosView implements OnInit {
   }
 
   applyFilter(): void {
-    let filtered = [...this.todos()];
+    let filtered = this.todos().filter((todo) => todo.visibility === "private" && !todo.isDeleted);
 
     switch (this.activeFilter()) {
       case "active":
-        filtered = filtered.filter((todo) => !this.controller.isCompleted(todo));
+        filtered = filtered.filter((todo) => !this.isCompleted(todo));
         break;
       case "completed":
-        filtered = filtered.filter((todo) => this.controller.isCompleted(todo));
+        filtered = filtered.filter((todo) => this.isCompleted(todo));
         break;
       case "week":
         filtered = this.filterService.filterThisWeek(filtered);
+        break;
+      case "low":
+      case "medium":
+      case "high":
+      case "urgent":
+        filtered = this.filterService.filterByPriority(filtered, this.activeFilter());
         break;
     }
 
@@ -224,27 +233,50 @@ export class TodosView implements OnInit {
   }
 
   getFilteredCount(filter: string): number {
-    const todos = this.todos();
+    const todos = this.todos().filter((todo) => todo.visibility === "private" && !todo.isDeleted);
 
     switch (filter) {
       case "all":
         return todos.length;
       case "active":
-        return todos.filter((todo) => !this.controller.isCompleted(todo)).length;
+        return todos.filter((todo) => !this.isCompleted(todo)).length;
       case "completed":
-        return todos.filter((todo) => this.controller.isCompleted(todo)).length;
+        return todos.filter((todo) => this.isCompleted(todo)).length;
       case "week":
         return this.filterService.filterThisWeek(todos).length;
+      case "low":
+      case "medium":
+      case "high":
+      case "urgent":
+        return this.filterService.filterByPriority(todos, filter).length;
       default:
         return 0;
     }
   }
 
   deleteTodoById(todoId: string): void {
-    this.controller.deleteTodoById(todoId, () => {
-      // Re-apply filter to update the list after deletion
+    if (confirm("Are you sure you want to delete this project?")) {
+      // Get the todo before deleting for potential rollback
+      const todoToDelete = this.storageService.getTodoById(todoId);
+
+      // Optimistic update
+      this.storageService.removeTodo(todoId);
+      this.notifyService.showSuccess("Todo deleted successfully");
       this.applyFilter();
-    });
+
+      // Send to backend
+      this.dataSyncProvider.delete("todos", todoId, { isOwner: true, isPrivate: true }).subscribe({
+        next: () => {},
+        error: (err) => {
+          // Rollback on failure
+          if (todoToDelete) {
+            this.storageService.addTask(todoToDelete as any); // addTask will find correct project signal
+            this.applyFilter();
+          }
+          this.notifyService.showError(err.message || "Failed to delete todo");
+        },
+      });
+    }
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
@@ -263,18 +295,77 @@ export class TodosView implements OnInit {
       currentTodo.order = tempOrder;
 
       moveItemInArray(todos, event.previousIndex, event.currentIndex);
-      this.controller.updateTwoTodoOrder(prevTodo, currentTodo, () => {
-        this.isUpdatingOrder = false;
+
+      // Optimistic update
+      this.storageService.updateTodo(prevTodo.id, { order: prevTodo.order });
+      this.storageService.updateTodo(currentTodo.id, { order: currentTodo.order });
+      this.notifyService.showSuccess("Project order updated successfully");
+
+      const now = new Date().toISOString();
+      let completedCount = 0;
+      let hasError = false;
+
+      [prevTodo, currentTodo].forEach((todo) => {
+        this.dataSyncProvider
+          .update<Todo>(
+            "todos",
+            todo.id,
+            { id: todo.id, order: todo.order, updatedAt: now },
+            { isOwner: true, isPrivate: true }
+          )
+          .subscribe({
+            next: () => {
+              completedCount++;
+              if (completedCount === 2 || hasError) {
+                this.isUpdatingOrder = false;
+              }
+            },
+            error: (err) => {
+              hasError = true;
+              this.isUpdatingOrder = false;
+              this.notifyService.showError(err.message || "Failed to update project order");
+              this.storageService.loadAllData(true).subscribe();
+            },
+          });
       });
+
       this.isUpdatingOrder = true;
     }
   }
 
   updateTodoOrder(): void {
-    this.isUpdatingOrder = true;
-    this.controller.updateTodoOrder(this.listTodos(), (success) => {
-      this.isUpdatingOrder = false;
+    const todos = this.listTodos();
+    const previousTodos = todos.map((todo) => ({ ...todo }));
+
+    const transformedTodos = todos.map((todo, index) => ({
+      ...todo,
+      order: todos.length - 1 - index,
+      categories: todo.categories?.map((cat) => cat.id) || [],
+      assignees: todo.assignees?.map((assignee) => assignee.id) || [],
+    }));
+
+    // Optimistic update
+    transformedTodos.forEach((todo) => {
+      this.storageService.updateTodo(todo.id, { order: todo.order });
     });
+    this.notifyService.showSuccess("Order updated successfully");
+    this.isUpdatingOrder = true;
+
+    this.dataSyncProvider
+      .updateAll<string>("todos", transformedTodos, { isOwner: true, isPrivate: true })
+      .subscribe({
+        next: () => {
+          this.isUpdatingOrder = false;
+        },
+        error: (err) => {
+          // Rollback
+          previousTodos.forEach((todo) => {
+            this.storageService.updateTodo(todo.id, { order: todo.order });
+          });
+          this.isUpdatingOrder = false;
+          this.notifyService.showError(err.message || "Failed to update order");
+        },
+      });
   }
 
   // Blueprint methods
@@ -291,9 +382,9 @@ export class TodosView implements OnInit {
     const description = this.newBlueprintDescription();
 
     if (todo && name) {
-      this.controller.saveAsBlueprint(todo, name, description, () => {
-        this.closeCreateBlueprintDialog();
-      });
+      this.templateService.createTemplateFromTodo(todo, name, description);
+      this.notifyService.showSuccess(`Project saved as "${name}" Blueprint`);
+      this.closeCreateBlueprintDialog();
     }
   }
 
@@ -306,14 +397,82 @@ export class TodosView implements OnInit {
 
   confirmCreateFromBlueprint() {
     const template = this.blueprintToApply();
-    const newTitle = this.applyBlueprintTitle();
+    const title = this.applyBlueprintTitle();
 
-    if (template && newTitle) {
-      this.controller.createFromBlueprint(template, newTitle, () => {
-        // No need to reload - storage auto-updates
-        this.showApplyBlueprintDialog.set(false);
-        this.showCreateBlueprintDialog.set(false);
-      });
+    if (template && title) {
+      const todo: Todo = {
+        id: `todo-${Date.now()}`,
+        title,
+        description: template.description,
+        isDeleted: false,
+        userId: this.userId(),
+        user: { id: this.userId() } as any,
+        visibility: "private",
+        categories: [],
+        tasks: [],
+        assignees: [],
+        priority: template.priority || "medium",
+        order: 0,
+        startDate: "",
+        endDate: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Storage update is handled by WebSocket broadcast (loadAllData)
+      this.dataSyncProvider
+        .create<Todo>("todos", todo, { isOwner: true, isPrivate: true })
+        .subscribe({
+          next: (createdTodo) => {
+            const todoId = createdTodo.id;
+            const tasks = this.templateService.applyTemplate(template, todoId, this.userId());
+
+            if (tasks.length === 0) {
+              this.notifyService.showSuccess("Project created from Blueprint!");
+              this.showApplyBlueprintDialog.set(false);
+              return;
+            }
+
+            tasks.forEach((task) => {
+              const { subtasks, ...taskWithoutSubtasks } = task;
+              // Storage update handled by WebSocket
+              this.dataSyncProvider
+                .create<Task>(
+                  "tasks",
+                  taskWithoutSubtasks,
+                  { isOwner: true, isPrivate: true },
+                  todoId
+                )
+                .subscribe({
+                  next: (createdTask) => {
+                    const subtasks = task.subtasks || [];
+                    subtasks.forEach((subtask: any) => {
+                      const subtaskWithActualTaskId = {
+                        ...subtask,
+                        taskId: createdTask.id,
+                        todoId: todoId,
+                      };
+                      // Storage update handled by WebSocket
+                      this.dataSyncProvider
+                        .create<any>(
+                          "subtasks",
+                          subtaskWithActualTaskId,
+                          { isOwner: true, isPrivate: true },
+                          todoId
+                        )
+                        .subscribe();
+                    });
+                  },
+                });
+            });
+
+            this.notifyService.showSuccess("Project created from Blueprint!");
+            this.showApplyBlueprintDialog.set(false);
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to create project");
+          },
+        });
     }
   }
 
@@ -326,12 +485,24 @@ export class TodosView implements OnInit {
 
   removeBlueprint(templateId: string) {
     if (confirm("Are you sure you want to remove this blueprint?")) {
-      this.controller.templateService.deleteTemplate(templateId);
+      this.templateService.deleteTemplate(templateId);
       this.notifyService.showSuccess("Blueprint removed successfully");
     }
   }
 
   getSubtasksCount(template: any): number {
     return template.tasks.reduce((sum: number, t: any) => sum + (t.subtasks?.length || 0), 0);
+  }
+
+  /**
+   * Check if todo is completed
+   */
+  isCompleted(todo: Todo): boolean {
+    const listTasks = todo?.tasks ?? [];
+    if (listTasks.length === 0) return false;
+    const listCompletedTasks = listTasks.filter(
+      (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+    );
+    return listCompletedTasks.length === listTasks.length;
   }
 }

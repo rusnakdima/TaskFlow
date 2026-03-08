@@ -19,7 +19,7 @@
       [task]="task()!"
       [todoId]="todoId()"
       [projectTitle]="projectTitle()"
-      [listSubtasks]="tempListSubtasks()"
+      [listSubtasks]="listSubtasks()"
       [isOwner]="isOwner"
       [isPrivate]="isPrivate"
     />
@@ -54,7 +54,7 @@
     [filterOptions]="filterOptions"
     [activeFilter]="activeFilter()"
     [showFilter]="showFilter()"
-    [searchTempArray]="subtasks()"
+    [searchTempArray]="taskSubtasks()"
     [searchByFields]="['title']"
     filterLabel="Status"
     filterGroupName="subtask-filter"

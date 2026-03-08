@@ -9,6 +9,7 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  computed,
 } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
@@ -19,6 +20,9 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* helpers */
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
+
+/* services */
+import { AuthService } from "@services/auth.service";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -33,6 +37,7 @@ import { Task, TaskStatus } from "@models/task.model";
 })
 export class TodoComponent {
   private baseHelper = inject(BaseItemHelper);
+  private authService = inject(AuthService);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -46,6 +51,32 @@ export class TodoComponent {
   isExpandedDetails = signal(false);
 
   truncateString = Common.truncateString;
+
+  get unreadCommentsCount(): number {
+    if (!this.todo) return 0;
+    const userId = this.authService.getValueByKey("id");
+    if (!userId) return 0;
+
+    let count = 0;
+    const tasks = this.todo.tasks || [];
+
+    tasks.forEach((task) => {
+      // Comments in tasks
+      if (task.comments) {
+        count += task.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
+      }
+      // Comments in subtasks
+      if (task.subtasks) {
+        task.subtasks.forEach((subtask) => {
+          if (subtask.comments) {
+            count += subtask.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
+          }
+        });
+      }
+    });
+
+    return count;
+  }
 
   onSaveAsBlueprint(event: Event) {
     event.stopPropagation();
@@ -82,15 +113,13 @@ export class TodoComponent {
   getProgressSegments = () => this.baseHelper.getProgressSegments(this.todo?.tasks ?? []);
 
   getProjectStatusColor(): string {
-    if (!this.todo) return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
+    if (!this.todo) return "bg-gray-400";
     const completed = this.countCompletedTasks;
     const total = this.countTasks;
-    if (total === 0) return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
-    if (completed === total)
-      return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
-    if (completed > total / 2)
-      return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
-    return "bg-gray-100 dark:bg-zinc-700 text-gray-700 dark:text-gray-300";
+
+    if (total === 0) return "bg-gray-400";
+    if (completed === total) return "bg-green-700 dark:bg-green-400";
+    return "bg-blue-700 dark:bg-blue-400";
   }
 
   getProjectStatusText(): string {
@@ -104,6 +133,8 @@ export class TodoComponent {
   }
 
   formatDate = this.baseHelper.formatDate;
+
+  getPriorityBadgeClass = this.baseHelper.getPriorityBadgeClass;
 
   deleteTodo() {
     if (this.todo) {

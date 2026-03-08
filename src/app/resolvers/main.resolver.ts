@@ -6,10 +6,12 @@ import { firstValueFrom } from "rxjs";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
-import { RelationObj, TypesField } from "@models/relation-obj.model";
+
+/* helpers */
+import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
-import { DataSyncProvider } from "../providers/data-sync.provider";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Injectable({
   providedIn: "root",
@@ -22,32 +24,6 @@ export class MainResolver implements Resolve<any> {
     state: RouterStateSnapshot
   ): Promise<Object | string> {
     const paramsMap = route.paramMap;
-    const queryParams = route.queryParams;
-
-    const todoRelations: RelationObj[] = [
-      {
-        nameTable: "tasks",
-        typeField: TypesField.OneToMany,
-        nameField: "todoId",
-        newNameField: "tasks",
-        relations: [
-          {
-            nameTable: "subtasks",
-            typeField: TypesField.OneToMany,
-            nameField: "taskId",
-            newNameField: "subtasks",
-            relations: null,
-          },
-        ],
-      },
-      {
-        nameTable: "categories",
-        typeField: TypesField.ManyToOne,
-        nameField: "categories",
-        newNameField: "categories",
-        relations: null,
-      },
-    ];
 
     try {
       if (paramsMap.get("taskId")) {
@@ -65,7 +41,7 @@ export class MainResolver implements Resolve<any> {
         const todoObservable = this.dataSyncProvider.get<Todo>(
           "todos",
           { id: todoId },
-          { isOwner: true, isPrivate: true, relations: todoRelations }
+          { isOwner: true, isPrivate: true, relations: RelationsHelper.getTodoRelations() }
         );
 
         const todo = await firstValueFrom(todoObservable);
@@ -77,7 +53,7 @@ export class MainResolver implements Resolve<any> {
         const todoObservable = this.dataSyncProvider.get<Todo>(
           "todos",
           { id: todoId },
-          { isOwner: true, isPrivate: true, relations: todoRelations }
+          { isOwner: true, isPrivate: true, relations: RelationsHelper.getTodoRelations() }
         );
 
         const todo = await firstValueFrom(todoObservable);

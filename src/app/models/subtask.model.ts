@@ -1,5 +1,6 @@
 /* models */
-import { PriorityTask, Task, TaskStatus } from "./task.model";
+import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { Comment } from "@models/comment.model";
 
 export interface Subtask {
   _id?: {} | undefined;
@@ -16,4 +17,5 @@ export interface Subtask {
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  comments: Array<Comment>;
 }

@@ -2,8 +2,15 @@
 import { Component, OnInit, signal, effect, computed, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Router, ActivatedRoute } from "@angular/router";
+import { Router, ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
+
+/* materials */
+import { MatIconModule } from "@angular/material/icon";
+import { MatSelectModule } from "@angular/material/select";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -13,23 +20,12 @@ import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
-import { DataSyncProvider } from "../../providers/data-sync.provider";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { NotifyService } from "@services/notify.service";
 import { KanbanDragDropService } from "@services/kanban-drag-drop.service";
 import { KanbanUIHelper } from "@services/kanban-ui-helper.service";
 import { StorageService } from "@services/storage.service";
-
-/* controllers */
-import { KanbanController } from "@controllers/kanban.controller";
-
-/* materials */
-import { MatIconModule } from "@angular/material/icon";
-import { MatSelectModule } from "@angular/material/select";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatMenuModule } from "@angular/material/menu";
-import { MatButtonModule } from "@angular/material/button";
-import { RouterModule } from "@angular/router";
 
 /* components */
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
@@ -37,7 +33,7 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 @Component({
   selector: "app-kanban",
   standalone: true,
-  providers: [DataSyncProvider, KanbanController],
+  providers: [DataSyncProvider],
   imports: [
     CommonModule,
     FormsModule,
@@ -53,14 +49,23 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
   templateUrl: "./kanban.view.html",
 })
 export class KanbanView implements OnInit {
-  private controller = inject(KanbanController);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private dataSyncProvider = inject(DataSyncProvider);
+  private localWs = inject(LocalWebSocketService);
+  private notifyService = inject(NotifyService);
+  private dragDropService = inject(KanbanDragDropService);
+  private uiHelper = inject(KanbanUIHelper);
+  private storageService = inject(StorageService);
 
   TaskStatus = TaskStatus;
-  todos = signal<Todo[]>([]);
+
+  // Use storage signals directly for source data
+  todos = computed(() => this.storageService.todos().filter((todo) => !todo.isDeleted));
+
   selectedTodoId = signal<string>("");
-  tasks = signal<Task[]>([]);
   loading = signal<boolean>(false);
-  subtasksMap = signal<Map<string, Subtask[]>>(new Map());
   expandedTasks = signal<Set<string>>(new Set());
 
   userId = signal<string>("");
@@ -74,6 +79,15 @@ export class KanbanView implements OnInit {
     return todo?.title || "No Project Selected";
   });
 
+  // Derived tasks for the selected project
+  projectTasks = computed(() => {
+    const todoId = this.selectedTodoId();
+    if (!todoId) return [];
+    return this.storageService
+      .getTasksByTodoId(todoId)()
+      .filter((task) => !task.isDeleted);
+  });
+
   columns = [
     { id: TaskStatus.PENDING, label: "To Do", icon: "assignment" },
     { id: TaskStatus.COMPLETED, label: "Done", icon: "check_circle" },
@@ -81,116 +95,28 @@ export class KanbanView implements OnInit {
     { id: TaskStatus.FAILED, label: "Failed", icon: "error" },
   ];
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
-    private localWs: LocalWebSocketService,
-    private notifyService: NotifyService,
-    private dragDropService: KanbanDragDropService,
-    private uiHelper: KanbanUIHelper,
-    private storageService: StorageService
-  ) {
+  constructor() {
     effect(() => {
-      const todoId = this.selectedTodoId();
-      if (todoId) {
-        this.loadTasksWithSubtasks(todoId);
+      const todos = this.todos();
+      if (todos.length > 0 && !this.selectedTodoId()) {
+        const queryProjectId = this.route.snapshot.queryParams["projectId"];
+        if (queryProjectId) {
+          this.selectedTodoId.set(queryProjectId);
+        } else {
+          this.selectedTodoId.set(todos[0].id);
+        }
       }
     });
   }
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
-    this.controller.init(this.userId());
-
-    this.loadTodos();
 
     // Handle projectId query param for deep linking
     this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
       }
-    });
-
-    this.localWs.onEvent("task-updated").subscribe((data) => {
-      if (data.todoId === this.selectedTodoId()) {
-        this.tasks.update((tasks) => {
-          return tasks.map((t) => {
-            if (t.id === data.id) {
-              return { ...t, ...data };
-            }
-            return t;
-          });
-        });
-      }
-      this.loadTodos();
-    });
-
-    this.localWs.onEvent("task-created").subscribe((data) => {
-      if (data.todoId === this.selectedTodoId()) {
-        this.tasks.update((tasks) => [...tasks, data]);
-      }
-      this.loadTodos();
-    });
-
-    this.localWs.onEvent("task-deleted").subscribe((data) => {
-      this.tasks.update((tasks) => tasks.filter((t) => t.id !== data.id));
-      this.loadTodos();
-    });
-
-    // Listen for subtask events
-    this.localWs.onEvent("subtask-updated").subscribe((data) => {
-      this.loadSubtasksForTask(data.taskId);
-    });
-
-    this.localWs.onEvent("subtask-created").subscribe((data) => {
-      this.loadSubtasksForTask(data.taskId);
-    });
-
-    this.localWs.onEvent("subtask-deleted").subscribe((data) => {
-      this.loadSubtasksForTask(data.taskId);
-    });
-  }
-
-  async loadTodos() {
-    this.controller.loadTodos().subscribe({
-      next: (todos) => {
-        this.todos.set(todos);
-      },
-      error: (error) => {
-        this.notifyService.showError("Failed to load projects");
-      },
-    });
-  }
-
-  async loadTasksWithSubtasks(todoId: string) {
-    this.loading.set(true);
-    this.controller.loadTasksWithSubtasks(todoId).subscribe({
-      next: (result) => {
-        this.tasks.set(result.tasks);
-        this.subtasksMap.set(result.subtasksMap);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        this.notifyService.showError("Failed to load tasks");
-        this.loading.set(false);
-      },
-    });
-  }
-
-  loadSubtasksForTask(taskId: string) {
-    this.controller.loadSubtasksForTask(taskId).subscribe({
-      next: (subtasks) => {
-        this.subtasksMap.update((map) => {
-          const newMap = new Map(map);
-          newMap.set(taskId, subtasks);
-          return newMap;
-        });
-      },
-      error: (error) => {
-        console.error("Failed to load subtasks for task:", taskId);
-      },
     });
   }
 
@@ -201,10 +127,6 @@ export class KanbanView implements OnInit {
         newSet.delete(task.id);
       } else {
         newSet.add(task.id);
-        // Load subtasks if not already loaded
-        if (!this.subtasksMap().has(task.id)) {
-          this.loadSubtasksForTask(task.id);
-        }
       }
       return newSet;
     });
@@ -246,11 +168,7 @@ export class KanbanView implements OnInit {
     }
 
     const todoId = this.selectedTodoId();
-    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
-    if (!selectedTodo) return;
-
-    const isPrivate = selectedTodo.visibility === "private";
-    const isOwner = selectedTodo.userId === this.userId();
+    if (!todoId) return;
 
     const updatedSubtask = { ...subtask, status: newStatus };
 
@@ -258,20 +176,21 @@ export class KanbanView implements OnInit {
     this.storageService.updateSubtask(subtask.id, { status: newStatus });
 
     this.dataSyncProvider
-      .update<Subtask>("subtasks", subtask.id, updatedSubtask, { isOwner, isPrivate }, todoId)
+      .update<Subtask>("subtasks", subtask.id, updatedSubtask, undefined, todoId)
       .subscribe({
         next: () => {
           this.notifyService.showSuccess(message);
-          this.loadSubtasksForTask(subtask.taskId);
         },
         error: (error) => {
           this.notifyService.showError("Failed to update subtask");
+          // Revert on error
+          this.storageService.updateSubtask(subtask.id, { status: subtask.status });
         },
       });
   }
 
   getSubtasksForTask(taskId: string): Subtask[] {
-    return this.subtasksMap().get(taskId) || [];
+    return this.storageService.getSubtasksByTaskId(taskId)();
   }
 
   getCompletedSubtasksCount(taskId: string): number {
@@ -291,7 +210,15 @@ export class KanbanView implements OnInit {
   }
 
   getTasksByStatus(status: string): Task[] {
-    return this.controller.getTasksByStatus(this.tasks(), status, this.searchQuery());
+    const query = this.searchQuery().toLowerCase().trim();
+    return this.projectTasks().filter((t) => {
+      const matchesStatus = t.status === status;
+      const matchesSearch =
+        !query ||
+        t.title.toLowerCase().includes(query) ||
+        (t.description && t.description.toLowerCase().includes(query));
+      return matchesStatus && matchesSearch;
+    });
   }
 
   onSearchChange(query: string) {
@@ -332,49 +259,35 @@ export class KanbanView implements OnInit {
     }
 
     const todoId = this.selectedTodoId();
-    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
-    if (!selectedTodo) {
+    if (!todoId) {
       console.error("[Kanban] No selected todo found, aborting moveTask");
       return;
     }
 
-    const isPrivate = selectedTodo.visibility === "private";
-    const isOwner = selectedTodo.userId === this.userId();
+    const originalTask = this.storageService.getTaskById(taskId);
 
-    this.controller.moveTask(taskId, newStatus, todoId, isOwner, isPrivate).subscribe({
-      next: () => {
-        this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
-        this.tasks.update((tasks) => {
-          return tasks.map((t) => {
-            if (t.id === taskId) {
-              return { ...t, status: newStatus };
-            }
-            return t;
-          });
-        });
-      },
-      error: (error) => {
-        console.error("[Kanban] Failed to move task:", error);
-        this.notifyService.showError("Failed to move task");
-        this.loadTasksWithSubtasks(todoId);
-      },
-    });
+    this.dataSyncProvider
+      .update<Task>("tasks", taskId, { id: taskId, status: newStatus, todoId }, undefined, todoId)
+      .subscribe({
+        next: () => {
+          this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
+          this.storageService.updateTask(taskId, { status: newStatus });
+        },
+        error: (error) => {
+          console.error("[Kanban] Failed to move task:", error);
+          this.notifyService.showError("Failed to move task");
+          // Revert on error
+          if (originalTask) {
+            this.storageService.updateTask(taskId, { status: originalTask.status });
+          }
+        },
+      });
   }
 
   navigateToTask(task: Task) {
     const todoId = this.selectedTodoId();
-    const selectedTodo: Todo | undefined = this.todos().find((t) => t.id === todoId);
-    if (!selectedTodo) {
-      console.error("[Kanban] No selected todo found, aborting moveTask");
-      return;
-    }
-
-    const isPrivate = selectedTodo.visibility === "private";
-    const isOwner = selectedTodo.userId === this.userId();
     if (todoId && task.id) {
-      this.router.navigate(["/todos", todoId, "tasks", task.id, "subtasks"], {
-        queryParams: { isPrivate, isOwner },
-      });
+      this.router.navigate(["/todos", todoId, "tasks", task.id, "subtasks"]);
     }
   }
 }
