@@ -27,6 +27,8 @@ impl Display for TaskStatus {
   }
 }
 
+use crate::models::comment_model::CommentModel;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskModel {
   pub _id: ObjectId,
@@ -42,6 +44,7 @@ pub struct TaskModel {
   pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
+  pub comments: Vec<CommentModel>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +56,7 @@ pub struct TaskCreateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
+  pub comments: Option<Vec<CommentModel>>,
 }
 
 impl TaskCreateModel {
@@ -107,24 +111,38 @@ impl From<TaskCreateModel> for TaskModel {
       isDeleted: false,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
+      comments: value.comments.unwrap_or_default(),
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskUpdateModel {
+  #[serde(default)]
   pub _id: Option<ObjectId>,
   pub id: String,
+  #[serde(default)]
   pub todoId: Option<String>,
+  #[serde(default)]
   pub title: Option<String>,
+  #[serde(default)]
   pub description: Option<String>,
+  #[serde(default)]
   pub status: Option<TaskStatus>,
+  #[serde(default)]
   pub priority: Option<String>,
+  #[serde(default)]
   pub startDate: Option<String>,
+  #[serde(default)]
   pub endDate: Option<String>,
+  #[serde(default)]
   pub order: Option<i32>,
+  #[serde(default)]
   pub isDeleted: Option<bool>,
+  #[serde(default)]
   pub updatedAt: Option<String>,
+  #[serde(default)]
+  pub comments: Option<Vec<CommentModel>>,
 }
 
 impl TaskUpdateModel {

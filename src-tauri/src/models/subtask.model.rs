@@ -3,7 +3,9 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
 /* models */
-use crate::models::{sync_metadata_model::SyncMetadata, task_model::TaskStatus};
+use crate::models::{
+  comment_model::CommentModel, sync_metadata_model::SyncMetadata, task_model::TaskStatus,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskModel {
@@ -18,6 +20,7 @@ pub struct SubtaskModel {
   pub isDeleted: bool,
   pub createdAt: String,
   pub updatedAt: String,
+  pub comments: Vec<CommentModel>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +32,7 @@ pub struct SubtaskCreateModel {
   pub order: i32,
   #[serde(rename = "_syncMetadata")]
   pub sync_metadata: Option<SyncMetadata>,
+  pub comments: Option<Vec<CommentModel>>,
 }
 
 impl SubtaskCreateModel {
@@ -63,23 +67,37 @@ impl From<SubtaskCreateModel> for SubtaskModel {
       isDeleted: false,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
+      comments: value.comments.unwrap_or_default(),
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskUpdateModel {
+  #[serde(default)]
   pub _id: Option<ObjectId>,
   pub id: String,
+  #[serde(default)]
   pub taskId: Option<String>,
+  #[serde(default)]
   pub title: Option<String>,
+  #[serde(default)]
   pub description: Option<String>,
+  #[serde(default)]
   pub status: Option<TaskStatus>,
+  #[serde(default)]
   pub priority: Option<String>,
+  #[serde(default)]
   pub order: Option<i32>,
+  #[serde(default)]
   pub isDeleted: Option<bool>,
+  #[serde(default)]
   pub createdAt: Option<String>,
+  #[serde(default)]
   pub updatedAt: Option<String>,
+  #[serde(default)]
+  pub comments: Option<Vec<CommentModel>>,
+  #[serde(default)]
   #[serde(rename = "_syncMetadata")]
   pub sync_metadata: Option<SyncMetadata>,
 }
