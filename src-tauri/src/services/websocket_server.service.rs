@@ -31,7 +31,7 @@ impl WebSocketServerService {
   }
 
   pub async fn start(self: Arc<Self>, port: u16) {
-    let addr = format!("127.0.0.1:{}", port);
+    let addr = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(&addr)
       .await
       .expect("Failed to bind to address");

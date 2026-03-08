@@ -1,6 +1,7 @@
 /* sys lib */
 use mongodb::bson::{doc, from_bson, to_bson, Document};
 use serde_json::Value;
+use std::collections::HashSet;
 
 /* providers */
 use super::{json_provider::JsonProvider, mongodb_crud_provider::MongodbCrudProvider};
@@ -45,6 +46,9 @@ impl MongodbSyncProvider {
       "categories",
       "daily_activities",
     ];
+
+    let mut teamTodoIds = HashSet::new();
+    let mut teamTaskIds = HashSet::new();
 
     for table in tables {
       // Handle deleted records first - propagate to cloud
@@ -144,18 +148,59 @@ impl MongodbSyncProvider {
           obj.remove("_id");
         }
 
+        let mut syncSuccessful = false;
         match self.mongodbCrud.get(table, None, &id).await {
           Ok(existingDoc) => {
             let existingVal = serde_json::to_value(&existingDoc)?;
             // Only update if local record has newer updatedAt
             if Self::shouldUpdateTarget(&record, &existingVal) {
               let doc: Document = from_bson(to_bson(&record)?)?;
-              self.mongodbCrud.update(table, &id, doc).await?;
+              if self.mongodbCrud.update(table, &id, doc).await.is_ok() {
+                syncSuccessful = true;
+              }
+            } else {
+              // Cloud is newer or same, consider it "synced" for deletion purposes
+              syncSuccessful = true;
             }
           }
           Err(_) => {
             let doc: Document = from_bson(to_bson(&record)?)?;
-            self.mongodbCrud.create(table, doc).await?;
+            if self.mongodbCrud.create(table, doc).await.is_ok() {
+              syncSuccessful = true;
+            }
+          }
+        }
+
+        // If record is successfully in cloud and has team visibility, remove from local
+        if syncSuccessful {
+          let mut shouldRemoveFromLocal = false;
+
+          if table == "todos" {
+            if record.get("visibility").and_then(|v| v.as_str()) == Some("team") {
+              teamTodoIds.insert(id.clone());
+              shouldRemoveFromLocal = true;
+            }
+          } else if table == "tasks" {
+            let todoId = record
+              .get("todoId")
+              .and_then(|v| v.as_str())
+              .unwrap_or_default();
+            if teamTodoIds.contains(todoId) {
+              teamTaskIds.insert(id.clone());
+              shouldRemoveFromLocal = true;
+            }
+          } else if table == "subtasks" {
+            let taskId = record
+              .get("taskId")
+              .and_then(|v| v.as_str())
+              .unwrap_or_default();
+            if teamTaskIds.contains(taskId) {
+              shouldRemoveFromLocal = true;
+            }
+          }
+
+          if shouldRemoveFromLocal {
+            let _ = jsonProvider.hardDelete(table, &id).await;
           }
         }
       }
@@ -183,13 +228,19 @@ impl MongodbSyncProvider {
 
     for table in tables {
       let filter = match table {
-        "todos" | "categories" | "daily_activities" => {
+        "todos" => {
+          Some(doc! { "userId": &userId, "isDeleted": { "$ne": true }, "visibility": "private" })
+        }
+        "categories" | "daily_activities" => {
           Some(doc! { "userId": &userId, "isDeleted": { "$ne": true } })
         }
         "tasks" => {
           let todos = self
             .mongodbCrud
-            .getAll("todos", Some(doc! { "userId": &userId }))
+            .getAll(
+              "todos",
+              Some(doc! { "userId": &userId, "visibility": "private" }),
+            )
             .await?;
           let todoIds: Vec<String> = todos
             .iter()
@@ -201,7 +252,10 @@ impl MongodbSyncProvider {
         "subtasks" => {
           let todos = self
             .mongodbCrud
-            .getAll("todos", Some(doc! { "userId": &userId }))
+            .getAll(
+              "todos",
+              Some(doc! { "userId": &userId, "visibility": "private" }),
+            )
             .await?;
           let todoIds: Vec<String> = todos
             .iter()
