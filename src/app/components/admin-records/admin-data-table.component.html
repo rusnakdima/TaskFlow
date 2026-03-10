@@ -1,0 +1,110 @@
+<div class="grid grid-cols-1 gap-4">
+  @for (item of data; track item.id) {
+    <mat-card class="p-4 hover:shadow-lg transition-shadow">
+      <div class="flex items-start gap-4">
+        <app-checkbox
+          class="mt-1"
+          [checked]="isSelected(item.id)"
+          (checkedChange)="onSelectChange(item.id)"
+        />
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold textNormal text-lg mb-1 truncate">
+                {{ item[titleKey] || "No Title" }}
+              </h4>
+              <div class="flex items-center gap-4 text-sm textMuted">
+                <span class="truncate">ID: {{ item.id }}</span>
+                <span>{{ formatDate(item.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 ml-4 shrink-0">
+              <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.isDeleted)">
+                {{ getDeletedStatusText(item.isDeleted) }}
+              </mat-chip>
+              <button mat-icon-button class="w-8 h-8" (click)="toggleExpanded(item.id)">
+                <mat-icon class="w-5 h-5">
+                  {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
+                </mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-blue-600"
+                (click)="toggleDelete.emit(item)"
+                [title]="item.isDeleted ? 'Restore record' : 'Soft delete record'"
+              >
+                <mat-icon
+                  class="w-5! h-5! text-xl!"
+                  [fontIcon]="item.isDeleted ? 'restore_from_trash' : 'delete'"
+                />
+              </button>
+              <button
+                mat-icon-button
+                class="w-8 h-8 text-red-600"
+                (click)="deleteRecord.emit(item)"
+                title="Permanently delete record"
+              >
+                <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+
+          @if (isExpanded(item.id)) {
+            <div class="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                @for (field of fields; track field.key) {
+                  <div
+                    [class.md:col-span-2]="field.type === 'text' && field.key === descriptionKey"
+                  >
+                    <span class="font-medium textMuted mr-2">{{ field.label }}:</span>
+
+                    @switch (field.type) {
+                      @case ("date") {
+                        <span class="textNormal">{{ formatDate(getValue(item, field)) }}</span>
+                      }
+                      @case ("priority") {
+                        <mat-chip
+                          class="h-6 text-xs"
+                          [ngClass]="getPriorityColor(getValue(item, field))"
+                        >
+                          {{ getValue(item, field) }}
+                        </mat-chip>
+                      }
+                      @case ("chip") {
+                        <mat-chip
+                          class="h-6 text-xs"
+                          [ngClass]="field.getChipColor ? field.getChipColor(item) : ''"
+                        >
+                          {{ field.getChipText ? field.getChipText(item) : getValue(item, field) }}
+                        </mat-chip>
+                      }
+                      @case ("user") {
+                        @if (getValue(item, field)) {
+                          <span class="textNormal">
+                            {{ getValue(item, field).profile.name }}
+                            {{ getValue(item, field).profile.lastName }} ({{
+                              getValue(item, field).username
+                            }})
+                          </span>
+                        } @else {
+                          <span class="textMuted">No User</span>
+                        }
+                      }
+                      @case ("array-count") {
+                        <span class="textNormal">{{ getValue(item, field)?.length || 0 }}</span>
+                      }
+                      @default {
+                        <span class="textNormal">{{ getValue(item, field) }}</span>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </mat-card>
+  }
+</div>

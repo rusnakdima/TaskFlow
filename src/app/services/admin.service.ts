@@ -1,6 +1,7 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
+import { Observable, from } from "rxjs";
 
 /* models */
 import { Response } from "@models/response.model";
@@ -14,8 +15,8 @@ import { AuthService } from "@services/auth.service";
 export class AdminService {
   constructor(private authService: AuthService) {}
 
-  async getAllDataForAdmin<R>(): Promise<Response<R>> {
-    return await invoke<Response<R>>("getAllDataForAdmin");
+  getAllDataForAdmin<R>(): Observable<Response<R>> {
+    return from(invoke<Response<R>>("getAllDataForAdmin"));
   }
 
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {

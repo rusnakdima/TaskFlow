@@ -4,6 +4,7 @@ import { AdminService } from "@services/admin.service";
 import { NotifyService } from "@services/notify.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { StorageService } from "@services/storage.service";
+import { DataSyncService } from "@services/data-sync.service";
 import { ResponseStatus } from "@models/response.model";
 import { tap } from "rxjs/operators";
 
@@ -15,7 +16,8 @@ export class AdminRecordsService {
     private adminService: AdminService,
     private notifyService: NotifyService,
     private bulkActionService: BulkActionService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private dataSyncService: DataSyncService
   ) {}
 
   async deleteRecord(selectedType: string, record: any): Promise<boolean> {
@@ -29,7 +31,7 @@ export class AdminRecordsService {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        this.storageService.loadAllData(true).subscribe();
+        this.dataSyncService.loadAllData(true).subscribe();
         return true;
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
@@ -96,7 +98,7 @@ export class AdminRecordsService {
       .pipe(
         tap((result) => {
           if (result.successCount > 0) {
-            this.storageService.loadAllData(true).subscribe();
+            this.dataSyncService.loadAllData(true).subscribe();
           }
         })
       );
