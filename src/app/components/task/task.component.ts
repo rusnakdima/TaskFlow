@@ -76,23 +76,11 @@ export class TaskComponent implements OnInit {
   truncateString = Common.truncateString;
 
   get unreadCommentsCount(): number {
-    const userId = this.authService.getValueByKey("id");
-    if (!userId || !this.task) return 0;
-
-    let count = 0;
-    // Comments in task
-    if (this.task.comments) {
-      count += this.task.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
-    }
-    // Comments in subtasks
-    if (this.task.subtasks) {
-      this.task.subtasks.forEach((subtask) => {
-        if (subtask.comments) {
-          count += subtask.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
-        }
-      });
-    }
-    return count;
+    return this.baseHelper.countUnreadComments(
+      this.task,
+      this.authService.getValueByKey("id"),
+      'task'
+    );
   }
 
   get hasUnreadComments(): boolean {
