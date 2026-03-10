@@ -7,6 +7,7 @@ import {
   OnInit,
   Output,
   signal,
+  inject,
   ChangeDetectorRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
@@ -29,6 +30,7 @@ import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
+import { NotificationAction } from "@services/notification-center.service";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -36,6 +38,7 @@ import { NotifyService } from "@services/notify.service";
 import { SyncService } from "@services/sync.service";
 import { NotificationCenterService } from "@services/notification-center.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
+import { StorageService } from "@services/storage.service";
 
 interface Breadcrumb {
   label: string;
@@ -50,6 +53,8 @@ interface Breadcrumb {
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
+  private storageService = inject(StorageService);
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -104,7 +109,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
       )
       .subscribe(async (breadcrumbs) => {
         this.breadcrumbs.set(await breadcrumbs);
-        this.isBack.set(this.breadcrumbs().length > 1);
+        const currentUrl = this.router.url.split("?")[0];
+        this.isBack.set(currentUrl !== "/dashboard" && currentUrl !== "/");
         this.title.set(
           this.breadcrumbs().length > 0
             ? this.breadcrumbs()[this.breadcrumbs().length - 1].label
@@ -231,6 +237,70 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   clearNotifications() {
     this.notificationService.clearAll();
+  }
+
+  onNotificationClick(notif: NotificationAction): void {
+    // Mark as read
+    this.markAsRead(notif.id);
+
+    // Navigate based on notification type
+    if (notif.type === "chat") {
+      // Navigate to todo -> chat section
+      if (notif.todoId) {
+        this.router.navigate(["/todos", notif.todoId, "tasks"], {
+          queryParams: { openChat: true, highlightChat: notif.chatId },
+        });
+      }
+    } else if (notif.type === "comment") {
+      // Navigate to the task/subtask with the comment
+      if (notif.todoId && notif.taskId) {
+        const queryParams: any = {
+          highlightComment: notif.commentId,
+          openComments: true,
+        };
+        // If we know the subtask, navigate to subtasks view
+        if (notif.subtaskId) {
+          this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
+            queryParams,
+          });
+        } else {
+          // Otherwise navigate to tasks view (comment could be on task level)
+          this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
+            queryParams,
+          });
+        }
+      } else if (notif.todoId) {
+        // Comment on todo level (if applicable)
+        this.router.navigate(["/todos", notif.todoId, "tasks"], {
+          queryParams: { openChat: true },
+        });
+      }
+    } else if (notif.type === "todo") {
+      // Navigate to todos page and highlight
+      if (notif.todoId) {
+        this.router.navigate(["/todos"], {
+          queryParams: { highlightTodo: notif.todoId },
+        });
+      }
+    } else if (notif.type === "task") {
+      // Navigate to tasks page and highlight
+      if (notif.todoId && notif.taskId) {
+        this.router.navigate(["/todos", notif.todoId, "tasks"], {
+          queryParams: { highlightTaskId: notif.taskId },
+        });
+      } else if (notif.todoId) {
+        this.router.navigate(["/todos", notif.todoId, "tasks"]);
+      }
+    } else if (notif.type === "subtask") {
+      // Navigate to subtasks page and highlight
+      if (notif.todoId && notif.taskId && notif.subtaskId) {
+        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
+          queryParams: { highlightSubtask: notif.subtaskId },
+        });
+      } else if (notif.todoId && notif.taskId) {
+        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"]);
+      }
+    }
   }
 
   async syncAll() {
