@@ -34,13 +34,14 @@ import { ShortcutService } from "@services/shortcut.service";
 import { FormValidatorService } from "@services/form-validator.service";
 import { DateValidatorService } from "@services/date-validator.service";
 import { StorageService } from "@services/storage.service";
+import { DataSyncService } from "@services/data-sync.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeTodoDates,
+  normalizeEntityDates,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -76,7 +77,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private dataSyncProvider: DataSyncProvider,
     private shortcutService: ShortcutService,
     private formValidator: FormValidatorService,
-    private dateValidator: DateValidatorService
+    private dateValidator: DateValidatorService,
+    private dataSyncService: DataSyncService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -303,7 +305,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
             this.fetchCategories();
             this.notifyService.showSuccess("Category added successfully");
             // Manually add to storage
-            this.storageService.addCategory(result);
+            this.storageService.addItem("category", result);
           },
           error: (err) => this.notifyService.showError(err.message || "Failed to add category"),
         });
@@ -321,14 +323,15 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const formValue = this.form.value;
       const body = {
-        ...convertDatesToUtc(normalizeTodoDates(formValue)),
+        ...convertDatesToUtc(normalizeEntityDates(formValue)),
+        priority: formValue.priority || "medium",
         categories: formValue.categories.map((c: Category) => c.id),
-        assignees: formValue.assignees.map((p: Profile) => p.id),
+        assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
       };
       this.dataSyncProvider.create<Todo>("todos", body, undefined, body.id).subscribe({
         next: (result: Todo) => {
           // Manually add to storage
-          this.storageService.addTodo(result);
+          this.storageService.addItem("todo", result);
           this.isSubmitting.set(false);
           this.notifyService.showSuccess("Todo created successfully");
           this.back();
@@ -348,21 +351,29 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const formValue = this.form.value;
       const body = {
-        ...convertDatesToUtc(normalizeTodoDates(formValue)),
+        ...convertDatesToUtc(normalizeEntityDates(formValue)),
+        priority: formValue.priority || "medium",
         categories: formValue.categories.map((c: Category) => c.id),
-        assignees: formValue.assignees.map((p: Profile) => p.id),
+        assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
       };
 
       const newVisibility = formValue.visibility as "private" | "team";
       const visibilityChanged = (this.isPrivate ? "private" : "team") !== newVisibility;
 
-      this.dataSyncProvider.update<Todo>("todos", body.id, body, undefined, body.id).subscribe({
+      // Determine sync metadata based on visibility
+      const isPrivate = newVisibility === "private";
+      const syncMetadata = { isOwner: true, isPrivate };
+
+      this.dataSyncProvider.update<Todo>("todos", body.id, body, syncMetadata, body.id).subscribe({
         next: async (result: Todo) => {
-          // Manually update storage
-          this.storageService.updateTodo(result.id, result);
+          // Update storage with visibility change handling
+          this.storageService.updateItem("todo", result.id, result);
+
           if (visibilityChanged) {
             try {
               await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
+              // After sync, reload data to ensure consistency
+              this.dataSyncService.loadAllData(true).subscribe();
             } catch (err) {
               console.error("Sync failed:", err);
               this.notifyService.showWarning("Todo updated, but sync may not have completed.");

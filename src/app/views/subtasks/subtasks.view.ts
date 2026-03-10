@@ -2,7 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, ChangeDetectorRef, inject, computed } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
-import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
+import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { HostListener } from "@angular/core";
 
 /* materials */
@@ -13,12 +13,17 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
+/* helpers */
+import { StateHelper } from "@helpers/state.helper";
+
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
 import { StorageService } from "@services/storage.service";
+import { ChatService } from "@services/chat.service";
+import { DragDropOrderService } from "@services/drag-drop-order.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -27,6 +32,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { SubtaskComponent } from "@components/subtask/subtask.component";
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
+import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 
 @Component({
   selector: "app-subtasks",
@@ -40,6 +46,7 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
     TaskInformationComponent,
     FilterBarComponent,
     DragDropModule,
+    ChatWindowComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -52,16 +59,23 @@ export class SubtasksView implements OnInit {
   private filterService = inject(FilterService);
   private sortService = inject(SortService);
   private storageService = inject(StorageService);
+  public chatService = inject(ChatService);
+  private stateHelper = inject(StateHelper);
+  private dragDropService = inject(DragDropOrderService);
 
   // State signals
   task = signal<Task | null>(null);
   activeFilter = signal("all");
   showFilter = signal(false);
+  showChat = signal(false);
   searchQuery = signal("");
   todoId = signal("");
   todo = signal<Todo | null>(null);
   projectTitle = signal("");
   fromKanban = signal(false);
+  highlightSubtask = signal<string | null>(null);
+  highlightComment = signal<string | null>(null);
+  openComments = signal(false);
 
   // Computed signals for data flow
   taskSubtasks = computed(() => {
@@ -116,7 +130,6 @@ export class SubtasksView implements OnInit {
   userId: string = "";
   isOwner: boolean = true;
   isPrivate: boolean = true;
-  private isUpdatingOrder: boolean = false;
 
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
@@ -143,6 +156,27 @@ export class SubtasksView implements OnInit {
       if (queryParams.fromKanban !== undefined) {
         this.fromKanban.set(queryParams.fromKanban === "true");
       }
+      if (queryParams.highlightSubtask) {
+        this.highlightSubtask.set(queryParams.highlightSubtask);
+        setTimeout(() => {
+          const element = document.getElementById("subtask-" + queryParams.highlightSubtask);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            element.classList.add("ring-4", "ring-purple-500", "animate-pulse");
+            setTimeout(() => {
+              element.classList.remove("ring-4", "ring-purple-500", "animate-pulse");
+            }, 2000);
+          }
+          this.highlightSubtask.set(null);
+        }, 500);
+      }
+      if (queryParams.highlightComment) {
+        this.highlightComment.set(queryParams.highlightComment);
+        this.openComments.set(true);
+      }
+      if (queryParams.openComments) {
+        this.openComments.set(true);
+      }
     });
 
     const routeData = this.route.snapshot.data;
@@ -165,6 +199,13 @@ export class SubtasksView implements OnInit {
 
   toggleFilter() {
     this.showFilter.update((v) => !v);
+  }
+  toggleChat() {
+    this.showChat.update((v) => !v);
+  }
+  getUnreadCount(): number {
+    const todoId = this.todoId();
+    return todoId ? this.chatService.getUnreadCount(todoId) : 0;
   }
   changeFilter(filter: string) {
     this.activeFilter.set(filter);
@@ -203,50 +244,26 @@ export class SubtasksView implements OnInit {
         break;
     }
 
-    const previousStatus = subtask.status;
-    this.storageService.updateSubtask(subtask.id, { status: newStatus });
-
-    this.dataSyncProvider
-      .update<Subtask>("subtasks", subtask.id, { ...subtask, status: newStatus }, undefined, todoId)
-      .subscribe({
-        next: (result: Subtask) => {
-          // Manually update storage
-          this.storageService.updateSubtask(result.id, result);
-          this.notifyService.showSuccess("Status updated");
-        },
-        error: (err: any) => {
-          this.storageService.updateSubtask(subtask.id, { status: previousStatus });
-          this.notifyService.showError(err.message || "Failed to update status");
-        },
-      });
+    this.stateHelper.updateOptimistically<Subtask>(
+      "subtask",
+      subtask.id,
+      { status: newStatus },
+      subtask,
+      todoId
+    );
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: any }) {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    const previousValue = (event.subtask as any)[event.field];
-    this.storageService.updateSubtask(event.subtask.id, { [event.field]: event.value });
-
-    this.dataSyncProvider
-      .update<Subtask>(
-        "subtasks",
-        event.subtask.id,
-        { ...event.subtask, [event.field]: event.value },
-        undefined,
-        todoId
-      )
-      .subscribe({
-        next: (result: Subtask) => {
-          // Manually update storage
-          this.storageService.updateSubtask(result.id, result);
-          this.notifyService.showSuccess("Subtask updated successfully");
-        },
-        error: (err: any) => {
-          this.storageService.updateSubtask(event.subtask.id, { [event.field]: previousValue });
-          this.notifyService.showError(err.message || "Update failed");
-        },
-      });
+    this.stateHelper.updateOptimistically<Subtask>(
+      "subtask",
+      event.subtask.id,
+      { [event.field]: event.value },
+      event.subtask,
+      todoId
+    );
   }
 
   deleteSubtask(id: string) {
@@ -255,39 +272,20 @@ export class SubtasksView implements OnInit {
 
     if (!confirm("Are you sure?")) return;
     const subtaskToDelete = this.storageService.getSubtaskById(id);
-    this.storageService.removeSubtask(id);
-
-    this.dataSyncProvider.delete("subtasks", id, undefined, todoId).subscribe({
-      error: (err: any) => {
-        if (subtaskToDelete) this.storageService.addSubtask(subtaskToDelete);
-        this.notifyService.showError(err.message || "Delete failed");
-      },
-    });
+    if (subtaskToDelete) {
+      this.stateHelper.deleteOptimistically<Subtask>("subtask", id, subtaskToDelete, todoId);
+    }
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    if (this.isUpdatingOrder) return;
-    if (event.previousIndex === event.currentIndex) return;
-
-    const subtasks = [...this.listSubtasks()];
-    moveItemInArray(subtasks, event.previousIndex, event.currentIndex);
-
-    this.isUpdatingOrder = true;
-    subtasks.forEach((s, i) => (s.order = subtasks.length - 1 - i));
-
-    this.dataSyncProvider.updateAll<string>("subtasks", subtasks, undefined, todoId).subscribe({
-      next: (results: any) => {
-        this.isUpdatingOrder = false;
-        this.notifyService.showSuccess("Order updated");
-      },
-      error: (err: any) => {
-        this.isUpdatingOrder = false;
-        this.notifyService.showError("Failed to update order");
-        this.storageService.loadAllData(true).subscribe();
-      },
-    });
+    this.dragDropService
+      .handleDrop(event, this.listSubtasks(), "subtask", "subtasks", todoId, {
+        isOwner: this.isOwner,
+        isPrivate: this.isPrivate,
+      })
+      .subscribe();
   }
 }

@@ -3,9 +3,8 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, inject, computed } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import { CdkDragDrop, DragDropModule, moveItemInArray } from "@angular/cdk/drag-drop";
+import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { HostListener } from "@angular/core";
-import { forkJoin } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -15,6 +14,9 @@ import { MatExpansionModule } from "@angular/material/expansion";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus, RepeatInterval, PriorityTask } from "@models/task.model";
 
+/* helpers */
+import { StateHelper } from "@helpers/state.helper";
+
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
@@ -22,6 +24,7 @@ import { FilterService } from "@services/filter.service";
 import { SortService } from "@services/sort.service";
 import { BulkActionService, BulkOperationResult } from "@services/bulk-action.service";
 import { StorageService } from "@services/storage.service";
+import { DragDropOrderService } from "@services/drag-drop-order.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -31,6 +34,7 @@ import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
+import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 
 @Component({
   selector: "app-tasks",
@@ -46,6 +50,7 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
     TodoInformationComponent,
     BulkActionsComponent,
     FilterBarComponent,
+    ChatWindowComponent,
     DragDropModule,
   ],
   templateUrl: "./tasks.view.html",
@@ -55,10 +60,12 @@ export class TasksView implements OnInit {
   private sortService = inject(SortService);
   private bulkActionService = inject(BulkActionService);
   private storageService = inject(StorageService);
+  private stateHelper = inject(StateHelper);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
   private route = inject(ActivatedRoute);
+  private dragDropService = inject(DragDropOrderService);
 
   // State signals
   todo = signal<Todo | null>(null);
@@ -66,6 +73,9 @@ export class TasksView implements OnInit {
   showFilter = signal(false);
   searchQuery = signal("");
   highlightTaskId = signal<string | null>(null);
+  highlightCommentId = signal<string | null>(null);
+  openComments = signal(false);
+  openChat = signal(false);
   selectedTasks = signal<Set<string>>(new Set());
   showBulkActions = signal(false);
 
@@ -117,7 +127,6 @@ export class TasksView implements OnInit {
   isOwner: boolean = true;
   isPrivate: boolean = true;
   userId: string = "";
-  private isUpdatingOrder: boolean = false;
 
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
@@ -145,9 +154,25 @@ export class TasksView implements OnInit {
         this.highlightTaskId.set(queryParams.highlightTaskId);
         setTimeout(() => {
           const element = document.getElementById("task-" + queryParams.highlightTaskId);
-          if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            element.classList.add("ring-4", "ring-green-500", "animate-pulse");
+            setTimeout(() => {
+              element.classList.remove("ring-4", "ring-green-500", "animate-pulse");
+            }, 2000);
+          }
           this.highlightTaskId.set(null);
         }, 500);
+      }
+      if (queryParams.highlightCommentId) {
+        this.highlightCommentId.set(queryParams.highlightCommentId);
+        this.openComments.set(true);
+      }
+      if (queryParams.openComments) {
+        this.openComments.set(true);
+      }
+      if (queryParams.openChat) {
+        this.openChat.set(true);
       }
     });
 
@@ -188,29 +213,14 @@ export class TasksView implements OnInit {
         break;
     }
 
-    const previousStatus = task.status;
-    // Optimistic update
-    this.storageService.updateTask(task.id, { status: newStatus });
-
-    this.dataSyncProvider
-      .update<Task>("tasks", task.id, { ...task, status: newStatus }, undefined, todoId)
-      .subscribe({
-        next: (result: Task) => {
-          // Manually update storage
-          this.storageService.updateTask(result.id, result);
-          if (
-            newStatus === TaskStatus.COMPLETED &&
-            task.repeat &&
-            task.repeat !== RepeatInterval.NONE
-          ) {
-            this.generateNextRecurringTask(task);
-          }
-        },
-        error: (err: any) => {
-          this.storageService.updateTask(task.id, { status: previousStatus });
-          this.notifyService.showError(err.message || "Failed to update status");
-        },
-      });
+    // Use StateHelper for optimistic update
+    this.stateHelper.updateOptimistically<Task>(
+      "task",
+      task.id,
+      { status: newStatus },
+      task,
+      todoId
+    );
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {
@@ -260,7 +270,7 @@ export class TasksView implements OnInit {
     this.dataSyncProvider.create<Task>("tasks", nextTask, undefined, todoId).subscribe({
       next: (result: Task) => {
         // Manually add to storage
-        this.storageService.addTask(result);
+        this.storageService.addItem("task", result);
         this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
       },
       error: () => {
@@ -293,98 +303,37 @@ export class TasksView implements OnInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    const previousValue = (event.task as any)[event.field];
-    // Optimistic update
-    this.storageService.updateTask(event.task.id, { [event.field]: event.value });
-
-    this.dataSyncProvider
-      .update<Task>(
-        "tasks",
-        event.task.id,
-        { ...event.task, [event.field]: event.value },
-        undefined,
-        todoId
-      )
-      .subscribe({
-        next: (result: Task) => {
-          // Manually update storage
-          this.storageService.updateTask(result.id, result);
-        },
-        error: (err: any) => {
-          this.storageService.updateTask(event.task.id, { [event.field]: previousValue });
-          this.notifyService.showError(err.message || "Update failed");
-        },
-      });
+    this.stateHelper.updateOptimistically<Task>(
+      "task",
+      event.task.id,
+      { [event.field]: event.value },
+      event.task,
+      todoId
+    );
   }
 
   deleteTask(taskId: string) {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    if (!confirm("Are you sure?")) return;
     const taskToDelete = this.storageService.getTaskById(taskId);
-    // Optimistic delete
-    this.storageService.removeTask(taskId);
+    if (!taskToDelete) return;
 
-    this.dataSyncProvider.delete("tasks", taskId, undefined, todoId).subscribe({
-      error: (err: any) => {
-        // Rollback
-        if (taskToDelete) this.storageService.addTask(taskToDelete);
-        this.notifyService.showError(err.message || "Delete failed");
-      },
-    });
+    if (!confirm("Are you sure?")) return;
+
+    this.stateHelper.deleteOptimistically<Task>("task", taskId, taskToDelete, todoId);
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    if (this.isUpdatingOrder) return;
-    if (event.previousIndex === event.currentIndex) return;
-
-    const tasks = [...this.listTasks()];
-    const prevTask = tasks[event.previousIndex];
-    const currentTask = tasks[event.currentIndex];
-
-    const tempOrder = prevTask.order;
-    prevTask.order = currentTask.order;
-    currentTask.order = tempOrder;
-
-    moveItemInArray(tasks, event.previousIndex, event.currentIndex);
-    this.isUpdatingOrder = true;
-
-    // Optimistic update
-    this.storageService.updateTask(prevTask.id, { order: prevTask.order });
-    this.storageService.updateTask(currentTask.id, { order: currentTask.order });
-
-    const now = new Date().toISOString();
-    forkJoin([
-      this.dataSyncProvider.update<Task>(
-        "tasks",
-        prevTask.id,
-        { id: prevTask.id, order: prevTask.order, updatedAt: now },
-        undefined,
-        todoId
-      ),
-      this.dataSyncProvider.update<Task>(
-        "tasks",
-        currentTask.id,
-        { id: currentTask.id, order: currentTask.order, updatedAt: now },
-        undefined,
-        todoId
-      ),
-    ]).subscribe({
-      next: (results: Task[]) => {
-        // Manually update storage
-        results.forEach((r) => this.storageService.updateTask(r.id, r));
-        this.isUpdatingOrder = false;
-      },
-      error: (err: any) => {
-        this.isUpdatingOrder = false;
-        this.notifyService.showError("Failed to update order");
-        this.storageService.loadAllData(true).subscribe();
-      },
-    });
+    this.dragDropService
+      .handleDrop(event, this.listTasks(), "task", "tasks", todoId, {
+        isOwner: this.isOwner,
+        isPrivate: this.isPrivate,
+      })
+      .subscribe();
   }
 
   toggleTaskSelection(taskId: string) {
@@ -416,7 +365,7 @@ export class TasksView implements OnInit {
     const selectedIds = Array.from(this.selectedTasks());
     // Optimistic
     selectedIds.forEach((id) =>
-      this.storageService.updateTask(id, { priority: priority as PriorityTask })
+      this.storageService.updateItem("task", id, { priority: priority as PriorityTask })
     );
     this.clearSelection();
 
@@ -441,7 +390,7 @@ export class TasksView implements OnInit {
     const selectedIds = Array.from(this.selectedTasks());
     // Optimistic
     selectedIds.forEach((id) =>
-      this.storageService.updateTask(id, { status: status as TaskStatus })
+      this.storageService.updateItem("task", id, { status: status as TaskStatus })
     );
     this.clearSelection();
 
@@ -466,7 +415,7 @@ export class TasksView implements OnInit {
     if (!confirm(`Delete ${selectedIds.length} tasks?`)) return;
 
     // Optimistic
-    selectedIds.forEach((id) => this.storageService.removeTask(id));
+    selectedIds.forEach((id) => this.storageService.removeItem("task", id));
     this.clearSelection();
 
     this.bulkActionService

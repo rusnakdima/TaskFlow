@@ -36,7 +36,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeSubtaskDates,
+  normalizeEntityDates,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -230,7 +230,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           )
         );
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeSubtaskDates(formValue);
+        const normalizedFormValue = normalizeEntityDates(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const duplicateData = {
           ...convertedDates,
@@ -246,7 +246,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           .subscribe({
             next: (result: Subtask) => {
               // Manually add to storage
-              this.storageService.addSubtask(result);
+              this.storageService.addItem("subtask", result);
               this.notifyService.showSuccess("Subtask duplicated successfully");
             },
             error: (err) =>
@@ -295,14 +295,14 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           )
         );
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeSubtaskDates(formValue);
+        const normalizedFormValue = normalizeEntityDates(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
 
         this.dataSyncProvider.create<Subtask>("subtasks", body, undefined, todoId).subscribe({
           next: (result: Subtask) => {
             // Manually add to storage
-            this.storageService.addSubtask(result);
+            this.storageService.addItem("subtask", result);
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Subtask created successfully");
             this.back();
@@ -326,14 +326,14 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.todoId();
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeSubtaskDates(formValue);
+      const normalizedFormValue = normalizeEntityDates(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = { ...convertedDates };
 
       this.dataSyncProvider.update<any>("subtasks", body.id, body, undefined, todoId).subscribe({
         next: (result: Subtask) => {
           // Manually update storage
-          this.storageService.updateSubtask(result.id, result);
+          this.storageService.updateItem("subtask", result.id, result);
           this.isSubmitting.set(false);
           this.notifyService.showSuccess("Subtask updated successfully");
           this.back();

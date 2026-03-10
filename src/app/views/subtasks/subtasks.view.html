@@ -85,7 +85,11 @@
           cdkDrag
           [subtask]="subtask"
           [index]="$index"
+          [isOwner]="isOwner"
           [isPrivate]="isPrivate"
+          [highlight]="highlightSubtask() === subtask.id"
+          [highlightComment]="highlightComment()"
+          [openComments]="openComments()"
           (deleteSubtaskEvent)="deleteSubtask($event)"
           (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
           (updateSubtaskEvent)="updateSubtaskInline($event)"
@@ -96,3 +100,23 @@
     </div>
   }
 </div>
+
+<!-- Floating Chat Button -->
+<button
+  (click)="toggleChat()"
+  class="fixed bottom-20 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 z-40"
+>
+  <mat-icon class="text-2xl!" [fontIcon]="showChat() ? 'close' : 'chat'" />
+  @if (getUnreadCount() > 0) {
+    <span
+      class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-zinc-800"
+    >
+      {{ getUnreadCount() }}
+    </span>
+  }
+</button>
+
+<!-- Chat Window -->
+@if (showChat() && todoId()) {
+  <app-chat-window [todoId]="todoId()" (close)="toggleChat()" />
+}
