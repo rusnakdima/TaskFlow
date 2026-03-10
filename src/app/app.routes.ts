@@ -14,10 +14,7 @@ import { ChangePasswordView } from "@views/change-password/change-password.view"
 import { ResetPasswordView } from "@views/reset-password/reset-password.view";
 
 import { DashboardView } from "@views/dashboard/dashboard.view";
-import { CalendarView } from "@views/calendar/calendar.view";
 import { SharedTasksView } from "@views/shared-tasks/shared-tasks.view";
-import { StatsView } from "@views/stats/stats.view";
-import { AboutView } from "@views/about/about.view";
 import { SyncView } from "@views/sync/sync.view";
 import { CategoriesView } from "@views/categories/categories.view";
 import { KanbanView } from "@views/kanban/kanban.view";
@@ -32,9 +29,9 @@ import { ManageSubtaskView } from "@views/subtasks/manage-subtask/manage-subtask
 import { ProfileView } from "@views/profile/profile.view";
 import { CreateProfileView } from "@views/create-profile/create-profile.view";
 import { EditProfileView } from "@views/edit-profile/edit-profile.view";
+import { SettingsView } from "@views/settings/settings.view";
 
 import { NotFoundView } from "@views/not-found/not-found.view";
-import { AdminView } from "@views/admin/admin.view";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
@@ -47,14 +44,14 @@ export const routes: Routes = [
   },
   {
     path: "stats",
-    component: StatsView,
+    loadComponent: () => import("@views/stats/stats.view").then((m) => m.StatsView),
     title: "Statistic",
     data: { breadcrumb: "Statistic" },
     canActivate: [canActivateAuth],
   },
   {
     path: "calendar",
-    component: CalendarView,
+    loadComponent: () => import("@views/calendar/calendar.view").then((m) => m.CalendarView),
     title: "Calendar",
     data: { breadcrumb: "Calendar" },
     canActivate: [canActivateAuth],
@@ -75,7 +72,7 @@ export const routes: Routes = [
   },
   {
     path: "about",
-    component: AboutView,
+    loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
     title: "About",
     data: { breadcrumb: "About" },
     canActivate: [canActivateAuth],
@@ -118,9 +115,16 @@ export const routes: Routes = [
 
   {
     path: "admin",
-    component: AdminView,
+    loadComponent: () => import("@views/admin/admin.view").then((m) => m.AdminView),
     title: "Admin",
     data: { breadcrumb: "Admin" },
+    canActivate: [canActivateAuth],
+  },
+  {
+    path: "settings",
+    component: SettingsView,
+    title: "Settings",
+    data: { breadcrumb: "Settings" },
     canActivate: [canActivateAuth],
   },
   {

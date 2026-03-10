@@ -1,15 +1,15 @@
 <div class="min-h-screen theme">
-  @if (showComponents) {
+  @if (showComponents()) {
     <app-header />
   }
 
-  <main class="pb-20 w-full">
+  <main class="pb-36 w-full">
     <div class="max-w-7xl mx-auto p-3 lg:px-6 w-full">
       <router-outlet />
     </div>
   </main>
 
-  @if (showComponents) {
+  @if (showComponents()) {
     <app-bottom-nav />
   }
 </div>
