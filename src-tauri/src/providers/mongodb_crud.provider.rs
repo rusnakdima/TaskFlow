@@ -1,8 +1,14 @@
 /* sys lib */
+use async_trait::async_trait;
 use mongodb::{
-  bson::{doc, Document},
+  bson::{doc, from_bson, to_bson, Document},
   Collection, Database,
 };
+use serde_json::Value;
+
+/* providers */
+use crate::errors::ApiResult;
+use crate::providers::base_crud::CrudProvider;
 
 /// MongodbCrudProvider - CRUD operations for MongoDB
 #[derive(Clone)]
@@ -15,121 +21,56 @@ impl MongodbCrudProvider {
     Self { db }
   }
 
-  pub async fn getDataTable(
-    &self,
-    nameTable: &str,
-  ) -> Result<Collection<Document>, Box<dyn std::error::Error + Send + Sync>> {
+  pub async fn getDataTable(&self, nameTable: &str) -> ApiResult<Collection<Document>> {
     let tableData = self.db.collection::<Document>(nameTable);
     Ok(tableData)
   }
 
-  pub async fn getAll(
-    &self,
-    nameTable: &str,
-    filter: Option<Document>,
-  ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
-    let tableData = self.getDataTable(nameTable).await?;
-
-    let mut effectiveFilter = filter.unwrap_or(doc! {});
-    if !effectiveFilter.contains_key("isDeleted") {
-      effectiveFilter.insert("isDeleted", false);
-    }
-
-    let mut cursor = tableData.find(effectiveFilter).await?;
-
-    let mut results: Vec<Document> = Vec::new();
-    while cursor.advance().await? {
-      let doc = cursor.deserialize_current()?;
-      results.push(doc);
-    }
-
-    Ok(results)
-  }
-
-  /// Get all records including deleted ones (no automatic isDeleted filter)
   pub async fn getAllWithDeleted(
     &self,
     nameTable: &str,
-    filter: Option<Document>,
-  ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
+    filter: Option<Value>,
+  ) -> ApiResult<Vec<Value>> {
     let tableData = self.getDataTable(nameTable).await?;
-    let effectiveFilter = filter.unwrap_or(doc! {});
+
+    let effectiveFilter = match filter {
+      Some(f) => match to_bson(&f)? {
+        mongodb::bson::Bson::Document(d) => d,
+        _ => doc! {},
+      },
+      None => doc! {},
+    };
 
     let mut cursor = tableData.find(effectiveFilter).await?;
 
-    let mut results: Vec<Document> = Vec::new();
+    let mut results: Vec<Value> = Vec::new();
     while cursor.advance().await? {
       let doc = cursor.deserialize_current()?;
-      results.push(doc);
+      let val = from_bson(mongodb::bson::Bson::Document(doc))?;
+      results.push(val);
     }
 
     Ok(results)
   }
 
-  pub async fn get(
-    &self,
-    nameTable: &str,
-    filter: Option<Document>,
-    id: &str,
-  ) -> Result<Document, Box<dyn std::error::Error + Send + Sync>> {
-    let tableData = self.getDataTable(nameTable).await?;
-    let filter = match filter {
-      Some(filter) => filter,
-      None => doc! { "id": id.to_string() },
-    };
-
-    let result = match tableData.find_one(filter).await {
-      Ok(docOpt) => match docOpt {
-        Some(doc) => doc,
-        None => {
-          return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "Document not found",
-          )))
-        }
-      },
-      Err(e) => return Err(Box::new(e)),
-    };
-
-    Ok(result)
-  }
-
-  pub async fn create(
-    &self,
-    nameTable: &str,
-    document: Document,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let tableData = self.getDataTable(nameTable).await?;
-    tableData.insert_one(document).await?;
-    Ok(true)
-  }
-
-  pub async fn update(
-    &self,
-    nameTable: &str,
-    id: &str,
-    document: Document,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let tableData = self.getDataTable(nameTable).await?;
-    let filter = doc! { "id": id.to_string() };
-    let update = doc! { "$set": document };
-    tableData.update_one(filter, update).await?;
-    Ok(true)
-  }
-
-  pub async fn updateAll(
-    &self,
-    nameTable: &str,
-    documents: Vec<Document>,
-  ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    if documents.is_empty() {
-      return Ok(());
+  pub async fn updateAll(&self, nameTable: &str, records: Vec<Value>) -> ApiResult<bool> {
+    if records.is_empty() {
+      return Ok(true);
     }
 
     let tableData = self.getDataTable(nameTable).await?;
 
-    for mut doc in documents {
+    for rec in records {
+      let mut doc: Document = match to_bson(&rec)? {
+        mongodb::bson::Bson::Document(d) => d,
+        _ => continue,
+      };
+
       let id = doc.get_str("id").unwrap_or_default();
+      if id.is_empty() {
+        continue;
+      }
+
       let filter = doc! { "id": id };
 
       doc.remove("_id");
@@ -145,31 +86,91 @@ impl MongodbCrudProvider {
         .await?;
     }
 
-    Ok(())
+    Ok(true)
   }
 
-  pub async fn delete(
-    &self,
-    nameTable: &str,
-    id: &str,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+  pub async fn hardDelete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
     let tableData = self.getDataTable(nameTable).await?;
     let filter = doc! { "id": id.to_string() };
-    let update = doc! { "$set": { "isDeleted": true, "updatedAt": formatted } };
+    tableData.delete_one(filter).await?;
+    Ok(true)
+  }
+}
+
+#[async_trait]
+impl CrudProvider for MongodbCrudProvider {
+  async fn getAll(&self, nameTable: &str, filter: Option<Value>) -> ApiResult<Vec<Value>> {
+    let tableData = self.getDataTable(nameTable).await?;
+
+    let mut effectiveFilter = match filter {
+      Some(f) => match to_bson(&f)? {
+        mongodb::bson::Bson::Document(d) => d,
+        _ => doc! {},
+      },
+      None => doc! {},
+    };
+
+    // Skip isDeleted filter for tables that don't support soft delete (e.g., users)
+    if !effectiveFilter.contains_key("isDeleted") && nameTable != "users" {
+      effectiveFilter.insert("isDeleted", false);
+    }
+
+    let mut cursor = tableData.find(effectiveFilter).await?;
+
+    let mut results: Vec<Value> = Vec::new();
+    while cursor.advance().await? {
+      let doc = cursor.deserialize_current()?;
+      let val = from_bson(mongodb::bson::Bson::Document(doc))?;
+      results.push(val);
+    }
+
+    Ok(results)
+  }
+
+  async fn get(&self, nameTable: &str, id: &str) -> ApiResult<Value> {
+    let tableData = self.getDataTable(nameTable).await?;
+    let filter = doc! { "id": id.to_string() };
+
+    let doc = tableData
+      .find_one(filter)
+      .await?
+      .ok_or_else(|| format!("Document with id {} not found", id))?;
+
+    let val = from_bson(mongodb::bson::Bson::Document(doc))?;
+    Ok(val)
+  }
+
+  async fn create(&self, nameTable: &str, data: Value) -> ApiResult<bool> {
+    let tableData = self.getDataTable(nameTable).await?;
+    let doc: Document = match to_bson(&data)? {
+      mongodb::bson::Bson::Document(d) => d,
+      _ => return Err("Invalid data format for MongoDB".into()),
+    };
+    tableData.insert_one(doc).await?;
+    Ok(true)
+  }
+
+  async fn update(&self, nameTable: &str, id: &str, data: Value) -> ApiResult<bool> {
+    let tableData = self.getDataTable(nameTable).await?;
+    let filter = doc! { "id": id.to_string() };
+
+    let mut doc: Document = match to_bson(&data)? {
+      mongodb::bson::Bson::Document(d) => d,
+      _ => return Err("Invalid data format for MongoDB".into()),
+    };
+    doc.remove("_id"); // Never update _id
+
+    let update = doc! { "$set": doc };
     tableData.update_one(filter, update).await?;
     Ok(true)
   }
 
-  pub async fn hardDelete(
-    &self,
-    nameTable: &str,
-    id: &str,
-  ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+  async fn delete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
+    let timestamp = crate::helpers::timestamp_helper::getCurrentTimestamp();
     let tableData = self.getDataTable(nameTable).await?;
     let filter = doc! { "id": id.to_string() };
-    tableData.delete_one(filter).await?;
+    let update = doc! { "$set": { "isDeleted": true, "updatedAt": timestamp } };
+    tableData.update_one(filter, update).await?;
     Ok(true)
   }
 }
