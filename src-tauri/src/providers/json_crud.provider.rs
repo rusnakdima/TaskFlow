@@ -290,6 +290,61 @@ impl JsonCrudProvider {
     Ok(listRecords)
   }
 
+  /// Get all records including deleted ones (no automatic isDeleted filter)
+  pub async fn getAllWithDeleted(
+    &self,
+    nameTable: &str,
+    filter: Option<Value>,
+  ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut listRecords = self.getDataTable(nameTable).await?;
+
+    let effectiveFilter = if let Some(f) = filter { f } else { json!({}) };
+
+    if let Some(filterObj) = effectiveFilter.as_object() {
+      listRecords = listRecords
+        .into_iter()
+        .filter(|record| {
+          if let Some(recordObj) = record.as_object() {
+            filterObj.iter().all(|(key, filterValue)| {
+              if recordObj.contains_key(key) {
+                recordObj
+                  .get(key)
+                  .map(|recordValue| {
+                    if let Some(filterValue) = filterValue.as_object() {
+                      if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
+                        if let Some(vecRec) = recordValue.as_array() {
+                          inVals.iter().any(|inVal| vecRec.contains(inVal))
+                        } else {
+                          false
+                        }
+                      } else {
+                        false
+                      }
+                    } else if filterValue.is_array() {
+                      filterValue.as_array().unwrap().contains(recordValue)
+                    } else {
+                      // Compare string values properly
+                      match (recordValue.as_str(), filterValue.as_str()) {
+                        (Some(recStr), Some(filterStr)) => recStr == filterStr,
+                        _ => recordValue == filterValue,
+                      }
+                    }
+                  })
+                  .unwrap_or(false)
+              } else {
+                true
+              }
+            })
+          } else {
+            false
+          }
+        })
+        .collect();
+    }
+
+    Ok(listRecords)
+  }
+
   pub async fn get(
     &self,
     nameTable: &str,

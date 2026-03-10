@@ -134,6 +134,31 @@ impl JsonProvider {
     Ok(listRecords)
   }
 
+  /// Get all records including deleted ones (no automatic isDeleted filter)
+  pub async fn getAllWithDeleted(
+    &self,
+    nameTable: &str,
+    filter: Option<Value>,
+    relations: Option<Vec<RelationObj>>,
+  ) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut listRecords = self.jsonCrud.getAllWithDeleted(nameTable, filter).await?;
+
+    // Apply relations if specified
+    if let Some(relations) = relations {
+      let mut enrichedResults = Vec::new();
+      for result in listRecords {
+        let enriched = self
+          .jsonRelations
+          .getDataRelations(result, relations.clone())
+          .await?;
+        enrichedResults.push(enriched);
+      }
+      listRecords = enrichedResults;
+    }
+
+    Ok(listRecords)
+  }
+
   pub async fn get(
     &self,
     nameTable: &str,
