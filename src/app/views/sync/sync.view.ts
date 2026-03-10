@@ -44,7 +44,6 @@ export class SyncView {
         this.notifyService.showError(response.message || "Full synchronization failed");
       }
     } catch (error) {
-      console.error(error);
       this.notifyService.showError("Full synchronization failed: " + error);
     } finally {
       this.isSyncingAll.set(false);
@@ -65,7 +64,6 @@ export class SyncView {
         this.notifyService.showError(response.message || "Import from cloud failed");
       }
     } catch (error) {
-      console.error(error);
       this.notifyService.showError("Import from cloud failed: " + error);
     } finally {
       this.isSyncingImport.set(false);
@@ -86,7 +84,6 @@ export class SyncView {
         this.notifyService.showError(response.message || "Export to cloud failed");
       }
     } catch (error) {
-      console.error(error);
       this.notifyService.showError("Export to cloud failed: " + error);
     } finally {
       this.isSyncingExport.set(false);
