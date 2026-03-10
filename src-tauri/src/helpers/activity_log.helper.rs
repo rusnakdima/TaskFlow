@@ -1,115 +1,30 @@
 /* sys lib */
-use serde_json::{to_value, Value};
+use serde_json::Value;
 
 /* helpers */
-use crate::helpers::common::convertDataToArray;
+use crate::helpers::activity::formatter::ActivityFormatter;
+use crate::helpers::activity::storage::ActivityStorage;
 
 /* providers */
 use crate::providers::json_provider::JsonProvider;
 
 /* models */
-use crate::models::{
-  daily_activity_model::{DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel},
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-};
+use crate::models::response_model::ResponseModel;
 
 #[derive(Clone)]
 pub struct ActivityLogHelper {
-  pub jsonProvider: JsonProvider,
+  pub storage: ActivityStorage,
 }
 
 impl ActivityLogHelper {
   pub fn new(jsonProvider: JsonProvider) -> Self {
-    Self { jsonProvider }
+    Self {
+      storage: ActivityStorage::new(jsonProvider),
+    }
   }
 
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let listDailyActivities = self
-      .jsonProvider
-      .getAll("daily_activities", Some(filter), None)
-      .await;
-    match listDailyActivities {
-      Ok(dailyActivities) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "".to_string(),
-        data: convertDataToArray(&dailyActivities),
-      }),
-      Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!(
-          "Couldn't get a list of daily activities! {}",
-          error.to_string()
-        ),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  pub async fn getOrCreateDailyActivity(
-    &self,
-    userId: String,
-    date: String,
-  ) -> Result<DailyActivityModel, ResponseModel> {
-    let existing = self
-      .jsonProvider
-      .getAll(
-        "daily_activities",
-        Some(serde_json::json!({ "userId": userId.clone(), "date": date.clone() })),
-        None,
-      )
-      .await;
-
-    match existing {
-      Ok(activities) => {
-        if let Some(activityValue) = activities.first() {
-          if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activityValue.clone())
-          {
-            return Ok(activity);
-          }
-        }
-      }
-      Err(_) => {}
-    }
-
-    let createModel = DailyActivityCreateModel {
-      userId: userId.clone(),
-      date: date.clone(),
-    };
-    let model: DailyActivityModel = createModel.into();
-    let record: Value = to_value(&model).unwrap();
-
-    match self.jsonProvider.create("daily_activities", record).await {
-      Ok(_) => Ok(model),
-      Err(error) => {
-        if error.to_string().contains("already exists") {
-          let existing = self
-            .jsonProvider
-            .getAll(
-              "daily_activities",
-              Some(serde_json::json!({ "userId": userId, "date": date })),
-              None,
-            )
-            .await;
-          match existing {
-            Ok(activities) => {
-              if let Some(activityValue) = activities.first() {
-                if let Ok(activity) =
-                  serde_json::from_value::<DailyActivityModel>(activityValue.clone())
-                {
-                  return Ok(activity);
-                }
-              }
-            }
-            _ => {}
-          }
-        }
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create daily activity! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        })
-      }
-    }
+    self.storage.getAll(filter).await
   }
 
   pub async fn logActivity(
@@ -120,7 +35,7 @@ impl ActivityLogHelper {
   ) -> Result<(), ResponseModel> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
-    let mut activity = self.getOrCreateDailyActivity(userId, today).await?;
+    let mut activity = self.storage.getOrCreateDailyActivity(userId, today).await?;
 
     match activityType {
       "todo_created" => activity.todosCreated += count,
@@ -149,63 +64,9 @@ impl ActivityLogHelper {
       _ => {}
     }
 
-    activity.totalActivity = activity.todosCreated
-      + activity.todosUpdated
-      + activity.todosDeleted
-      + activity.tasksCreated
-      + activity.tasksUpdated
-      + activity.tasksCompleted
-      + activity.tasksDeleted
-      + activity.subtasksCreated
-      + activity.subtasksUpdated
-      + activity.subtasksCompleted
-      + activity.subtasksDeleted;
+    activity.totalActivity = ActivityFormatter::calculateTotalActivity(&activity);
+    activity.productivityScore = ActivityFormatter::calculateProductivityScore(&activity);
 
-    if activity.totalTasks > 0 {
-      activity.productivityScore =
-        ((activity.completedTasks as f32 / activity.totalTasks as f32) * 100.0) as i32;
-    } else {
-      activity.productivityScore = 0;
-    }
-
-    let activityId = activity.id.clone();
-    let updateModel = DailyActivityUpdateModel {
-      _id: activity._id,
-      id: activity.id,
-      userId: activity.userId,
-      date: activity.date,
-      todosCreated: activity.todosCreated,
-      todosUpdated: activity.todosUpdated,
-      todosDeleted: activity.todosDeleted,
-      tasksCreated: activity.tasksCreated,
-      tasksUpdated: activity.tasksUpdated,
-      tasksCompleted: activity.tasksCompleted,
-      tasksDeleted: activity.tasksDeleted,
-      subtasksCreated: activity.subtasksCreated,
-      subtasksUpdated: activity.subtasksUpdated,
-      subtasksCompleted: activity.subtasksCompleted,
-      subtasksDeleted: activity.subtasksDeleted,
-      totalActivity: activity.totalActivity,
-      totalTasks: activity.totalTasks,
-      completedTasks: activity.completedTasks,
-      productivityScore: activity.productivityScore,
-      createdAt: activity.createdAt,
-      updatedAt: activity.updatedAt,
-    };
-
-    let record: Value = to_value(&updateModel).unwrap();
-
-    match self
-      .jsonProvider
-      .update("daily_activities", &activityId, record)
-      .await
-    {
-      Ok(_) => Ok(()),
-      Err(error) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Couldn't update daily activity! {}", error.to_string()),
-        data: DataValue::String("".to_string()),
-      }),
-    }
+    self.storage.updateDailyActivity(activity).await
   }
 }
