@@ -63,6 +63,8 @@ export class App implements OnInit {
   showComponents = signal<boolean>(true);
   private isDataLoaded = false;
 
+  private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
+
   ngOnInit(): void {
     this.wsDispatcher.initWebSocketListeners();
 
@@ -80,6 +82,9 @@ export class App implements OnInit {
 
     const theme = localStorage.getItem("theme") ?? "";
     document.querySelector("html")!.setAttribute("class", theme);
+
+    // Update showComponents based on current route
+    this.updateShowComponents();
 
     const token = localStorage.getItem("token") ?? "";
     if (!token) {
@@ -122,7 +127,14 @@ export class App implements OnInit {
           ? this.router.url.lastIndexOf("?")
           : this.router.url.length;
       this.url.set(this.router.url.slice(0, lastIndex));
+      this.updateShowComponents();
     });
+  }
+
+  private updateShowComponents(): void {
+    const currentPath = this.router.url.split("?")[0];
+    const isAuthPage = this.authRoutes.some((route) => currentPath.startsWith(route));
+    this.showComponents.set(!isAuthPage);
   }
 
   /**
@@ -140,7 +152,6 @@ export class App implements OnInit {
         // Data loaded successfully
       },
       error: (error) => {
-        console.error("App: Failed to load data", error);
         this.notifyService.showError("Failed to load data. Please refresh the page.");
       },
     });
@@ -165,6 +176,5 @@ export class App implements OnInit {
   triggerSync(): void {
     // This is currently handled by DataSyncProvider and WebSocket updates
     // In the future, this could trigger a full refresh if needed
-    console.log("App: Triggering sync...");
   }
 }
