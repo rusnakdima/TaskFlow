@@ -36,7 +36,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeTaskDates,
+  normalizeEntityDates,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -268,7 +268,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
         const tasks = await firstValueFrom(this.dataSyncProvider.getAll<Task>("tasks", { todoId }));
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeTaskDates(formValue);
+        const normalizedFormValue = normalizeEntityDates(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const body = {
           ...convertedDates,
@@ -279,7 +279,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.dataSyncProvider.create<Task>("tasks", body, undefined, todoId).subscribe({
           next: (result: Task) => {
             // Manually add to storage to ensure it shows up immediately
-            this.storageService.addTask(result);
+            this.storageService.addItem("task", result);
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Task created successfully");
             this.back();
@@ -303,14 +303,14 @@ export class ManageTaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.projectInfo()?.id;
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeTaskDates(formValue);
+      const normalizedFormValue = normalizeEntityDates(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = { ...convertedDates };
 
       this.dataSyncProvider.update<Task>("tasks", body.id, body, undefined, todoId).subscribe({
         next: (result: Task) => {
           // Manually update storage
-          this.storageService.updateTask(result.id, result);
+          this.storageService.updateItem("task", result.id, result);
           this.isSubmitting.set(false);
           this.notifyService.showSuccess("Task updated successfully");
           this.back();

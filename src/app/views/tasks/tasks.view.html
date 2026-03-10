@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-6">
   @if (todo()) {
-    <app-todo-information [todo]="todo()!" />
+    <app-todo-information [todo]="todo()!" [isOwner]="isOwner" [isPrivate]="isPrivate" />
   }
 
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -88,6 +88,8 @@
           [isSelected]="selectedTasks().has(task.id)"
           [allTasks]="todo()?.tasks || []"
           [isExpanded]="false"
+          [highlightCommentId]="highlightCommentId()"
+          [autoOpenComments]="openComments()"
           (deleteTaskEvent)="deleteTask($event)"
           (toggleCompletionEvent)="toggleTaskCompletion($event)"
           (updateTaskEvent)="updateTaskInline($event)"
@@ -103,3 +105,8 @@
     </div>
   }
 </div>
+
+<!-- Chat Window -->
+@if (openChat()) {
+  <app-chat-window [todoId]="todo()?.id || ''" (close)="openChat.set(false)" />
+}
