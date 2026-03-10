@@ -34,7 +34,7 @@ impl AdminManager {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
   }
 
-  /// Get all data for admin view with relations
+  /// Get all data for admin view with relations (includes deleted and non-deleted records)
   pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
       "todos",
@@ -44,6 +44,7 @@ impl AdminManager {
       "daily_activities",
     ];
 
+    // Relations for user + profile
     let userRelations = vec![RelationObj {
       nameTable: "users".to_string(),
       typeField: TypesField::OneToOne,
@@ -58,6 +59,7 @@ impl AdminManager {
       }]),
     }];
 
+    // Relations for todos: user (with profile) + categories (with user + profile) + tasks (with subtasks)
     let todoRelations = vec![
       RelationObj {
         nameTable: "users".to_string(),
@@ -91,6 +93,137 @@ impl AdminManager {
           }]),
         }]),
       },
+      RelationObj {
+        nameTable: "tasks".to_string(),
+        typeField: TypesField::OneToMany,
+        nameField: "todoId".to_string(),
+        newNameField: "tasks".to_string(),
+        relations: Some(vec![
+          RelationObj {
+            nameTable: "subtasks".to_string(),
+            typeField: TypesField::OneToMany,
+            nameField: "taskId".to_string(),
+            newNameField: "subtasks".to_string(),
+            relations: None,
+          },
+        ]),
+      },
+    ];
+
+    // Relations for tasks: todo (with user + profile) + subtasks
+    let taskRelations = vec![
+      RelationObj {
+        nameTable: "todos".to_string(),
+        typeField: TypesField::OneToOne,
+        nameField: "todoId".to_string(),
+        newNameField: "todo".to_string(),
+        relations: Some(vec![
+          RelationObj {
+            nameTable: "users".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "userId".to_string(),
+            newNameField: "user".to_string(),
+            relations: Some(vec![RelationObj {
+              nameTable: "profiles".to_string(),
+              typeField: TypesField::OneToOne,
+              nameField: "profileId".to_string(),
+              newNameField: "profile".to_string(),
+              relations: None,
+            }]),
+          },
+          RelationObj {
+            nameTable: "categories".to_string(),
+            typeField: TypesField::ManyToOne,
+            nameField: "categories".to_string(),
+            newNameField: "categories".to_string(),
+            relations: Some(vec![RelationObj {
+              nameTable: "users".to_string(),
+              typeField: TypesField::OneToOne,
+              nameField: "userId".to_string(),
+              newNameField: "user".to_string(),
+              relations: Some(vec![RelationObj {
+                nameTable: "profiles".to_string(),
+                typeField: TypesField::OneToOne,
+                nameField: "profileId".to_string(),
+                newNameField: "profile".to_string(),
+                relations: None,
+              }]),
+            }]),
+          },
+        ]),
+      },
+      RelationObj {
+        nameTable: "subtasks".to_string(),
+        typeField: TypesField::OneToMany,
+        nameField: "taskId".to_string(),
+        newNameField: "subtasks".to_string(),
+        relations: None,
+      },
+    ];
+
+    // Relations for subtasks: task (with todo, user, profile)
+    let subtaskRelations = vec![
+      RelationObj {
+        nameTable: "tasks".to_string(),
+        typeField: TypesField::OneToOne,
+        nameField: "taskId".to_string(),
+        newNameField: "task".to_string(),
+        relations: Some(vec![
+          RelationObj {
+            nameTable: "todos".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "todoId".to_string(),
+            newNameField: "todo".to_string(),
+            relations: Some(vec![
+              RelationObj {
+                nameTable: "users".to_string(),
+                typeField: TypesField::OneToOne,
+                nameField: "userId".to_string(),
+                newNameField: "user".to_string(),
+                relations: Some(vec![RelationObj {
+                  nameTable: "profiles".to_string(),
+                  typeField: TypesField::OneToOne,
+                  nameField: "profileId".to_string(),
+                  newNameField: "profile".to_string(),
+                  relations: None,
+                }]),
+              },
+              RelationObj {
+                nameTable: "categories".to_string(),
+                typeField: TypesField::ManyToOne,
+                nameField: "categories".to_string(),
+                newNameField: "categories".to_string(),
+                relations: Some(vec![RelationObj {
+                  nameTable: "users".to_string(),
+                  typeField: TypesField::OneToOne,
+                  nameField: "userId".to_string(),
+                  newNameField: "user".to_string(),
+                  relations: Some(vec![RelationObj {
+                    nameTable: "profiles".to_string(),
+                    typeField: TypesField::OneToOne,
+                    nameField: "profileId".to_string(),
+                    newNameField: "profile".to_string(),
+                    relations: None,
+                  }]),
+                }]),
+              },
+            ]),
+          },
+          RelationObj {
+            nameTable: "users".to_string(),
+            typeField: TypesField::OneToOne,
+            nameField: "userId".to_string(),
+            newNameField: "user".to_string(),
+            relations: Some(vec![RelationObj {
+              nameTable: "profiles".to_string(),
+              typeField: TypesField::OneToOne,
+              nameField: "profileId".to_string(),
+              newNameField: "profile".to_string(),
+              relations: None,
+            }]),
+          },
+        ]),
+      },
     ];
 
     let mut allData = serde_json::Map::new();
@@ -98,13 +231,18 @@ impl AdminManager {
     for table in tables {
       let relations = if table == "todos" {
         Some(todoRelations.clone())
+      } else if table == "tasks" {
+        Some(taskRelations.clone())
+      } else if table == "subtasks" {
+        Some(subtaskRelations.clone())
       } else if table == "categories" {
         Some(userRelations.clone())
       } else {
         None
       };
 
-      let docs = match self.mongodbProvider.getAll(table, None, relations).await {
+      // Use getAllWithDeleted to include both deleted and non-deleted records
+      let docs = match self.mongodbProvider.getAllWithDeleted(table, Some(doc! {}), relations).await {
         Ok(docs) => docs,
         Err(e) => {
           return Err(ResponseModel {
@@ -197,45 +335,48 @@ impl AdminManager {
         .await;
     }
 
-    // 3. Cascade delete for todos and tasks in MongoDB
+    // 3. Cascade delete for todos and tasks in MongoDB and Local JSON
     if table == "todos" {
-      // First permanently delete all tasks
+      // First permanently delete all tasks (including deleted ones)
       let tasks = self
         .mongodbProvider
-        .getAll("tasks", Some(doc! { "todoId": &id }), None)
+        .getAllWithDeleted("tasks", Some(doc! { "todoId": &id }), None)
         .await
         .unwrap_or_default();
 
       for task in tasks {
         if let Ok(taskId) = task.get_str("id") {
-          // Permanently delete subtasks first
+          // Permanently delete subtasks first (including deleted ones)
           let subtasks = self
             .mongodbProvider
-            .getAll("subtasks", Some(doc! { "taskId": taskId }), None)
+            .getAllWithDeleted("subtasks", Some(doc! { "taskId": taskId }), None)
             .await
             .unwrap_or_default();
 
           for subtask in subtasks {
             if let Ok(subtaskId) = subtask.get_str("id") {
               let _ = self.mongodbProvider.hardDelete("subtasks", subtaskId).await;
+              let _ = self.jsonProvider.hardDelete("subtasks", subtaskId).await;
             }
           }
 
           // Then permanently delete task
           let _ = self.mongodbProvider.hardDelete("tasks", taskId).await;
+          let _ = self.jsonProvider.hardDelete("tasks", taskId).await;
         }
       }
     } else if table == "tasks" {
-      // Permanently delete all subtasks
+      // Permanently delete all subtasks (including deleted ones)
       let subtasks = self
         .mongodbProvider
-        .getAll("subtasks", Some(doc! { "taskId": &id }), None)
+        .getAllWithDeleted("subtasks", Some(doc! { "taskId": &id }), None)
         .await
         .unwrap_or_default();
 
       for subtask in subtasks {
         if let Ok(subtaskId) = subtask.get_str("id") {
           let _ = self.mongodbProvider.hardDelete("subtasks", subtaskId).await;
+          let _ = self.jsonProvider.hardDelete("subtasks", subtaskId).await;
         }
       }
     }
@@ -254,7 +395,7 @@ impl AdminManager {
     }
   }
 
-  /// Toggle delete status of a record with cascade restore
+  /// Toggle delete status of a record with cascade delete/restore
   pub async fn toggleDeleteStatus(
     &self,
     table: String,
@@ -281,78 +422,85 @@ impl AdminManager {
       "updatedAt": timestamp.clone()
     };
 
-    // If restoring (isDeleted: false), cascade restore to children
-    if !newStatus {
-      if table == "todos" {
-        // Restore all tasks and subtasks
-        let tasks = self
-          .mongodbProvider
-          .getAll("tasks", Some(doc! { "todoId": &id }), None)
-          .await
-          .unwrap_or_default();
+    // Cascade to children based on new status
+    if table == "todos" {
+      // Get all tasks (including deleted ones)
+      let tasks = self
+        .mongodbProvider
+        .getAllWithDeleted("tasks", Some(doc! { "todoId": &id }), None)
+        .await
+        .unwrap_or_default();
 
-        for task in tasks {
-          if let Ok(taskId) = task.get_str("id") {
-            // Restore subtasks first
-            let subtasks = self
-              .mongodbProvider
-              .getAll("subtasks", Some(doc! { "taskId": taskId }), None)
-              .await
-              .unwrap_or_default();
+      for task in tasks {
+        if let Ok(taskId) = task.get_str("id") {
+          // Get all subtasks for this task (including deleted ones)
+          let subtasks = self
+            .mongodbProvider
+            .getAllWithDeleted("subtasks", Some(doc! { "taskId": taskId }), None)
+            .await
+            .unwrap_or_default();
 
-            for subtask in subtasks {
-              if let Ok(subtaskId) = subtask.get_str("id") {
-                let subtaskUpdate = doc! {
-                  "isDeleted": false,
-                  "updatedAt": timestamp.clone()
-                };
-                let _ = self
-                  .mongodbProvider
-                  .update("subtasks", subtaskId, subtaskUpdate)
-                  .await;
-              }
+          // Update all subtasks
+          for subtask in subtasks {
+            if let Ok(subtaskId) = subtask.get_str("id") {
+              let subtaskUpdate = doc! {
+                "isDeleted": newStatus,
+                "updatedAt": timestamp.clone()
+              };
+              let _ = self.mongodbProvider.update("subtasks", subtaskId, subtaskUpdate.clone()).await;
+              // Convert Document to Value for JSON provider
+              let subtaskUpdateJson: serde_json::Value = serde_json::to_value(&subtaskUpdate).unwrap_or_default();
+              let _ = self.jsonProvider.update("subtasks", subtaskId, subtaskUpdateJson).await;
             }
-
-            // Then restore task
-            let taskUpdate = doc! {
-              "isDeleted": false,
-              "updatedAt": timestamp.clone()
-            };
-            let _ = self
-              .mongodbProvider
-              .update("tasks", taskId, taskUpdate)
-              .await;
           }
+
+          // Update task
+          let taskUpdate = doc! {
+            "isDeleted": newStatus,
+            "updatedAt": timestamp.clone()
+          };
+          let _ = self.mongodbProvider.update("tasks", taskId, taskUpdate.clone()).await;
+          // Convert Document to Value for JSON provider
+          let taskUpdateJson: serde_json::Value = serde_json::to_value(&taskUpdate).unwrap_or_default();
+          let _ = self.jsonProvider.update("tasks", taskId, taskUpdateJson).await;
         }
-      } else if table == "tasks" {
-        // Restore all subtasks
-        let subtasks = self
-          .mongodbProvider
-          .getAll("subtasks", Some(doc! { "taskId": &id }), None)
-          .await
-          .unwrap_or_default();
+      }
+    } else if table == "tasks" {
+      // Get all subtasks for this task (including deleted ones)
+      let subtasks = self
+        .mongodbProvider
+        .getAllWithDeleted("subtasks", Some(doc! { "taskId": &id }), None)
+        .await
+        .unwrap_or_default();
 
-        for subtask in subtasks {
-          if let Ok(subtaskId) = subtask.get_str("id") {
-            let update = doc! {
-              "isDeleted": false,
-              "updatedAt": timestamp.clone()
-            };
-            let _ = self
-              .mongodbProvider
-              .update("subtasks", subtaskId, update)
-              .await;
-          }
+      // Update all subtasks
+      for subtask in subtasks {
+        if let Ok(subtaskId) = subtask.get_str("id") {
+          let update = doc! {
+            "isDeleted": newStatus,
+            "updatedAt": timestamp.clone()
+          };
+          let _ = self.mongodbProvider.update("subtasks", subtaskId, update.clone()).await;
+          // Convert Document to Value for JSON provider
+          let updateJson: serde_json::Value = serde_json::to_value(&update).unwrap_or_default();
+          let _ = self.jsonProvider.update("subtasks", subtaskId, updateJson).await;
         }
       }
     }
 
-    match self.mongodbProvider.update(&table, &id, updateDoc).await {
-      Ok(_) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: format!("Record delete status toggled to {}", newStatus),
-        data: DataValue::String("".to_string()),
-      }),
+    // Update the main record
+    match self.mongodbProvider.update(&table, &id, updateDoc.clone()).await {
+      Ok(_) => {
+        // Also update local JSON
+        let updateDocJson: serde_json::Value = serde_json::to_value(&updateDoc).unwrap_or_default();
+        let _ = self.jsonProvider.update(&table, &id, updateDocJson).await;
+        
+        Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: format!("Record delete status toggled to {}", newStatus),
+          data: DataValue::String("".to_string()),
+        })
+      },
       Err(e) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error updating record: {}", e),
