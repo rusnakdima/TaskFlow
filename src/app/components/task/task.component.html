@@ -4,6 +4,7 @@
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
+      [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
       (click)="$event.stopPropagation()"
     >
       <div class="flex flex-col grow">
@@ -83,6 +84,15 @@
                   >
                     {{ task.title }}
                   </h3>
+                  @if (unreadCommentsCount > 0) {
+                    <div
+                      class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold animate-pulse shadow-sm"
+                      title="{{ unreadCommentsCount }} unread comments"
+                    >
+                      <mat-icon class="w-3! h-3! text-xs!" fontIcon="forum" />
+                      {{ unreadCommentsCount }}
+                    </div>
+                  }
                   @if (isBlocked) {
                     <div
                       class="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-bold"
@@ -149,36 +159,10 @@
         </div>
 
         <div class="mb-4">
-          <div class="flex justify-between text-sm mb-2">
-            <span class="textMuted">Progress</span>
-            <span class="textNormal font-medium">{{ getProgressPercentage() }}%</span>
-          </div>
-          <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-3 overflow-hidden">
-            <div class="flex h-full rounded-full overflow-hidden">
-              @for (segment of getProgressSegments(); track segment.status) {
-                <div
-                  class="h-full transition-all duration-300"
-                  [ngClass]="segment.color"
-                  [style.width.%]="segment.percentage"
-                  [title]="segment.status + ': ' + segment.percentage + '%'"
-                ></div>
-              }
-            </div>
-          </div>
-          <div class="flex justify-between text-xs mt-1 textMuted">
-            @for (segment of getProgressSegments(); track segment.status) {
-              <span
-                class="flex items-center gap-1"
-                [title]="segment.status + ': ' + segment.percentage + '%'"
-              >
-                <div class="w-2 h-2 rounded-full" [ngClass]="segment.color"></div>
-                {{ segment.percentage }}%
-              </span>
-            }
-          </div>
+          <app-progress-bar [items]="task.subtasks" [showLegend]="true" size="lg" />
         </div>
 
-        @if (isExpanded && (task.subtasks?.length ?? 0) > 0) {
+        @if (isExpanded && task.subtasks.length > 0) {
           <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 mt-2">
             <h4 class="text-sm font-medium textMuted mb-3 flex items-center gap-2">
               <mat-icon class="w-4! h-4! text-xl!" fontIcon="list" />
@@ -228,8 +212,11 @@
         @if (showComments()) {
           <app-comments
             [comments]="task.comments || []"
+            [taskId]="task.id"
             [isOwner]="isOwner"
             [isPrivate]="isPrivate"
+            [highlightCommentId]="highlightCommentId || undefined"
+            [autoOpen]="autoOpenComments"
             (addCommentEvent)="onAddComment($event)"
             (deleteCommentEvent)="onDeleteComment($event)"
             (markAsReadEvent)="onMarkAsRead($event)"
@@ -294,6 +281,7 @@
           <button
             class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
             [routerLink]="task.id + '/subtasks'"
+            [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
             title="View subtasks"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
@@ -323,6 +311,7 @@
           <button
             class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
             [routerLink]="task.id + '/edit_task'"
+            [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
             title="Edit task"
           >
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />

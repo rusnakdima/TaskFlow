@@ -53,7 +53,11 @@ export class SubtaskComponent {
 
   @Input() subtask: Subtask | null = null;
   @Input() index: number = 0;
+  @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
+  @Input() highlight: boolean = false;
+  @Input() highlightComment: string | null = null;
+  @Input() openComments: boolean = false;
 
   @Output() deleteSubtaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
@@ -66,11 +70,15 @@ export class SubtaskComponent {
 
   truncateString = Common.truncateString;
 
+  get unreadCommentsCount(): number {
+    return this.baseHelper.countSubtaskUnreadComments(
+      this.subtask,
+      this.authService.getValueByKey("id")
+    );
+  }
+
   get hasUnreadComments(): boolean {
-    if (!this.subtask || !this.subtask.comments) return false;
-    const userId = this.authService.getValueByKey("id");
-    if (!userId) return false;
-    return this.subtask.comments.some((c) => !c.readBy || !c.readBy.includes(userId));
+    return this.unreadCommentsCount > 0;
   }
 
   getPriorityColor = this.baseHelper.getPriorityBadgeClass;

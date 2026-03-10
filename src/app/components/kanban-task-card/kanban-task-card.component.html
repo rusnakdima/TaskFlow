@@ -98,21 +98,7 @@
     </div>
 
     <div class="mb-3">
-      <div class="flex justify-between text-xs mb-1">
-        <span class="textMuted">Progress</span>
-        <span class="textNormal font-medium">{{ getTaskProgressPercentage() }}%</span>
-      </div>
-      <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
-        <div class="flex h-full rounded-full overflow-hidden">
-          @for (segment of getTaskProgressSegments(); track segment.status) {
-            <div
-              class="h-full transition-all duration-300"
-              [ngClass]="segment.color"
-              [style.width.%]="segment.percentage"
-            ></div>
-          }
-        </div>
-      </div>
+      <app-progress-bar [items]="subtasks" size="sm" />
     </div>
 
     <div
