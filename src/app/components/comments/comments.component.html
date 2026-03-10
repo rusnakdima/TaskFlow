@@ -12,10 +12,13 @@
   <div #commentsList class="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
     @for (comment of comments; track comment.id) {
       <div
+        [attr.data-comment-id]="comment.id"
+        [id]="'comment-' + comment.id"
         class="flex flex-col gap-1 p-3 rounded-lg bg-gray-50 dark:bg-zinc-900/50 border border-gray-100 dark:border-zinc-700/50 transition-colors"
         [class.unread-comment]="isUnread(comment)"
         [class.border-blue-200]="isUnread(comment)"
         [class.dark:border-blue-900/30]="isUnread(comment)"
+        [ngClass]="{ 'ring-2 ring-purple-500 animate-pulse': highlightCommentId === comment.id }"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">

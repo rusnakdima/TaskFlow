@@ -127,6 +127,15 @@
 
     <button
       mat-menu-item
+      routerLink="/settings"
+      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+    >
+      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="settings" />
+      <span class="textNormal">Settings</span>
+    </button>
+
+    <button
+      mat-menu-item
       routerLink="/about"
       class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
     >
@@ -181,19 +190,20 @@
         <div class="flex flex-col">
           @for (notif of notifications(); track notif.id) {
             <div
-              class="p-3 border-b border-gray-100 dark:border-zinc-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors relative group"
+              class="p-3 border-b border-gray-100 dark:border-zinc-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors relative group cursor-pointer"
               [ngClass]="!notif.read ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''"
+              (click)="onNotificationClick(notif)"
             >
               <div class="flex gap-3">
                 <div
                   class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   [ngClass]="{
                     'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400':
-                      notif.type === 'todo',
+                      notif.type === 'todo' || notif.type === 'chat',
                     'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400':
                       notif.type === 'task',
                     'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400':
-                      notif.type === 'subtask',
+                      notif.type === 'subtask' || notif.type === 'comment',
                   }"
                 >
                   <mat-icon
@@ -203,7 +213,11 @@
                         ? 'assignment'
                         : notif.type === 'task'
                           ? 'task_alt'
-                          : 'subdirectory_arrow_right'
+                          : notif.type === 'chat'
+                            ? 'chat'
+                            : notif.type === 'comment'
+                              ? 'forum'
+                              : 'subdirectory_arrow_right'
                     "
                   />
                 </div>
@@ -217,7 +231,7 @@
                 @if (!notif.read) {
                   <button
                     class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                    (click)="markAsRead(notif.id)"
+                    (click)="markAsRead(notif.id); $event.stopPropagation()"
                     title="Mark as read"
                   >
                     <mat-icon class="size-5! text-xl! text-blue-500!" fontIcon="check_circle" />
