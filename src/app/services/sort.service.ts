@@ -97,36 +97,6 @@ export class SortService {
   }
 
   /**
-   * Compare by single field
-   */
-  private compareByField(a: any, b: any, config: SortConfig): number {
-    let aValue = this.getNestedValue(a, config.field);
-    let bValue = this.getNestedValue(b, config.field);
-
-    // Handle date fields
-    if (this.isDateField(config.field)) {
-      aValue = aValue ? new Date(aValue).getTime() : 0;
-      bValue = bValue ? new Date(bValue).getTime() : 0;
-    }
-
-    // Handle null/undefined
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return config.order === "asc" ? -1 : 1;
-    if (bValue == null) return config.order === "asc" ? 1 : -1;
-
-    // Handle string comparison
-    if (typeof aValue === "string") {
-      aValue = aValue.toLowerCase();
-      bValue = typeof bValue === "string" ? bValue.toLowerCase() : bValue;
-    }
-
-    // Compare values
-    if (aValue < bValue) return config.order === "asc" ? -1 : 1;
-    if (aValue > bValue) return config.order === "asc" ? 1 : -1;
-    return 0;
-  }
-
-  /**
    * Check if field is a date field
    */
   private isDateField(field: string): boolean {
