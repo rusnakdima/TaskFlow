@@ -1,0 +1,39 @@
+<div class="w-full">
+  @if (showLabel || showPercentage) {
+    <div class="flex justify-between items-center mb-1 text-xs">
+      @if (showLabel) {
+        <span class="textMuted">Progress</span>
+      }
+      @if (showPercentage) {
+        <span class="textNormal font-medium">{{ totalProgress() }}%</span>
+      }
+    </div>
+  }
+
+  <div
+    class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden"
+    [ngClass]="heightClass"
+  >
+    <div class="flex h-full rounded-full overflow-hidden">
+      @for (segment of segments(); track segment.status) {
+        <div
+          class="h-full transition-all duration-300"
+          [ngClass]="segment.color"
+          [style.width.%]="segment.percentage"
+          [title]="segment.status + ': ' + segment.percentage + '%'"
+        ></div>
+      }
+    </div>
+  </div>
+
+  @if (showLegend) {
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-[10px] mt-1.5 textMuted">
+      @for (segment of segments(); track segment.status) {
+        <span class="flex items-center gap-1">
+          <div class="w-1.5 h-1.5 rounded-full" [ngClass]="segment.color"></div>
+          {{ segment.status }}: {{ segment.percentage }}%
+        </span>
+      }
+    </div>
+  }
+</div>
