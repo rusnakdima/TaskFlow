@@ -69,4 +69,38 @@ export class KanbanDragDropService {
       .filter((col) => col.id !== currentColumnId)
       .map((col) => "cdk-drop-list-" + col.id);
   }
+
+  /**
+   * Handle task drop event in a simple list view
+   * @param event - CDK drag-drop event
+   * @param list - The current list of tasks
+   * @param isUpdatingOrder - Signal indicating if an order update is in progress
+   * @returns Object with updated tasks and IDs of tasks that changed order
+   */
+  handleListDrop(
+    event: CdkDragDrop<Task[]>,
+    list: Task[],
+    isUpdatingOrder: boolean
+  ): {
+    updated: boolean;
+    prevTask?: Task;
+    currentTask?: Task;
+  } {
+    if (isUpdatingOrder) return { updated: false };
+    if (event.previousIndex === event.currentIndex) return { updated: false };
+
+    const tasks = [...list];
+    const prevTask = { ...tasks[event.previousIndex] };
+    const currentTask = { ...tasks[event.currentIndex] };
+
+    const tempOrder = prevTask.order;
+    prevTask.order = currentTask.order;
+    currentTask.order = tempOrder;
+
+    return {
+      updated: true,
+      prevTask,
+      currentTask,
+    };
+  }
 }
