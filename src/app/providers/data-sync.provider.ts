@@ -278,7 +278,7 @@ export class DataSyncProvider {
         await this.syncService.exportToCloud();
       }
     } catch (error) {
-      console.error("Sync failed after visibility change:", error);
+      // Sync failed after visibility change
     }
   }
 
