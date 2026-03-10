@@ -54,7 +54,6 @@ export class LocalWebSocketService {
       };
 
       this.socket.onerror = (error) => {
-        console.error("LocalWebSocketService: WebSocket error", error);
         this.isConnected$.next(false);
       };
 
@@ -67,11 +66,10 @@ export class LocalWebSocketService {
             this.messageSubject.next(data);
           }
         } catch (e) {
-          console.error("LocalWebSocketService: Failed to parse message", e);
+          // Failed to parse message
         }
       };
     } catch (error) {
-      console.error("LocalWebSocketService: Connection failed", error);
       this.isConnected$.next(false);
     }
   }
@@ -100,7 +98,6 @@ export class LocalWebSocketService {
 
   emit(action: string, payload: any): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error("LocalWebSocketService: Cannot emit, socket not connected");
       return;
     }
     this.socket.send(JSON.stringify({ action, ...payload }));
@@ -108,10 +105,6 @@ export class LocalWebSocketService {
 
   private request<T>(action: string, payload: any): Observable<T> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error(
-        "[LocalWebSocketService] Socket not connected. Ready state:",
-        this.socket?.readyState
-      );
       return throwError(() => new Error("Local WebSocket not connected"));
     }
 
