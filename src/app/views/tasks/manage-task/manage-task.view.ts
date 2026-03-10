@@ -36,7 +36,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeEntityDates,
+  normalizeDateFields,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -229,7 +229,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.isPrivate = todo.visibility === "private";
       },
       error: (err) => {
-        console.error("Error loading project info:", err);
+        // Error loading project info - already in storage or fetch failed
       },
     });
   }
@@ -268,7 +268,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
         const tasks = await firstValueFrom(this.dataSyncProvider.getAll<Task>("tasks", { todoId }));
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeEntityDates(formValue);
+        const normalizedFormValue = normalizeDateFields(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const body = {
           ...convertedDates,
@@ -303,7 +303,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.projectInfo()?.id;
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeEntityDates(formValue);
+      const normalizedFormValue = normalizeDateFields(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = { ...convertedDates };
 

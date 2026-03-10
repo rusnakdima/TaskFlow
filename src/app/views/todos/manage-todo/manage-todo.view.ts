@@ -41,7 +41,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeEntityDates,
+  normalizeDateFields,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -323,7 +323,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const formValue = this.form.value;
       const body = {
-        ...convertDatesToUtc(normalizeEntityDates(formValue)),
+        ...convertDatesToUtc(normalizeDateFields(formValue)),
         priority: formValue.priority || "medium",
         categories: formValue.categories.map((c: Category) => c.id),
         assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
@@ -351,7 +351,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const formValue = this.form.value;
       const body = {
-        ...convertDatesToUtc(normalizeEntityDates(formValue)),
+        ...convertDatesToUtc(normalizeDateFields(formValue)),
         priority: formValue.priority || "medium",
         categories: formValue.categories.map((c: Category) => c.id),
         assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
@@ -375,7 +375,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
               // After sync, reload data to ensure consistency
               this.dataSyncService.loadAllData(true).subscribe();
             } catch (err) {
-              console.error("Sync failed:", err);
               this.notifyService.showWarning("Todo updated, but sync may not have completed.");
             }
           }
