@@ -27,8 +27,8 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { NotifyService } from "@services/notify.service";
 import { KanbanDragDropService } from "@services/kanban-drag-drop.service";
-import { KanbanUIHelper } from "@services/kanban-ui-helper.service";
 import { StorageService } from "@services/storage.service";
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* components */
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
@@ -59,7 +59,7 @@ export class KanbanView implements OnInit {
   private localWs = inject(LocalWebSocketService);
   private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);
-  private uiHelper = inject(KanbanUIHelper);
+  private baseHelper = inject(BaseItemHelper);
   private storageService = inject(StorageService);
   private stateHelper = inject(StateHelper);
 
@@ -217,13 +217,13 @@ export class KanbanView implements OnInit {
     this.searchQuery.set("");
   }
 
-  // Delegate UI helper methods to KanbanUIHelper
-  getColumnColorClass = this.uiHelper.getColumnColorClass;
-  getAssigneeColor = this.uiHelper.getAssigneeColor;
-  getInitials = this.uiHelper.getInitials;
-  formatDate = this.uiHelper.formatDate;
-  getTaskProgressPercentage = this.uiHelper.getTaskProgressPercentage;
-  getTaskProgressSegments = this.uiHelper.getTaskProgressSegments;
+  // Delegate UI helper methods to BaseItemHelper
+  getColumnColorClass = this.baseHelper.getColumnColorClass;
+  getAssigneeColor = this.baseHelper.getAssigneeColor;
+  getInitials = this.baseHelper.getInitials;
+  formatDate = this.baseHelper.formatDate;
+  getTaskProgressPercentage = this.baseHelper.getTaskProgressPercentage;
+  getProgressSegments = this.baseHelper.getProgressSegments;
   getConnectedDropLists = (currentColumnId: string) =>
     this.dragDropService.getConnectedDropLists(currentColumnId, this.columns);
 
