@@ -86,7 +86,6 @@ export class MainResolver implements Resolve<any> {
         return "";
       }
     } catch (err) {
-      console.error("Error in resolver:", err);
       return "Error Resolving Data";
     }
   }
