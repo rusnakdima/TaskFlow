@@ -18,6 +18,9 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { ResponseStatus } from "@models/response.model";
 
+/* helpers */
+import { StateHelper } from "@helpers/state.helper";
+
 /* services */
 import { AuthService } from "@services/auth.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -58,6 +61,7 @@ export class KanbanView implements OnInit {
   private dragDropService = inject(KanbanDragDropService);
   private uiHelper = inject(KanbanUIHelper);
   private storageService = inject(StorageService);
+  private stateHelper = inject(StateHelper);
 
   TaskStatus = TaskStatus;
 
@@ -146,47 +150,31 @@ export class KanbanView implements OnInit {
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
     let newStatus: TaskStatus;
-    let message = "";
     switch (subtask.status) {
       case TaskStatus.PENDING:
         newStatus = TaskStatus.COMPLETED;
-        message = "Subtask completed";
         break;
       case TaskStatus.COMPLETED:
         newStatus = TaskStatus.SKIPPED;
-        message = "Subtask skipped";
         break;
       case TaskStatus.SKIPPED:
         newStatus = TaskStatus.FAILED;
-        message = "Subtask marked as failed";
         break;
-      case TaskStatus.FAILED:
       default:
         newStatus = TaskStatus.PENDING;
-        message = "Subtask reopened";
         break;
     }
 
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
-    const updatedSubtask = { ...subtask, status: newStatus };
-
-    // Optimistic update: update cache immediately
-    this.storageService.updateSubtask(subtask.id, { status: newStatus });
-
-    this.dataSyncProvider
-      .update<Subtask>("subtasks", subtask.id, updatedSubtask, undefined, todoId)
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess(message);
-        },
-        error: (error) => {
-          this.notifyService.showError("Failed to update subtask");
-          // Revert on error
-          this.storageService.updateSubtask(subtask.id, { status: subtask.status });
-        },
-      });
+    this.stateHelper.updateOptimistically<Subtask>(
+      "subtask",
+      subtask.id,
+      { status: newStatus },
+      subtask,
+      todoId
+    );
   }
 
   getSubtasksForTask(taskId: string): Subtask[] {
@@ -253,35 +241,19 @@ export class KanbanView implements OnInit {
   }
 
   moveTaskToStatus(taskId: string, newStatus: TaskStatus) {
-    if (!this.userId()) {
-      console.error("[Kanban] No userId found, aborting moveTask");
-      return;
-    }
-
     const todoId = this.selectedTodoId();
-    if (!todoId) {
-      console.error("[Kanban] No selected todo found, aborting moveTask");
-      return;
-    }
+    if (!todoId) return;
 
     const originalTask = this.storageService.getTaskById(taskId);
+    if (!originalTask) return;
 
-    this.dataSyncProvider
-      .update<Task>("tasks", taskId, { id: taskId, status: newStatus, todoId }, undefined, todoId)
-      .subscribe({
-        next: () => {
-          this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
-          this.storageService.updateTask(taskId, { status: newStatus });
-        },
-        error: (error) => {
-          console.error("[Kanban] Failed to move task:", error);
-          this.notifyService.showError("Failed to move task");
-          // Revert on error
-          if (originalTask) {
-            this.storageService.updateTask(taskId, { status: originalTask.status });
-          }
-        },
-      });
+    this.stateHelper.updateOptimistically<Task>(
+      "task",
+      taskId,
+      { status: newStatus },
+      originalTask,
+      todoId
+    );
   }
 
   navigateToTask(task: Task) {

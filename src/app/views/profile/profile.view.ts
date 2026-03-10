@@ -42,6 +42,11 @@ export class ProfileView implements OnInit {
     });
   }
 
+  isMyProfile(): boolean {
+    const profile = this.profile();
+    return profile !== null && profile.userId === this.authService.getValueByKey("id");
+  }
+
   getProfile(userId: string) {
     this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
       next: (profile) => {
