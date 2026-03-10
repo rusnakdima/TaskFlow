@@ -27,6 +27,8 @@ pub mod statistics_model;
 pub mod category_model;
 #[path = "comment.model.rs"]
 pub mod comment_model;
+#[path = "chat.model.rs"]
+pub mod chat_model;
 #[path = "subtask.model.rs"]
 pub mod subtask_model;
 #[path = "task.model.rs"]
