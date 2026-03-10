@@ -25,7 +25,11 @@
     </div>
 
     <div class="mt-6 pt-4 border-t border-gray-200 dark:border-zinc-600 text-center">
-      <button routerLink="/profile" class="styleLinkRedir">
+      <button
+        [routerLink]="['/profile']"
+        [queryParams]="{ id: form.get('userId')?.value }"
+        class="styleLinkRedir"
+      >
         <mat-icon class="w-5! h-5! text-xl! mr-1" fontIcon="arrow_back" />
         Back to Profile
       </button>
