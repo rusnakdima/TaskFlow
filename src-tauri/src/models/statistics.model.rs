@@ -41,15 +41,6 @@ pub struct ChartDataModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AchievementModel {
-  pub title: String,
-  pub description: String,
-  pub icon: String,
-  pub color: String,
-  pub date: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetailedMetricModel {
   pub name: String,
   pub current: String,
@@ -61,6 +52,5 @@ pub struct DetailedMetricModel {
 pub struct StatisticsResponseModel {
   pub statistics: StatisticsModel,
   pub chartData: ChartDataModel,
-  pub achievements: Vec<AchievementModel>,
   pub detailedMetrics: Vec<DetailedMetricModel>,
 }

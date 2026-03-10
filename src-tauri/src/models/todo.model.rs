@@ -2,6 +2,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TodoModel {
   pub _id: ObjectId,
@@ -35,8 +37,8 @@ pub struct TodoCreateModel {
   pub order: i32,
 }
 
-impl TodoCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for TodoCreateModel {
+  fn validate(&self) -> Result<(), String> {
     if self.userId.is_empty() {
       return Err("userId cannot be empty".to_string());
     }
@@ -112,8 +114,8 @@ pub struct TodoUpdateModel {
   pub updatedAt: Option<String>,
 }
 
-impl TodoUpdateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for TodoUpdateModel {
+  fn validate(&self) -> Result<(), String> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
         return Err("title cannot be empty".to_string());
