@@ -2,6 +2,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct CategoryCreateModel {
@@ -9,8 +11,8 @@ pub struct CategoryCreateModel {
   pub userId: String,
 }
 
-impl CategoryCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for CategoryCreateModel {
+  fn validate(&self) -> Result<(), String> {
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
     }
@@ -38,8 +40,8 @@ pub struct CategoryUpdateModel {
   pub isDeleted: Option<bool>,
 }
 
-impl CategoryUpdateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for CategoryUpdateModel {
+  fn validate(&self) -> Result<(), String> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
         return Err("title cannot be empty".to_string());

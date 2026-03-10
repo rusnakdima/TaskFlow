@@ -2,6 +2,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 /* models */
 use crate::models::{
   comment_model::CommentModel, sync_metadata_model::SyncMetadata, task_model::TaskStatus,
@@ -35,8 +37,8 @@ pub struct SubtaskCreateModel {
   pub comments: Option<Vec<CommentModel>>,
 }
 
-impl SubtaskCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for SubtaskCreateModel {
+  fn validate(&self) -> Result<(), String> {
     if self.taskId.is_empty() {
       return Err("taskId cannot be empty".to_string());
     }
@@ -102,8 +104,8 @@ pub struct SubtaskUpdateModel {
   pub sync_metadata: Option<SyncMetadata>,
 }
 
-impl SubtaskUpdateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for SubtaskUpdateModel {
+  fn validate(&self) -> Result<(), String> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
         return Err("title cannot be empty".to_string());

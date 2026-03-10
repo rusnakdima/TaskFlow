@@ -1,6 +1,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatModel {
   #[serde(default)]
@@ -27,11 +29,17 @@ pub struct ChatCreateModel {
   pub content: String,
 }
 
-impl ChatCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
-    if self.todoId.is_empty() { return Err("todoId is required".to_string()); }
-    if self.userId.is_empty() { return Err("userId is required".to_string()); }
-    if self.content.is_empty() { return Err("content is required".to_string()); }
+impl Validatable for ChatCreateModel {
+  fn validate(&self) -> Result<(), String> {
+    if self.todoId.is_empty() {
+      return Err("todoId is required".to_string());
+    }
+    if self.userId.is_empty() {
+      return Err("userId is required".to_string());
+    }
+    if self.content.is_empty() {
+      return Err("content is required".to_string());
+    }
     Ok(())
   }
 }
@@ -59,9 +67,11 @@ pub struct ChatUpdateModel {
   pub content: String,
 }
 
-impl ChatUpdateModel {
-  pub fn validate(&self) -> Result<(), String> {
-    if self.content.is_empty() { return Err("content is required".to_string()); }
+impl Validatable for ChatUpdateModel {
+  fn validate(&self) -> Result<(), String> {
+    if self.content.is_empty() {
+      return Err("content is required".to_string());
+    }
     Ok(())
   }
 }

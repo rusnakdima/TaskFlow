@@ -3,6 +3,8 @@ use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
   #[serde(rename = "pending")]
@@ -59,8 +61,8 @@ pub struct TaskCreateModel {
   pub comments: Option<Vec<CommentModel>>,
 }
 
-impl TaskCreateModel {
-  pub fn validate(&self) -> std::result::Result<(), String> {
+impl Validatable for TaskCreateModel {
+  fn validate(&self) -> std::result::Result<(), String> {
     if self.todoId.is_empty() {
       return Err("todoId cannot be empty".to_string());
     }
@@ -145,8 +147,8 @@ pub struct TaskUpdateModel {
   pub comments: Option<Vec<CommentModel>>,
 }
 
-impl TaskUpdateModel {
-  pub fn validate(&self) -> std::result::Result<(), String> {
+impl Validatable for TaskUpdateModel {
+  fn validate(&self) -> std::result::Result<(), String> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
         return Err("title cannot be empty".to_string());

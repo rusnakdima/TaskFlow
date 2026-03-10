@@ -2,6 +2,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DailyActivityModel {
   pub _id: ObjectId,
@@ -33,8 +35,8 @@ pub struct DailyActivityCreateModel {
   pub date: String,
 }
 
-impl DailyActivityCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for DailyActivityCreateModel {
+  fn validate(&self) -> Result<(), String> {
     if self.userId.is_empty() {
       return Err("userId cannot be empty".to_string());
     }

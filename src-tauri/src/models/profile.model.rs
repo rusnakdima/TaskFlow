@@ -2,6 +2,8 @@
 use mongodb::bson::{oid::ObjectId, Uuid};
 use serde::{Deserialize, Serialize};
 
+use crate::models::traits::Validatable;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileModel {
   pub _id: ObjectId,
@@ -24,8 +26,8 @@ pub struct ProfileCreateModel {
   pub userId: String,
 }
 
-impl ProfileCreateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for ProfileCreateModel {
+  fn validate(&self) -> Result<(), String> {
     if self.name.is_empty() {
       return Err("name cannot be empty".to_string());
     }
@@ -68,8 +70,8 @@ pub struct ProfileUpdateModel {
   pub updatedAt: Option<String>,
 }
 
-impl ProfileUpdateModel {
-  pub fn validate(&self) -> Result<(), String> {
+impl Validatable for ProfileUpdateModel {
+  fn validate(&self) -> Result<(), String> {
     if let Some(ref name) = self.name {
       if name.is_empty() {
         return Err("name cannot be empty".to_string());
