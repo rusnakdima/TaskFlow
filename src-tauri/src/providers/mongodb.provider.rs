@@ -74,6 +74,30 @@ impl MongodbProvider {
     Ok(results)
   }
 
+  /// Get all records including deleted ones (no automatic isDeleted filter)
+  pub async fn getAllWithDeleted(
+    &self,
+    nameTable: &str,
+    filter: Option<Document>,
+    relations: Option<Vec<RelationObj>>,
+  ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut results = self.mongodbCrud.getAllWithDeleted(nameTable, filter).await?;
+
+    if let Some(relations) = relations {
+      let mut enrichedResults = Vec::new();
+      for result in results {
+        let enriched = self
+          .mongodbRelations
+          .getDataRelations(result, relations.clone())
+          .await?;
+        enrichedResults.push(enriched);
+      }
+      results = enrichedResults;
+    }
+
+    Ok(results)
+  }
+
   pub async fn get(
     &self,
     nameTable: &str,

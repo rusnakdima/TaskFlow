@@ -29,10 +29,33 @@ impl MongodbCrudProvider {
     filter: Option<Document>,
   ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
     let tableData = self.getDataTable(nameTable).await?;
-    let mut cursor = match filter {
-      Some(filter) => tableData.find(filter).await?,
-      None => tableData.find(doc! {}).await?,
-    };
+
+    let mut effectiveFilter = filter.unwrap_or(doc! {});
+    if !effectiveFilter.contains_key("isDeleted") {
+      effectiveFilter.insert("isDeleted", false);
+    }
+
+    let mut cursor = tableData.find(effectiveFilter).await?;
+
+    let mut results: Vec<Document> = Vec::new();
+    while cursor.advance().await? {
+      let doc = cursor.deserialize_current()?;
+      results.push(doc);
+    }
+
+    Ok(results)
+  }
+
+  /// Get all records including deleted ones (no automatic isDeleted filter)
+  pub async fn getAllWithDeleted(
+    &self,
+    nameTable: &str,
+    filter: Option<Document>,
+  ) -> Result<Vec<Document>, Box<dyn std::error::Error + Send + Sync>> {
+    let tableData = self.getDataTable(nameTable).await?;
+    let effectiveFilter = filter.unwrap_or(doc! {});
+
+    let mut cursor = tableData.find(effectiveFilter).await?;
 
     let mut results: Vec<Document> = Vec::new();
     while cursor.advance().await? {
