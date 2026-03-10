@@ -1,4 +1,5 @@
 /* sys lib */
+use mongodb::bson::{doc, to_bson, Bson};
 use serde_json::{json, to_value, Value};
 use std::sync::Arc;
 
@@ -16,6 +17,7 @@ use crate::models::{
   profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
   relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
+  user_model::UserModel,
 };
 
 fn getRelations() -> Vec<RelationObj> {
@@ -51,6 +53,70 @@ impl ProfileService {
       mongodbProvider,
       profileSyncService,
     }
+  }
+
+  /// Helper method to update user's profileId in both MongoDB and local JSON storage
+  async fn updateUserProfile(
+    jsonProvider: &JsonProvider,
+    mongodbProvider: &Option<Arc<MongodbProvider>>,
+    userId: &str,
+    profileId: &str,
+  ) -> Result<(), ResponseModel> {
+    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+    // Update in MongoDB
+    if let Some(ref mongodbProvider) = mongodbProvider {
+      match mongodbProvider.get("users", Some(doc! { "id": userId }), None, "").await {
+        Ok(userDoc) => {
+          let mut updatedUser: UserModel = match mongodb::bson::from_document(userDoc) {
+            Ok(user) => user,
+            Err(e) => {
+              return Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: format!("Failed to parse user from MongoDB: {}", e),
+                data: DataValue::String("".to_string()),
+              });
+            }
+          };
+          updatedUser.profileId = profileId.to_string();
+          updatedUser.updatedAt = now.clone();
+
+          let userRecord = match to_bson(&updatedUser) {
+            Ok(Bson::Document(doc)) => doc,
+            _ => {
+              return Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: "Error serializing user for MongoDB".to_string(),
+                data: DataValue::String("".to_string()),
+              });
+            }
+          };
+
+          let _ = mongodbProvider.update("users", userId, userRecord).await;
+        }
+        Err(_) => {
+          // User not found in MongoDB, skip update
+        }
+      }
+    }
+
+    // Update in local JSON storage
+    match jsonProvider.get("users", None, None, userId).await {
+      Ok(userValue) => {
+        let mut updatedUser = userValue.clone();
+        if let Some(obj) = updatedUser.as_object_mut() {
+          obj.insert("profileId".to_string(), Value::String(profileId.to_string()));
+          obj.insert("updatedAt".to_string(), Value::String(now.clone()));
+        }
+
+        let _ = jsonProvider.update("users", userId, updatedUser).await;
+      }
+      Err(_) => {
+        // User not found in local storage, skip update
+      }
+    }
+
+    Ok(())
   }
 
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
@@ -103,6 +169,8 @@ impl ProfileService {
     }
 
     let modelData: ProfileModel = data.into();
+    let profileId = modelData.id.clone();
+
     let record: Value = match to_value(&modelData) {
       Ok(v) => v,
       Err(e) => {
@@ -117,13 +185,17 @@ impl ProfileService {
     match profile {
       Ok(result) => {
         if result {
+          // Sync profile to MongoDB first
           if let Some(ref syncService) = self.profileSyncService {
             let _ = syncService.syncProfileToCloud(modelData.clone()).await;
           }
 
+          // Update user with profileId in both MongoDB and local JSON
+          Self::updateUserProfile(&self.jsonProvider, &self.mongodbProvider, &userId, &profileId).await?;
+
           Ok(ResponseModel {
             status: ResponseStatus::Success,
-            message: "".to_string(),
+            message: "Profile created successfully".to_string(),
             data: DataValue::String("".to_string()),
           })
         } else {

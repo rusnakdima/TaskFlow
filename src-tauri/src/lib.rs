@@ -32,8 +32,9 @@ use routes::{
 /* services */
 use services::{
   about_service::AboutService, auth_service::AuthService, crud_service::CrudService,
-  manage_db_service::ManageDbService, profile_service::ProfileService,
-  statistics_service::StatisticsService, websocket_server_service::WebSocketServerService,
+  live_sync_service::LiveSyncService, manage_db_service::ManageDbService,
+  profile_service::ProfileService, statistics_service::StatisticsService,
+  websocket_server_service::WebSocketServerService,
 };
 
 pub struct AppState {
@@ -45,6 +46,7 @@ pub struct AppState {
   pub aboutService: Arc<AboutService>,
   pub statisticsService: Arc<StatisticsService>,
   pub webSocketServerService: Arc<WebSocketServerService>,
+  pub liveSyncService: Option<Arc<LiveSyncService>>,
   pub activityLogHelper: Arc<ActivityLogHelper>,
 }
 
@@ -111,6 +113,21 @@ pub fn run() {
       // Create WebSocket service for real-time updates using crud_service
       let webSocketServerService = Arc::new(WebSocketServerService::new(crudService.clone()));
 
+      // Create LiveSync service for real-time DB updates
+      let liveSyncService = if let Some(ref provider) = mongodbProvider {
+        let service = Arc::new(LiveSyncService::new(
+          provider.mongodbCrud.db.clone(),
+          appHandle.clone(),
+        ));
+        let serviceClone = service.clone();
+        tauri::async_runtime::spawn(async move {
+          serviceClone.startWatching().await;
+        });
+        Some(service)
+      } else {
+        None
+      };
+
       #[cfg(not(mobile))]
       {
         let wsClone = webSocketServerService.clone();
@@ -128,6 +145,7 @@ pub fn run() {
         aboutService,
         statisticsService,
         webSocketServerService,
+        liveSyncService,
         activityLogHelper,
       });
 

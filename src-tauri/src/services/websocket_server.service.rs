@@ -10,7 +10,7 @@ use crate::services::crud_service::CrudService;
 
 /* models */
 use crate::models::{
-  response_model::{ResponseModel, ResponseStatus},
+  response_model::{DataValue, ResponseModel, ResponseStatus},
   sync_metadata_model::SyncMetadata,
   websocket_model::{WsBroadcast, WsRequest, WsResponse},
 };
@@ -93,6 +93,8 @@ impl WebSocketServerService {
       "todos" => "todo".to_string(),
       "tasks" => "task".to_string(),
       "subtasks" => "subtask".to_string(),
+      "chats" => "chat".to_string(),
+      "comments" => "comment".to_string(),
       s => s.to_string(),
     }
   }
@@ -157,20 +159,23 @@ impl WebSocketServerService {
               "create".to_string(),
               request.entity.clone(),
               None,
-              Some(data.clone()),
+              Some(data),
               None,
               None,
-              Some(syncMetadata),
+              Some(syncMetadata.clone()),
             )
             .await
             .unwrap_or_else(|e| e);
+
           if res.status == ResponseStatus::Success {
-            let broadcastEntity = Self::getBroadcastName(&request.entity);
-            self.broadcast(
-              &format!("{}-created", broadcastEntity),
-              &broadcastEntity,
-              data,
-            );
+            if let DataValue::Object(ref obj) = res.data {
+              let broadcastEntity = Self::getBroadcastName(&request.entity);
+              self.broadcast(
+                &format!("{}-created", broadcastEntity),
+                &broadcastEntity,
+                obj.clone(),
+              );
+            }
           }
           res
         } else {
@@ -186,20 +191,23 @@ impl WebSocketServerService {
               "update".to_string(),
               request.entity.clone(),
               Some(id.clone()),
-              Some(data.clone()),
+              Some(data),
               None,
               None,
-              Some(syncMetadata),
+              Some(syncMetadata.clone()),
             )
             .await
             .unwrap_or_else(|e| e);
+
           if res.status == ResponseStatus::Success {
-            let broadcastEntity = Self::getBroadcastName(&request.entity);
-            self.broadcast(
-              &format!("{}-updated", broadcastEntity),
-              &broadcastEntity,
-              data,
-            );
+            if let DataValue::Object(ref obj) = res.data {
+              let broadcastEntity = Self::getBroadcastName(&request.entity);
+              self.broadcast(
+                &format!("{}-updated", broadcastEntity),
+                &broadcastEntity,
+                obj.clone(),
+              );
+            }
           }
           res
         } else {
@@ -215,13 +223,38 @@ impl WebSocketServerService {
               "updateAll".to_string(),
               request.entity.clone(),
               None,
-              Some(data),
+              Some(data.clone()),
               None,
               None,
-              Some(syncMetadata),
+              Some(syncMetadata.clone()),
             )
             .await
             .unwrap_or_else(|e| e);
+
+          if res.status == ResponseStatus::Success {
+            if request.entity == "chats" {
+              // Check if this was a clear operation (isDeleted: true) or just marking as read
+              let isClear = data
+                .as_array()
+                .and_then(|arr| arr.get(0))
+                .and_then(|first| first.get("isDeleted"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+
+              if isClear {
+                let todoId = data
+                  .as_array()
+                  .and_then(|arr| arr.get(0))
+                  .and_then(|first| first.get("todoId"))
+                  .and_then(|v| v.as_str())
+                  .unwrap_or_default();
+
+                if !todoId.is_empty() {
+                  self.broadcast("chat-cleared", "chat", json!({ "todoId": todoId }));
+                }
+              }
+            }
+          }
           res
         } else {
           ResponseModel::from("Missing data for update-all action".to_string())
@@ -230,6 +263,21 @@ impl WebSocketServerService {
 
       "delete" => {
         if let Some(id) = request.id {
+          // Get the original data before deletion for broadcast
+          let original = self
+            .crudService
+            .execute(
+              "read".to_string(),
+              request.entity.clone(),
+              Some(id.clone()),
+              None,
+              None,
+              None,
+              Some(syncMetadata.clone()),
+            )
+            .await
+            .ok();
+
           let res = self
             .crudService
             .execute(
@@ -239,16 +287,27 @@ impl WebSocketServerService {
               None,
               None,
               None,
-              Some(syncMetadata),
+              Some(syncMetadata.clone()),
             )
             .await
             .unwrap_or_else(|e| e);
+
           if res.status == ResponseStatus::Success {
             let broadcastEntity = Self::getBroadcastName(&request.entity);
+            // Include original data in broadcast for proper notifications
+            let broadcastData = if let Some(orig_response) = original {
+              match orig_response.data {
+                DataValue::Object(obj) => obj.clone(),
+                _ => json!({ "id": id })
+              }
+            } else {
+              json!({ "id": id })
+            };
+            
             self.broadcast(
               &format!("{}-deleted", broadcastEntity),
               &broadcastEntity,
-              json!({ "id": id }),
+              broadcastData,
             );
           }
           res
