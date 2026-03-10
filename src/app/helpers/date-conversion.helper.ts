@@ -118,9 +118,83 @@ export function convertDatesFromUtcToLocal<T extends Record<string, any>>(
 
   return converted as T;
 }
+/**
+ * Format date string to relative "Today", "Yesterday", or locale date
+ * @param time ISO 8601 string
+ * @returns Formatted date string
+ */
+export function formatDateRelative(time: string): string {
+  if (!time) return "";
+  const dateRec = new Date(time);
+  const curDate = new Date();
+  const year = dateRec.getFullYear();
+  const month = dateRec.getMonth();
+  const day = dateRec.getDate();
+  const curYear = curDate.getFullYear();
+  const curMonth = curDate.getMonth();
+  const curDay = curDate.getDate();
+
+  if (day === curDay && month === curMonth && year === curYear) {
+    return formatTime(dateRec);
+  }
+
+  const yesterday = new Date(curDate);
+  yesterday.setDate(curDate.getDate() - 1);
+  if (
+    day === yesterday.getDate() &&
+    month === yesterday.getMonth() &&
+    year === yesterday.getFullYear()
+  ) {
+    return `Yesterday ${formatTime(dateRec)}`;
+  }
+
+  return formatLocaleDate(dateRec);
+}
+
+/**
+ * Format date to HH:mm
+ */
+export function formatTime(date: Date | string): string {
+  if (typeof date === "string") {
+    date = new Date(date);
+  }
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Format date to locale string (e.g., "Jan 10, 2026")
+ */
+export function formatLocaleDate(date: Date | string): string {
+  if (typeof date === "string" && date === "") {
+    date = new Date();
+  }
+  if (typeof date === "string") {
+    date = new Date(date);
+  }
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Format date to short locale string (e.g., "Jan 10")
+ */
+export function formatDateShort(dateString: string): string {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
 
 /**
  * Generic function to normalize and convert date fields for any entity type
+...
  * Replaces the need for entity-specific functions (normalizeTaskDates, normalizeTodoDates, normalizeSubtaskDates)
  * @param item - The object with date fields
  * @param dateFieldNames - Array of date field names to normalize (default: ["startDate", "endDate"])
@@ -131,17 +205,4 @@ export function normalizeEntityDates<T extends Record<string, any>>(
   dateFieldNames: string[] = ["startDate", "endDate"]
 ): T {
   return normalizeDateFields(item, dateFieldNames);
-}
-
-// Backward compatibility aliases - deprecated, use normalizeEntityDates instead
-export function normalizeTaskDates<T extends { startDate?: any; endDate?: any }>(task: T): T {
-  return normalizeEntityDates(task, ["startDate", "endDate"]);
-}
-
-export function normalizeTodoDates<T extends { startDate?: any; endDate?: any }>(todo: T): T {
-  return normalizeEntityDates(todo, ["startDate", "endDate"]);
-}
-
-export function normalizeSubtaskDates<T extends { startDate?: any; endDate?: any }>(subtask: T): T {
-  return normalizeEntityDates(subtask, ["startDate", "endDate"]);
 }

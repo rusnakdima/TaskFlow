@@ -4,6 +4,9 @@ import { Injectable } from "@angular/core";
 /* models */
 import { TaskStatus } from "@models/task.model";
 
+/* helpers */
+import { formatDateShort } from "./date-conversion.helper";
+
 /**
  * Base helper for item components (Task, Subtask, Todo)
  * Provides common methods for status/priority handling
@@ -102,14 +105,7 @@ export class BaseItemHelper {
   /**
    * Format date string
    */
-  formatDate(dateString: string): string {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
+  formatDate = formatDateShort;
 
   /**
    * Check if item is blocked by dependencies
@@ -127,6 +123,54 @@ export class BaseItemHelper {
         (depItem.status !== TaskStatus.COMPLETED && depItem.status !== TaskStatus.SKIPPED)
       );
     });
+  }
+
+  /**
+   * Count unread comments for a list of comments
+   */
+  countUnreadComments(comments: any[] | undefined, userId: string | null): number {
+    if (!comments || !userId) return 0;
+    return comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
+  }
+
+  /**
+   * Count unread comments for a subtask
+   */
+  countSubtaskUnreadComments(subtask: any, userId: string | null): number {
+    return this.countUnreadComments(subtask?.comments, userId);
+  }
+
+  /**
+   * Count unread comments for a task (including its subtasks)
+   */
+  countTaskUnreadComments(task: any, userId: string | null): number {
+    if (!task || !userId) return 0;
+
+    let count = this.countUnreadComments(task.comments, userId);
+
+    if (task.subtasks) {
+      task.subtasks.forEach((subtask: any) => {
+        count += this.countSubtaskUnreadComments(subtask, userId);
+      });
+    }
+
+    return count;
+  }
+
+  /**
+   * Count unread comments for a todo (including its tasks and subtasks)
+   */
+  countTodoUnreadComments(todo: any, userId: string | null): number {
+    if (!todo || !userId) return 0;
+
+    let count = 0;
+    const tasks = todo.tasks || [];
+
+    tasks.forEach((task: any) => {
+      count += this.countTaskUnreadComments(task, userId);
+    });
+
+    return count;
   }
 
   /**
@@ -180,22 +224,5 @@ export class BaseItemHelper {
     }
 
     return segments;
-  }
-
-  /**
-   * Get status color for progress bar
-   */
-  getStatusColorForProgress(status: string): string {
-    switch (status) {
-      case TaskStatus.COMPLETED:
-        return "bg-green-500";
-      case TaskStatus.SKIPPED:
-        return "bg-orange-500";
-      case TaskStatus.FAILED:
-        return "bg-red-500";
-      case TaskStatus.PENDING:
-      default:
-        return "bg-gray-400";
-    }
   }
 }
