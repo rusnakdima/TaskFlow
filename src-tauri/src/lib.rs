@@ -1,15 +1,17 @@
 #![allow(non_snake_case)]
 
 /* imports */
+mod errors;
 mod helpers;
 mod models;
 mod providers;
+mod repositories;
 mod routes;
 mod services;
 
 /* sys lib */
 use std::sync::Arc;
-use tauri::{async_runtime::block_on, Manager};
+use tauri::Manager;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
@@ -31,154 +33,139 @@ use routes::{
 
 /* services */
 use services::{
-  about_service::AboutService, auth_service::AuthService, crud_service::CrudService,
-  live_sync_service::LiveSyncService, manage_db_service::ManageDbService,
-  profile_service::ProfileService, statistics_service::StatisticsService,
-  websocket_server_service::WebSocketServerService,
+  about_service::AboutService, activity_monitor_service::ActivityMonitorService,
+  auth_service::AuthService, cascade_service::CascadeService, crud_service::CrudService,
+  entity_resolution_service::EntityResolutionService, live_sync_service::LiveSyncService,
+  manage_db_service::ManageDbService, profile_service::ProfileService,
+  statistics_service::StatisticsService, websocket_server_service::WebSocketServerService,
 };
 
 pub struct AppState {
-  pub config: ConfigHelper,
-  pub crudService: Arc<CrudService>,
-  pub authService: Arc<AuthService>,
-  pub profileService: Arc<ProfileService>,
-  pub manageDbService: Arc<ManageDbService>,
+  pub configHelper: Arc<ConfigHelper>,
+  pub jsonProvider: JsonProvider,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
   pub aboutService: Arc<AboutService>,
-  pub statisticsService: Arc<StatisticsService>,
-  pub webSocketServerService: Arc<WebSocketServerService>,
+  pub authService: Arc<AuthService>,
+  pub crudService: Arc<CrudService>,
   pub liveSyncService: Option<Arc<LiveSyncService>>,
-  pub activityLogHelper: Arc<ActivityLogHelper>,
+  pub manageDbService: Arc<ManageDbService>,
+  pub profileService: Arc<ProfileService>,
+  pub statisticsService: Arc<StatisticsService>,
+  pub websocketServerService: Arc<WebSocketServerService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_http::init())
     .setup(|app| {
-      let config = ConfigHelper::new();
+      let configHelper = Arc::new(ConfigHelper::new());
 
-      let appHandle = app.handle();
-      let mongodbProvider = match block_on(MongodbProvider::new(
-        config.mongoDbUri.clone(),
-        config.mongoDbName.clone(),
-      )) {
-        Ok(provider) => Some(Arc::new(provider)),
-        Err(_) => None,
+      let mongodbProvider = {
+        let uri = configHelper.mongoDbUri.clone();
+        let dbName = configHelper.mongoDbName.clone();
+        match tauri::async_runtime::block_on(MongodbProvider::new(uri, dbName)) {
+          Ok(p) => Some(Arc::new(p)),
+          Err(_) => None,
+        }
       };
 
       let jsonProvider = JsonProvider::new(
-        appHandle.clone(),
-        config.appHomeFolder.clone(),
-        config.jsonDbName.clone(),
+        app.handle().clone(),
+        configHelper.appHomeFolder.clone(),
+        configHelper.jsonDbName.clone(),
         mongodbProvider.clone(),
       );
 
       let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
 
-      // Create unified CRUD service
+      let aboutService = Arc::new(AboutService::new(configHelper.nameApp.clone()));
+      let profileService = Arc::new(ProfileService::new(jsonProvider.clone()));
+
+      let cascadeService = CascadeService::new(jsonProvider.clone(), mongodbProvider.clone());
+      let entityResolution = Arc::new(EntityResolutionService::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+      ));
+      let activityMonitor =
+        ActivityMonitorService::new(activityLogHelper.clone(), entityResolution.clone());
+
       let crudService = Arc::new(CrudService::new(
         jsonProvider.clone(),
         mongodbProvider.clone(),
-        activityLogHelper.clone(),
+        cascadeService.clone(),
+        entityResolution.clone(),
+        activityMonitor,
       ));
 
-      // Create auth service
       let authService = Arc::new(AuthService::new(
         jsonProvider.clone(),
-        mongodbProvider
-          .clone()
-          .expect("MongoDB provider required for AuthController"),
-        config.jwtSecret.clone(),
+        mongodbProvider.clone().expect("MongoDB required for Auth"),
+        configHelper.jwtSecret.clone(),
       ));
 
-      // Create profile service
-      let profileService = Arc::new(ProfileService::new(jsonProvider.clone()));
-
-      // Create manage DB service for sync operations
-      let manageDbService = Arc::new(ManageDbService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
-      ));
-
-      // Create about service
-      let aboutService = Arc::new(AboutService::new(config.nameApp.clone()));
-
-      // Create statistics service
       let statisticsService = Arc::new(StatisticsService::new(
         jsonProvider.clone(),
         activityLogHelper.clone(),
       ));
+      let manageDbService = Arc::new(ManageDbService::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+        cascadeService,
+        entityResolution,
+      ));
 
-      // Create WebSocket service for real-time updates using crud_service
-      let webSocketServerService = Arc::new(WebSocketServerService::new(crudService.clone()));
+      let liveSyncService = mongodbProvider
+        .as_ref()
+        .map(|p| Arc::new(LiveSyncService::new(p.db.clone(), app.handle().clone())));
 
-      // Create LiveSync service for real-time DB updates
-      let liveSyncService = if let Some(ref provider) = mongodbProvider {
-        let service = Arc::new(LiveSyncService::new(
-          provider.mongodbCrud.db.clone(),
-          appHandle.clone(),
-        ));
-        let serviceClone = service.clone();
-        tauri::async_runtime::spawn(async move {
-          serviceClone.startWatching().await;
-        });
-        Some(service)
-      } else {
-        None
-      };
+      let websocketServerService = Arc::new(WebSocketServerService::new(crudService.clone()));
 
-      #[cfg(not(mobile))]
-      {
-        let wsClone = webSocketServerService.clone();
-        tauri::async_runtime::spawn(async move {
-          let _ = wsClone.start(8766).await;
-        });
-      }
+      // Start WebSocket server
+      let wsServiceClone = websocketServerService.clone();
+      tauri::async_runtime::spawn(async move {
+        wsServiceClone.start(8766).await;
+      });
 
       app.manage(AppState {
-        config: config.clone(),
-        crudService,
-        authService,
-        profileService,
-        manageDbService,
+        configHelper,
+        jsonProvider,
+        mongodbProvider,
         aboutService,
-        statisticsService,
-        webSocketServerService,
+        authService,
+        crudService,
         liveSyncService,
-        activityLogHelper,
+        manageDbService,
+        profileService,
+        statisticsService,
+        websocketServerService,
       });
 
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      // Unified CRUD endpoint
-      manageData,
-      // Auth endpoints (special logic, not CRUD)
+      downloadUpdate,
+      getBinaryNameFile,
+      openFile,
       checkToken,
       login,
       register,
       requestPasswordReset,
-      verifyCode,
       resetPassword,
-      // Profile endpoints (special logic, not CRUD)
-      profileGetAll,
-      profileGet,
-      profileCreate,
-      profileUpdate,
-      profileDelete,
-      // Sync operations
-      importToLocal,
+      verifyCode,
       exportToCloud,
       getAllDataForAdmin,
+      importToLocal,
+      manageData,
       permanentlyDeleteRecord,
       toggleDeleteStatus,
-      // About endpoints
-      downloadUpdate,
-      getBinaryNameFile,
-      openFile,
-      // Statistics endpoints
-      statisticsGet,
+      profileCreate,
+      profileDelete,
+      profileGet,
+      profileGetAll,
+      profileUpdate,
+      statisticsGet
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
