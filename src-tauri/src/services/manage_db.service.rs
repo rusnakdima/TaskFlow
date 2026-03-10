@@ -7,9 +7,11 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
-/* managers */
+/* services */
 use crate::services::{
-  admin_manager::AdminManager, export_manager::ExportManager, sync_manager::SyncManager,
+  admin_manager::AdminManager, cascade_service::CascadeService,
+  entity_resolution_service::EntityResolutionService, export_manager::ExportManager,
+  sync_manager::SyncManager,
 };
 
 /// ManageDbService - Facade for database management operations
@@ -21,12 +23,22 @@ pub struct ManageDbService {
 }
 
 impl ManageDbService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Option<Arc<MongodbProvider>>,
+    cascadeService: CascadeService,
+    entityResolution: Arc<EntityResolutionService>,
+  ) -> Self {
     let syncManager = SyncManager::new(jsonProvider.clone(), mongodbProvider.clone());
     let exportManager = ExportManager::new(jsonProvider.clone(), mongodbProvider.clone());
-    let adminManager = mongodbProvider
-      .clone()
-      .map(|mp| AdminManager::new(jsonProvider.clone(), mp));
+    let adminManager = mongodbProvider.clone().map(|mp| {
+      AdminManager::new(
+        jsonProvider.clone(),
+        mp,
+        cascadeService,
+        entityResolution.clone(),
+      )
+    });
 
     Self {
       syncManager,
@@ -87,10 +99,5 @@ impl ManageDbService {
         data: DataValue::String("".to_string()),
       }),
     }
-  }
-
-  /// Clean deleted records from local
-  pub async fn cleanDeletedRecordsFromLocal(&self) -> Result<(), ResponseModel> {
-    self.syncManager.cleanDeletedRecordsFromLocal().await
   }
 }
