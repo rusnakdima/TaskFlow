@@ -13,6 +13,7 @@ import { MatExpansionModule } from "@angular/material/expansion";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus, RepeatInterval, PriorityTask } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 
 /* helpers */
 import { StateHelper } from "@helpers/state.helper";
@@ -78,6 +79,7 @@ export class TasksView implements OnInit {
   openChat = signal(false);
   selectedTasks = signal<Set<string>>(new Set());
   showBulkActions = signal(false);
+  expandedTasks = signal<Set<string>>(new Set());
 
   // Computed signals for data flow
   todoTasks = computed(() => {
@@ -219,6 +221,51 @@ export class TasksView implements OnInit {
       task.id,
       { status: newStatus },
       task,
+      todoId
+    );
+  }
+
+  toggleExpandTask(task: Task) {
+    this.expandedTasks.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(task.id)) {
+        newSet.delete(task.id);
+      } else {
+        newSet.add(task.id);
+      }
+      return newSet;
+    });
+  }
+
+  isTaskExpanded(taskId: string): boolean {
+    return this.expandedTasks().has(taskId);
+  }
+
+  toggleSubtaskCompletion(subtask: Subtask) {
+    const todoId = this.todo()?.id;
+    if (!todoId) return;
+
+    let newStatus: TaskStatus;
+    switch (subtask.status) {
+      case TaskStatus.PENDING:
+        newStatus = TaskStatus.COMPLETED;
+        break;
+      case TaskStatus.COMPLETED:
+        newStatus = TaskStatus.SKIPPED;
+        break;
+      case TaskStatus.SKIPPED:
+        newStatus = TaskStatus.FAILED;
+        break;
+      default:
+        newStatus = TaskStatus.PENDING;
+        break;
+    }
+
+    this.stateHelper.updateOptimistically<Subtask>(
+      "subtask",
+      subtask.id,
+      { status: newStatus },
+      subtask,
       todoId
     );
   }
