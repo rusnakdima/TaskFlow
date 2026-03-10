@@ -71,9 +71,10 @@ export class SubtaskComponent {
   truncateString = Common.truncateString;
 
   get unreadCommentsCount(): number {
-    return this.baseHelper.countSubtaskUnreadComments(
+    return this.baseHelper.countUnreadComments(
       this.subtask,
-      this.authService.getValueByKey("id")
+      this.authService.getValueByKey("id"),
+      'subtask'
     );
   }
 

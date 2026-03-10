@@ -70,7 +70,7 @@ export class TaskInformationComponent {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
       this.dataSyncProvider
         .update<Task>(
-          "task",
+          "tasks",
           this.task.id,
           updatedTask,
           { isOwner: this.isOwner, isPrivate: this.isPrivate },
@@ -101,7 +101,7 @@ export class TaskInformationComponent {
   deleteTask() {
     this.dataSyncProvider
       .delete(
-        "task",
+        "tasks",
         this.task?.id ?? "",
         { isOwner: this.isOwner, isPrivate: this.isPrivate },
         this.todoId

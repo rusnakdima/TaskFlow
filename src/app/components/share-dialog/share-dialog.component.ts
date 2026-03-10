@@ -185,7 +185,6 @@ export class ShareDialogComponent implements OnInit {
             // Reload data to ensure consistency after visibility change
             this.storageService.loadAllData(true).subscribe();
           } catch (syncError) {
-            console.error("Failed to sync after visibility change:", syncError);
             this.notifyService.showWarning("Todo updated, but sync may not have completed.");
           }
         }
@@ -196,7 +195,6 @@ export class ShareDialogComponent implements OnInit {
         // Close dialog with updated todo data
         this.dialogRef.close(result);
       } catch (err: any) {
-        console.error("Failed to update todo sharing:", err);
         this.notifyService.showError(err.message || "Failed to update todo sharing");
       }
     }
