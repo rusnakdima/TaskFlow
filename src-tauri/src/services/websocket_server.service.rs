@@ -111,211 +111,18 @@ impl WebSocketServerService {
     };
 
     let requestId = request.requestId.clone();
-    let syncMetadata = request.syncMetadata.unwrap_or(SyncMetadata {
+    let syncMetadata = request.syncMetadata.clone().unwrap_or(SyncMetadata {
       isOwner: true,
       isPrivate: false,
     });
 
     let res = match request.action.as_str() {
-      "get-all" => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "getAll".to_string(),
-            request.entity.clone(),
-            None,
-            None,
-            Some(filter),
-            request.relations,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      "get" => {
-        let filter = request.filter.unwrap_or(json!({}));
-        self
-          .crudService
-          .execute(
-            "read".to_string(),
-            request.entity.clone(),
-            None,
-            None,
-            Some(filter),
-            request.relations,
-            Some(syncMetadata),
-          )
-          .await
-          .unwrap_or_else(|e| e)
-      }
-
-      "create" => {
-        if let Some(data) = request.data {
-          let res = self
-            .crudService
-            .execute(
-              "create".to_string(),
-              request.entity.clone(),
-              None,
-              Some(data),
-              None,
-              None,
-              Some(syncMetadata.clone()),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-
-          if res.status == ResponseStatus::Success {
-            if let DataValue::Object(ref obj) = res.data {
-              let broadcastEntity = Self::getBroadcastName(&request.entity);
-              self.broadcast(
-                &format!("{}-created", broadcastEntity),
-                &broadcastEntity,
-                obj.clone(),
-              );
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data for create action".to_string())
-        }
-      }
-
-      "update" => {
-        if let (Some(id), Some(data)) = (request.id, request.data) {
-          let res = self
-            .crudService
-            .execute(
-              "update".to_string(),
-              request.entity.clone(),
-              Some(id.clone()),
-              Some(data),
-              None,
-              None,
-              Some(syncMetadata.clone()),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-
-          if res.status == ResponseStatus::Success {
-            if let DataValue::Object(ref obj) = res.data {
-              let broadcastEntity = Self::getBroadcastName(&request.entity);
-              self.broadcast(
-                &format!("{}-updated", broadcastEntity),
-                &broadcastEntity,
-                obj.clone(),
-              );
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id or data for update action".to_string())
-        }
-      }
-
-      "update-all" => {
-        if let Some(data) = request.data {
-          let res = self
-            .crudService
-            .execute(
-              "updateAll".to_string(),
-              request.entity.clone(),
-              None,
-              Some(data.clone()),
-              None,
-              None,
-              Some(syncMetadata.clone()),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-
-          if res.status == ResponseStatus::Success {
-            if request.entity == "chats" {
-              // Check if this was a clear operation (isDeleted: true) or just marking as read
-              let isClear = data
-                .as_array()
-                .and_then(|arr| arr.get(0))
-                .and_then(|first| first.get("isDeleted"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false);
-
-              if isClear {
-                let todoId = data
-                  .as_array()
-                  .and_then(|arr| arr.get(0))
-                  .and_then(|first| first.get("todoId"))
-                  .and_then(|v| v.as_str())
-                  .unwrap_or_default();
-
-                if !todoId.is_empty() {
-                  self.broadcast("chat-cleared", "chat", json!({ "todoId": todoId }));
-                }
-              }
-            }
-          }
-          res
-        } else {
-          ResponseModel::from("Missing data for update-all action".to_string())
-        }
-      }
-
-      "delete" => {
-        if let Some(id) = request.id {
-          // Get the original data before deletion for broadcast
-          let original = self
-            .crudService
-            .execute(
-              "read".to_string(),
-              request.entity.clone(),
-              Some(id.clone()),
-              None,
-              None,
-              None,
-              Some(syncMetadata.clone()),
-            )
-            .await
-            .ok();
-
-          let res = self
-            .crudService
-            .execute(
-              "delete".to_string(),
-              request.entity.clone(),
-              Some(id.clone()),
-              None,
-              None,
-              None,
-              Some(syncMetadata.clone()),
-            )
-            .await
-            .unwrap_or_else(|e| e);
-
-          if res.status == ResponseStatus::Success {
-            let broadcastEntity = Self::getBroadcastName(&request.entity);
-            // Include original data in broadcast for proper notifications
-            let broadcastData = if let Some(orig_response) = original {
-              match orig_response.data {
-                DataValue::Object(obj) => obj.clone(),
-                _ => json!({ "id": id })
-              }
-            } else {
-              json!({ "id": id })
-            };
-            
-            self.broadcast(
-              &format!("{}-deleted", broadcastEntity),
-              &broadcastEntity,
-              broadcastData,
-            );
-          }
-          res
-        } else {
-          ResponseModel::from("Missing id for delete action".to_string())
-        }
-      }
-
+      "get-all" => self.handleGetAll(request, syncMetadata).await,
+      "get" => self.handleGet(request, syncMetadata).await,
+      "create" => self.handleCreate(request, syncMetadata).await,
+      "update" => self.handleUpdate(request, syncMetadata).await,
+      "update-all" => self.handleUpdateAll(request, syncMetadata).await,
+      "delete" => self.handleDelete(request, syncMetadata).await,
       _ => ResponseModel::from(format!(
         "Unknown action: {} on {}",
         request.action, request.entity
@@ -323,6 +130,202 @@ impl WebSocketServerService {
     };
 
     (res, requestId)
+  }
+
+  async fn handleGetAll(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    let filter = request.filter.unwrap_or(json!({}));
+    self
+      .crudService
+      .execute(
+        "getAll".to_string(),
+        request.entity,
+        None,
+        None,
+        Some(filter),
+        request.relations,
+        Some(syncMetadata),
+      )
+      .await
+      .unwrap_or_else(|e| e)
+  }
+
+  async fn handleGet(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    let filter = request.filter.unwrap_or(json!({}));
+    self
+      .crudService
+      .execute(
+        "get".to_string(),
+        request.entity,
+        request.id,
+        None,
+        Some(filter),
+        request.relations,
+        Some(syncMetadata),
+      )
+      .await
+      .unwrap_or_else(|e| e)
+  }
+
+  async fn handleCreate(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    if let Some(data) = request.data {
+      let res = self
+        .crudService
+        .execute(
+          "create".to_string(),
+          request.entity.clone(),
+          None,
+          Some(data),
+          None,
+          None,
+          Some(syncMetadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        if let DataValue::Object(ref obj) = res.data {
+          let broadcastEntity = Self::getBroadcastName(&request.entity);
+          self.broadcast(
+            &format!("{}-created", broadcastEntity),
+            &broadcastEntity,
+            obj.clone(),
+          );
+        }
+      }
+      res
+    } else {
+      ResponseModel::from("Missing data for create action".to_string())
+    }
+  }
+
+  async fn handleUpdate(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    if let (Some(id), Some(data)) = (request.id, request.data) {
+      let res = self
+        .crudService
+        .execute(
+          "update".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          Some(data),
+          None,
+          None,
+          Some(syncMetadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        if let DataValue::Object(ref obj) = res.data {
+          let broadcastEntity = Self::getBroadcastName(&request.entity);
+          self.broadcast(
+            &format!("{}-updated", broadcastEntity),
+            &broadcastEntity,
+            obj.clone(),
+          );
+        }
+      }
+      res
+    } else {
+      ResponseModel::from("Missing id or data for update action".to_string())
+    }
+  }
+
+  async fn handleUpdateAll(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    if let Some(data) = request.data {
+      let res = self
+        .crudService
+        .execute(
+          "updateAll".to_string(),
+          request.entity.clone(),
+          None,
+          Some(data.clone()),
+          None,
+          None,
+          Some(syncMetadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        if request.entity == "chats" {
+          let isClear = data
+            .as_array()
+            .and_then(|arr| arr.get(0))
+            .and_then(|first| first.get("isDeleted"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+          if isClear {
+            let todoId = data
+              .as_array()
+              .and_then(|arr| arr.get(0))
+              .and_then(|first| first.get("todoId"))
+              .and_then(|v| v.as_str())
+              .unwrap_or_default();
+
+            if !todoId.is_empty() {
+              self.broadcast("chat-cleared", "chat", json!({ "todoId": todoId }));
+            }
+          }
+        }
+      }
+      res
+    } else {
+      ResponseModel::from("Missing data for update-all action".to_string())
+    }
+  }
+
+  async fn handleDelete(&self, request: WsRequest, syncMetadata: SyncMetadata) -> ResponseModel {
+    if let Some(id) = request.id {
+      let original = self
+        .crudService
+        .execute(
+          "get".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          None,
+          None,
+          None,
+          Some(syncMetadata.clone()),
+        )
+        .await
+        .ok();
+
+      let res = self
+        .crudService
+        .execute(
+          "delete".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          None,
+          None,
+          None,
+          Some(syncMetadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        let broadcastEntity = Self::getBroadcastName(&request.entity);
+        let broadcastData = if let Some(orig_response) = original {
+          match orig_response.data {
+            DataValue::Object(obj) => obj.clone(),
+            _ => json!({ "id": id }),
+          }
+        } else {
+          json!({ "id": id })
+        };
+
+        self.broadcast(
+          &format!("{}-deleted", broadcastEntity),
+          &broadcastEntity,
+          broadcastData,
+        );
+      }
+      res
+    } else {
+      ResponseModel::from("Missing id for delete action".to_string())
+    }
   }
 
   fn broadcast(&self, event: &str, entity: &str, data: Value) {

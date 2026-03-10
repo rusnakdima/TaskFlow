@@ -1,4 +1,4 @@
-#[path = "crud_service.rs"]
+#[path = "crud.service.rs"]
 pub mod crud_service;
 
 #[path = "manage_db.service.rs"]
@@ -11,18 +11,7 @@ pub mod websocket_server_service;
 pub mod live_sync_service;
 
 // Special services (not CRUD)
-// Auth services (split from auth.service.rs)
-#[path = "auth_token.service.rs"]
-pub mod auth_token;
-
-#[path = "auth_login.service.rs"]
-pub mod auth_login;
-
-#[path = "auth_register.service.rs"]
-pub mod auth_register;
-
-#[path = "auth_password.service.rs"]
-pub mod auth_password;
+pub mod auth;
 
 #[path = "auth.service.rs"]
 pub mod auth_service;
@@ -36,15 +25,29 @@ pub mod profile_sync_service;
 #[path = "about.service.rs"]
 pub mod about_service;
 
+// Refactored from crud.service.rs
+#[path = "cascade.service.rs"]
+pub mod cascade_service;
+
+#[path = "entity_resolution.service.rs"]
+pub mod entity_resolution_service;
+
+#[path = "activity_monitor.service.rs"]
+pub mod activity_monitor_service;
+
 // Managers (split from manage_db.service.rs)
-#[path = "sync_manager.rs"]
+#[path = "sync.service.rs"]
 pub mod sync_manager;
 
-#[path = "export_manager.rs"]
+#[path = "export.service.rs"]
 pub mod export_manager;
 
-#[path = "admin_manager.rs"]
+pub mod admin;
+
+#[path = "admin.service.rs"]
 pub mod admin_manager;
+
+pub mod statistics;
 
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
