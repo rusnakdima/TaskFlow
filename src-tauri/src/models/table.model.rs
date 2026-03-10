@@ -4,6 +4,7 @@ use serde_json::Value;
 // Import all model types
 use crate::models::{
   category_model::{CategoryCreateModel, CategoryModel, CategoryUpdateModel},
+  chat_model::{ChatCreateModel, ChatModel, ChatUpdateModel},
   daily_activity_model::{DailyActivityCreateModel, DailyActivityModel},
   profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
@@ -21,6 +22,7 @@ pub enum TableModelType {
   User,
   Profile,
   DailyActivity,
+  Chat,
 }
 
 pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
@@ -32,8 +34,9 @@ pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
     "users" => Ok(TableModelType::User),
     "profiles" => Ok(TableModelType::Profile),
     "daily_activities" => Ok(TableModelType::DailyActivity),
+    "chats" => Ok(TableModelType::Chat),
     _ => Err(format!(
-      "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities",
+      "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities, chats",
       tableName
     )),
   }
@@ -49,6 +52,20 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
   }
 
   match modelType {
+    TableModelType::Chat => {
+      if isCreate {
+        let createModel: ChatCreateModel =
+          serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
+        createModel.validate()?;
+        let model: ChatModel = createModel.into();
+        serde_json::to_value(&model).map_err(|e| format!("Failed to serialize chat model: {}", e))
+      } else {
+        let updateModel: ChatUpdateModel = serde_json::from_value(data.clone())
+          .map_err(|e| format!("Invalid chat update data: {}", e))?;
+        updateModel.validate()?;
+        Ok(data.clone())
+      }
+    }
     TableModelType::Todo => {
       if isCreate {
         let createModel: TodoCreateModel =
