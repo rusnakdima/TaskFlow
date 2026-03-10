@@ -33,7 +33,7 @@ interface CrudParams {
   providedIn: "root",
 })
 export class DataSyncProvider {
-  private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles"];
+  private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles", "chats"];
 
   private localWebSocketService = inject(LocalWebSocketService);
   private authService = inject(AuthService);
@@ -57,18 +57,41 @@ export class DataSyncProvider {
     }
   }
 
-  private resolveMetadata(table: string, todoId?: string, record?: any): SyncMetadata {
+  private resolveMetadata(table: string, todoId?: string, record?: any, id?: string): SyncMetadata {
     const currentUserId = this.authService.getValueByKey("id");
     let metadata: SyncMetadata = { isOwner: true, isPrivate: true };
 
-    if (table === "todos" && record) {
-      metadata.isPrivate = record.visibility === "private";
-      metadata.isOwner = record.userId === currentUserId;
-      return metadata;
+    // If we're working with a todo directly
+    if (table === "todos") {
+      const targetId = id || record?.id || todoId;
+      const todo = record || (targetId ? this.storageService.getTodoById(targetId) : null);
+
+      if (todo) {
+        metadata.isPrivate = todo.visibility === "private";
+        metadata.isOwner = todo.userId === currentUserId;
+        return metadata;
+      }
     }
 
-    if (todoId) {
-      const todo = this.storageService.getTodoById(todoId);
+    // For tasks/subtasks/chats, we need to find the parent todoId
+    let effectiveTodoId = todoId || record?.todoId;
+
+    if (!effectiveTodoId && (record?.id || id)) {
+      const targetId = id || record?.id;
+      if (table === "tasks") {
+        effectiveTodoId = this.storageService.getTaskById(targetId!)?.todoId;
+      } else if (table === "subtasks") {
+        const subtask = this.storageService.getSubtaskById(targetId!);
+        if (subtask) {
+          effectiveTodoId = this.storageService.getTaskById(subtask.taskId)?.todoId;
+        }
+      } else if (table === "chats") {
+        // We might not have chats in storage service yet, so we rely on parentTodoId being passed
+      }
+    }
+
+    if (effectiveTodoId) {
+      const todo = this.storageService.getTodoById(effectiveTodoId);
       if (todo) {
         metadata.isPrivate = todo.visibility === "private";
         metadata.isOwner = todo.userId === currentUserId;
@@ -97,7 +120,12 @@ export class DataSyncProvider {
     const metadata =
       options.isOwner !== undefined
         ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
-        : this.resolveMetadata(table, options.parentTodoId || options.data?.todoId, options.data);
+        : this.resolveMetadata(
+            table,
+            options.parentTodoId || options.data?.todoId,
+            options.data,
+            options.id
+          );
 
     const relations = options.relations ?? this.getDefaultRelations(table);
 
