@@ -39,7 +39,7 @@ pub async fn requestPasswordReset(
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .authService
-    .requestPasswordReset(email, &state.config)
+    .requestPasswordReset(email, &state.configHelper)
     .await
 }
 
