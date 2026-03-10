@@ -15,3 +15,19 @@ export interface AdminFieldConfig {
   getChipColor?: (value: any) => string;
   getChipText?: (value: any) => string;
 }
+
+export interface AdminFilterState {
+  titleFilter: string;
+  descriptionFilter: string;
+  priorityFilter: string;
+  startDateFilter: string;
+  endDateFilter: string;
+  statusFilter: string;
+  isCompletedFilter: string;
+  userFilter: string;
+  categoriesFilter: string;
+  todoIdFilter: string;
+  taskIdFilter: string;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
+}
