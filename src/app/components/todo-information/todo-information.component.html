@@ -7,102 +7,39 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
       <div class="flex flex-col sm:flex-1 w-full">
         <div class="flex items-center gap-3 mb-2">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="folder" />
-          <h1 class="text-2xl font-bold">{{ todo?.title }}</h1>
+          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="assignment" />
+          <h1 class="text-2xl font-bold">{{ todo.title || "Untitled Project" }}</h1>
         </div>
-        <p class="text-blue-100 mb-4 max-w-prose">{{ todo?.description }}</p>
+        <p class="text-blue-100 mb-4 truncate max-w-lg">{{ todo.description }}</p>
 
-        @if (todo?.categories) {
-          <div class="flex flex-wrap gap-2 mb-4">
-            @for (category of todo!.categories; track $index) {
-              <span
-                class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-full text-sm font-medium transition-colors"
-              >
-                {{ category.title }}
-              </span>
-            }
-          </div>
-        }
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-between text-center w-full">
+        <div class="grid grid-cols-2 gap-4 text-center sm:text-left w-full max-w-xs">
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getCompletedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Completed</div>
-          </div>
-          <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getSkippedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Skipped</div>
-          </div>
-          <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getFailedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Failed</div>
+            <div class="text-blue-200 text-sm">Completed Tasks</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getInProgressTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
+            <div class="text-blue-200 text-sm">In Progress</div>
           </div>
         </div>
 
-        <!-- Horizontal progress bar for mobile -->
-        <div class="block sm:hidden mt-4">
-          <div class="flex justify-between text-sm text-gray-200 mb-2">
-            <span>Progress</span>
-            <span>{{ getProjectProgress() }}%</span>
-          </div>
-          <div class="w-full bg-white/20 rounded-full h-2">
-            <div
-              class="bg-white h-2 rounded-full transition-all duration-300"
-              [style.width.%]="getProjectProgress()"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="shrink-0 self-center sm:self-auto hidden sm:block">
-        <div class="relative w-32 h-32">
-          <app-circle-progress [percentCompletedTasks]="getProjectProgress()" />
+        <div class="mt-4">
+          <app-progress-bar [items]="todo.tasks || []" [showLegend]="true" size="lg" />
         </div>
       </div>
     </div>
 
-    <button
-      (click)="toggleActions()"
-      class="absolute flex items-center justify-center top-4 right-4 rounded-full bg-black/20 hover:bg-black/30 w-10 h-10 transition-colors"
-    >
-      <mat-icon class="w-5! h-5! text-xl!" fontIcon="more_vert" />
-    </button>
-  </div>
-
-  @if (showActions()) {
-    <div class="p-4 bg-gray-50 dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="absolute top-4 right-4 flex items-center gap-2">
+      @if (isOwner) {
         <a
-          [routerLink]="['/todos', todo?.id, 'edit_todo']"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+          [routerLink]="['/todos', todo.id, 'edit_todo']"
+          [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
+          class="flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 w-10 h-10 transition-colors"
+          title="Edit Project"
         >
-          <mat-icon class="w-6! h-6! text-2xl! text-blue-600 dark:text-blue-400" fontIcon="edit" />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Edit</span>
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
         </a>
-
-        <button
-          (click)="shareProject()"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
-        >
-          <mat-icon
-            class="w-6! h-6! text-2xl! text-purple-600 dark:text-purple-400"
-            fontIcon="share"
-          />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Share</span>
-        </button>
-
-        <button
-          (click)="confirmDeleteTodo()"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
-        >
-          <mat-icon class="w-6! h-6! text-2xl! text-red-600 dark:text-red-400" fontIcon="delete" />
-          <span class="text-sm font-medium text-red-700 dark:text-red-300">Delete</span>
-        </button>
-      </div>
+      }
     </div>
-  }
+  </div>
 </div>

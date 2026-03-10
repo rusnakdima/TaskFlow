@@ -10,6 +10,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
+import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -35,6 +36,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
     MatIconModule,
     DragDropModule,
     CommentsComponent,
+    ProgressBarComponent,
   ],
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,6 +54,8 @@ export class TaskComponent implements OnInit {
   @Input() isSelected: boolean = false;
   @Input() allTasks: Task[] = [];
   @Input() showExpandButton: boolean = false;
+  @Input() highlightCommentId: string | null = null;
+  @Input() autoOpenComments: boolean = false;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();
@@ -71,11 +75,28 @@ export class TaskComponent implements OnInit {
 
   truncateString = Common.truncateString;
 
-  get hasUnreadComments(): boolean {
-    if (!this.task || !this.task.comments) return false;
+  get unreadCommentsCount(): number {
     const userId = this.authService.getValueByKey("id");
-    if (!userId) return false;
-    return this.task.comments.some((c) => !c.readBy || !c.readBy.includes(userId));
+    if (!userId || !this.task) return 0;
+
+    let count = 0;
+    // Comments in task
+    if (this.task.comments) {
+      count += this.task.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
+    }
+    // Comments in subtasks
+    if (this.task.subtasks) {
+      this.task.subtasks.forEach((subtask) => {
+        if (subtask.comments) {
+          count += subtask.comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
+        }
+      });
+    }
+    return count;
+  }
+
+  get hasUnreadComments(): boolean {
+    return this.unreadCommentsCount > 0;
   }
 
   get isBlocked(): boolean {
@@ -178,28 +199,6 @@ export class TaskComponent implements OnInit {
   get totalSubtasks(): number {
     return this.task?.subtasks?.length ?? 0;
   }
-
-  get countCompletedTasks(): number {
-    return this.baseHelper.countCompleted(this.task?.subtasks ?? []);
-  }
-
-  get countTasks(): number {
-    return this.task?.subtasks?.length ?? 0;
-  }
-
-  get percentCompletedSubTasks(): number {
-    const completed = this.baseHelper.countCompleted(this.task?.subtasks ?? []);
-    const total = this.task?.subtasks?.length ?? 0;
-    return completed / (total === 0 ? 1 : total);
-  }
-
-  getProgressPercentage(): number {
-    if (this.task?.status === TaskStatus.COMPLETED || this.task?.status === TaskStatus.SKIPPED)
-      return 100;
-    return Math.round(this.percentCompletedSubTasks * 100);
-  }
-
-  getProgressSegments = () => this.baseHelper.getProgressSegments(this.task?.subtasks ?? []);
 
   getPriorityColor = this.baseHelper.getPriorityBadgeClass;
 

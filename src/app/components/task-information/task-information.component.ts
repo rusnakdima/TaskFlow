@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
+import { Component, Input, signal, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -17,23 +17,25 @@ import { NotifyService } from "@services/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
-import { CircleProgressComponent } from "@components/circle-progress/circle-progress.component";
+import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+
+/* helpers */
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 @Component({
   selector: "app-task-information",
   standalone: true,
   providers: [DataSyncProvider],
-  imports: [CommonModule, MatIconModule, RouterModule, CircleProgressComponent],
+  imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./task-information.component.html",
 })
 export class TaskInformationComponent {
-  public showActions = signal(false);
+  private notifyService = inject(NotifyService);
+  private router = inject(Router);
+  private dataSyncProvider = inject(DataSyncProvider);
+  private baseHelper = inject(BaseItemHelper);
 
-  constructor(
-    private notifyService: NotifyService,
-    private router: Router,
-    private dataSyncProvider: DataSyncProvider
-  ) {}
+  public showActions = signal(false);
 
   @Input() task!: Task;
   @Input() todoId!: string;
@@ -57,12 +59,6 @@ export class TaskInformationComponent {
 
   getInProgressSubtasksCount(): number {
     return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.PENDING).length;
-  }
-
-  getTaskProgress(): number {
-    if (this.listSubtasks.length === 0) return 0;
-    const completedSubtasks = this.getCompletedSubtasksCount() + this.getSkippedSubtasksCount();
-    return Math.round((completedSubtasks / this.listSubtasks.length) * 100);
   }
 
   toggleActions() {
@@ -119,16 +115,5 @@ export class TaskInformationComponent {
           this.notifyService.showError(err.message || "Failed to delete task");
         },
       });
-  }
-
-  get percentCompletedSubTasks(): number {
-    const listSubtasks = this.task?.subtasks ?? [];
-    const listCompletedSubtasks = listSubtasks.filter(
-      (subtask: Subtask) =>
-        subtask.status === TaskStatus.COMPLETED || subtask.status === TaskStatus.SKIPPED
-    );
-    const percent =
-      listCompletedSubtasks.length / (listSubtasks.length == 0 ? 1 : listSubtasks.length);
-    return percent;
   }
 }

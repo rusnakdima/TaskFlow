@@ -98,9 +98,13 @@ export class ShareDialogComponent implements OnInit {
   }
 
   async fetchProfiles(): Promise<void> {
-    this.dataSyncProvider.getAll<Profile>("profiles", { userId: this.userId() }).subscribe({
+    // Fetch ALL profiles, not just current user's profile
+    this.dataSyncProvider.getAll<Profile>("profiles", {}).subscribe({
       next: (profiles) => {
-        this.availableProfiles.set(profiles);
+        // Filter out current user from the list (can't share with yourself)
+        const currentUserId = this.authService.getValueByKey("id");
+        const otherProfiles = profiles.filter((p) => p.id !== currentUserId);
+        this.availableProfiles.set(otherProfiles);
       },
       error: (err) => {
         this.notifyService.showError(err.message || "Failed to load profiles");
@@ -155,7 +159,7 @@ export class ShareDialogComponent implements OnInit {
       const body = {
         id: this.data.todo.id,
         visibility: formValue.visibility,
-        assignees: formValue.assignees.map((p: Profile) => p.id),
+        assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
         updatedAt: new Date().toISOString(),
       };
 
@@ -163,20 +167,23 @@ export class ShareDialogComponent implements OnInit {
       const newVisibility = formValue.visibility;
       const visibilityChanged = currentVisibility !== newVisibility;
 
+      // Determine sync metadata based on new visibility
+      const isPrivate = newVisibility === "private";
+      const syncMetadata = { isOwner: true, isPrivate };
+
       try {
         const result = await firstValueFrom(
-          this.dataSyncProvider.update<Todo>("todos", this.data.todo.id, body, {
-            isOwner: true,
-            isPrivate: this.isPrivate,
-          })
+          this.dataSyncProvider.update<Todo>("todos", this.data.todo.id, body, syncMetadata)
         );
 
-        // Update cache
-        this.storageService.updateTodo(body.id, body);
+        // Update cache with full result data
+        this.storageService.updateItem("todo", body.id, result);
 
         if (visibilityChanged) {
           try {
             await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
+            // Reload data to ensure consistency after visibility change
+            this.storageService.loadAllData(true).subscribe();
           } catch (syncError) {
             console.error("Failed to sync after visibility change:", syncError);
             this.notifyService.showWarning("Todo updated, but sync may not have completed.");
@@ -185,6 +192,8 @@ export class ShareDialogComponent implements OnInit {
 
         this.isPrivate = newVisibility === "private";
         this.notifyService.showSuccess("Todo sharing updated successfully");
+
+        // Close dialog with updated todo data
         this.dialogRef.close(result);
       } catch (err: any) {
         console.error("Failed to update todo sharing:", err);

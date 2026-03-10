@@ -110,7 +110,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
       .subscribe({
         next: (createdCategory) => {
           // Update cache
-          this.storageService.addCategory(createdCategory);
+          this.storageService.addItem("category", createdCategory);
           this.notifyService.showSuccess("Category created successfully");
           this.closeModal();
           this.saved.emit();
@@ -137,7 +137,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
       .subscribe({
         next: () => {
           // Update cache
-          this.storageService.updateCategory(this.editingCategory!.id, updatedCategory);
+          this.storageService.updateItem("category", this.editingCategory!.id, updatedCategory);
           this.notifyService.showSuccess("Category updated successfully");
           this.closeModal();
           this.saved.emit();
