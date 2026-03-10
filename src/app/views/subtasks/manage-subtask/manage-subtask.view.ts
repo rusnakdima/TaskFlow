@@ -36,7 +36,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
 import {
-  normalizeEntityDates,
+  normalizeDateFields,
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
@@ -206,14 +206,18 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         this.isOwner = todo.userId === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: (err) => console.error("Error loading project info:", err),
+      error: (err) => {
+        // Error loading project info
+      },
     });
   }
 
   loadTaskInfo(taskId: string) {
     this.dataSyncProvider.get<Task>("tasks", { id: taskId }, undefined, this.todoId()).subscribe({
       next: (task) => this.taskInfo.set(task),
-      error: (err) => console.error("Error loading task info:", err),
+      error: (err) => {
+        // Error loading task info
+      },
     });
   }
 
@@ -230,7 +234,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           )
         );
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeEntityDates(formValue);
+        const normalizedFormValue = normalizeDateFields(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const duplicateData = {
           ...convertedDates,
@@ -295,7 +299,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           )
         );
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeEntityDates(formValue);
+        const normalizedFormValue = normalizeDateFields(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
         const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
 
@@ -326,7 +330,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.todoId();
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeEntityDates(formValue);
+      const normalizedFormValue = normalizeDateFields(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
       const body = { ...convertedDates };
 
