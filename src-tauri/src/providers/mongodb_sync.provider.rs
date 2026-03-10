@@ -38,62 +38,67 @@ impl MongodbSyncProvider {
     userId: String,
     jsonProvider: &JsonProvider,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Exclude users and profiles from export for security
+    // Include all tables including profiles and users for sync
     let tables = vec![
       "todos",
       "tasks",
       "subtasks",
       "categories",
       "daily_activities",
+      "profiles",
+      "users",
     ];
 
     let mut teamTodoIds = HashSet::new();
     let mut teamTaskIds = HashSet::new();
 
     for table in tables {
-      // Handle deleted records first - propagate to cloud
-      let allLocal = jsonProvider.getDataTable(table).await?;
-      let idsToDelete: Vec<(String, Value)> = allLocal
-        .into_iter()
-        .filter_map(|record| {
-          if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
-            let id = record.get("id").and_then(|v| v.as_str())?.to_string();
-            Some((id, record))
-          } else {
-            None
-          }
-        })
-        .collect();
-
-      for (id, localRecord) in idsToDelete {
-        let mut shouldHardDeleteLocal = true;
-
-        match self.mongodbCrud.get(table, None, &id).await {
-          Ok(mut existingDoc) => {
-            let existingVal = serde_json::to_value(&existingDoc)?;
-
-            // Only update cloud to deleted if local record is newer than cloud record
-            // If cloud record is newer, it might have been restored by admin
-            if Self::shouldUpdateTarget(&localRecord, &existingVal) {
-              existingDoc.insert("isDeleted", true);
-              existingDoc.insert(
-                "updatedAt",
-                chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-              );
-              let _ = self.mongodbCrud.update(table, &id, existingDoc).await;
+      // Skip deleted records handling for users and profiles (they don't have isDeleted field)
+      if table != "users" && table != "profiles" {
+        // Handle deleted records first - propagate to cloud
+        let allLocal = jsonProvider.getDataTable(table).await?;
+        let idsToDelete: Vec<(String, Value)> = allLocal
+          .into_iter()
+          .filter_map(|record| {
+            if record.get("isDeleted").and_then(|v| v.as_bool()) == Some(true) {
+              let id = record.get("id").and_then(|v| v.as_str())?.to_string();
+              Some((id, record))
             } else {
-              // Cloud is newer (likely restored), so don't hard delete local yet
-              // The subsequent importToLocal will update the local record to active
-              shouldHardDeleteLocal = false;
+              None
+            }
+          })
+          .collect();
+
+        for (id, localRecord) in idsToDelete {
+          let mut shouldHardDeleteLocal = true;
+
+          match self.mongodbCrud.get(table, None, &id).await {
+            Ok(mut existingDoc) => {
+              let existingVal = serde_json::to_value(&existingDoc)?;
+
+              // Only update cloud to deleted if local record is newer than cloud record
+              // If cloud record is newer, it might have been restored by admin
+              if Self::shouldUpdateTarget(&localRecord, &existingVal) {
+                existingDoc.insert("isDeleted", true);
+                existingDoc.insert(
+                  "updatedAt",
+                  chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                );
+                let _ = self.mongodbCrud.update(table, &id, existingDoc).await;
+              } else {
+                // Cloud is newer (likely restored), so don't hard delete local yet
+                // The subsequent importToLocal will update the local record to active
+                shouldHardDeleteLocal = false;
+              }
+            }
+            Err(_) => {
+              // Record not in cloud, safe to delete locally
             }
           }
-          Err(_) => {
-            // Record not in cloud, safe to delete locally
-          }
-        }
 
-        if shouldHardDeleteLocal {
-          let _ = jsonProvider.hardDelete(table, &id).await;
+          if shouldHardDeleteLocal {
+            let _ = jsonProvider.hardDelete(table, &id).await;
+          }
         }
       }
 
@@ -101,6 +106,14 @@ impl MongodbSyncProvider {
       let filter = match table {
         "todos" | "categories" | "daily_activities" => {
           Some(serde_json::json!({ "userId": userId }))
+        }
+        "profiles" => {
+          // Export ALL profiles to MongoDB (not filtered by userId)
+          None
+        }
+        "users" => {
+          // Export ALL users to MongoDB (not filtered by userId)
+          None
         }
         "tasks" => {
           let todos = jsonProvider
@@ -234,6 +247,14 @@ impl MongodbSyncProvider {
         "categories" | "daily_activities" => {
           Some(doc! { "userId": &userId, "isDeleted": { "$ne": true } })
         }
+        "profiles" => {
+          // Import ALL profiles from MongoDB (not filtered by userId)
+          None
+        }
+        "users" => {
+          // Import ALL users from MongoDB (not filtered by userId)
+          None
+        }
         "tasks" => {
           let todos = self
             .mongodbCrud
@@ -276,7 +297,12 @@ impl MongodbSyncProvider {
         _ => None,
       };
 
-      let cloudDocs = self.mongodbCrud.getAll(table, filter).await?;
+      let cloudDocs = if table == "profiles" || table == "users" {
+        // Use getAllWithDeleted for users and profiles (they don't have isDeleted field)
+        self.mongodbCrud.getAllWithDeleted(table, filter).await?
+      } else {
+        self.mongodbCrud.getAll(table, filter).await?
+      };
       let mut cloudIds = Vec::new();
 
       for doc in cloudDocs {
