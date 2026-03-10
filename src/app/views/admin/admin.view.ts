@@ -16,22 +16,18 @@ import { MatSelectModule } from "@angular/material/select";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
-/* models */
-import { ResponseStatus } from "@models/response.model";
-
 /* services */
-import { AdminService } from "@services/admin.service";
+import { AdminStorageService } from "@services/admin-storage.service";
 import { NotifyService } from "@services/notify.service";
 import { AdminFiltersService } from "@services/admin-filters.service";
 import { AdminRecordsService } from "@services/admin-records.service";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-import { TodoRecordsComponent } from "@components/admin-records/todo-records/todo-records.component";
-import { TaskRecordsComponent } from "@components/admin-records/task-records/task-records.component";
-import { SubtaskRecordsComponent } from "@components/admin-records/subtask-records/subtask-records.component";
-import { CategoryRecordsComponent } from "@components/admin-records/category-records/category-records.component";
-import { DailyActivityRecordsComponent } from "@components/admin-records/daily-activity-records/daily-activity-records.component";
+import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
+
+/* models */
+import { AdminFieldConfig } from "@models/admin-table.model";
 
 interface AdminData {
   [key: string]: any[];
@@ -55,17 +51,13 @@ interface AdminData {
     MatNativeDateModule,
     FormsModule,
     CheckboxComponent,
-    TodoRecordsComponent,
-    TaskRecordsComponent,
-    SubtaskRecordsComponent,
-    CategoryRecordsComponent,
-    DailyActivityRecordsComponent,
+    AdminDataTableComponent,
   ],
   templateUrl: "./admin.view.html",
 })
 export class AdminView implements OnInit {
   constructor(
-    private adminService: AdminService,
+    private adminStorageService: AdminStorageService,
     private notifyService: NotifyService,
     private adminFiltersService: AdminFiltersService,
     private adminRecordsService: AdminRecordsService
@@ -76,6 +68,66 @@ export class AdminView implements OnInit {
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
+
+  // Field configurations
+  todoFields: AdminFieldConfig[] = [
+    { key: "description", label: "Description", type: "text" },
+    { key: "priority", label: "Priority", type: "priority" },
+    { key: "visibility", label: "Visibility", type: "text" },
+    { key: "startDate", label: "Start Date", type: "date" },
+    { key: "endDate", label: "End Date", type: "date" },
+    { key: "tasks", label: "Tasks", type: "array-count" },
+    { key: "assignees", label: "Assignees", type: "array-count" },
+    { key: "user", label: "Owner", type: "user" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  taskFields: AdminFieldConfig[] = [
+    { key: "description", label: "Description", type: "text" },
+    { key: "priority", label: "Priority", type: "priority" },
+    { key: "status", label: "Status", type: "text" },
+    { key: "startDate", label: "Start Date", type: "date" },
+    { key: "endDate", label: "End Date", type: "date" },
+    { key: "todoId", label: "Todo ID", type: "text" },
+    { key: "subtasks", label: "Subtasks", type: "array-count" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  subtaskFields: AdminFieldConfig[] = [
+    { key: "description", label: "Description", type: "text" },
+    { key: "priority", label: "Priority", type: "priority" },
+    { key: "status", label: "Status", type: "text" },
+    { key: "taskId", label: "Task ID", type: "text" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  categoryFields: AdminFieldConfig[] = [
+    { key: "user", label: "Owner", type: "user" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  dailyActivityFields: AdminFieldConfig[] = [
+    { key: "userId", label: "User ID", type: "text" },
+    { key: "date", label: "Date", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  getFieldConfig(): AdminFieldConfig[] {
+    switch (this.selectedType()) {
+      case "todos":
+        return this.todoFields;
+      case "tasks":
+        return this.taskFields;
+      case "subtasks":
+        return this.subtaskFields;
+      case "categories":
+        return this.categoryFields;
+      case "daily_activities":
+        return this.dailyActivityFields;
+      default:
+        return [];
+    }
+  }
 
   // Filter state
   titleFilter = signal<string>("");
@@ -129,25 +181,23 @@ export class AdminView implements OnInit {
     this.loadAdminData();
   }
 
-  async loadAdminData() {
+  loadAdminData() {
     this.loading.set(true);
-    try {
-      const response = await this.adminService.getAllDataForAdmin<AdminData>();
-      if (response.status === ResponseStatus.SUCCESS) {
-        this.adminData.set(response.data);
+    this.adminStorageService.loadAdminData().subscribe({
+      next: (data) => {
+        this.adminData.set(data);
 
         this.dataTypes.forEach((type) => {
-          const data = this.adminData()[type.id];
-          type.count = data ? data.length : 0;
+          const tableData = data[type.id];
+          type.count = tableData ? tableData.length : 0;
         });
-      } else {
-        this.notifyService.showError(response.message || "Failed to load admin data");
-      }
-    } catch (error) {
-      this.notifyService.showError("Failed to load admin data: " + error);
-    } finally {
-      this.loading.set(false);
-    }
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.notifyService.showError("Failed to load admin data: " + error);
+        this.loading.set(false);
+      },
+    });
   }
 
   selectDataType(typeId: string) {
@@ -221,7 +271,20 @@ export class AdminView implements OnInit {
   async deleteRecord(record: any) {
     const success = await this.adminRecordsService.deleteRecord(this.selectedType(), record);
     if (success) {
-      await this.loadAdminData();
+      // Update local storage instead of reloading all data
+      this.adminStorageService.removeRecord(this.selectedType(), record.id);
+      this.adminData.update((data) => {
+        const updated = { ...data };
+        updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
+          (item) => item.id !== record.id
+        );
+        return updated;
+      });
+      // Update count
+      const type = this.dataTypes.find((t) => t.id === this.selectedType());
+      if (type) {
+        type.count = Math.max(0, type.count - 1);
+      }
     }
   }
 
@@ -231,7 +294,25 @@ export class AdminView implements OnInit {
       record.id
     );
     if (success) {
-      await this.loadAdminData();
+      // Update local storage with new isDeleted status and updatedAt timestamp
+      const updatedData = {
+        isDeleted: !record.isDeleted,
+        updatedAt: new Date().toISOString(),
+      };
+      this.adminStorageService.updateRecord(this.selectedType(), record.id, updatedData);
+      this.adminData.update((data) => {
+        const updated = { ...data };
+        const index = (updated[this.selectedType()] || []).findIndex(
+          (item) => item.id === record.id
+        );
+        if (index !== -1) {
+          updated[this.selectedType()][index] = {
+            ...updated[this.selectedType()][index],
+            ...updatedData,
+          };
+        }
+        return updated;
+      });
     }
   }
 
@@ -304,7 +385,23 @@ export class AdminView implements OnInit {
           this.notifyService.showSuccess(
             `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
           );
-          this.loadAdminData();
+          // Update local storage instead of reloading all data
+          const deletedIds = Array.from(this.selectedRecords());
+          deletedIds.forEach((id) => {
+            this.adminStorageService.removeRecord(this.selectedType(), id);
+          });
+          this.adminData.update((data) => {
+            const updated = { ...data };
+            updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
+              (item) => !deletedIds.includes(item.id)
+            );
+            return updated;
+          });
+          // Update count
+          const type = this.dataTypes.find((t) => t.id === this.selectedType());
+          if (type) {
+            type.count = Math.max(0, type.count - result.successCount);
+          }
         }
 
         if (result.errorCount > 0) {

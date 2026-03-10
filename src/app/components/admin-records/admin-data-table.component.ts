@@ -1,6 +1,13 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  signal,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -11,8 +18,11 @@ import { MatCardModule } from "@angular/material/card";
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
+/* models */
+import { AdminFieldConfig } from "@models/admin-table.model";
+
 @Component({
-  selector: "app-daily-activity-records",
+  selector: "app-admin-data-table",
   standalone: true,
   imports: [
     CommonModule,
@@ -22,11 +32,16 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
     MatCardModule,
     CheckboxComponent,
   ],
-  templateUrl: "./daily-activity-records.component.html",
+  templateUrl: "./admin-data-table.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DailyActivityRecordsComponent {
-  @Input() records: any[] = [];
+export class AdminDataTableComponent {
+  @Input() data: any[] = [];
+  @Input() fields: AdminFieldConfig[] = [];
   @Input() selectedRecords = new Set<string>();
+  @Input() titleKey = "title";
+  @Input() descriptionKey = "description";
+
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<any>();
   @Output() toggleDelete = new EventEmitter<any>();
@@ -57,14 +72,6 @@ export class DailyActivityRecordsComponent {
     this.selectRecord.emit(recordId);
   }
 
-  onDeleteRecord(record: any): void {
-    this.deleteRecord.emit(record);
-  }
-
-  onToggleDelete(record: any): void {
-    this.toggleDelete.emit(record);
-  }
-
   formatDate(dateStr: string): string {
     if (!dateStr) return "";
     try {
@@ -75,24 +82,33 @@ export class DailyActivityRecordsComponent {
     }
   }
 
-  getDataProperties(item: any): { key: string; value: any }[] {
-    return Object.keys(item).map((key) => ({
-      key,
-      value: item[key],
-    }));
+  getPriorityColor(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case "urgent":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
+      case "high":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+      case "medium":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
+      case "low":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
+    }
   }
 
-  getStatusColor(isDeleted: boolean): string {
+  getDeletedStatusColor(isDeleted: boolean): string {
     return isDeleted
       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
       : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
   }
 
-  getStatusText(isDeleted: boolean): string {
+  getDeletedStatusText(isDeleted: boolean): string {
     return isDeleted ? "Deleted" : "Active";
   }
 
-  isArray(value: any): boolean {
-    return Array.isArray(value);
+  getValue(item: any, field: AdminFieldConfig): any {
+    if (field.getValue) return field.getValue(item);
+    return item[field.key];
   }
 }

@@ -276,62 +276,15 @@
             </p>
           </div>
         } @else {
-          @switch (selectedType()) {
-            @case ("todos") {
-              <app-todo-records
-                [todos]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-            @case ("tasks") {
-              <app-task-records
-                [tasks]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-            @case ("subtasks") {
-              <app-subtask-records
-                [subtasks]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-            @case ("categories") {
-              <app-category-records
-                [categories]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-            @case ("daily_activities") {
-              <app-daily-activity-records
-                [records]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-            @default {
-              <app-daily-activity-records
-                [records]="getCurrentData()"
-                [selectedRecords]="selectedRecords()"
-                (selectRecord)="toggleSelect($event)"
-                (deleteRecord)="deleteRecord($event)"
-                (toggleDelete)="toggleDeleteStatus($event)"
-              />
-            }
-          }
+          <app-admin-data-table
+            [data]="getCurrentData()"
+            [fields]="getFieldConfig()"
+            [selectedRecords]="selectedRecords()"
+            [titleKey]="selectedType() === 'daily_activities' ? 'id' : 'title'"
+            (selectRecord)="toggleSelect($event)"
+            (deleteRecord)="deleteRecord($event)"
+            (toggleDelete)="toggleDeleteStatus($event)"
+          />
         }
       </div>
     </div>
