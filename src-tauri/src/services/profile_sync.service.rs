@@ -193,7 +193,7 @@ impl ProfileSyncService {
     };
 
     for profileValue in localProfiles {
-      if let Some(profileId) = profileValue.get("id").and_then(|v| v.as_str()) {
+      if let Some(_profileId) = profileValue.get("id").and_then(|v| v.as_str()) {
         match serde_json::from_value::<ProfileModel>(profileValue.clone()) {
           Ok(profile) => if let Err(_) = self.syncProfileToCloud(profile).await {},
           Err(_) => {}

@@ -7,6 +7,9 @@ pub mod manage_db_service;
 #[path = "websocket_server.service.rs"]
 pub mod websocket_server_service;
 
+#[path = "live_sync.service.rs"]
+pub mod live_sync_service;
+
 // Special services (not CRUD)
 // Auth services (split from auth.service.rs)
 #[path = "auth_token.service.rs"]
