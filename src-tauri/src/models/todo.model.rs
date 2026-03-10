@@ -14,6 +14,7 @@ pub struct TodoModel {
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
+  pub priority: String,
   pub order: i32,
   pub isDeleted: bool,
   pub createdAt: String,
@@ -30,6 +31,7 @@ pub struct TodoCreateModel {
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
+  pub priority: String,
   pub order: i32,
 }
 
@@ -82,6 +84,7 @@ impl From<TodoCreateModel> for TodoModel {
       categories: value.categories,
       assignees: value.assignees,
       visibility: value.visibility,
+      priority: value.priority,
       order: value.order,
       isDeleted: false,
       createdAt: formatted.clone(),
@@ -102,6 +105,7 @@ pub struct TodoUpdateModel {
   pub categories: Option<Vec<String>>,
   pub assignees: Option<Vec<String>>,
   pub visibility: Option<String>,
+  pub priority: Option<String>,
   pub order: Option<i32>,
   pub isDeleted: Option<bool>,
   pub createdAt: Option<String>,

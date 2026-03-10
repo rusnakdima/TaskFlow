@@ -21,6 +21,7 @@ pub struct CommentModel {
 }
 
 impl CommentModel {
+  #[allow(dead_code)]
   pub fn new(
     authorId: String,
     authorName: String,
