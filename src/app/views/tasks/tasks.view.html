@@ -87,13 +87,15 @@
           [highlight]="highlightTaskId() === task.id"
           [isSelected]="selectedTasks().has(task.id)"
           [allTasks]="todo()?.tasks || []"
-          [isExpanded]="false"
+          [isExpanded]="isTaskExpanded(task.id)"
+          [showExpandButton]="task.subtasks && task.subtasks.length > 0"
           [highlightCommentId]="highlightCommentId()"
           [autoOpenComments]="openComments()"
           (deleteTaskEvent)="deleteTask($event)"
           (toggleCompletionEvent)="toggleTaskCompletion($event)"
           (updateTaskEvent)="updateTaskInline($event)"
-          (toggleSubtasksEvent)="toggleTaskCompletion($event)"
+          (toggleSubtasksEvent)="toggleExpandTask($event)"
+          (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
           (selectionChangeEvent)="toggleTaskSelection($event)"
         >
           <div
