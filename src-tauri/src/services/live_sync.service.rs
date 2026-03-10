@@ -16,7 +16,14 @@ impl LiveSyncService {
   }
 
   pub async fn startWatching(self: Arc<Self>) {
-    let collections = vec!["tasks", "todos", "subtasks", "comments", "categories", "chats"];
+    let collections = vec![
+      "tasks",
+      "todos",
+      "subtasks",
+      "comments",
+      "categories",
+      "chats",
+    ];
 
     for collectionName in collections {
       let serviceClone = self.clone();

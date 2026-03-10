@@ -1,10 +1,9 @@
 /* sys lib */
-use mongodb::bson::{doc, to_bson, Bson};
 use serde_json::{json, to_value, Value};
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::common::{convertDataToArray, convertDataToObject};
+use crate::helpers::common::convertDataToArray;
 
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
@@ -15,20 +14,10 @@ use crate::services::profile_sync_service::ProfileSyncService;
 /* models */
 use crate::models::{
   profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
-  relation_obj::{RelationObj, TypesField},
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
 };
 
-fn getRelations() -> Vec<RelationObj> {
-  vec![RelationObj {
-    nameTable: "users".to_string(),
-    typeField: TypesField::OneToOne,
-    nameField: "userId".to_string(),
-    newNameField: "user".to_string(),
-    relations: None,
-  }]
-}
+use crate::helpers::user_sync_helper;
 
 #[derive(Clone)]
 pub struct ProfileService {
@@ -55,75 +44,8 @@ impl ProfileService {
     }
   }
 
-  /// Helper method to update user's profileId in both MongoDB and local JSON storage
-  async fn updateUserProfile(
-    jsonProvider: &JsonProvider,
-    mongodbProvider: &Option<Arc<MongodbProvider>>,
-    userId: &str,
-    profileId: &str,
-  ) -> Result<(), ResponseModel> {
-    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    // Update in MongoDB
-    if let Some(ref mongodbProvider) = mongodbProvider {
-      match mongodbProvider.get("users", Some(doc! { "id": userId }), None, "").await {
-        Ok(userDoc) => {
-          let mut updatedUser: UserModel = match mongodb::bson::from_document(userDoc) {
-            Ok(user) => user,
-            Err(e) => {
-              return Err(ResponseModel {
-                status: ResponseStatus::Error,
-                message: format!("Failed to parse user from MongoDB: {}", e),
-                data: DataValue::String("".to_string()),
-              });
-            }
-          };
-          updatedUser.profileId = profileId.to_string();
-          updatedUser.updatedAt = now.clone();
-
-          let userRecord = match to_bson(&updatedUser) {
-            Ok(Bson::Document(doc)) => doc,
-            _ => {
-              return Err(ResponseModel {
-                status: ResponseStatus::Error,
-                message: "Error serializing user for MongoDB".to_string(),
-                data: DataValue::String("".to_string()),
-              });
-            }
-          };
-
-          let _ = mongodbProvider.update("users", userId, userRecord).await;
-        }
-        Err(_) => {
-          // User not found in MongoDB, skip update
-        }
-      }
-    }
-
-    // Update in local JSON storage
-    match jsonProvider.get("users", None, None, userId).await {
-      Ok(userValue) => {
-        let mut updatedUser = userValue.clone();
-        if let Some(obj) = updatedUser.as_object_mut() {
-          obj.insert("profileId".to_string(), Value::String(profileId.to_string()));
-          obj.insert("updatedAt".to_string(), Value::String(now.clone()));
-        }
-
-        let _ = jsonProvider.update("users", userId, updatedUser).await;
-      }
-      Err(_) => {
-        // User not found in local storage, skip update
-      }
-    }
-
-    Ok(())
-  }
-
   pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let listProfiles = self
-      .jsonProvider
-      .getAll("profiles", Some(filter), Some(getRelations()))
-      .await;
+    let listProfiles = self.jsonProvider.getAll("profiles", Some(filter)).await;
     match listProfiles {
       Ok(profiles) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -138,16 +60,12 @@ impl ProfileService {
     }
   }
 
-  pub async fn get(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let profile = self
-      .jsonProvider
-      .get("profiles", Some(filter), Some(getRelations()), "")
-      .await;
-    match profile {
+  pub async fn get(&self, id: String) -> Result<ResponseModel, ResponseModel> {
+    match self.jsonProvider.get("profiles", &id).await {
       Ok(profile) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "".to_string(),
-        data: convertDataToObject(&profile),
+        data: DataValue::Object(profile),
       }),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -157,176 +75,157 @@ impl ProfileService {
     }
   }
 
-  pub async fn create(&self, data: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
-    let userId = data.userId.clone();
-    let findByUserId = self.get(json!({ "userId": userId.clone() })).await;
-    if findByUserId.is_ok() {
-      return Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "Profile already exists!".to_string(),
-        data: DataValue::String("".to_string()),
-      });
-    }
-
-    let modelData: ProfileModel = data.into();
-    let profileId = modelData.id.clone();
-
-    let record: Value = match to_value(&modelData) {
-      Ok(v) => v,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Failed to serialize profile: {}", e),
-          data: DataValue::String("".to_string()),
-        })
-      }
-    };
-    let profile = self.jsonProvider.create("profiles", record).await;
-    match profile {
-      Ok(result) => {
-        if result {
-          // Sync profile to MongoDB first
-          if let Some(ref syncService) = self.profileSyncService {
-            let _ = syncService.syncProfileToCloud(modelData.clone()).await;
-          }
-
-          // Update user with profileId in both MongoDB and local JSON
-          Self::updateUserProfile(&self.jsonProvider, &self.mongodbProvider, &userId, &profileId).await?;
-
+  pub async fn getByUserId(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    // Get all profiles filtered by userId
+    let filter = json!({ "userId": userId });
+    match self.jsonProvider.getAll("profiles", Some(filter)).await {
+      Ok(profiles) => {
+        if profiles.is_empty() {
+          // Return empty profile if not found
           Ok(ResponseModel {
             status: ResponseStatus::Success,
-            message: "Profile created successfully".to_string(),
-            data: DataValue::String("".to_string()),
+            message: "Profile not found, returning empty profile".to_string(),
+            data: DataValue::Object(json!({
+              "id": "",
+              "name": "",
+              "lastName": "",
+              "bio": "",
+              "imageUrl": "",
+              "userId": userId,
+              "createdAt": "",
+              "updatedAt": ""
+            })),
           })
         } else {
+          // Return first matching profile
           Ok(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Couldn't create a profile!".to_string(),
-            data: DataValue::String("".to_string()),
+            status: ResponseStatus::Success,
+            message: "".to_string(),
+            data: DataValue::Object(profiles[0].clone()),
           })
         }
       }
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Couldn't create a profile! {}", error.to_string()),
+        message: format!("Couldn't get a profile by userId! {}", error.to_string()),
         data: DataValue::String("".to_string()),
       }),
     }
   }
 
-  pub async fn update(
-    &self,
-    id: String,
-    data: ProfileUpdateModel,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let profile = self
-      .jsonProvider
-      .get("profiles", None, None, id.as_str())
-      .await;
+  pub async fn create(&self, profile: ProfileCreateModel) -> Result<ResponseModel, ResponseModel> {
+    let userId = profile.userId.clone();
+    let modelData: ProfileModel = profile.into();
+    let profileId = modelData.id.clone();
 
-    match profile {
-      Ok(profile) => {
-        let existingProfileResult: Result<ProfileModel, _> =
-          serde_json::from_value::<ProfileModel>(profile.clone());
-        let existingProfile = match existingProfileResult {
-          Ok(profile) => profile,
-          Err(_) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: "Failed to parse existing profile data".to_string(),
-              data: DataValue::String("".to_string()),
-            });
-          }
-        };
-
-        let now = chrono::Utc::now();
-        let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-        let updatedProfile = ProfileModel {
-          _id: existingProfile._id,
-          id: existingProfile.id,
-          name: data.name.unwrap_or(existingProfile.name),
-          lastName: data.lastName.unwrap_or(existingProfile.lastName),
-          bio: data.bio.unwrap_or(existingProfile.bio),
-          imageUrl: data.imageUrl.unwrap_or(existingProfile.imageUrl),
-          userId: data.userId.unwrap_or(existingProfile.userId),
-          createdAt: existingProfile.createdAt,
-          updatedAt: formatted,
-        };
-
-        let record: Value = match to_value(&updatedProfile) {
-          Ok(val) => val,
-          Err(_) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: "Failed to serialize updated profile".to_string(),
-              data: DataValue::String("".to_string()),
-            });
-          }
-        };
-
-        let updateResult = self
-          .jsonProvider
-          .update("profiles", &id.as_str(), record)
-          .await;
-
-        match updateResult {
-          Ok(success) => {
-            if success {
-              if let Some(ref syncService) = self.profileSyncService {
-                let _ = syncService.syncProfileToCloud(updatedProfile.clone()).await;
-              }
-
-              Ok(ResponseModel {
-                status: ResponseStatus::Success,
-                message: "Profile updated successfully".to_string(),
-                data: DataValue::String("".to_string()),
-              })
-            } else {
-              Ok(ResponseModel {
-                status: ResponseStatus::Error,
-                message: "Couldn't update a profile!".to_string(),
-                data: DataValue::String("".to_string()),
-              })
+    match to_value(&modelData) {
+      Ok(value) => {
+        match self.jsonProvider.create("profiles", value.clone()).await {
+          Ok(_) => {
+            if let Some(ref syncService) = self.profileSyncService {
+              let _ = syncService.syncProfileToCloud(value).await;
             }
+
+            // Update user with profileId in both MongoDB and local JSON
+            user_sync_helper::updateUserProfileId(
+              &self.jsonProvider,
+              &self.mongodbProvider,
+              &userId,
+              &profileId,
+            )
+            .await?;
+
+            Ok(ResponseModel {
+              status: ResponseStatus::Success,
+              message: "Profile created successfully".to_string(),
+              data: DataValue::String("".to_string()),
+            })
           }
           Err(error) => Err(ResponseModel {
             status: ResponseStatus::Error,
-            message: format!("Couldn't update a profile! {}", error.to_string()),
+            message: format!("Couldn't create a profile! {}", error.to_string()),
             data: DataValue::String("".to_string()),
           }),
         }
       }
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Couldn't get a profile! {}", error.to_string()),
+        message: format!("Couldn't serialize a profile! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  pub async fn update(&self, profile: ProfileUpdateModel) -> Result<ResponseModel, ResponseModel> {
+    let profileId = profile.id.clone();
+
+    match self.jsonProvider.get("profiles", &profileId).await {
+      Ok(existingProfile) => {
+        let mut updatedProfile: ProfileModel = serde_json::from_value(existingProfile).unwrap();
+
+        if let Some(name) = profile.name {
+          updatedProfile.name = name;
+        }
+        if let Some(lastName) = profile.lastName {
+          updatedProfile.lastName = lastName;
+        }
+        if let Some(bio) = profile.bio {
+          updatedProfile.bio = bio;
+        }
+        if let Some(imageUrl) = profile.imageUrl {
+          updatedProfile.imageUrl = imageUrl;
+        }
+
+        updatedProfile.updatedAt =
+          chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+        match to_value(&updatedProfile) {
+          Ok(value) => {
+            match self
+              .jsonProvider
+              .update("profiles", &profileId, value.clone())
+              .await
+            {
+              Ok(_) => {
+                if let Some(ref syncService) = self.profileSyncService {
+                  let _ = syncService.syncProfileToCloud(value).await;
+                }
+
+                Ok(ResponseModel {
+                  status: ResponseStatus::Success,
+                  message: "Profile updated successfully".to_string(),
+                  data: DataValue::String("".to_string()),
+                })
+              }
+              Err(error) => Err(ResponseModel {
+                status: ResponseStatus::Error,
+                message: format!("Couldn't update a profile! {}", error.to_string()),
+                data: DataValue::String("".to_string()),
+              }),
+            }
+          }
+          Err(error) => Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Couldn't serialize a profile! {}", error.to_string()),
+            data: DataValue::String("".to_string()),
+          }),
+        }
+      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Profile not found! {}", error.to_string()),
         data: DataValue::String("".to_string()),
       }),
     }
   }
 
   pub async fn delete(&self, id: String) -> Result<ResponseModel, ResponseModel> {
-    let profile = self.jsonProvider.delete("profiles", &id.as_str()).await;
-    match profile {
-      Ok(result) => {
-        if result {
-          if let Some(ref mongodbProvider) = self.mongodbProvider {
-            let _ = mongodbProvider.delete("profiles", &id.as_str()).await;
-          }
-
-          Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "".to_string(),
-            data: DataValue::String("".to_string()),
-          })
-        } else {
-          Ok(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Couldn't delete a profile!".to_string(),
-            data: DataValue::String("".to_string()),
-          })
-        }
-      }
+    match self.jsonProvider.hardDelete("profiles", &id).await {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "Profile deleted successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't delete a profile! {}", error.to_string()),
