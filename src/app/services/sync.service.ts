@@ -9,6 +9,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 /* services */
 import { AuthService } from "@services/auth.service";
 import { StorageService } from "@services/storage.service";
+import { DataSyncService } from "@services/data-sync.service";
 
 @Injectable({
   providedIn: "root",
@@ -18,7 +19,8 @@ export class SyncService {
 
   constructor(
     private authService: AuthService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private dataSyncService: DataSyncService
   ) {}
 
   get isSyncing$(): Observable<boolean> {
@@ -35,7 +37,7 @@ export class SyncService {
       const userId = this.authService.getValueByKey("id");
       const result = await invoke<Response<R>>("importToLocal", { userId });
       if (result.status === ResponseStatus.SUCCESS) {
-        this.storageService.loadAllData(true).subscribe();
+        this.dataSyncService.loadAllData(true).subscribe();
       }
       return result;
     } finally {
