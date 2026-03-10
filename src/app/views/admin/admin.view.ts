@@ -19,15 +19,20 @@ import { MatNativeDateModule } from "@angular/material/core";
 /* services */
 import { AdminStorageService } from "@services/admin-storage.service";
 import { NotifyService } from "@services/notify.service";
-import { AdminFiltersService } from "@services/admin-filters.service";
-import { AdminRecordsService } from "@services/admin-records.service";
+import { FilterService } from "@services/filter.service";
+import { SortService } from "@services/sort.service";
+import { BulkActionService } from "@services/bulk-action.service";
+import { AdminService } from "@services/admin.service";
+import { DataSyncService } from "@services/data-sync.service";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
 
 /* models */
-import { AdminFieldConfig } from "@models/admin-table.model";
+import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
+import { ResponseStatus } from "@models/response.model";
+import { from } from "rxjs";
 
 interface AdminData {
   [key: string]: any[];
@@ -59,8 +64,11 @@ export class AdminView implements OnInit {
   constructor(
     private adminStorageService: AdminStorageService,
     private notifyService: NotifyService,
-    private adminFiltersService: AdminFiltersService,
-    private adminRecordsService: AdminRecordsService
+    private filterService: FilterService,
+    private sortService: SortService,
+    private bulkActionService: BulkActionService,
+    private adminService: AdminService,
+    private dataSyncService: DataSyncService
   ) {}
 
   adminData = signal<AdminData>({});
@@ -212,15 +220,11 @@ export class AdminView implements OnInit {
 
     // Apply status filter for tasks/subtasks
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
-      data = this.adminFiltersService.filterByStatus(
-        data,
-        this.isCompletedFilter(),
-        this.selectedType()
-      );
+      data = this.filterService.filterAdminByStatus(data, this.isCompletedFilter());
     }
 
     // Build filter state
-    const filterState = {
+    const filterState: AdminFilterState = {
       titleFilter: this.titleFilter(),
       descriptionFilter: this.descriptionFilter(),
       priorityFilter: this.priorityFilter(),
@@ -236,8 +240,19 @@ export class AdminView implements OnInit {
       sortOrder: this.sortOrder(),
     };
 
-    // Apply all filters
-    data = this.adminFiltersService.applyFilters(data, filterState, this.selectedType());
+    // Apply all filters using FilterService
+    const filterConfigs = this.filterService.buildAdminFilterConfigs(
+      filterState,
+      this.selectedType()
+    );
+    data = this.filterService.applyFilters(data, filterConfigs);
+    data = this.filterService.applyAdminCustomFilters(data, filterState, this.selectedType());
+
+    // Sort using SortService
+    data = this.sortService.sortByField(data, {
+      field: this.sortBy(),
+      order: this.sortOrder(),
+    });
 
     return data;
   }
@@ -269,50 +284,72 @@ export class AdminView implements OnInit {
   }
 
   async deleteRecord(record: any) {
-    const success = await this.adminRecordsService.deleteRecord(this.selectedType(), record);
-    if (success) {
-      // Update local storage instead of reloading all data
-      this.adminStorageService.removeRecord(this.selectedType(), record.id);
-      this.adminData.update((data) => {
-        const updated = { ...data };
-        updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
-          (item) => item.id !== record.id
-        );
-        return updated;
-      });
-      // Update count
-      const type = this.dataTypes.find((t) => t.id === this.selectedType());
-      if (type) {
-        type.count = Math.max(0, type.count - 1);
+    const typeSingular = this.selectedType().slice(0, -1);
+    if (!confirm(`Are you sure you want to delete this ${typeSingular} record?`)) {
+      return;
+    }
+
+    try {
+      const response = await this.adminService.permanentlyDeleteRecord(
+        this.selectedType(),
+        record.id
+      );
+
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Record permanently deleted");
+        // Update local storage instead of reloading all data
+        this.adminStorageService.removeRecord(this.selectedType(), record.id);
+        this.adminData.update((data) => {
+          const updated = { ...data };
+          updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
+            (item) => item.id !== record.id
+          );
+          return updated;
+        });
+        // Update count
+        const type = this.dataTypes.find((t) => t.id === this.selectedType());
+        if (type) {
+          type.count = Math.max(0, type.count - 1);
+        }
+        this.dataSyncService.loadAllData(true).subscribe();
+      } else {
+        this.notifyService.showError(response.message || "Failed to delete record");
       }
+    } catch (error) {
+      this.notifyService.showError("Error deleting record: " + error);
     }
   }
 
   async toggleDeleteStatus(record: any) {
-    const success = await this.adminRecordsService.toggleDeleteStatus(
-      this.selectedType(),
-      record.id
-    );
-    if (success) {
-      // Update local storage with new isDeleted status and updatedAt timestamp
-      const updatedData = {
-        isDeleted: !record.isDeleted,
-        updatedAt: new Date().toISOString(),
-      };
-      this.adminStorageService.updateRecord(this.selectedType(), record.id, updatedData);
-      this.adminData.update((data) => {
-        const updated = { ...data };
-        const index = (updated[this.selectedType()] || []).findIndex(
-          (item) => item.id === record.id
-        );
-        if (index !== -1) {
-          updated[this.selectedType()][index] = {
-            ...updated[this.selectedType()][index],
-            ...updatedData,
-          };
-        }
-        return updated;
-      });
+    try {
+      const response = await this.adminService.toggleDeleteStatus(this.selectedType(), record.id);
+
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Record status updated");
+        // Update local storage with new isDeleted status and updatedAt timestamp
+        const updatedData = {
+          isDeleted: !record.isDeleted,
+          updatedAt: new Date().toISOString(),
+        };
+        this.adminStorageService.updateRecord(this.selectedType(), record.id, updatedData);
+        this.adminData.update((data) => {
+          const updated = { ...data };
+          const index = (updated[this.selectedType()] || []).findIndex(
+            (item) => item.id === record.id
+          );
+          if (index !== -1) {
+            updated[this.selectedType()][index] = {
+              ...updated[this.selectedType()][index],
+              ...updatedData,
+            };
+          }
+          return updated;
+        });
+      } else {
+        this.notifyService.showError(response.message || "Failed to update record status");
+      }
+    } catch (error) {
+      this.notifyService.showError("Error updating record status: " + error);
     }
   }
 
@@ -337,7 +374,7 @@ export class AdminView implements OnInit {
   }
 
   clearFilters(): void {
-    const cleared = this.adminFiltersService.clearFilters();
+    const cleared = this.filterService.getDefaultAdminFilterState();
     this.titleFilter.set(cleared.titleFilter);
     this.descriptionFilter.set(cleared.descriptionFilter);
     this.priorityFilter.set(cleared.priorityFilter);
@@ -377,31 +414,41 @@ export class AdminView implements OnInit {
   }
 
   async deleteSelected(): Promise<void> {
-    this.adminRecordsService
-      .deleteSelected(this.selectedType(), this.selectedRecords(), this.getCurrentData())
+    const count = this.selectedRecords().size;
+    if (count === 0) return;
+
+    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
+    const plural = count > 1 ? "records" : "record";
+
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${count} ${typeSingular} ${plural}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const currentData = this.getCurrentData();
+    const selectedItems = currentData.filter((item) => this.isSelected(item.id));
+
+    this.bulkActionService
+      .bulkDelete(selectedItems, (id: string) =>
+        from(this.adminService.permanentlyDeleteRecord(this.selectedType(), id))
+      )
       .subscribe((result) => {
         this.clearSelection();
         if (result.successCount > 0) {
           this.notifyService.showSuccess(
             `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
           );
-          // Update local storage instead of reloading all data
-          const deletedIds = Array.from(this.selectedRecords());
-          deletedIds.forEach((id) => {
-            this.adminStorageService.removeRecord(this.selectedType(), id);
-          });
-          this.adminData.update((data) => {
-            const updated = { ...data };
-            updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
-              (item) => !deletedIds.includes(item.id)
-            );
-            return updated;
-          });
-          // Update count
-          const type = this.dataTypes.find((t) => t.id === this.selectedType());
-          if (type) {
-            type.count = Math.max(0, type.count - result.successCount);
-          }
+
+          // Update local storage
+          const deletedIds = selectedItems.filter((_, i) => i < result.successCount).map((item) => item.id);
+          // Actually we should use result.errors to know which ones failed, but bulkDelete result doesn't explicitly map success per ID in a simple way for filtering here without more logic.
+          // Let's assume most succeed or we reload if any succeed.
+          
+          this.dataSyncService.loadAllData(true).subscribe();
+          this.loadAdminData(); // Reload all admin data to be safe and update counts
         }
 
         if (result.errorCount > 0) {
