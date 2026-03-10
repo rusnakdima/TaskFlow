@@ -1,11 +1,14 @@
 /* sys lib */
 use std::sync::Arc;
 
-/* helpers */
-use crate::helpers::config::ConfigHelper;
-
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+
+/* services */
+use super::auth::auth_login::AuthLoginService;
+use super::auth::auth_password::AuthPasswordService;
+use super::auth::auth_register::AuthRegisterService;
+use super::auth::auth_token::AuthTokenService;
 
 /* models */
 use crate::models::{
@@ -13,16 +16,12 @@ use crate::models::{
   signup_form_model::SignupForm,
 };
 
-/* services */
-use super::{
-  auth_login::AuthLoginService, auth_password::AuthPasswordService,
-  auth_register::AuthRegisterService, auth_token::AuthTokenService,
-};
+/* helpers */
+use crate::helpers::config::ConfigHelper;
 
-/// AuthService - Unified authentication service
-/// Delegates to specialized services: AuthTokenService, AuthLoginService, AuthRegisterService, AuthPasswordService
+#[derive(Clone)]
 pub struct AuthService {
-  pub tokenService: AuthTokenService,
+  pub tokenService: Arc<AuthTokenService>,
   pub loginService: AuthLoginService,
   pub registerService: AuthRegisterService,
   pub passwordService: AuthPasswordService,
@@ -34,14 +33,19 @@ impl AuthService {
     mongodbProvider: Arc<MongodbProvider>,
     jwtSecret: String,
   ) -> Self {
-    let tokenService = AuthTokenService::new(Arc::clone(&mongodbProvider), jwtSecret);
-    let loginService = AuthLoginService::new(
-      jsonProvider,
+    let tokenService = Arc::new(AuthTokenService::new(
+      jsonProvider.clone(),
       Arc::clone(&mongodbProvider),
-      tokenService.clone(),
+      jwtSecret,
+    ));
+    let loginService = AuthLoginService::new(
+      jsonProvider.clone(),
+      Arc::clone(&mongodbProvider),
+      Arc::clone(&tokenService),
     );
-    let registerService = AuthRegisterService::new(Arc::clone(&mongodbProvider));
-    let passwordService = AuthPasswordService::new(mongodbProvider);
+    let registerService =
+      AuthRegisterService::new(jsonProvider.clone(), Arc::clone(&mongodbProvider));
+    let passwordService = AuthPasswordService::new(jsonProvider, mongodbProvider);
 
     Self {
       tokenService,
@@ -51,16 +55,16 @@ impl AuthService {
     }
   }
 
+  pub async fn login(&self, loginData: LoginForm) -> Result<ResponseModel, ResponseModel> {
+    self.loginService.login(loginData).await
+  }
+
+  pub async fn register(&self, signupData: SignupForm) -> Result<ResponseModel, ResponseModel> {
+    self.registerService.register(signupData).await
+  }
+
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
     self.tokenService.checkToken(token).await
-  }
-
-  pub async fn login(&self, loginForm: LoginForm) -> Result<ResponseModel, ResponseModel> {
-    self.loginService.login(loginForm).await
-  }
-
-  pub async fn register(&self, signupForm: SignupForm) -> Result<ResponseModel, ResponseModel> {
-    self.registerService.register(signupForm).await
   }
 
   pub async fn requestPasswordReset(
