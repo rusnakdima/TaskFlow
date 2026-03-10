@@ -191,18 +191,3 @@ export function formatDateShort(dateString: string): string {
     day: "numeric",
   });
 }
-
-/**
- * Generic function to normalize and convert date fields for any entity type
-...
- * Replaces the need for entity-specific functions (normalizeTaskDates, normalizeTodoDates, normalizeSubtaskDates)
- * @param item - The object with date fields
- * @param dateFieldNames - Array of date field names to normalize (default: ["startDate", "endDate"])
- * @returns A new object with date fields normalized to empty strings when they are null/undefined
- */
-export function normalizeEntityDates<T extends Record<string, any>>(
-  item: T,
-  dateFieldNames: string[] = ["startDate", "endDate"]
-): T {
-  return normalizeDateFields(item, dateFieldNames);
-}
