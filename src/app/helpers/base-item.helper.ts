@@ -2,7 +2,8 @@
 import { Injectable } from "@angular/core";
 
 /* models */
-import { TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 
 /* helpers */
 import { formatDateShort } from "./date-conversion.helper";
@@ -30,6 +31,54 @@ export class BaseItemHelper {
       default:
         return "text-gray-400";
     }
+  }
+
+  /**
+   * Get column color class based on status (Kanban specific)
+   */
+  getColumnColorClass(status: string): string {
+    switch (status) {
+      case TaskStatus.PENDING:
+        return "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700";
+      case TaskStatus.COMPLETED:
+        return "bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700";
+      case TaskStatus.SKIPPED:
+        return "bg-linear-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700";
+      case TaskStatus.FAILED:
+        return "bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700";
+      default:
+        return "bg-linear-to-r from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700";
+    }
+  }
+
+  /**
+   * Get assignee color based on name hash
+   */
+  getAssigneeColor(assignee: string): string {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-purple-500",
+      "bg-orange-500",
+      "bg-pink-500",
+      "bg-teal-500",
+      "bg-indigo-500",
+      "bg-red-500",
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < assignee.length; i++) {
+      hash = assignee.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  /**
+   * Get initials from name
+   */
+  getInitials(name: string): string {
+    if (!name) return "?";
+    return name.substring(0, 1).toUpperCase();
   }
 
   /**
@@ -103,6 +152,16 @@ export class BaseItemHelper {
   }
 
   /**
+   * Get task progress percentage
+   */
+  getTaskProgressPercentage(task: Task, subtasks: Subtask[]): number {
+    if (subtasks.length === 0) {
+      return task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED ? 100 : 0;
+    }
+    return this.calculateProgress(this.countCompleted(subtasks), subtasks.length);
+  }
+
+  /**
    * Format date string
    */
   formatDate = formatDateShort;
@@ -126,49 +185,29 @@ export class BaseItemHelper {
   }
 
   /**
-   * Count unread comments for a list of comments
+   * Count unread comments for an entity (todo, task, or subtask)
+   * Recursively counts comments for nested entities
    */
-  countUnreadComments(comments: any[] | undefined, userId: string | null): number {
-    if (!comments || !userId) return 0;
-    return comments.filter((c) => !c.readBy || !c.readBy.includes(userId)).length;
-  }
-
-  /**
-   * Count unread comments for a subtask
-   */
-  countSubtaskUnreadComments(subtask: any, userId: string | null): number {
-    return this.countUnreadComments(subtask?.comments, userId);
-  }
-
-  /**
-   * Count unread comments for a task (including its subtasks)
-   */
-  countTaskUnreadComments(task: any, userId: string | null): number {
-    if (!task || !userId) return 0;
-
-    let count = this.countUnreadComments(task.comments, userId);
-
-    if (task.subtasks) {
-      task.subtasks.forEach((subtask: any) => {
-        count += this.countSubtaskUnreadComments(subtask, userId);
-      });
-    }
-
-    return count;
-  }
-
-  /**
-   * Count unread comments for a todo (including its tasks and subtasks)
-   */
-  countTodoUnreadComments(todo: any, userId: string | null): number {
-    if (!todo || !userId) return 0;
+  countUnreadComments(entity: any, userId: string | null, entityType: 'todo' | 'task' | 'subtask' = 'task'): number {
+    if (!entity || !userId) return 0;
 
     let count = 0;
-    const tasks = todo.tasks || [];
 
-    tasks.forEach((task: any) => {
-      count += this.countTaskUnreadComments(task, userId);
-    });
+    // Count direct comments on this entity
+    if (entity.comments) {
+      count += entity.comments.filter((c: any) => !c.readBy || !c.readBy.includes(userId)).length;
+    }
+
+    // Recursively count nested comments based on entity type
+    if (entityType === 'todo' && entity.tasks) {
+      entity.tasks.forEach((task: any) => {
+        count += this.countUnreadComments(task, userId, 'task');
+      });
+    } else if ((entityType === 'todo' || entityType === 'task') && entity.subtasks) {
+      entity.subtasks.forEach((subtask: any) => {
+        count += this.countUnreadComments(subtask, userId, 'subtask');
+      });
+    }
 
     return count;
   }
