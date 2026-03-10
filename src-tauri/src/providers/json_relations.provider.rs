@@ -1,13 +1,12 @@
 /* sys lib */
-use futures::future::BoxFuture;
-use futures::FutureExt;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 /* models */
 use crate::models::relation_obj::{RelationObj, TypesField};
 
 /* providers */
 use super::json_crud_provider::JsonCrudProvider;
+use crate::providers::base_crud::CrudProvider;
 
 /// JsonRelationsProvider - Handle data relations for JSON provider
 #[derive(Clone)]
@@ -20,128 +19,114 @@ impl JsonRelationsProvider {
     Self { jsonCrud }
   }
 
-  pub async fn getDataRelations(
+  pub async fn handleRelations(
     &self,
-    record: Value,
-    relations: Vec<RelationObj>,
-  ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-    self.getDataRelationsRecursive(record, relations).await
-  }
-
-  fn getDataRelationsRecursive<'a>(
-    &'a self,
-    mut record: Value,
-    relations: Vec<RelationObj>,
-  ) -> BoxFuture<'a, Result<Value, Box<dyn std::error::Error + Send + Sync>>> {
-    async move {
-      if let Some(recordObj) = record.as_object_mut() {
-        for relation in relations {
-          match relation.typeField {
-            TypesField::OneToOne => {
-              if let Some(value) = recordObj.get(&relation.nameField).cloned() {
-                if let Some(idStr) = value.as_str() {
-                  let result = match self.jsonCrud.get(&relation.nameTable, None, idStr).await {
-                    Ok(doc) => doc,
-                    Err(_) => continue,
-                  };
-                  // Process nested relations if they exist
-                  let resultWithRelations = if let Some(nestedRelations) = relation.relations {
-                    self
-                      .getDataRelationsRecursive(result, nestedRelations)
-                      .await?
-                  } else {
-                    result
-                  };
-                  recordObj.insert(relation.newNameField.clone(), resultWithRelations);
-                }
-              }
-            }
-            TypesField::OneToMany => {
-              if let Some(idValue) = recordObj.get("id").cloned() {
-                if let Some(idStr) = idValue.as_str() {
-                  let filter = json!({ &relation.nameField: idStr });
-                  let mut records = match self
-                    .jsonCrud
-                    .getAll(&relation.nameTable, Some(filter))
-                    .await
-                  {
-                    Ok(recs) => recs,
-                    Err(_) => continue,
-                  };
-
-                  // Process nested relations for each record if they exist
-                  if let Some(nestedRelations) = relation.relations {
-                    let mut recordsWithRelations = Vec::new();
-                    for rec in records {
-                      let recWithRelations = self
-                        .getDataRelationsRecursive(rec, nestedRelations.clone())
-                        .await?;
-                      recordsWithRelations.push(recWithRelations);
+    data: &mut Value,
+    relations: &Vec<RelationObj>,
+  ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    for relation in relations {
+      match relation.typeField {
+        TypesField::OneToOne | TypesField::ManyToOne => {
+          if let Some(ids_val) = data.get(&relation.nameField) {
+            if let Some(ids_arr) = ids_val.as_array() {
+              // Case: Array of IDs (e.g. categories in todo)
+              let mut records = Vec::new();
+              for id_val in ids_arr {
+                if let Some(id_str) = id_val.as_str() {
+                  if let Ok(mut record) = self.jsonCrud.get(&relation.nameTable, id_str).await {
+                    // Recurse for nested relations
+                    if let Some(sub_relations) = &relation.relations {
+                      let _ = Box::pin(self.handleRelations(&mut record, sub_relations)).await;
                     }
-                    records = recordsWithRelations;
+                    records.push(record);
                   }
+                }
+              }
+              if let Some(obj) = data.as_object_mut() {
+                obj.insert(relation.newNameField.clone(), Value::Array(records));
+              }
+            } else if let Some(id_str) = ids_val.as_str() {
+              // Case: Single ID
+              if !id_str.is_empty() {
+                let mut result = match self.jsonCrud.get(&relation.nameTable, id_str).await {
+                  Ok(doc) => doc,
+                  Err(_) => Value::Null,
+                };
 
-                  recordObj.insert(relation.newNameField.clone(), Value::Array(records));
-                }
-              }
-            }
-            TypesField::ManyToOne => {
-              if let Some(arrayValue) = recordObj.get(&relation.nameField).cloned() {
-                if let Some(ids) = arrayValue.as_array() {
-                  let mut listResult: Vec<Value> = vec![];
-                  for id in ids {
-                    if let Some(idStr) = id.as_str() {
-                      let result = match self.jsonCrud.get(&relation.nameTable, None, idStr).await {
-                        Ok(doc) => doc,
-                        Err(_) => continue,
-                      };
-                      // Process nested relations if they exist
-                      let resultWithRelations =
-                        if let Some(nestedRelations) = relation.relations.clone() {
-                          self
-                            .getDataRelationsRecursive(result, nestedRelations)
-                            .await?
-                        } else {
-                          result
-                        };
-                      listResult.push(resultWithRelations);
-                    }
+                // Recurse for nested relations
+                if let Some(sub_relations) = &relation.relations {
+                  if !result.is_null() {
+                    let _ = Box::pin(self.handleRelations(&mut result, sub_relations)).await;
                   }
-                  recordObj.insert(relation.newNameField.clone(), Value::Array(listResult));
                 }
-              }
-            }
-            TypesField::ManyToMany => {
-              if let Some(idValue) = recordObj.get("id").cloned() {
-                if let Some(idStr) = idValue.as_str() {
-                  let allRecords = match self.jsonCrud.getAll(&relation.nameTable, None).await {
-                    Ok(records) => records,
-                    Err(_) => continue,
-                  };
-                  let filteredRecords: Vec<Value> = allRecords
-                    .into_iter()
-                    .filter(|record| {
-                      if let Some(fieldValue) = record.get(&relation.nameField) {
-                        if let Some(arr) = fieldValue.as_array() {
-                          arr.iter().any(|v| v.as_str() == Some(idStr))
-                        } else {
-                          false
-                        }
-                      } else {
-                        false
-                      }
-                    })
-                    .collect();
-                  recordObj.insert(relation.newNameField.clone(), Value::Array(filteredRecords));
+
+                if let Some(obj) = data.as_object_mut() {
+                  obj.insert(relation.newNameField.clone(), result);
                 }
               }
             }
           }
         }
-      }
+        TypesField::OneToMany => {
+          if let Some(id) = data.get("id").and_then(|v| v.as_str()) {
+            let filter = serde_json::json!({ relation.nameField.clone(): id });
+            let mut records: Vec<Value> = match self
+              .jsonCrud
+              .getAll(&relation.nameTable, Some(filter))
+              .await
+            {
+              Ok(recs) => recs,
+              Err(_) => Vec::new(),
+            };
 
-      Ok(record)
+            if let Some(sub_relations) = &relation.relations {
+              for record in &mut records {
+                let _ = Box::pin(self.handleRelations(record, sub_relations)).await;
+              }
+            }
+
+            if let Some(obj) = data.as_object_mut() {
+              obj.insert(relation.newNameField.clone(), Value::Array(records));
+            }
+          }
+        }
+        TypesField::ManyToMany => {
+          if let Some(id) = data.get("id").and_then(|v| v.as_str()) {
+            let idStr = id.to_string();
+            let allRecords: Vec<Value> = match self.jsonCrud.getAll(&relation.nameTable, None).await
+            {
+              Ok(recs) => recs,
+              Err(_) => Vec::new(),
+            };
+
+            let mut filteredRecords: Vec<Value> = allRecords
+              .into_iter()
+              .filter(|record: &Value| {
+                if let Some(fieldValue) = record.get(&relation.nameField) {
+                  if let Some(arr) = fieldValue.as_array() {
+                    arr.iter().any(|v| v.as_str() == Some(&idStr))
+                  } else {
+                    false
+                  }
+                } else {
+                  false
+                }
+              })
+              .collect();
+
+            if let Some(sub_relations) = &relation.relations {
+              for record in &mut filteredRecords {
+                let _ = Box::pin(self.handleRelations(record, sub_relations)).await;
+              }
+            }
+
+            if let Some(obj) = data.as_object_mut() {
+              obj.insert(relation.newNameField.clone(), Value::Array(filteredRecords));
+            }
+          }
+        }
+      }
     }
-    .boxed()
+    Ok(())
   }
 }
