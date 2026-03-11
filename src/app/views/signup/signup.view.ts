@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, signal } from "@angular/core";
+import { Component, OnDestroy, signal } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -34,8 +34,10 @@ import { NotifyService } from "@services/notify.service";
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, MatIconModule],
   templateUrl: "./signup.view.html",
 })
-export class SignupView {
+export class SignupView implements OnDestroy {
   regForm: FormGroup<any>;
+
+  private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -56,11 +58,18 @@ export class SignupView {
   submitted = signal(false);
 
   ngOnInit() {
-    document.addEventListener("keydown", (e) => {
+    this.keydownHandler = (e) => {
       if (e.key == "Enter") {
         this.send();
       }
-    });
+    };
+    document.addEventListener("keydown", this.keydownHandler);
+  }
+
+  ngOnDestroy() {
+    if (this.keydownHandler) {
+      document.removeEventListener("keydown", this.keydownHandler);
+    }
   }
 
   get f() {
@@ -109,21 +118,19 @@ export class SignupView {
         username: this.f["username"].value,
         password: this.f["password"].value,
       };
-      await this.authService
-        .signup<string>(authData)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            setTimeout(() => {
-              this.router.navigate(["/login"]);
-            }, 500);
-          }
+      this.authService.signup<string>(authData).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Registration successful");
+          setTimeout(() => {
+            this.router.navigate(["/login"]);
+          }, 500);
           this.submitted.set(false);
-        })
-        .catch((err: any) => {
+        },
+        error: (err: any) => {
           this.notifyService.showError(err.message ?? err.toString());
           this.submitted.set(false);
-        });
+        },
+      });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }

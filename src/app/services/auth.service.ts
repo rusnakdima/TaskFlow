@@ -1,7 +1,6 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
-import { JwtHelperService } from "@auth0/angular-jwt";
-import { invoke } from "@tauri-apps/api/core";
+import { Injectable, inject } from "@angular/core";
+import { Observable } from "rxjs";
 
 /* models */
 import { Response } from "@models/response.model";
@@ -9,36 +8,43 @@ import { LoginForm } from "@models/login-form.model";
 import { SignupForm } from "@models/signup-form.model";
 import { PasswordReset } from "@models/password-reset-form.model";
 
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
+
+/* services */
+import { JwtTokenService } from "@services/jwt-token.service";
+
 @Injectable({
   providedIn: "root",
 })
 export class AuthService {
-  private jwtHelper = new JwtHelperService();
+  private dataSyncProvider = inject(DataSyncProvider);
+  private jwtTokenService = inject(JwtTokenService);
 
   constructor() {}
 
-  async checkToken<R>(token: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("checkToken", { token });
+  checkToken<R>(token: string): Observable<R> {
+    return this.dataSyncProvider.checkToken(token);
   }
 
-  async login<R>(loginData: LoginForm): Promise<Response<R>> {
-    return await invoke<Response<R>>("login", { loginForm: loginData });
+  login<R>(loginData: LoginForm): Observable<R> {
+    return this.dataSyncProvider.login(loginData);
   }
 
-  async signup<R>(signupData: SignupForm): Promise<Response<R>> {
-    return await invoke<Response<R>>("register", { signupForm: signupData });
+  signup<R>(signupData: SignupForm): Observable<R> {
+    return this.dataSyncProvider.signup(signupData);
   }
 
-  async requestPasswordReset<R>(email: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("requestPasswordReset", { email });
+  requestPasswordReset<R>(email: string): Observable<R> {
+    return this.dataSyncProvider.requestPasswordReset(email);
   }
 
-  async verifyCode<R>(email: string, code: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("verifyCode", { email, code });
+  verifyCode<R>(email: string, code: string): Observable<R> {
+    return this.dataSyncProvider.verifyCode(email, code);
   }
 
-  async resetPassword<R>(passwordReset: PasswordReset): Promise<Response<R>> {
-    return await invoke<Response<R>>("resetPassword", { resetData: passwordReset });
+  resetPassword<R>(passwordReset: PasswordReset): Observable<R> {
+    return this.dataSyncProvider.resetPassword(passwordReset);
   }
 
   logout() {
@@ -48,16 +54,19 @@ export class AuthService {
   }
 
   isLoggedIn() {
+    const tokenLS = this.getTokenLS();
+    const tokenSS = this.getTokenSS();
+
     if (
-      !this.jwtHelper.isTokenExpired(this.getTokenLS()) ||
-      !this.jwtHelper.isTokenExpired(this.getTokenSS())
+      !this.jwtTokenService.isTokenExpired(tokenLS) ||
+      !this.jwtTokenService.isTokenExpired(tokenSS)
     ) {
       return true;
     }
-    if (this.jwtHelper.isTokenExpired(this.getTokenLS())) {
+    if (this.jwtTokenService.isTokenExpired(tokenLS)) {
       localStorage.removeItem("token");
       return false;
-    } else if (this.jwtHelper.isTokenExpired(this.getTokenSS())) {
+    } else if (this.jwtTokenService.isTokenExpired(tokenSS)) {
       sessionStorage.removeItem("token");
       return false;
     }
@@ -77,20 +86,12 @@ export class AuthService {
   }
 
   hasRole(role: string) {
-    return this.getValueByKey("role").indexOf(role) !== -1;
+    const token = this.getToken();
+    return this.jwtTokenService.hasRole(token, role);
   }
 
   getValueByKey(key: string) {
     const token = this.getToken();
-    if (token && token != "") {
-      const decoded: { [key: string]: any } | null = this.jwtHelper.decodeToken(token);
-      if (decoded) {
-        return decoded[key];
-      } else {
-        return null;
-      }
-    } else {
-      return null;
-    }
+    return this.jwtTokenService.getValueByKey(token, key);
   }
 }

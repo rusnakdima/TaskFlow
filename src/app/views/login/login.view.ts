@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, signal } from "@angular/core";
+import { Component, OnDestroy, signal } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -39,7 +39,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
   ],
   templateUrl: "./login.view.html",
 })
-export class LoginView {
+export class LoginView implements OnDestroy {
   loginForm: FormGroup<any>;
 
   rememberField: CheckboxField = {
@@ -48,6 +48,8 @@ export class LoginView {
     type: TypeField.checkbox,
     isShow: () => true,
   };
+
+  private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -66,9 +68,16 @@ export class LoginView {
   submitted = signal(false);
 
   ngOnInit() {
-    document.addEventListener("keydown", (e) => {
+    this.keydownHandler = (e) => {
       if (e.key == "Enter") this.send();
-    });
+    };
+    document.addEventListener("keydown", this.keydownHandler);
+  }
+
+  ngOnDestroy() {
+    if (this.keydownHandler) {
+      document.removeEventListener("keydown", this.keydownHandler);
+    }
   }
 
   get f() {
@@ -95,24 +104,26 @@ export class LoginView {
         password: this.f["password"].value,
         remember: this.f["remember"].value,
       };
-      await this.authService
-        .login<string>(authData)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            localStorage.setItem("token", response.data);
-            setTimeout(() => {
-              this.router.navigate(["/"]).then(() => {
-                window.location.reload();
-              });
-            }, 500);
+      this.authService.login<string>(authData).subscribe({
+        next: (token: string) => {
+          this.notifyService.showSuccess("Login successful");
+          if (this.f["remember"].value) {
+            localStorage.setItem("token", token);
+          } else {
+            sessionStorage.setItem("token", token);
           }
+          setTimeout(() => {
+            this.router.navigate(["/"]).then(() => {
+              window.location.reload();
+            });
+          }, 500);
           this.submitted.set(false);
-        })
-        .catch((err: any) => {
+        },
+        error: (err: any) => {
           this.notifyService.showError(err.message ?? err.toString());
           this.submitted.set(false);
-        });
+        },
+      });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
