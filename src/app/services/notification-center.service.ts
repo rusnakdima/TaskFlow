@@ -2,7 +2,10 @@
 import { Injectable, inject } from "@angular/core";
 
 /* services */
-import { NotificationStorageService, NotificationAction } from "@services/notification-storage.service";
+import {
+  NotificationStorageService,
+  NotificationAction,
+} from "@services/notification-storage.service";
 import { NotificationEventListenerService } from "@services/notification-event-listener.service";
 
 export { NotificationAction };

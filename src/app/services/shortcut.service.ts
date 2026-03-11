@@ -1,5 +1,5 @@
 import { Injectable, NgZone } from "@angular/core";
-import { Router, ActivatedRoute, NavigationEnd } from "@angular/router";
+import { Router, NavigationEnd } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subject, filter } from "rxjs";
 
@@ -24,8 +24,7 @@ export class ShortcutService {
   constructor(
     private router: Router,
     private location: Location,
-    private zone: NgZone,
-    private route: ActivatedRoute
+    private zone: NgZone
   ) {
     this.initGlobalListeners();
     this.router.events
@@ -67,7 +66,7 @@ export class ShortcutService {
       }
 
       // 4. Ctrl + Shift + S (Sync)
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === "S") {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
         this.zone.run(() => this.syncSubject.next());
         return;

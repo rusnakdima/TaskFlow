@@ -10,12 +10,6 @@ import { environment } from "@env/environment";
 /* models */
 import { Response } from "@models/response.model";
 
-const httpOptions = {
-  headers: new HttpHeaders({
-    "Content-Type": "application/json",
-  }),
-};
-
 @Injectable({
   providedIn: "root",
 })
@@ -27,8 +21,7 @@ export class AboutService {
 
   getDate(version: string): Observable<any> {
     return this.http.get<any>(
-      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/tags/v${version}`,
-      httpOptions
+      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/tags/v${version}`
     );
   }
 
@@ -38,8 +31,7 @@ export class AboutService {
 
   checkUpdate(): Observable<any> {
     return this.http.get<any>(
-      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/latest`,
-      httpOptions
+      `https://api.github.com/repos/${this.githubUser}/${this.gitRepoName}/releases/latest`
     );
   }
 
