@@ -39,6 +39,7 @@ import { SyncService } from "@services/sync.service";
 import { NotificationCenterService } from "@services/notification-center.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { StorageService } from "@services/storage.service";
+import { RelationsHelper } from "@helpers/relations.helper";
 
 interface Breadcrumb {
   label: string;
@@ -130,14 +131,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   getProfile() {
-    this.dataSyncProvider.get<Profile>("profiles", { userId: this.userId() }).subscribe({
-      next: (profile) => {
-        this.profile.set(profile);
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load profile");
-      },
-    });
+    const relations = RelationsHelper.getProfileRelations();
+    this.dataSyncProvider
+      .get<Profile>("profiles", { userId: this.userId() }, { relations })
+      .subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to load profile");
+        },
+      });
   }
 
   async createBreadcrumbs(

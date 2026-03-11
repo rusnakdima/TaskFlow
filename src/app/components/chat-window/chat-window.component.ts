@@ -35,6 +35,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   @Input({ required: true }) todoId!: string;
   @Output() close = new EventEmitter<void>();
   @ViewChild("scrollContainer") private scrollContainer!: ElementRef;
+  @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
 
   chatService = inject(ChatService);
   authService = inject(AuthService);
@@ -75,6 +76,14 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
       }
       this.shouldScroll = false;
     }
+  }
+
+  handleKeydown(event: KeyboardEvent): void {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+    // Shift+Enter allows inserting newline (default textarea behavior)
   }
 
   private initIntersectionObserver() {

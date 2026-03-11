@@ -30,12 +30,13 @@ export class ProgressBarComponent {
   @Input() showPercentage = true;
   @Input() showLegend = false;
 
-  segments = computed(() => this.baseHelper.getProgressSegments(this.items));
+  segments = computed(() => this.baseHelper.getProgressSegments(this.items ?? []));
 
   totalProgress = computed(() => {
-    const total = this.items.length;
+    const items = this.items ?? [];
+    const total = items.length;
     if (total === 0) return 0;
-    const completed = this.baseHelper.countCompleted(this.items);
+    const completed = this.baseHelper.countCompleted(items);
     return Math.round((completed / total) * 100);
   });
 

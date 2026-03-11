@@ -9,9 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Todo } from "@models/todo.model";
 import { TaskStatus } from "@models/task.model";
-
-/* services */
-import { StorageService } from "@services/storage.service";
+import { Category } from "@models/category.model";
 
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
@@ -36,7 +34,19 @@ export class TodoInformationComponent {
     return this.baseHelper.countCompleted(this.todo.tasks || []);
   }
 
+  getSkippedTasksCount(): number {
+    return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.SKIPPED).length;
+  }
+
+  getFailedTasksCount(): number {
+    return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.FAILED).length;
+  }
+
   getInProgressTasksCount(): number {
     return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.PENDING).length;
+  }
+
+  getCategories(): Category[] {
+    return this.todo.categories || [];
   }
 }

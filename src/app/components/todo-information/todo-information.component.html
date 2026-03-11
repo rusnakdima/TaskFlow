@@ -12,20 +12,46 @@
         </div>
         <p class="text-blue-100 mb-4 truncate max-w-lg">{{ todo.description }}</p>
 
-        <div class="grid grid-cols-2 gap-4 text-center sm:text-left w-full max-w-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-between text-center w-full">
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getCompletedTasksCount() }}</div>
-            <div class="text-blue-200 text-sm">Completed Tasks</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Completed</div>
+          </div>
+          <div class="flex flex-col">
+            <div class="text-xl font-bold">{{ getSkippedTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Skipped</div>
+          </div>
+          <div class="flex flex-col">
+            <div class="text-xl font-bold">{{ getFailedTasksCount() }}</div>
+            <div class="text-gray-200 text-xs sm:text-sm">Failed</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getInProgressTasksCount() }}</div>
-            <div class="text-blue-200 text-sm">In Progress</div>
+            <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
           </div>
         </div>
 
         <div class="mt-4">
-          <app-progress-bar [items]="todo.tasks || []" [showLegend]="true" size="lg" />
+          <app-progress-bar
+            [items]="todo.tasks || []"
+            [showLegend]="true"
+            [showPercentage]="true"
+            size="lg"
+          />
         </div>
+
+        @if (getCategories().length > 0) {
+          <div class="mt-4 flex flex-wrap gap-2">
+            @for (category of getCategories(); track category.id) {
+              <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
+              >
+                <mat-icon class="w-4! h-4! mr-1 text-base!" fontIcon="category" />
+                {{ category.title }}
+              </span>
+            }
+          </div>
+        }
       </div>
     </div>
 

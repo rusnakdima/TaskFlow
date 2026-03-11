@@ -73,7 +73,7 @@ export class TodoComponent implements OnInit {
   }
 
   getAssigneeImageUrl(assignee: any): string {
-    return assignee?.user?.profile?.imageUrl || "assets/images/default-avatar.png";
+    return assignee?.user?.profile?.imageUrl || "assets/images/user.png";
   }
 
   getAssigneeUserId(assignee: any): string {
