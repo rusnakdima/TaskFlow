@@ -34,7 +34,6 @@ export class NotificationSettingsService {
         this.settings.set({ ...DEFAULT_SETTINGS, ...parsed });
       }
     } catch (e) {
-      console.error("Failed to load notification settings", e);
       this.settings.set(DEFAULT_SETTINGS);
     }
   }
@@ -48,11 +47,11 @@ export class NotificationSettingsService {
     try {
       localStorage.setItem(this.settingsKey, JSON.stringify(newSettings));
     } catch (e) {
-      console.error("Failed to save notification settings", e);
+      // Failed to save settings
     }
   }
 
-  getVolumeForType(type: "chat" | "comment" | "todo" | "task" | "subtask"): number {
+  getVolumeForType(type: "chat" | "comment" | "general"): number {
     const settings = this.settings();
     if (!settings.enableSounds) return 0;
 
@@ -67,11 +66,10 @@ export class NotificationSettingsService {
   }
 
   playTestSound(type: "chat" | "comment" | "general", volume: number): void {
-    const soundType = type === "general" ? "todo" : type;
-    this.playSound(soundType, volume);
+    this.playSound(type, volume);
   }
 
-  playSound(type: "chat" | "comment" | "todo" | "task" | "subtask", volume: number): void {
+  playSound(type: "chat" | "comment" | "general", volume: number): void {
     if (volume <= 0) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -84,17 +82,17 @@ export class NotificationSettingsService {
     // Different tones for different notification types
     switch (type) {
       case "chat":
-        // Higher pitched, friendly chime
+        // Higher pitched, friendly chime for chat messages
         oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
         oscillator.frequency.exponentialRampToValueAtTime(1174.66, audioContext.currentTime + 0.1); // D6
         break;
       case "comment":
-        // Medium pitched, softer tone
+        // Medium pitched, softer tone for comments
         oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
         oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.1); // G5
         break;
       default:
-        // Lower pitched, standard notification
+        // General notification for todo/task/subtask create/update/delete
         oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
         oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
         break;
