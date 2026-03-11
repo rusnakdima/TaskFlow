@@ -24,6 +24,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 import { StorageService } from "@services/storage.service";
+import { DataSyncService } from "@services/data-sync.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -54,6 +55,7 @@ export class ShareDialogComponent implements OnInit {
     private authService: AuthService,
     private notifyService: NotifyService,
     private storageService: StorageService,
+    private dataSyncService: DataSyncService,
     private dataSyncProvider: DataSyncProvider,
     private dialogRef: MatDialogRef<ShareDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { todo: Todo }
@@ -183,7 +185,7 @@ export class ShareDialogComponent implements OnInit {
           try {
             await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
             // Reload data to ensure consistency after visibility change
-            this.storageService.loadAllData(true).subscribe();
+            this.dataSyncService.loadAllData(true).subscribe();
           } catch (syncError) {
             this.notifyService.showWarning("Todo updated, but sync may not have completed.");
           }
