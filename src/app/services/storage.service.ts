@@ -7,6 +7,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
+import { Comment as CommentModel } from "@models/comment.model";
 
 export type StorageEntity = "todo" | "task" | "subtask" | "category" | "comment" | "profile";
 
@@ -32,7 +33,17 @@ export class StorageService {
     return this.sharedTodosSignal.asReadonly();
   }
   get todos() {
-    return computed(() => [...this.privateTodosSignal(), ...this.sharedTodosSignal()]);
+    return computed(() => {
+      const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
+      // Remove duplicates by ID, keeping the first occurrence
+      const uniqueTodoMap = new Map<string, Todo>();
+      allTodos.forEach((todo) => {
+        if (!uniqueTodoMap.has(todo.id)) {
+          uniqueTodoMap.set(todo.id, todo);
+        }
+      });
+      return Array.from(uniqueTodoMap.values());
+    });
   }
   get tasks() {
     return computed(() => this.todos().flatMap((todo) => todo.tasks || []));
@@ -127,6 +138,8 @@ export class StorageService {
         this.updateTaskInTodo(data.todoId, data.id, (tasks) =>
           tasks.some((t) => t.id === data.id) ? tasks : [...tasks, data]
         );
+        // Also ensure the todo's tasks array has subtasks initialized
+        this.ensureTaskHasSubtasks(data.todoId, data.id);
         break;
 
       case "subtask":
@@ -251,8 +264,14 @@ export class StorageService {
     const currentTodo = this.getTodoById(todoId);
     if (!currentTodo) return;
 
+    // Check if this is a full todo replacement (has tasks array)
+    const isFullReplacement = updates.tasks !== undefined;
+
     if (updates.visibility && updates.visibility !== currentTodo.visibility) {
-      const updatedTodo = { ...currentTodo, ...updates };
+      const updatedTodo: Todo =
+        isFullReplacement && updates.id && updates.userId
+          ? (updates as Todo)
+          : { ...currentTodo, ...updates };
       if (updates.visibility === "private") {
         this.privateTodosSignal.update((todos) => [updatedTodo, ...todos]);
         this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
@@ -261,12 +280,20 @@ export class StorageService {
         this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
       }
     } else {
-      this.privateTodosSignal.update((todos) =>
-        todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
-      );
-      this.sharedTodosSignal.update((todos) =>
-        todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
-      );
+      // Only update the array where the todo actually exists
+      const isInPrivate = this.privateTodosSignal().some((t) => t.id === todoId);
+      const isInShared = this.sharedTodosSignal().some((t) => t.id === todoId);
+
+      if (isInPrivate) {
+        this.privateTodosSignal.update((todos) =>
+          todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+        );
+      }
+      if (isInShared) {
+        this.sharedTodosSignal.update((todos) =>
+          todos.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+        );
+      }
     }
   }
 
@@ -342,6 +369,129 @@ export class StorageService {
             if (task.id !== taskId) return task;
             return { ...task, subtasks: updateFn(task.subtasks || []) };
           }),
+        };
+      })
+    );
+  }
+
+  // Ensure a task has subtasks array initialized (for resolver completeness check)
+  private ensureTaskHasSubtasks(todoId: string, taskId: string): void {
+    this.updateTodoSignal(todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((task) => {
+            if (task.id !== taskId && task.subtasks === undefined) {
+              // Initialize subtasks for other tasks that don't have it
+              return { ...task, subtasks: [] };
+            }
+            if (task.id === taskId && task.subtasks === undefined) {
+              // Initialize subtasks for the new task
+              return { ...task, subtasks: [] };
+            }
+            return task;
+          }),
+        };
+      })
+    );
+  }
+
+  // ==================== COMMENT HELPERS ====================
+  // These methods update comments in tasks/subtasks via storage signals
+
+  addCommentToTask(taskId: string, comment: CommentModel): void {
+    const task = this.getTaskById(taskId);
+    if (!task) return;
+
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== task.todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((t) =>
+            t.id === taskId ? ({ ...t, comments: [...(t.comments || []), comment] } as Task) : t
+          ),
+        };
+      })
+    );
+  }
+
+  removeCommentFromTask(taskId: string, commentId: string): void {
+    const task = this.getTaskById(taskId);
+    if (!task) return;
+
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== task.todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((t) =>
+            t.id === taskId
+              ? ({ ...t, comments: (t.comments || []).filter((c) => c.id !== commentId) } as Task)
+              : t
+          ),
+        };
+      })
+    );
+  }
+
+  addCommentToSubtask(subtaskId: string, comment: CommentModel): void {
+    const subtask = this.getSubtaskById(subtaskId);
+    if (!subtask) return;
+
+    const task = this.getTaskById(subtask.taskId);
+    if (!task) return;
+
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== task.todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((t) =>
+            t.id === subtask.taskId
+              ? {
+                  ...t,
+                  subtasks: (t.subtasks || []).map((s) =>
+                    s.id === subtaskId
+                      ? ({ ...s, comments: [...(s.comments || []), comment] } as Subtask)
+                      : s
+                  ),
+                }
+              : t
+          ),
+        };
+      })
+    );
+  }
+
+  removeCommentFromSubtask(subtaskId: string, commentId: string): void {
+    const subtask = this.getSubtaskById(subtaskId);
+    if (!subtask) return;
+
+    const task = this.getTaskById(subtask.taskId);
+    if (!task) return;
+
+    this.updateTodoSignal(task.todoId, (todos) =>
+      todos.map((todo) => {
+        if (todo.id !== task.todoId) return todo;
+        return {
+          ...todo,
+          tasks: (todo.tasks || []).map((t) =>
+            t.id === subtask.taskId
+              ? {
+                  ...t,
+                  subtasks: (t.subtasks || []).map((s) =>
+                    s.id === subtaskId
+                      ? ({
+                          ...s,
+                          comments: (s.comments || []).filter((c) => c.id !== commentId),
+                        } as Subtask)
+                      : s
+                  ),
+                }
+              : t
+          ),
         };
       })
     );

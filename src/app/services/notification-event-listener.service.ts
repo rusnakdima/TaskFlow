@@ -3,9 +3,12 @@ import { Injectable, inject } from "@angular/core";
 
 /* services */
 import { LocalWebSocketService } from "@services/local-websocket.service";
-import { AuthService } from "@services/auth.service";
+import { JwtTokenService } from "@services/jwt-token.service";
 import { StorageService } from "@services/storage.service";
-import { NotificationStorageService, NotificationAction } from "@services/notification-storage.service";
+import {
+  NotificationStorageService,
+  NotificationAction,
+} from "@services/notification-storage.service";
 import { NotificationSoundService } from "@services/notification-sound.service";
 
 @Injectable({
@@ -13,7 +16,7 @@ import { NotificationSoundService } from "@services/notification-sound.service";
 })
 export class NotificationEventListenerService {
   private localWs = inject(LocalWebSocketService);
-  private authService = inject(AuthService);
+  private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
   private notificationStorage = inject(NotificationStorageService);
   private soundService = inject(NotificationSoundService);
@@ -59,22 +62,20 @@ export class NotificationEventListenerService {
   }
 
   private addNotification(event: string, data: any) {
-    const currentUserId = this.authService.getValueByKey("id");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const currentUserId = this.jwtTokenService.getUserId(token);
 
-    // Don't notify for own actions
+    // Check if this is own action
     const isOwnAction = data.userId === currentUserId || data.authorId === currentUserId;
-    if (isOwnAction) {
-      return;
-    }
 
     const [type, action] = event.split("-") as [
       NotificationAction["type"],
       NotificationAction["action"],
     ];
 
-    // Handle comments and chat messages immediately
+    // Handle comments and chat messages immediately (with sound)
     if (type === "comment" || type === "chat") {
-      this.handleCommentOrChatNotification(type, action, data);
+      this.handleCommentOrChatNotification(type, action, data, !isOwnAction);
       return;
     }
 
@@ -88,13 +89,15 @@ export class NotificationEventListenerService {
       }
     }
 
-    this.handleOtherNotification(type, action, data);
+    // Play sound for own actions, show notification for others' actions
+    this.handleOtherNotification(type, action, data, !isOwnAction);
   }
 
   private handleCommentOrChatNotification(
     type: "comment" | "chat",
     action: string,
-    data: any
+    data: any,
+    shouldNotify: boolean
   ): void {
     if (type === "comment" && action === "created" && data.taskId) {
       this.recentCommentEvents.set(data.taskId, Date.now());
@@ -154,28 +157,34 @@ export class NotificationEventListenerService {
     const notificationAction =
       action === "cleared" ? "updated" : (action as NotificationAction["action"]);
 
-    const newNotification: NotificationAction = {
-      id: Math.random().toString(36).substring(7),
-      type,
-      action: notificationAction,
-      title,
-      message,
-      timestamp: new Date(),
-      read: false,
-      todoId,
-      taskId,
-      commentId: type === "comment" ? commentId : undefined,
-      chatId: type === "chat" ? chatId : undefined,
-    };
-
-    this.notificationStorage.addNotification(newNotification);
+    // Always play sound for chat/comment
     this.soundService.playSound(type);
+
+    // Only store notification if not own action
+    if (shouldNotify) {
+      const newNotification: NotificationAction = {
+        id: Math.random().toString(36).substring(7),
+        type,
+        action: notificationAction,
+        title,
+        message,
+        timestamp: new Date(),
+        read: false,
+        todoId,
+        taskId,
+        commentId: type === "comment" ? commentId : undefined,
+        chatId: type === "chat" ? chatId : undefined,
+      };
+
+      this.notificationStorage.addNotification(newNotification);
+    }
   }
 
   private handleOtherNotification(
     type: "todo" | "task" | "subtask",
     action: NotificationAction["action"],
-    data: any
+    data: any,
+    shouldNotify: boolean
   ): void {
     let title = data.title || "";
     let todoId = data.todoId;
@@ -183,6 +192,9 @@ export class NotificationEventListenerService {
     const subtaskId = data.subtaskId;
 
     const entityName = type.charAt(0).toUpperCase() + type.slice(1);
+
+    // Always play sound for create/update/delete
+    this.soundService.playSound("general");
 
     if (action === "created") {
       setTimeout(() => {
@@ -206,7 +218,8 @@ export class NotificationEventListenerService {
           taskId,
           subtaskId,
           data,
-          action
+          action,
+          shouldNotify
         );
       }, 0);
       return;
@@ -221,24 +234,26 @@ export class NotificationEventListenerService {
         todoId = task?.todoId;
       }
 
-      const message = `${entityName} "${title || "unnamed"}" was deleted`;
-      title = `Deleted ${type}`;
+      // Only store notification if not own action
+      if (shouldNotify) {
+        const message = `${entityName} "${title || "unnamed"}" was deleted`;
+        title = `Deleted ${type}`;
 
-      const newNotification: NotificationAction = {
-        id: Math.random().toString(36).substring(7),
-        type,
-        action,
-        title,
-        message,
-        timestamp: new Date(),
-        read: false,
-        todoId,
-        taskId,
-        subtaskId,
-      };
+        const newNotification: NotificationAction = {
+          id: Math.random().toString(36).substring(7),
+          type,
+          action,
+          title,
+          message,
+          timestamp: new Date(),
+          read: false,
+          todoId,
+          taskId,
+          subtaskId,
+        };
 
-      this.notificationStorage.addNotification(newNotification);
-      this.soundService.playSound(type);
+        this.notificationStorage.addNotification(newNotification);
+      }
       return;
     }
 
@@ -263,7 +278,8 @@ export class NotificationEventListenerService {
         taskId,
         subtaskId,
         data,
-        action
+        action,
+        shouldNotify
       );
     }, 0);
   }
@@ -278,7 +294,8 @@ export class NotificationEventListenerService {
     taskId: string | undefined,
     subtaskId: string | undefined,
     data: any,
-    action: NotificationAction["action"]
+    action: NotificationAction["action"],
+    shouldNotify: boolean
   ): void {
     let title = originalTitle;
     let message = "";
@@ -315,29 +332,35 @@ export class NotificationEventListenerService {
       title = originalTitle || `${entityName} Updated`;
     }
 
-    const newNotification: NotificationAction = {
-      id: Math.random().toString(36).substring(7),
-      type,
-      action,
-      title,
-      message,
-      timestamp: new Date(),
-      read: false,
-      todoId,
-      taskId,
-      subtaskId,
-    };
+    // Only store notification if shouldNotify is true
+    if (shouldNotify) {
+      const newNotification: NotificationAction = {
+        id: Math.random().toString(36).substring(7),
+        type,
+        action,
+        title,
+        message,
+        timestamp: new Date(),
+        read: false,
+        todoId,
+        taskId,
+        subtaskId,
+      };
 
-    this.notificationStorage.addNotification(newNotification);
-    this.soundService.playSound(type);
+      this.notificationStorage.addNotification(newNotification);
+    }
   }
 
   private formatStatus(status: string): string {
     switch (status) {
-      case "completed": return "Completed";
-      case "skipped": return "Skipped";
-      case "failed": return "Failed";
-      default: return "Pending";
+      case "completed":
+        return "Completed";
+      case "skipped":
+        return "Skipped";
+      case "failed":
+        return "Failed";
+      default:
+        return "Pending";
     }
   }
 }

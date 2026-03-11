@@ -22,13 +22,28 @@ export class RelationsHelper {
             typeField: TypesField.OneToMany,
             nameField: "taskId",
             newNameField: "subtasks",
+            relations: [
+              {
+                nameTable: "comments",
+                typeField: TypesField.OneToMany,
+                nameField: "subtaskId",
+                newNameField: "comments",
+                relations: null,
+              },
+            ],
+          },
+          {
+            nameTable: "comments",
+            typeField: TypesField.OneToMany,
+            nameField: "taskId",
+            newNameField: "comments",
             relations: null,
           },
         ],
       },
       {
         nameTable: "categories",
-        typeField: TypesField.ManyToOne,
+        typeField: TypesField.ManyToMany,
         nameField: "categories",
         newNameField: "categories",
         relations: null,
@@ -67,6 +82,21 @@ export class RelationsHelper {
             typeField: TypesField.OneToMany,
             nameField: "taskId",
             newNameField: "subtasks",
+            relations: [
+              {
+                nameTable: "comments",
+                typeField: TypesField.OneToMany,
+                nameField: "subtaskId",
+                newNameField: "comments",
+                relations: null,
+              },
+            ],
+          },
+          {
+            nameTable: "comments",
+            typeField: TypesField.OneToMany,
+            nameField: "taskId",
+            newNameField: "comments",
             relations: null,
           },
         ],
@@ -121,6 +151,21 @@ export class RelationsHelper {
         typeField: TypesField.OneToMany,
         nameField: "taskId",
         newNameField: "subtasks",
+        relations: [
+          {
+            nameTable: "comments",
+            typeField: TypesField.OneToMany,
+            nameField: "subtaskId",
+            newNameField: "comments",
+            relations: null,
+          },
+        ],
+      },
+      {
+        nameTable: "comments",
+        typeField: TypesField.OneToMany,
+        nameField: "taskId",
+        newNameField: "comments",
         relations: null,
       },
     ];
