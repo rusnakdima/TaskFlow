@@ -9,6 +9,8 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  OnChanges,
+  SimpleChanges,
 } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
@@ -26,10 +28,13 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* models */
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
+import { Task } from "@models/task.model";
 
 @Component({
   selector: "app-subtask",
@@ -45,13 +50,16 @@ import { Comment } from "@models/comment.model";
   templateUrl: "./subtask.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtaskComponent {
+export class SubtaskComponent implements OnChanges {
   private baseHelper = inject(BaseItemHelper);
   private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private dataSyncProvider = inject(DataSyncProvider);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
   @Input() subtask: Subtask | null = null;
+  @Input() todoId: string | null = null;
   @Input() index: number = 0;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -70,11 +78,22 @@ export class SubtaskComponent {
 
   truncateString = Common.truncateString;
 
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes["openComments"]?.currentValue === true) {
+      this.showComments.set(true);
+      this.cdr.markForCheck();
+    }
+    if (changes["highlightComment"]?.currentValue) {
+      this.showComments.set(true);
+      this.cdr.markForCheck();
+    }
+  }
+
   get unreadCommentsCount(): number {
     return this.baseHelper.countUnreadComments(
       this.subtask,
       this.authService.getValueByKey("id"),
-      'subtask'
+      "subtask"
     );
   }
 
@@ -94,6 +113,14 @@ export class SubtaskComponent {
     const username = this.authService.getValueByKey("username");
 
     if (this.subtask && userId) {
+      // Get todoId from input or from parent task
+      const effectiveTodoId =
+        this.todoId || this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+      if (!effectiveTodoId) {
+        console.error("Cannot add comment: todoId not found");
+        return;
+      }
+
       const newComment: Comment = {
         id: crypto.randomUUID(),
         authorId: userId,
@@ -106,22 +133,38 @@ export class SubtaskComponent {
         readBy: [userId],
       };
 
-      const updatedComments = [...(this.subtask.comments || []), newComment];
-      this.updateSubtaskEvent.emit({
-        subtask: this.subtask,
-        field: "comments",
-        value: updatedComments,
-      });
+      // Create comment as separate document (not embedded)
+      // WebSocket will broadcast the event and update storage automatically
+      this.dataSyncProvider
+        .create<Comment>("comments", newComment, undefined, effectiveTodoId)
+        .subscribe({
+          next: () => {
+            this.showComments.set(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            console.error("Failed to create comment:", err);
+          },
+        });
     }
   }
 
   onDeleteComment(commentId: string) {
     if (this.subtask) {
-      const updatedComments = (this.subtask.comments || []).filter((c) => c.id !== commentId);
-      this.updateSubtaskEvent.emit({
-        subtask: this.subtask,
-        field: "comments",
-        value: updatedComments,
+      // Get todoId from input or from parent task
+      const effectiveTodoId =
+        this.todoId || this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+      if (!effectiveTodoId) {
+        console.error("Cannot delete comment: todoId not found");
+        return;
+      }
+
+      // Delete comment as separate document
+      // WebSocket will broadcast the event and update storage automatically
+      this.dataSyncProvider.delete("comments", commentId, undefined, effectiveTodoId).subscribe({
+        error: (err) => {
+          console.error("Failed to delete comment:", err);
+        },
       });
     }
   }

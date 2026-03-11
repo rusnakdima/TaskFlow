@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, Injector, inject } from "@angular/core";
-import { Observable, from } from "rxjs";
+import { Observable, from, share, throwError } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 /* models */
@@ -15,7 +15,7 @@ import { RelationsHelper } from "@helpers/relations.helper";
 import { LocalWebSocketService } from "@services/local-websocket.service";
 import { SyncService } from "@services/sync.service";
 import { StorageService } from "@services/storage.service";
-import { AuthService } from "@services/auth.service";
+import { JwtTokenService } from "@services/jwt-token.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -33,10 +33,19 @@ interface CrudParams {
   providedIn: "root",
 })
 export class DataSyncProvider {
-  private allowedTables = ["todos", "tasks", "subtasks", "categories", "profiles", "chats"];
+  private allowedTables = [
+    "todos",
+    "tasks",
+    "subtasks",
+    "categories",
+    "chats",
+    "comments",
+    "profiles",
+    "users",
+  ];
 
   private localWebSocketService = inject(LocalWebSocketService);
-  private authService = inject(AuthService);
+  private jwtTokenService = inject(JwtTokenService);
   private injector = inject(Injector);
 
   constructor() {}
@@ -49,6 +58,21 @@ export class DataSyncProvider {
     return this.injector.get(StorageService);
   }
 
+  /**
+   * Unified invoke command function for all Tauri commands
+   * Handles response validation and error handling
+   */
+  invokeCommand<T>(command: string, args: Record<string, any> = {}): Observable<T> {
+    return from(
+      invoke<Response<T>>(command, args).then((response) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          return response.data as T;
+        }
+        throw new Error(response.message || `Command ${command} failed`);
+      })
+    );
+  }
+
   private validateTable(table: string): void {
     if (!this.allowedTables.includes(table)) {
       throw new Error(
@@ -58,7 +82,8 @@ export class DataSyncProvider {
   }
 
   private resolveMetadata(table: string, todoId?: string, record?: any, id?: string): SyncMetadata {
-    const currentUserId = this.authService.getValueByKey("id");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const currentUserId = this.jwtTokenService.getUserId(token);
     let metadata: SyncMetadata = { isOwner: true, isPrivate: true };
 
     // If we're working with a todo directly
@@ -102,7 +127,7 @@ export class DataSyncProvider {
   }
 
   private getDefaultRelations(table: string): RelationObj[] | undefined {
-    return RelationsHelper.getRelationsForTable(table, table === "todos");
+    return RelationsHelper.getRelationsForTable(table);
   }
 
   private buildCrudParams(
@@ -140,35 +165,68 @@ export class DataSyncProvider {
     };
   }
 
+  private inFlightRequests = new Map<string, Observable<any>>(); // Cache in-flight requests by operation+table+id
+
   private executeWithFallback<T>(
     operation: Operation,
     params: CrudParams,
     isArray: boolean = false
   ): Observable<T> {
-    return new Observable<T>((subscriber) => {
-      const makeRequest = (fallback: boolean) => {
-        if (!fallback && this.localWebSocketService.isConnected()) {
-          this.localWebSocketService.crud<T>(operation, params).subscribe({
-            next: (data) => subscriber.next(data),
-            error: (err) => this.fallbackToTauri(operation, params, subscriber, isArray),
-            complete: () => subscriber.complete(),
+    const requestKey = `${operation}:${params.table}:${params.id || "no-id"}`;
+
+    let wsSubscription: any = null;
+    let retryTimeout: any = null;
+
+    // Create new observable and cache it
+    const request$ = new Observable<T>((subscriber) => {
+      const tryWebSocket = (attempt: number) => {
+        const isConnected = this.localWebSocketService.isConnected();
+
+        if (isConnected) {
+          wsSubscription = this.localWebSocketService.crud<T>(operation, params).subscribe({
+            next: (data) => {
+              this.inFlightRequests.delete(requestKey);
+              subscriber.next(data);
+              subscriber.complete();
+            },
+            error: (err) => {
+              this.fallbackToTauri(operation, params, subscriber, isArray, requestKey);
+            },
+            complete: () => {},
           });
+        } else if (attempt < 3) {
+          retryTimeout = setTimeout(() => tryWebSocket(attempt + 1), 100);
         } else {
-          this.fallbackToTauri(operation, params, subscriber, isArray);
+          this.fallbackToTauri(operation, params, subscriber, isArray, requestKey);
         }
       };
-      makeRequest(false);
-    });
+
+      tryWebSocket(0);
+
+      // Cleanup function
+      return () => {
+        if (wsSubscription) wsSubscription.unsubscribe();
+        if (retryTimeout) clearTimeout(retryTimeout);
+      };
+    }).pipe(
+      share() // Share the execution among multiple subscribers
+    );
+
+    // Cache the in-flight request
+    this.inFlightRequests.set(requestKey, request$);
+
+    return request$;
   }
 
   private fallbackToTauri<T>(
     operation: Operation,
     params: CrudParams,
     subscriber: any,
-    isArray: boolean
+    isArray: boolean,
+    requestKey?: string
   ): void {
     const payload: any = {
-      operation: operation === "get" ? "read" : operation,
+      operation: operation,
       table: params.table,
       syncMetadata: params.syncMetadata,
     };
@@ -198,8 +256,12 @@ export class DataSyncProvider {
             subscriber.error(new Error("Failed to update all records"));
           }
           subscriber.complete();
+          if (requestKey) this.inFlightRequests.delete(requestKey);
         })
-        .catch((err) => subscriber.error(err));
+        .catch((err) => {
+          subscriber.error(err);
+          if (requestKey) this.inFlightRequests.delete(requestKey);
+        });
     } else {
       invoke<Response<T>>("manageData", payload)
         .then((response: Response<T>) => {
@@ -209,8 +271,12 @@ export class DataSyncProvider {
             subscriber.error(new Error(response.message || `Failed to ${operation}`));
           }
           subscriber.complete();
+          if (requestKey) this.inFlightRequests.delete(requestKey);
         })
-        .catch((err) => subscriber.error(err));
+        .catch((err) => {
+          subscriber.error(err);
+          if (requestKey) this.inFlightRequests.delete(requestKey);
+        });
     }
   }
 
@@ -232,7 +298,13 @@ export class DataSyncProvider {
     parentTodoId?: string
   ): Observable<T> {
     this.validateTable(table);
-    const crudParams = this.buildCrudParams(table, { filter, parentTodoId, ...params });
+
+    // Use filter-based get (backend now supports this)
+    const crudParams = this.buildCrudParams(table, {
+      filter,
+      parentTodoId,
+      ...params,
+    });
     return this.executeWithFallback<T>("get", crudParams);
   }
 
@@ -290,6 +362,64 @@ export class DataSyncProvider {
   ): Observable<void> {
     this.validateTable(table);
     const crudParams = this.buildCrudParams(table, { id, parentTodoId, ...params });
-    return this.executeWithFallback<void>("delete", crudParams);
+
+    // Use Tauri directly for delete operations (more reliable than WebSocket)
+    return this.invokeCommand<void>("manageData", {
+      operation: "delete",
+      table: crudParams.table,
+      id: crudParams.id,
+      syncMetadata: crudParams.syncMetadata,
+    });
+  }
+
+  // ==================== PROFILE OPERATIONS ====================
+  // These are wrappers around standard CRUD operations for convenience
+
+  getProfileByUserId(userId: string, relations?: RelationObj[]): Observable<any> {
+    return this.get("profiles", { userId }, { relations });
+  }
+
+  createProfile(data: any): Observable<any> {
+    return this.invokeCommand("profileCreate", { data });
+  }
+
+  updateProfile(id: string, data: any): Observable<any> {
+    return this.invokeCommand("profileUpdate", { id, data });
+  }
+
+  deleteProfile(id: string): Observable<any> {
+    return this.invokeCommand("profileDelete", { id });
+  }
+
+  // ==================== AUTH OPERATIONS (via auth routes) ====================
+
+  login(data: any): Observable<any> {
+    return this.invokeCommand("login", { loginForm: data });
+  }
+
+  signup(data: any): Observable<any> {
+    return this.invokeCommand("register", { signupForm: data });
+  }
+
+  requestPasswordReset(email: string): Observable<any> {
+    return this.invokeCommand("requestPasswordReset", { email });
+  }
+
+  verifyCode(email: string, code: string): Observable<any> {
+    return this.invokeCommand("verifyCode", { email, code });
+  }
+
+  resetPassword(data: any): Observable<any> {
+    return this.invokeCommand("resetPassword", { resetData: data });
+  }
+
+  checkToken(token: string): Observable<any> {
+    return this.invokeCommand("checkToken", { token });
+  }
+
+  // ==================== STATISTICS OPERATIONS ====================
+
+  getStatistics(userId: string, timeRange: string): Observable<any> {
+    return this.invokeCommand("statisticsGet", { userId, timeRange });
   }
 }

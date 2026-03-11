@@ -1,6 +1,16 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, OnInit, Output, signal, inject } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  signal,
+  inject,
+  OnChanges,
+  SimpleChanges,
+} from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -18,6 +28,8 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
+import { StorageService } from "@services/storage.service";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
@@ -41,11 +53,14 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskComponent implements OnInit {
+export class TaskComponent implements OnInit, OnChanges {
   private baseHelper = inject(BaseItemHelper);
   private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private dataSyncProvider = inject(DataSyncProvider);
 
   @Input() task: Task | null = null;
+  @Input() todoId: string | null = null;
   @Input() index: number = 0;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -73,13 +88,24 @@ export class TaskComponent implements OnInit {
 
   ngOnInit() {}
 
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes["autoOpenComments"]?.currentValue === true) {
+      this.showComments.set(true);
+      this.cdr.markForCheck();
+    }
+    if (changes["highlightCommentId"]?.currentValue) {
+      this.showComments.set(true);
+      this.cdr.markForCheck();
+    }
+  }
+
   truncateString = Common.truncateString;
 
   get unreadCommentsCount(): number {
     return this.baseHelper.countUnreadComments(
       this.task,
       this.authService.getValueByKey("id"),
-      'task'
+      "task"
     );
   }
 
@@ -101,6 +127,13 @@ export class TaskComponent implements OnInit {
     const username = this.authService.getValueByKey("username");
 
     if (this.task && userId) {
+      // Get todoId from input or from task
+      const effectiveTodoId = this.todoId || this.task.todoId;
+      if (!effectiveTodoId) {
+        console.error("Cannot add comment: todoId not found");
+        return;
+      }
+
       const newComment: Comment = {
         id: crypto.randomUUID(),
         authorId: userId,
@@ -112,22 +145,37 @@ export class TaskComponent implements OnInit {
         readBy: [userId],
       };
 
-      const updatedComments = [...(this.task.comments || []), newComment];
-      this.updateTaskEvent.emit({
-        task: this.task,
-        field: "comments",
-        value: updatedComments,
-      });
+      // Create comment as separate document (not embedded)
+      // WebSocket will broadcast the event and update storage automatically
+      this.dataSyncProvider
+        .create<Comment>("comments", newComment, undefined, effectiveTodoId)
+        .subscribe({
+          next: () => {
+            this.showComments.set(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            console.error("Failed to create comment:", err);
+          },
+        });
     }
   }
 
   onDeleteComment(commentId: string) {
     if (this.task) {
-      const updatedComments = (this.task.comments || []).filter((c) => c.id !== commentId);
-      this.updateTaskEvent.emit({
-        task: this.task,
-        field: "comments",
-        value: updatedComments,
+      // Get todoId from input or from task
+      const effectiveTodoId = this.todoId || this.task.todoId;
+      if (!effectiveTodoId) {
+        console.error("Cannot delete comment: todoId not found");
+        return;
+      }
+
+      // Delete comment as separate document
+      // WebSocket will broadcast the event and update storage automatically
+      this.dataSyncProvider.delete("comments", commentId, undefined, effectiveTodoId).subscribe({
+        error: (err) => {
+          console.error("Failed to delete comment:", err);
+        },
       });
     }
   }
