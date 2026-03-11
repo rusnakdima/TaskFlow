@@ -174,7 +174,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.form.controls["todoId"].setValue(params.todoId);
         this.loadProjectInfo(params.todoId);
       }
-      if (params.taskId) {
+      if (params.taskId && params.taskId.trim() !== "") {
         this.getTaskInfo(params.taskId);
         this.isEdit.set(true);
       }
@@ -190,6 +190,21 @@ export class ManageTaskView implements OnInit, OnDestroy {
   };
 
   getTaskInfo(taskId: string) {
+    // First, try to get from storage
+    const taskFromStorage = this.storageService.getTaskById(taskId);
+    if (taskFromStorage) {
+      const localDates = convertDatesFromUtcToLocal(taskFromStorage);
+      this.form.patchValue(localDates);
+
+      const startDate = localDates.startDate;
+      const endDate = localDates.endDate;
+      if (startDate && endDate) {
+        this.dateValidator.updateEndDateValidation(this.form, startDate);
+      }
+      return;
+    }
+
+    // Fallback to fetch if not in storage
     this.dataSyncProvider.get<Task>("tasks", { id: taskId }).subscribe({
       next: (taskData) => {
         const localDates = convertDatesFromUtcToLocal(taskData);
@@ -305,7 +320,12 @@ export class ManageTaskView implements OnInit, OnDestroy {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeDateFields(formValue);
       const convertedDates = convertDatesToUtc(normalizedFormValue);
-      const body = { ...convertedDates };
+
+      // Ensure id is included in the update payload
+      const body = {
+        ...convertedDates,
+        id: formValue.id, // Include id field for backend validation
+      };
 
       this.dataSyncProvider.update<Task>("tasks", body.id, body, undefined, todoId).subscribe({
         next: (result: Task) => {

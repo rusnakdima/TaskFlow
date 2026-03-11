@@ -106,7 +106,7 @@
             <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
             <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
 
-            @for (day of calendarDays(); track $index) {
+            @for (day of calendarDays(); track day.date.getTime()) {
               <div
                 class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
                 [ngClass]="{
@@ -130,7 +130,7 @@
                 </div>
 
                 <div class="space-y-1">
-                  @for (event of day.events.slice(0, 2); track event.id) {
+                  @for (event of day.events.slice(0, 2); track event.id + "_" + $index) {
                     <div
                       class="text-xs p-1 rounded text-white truncate cursor-pointer"
                       [ngClass]="getEventColor(event)"
@@ -188,7 +188,7 @@
               </div>
 
               <div class="space-y-1">
-                @for (event of day.events.slice(0, 3); track event.id) {
+                @for (event of day.events.slice(0, 3); track event.id + "_" + $index) {
                   <div
                     class="text-xs p-2 rounded text-white truncate"
                     [ngClass]="getEventColor(event)"
@@ -219,7 +219,7 @@
             <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
             <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
 
-            @for (day of weekDays(); track $index) {
+            @for (day of weekDays(); track day.date.getTime()) {
               <div
                 class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
                 [ngClass]="{
@@ -244,7 +244,7 @@
                 </div>
 
                 <div class="space-y-1">
-                  @for (event of day.events; track event.id) {
+                  @for (event of day.events; track event.id + "_" + $index) {
                     <div
                       class="text-xs p-1 rounded text-white truncate cursor-pointer"
                       [ngClass]="getEventColor(event)"

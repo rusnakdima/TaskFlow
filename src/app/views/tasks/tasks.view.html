@@ -1,114 +1,153 @@
 <div class="flex flex-col gap-6">
-  @if (todo()) {
-    <app-todo-information [todo]="todo()!" [isOwner]="isOwner" [isPrivate]="isPrivate" />
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <mat-spinner diameter="40" class="mx-auto" />
+      <span class="ml-4 textMuted">Loading tasks...</span>
+    </div>
   }
 
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <div>
-      <h2 class="text-xl font-bold textNormal">Tasks</h2>
-      <p class="textMuted">Manage and track individual tasks in this project</p>
-    </div>
-
-    <div class="flex flex-wrap gap-2">
-      <button
-        class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
-        (click)="toggleFilter()"
-      >
-        <mat-icon
-          class="w-5! h-5! text-xl!"
-          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
-        />
-        Filter
-      </button>
-      <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
-        <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
-        New Task
-      </button>
-    </div>
-  </div>
-
-  <!-- Filter Sidebar -->
-  <app-filter-bar
-    [filterOptions]="filterOptions"
-    [activeFilter]="activeFilter()"
-    [showFilter]="showFilter()"
-    [searchTempArray]="todoTasks()"
-    [searchByFields]="['title']"
-    filterLabel="Status"
-    filterGroupName="task-filter"
-    (filterToggle)="toggleFilter()"
-    (filterChange)="changeFilter($any($event))"
-    (searchChange)="onSearchChange($any($event))"
-    (searchResults)="onSearchResults($any($event))"
-    (applyFiltersEvent)="applyFilter()"
-    (clearFiltersEvent)="clearFilters()"
-  />
-
-  @if (showBulkActions()) {
-    <app-bulk-actions
-      [selectedCount]="selectedTasks().size"
-      [isAllSelected]="isAllSelected()"
-      (selectAllEvent)="toggleSelectAll()"
-      (bulkPriorityEvent)="bulkUpdatePriority($any($event))"
-      (bulkStatusEvent)="bulkUpdateStatus($any($event))"
-      (bulkDeleteEvent)="bulkDelete()"
-      (cancelEvent)="clearSelection()"
-    />
-  }
-
-  @if (listTasks().length === 0) {
+  @if (!loading() && !todo()) {
     <div
       class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
     >
-      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="assignment" />
-      <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
-      <p class="textMuted">
-        @if (activeFilter() !== "all") {
-          No tasks match the current filter
-        }
-      </p>
+      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="error_outline" />
+      <h3 class="text-xl font-semibold textNormal mb-2">Unable to load todo</h3>
+      <p class="textMuted">The requested todo could not be found</p>
+      <button
+        class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        routerLink="/todos"
+      >
+        Back to Todos
+      </button>
     </div>
-  } @else {
-    <div
-      class="grid grid-cols-1 lg:grid-cols-2 gap-6"
-      cdkDropList
-      cdkDropListOrientation="mixed"
-      (cdkDropListDropped)="onTaskDrop($event)"
-    >
-      @for (task of listTasks(); track task.id) {
-        <app-task
-          cdkDrag
-          class="h-full"
-          [id]="'task-' + task.id"
-          [task]="task"
-          [index]="$index"
-          [isOwner]="isOwner"
-          [isPrivate]="isPrivate"
-          [highlight]="highlightTaskId() === task.id"
-          [isSelected]="selectedTasks().has(task.id)"
-          [allTasks]="todo()?.tasks || []"
-          [isExpanded]="isTaskExpanded(task.id)"
-          [showExpandButton]="task.subtasks && task.subtasks.length > 0"
-          [highlightCommentId]="highlightCommentId()"
-          [autoOpenComments]="openComments()"
-          (deleteTaskEvent)="deleteTask($event)"
-          (toggleCompletionEvent)="toggleTaskCompletion($event)"
-          (updateTaskEvent)="updateTaskInline($event)"
-          (toggleSubtasksEvent)="toggleExpandTask($event)"
-          (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
-          (selectionChangeEvent)="toggleTaskSelection($event)"
+  }
+
+  @if (!loading() && todo()) {
+    <app-todo-information [todo]="todo()!" [isOwner]="isOwner" [isPrivate]="isPrivate" />
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-xl font-bold textNormal">Tasks</h2>
+        <p class="textMuted">Manage and track individual tasks in this project</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          (click)="toggleFilter()"
         >
-          <div
-            *cdkDragPlaceholder
-            class="cdk-drag-placeholder rounded-xl h-full min-h-[200px]"
-          ></div>
-        </app-task>
-      }
+          <mat-icon
+            class="w-5! h-5! text-xl!"
+            [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
+          />
+          Filter
+        </button>
+        <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
+          <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
+          New Task
+        </button>
+      </div>
     </div>
+
+    <!-- Filter Sidebar -->
+    <app-filter-bar
+      [filterOptions]="filterOptions"
+      [activeFilter]="activeFilter()"
+      [showFilter]="showFilter()"
+      [searchTempArray]="todoTasks()"
+      [searchByFields]="['title']"
+      filterLabel="Status"
+      filterGroupName="task-filter"
+      (filterToggle)="toggleFilter()"
+      (filterChange)="changeFilter($any($event))"
+      (searchChange)="onSearchChange($any($event))"
+      (searchResults)="onSearchResults($any($event))"
+      (applyFiltersEvent)="applyFilter()"
+      (clearFiltersEvent)="clearFilters()"
+    />
+
+    @if (showBulkActions()) {
+      <app-bulk-actions
+        [selectedCount]="selectedTasks().size"
+        [isAllSelected]="isAllSelected()"
+        (selectAllEvent)="toggleSelectAll()"
+        (bulkPriorityEvent)="bulkUpdatePriority($any($event))"
+        (bulkStatusEvent)="bulkUpdateStatus($any($event))"
+        (bulkDeleteEvent)="bulkDelete()"
+        (cancelEvent)="clearSelection()"
+      />
+    }
+
+    @if (listTasks().length === 0) {
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+      >
+        <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="assignment" />
+        <h3 class="text-xl font-semibold textNormal mb-2">No tasks found</h3>
+        <p class="textMuted">
+          @if (activeFilter() !== "all") {
+            No tasks match the current filter
+          }
+        </p>
+      </div>
+    } @else {
+      <div
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        (cdkDropListDropped)="onTaskDrop($event)"
+      >
+        @for (task of listTasks(); track task.id) {
+          <app-task
+            cdkDrag
+            class="h-full"
+            [id]="'task-' + task.id"
+            [task]="task"
+            [todoId]="todo()?.id || null"
+            [index]="$index"
+            [isOwner]="isOwner"
+            [isPrivate]="isPrivate"
+            [highlight]="highlightTaskId() === task.id"
+            [isSelected]="selectedTasks().has(task.id)"
+            [allTasks]="todo()?.tasks || []"
+            [isExpanded]="isTaskExpanded(task.id)"
+            [showExpandButton]="task.subtasks && task.subtasks.length > 0"
+            [highlightCommentId]="highlightCommentId()"
+            [autoOpenComments]="openComments()"
+            (deleteTaskEvent)="deleteTask($event)"
+            (toggleCompletionEvent)="toggleTaskCompletion($event)"
+            (updateTaskEvent)="updateTaskInline($event)"
+            (toggleSubtasksEvent)="toggleExpandTask($event)"
+            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+            (selectionChangeEvent)="toggleTaskSelection($event)"
+          >
+            <div
+              *cdkDragPlaceholder
+              class="cdk-drag-placeholder rounded-xl h-full min-h-[200px]"
+            ></div>
+          </app-task>
+        }
+      </div>
+    }
   }
 </div>
 
+<!-- Floating Chat Button -->
+<button
+  (click)="toggleChat()"
+  class="fixed bottom-20 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 z-40"
+>
+  <mat-icon class="text-2xl!" [fontIcon]="openChat() ? 'close' : 'chat'" />
+  @if (getUnreadCount() > 0) {
+    <span
+      class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-zinc-800"
+    >
+      {{ getUnreadCount() }}
+    </span>
+  }
+</button>
+
 <!-- Chat Window -->
 @if (openChat()) {
-  <app-chat-window [todoId]="todo()?.id || ''" (close)="openChat.set(false)" />
+  <app-chat-window [todoId]="todo()?.id || ''" (close)="toggleChat()" />
 }

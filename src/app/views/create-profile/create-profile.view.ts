@@ -18,7 +18,6 @@ import { FormComponent } from "@components/form/form.component";
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
-import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -102,7 +101,7 @@ export class CreateProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider.create<Profile>("profiles", body).subscribe({
+      this.dataSyncProvider.createProfile(body).subscribe({
         next: () => {
           this.notifyService.showSuccess("Profile created successfully");
           this.router.navigate([""]);

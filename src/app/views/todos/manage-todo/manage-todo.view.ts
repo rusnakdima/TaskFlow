@@ -180,12 +180,36 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   getTodoInfo(todoId: string) {
+    // First, try to get from storage
+    const todoFromStorage = this.storageService.getTodoById(todoId);
+    if (todoFromStorage) {
+      const localDates = convertDatesFromUtcToLocal(todoFromStorage);
+      this.form.patchValue(localDates);
+      this.isOwner = todoFromStorage.userId === this.userId();
+      this.isPrivate = todoFromStorage.visibility === "private";
+
+      // Update form with correct visibility
+      this.form.patchValue({ visibility: todoFromStorage.visibility });
+
+      if (!this.isPrivate) {
+        this.notifyService.showInfo(
+          "You're editing a shared todo. Changes will be sent to the owner."
+        );
+      }
+      return;
+    }
+
+    // Fallback to fetch if not in storage
     this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
       next: (todo) => {
         const localDates = convertDatesFromUtcToLocal(todo);
         this.form.patchValue(localDates);
         this.isOwner = todo.userId === this.userId();
         this.isPrivate = todo.visibility === "private";
+
+        // Update form with correct visibility
+        this.form.patchValue({ visibility: todo.visibility });
+
         if (!this.isPrivate)
           this.notifyService.showInfo(
             "You're editing a shared todo. Changes will be sent to the owner."
@@ -322,13 +346,26 @@ export class ManageTodoView implements OnInit, OnDestroy {
   createTodo() {
     if (this.form.valid) {
       const formValue = this.form.value;
+      const normalizedFormValue = normalizeDateFields(formValue);
+      const convertedDates = convertDatesToUtc(normalizedFormValue);
+
+      // Only send fields that TodoCreateModel expects
+      // Backend will generate: _id, id, createdAt, updatedAt
+      // Backend will set default: isDeleted = false
       const body = {
-        ...convertDatesToUtc(normalizeDateFields(formValue)),
+        userId: convertedDates.userId,
+        title: convertedDates.title,
+        description: convertedDates.description,
+        startDate: convertedDates.startDate,
+        endDate: convertedDates.endDate,
         priority: formValue.priority || "medium",
+        visibility: formValue.visibility || "private",
         categories: formValue.categories.map((c: Category) => c.id),
         assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
+        order: formValue.order || 0,
       };
-      this.dataSyncProvider.create<Todo>("todos", body, undefined, body.id).subscribe({
+
+      this.dataSyncProvider.create<Todo>("todos", body, undefined, body.userId).subscribe({
         next: (result: Todo) => {
           // Manually add to storage
           this.storageService.addItem("todo", result);
@@ -355,18 +392,22 @@ export class ManageTodoView implements OnInit, OnDestroy {
         priority: formValue.priority || "medium",
         categories: formValue.categories.map((c: Category) => c.id),
         assignees: formValue.assignees.map((p: Profile) => p.userId), // Send user ID, not profile ID
+        visibility: formValue.visibility as "private" | "team", // Ensure visibility is included
       };
 
       const newVisibility = formValue.visibility as "private" | "team";
-      const visibilityChanged = (this.isPrivate ? "private" : "team") !== newVisibility;
+      const visibilityChanged = this.isPrivate !== (newVisibility === "private");
 
-      // Determine sync metadata based on visibility
+      // Determine sync metadata based on visibility and ownership
       const isPrivate = newVisibility === "private";
-      const syncMetadata = { isOwner: true, isPrivate };
+      // User is owner if they created the todo (userId matches)
+      const isOwner = formValue.userId === this.userId();
+      const syncMetadata = { isOwner, isPrivate };
 
       this.dataSyncProvider.update<Todo>("todos", body.id, body, syncMetadata, body.id).subscribe({
         next: async (result: Todo) => {
           // Update storage with visibility change handling
+          // The storage service will handle moving between private/shared lists
           this.storageService.updateItem("todo", result.id, result);
 
           if (visibilityChanged) {

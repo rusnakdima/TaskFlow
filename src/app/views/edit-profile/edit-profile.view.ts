@@ -92,8 +92,8 @@ export class EditProfileView {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
-      this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
-        next: (profile) => {
+      this.dataSyncProvider.getProfileByUserId(userId).subscribe({
+        next: (profile: Profile) => {
           this.form.patchValue(profile);
         },
         error: (err) => {
@@ -116,7 +116,7 @@ export class EditProfileView {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider.update<Profile>("profiles", body.id, body).subscribe({
+      this.dataSyncProvider.updateProfile(body.id, body).subscribe({
         next: () => {
           this.notifyService.showSuccess("Profile updated successfully");
           this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
