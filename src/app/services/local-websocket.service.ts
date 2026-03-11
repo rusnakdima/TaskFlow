@@ -122,7 +122,13 @@ export class LocalWebSocketService {
       timeout(30000),
       map((response: { response: Response<T>; requestId?: string }) => {
         const resp = response.response || response;
-        this.notifyService.showNotify(resp.status, resp.message);
+        // Only show notification for non-success or custom messages (not generic "Operation successful")
+        if (
+          resp.status !== ResponseStatus.SUCCESS ||
+          (resp.message && resp.message !== "Operation successful")
+        ) {
+          this.notifyService.showNotify(resp.status, resp.message);
+        }
         if (resp.status === ResponseStatus.SUCCESS) {
           return resp.data;
         } else {
