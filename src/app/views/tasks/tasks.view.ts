@@ -9,14 +9,12 @@ import { HostListener } from "@angular/core";
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatExpansionModule } from "@angular/material/expansion";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus, RepeatInterval, PriorityTask } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-
-/* helpers */
-import { StateHelper } from "@helpers/state.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -26,6 +24,7 @@ import { SortService } from "@services/sort.service";
 import { BulkActionService, BulkOperationResult } from "@services/bulk-action.service";
 import { StorageService } from "@services/storage.service";
 import { DragDropOrderService } from "@services/drag-drop-order.service";
+import { ChatService } from "@services/chat.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -46,6 +45,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
     FormsModule,
     MatIconModule,
     MatExpansionModule,
+    MatProgressSpinnerModule,
     RouterModule,
     TaskComponent,
     TodoInformationComponent,
@@ -61,15 +61,16 @@ export class TasksView implements OnInit {
   private sortService = inject(SortService);
   private bulkActionService = inject(BulkActionService);
   private storageService = inject(StorageService);
-  private stateHelper = inject(StateHelper);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
   private route = inject(ActivatedRoute);
   private dragDropService = inject(DragDropOrderService);
+  public chatService = inject(ChatService);
 
   // State signals
   todo = signal<Todo | null>(null);
+  loading = signal(false);
   activeFilter = signal("all");
   showFilter = signal(false);
   searchQuery = signal("");
@@ -81,10 +82,13 @@ export class TasksView implements OnInit {
   showBulkActions = signal(false);
   expandedTasks = signal<Set<string>>(new Set());
 
-  // Computed signals for data flow
+  // Computed signals for data flow - Always use storage as the single source of truth
   todoTasks = computed(() => {
-    const todoId = this.todo()?.id;
-    return todoId ? this.storageService.getTasksByTodoId(todoId)() : [];
+    const todoFromSignal = this.todo();
+    const todoId = todoFromSignal?.id;
+    if (!todoId) return [];
+    // Always use storage data for real-time updates
+    return this.storageService.getTasksByTodoId(todoId)();
   });
 
   listTasks = computed(() => {
@@ -178,12 +182,42 @@ export class TasksView implements OnInit {
       }
     });
 
+    // Get resolved todo data from route
     const routeData = this.route.snapshot.data;
     if (routeData?.["todo"]) {
       const todoData = routeData["todo"];
       this.todo.set(todoData);
       this.isOwner = todoData.userId === this.userId;
       this.isPrivate = todoData.visibility === "private";
+    } else {
+      // Fallback: try to get todo ID from route params and fetch from storage
+      this.loading.set(true);
+      const todoId = this.route.snapshot.paramMap.get("todoId");
+      if (todoId) {
+        const todoFromStorage = this.storageService.getTodoById(todoId);
+        if (todoFromStorage) {
+          this.todo.set(todoFromStorage);
+          this.isOwner = todoFromStorage.userId === this.userId;
+          this.isPrivate = todoFromStorage.visibility === "private";
+        } else {
+          // Wait a bit for storage to be populated (e.g., after creating a task)
+          setTimeout(() => {
+            const retryTodo = this.storageService.getTodoById(todoId);
+            if (retryTodo) {
+              this.todo.set(retryTodo);
+              this.isOwner = retryTodo.userId === this.userId;
+              this.isPrivate = retryTodo.visibility === "private";
+            } else {
+              this.notifyService.showError("Todo not found. Please try again.");
+            }
+            this.loading.set(false);
+          }, 300);
+          return; // Don't set loading to false yet
+        }
+      } else {
+        this.notifyService.showError("Invalid todo ID.");
+      }
+      this.loading.set(false);
     }
   }
 
@@ -215,14 +249,16 @@ export class TasksView implements OnInit {
         break;
     }
 
-    // Use StateHelper for optimistic update
-    this.stateHelper.updateOptimistically<Task>(
-      "task",
-      task.id,
-      { status: newStatus },
-      task,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Task>("tasks", task.id, { status: newStatus }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("task", task.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
   }
 
   toggleExpandTask(task: Task) {
@@ -261,13 +297,16 @@ export class TasksView implements OnInit {
         break;
     }
 
-    this.stateHelper.updateOptimistically<Subtask>(
-      "subtask",
-      subtask.id,
-      { status: newStatus },
-      subtask,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("subtask", subtask.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {
@@ -346,29 +385,46 @@ export class TasksView implements OnInit {
     /* Purely reactive via computed listTasks */
   }
 
+  toggleChat() {
+    this.openChat.update((v) => !v);
+  }
+
+  getUnreadCount(): number {
+    const todoId = this.todo()?.id;
+    return todoId ? this.chatService.getUnreadCount(todoId) : 0;
+  }
+
   updateTaskInline(event: { task: Task; field: string; value: any }) {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    this.stateHelper.updateOptimistically<Task>(
-      "task",
-      event.task.id,
-      { [event.field]: event.value },
-      event.task,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Task>("tasks", event.task.id, { [event.field]: event.value }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("task", event.task.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
   }
 
   deleteTask(taskId: string) {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    const taskToDelete = this.storageService.getTaskById(taskId);
-    if (!taskToDelete) return;
-
     if (!confirm("Are you sure?")) return;
 
-    this.stateHelper.deleteOptimistically<Task>("task", taskId, taskToDelete, todoId);
+    this.dataSyncProvider.delete("tasks", taskId, undefined, todoId).subscribe({
+      next: () => {
+        this.storageService.removeItem("task", taskId);
+        this.notifyService.showSuccess("Task deleted successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete task");
+      },
+    });
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {
@@ -445,7 +501,11 @@ export class TasksView implements OnInit {
       .bulkUpdateStatus(
         selectedIds.map((id) => ({ id, status: "" })),
         status,
-        (id, data) => this.dataSyncProvider.update<Task>("tasks", id, data, undefined, todoId)
+        (id, data) => {
+          // Ensure id is included in the update payload
+          const updateData = { ...data, id };
+          return this.dataSyncProvider.update<Task>("tasks", id, updateData, undefined, todoId);
+        }
       )
       .subscribe({
         next: (result: BulkOperationResult) => {

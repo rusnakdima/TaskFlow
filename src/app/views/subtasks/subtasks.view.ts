@@ -7,14 +7,12 @@ import { HostListener } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-
-/* helpers */
-import { StateHelper } from "@helpers/state.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -42,6 +40,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
     CommonModule,
     RouterModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     SubtaskComponent,
     TaskInformationComponent,
     FilterBarComponent,
@@ -60,11 +59,11 @@ export class SubtasksView implements OnInit {
   private sortService = inject(SortService);
   private storageService = inject(StorageService);
   public chatService = inject(ChatService);
-  private stateHelper = inject(StateHelper);
   private dragDropService = inject(DragDropOrderService);
 
   // State signals
   task = signal<Task | null>(null);
+  loading = signal(false);
   activeFilter = signal("all");
   showFilter = signal(false);
   showChat = signal(false);
@@ -77,10 +76,13 @@ export class SubtasksView implements OnInit {
   highlightComment = signal<string | null>(null);
   openComments = signal(false);
 
-  // Computed signals for data flow
+  // Computed signals for data flow - Always use storage as the single source of truth
   taskSubtasks = computed(() => {
-    const taskId = this.task()?.id;
-    return taskId ? this.storageService.getSubtasksByTaskId(taskId)() : [];
+    const taskFromSignal = this.task();
+    const taskId = taskFromSignal?.id;
+    if (!taskId) return [];
+    // Always use storage data for real-time updates
+    return this.storageService.getSubtasksByTaskId(taskId)();
   });
 
   listSubtasks = computed(() => {
@@ -194,6 +196,29 @@ export class SubtasksView implements OnInit {
         this.task.set(dataResolve["task"]);
         this.cdr.detectChanges();
       }
+    } else {
+      // Fallback: try to get task from storage
+      this.loading.set(true);
+      const taskId = this.route.snapshot.paramMap.get("taskId");
+      if (taskId) {
+        const taskFromStorage = this.storageService.getTaskById(taskId);
+        if (taskFromStorage) {
+          this.task.set(taskFromStorage);
+          const todoFromStorage = this.storageService.getTodoById(taskFromStorage.todoId);
+          if (todoFromStorage) {
+            this.todo.set(todoFromStorage);
+            this.isOwner = todoFromStorage.userId === this.userId;
+            this.isPrivate = todoFromStorage.visibility === "private";
+            this.todoId.set(todoFromStorage.id);
+            this.projectTitle.set(todoFromStorage.title);
+          }
+        } else {
+          this.notifyService.showError("Task not found. Please try again.");
+        }
+      } else {
+        this.notifyService.showError("Invalid task ID.");
+      }
+      this.loading.set(false);
     }
   }
 
@@ -244,26 +269,38 @@ export class SubtasksView implements OnInit {
         break;
     }
 
-    this.stateHelper.updateOptimistically<Subtask>(
-      "subtask",
-      subtask.id,
-      { status: newStatus },
-      subtask,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("subtask", subtask.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: any }) {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    this.stateHelper.updateOptimistically<Subtask>(
-      "subtask",
-      event.subtask.id,
-      { [event.field]: event.value },
-      event.subtask,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Subtask>(
+        "subtasks",
+        event.subtask.id,
+        { [event.field]: event.value },
+        undefined,
+        todoId
+      )
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("subtask", event.subtask.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
   }
 
   deleteSubtask(id: string) {
@@ -271,10 +308,16 @@ export class SubtasksView implements OnInit {
     if (!todoId) return;
 
     if (!confirm("Are you sure?")) return;
-    const subtaskToDelete = this.storageService.getSubtaskById(id);
-    if (subtaskToDelete) {
-      this.stateHelper.deleteOptimistically<Subtask>("subtask", id, subtaskToDelete, todoId);
-    }
+
+    this.dataSyncProvider.delete("subtasks", id, undefined, todoId).subscribe({
+      next: () => {
+        this.storageService.removeItem("subtask", id);
+        this.notifyService.showSuccess("Subtask deleted successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete subtask");
+      },
+    });
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
