@@ -13,8 +13,6 @@ import { MatIconModule } from "@angular/material/icon";
   templateUrl: "./bulk-actions.component.html",
 })
 export class BulkActionsComponent {
-  constructor() {}
-
   @Input() selectedCount: number = 0;
   @Input() isAllSelected: boolean = false;
   @Output() selectAllEvent: EventEmitter<void> = new EventEmitter<void>();

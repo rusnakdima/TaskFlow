@@ -443,10 +443,12 @@ export class AdminView implements OnInit {
           );
 
           // Update local storage
-          const deletedIds = selectedItems.filter((_, i) => i < result.successCount).map((item) => item.id);
+          const deletedIds = selectedItems
+            .filter((_, i) => i < result.successCount)
+            .map((item) => item.id);
           // Actually we should use result.errors to know which ones failed, but bulkDelete result doesn't explicitly map success per ID in a simple way for filtering here without more logic.
           // Let's assume most succeed or we reload if any succeed.
-          
+
           this.dataSyncService.loadAllData(true).subscribe();
           this.loadAdminData(); // Reload all admin data to be safe and update counts
         }

@@ -80,9 +80,9 @@
     (click)="$event.stopPropagation()"
   >
     <p class="font-medium textNormal">
-      {{ profile() ? profile()!.name : "User" }} {{ profile() ? profile()!.lastName : "" }}
+      {{ profile()?.name || "User" }} {{ profile()?.lastName || "" }}
     </p>
-    <p class="text-sm textMuted">{{ profile() ? profile()!.user.email : "" }}</p>
+    <p class="text-sm textMuted">{{ profile()?.user?.email || "" }}</p>
   </div>
 
   <div class="py-2">

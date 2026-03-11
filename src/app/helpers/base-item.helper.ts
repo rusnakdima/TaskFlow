@@ -188,7 +188,11 @@ export class BaseItemHelper {
    * Count unread comments for an entity (todo, task, or subtask)
    * Recursively counts comments for nested entities
    */
-  countUnreadComments(entity: any, userId: string | null, entityType: 'todo' | 'task' | 'subtask' = 'task'): number {
+  countUnreadComments(
+    entity: any,
+    userId: string | null,
+    entityType: "todo" | "task" | "subtask" = "task"
+  ): number {
     if (!entity || !userId) return 0;
 
     let count = 0;
@@ -199,13 +203,13 @@ export class BaseItemHelper {
     }
 
     // Recursively count nested comments based on entity type
-    if (entityType === 'todo' && entity.tasks) {
+    if (entityType === "todo" && entity.tasks) {
       entity.tasks.forEach((task: any) => {
-        count += this.countUnreadComments(task, userId, 'task');
+        count += this.countUnreadComments(task, userId, "task");
       });
-    } else if ((entityType === 'todo' || entityType === 'task') && entity.subtasks) {
+    } else if ((entityType === "todo" || entityType === "task") && entity.subtasks) {
       entity.subtasks.forEach((subtask: any) => {
-        count += this.countUnreadComments(subtask, userId, 'subtask');
+        count += this.countUnreadComments(subtask, userId, "subtask");
       });
     }
 
@@ -215,16 +219,17 @@ export class BaseItemHelper {
   /**
    * Get progress segments for progress bar
    */
-  getProgressSegments(items: Array<{ status: string }>): Array<{
+  getProgressSegments(items: Array<{ status: string }> | undefined | null): Array<{
     status: string;
     percentage: number;
     color: string;
   }> {
-    const total = items.length;
-
-    if (total === 0) {
+    // Handle undefined or null items
+    if (!items || items.length === 0) {
       return [{ status: TaskStatus.PENDING, percentage: 100, color: "bg-gray-400" }];
     }
+
+    const total = items.length;
 
     const completed = items.filter((s) => s.status === TaskStatus.COMPLETED).length;
     const skipped = items.filter((s) => s.status === TaskStatus.SKIPPED).length;

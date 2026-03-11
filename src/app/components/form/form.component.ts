@@ -14,8 +14,6 @@ import { TemplateFormComponent } from "@components/form/template-form/template-f
   templateUrl: "./form.component.html",
 })
 export class FormComponent {
-  constructor() {}
-
   @Input() form?: FormGroup;
   @Input() formFields: Array<FormField> = [];
   @Input() isShowCloseButton: boolean = true;

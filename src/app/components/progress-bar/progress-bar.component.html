@@ -27,7 +27,7 @@
   </div>
 
   @if (showLegend) {
-    <div class="flex flex-wrap gap-x-3 gap-y-1 text-[10px] mt-1.5 textMuted">
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-1.5 textMuted">
       @for (segment of segments(); track segment.status) {
         <span class="flex items-center gap-1">
           <div class="w-1.5 h-1.5 rounded-full" [ngClass]="segment.color"></div>
