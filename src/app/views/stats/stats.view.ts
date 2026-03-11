@@ -20,7 +20,6 @@ import { NotifyService } from "@services/notify.service";
 import { AuthService } from "@services/auth.service";
 import { StatisticsService } from "@services/statistics.service";
 import { StorageService } from "@services/storage.service";
-import { Response, ResponseStatus } from "@models/response.model";
 
 @Component({
   selector: "app-stats",
@@ -63,29 +62,7 @@ export class StatsView implements OnInit {
     dailyActivity: [],
   });
 
-  achievements = signal<Achievement[]>([
-    // {
-    //   title: "10 Day Streak",
-    //   description: "Completed tasks for 10 consecutive days",
-    //   icon: "local_fire_department",
-    //   color: "#F59E0B",
-    //   date: "2 days ago",
-    // },
-    // {
-    //   title: "Early Bird",
-    //   description: "Completed 5 tasks before 9 AM",
-    //   icon: "wb_sunny",
-    //   color: "#3B82F6",
-    //   date: "1 week ago",
-    // },
-    // {
-    //   title: "Task Master",
-    //   description: "Completed 100 tasks total",
-    //   icon: "emoji_events",
-    //   color: "#10B981",
-    //   date: "2 weeks ago",
-    // },
-  ]);
+  achievements = signal<Achievement[]>([]);
 
   detailedMetrics = signal<DetailedMetric[]>([]);
 
@@ -94,23 +71,21 @@ export class StatsView implements OnInit {
     this.loadStatistics();
   }
 
-  async loadStatistics(): Promise<void> {
+  loadStatistics(): void {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      await this.statisticsService
-        .getStatistics(userId, this.selectedTimeRange())
-        .then((response: Response<StatisticsResponse>) => {
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.statistics.set(response.data.statistics);
-            this.chartData.set(response.data.chartData);
-            this.achievements.set(response.data.achievements);
-            this.detailedMetrics.set(response.data.detailedMetrics);
-          }
-        })
-        .catch((err: Response<string>) => {
+      this.statisticsService.getStatistics(userId, this.selectedTimeRange()).subscribe({
+        next: (response) => {
+          this.statistics.set(response.statistics);
+          this.chartData.set(response.chartData);
+          this.achievements.set(response.achievements);
+          this.detailedMetrics.set(response.detailedMetrics);
+        },
+        error: (err) => {
           this.notifyService.showError(err.message);
-        });
+        },
+      });
     }
   }
 

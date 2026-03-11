@@ -1,24 +1,20 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
-import { invoke } from "@tauri-apps/api/core";
+import { Injectable, inject } from "@angular/core";
+import { Observable } from "rxjs";
 
 /* models */
-import { Response } from "@models/response.model";
 import { StatisticsResponse } from "@models/statistics.model";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Injectable({
   providedIn: "root",
 })
 export class StatisticsService {
-  constructor() {}
+  private dataSyncProvider = inject(DataSyncProvider);
 
-  async getStatistics(
-    userId: string,
-    timeRange: string = "week"
-  ): Promise<Response<StatisticsResponse>> {
-    return await invoke<Response<StatisticsResponse>>("statisticsGet", {
-      userId,
-      timeRange,
-    });
+  getStatistics(userId: string, timeRange: string = "week"): Observable<StatisticsResponse> {
+    return this.dataSyncProvider.getStatistics(userId, timeRange);
   }
 }
