@@ -106,12 +106,21 @@ export class CategoriesView implements OnInit {
         "Are you sure you want to delete this category? This will remove it from all associated todos."
       )
     ) {
+      // Optimistic update - remove from storage immediately
+      const categoryToRemove = this.storageService.getCategoryById(categoryId);
+      if (categoryToRemove) {
+        this.storageService.removeItem("category", categoryId);
+      }
+
       this.dataSyncProvider.delete("categories", categoryId).subscribe({
         next: () => {
-          // Storage auto-updates via optimistic update in controller
           this.notifyService.showSuccess("Category deleted successfully");
         },
         error: (err) => {
+          // Rollback on error
+          if (categoryToRemove) {
+            this.storageService.addItem("category", categoryToRemove);
+          }
           this.notifyService.showError(err.message || "Failed to delete category");
         },
       });

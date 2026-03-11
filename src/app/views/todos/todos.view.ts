@@ -13,9 +13,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
-/* helpers */
-import { StateHelper } from "@helpers/state.helper";
-
 /* services */
 import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
@@ -56,7 +53,6 @@ export class TodosView implements OnInit {
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   private dragDropService = inject(DragDropOrderService);
-  private stateHelper = inject(StateHelper);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
@@ -214,11 +210,15 @@ export class TodosView implements OnInit {
 
   deleteTodoById(todoId: string): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const todoToDelete = this.storageService.getTodoById(todoId);
-      if (todoToDelete) {
-        this.stateHelper.deleteOptimistically("todo", todoId, todoToDelete);
-        this.notifyService.showSuccess("Todo deleted successfully");
-      }
+      this.dataSyncProvider.delete("todos", todoId).subscribe({
+        next: () => {
+          this.storageService.removeItem("todo", todoId);
+          this.notifyService.showSuccess("Todo deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete todo");
+        },
+      });
     }
   }
 

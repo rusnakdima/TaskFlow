@@ -18,9 +18,6 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { ResponseStatus } from "@models/response.model";
 
-/* helpers */
-import { StateHelper } from "@helpers/state.helper";
-
 /* services */
 import { AuthService } from "@services/auth.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -61,7 +58,6 @@ export class KanbanView implements OnInit {
   private dragDropService = inject(KanbanDragDropService);
   private baseHelper = inject(BaseItemHelper);
   private storageService = inject(StorageService);
-  private stateHelper = inject(StateHelper);
 
   TaskStatus = TaskStatus;
 
@@ -87,9 +83,19 @@ export class KanbanView implements OnInit {
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    return this.storageService
+    const tasks = this.storageService
       .getTasksByTodoId(todoId)()
       .filter((task) => !task.isDeleted);
+
+    // Remove duplicates by ID, keeping the first occurrence
+    const uniqueTaskMap = new Map<string, Task>();
+    tasks.forEach((task) => {
+      if (!uniqueTaskMap.has(task.id)) {
+        uniqueTaskMap.set(task.id, task);
+      }
+    });
+
+    return Array.from(uniqueTaskMap.values());
   });
 
   columns = [
@@ -168,13 +174,16 @@ export class KanbanView implements OnInit {
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
-    this.stateHelper.updateOptimistically<Subtask>(
-      "subtask",
-      subtask.id,
-      { status: newStatus },
-      subtask,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("subtask", subtask.id, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
   }
 
   getSubtasksForTask(taskId: string): Subtask[] {
@@ -244,16 +253,16 @@ export class KanbanView implements OnInit {
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
-    const originalTask = this.storageService.getTaskById(taskId);
-    if (!originalTask) return;
-
-    this.stateHelper.updateOptimistically<Task>(
-      "task",
-      taskId,
-      { status: newStatus },
-      originalTask,
-      todoId
-    );
+    this.dataSyncProvider
+      .update<Task>("tasks", taskId, { status: newStatus }, undefined, todoId)
+      .subscribe({
+        next: (result) => {
+          this.storageService.updateItem("task", taskId, result);
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
   }
 
   navigateToTask(task: Task) {
