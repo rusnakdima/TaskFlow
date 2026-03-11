@@ -1,12 +1,11 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, of, forkJoin } from "rxjs";
+import { Observable, of, forkJoin, catchError } from "rxjs";
 import { tap, switchMap, map } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
-import { Profile } from "@models/profile.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -15,14 +14,14 @@ import { RelationsHelper } from "@helpers/relations.helper";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { JwtTokenService } from "@services/jwt-token.service";
 import { StorageService } from "@services/storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class DataSyncService {
-  private authService = inject(AuthService);
+  private jwtTokenService = inject(JwtTokenService);
   private dataSyncProvider = inject(DataSyncProvider);
   private storageService = inject(StorageService);
 
@@ -32,7 +31,8 @@ export class DataSyncService {
    * Load all application data
    */
   loadAllData(force: boolean = false): Observable<any> {
-    const userId = this.authService.getValueByKey("id") || "";
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const userId = this.jwtTokenService.getUserId(token) || "";
 
     const hasData =
       this.storageService.privateTodos().length > 0 || this.storageService.sharedTodos().length > 0;
@@ -49,12 +49,36 @@ export class DataSyncService {
     if (this.storageService.loading()) return of(null);
 
     this.storageService.setLoading(true);
-    const todoRelations = RelationsHelper.getTodoRelations();
+    // Use relations with user data to load complete todo information
+    const todoRelations = RelationsHelper.getTodoRelationsWithUser();
+    const profileRelations = RelationsHelper.getProfileRelations();
 
-    return this.dataSyncProvider.get<Profile>("profiles", { userId }).pipe(
+    return this.dataSyncProvider.getProfileByUserId(userId, profileRelations).pipe(
       switchMap((profile) => {
-        this.storageService.setProfile(profile);
+        this.storageService.setProfile(profile || null);
 
+        return forkJoin({
+          privateTodos: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { userId, visibility: "private" },
+            { isOwner: true, isPrivate: true, relations: todoRelations }
+          ),
+          teamTodosOwner: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { userId, visibility: "team" },
+            { isOwner: true, isPrivate: false, relations: todoRelations }
+          ),
+          teamTodosAssignee: this.dataSyncProvider.getAll<Todo>(
+            "todos",
+            { assignees: userId, visibility: "team" },
+            { isOwner: false, isPrivate: false, relations: todoRelations }
+          ),
+          categories: this.dataSyncProvider.getAll<Category>("categories", { userId }),
+        });
+      }),
+      catchError((error) => {
+        this.storageService.setProfile(null);
+        // Continue loading other data even if profile fails
         return forkJoin({
           privateTodos: this.dataSyncProvider.getAll<Todo>(
             "todos",
@@ -83,6 +107,8 @@ export class DataSyncService {
         );
         this.storageService.setSharedTodos(Array.from(sharedTodoMap.values()));
 
+        // Categories are loaded both separately and via relations in todos
+        // This ensures categories are available even if todos fail to load
         this.storageService.setCategories(categories);
         this.storageService.setLoading(false);
         this.storageService.setLoaded(true);
@@ -95,10 +121,12 @@ export class DataSyncService {
    * Load team-specific todos
    */
   loadTeamTodos(): Observable<Todo[]> {
-    const userId = this.authService.getValueByKey("id") || "";
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const userId = this.jwtTokenService.getUserId(token) || "";
     const todoRelations = RelationsHelper.getTodoRelations();
+    const profileRelations = RelationsHelper.getProfileRelations();
 
-    return this.dataSyncProvider.get<Profile>("profiles", { userId }).pipe(
+    return this.dataSyncProvider.getProfileByUserId(userId, profileRelations).pipe(
       switchMap((profile) => {
         this.storageService.setProfile(profile);
 

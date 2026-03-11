@@ -9,8 +9,12 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { User } from "@models/user.model";
-import { Response, ResponseStatus } from "@models/response.model";
+import { Response } from "@models/response.model";
 import { Profile } from "@models/profile.model";
+import { Category } from "@models/category.model";
+
+/* helpers */
+import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
 import { AuthService } from "@services/auth.service";
@@ -58,6 +62,7 @@ export class App implements OnInit {
   private dataSyncProvider = inject(DataSyncProvider);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
+  @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
 
   url = signal<string>("");
   showComponents = signal<boolean>(true);
@@ -76,14 +81,11 @@ export class App implements OnInit {
       this.triggerSync();
     });
 
-    this.localWs.getConnectionStatus().subscribe(() => {
-      // WebSocket connection status changed
-    });
+    this.localWs.getConnectionStatus().subscribe(() => {});
 
     const theme = localStorage.getItem("theme") ?? "";
     document.querySelector("html")!.setAttribute("class", theme);
 
-    // Update showComponents based on current route
     this.updateShowComponents();
 
     const token = localStorage.getItem("token") ?? "";
@@ -101,24 +103,19 @@ export class App implements OnInit {
     }
 
     if (token) {
-      this.authService
-        .checkToken<User>(token)
-        .then((response: Response<User>) => {
-          if (response.status == ResponseStatus.SUCCESS) {
-            // Load all data once on app initialization
-            this.loadAllData();
-            // Trigger automatic sync on app open
-            this.triggerSync();
-            // Check user profile after data is loaded
-            this.checkUserProfile();
-          } else {
-            this.notifyService.showNotify(response.status, response.message);
-          }
-        })
-        .catch((err: Response<string>) => {
+      this.authService.checkToken<User>(token).subscribe({
+        next: (user: User) => {
+          this.loadAllData();
+
+          this.triggerSync();
+
+          this.checkUserProfile();
+        },
+        error: (err: Response<string>) => {
           this.notifyService.showError(err.message ?? err.toString());
           this.router.navigate(["/login"]);
-        });
+        },
+      });
     }
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
@@ -137,22 +134,29 @@ export class App implements OnInit {
     this.showComponents.set(!isAuthPage);
   }
 
-  /**
-   * Load all application data once on initialization
-   * Data is cached in StorageService and reused across all views
-   */
   private loadAllData(): void {
     if (this.isDataLoaded) {
-      return; // Prevent duplicate loading
+      return;
     }
     this.isDataLoaded = true;
 
+    const userId = this.authService.getValueByKey("id") || "";
+    const todoRelations = RelationsHelper.getTodoRelationsWithUser();
+
     this.dataSyncService.loadAllData(false).subscribe({
-      next: () => {
-        // Data loaded successfully
-      },
+      next: () => {},
       error: (error) => {
         this.notifyService.showError("Failed to load data. Please refresh the page.");
+      },
+    });
+
+    // Load categories separately to ensure they're available
+    this.dataSyncProvider.getAll<Category>("categories", { userId }).subscribe({
+      next: (categories) => {
+        this.storageService.setCategories(categories);
+      },
+      error: (error) => {
+        console.error("Failed to load categories:", error);
       },
     });
   }
@@ -174,7 +178,6 @@ export class App implements OnInit {
    * Trigger a manual synchronization
    */
   triggerSync(): void {
-    // This is currently handled by DataSyncProvider and WebSocket updates
-    // In the future, this could trigger a full refresh if needed
+    this.headerComponent?.syncAll();
   }
 }

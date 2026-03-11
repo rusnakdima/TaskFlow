@@ -9,7 +9,7 @@ import { Chat, ChatCreate } from "@models/chat.model";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { JwtTokenService } from "@services/jwt-token.service";
 import { StorageService } from "@services/storage.service";
 
 @Injectable({
@@ -17,7 +17,7 @@ import { StorageService } from "@services/storage.service";
 })
 export class ChatService {
   private dataSync = inject(DataSyncProvider);
-  private authService = inject(AuthService);
+  private jwtTokenService = inject(JwtTokenService);
   public storageService = inject(StorageService);
 
   private chatsSignal = signal<Chat[]>([]);
@@ -58,7 +58,8 @@ export class ChatService {
       if (this.chatsSignal().some((c) => c.id === chat.id)) return;
       this.chatsSignal.update((chats) => [...chats, chat]);
     } else {
-      const currentUserId = this.authService.getValueByKey("id");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const currentUserId = this.jwtTokenService.getUserId(token);
       if (chat.userId !== currentUserId) {
         this.unreadCountsSignal.update((counts) => {
           const newMap = new Map(counts);
@@ -112,8 +113,9 @@ export class ChatService {
   }
 
   addMessage(todoId: string, content: string): Observable<Chat> {
-    const currentUserId = this.authService.getValueByKey("id");
-    const username = this.authService.getValueByKey("username") || "User";
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const currentUserId = this.jwtTokenService.getUserId(token) || "";
+    const username = this.jwtTokenService.getValueByKey(token, "username") || "User";
 
     const chatData: ChatCreate = {
       todoId,
@@ -138,7 +140,8 @@ export class ChatService {
   }
 
   markAsRead(todoId: string, ids?: string[]): Observable<Chat[]> {
-    const currentUserId = this.authService.getValueByKey("id");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const currentUserId = this.jwtTokenService.getUserId(token) || "";
     const unreadChats = this.chatsSignal()
       .filter(
         (chat) =>
@@ -171,7 +174,8 @@ export class ChatService {
   }
 
   canDelete(chat: Chat): boolean {
-    const currentUserId = this.authService.getValueByKey("id");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const currentUserId = this.jwtTokenService.getUserId(token);
     const todo = this.storageService.getTodoById(chat.todoId);
     if (todo && todo.userId === currentUserId) return true;
     return chat.userId === currentUserId;

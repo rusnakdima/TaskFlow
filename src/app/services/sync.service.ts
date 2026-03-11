@@ -7,7 +7,7 @@ import { BehaviorSubject, Observable } from "rxjs";
 import { Response, ResponseStatus } from "@models/response.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { JwtTokenService } from "@services/jwt-token.service";
 import { StorageService } from "@services/storage.service";
 import { DataSyncService } from "@services/data-sync.service";
 
@@ -18,7 +18,7 @@ export class SyncService {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
 
   constructor(
-    private authService: AuthService,
+    private jwtTokenService: JwtTokenService,
     private storageService: StorageService,
     private dataSyncService: DataSyncService
   ) {}
@@ -34,7 +34,8 @@ export class SyncService {
   async importToLocal<R>(): Promise<Response<R>> {
     this.setSyncing(true);
     try {
-      const userId = this.authService.getValueByKey("id");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const userId = this.jwtTokenService.getUserId(token);
       const result = await invoke<Response<R>>("importToLocal", { userId });
       if (result.status === ResponseStatus.SUCCESS) {
         this.dataSyncService.loadAllData(true).subscribe();
@@ -48,7 +49,8 @@ export class SyncService {
   async exportToCloud<R>(): Promise<Response<R>> {
     this.setSyncing(true);
     try {
-      const userId = this.authService.getValueByKey("id");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const userId = this.jwtTokenService.getUserId(token);
       const result = await invoke<Response<R>>("exportToCloud", { userId });
       return result;
     } finally {

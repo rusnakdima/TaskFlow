@@ -20,7 +20,6 @@ import { AuthService } from "@services/auth.service";
 import { NotifyService } from "@services/notify.service";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
 import { PasswordReset } from "@models/password-reset-form.model";
 
 @Component({
@@ -105,23 +104,20 @@ export class ChangePasswordView {
         newPassword: this.f["password"].value,
       };
 
-      this.authService
-        .resetPassword<string>(passwordReset)
-        .then((response: Response<string>) => {
-          this.notifyService.showNotify(response.status, response.message);
-          if (response.status == ResponseStatus.SUCCESS) {
-            this.notifyService.showNotify(ResponseStatus.SUCCESS, "Password changed successfully");
+      this.authService.resetPassword<string>(passwordReset).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Password changed successfully");
 
-            setTimeout(() => {
-              sessionStorage.removeItem("resetPasswordEmail");
-              sessionStorage.removeItem("resetPasswordCode");
-              document.location.href = "/login";
-            }, 1500);
-          }
-        })
-        .catch((err: any) => {
+          setTimeout(() => {
+            sessionStorage.removeItem("resetPasswordEmail");
+            sessionStorage.removeItem("resetPasswordCode");
+            document.location.href = "/login";
+          }, 1500);
+        },
+        error: (err: any) => {
           this.notifyService.showError(err.message ?? err.toString());
-        });
+        },
+      });
     }
   }
 }
