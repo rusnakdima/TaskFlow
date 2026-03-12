@@ -9,7 +9,7 @@ import {
 } from "@angular/router";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { AuthService } from "@services/auth/auth.service";
 
 @Injectable({
   providedIn: "root",
