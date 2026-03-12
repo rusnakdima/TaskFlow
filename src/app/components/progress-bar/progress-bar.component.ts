@@ -22,7 +22,7 @@ export interface ProgressBarSegment {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressBarComponent {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
 
   @Input() items: Array<{ status: string }> = [];
   @Input() size: "sm" | "md" | "lg" = "md";

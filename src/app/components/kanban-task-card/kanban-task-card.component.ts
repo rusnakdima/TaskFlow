@@ -22,7 +22,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
   templateUrl: "./kanban-task-card.component.html",
 })
 export class KanbanTaskCardComponent {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
 
   @Input() task!: Task;
   @Input() columnId!: string;

@@ -5,11 +5,11 @@
     <div class="flex items-center gap-2">
       <mat-icon fontIcon="chat" />
       <span class="font-bold">Project Chat</span>
-      @if (chatService.getUnreadCount(todoId) > 0) {
+      @if (getUnreadCount() > 0) {
         <span
           class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white/50"
         >
-          {{ chatService.getUnreadCount(todoId) }}
+          {{ getUnreadCount() }}
         </span>
       }
     </div>
@@ -30,7 +30,7 @@
   </div>
 
   <div #scrollContainer class="flex-1 overflow-y-auto p-4 space-y-4">
-    @for (chat of chatService.chats(); track chat.id) {
+    @for (chat of chatService.getChats(todoId); track chat.id) {
       <div
         [id]="'chat-' + chat.id"
         [attr.data-chat-id]="chat.id"

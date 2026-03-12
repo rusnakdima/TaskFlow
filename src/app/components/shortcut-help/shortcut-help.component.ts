@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-import { ShortcutService } from "@services/shortcut.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 import { Subscription } from "rxjs";
 
 @Component({

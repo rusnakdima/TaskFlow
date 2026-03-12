@@ -30,16 +30,19 @@ import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
-import { NotificationAction } from "@services/notification-center.service";
+import { NotificationAction } from "@services/notifications/notification.service";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { SyncService } from "@services/sync.service";
-import { NotificationCenterService } from "@services/notification-center.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { SyncService } from "@services/data/sync.service";
+import { NotificationService } from "@services/notifications/notification.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
-import { StorageService } from "@services/storage.service";
+import { StorageService } from "@services/core/storage.service";
 import { RelationsHelper } from "@helpers/relations.helper";
+
+/* components */
+import { SyncStatusComponent } from "@components/sync-status/sync-status.component";
 
 interface Breadcrumb {
   label: string;
@@ -50,7 +53,14 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatMenuModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatMenuModule,
+    MatButtonModule,
+    SyncStatusComponent,
+  ],
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
@@ -63,7 +73,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService,
     private syncService: SyncService,
-    private notificationService: NotificationCenterService,
+    private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
     private location: Location
   ) {}
@@ -133,12 +143,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
   getProfile() {
     const relations = RelationsHelper.getProfileRelations();
     this.dataSyncProvider
-      .get<Profile>("profiles", { userId: this.userId() }, { relations })
+      .crud<Profile[]>("getAll", "profiles", { filter: { userId: this.userId() }, relations }, true)
       .subscribe({
-        next: (profile) => {
-          this.profile.set(profile);
+        next: (profiles: Profile[]) => {
+          this.profile.set(profiles && profiles.length > 0 ? profiles[0] : null);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to load profile");
         },
       });
