@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription, firstValueFrom } from "rxjs";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -28,13 +28,11 @@ import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { ShortcutService } from "@services/shortcut.service";
-import { FormValidatorService } from "@services/form-validator.service";
-import { DateValidatorService } from "@services/date-validator.service";
-import { StorageService } from "@services/storage.service";
-import { DataSyncService } from "@services/data-sync.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -45,6 +43,9 @@ import {
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
+import { DateHelper } from "@helpers/date.helper";
+import { FormValidatorHelper } from "@helpers/form-validator.helper";
+import { DateValidatorHelper } from "@helpers/date-validator.helper";
 
 @Component({
   selector: "app-manage-todo",
@@ -67,6 +68,9 @@ import {
   templateUrl: "./manage-todo.view.html",
 })
 export class ManageTodoView implements OnInit, OnDestroy {
+  private formValidator: FormValidatorHelper;
+  private dateValidator: DateValidatorHelper;
+
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -76,10 +80,10 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
     private shortcutService: ShortcutService,
-    private formValidator: FormValidatorService,
-    private dateValidator: DateValidatorService,
     private dataSyncService: DataSyncService
   ) {
+    this.formValidator = new FormValidatorHelper(notifyService);
+    this.dateValidator = new DateValidatorHelper(notifyService);
     this.form = fb.group({
       _id: [""],
       id: [""],
@@ -97,6 +101,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
       createdAt: [""],
       updatedAt: [""],
     });
+
+    this.dateClass = DateHelper.createDateClass(this.form);
   }
 
   userId = signal("");
@@ -110,18 +116,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   private saveSubscription: Subscription | null = null;
 
-  dateClass = (date: Date): MatCalendarCellCssClasses => {
-    const endDateValue = this.form.get("endDate")?.value;
-    if (endDateValue) {
-      const endDate = new Date(endDateValue);
-      return date.getDate() === endDate.getDate() &&
-        date.getMonth() === endDate.getMonth() &&
-        date.getFullYear() === endDate.getFullYear()
-        ? "end-date-marker"
-        : "";
-    }
-    return "";
-  };
+  dateClass!: (date: Date) => MatCalendarCellCssClasses;
 
   priorityOptions = [
     { value: "low", label: "Low", description: "Non-urgent tasks", colorClass: "bg-blue-500" },
@@ -200,8 +195,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     }
 
     // Fallback to fetch if not in storage
-    this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
-      next: (todo) => {
+    this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
+      next: (todo: Todo) => {
         const localDates = convertDatesFromUtcToLocal(todo);
         this.form.patchValue(localDates);
         this.isOwner = todo.userId === this.userId();
@@ -215,7 +210,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
             "You're editing a shared todo. Changes will be sent to the owner."
           );
       },
-      error: (err) => this.notifyService.showError(err.message || "Failed to load todo"),
+      error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
     });
   }
 
@@ -228,17 +223,17 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (todos && todos.length > 0) {
       this.form.controls["order"].setValue(todos.length);
     } else {
-      this.dataSyncProvider.getAll<Todo>("todos", { userId: this.userId() }).subscribe({
-        next: (todos) => this.form.controls["order"].setValue(todos.length),
+      this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId: this.userId() } }, true).subscribe({
+        next: (todos: Todo[]) => this.form.controls["order"].setValue(todos.length),
         error: () => this.notifyService.showError("Failed to get existing todos count"),
       });
     }
   }
 
   async fetchProfiles(): Promise<void> {
-    this.dataSyncProvider.getAll<Profile>("profiles", {}).subscribe({
-      next: (profiles) => this.availableProfiles.set(profiles),
-      error: (err) => this.notifyService.showError(err.message || "Failed to load profiles"),
+    this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: {} }, true).subscribe({
+      next: (profiles: Profile[]) => this.availableProfiles.set(profiles),
+      error: (err: any) => this.notifyService.showError(err.message || "Failed to load profiles"),
     });
   }
 
@@ -281,8 +276,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     if (categories && categories.length > 0) {
       this.availableCategories.set(categories);
     } else {
-      this.dataSyncProvider.getAll<Category>("categories", { userId: this.userId() }).subscribe({
-        next: (cats) => {
+      this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId: this.userId() } }, true).subscribe({
+        next: (cats: Category[]) => {
           this.availableCategories.set(cats);
           this.storageService.setCategories(cats);
         },
@@ -318,32 +313,48 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   addCategory() {
     if (this.newCategoryTitle().trim()) {
+      const title = this.newCategoryTitle().trim();
+
+      this.newCategoryTitle.set("");
+
+      // Sync with backend
       this.dataSyncProvider
-        .create<Category>("categories", {
-          title: this.newCategoryTitle().trim(),
-          userId: this.userId(),
+        .crud<Category>("create", "categories", {
+          data: {
+            title: title,
+            userId: this.userId(),
+          },
         })
         .subscribe({
           next: (result: Category) => {
-            this.newCategoryTitle.set("");
-            this.fetchCategories();
+            this.storageService.addItem("categories", result);
             this.notifyService.showSuccess("Category added successfully");
-            // Manually add to storage
-            this.storageService.addItem("category", result);
           },
-          error: (err) => this.notifyService.showError(err.message || "Failed to add category"),
+          error: (err: any) => {
+            this.notifyService.showError(err.message || "Failed to add category");
+          },
         });
     }
   }
 
   onSubmit() {
-    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) return;
+    console.log("[ManageTodoView] onSubmit triggered");
+    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
+      console.warn("[ManageTodoView] Form validation failed");
+      return;
+    }
     this.isSubmitting.set(true);
-    if (this.isEdit()) this.updateTodo();
-    else this.createTodo();
+    if (this.isEdit()) {
+      console.log("[ManageTodoView] Updating existing todo");
+      this.updateTodo();
+    } else {
+      console.log("[ManageTodoView] Creating new todo");
+      this.createTodo();
+    }
   }
 
   createTodo() {
+    console.log("[ManageTodoView] createTodo started");
     if (this.form.valid) {
       const formValue = this.form.value;
       const normalizedFormValue = normalizeDateFields(formValue);
@@ -365,26 +376,32 @@ export class ManageTodoView implements OnInit, OnDestroy {
         order: formValue.order || 0,
       };
 
-      this.dataSyncProvider.create<Todo>("todos", body, undefined, body.userId).subscribe({
+      console.log('[ManageTodoView] Calling dataSyncProvider.crud("create", "todos")');
+      // Sync with backend
+      this.dataSyncProvider.crud<Todo>("create", "todos", { data: body, parentTodoId: body.userId }).subscribe({
         next: (result: Todo) => {
-          // Manually add to storage
-          this.storageService.addItem("todo", result);
+          console.log("[ManageTodoView] Todo created successfully by backend:", result);
+
+          // ✅ Navigate back AFTER successful creation
           this.isSubmitting.set(false);
           this.notifyService.showSuccess("Todo created successfully");
           this.back();
         },
-        error: (err) => {
+        error: (err: any) => {
+          console.error("[ManageTodoView] Failed to create todo:", err);
           this.isSubmitting.set(false);
           this.notifyService.showError(err.message || "Failed to create todo");
         },
       });
     } else {
+      console.warn("[ManageTodoView] Form is invalid");
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }
   }
 
   async updateTodo() {
+    console.log("[ManageTodoView] updateTodo started");
     if (this.form.valid) {
       const formValue = this.form.value;
       const body = {
@@ -395,41 +412,47 @@ export class ManageTodoView implements OnInit, OnDestroy {
         visibility: formValue.visibility as "private" | "team", // Ensure visibility is included
       };
 
+      console.log("[ManageTodoView] Update todo body:", body);
+
       const newVisibility = formValue.visibility as "private" | "team";
       const visibilityChanged = this.isPrivate !== (newVisibility === "private");
 
       // Determine sync metadata based on visibility and ownership
       const isPrivate = newVisibility === "private";
-      // User is owner if they created the todo (userId matches)
       const isOwner = formValue.userId === this.userId();
       const syncMetadata = { isOwner, isPrivate };
 
-      this.dataSyncProvider.update<Todo>("todos", body.id, body, syncMetadata, body.id).subscribe({
-        next: async (result: Todo) => {
-          // Update storage with visibility change handling
-          // The storage service will handle moving between private/shared lists
-          this.storageService.updateItem("todo", result.id, result);
-
-          if (visibilityChanged) {
-            try {
-              await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
-              // After sync, reload data to ensure consistency
-              this.dataSyncService.loadAllData(true).subscribe();
-            } catch (err) {
-              this.notifyService.showWarning("Todo updated, but sync may not have completed.");
+      console.log('[ManageTodoView] Calling dataSyncProvider.crud("update", "todos")');
+      // Update todo via DataSyncProvider (storage updated automatically)
+      this.dataSyncProvider.crud<Todo>("update", "todos", { id: body.id, data: body, parentTodoId: body.id, ...syncMetadata })
+        .subscribe({
+          next: async (result: Todo) => {
+            console.log("[ManageTodoView] Todo updated successfully:", result);
+            // Handle visibility change if needed
+            if (visibilityChanged) {
+              console.log("[ManageTodoView] Visibility changed, syncing...");
+              try {
+                await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
+                // After sync, reload data to ensure consistency
+                this.dataSyncService.loadAllData(true).subscribe();
+              } catch (err) {
+                console.error("[ManageTodoView] Visibility sync failed:", err);
+                this.notifyService.showWarning("Todo updated, but sync may not have completed.");
+              }
             }
-          }
-          this.isPrivate = newVisibility === "private";
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Todo updated successfully");
-          setTimeout(() => this.back(), 1000);
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to update todo");
-        },
-      });
+            this.isPrivate = newVisibility === "private";
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Todo updated successfully");
+            setTimeout(() => this.back(), 1000);
+          },
+          error: (err) => {
+            console.error("[ManageTodoView] Failed to update todo:", err);
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to update todo");
+          },
+        });
     } else {
+      console.warn("[ManageTodoView] Form is invalid");
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }

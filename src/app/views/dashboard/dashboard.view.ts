@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect, inject } from "@angular/core";
+import { Component, OnInit, signal, effect, inject, computed } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -12,9 +12,9 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
-import { AuthService } from "@services/auth.service";
-import { StorageService } from "@services/storage.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
@@ -40,8 +40,23 @@ interface DisplayTask {
   templateUrl: "./dashboard.view.html",
 })
 export class DashboardView implements OnInit {
-  public baseHelper = inject(BaseItemHelper);
+  public baseHelper = new BaseItemHelper();
   public TaskStatus = TaskStatus;
+
+  // ✅ FIX: Use computed signal from StorageService instead of making API call
+  profile = computed(() => this.storageService.profile());
+
+  totalTasks = signal(0);
+  completedTasks = signal(0);
+  inProgressTasks = signal(0);
+  overdueTasks = signal(0);
+
+  allTasks = signal<DisplayTask[]>([]);
+  filteredTasks = signal<DisplayTask[]>([]);
+
+  recentActivities = signal<{ text: string; status: TaskStatus }[]>([]);
+
+  userId = "";
 
   constructor(
     private authService: AuthService,
@@ -59,34 +74,11 @@ export class DashboardView implements OnInit {
     });
   }
 
-  profile = signal<Profile | null>(null);
-
-  totalTasks = signal(0);
-  completedTasks = signal(0);
-  inProgressTasks = signal(0);
-  overdueTasks = signal(0);
-
-  allTasks = signal<DisplayTask[]>([]);
-  filteredTasks = signal<DisplayTask[]>([]);
-
-  recentActivities = signal<{ text: string; status: TaskStatus }[]>([]);
-
-  userId = "";
-
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
 
-    if (this.userId && this.userId !== "") {
-      this.dataSyncProvider.get<Profile>("profiles", { userId: this.userId }).subscribe({
-        next: (profile) => {
-          this.profile.set(profile);
-          this.storageService.setProfile(profile);
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to load profile");
-        },
-      });
-    }
+    // ✅ FIX: NO API CALL NEEDED - profile already loaded in StorageService by DataSyncService
+    // Just use the computed signal - it will update automatically when data is loaded
   }
 
   processTodosData(todos: Array<Todo>): void {

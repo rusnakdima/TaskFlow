@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnDestroy, OnInit, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal, inject } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -23,16 +23,14 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { PriorityTask, Task, TaskStatus, RepeatInterval } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 
-/* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { ShortcutService } from "@services/shortcut.service";
-import { FormValidatorService } from "@services/form-validator.service";
-import { DateValidatorService } from "@services/date-validator.service";
-import { StorageService } from "@services/storage.service";
-
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
+
+/* services */
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import {
@@ -40,6 +38,9 @@ import {
   convertDatesToUtc,
   convertDatesFromUtcToLocal,
 } from "@helpers/date-conversion.helper";
+import { DateHelper } from "@helpers/date.helper";
+import { FormValidatorHelper } from "@helpers/form-validator.helper";
+import { DateValidatorHelper } from "@helpers/date-validator.helper";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -65,6 +66,9 @@ interface PriorityOption {
   templateUrl: "./manage-task.view.html",
 })
 export class ManageTaskView implements OnInit, OnDestroy {
+  private formValidator: FormValidatorHelper;
+  private dateValidator: DateValidatorHelper;
+
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -73,10 +77,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
     private storageService: StorageService,
-    private shortcutService: ShortcutService,
-    private formValidator: FormValidatorService,
-    private dateValidator: DateValidatorService
+    private shortcutService: ShortcutService
   ) {
+    this.formValidator = new FormValidatorHelper(notifyService);
+    this.dateValidator = new DateValidatorHelper(notifyService);
     this.form = fb.group({
       _id: [""],
       id: [""],
@@ -103,6 +107,8 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.dateValidator.updateEndDateValidation(this.form, startDate);
       }
     });
+
+    this.dateClass = DateHelper.createDateClass(this.form);
   }
 
   todoId = signal("");
@@ -113,26 +119,15 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   private saveSubscription: Subscription | null = null;
 
-  dateClass = (date: Date): MatCalendarCellCssClasses => {
-    const endDateValue = this.form.get("endDate")?.value;
-    if (endDateValue) {
-      const endDate = new Date(endDateValue);
-      return date.getDate() === endDate.getDate() &&
-        date.getMonth() === endDate.getMonth() &&
-        date.getFullYear() === endDate.getFullYear()
-        ? "end-date-marker"
-        : "";
-    }
-    return "";
-  };
+  dateClass!: (date: Date) => MatCalendarCellCssClasses;
 
   projectInfo = signal<Todo | null>(null);
   newSubtaskTitle = signal("");
   availableTasksForDependency = signal<Task[]>([]);
 
   userId = "";
-  isOwner: boolean = true;
-  isPrivate: boolean = true;
+  isOwner = false;
+  isPrivate = true;
 
   priorityOptions: PriorityOption[] = [
     {
@@ -205,8 +200,8 @@ export class ManageTaskView implements OnInit, OnDestroy {
     }
 
     // Fallback to fetch if not in storage
-    this.dataSyncProvider.get<Task>("tasks", { id: taskId }).subscribe({
-      next: (taskData) => {
+    this.dataSyncProvider.crud<Task>("get", "tasks", { filter: { id: taskId } }).subscribe({
+      next: (taskData: Task) => {
         const localDates = convertDatesFromUtcToLocal(taskData);
         this.form.patchValue(localDates);
 
@@ -216,7 +211,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
           this.dateValidator.updateEndDateValidation(this.form, startDate);
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.notifyService.showError(err.message || "Failed to load task");
       },
     });
@@ -237,13 +232,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
     }
 
     // Fallback to fetch if not in storage
-    this.dataSyncProvider.get<Todo>("todos", { id: todoId }).subscribe({
-      next: (todo) => {
+    this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
+      next: (todo: Todo) => {
         this.projectInfo.set(todo);
         this.isOwner = todo.userId === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: (err) => {
+      error: (err: any) => {
         // Error loading project info - already in storage or fetch failed
       },
     });
@@ -281,7 +276,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         const todoId = this.projectInfo()?.id;
         if (!todoId) throw new Error("Project ID not found");
 
-        const tasks = await firstValueFrom(this.dataSyncProvider.getAll<Task>("tasks", { todoId }));
+        const tasks = await firstValueFrom(this.dataSyncProvider.crud<Task[]>("getAll", "tasks", { filter: { todoId } }, true));
         const formValue = this.form.value;
         const normalizedFormValue = normalizeDateFields(formValue);
         const convertedDates = convertDatesToUtc(normalizedFormValue);
@@ -291,20 +286,20 @@ export class ManageTaskView implements OnInit, OnDestroy {
           todoId: todoId,
         };
 
-        this.dataSyncProvider.create<Task>("tasks", body, undefined, todoId).subscribe({
+        // Sync with backend
+        this.dataSyncProvider.crud<Task>("create", "tasks", { data: body, parentTodoId: todoId }).subscribe({
           next: (result: Task) => {
-            // Manually add to storage to ensure it shows up immediately
-            this.storageService.addItem("task", result);
+            // ✅ Navigate back AFTER successful creation
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Task created successfully");
             this.back();
           },
-          error: (err) => {
+          error: (err: any) => {
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to create task");
           },
         });
-      } catch (err) {
+      } catch (err: any) {
         this.isSubmitting.set(false);
         this.notifyService.showError("Failed to get existing tasks count");
       }
@@ -327,19 +322,19 @@ export class ManageTaskView implements OnInit, OnDestroy {
         id: formValue.id, // Include id field for backend validation
       };
 
-      this.dataSyncProvider.update<Task>("tasks", body.id, body, undefined, todoId).subscribe({
-        next: (result: Task) => {
-          // Manually update storage
-          this.storageService.updateItem("task", result.id, result);
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Task updated successfully");
-          this.back();
-        },
-        error: (err) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
+      // Update task via DataSyncProvider (storage updated automatically)
+      this.dataSyncProvider.crud<Task>("update", "tasks", { id: body.id, data: body, parentTodoId: todoId })
+        .subscribe({
+          next: (result: Task) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Task updated successfully");
+            this.back();
+          },
+          error: (err: any) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to update task");
+          },
+        });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");

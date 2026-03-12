@@ -18,10 +18,11 @@ import { FormComponent } from "@components/form/form.component";
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
+import { Profile } from "@models/profile.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
@@ -101,12 +102,12 @@ export class CreateProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider.createProfile(body).subscribe({
+      this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Profile created successfully");
           this.router.navigate([""]);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to create profile");
         },
       });

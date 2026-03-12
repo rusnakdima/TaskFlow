@@ -11,8 +11,8 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { SyncService } from "@services/sync.service";
-import { NotifyService } from "@services/notify.service";
+import { SyncService } from "@services/data/sync.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 @Component({
   selector: "app-sync",

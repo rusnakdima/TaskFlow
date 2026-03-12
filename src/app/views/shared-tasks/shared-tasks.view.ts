@@ -10,16 +10,13 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { Todo } from "@models/todo.model";
 
-/* helpers */
-import { StateHelper } from "@helpers/state.helper";
-
 /* services */
-import { NotifyService } from "@services/notify.service";
-import { AuthService } from "@services/auth.service";
-import { TemplateService } from "@services/template.service";
-import { StorageService } from "@services/storage.service";
-import { DataSyncService } from "@services/data-sync.service";
-import { DragDropOrderService } from "@services/drag-drop-order.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { TemplateService } from "@services/features/template.service";
+import { StorageService } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -40,20 +37,21 @@ export class SharedTasksView implements OnInit {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
   private dataSyncService = inject(DataSyncService);
-  private stateHelper = inject(StateHelper);
   private dragDropService = inject(DragDropOrderService);
 
   userId = signal("");
 
   myProjects = computed(() => {
     const userId = this.userId();
+    // ✅ Only show team projects where user is the owner
     return this.storageService
       .sharedTodos()
-      .filter((todo) => todo.userId === userId && !todo.isDeleted);
+      .filter((todo) => todo.userId === userId && todo.visibility === "team" && !todo.isDeleted);
   });
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
+    // ✅ Only show team projects where user is NOT the owner but is an assignee
     return this.storageService.sharedTodos().filter((todo) => {
       const isNotOwner = todo.userId !== userId;
       const isTeam = todo.visibility === "team";
@@ -94,17 +92,20 @@ export class SharedTasksView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const todoToDelete = this.storageService.getTodoById(todoId);
-      if (todoToDelete) {
-        this.stateHelper.deleteOptimistically("todo", todoId, todoToDelete);
-        this.notifyService.showSuccess("Project deleted successfully");
-      }
+      this.dataSyncProvider.crud("delete", "todos", { id: todoId }).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Project deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete project");
+        },
+      });
     }
   }
 
   onMyProjectsDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.myProjects(), "todo", "todos", undefined, {
+      .handleDrop(event, this.myProjects(), "todos", "todos", undefined, {
         isOwner: true,
         isPrivate: false,
       })
@@ -113,7 +114,7 @@ export class SharedTasksView implements OnInit {
 
   onSharedWithMeDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.sharedWithMe(), "todo", "todos", undefined, {
+      .handleDrop(event, this.sharedWithMe(), "todos", "todos", undefined, {
         isOwner: false,
         isPrivate: false,
       })

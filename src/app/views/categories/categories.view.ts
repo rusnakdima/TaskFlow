@@ -11,9 +11,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { Category } from "@models/category.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { StorageService } from "@services/storage.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* components */
@@ -106,21 +106,11 @@ export class CategoriesView implements OnInit {
         "Are you sure you want to delete this category? This will remove it from all associated todos."
       )
     ) {
-      // Optimistic update - remove from storage immediately
-      const categoryToRemove = this.storageService.getCategoryById(categoryId);
-      if (categoryToRemove) {
-        this.storageService.removeItem("category", categoryId);
-      }
-
-      this.dataSyncProvider.delete("categories", categoryId).subscribe({
+      this.dataSyncProvider.crud("delete", "categories", { id: categoryId }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Category deleted successfully");
         },
         error: (err) => {
-          // Rollback on error
-          if (categoryToRemove) {
-            this.storageService.addItem("category", categoryToRemove);
-          }
           this.notifyService.showError(err.message || "Failed to delete category");
         },
       });

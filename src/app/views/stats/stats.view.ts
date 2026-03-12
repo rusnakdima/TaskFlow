@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -16,23 +16,24 @@ import {
 } from "@models/statistics.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
-import { AuthService } from "@services/auth.service";
-import { StatisticsService } from "@services/statistics.service";
-import { StorageService } from "@services/storage.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+
+/* providers */
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-stats",
   standalone: true,
-  providers: [StatisticsService],
   imports: [CommonModule, RouterModule, MatIconModule],
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
+  private dataSyncProvider = inject(DataSyncProvider);
+
   constructor(
     private authService: AuthService,
-    private notifyService: NotifyService,
-    private statisticsService: StatisticsService
+    private notifyService: NotifyService
   ) {}
 
   selectedTimeRange = signal<string>("week");
@@ -75,14 +76,14 @@ export class StatsView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.statisticsService.getStatistics(userId, this.selectedTimeRange()).subscribe({
-        next: (response) => {
+      this.dataSyncProvider.invokeCommand<StatisticsResponse>("statisticsGet", { userId, timeRange: this.selectedTimeRange() }).subscribe({
+        next: (response: StatisticsResponse) => {
           this.statistics.set(response.statistics);
           this.chartData.set(response.chartData);
           this.achievements.set(response.achievements);
           this.detailedMetrics.set(response.detailedMetrics);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message);
         },
       });
