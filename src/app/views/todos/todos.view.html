@@ -40,9 +40,8 @@
     filterLabel="Status"
     filterGroupName="todo-filter"
     (filterToggle)="toggleFilter()"
-    (filterChange)="onFilterChange($any($event))"
+    (filterChange)="changeFilter($any($event))"
     (searchChange)="onSearchChange($any($event))"
-    (searchResults)="onSearchResults($any($event))"
     (clearFiltersEvent)="clearFilters()"
   />
 
@@ -124,7 +123,7 @@
           [isOwner]="true"
           [isPrivate]="true"
           [highlight]="highlightTodoId() === todo.id"
-          (deleteEvent)="deleteTodoById($any($event))"
+          (deleteTodoEvent)="deleteTodoById($any($event))"
           (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
         />
       }
