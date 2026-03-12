@@ -1,61 +1,24 @@
 /* sys lib */
 use crate::AppState;
-use serde_json::Value;
 use tauri::State;
 
 /* models */
-use crate::models::{
-  profile_model::{ProfileCreateModel, ProfileUpdateModel},
-  response_model::ResponseModel,
-};
+use crate::models::response_model::ResponseModel;
 
+/// Sync profile to cloud MongoDB - call after create/update via manageData
 #[tauri::command]
-pub async fn profileGetAll(
+pub async fn profileSyncToCloud(
   state: State<'_, AppState>,
-  filter: Value,
+  profileId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.profileService.getAll(filter).await
+  state.profileService.syncProfileToCloud(profileId).await
 }
 
+/// Sync all profiles for user to cloud - bulk sync operation
 #[tauri::command]
-pub async fn profileGet(
+pub async fn profileSyncAllForUser(
   state: State<'_, AppState>,
-  filter: Value,
+  userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  // Check if filter is a userId object { userId: "..." } or a profile id string
-  if let Some(obj) = filter.as_object() {
-    if let Some(userId) = obj.get("userId").and_then(|v| v.as_str()) {
-      // Get profile by userId
-      return state.profileService.getByUserId(userId.to_string()).await;
-    }
-  }
-
-  // Otherwise treat as profile id
-  let id = filter.as_str().unwrap_or_default().to_string();
-  state.profileService.get(id).await
-}
-
-#[tauri::command]
-pub async fn profileCreate(
-  state: State<'_, AppState>,
-  data: ProfileCreateModel,
-) -> Result<ResponseModel, ResponseModel> {
-  state.profileService.create(data).await
-}
-
-#[tauri::command]
-pub async fn profileUpdate(
-  state: State<'_, AppState>,
-  _id: String,
-  data: ProfileUpdateModel,
-) -> Result<ResponseModel, ResponseModel> {
-  state.profileService.update(data).await
-}
-
-#[tauri::command]
-pub async fn profileDelete(
-  state: State<'_, AppState>,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.profileService.delete(id).await
+  state.profileService.syncAllProfilesForUser(userId).await
 }
