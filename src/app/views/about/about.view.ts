@@ -14,8 +14,8 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { Author } from "@models/author.model";
 
 /* services */
-import { AboutService } from "@services/about.service";
-import { NotifyService } from "@services/notify.service";
+import { AboutService } from "@services/features/about.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 @Component({
   selector: "app-about",

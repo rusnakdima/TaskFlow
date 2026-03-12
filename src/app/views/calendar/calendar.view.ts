@@ -13,16 +13,22 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
-import { AuthService } from "@services/auth.service";
-import { StorageService } from "@services/storage.service";
-import { CalendarGeneratorService, CalendarDay } from "@services/calendar-generator.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { StorageService } from "@services/core/storage.service";
+
+/* helpers */
 import {
   CalendarEvent,
+  CalendarDay,
   getEventColor,
   getCurrentTitle,
   getTaskEventTitle,
-} from "@services/calendar-helpers.service";
+  generateCalendarDays,
+  generateWeekDays,
+  generateDayView,
+  getWeeksForMobile,
+} from "@helpers/calendar.helper";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -37,7 +43,6 @@ export class CalendarView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private calendarGenerator = inject(CalendarGeneratorService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
 
@@ -146,25 +151,17 @@ export class CalendarView implements OnInit {
   }
 
   generateCalendarDays(): void {
-    const days = this.calendarGenerator.generateCalendarDays(
-      this.currentMonth(),
-      this.selectedDate(),
-      this.events()
-    );
+    const days = generateCalendarDays(this.currentMonth(), this.selectedDate(), this.events());
     this.calendarDays.set(days);
   }
 
   generateWeekDays(): void {
-    const days = this.calendarGenerator.generateWeekDays(
-      this.selectedDate(),
-      this.currentMonth(),
-      this.events()
-    );
+    const days = generateWeekDays(this.selectedDate(), this.currentMonth(), this.events());
     this.weekDays.set(days);
   }
 
   generateDayView(): void {
-    this.dayEvents.set(this.calendarGenerator.generateDayView(this.selectedDate(), this.events()));
+    this.dayEvents.set(generateDayView(this.selectedDate(), this.events()));
   }
 
   selectDate(date: Date): void {
@@ -268,7 +265,7 @@ export class CalendarView implements OnInit {
   }
 
   getWeeksForMobile(): CalendarDay[][] {
-    return this.calendarGenerator.getWeeksForMobile(this.calendarDays());
+    return getWeeksForMobile(this.calendarDays());
   }
 
   getDayName(date: Date): string {

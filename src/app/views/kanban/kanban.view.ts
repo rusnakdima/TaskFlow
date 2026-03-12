@@ -1,9 +1,10 @@
 /* sys lib */
-import { Component, OnInit, signal, effect, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, effect, computed, inject, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, ActivatedRoute, RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -19,12 +20,12 @@ import { Subtask } from "@models/subtask.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { AuthService } from "@services/auth/auth.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
-import { LocalWebSocketService } from "@services/local-websocket.service";
-import { NotifyService } from "@services/notify.service";
-import { KanbanDragDropService } from "@services/kanban-drag-drop.service";
-import { StorageService } from "@services/storage.service";
+import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
+import { StorageService } from "@services/core/storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* components */
@@ -48,7 +49,7 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
   ],
   templateUrl: "./kanban.view.html",
 })
-export class KanbanView implements OnInit {
+export class KanbanView implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
@@ -56,8 +57,10 @@ export class KanbanView implements OnInit {
   private localWs = inject(LocalWebSocketService);
   private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
   private storageService = inject(StorageService);
+
+  private routeSub?: Subscription;
 
   TaskStatus = TaskStatus;
 
@@ -123,11 +126,15 @@ export class KanbanView implements OnInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     // Handle projectId query param for deep linking
-    this.route.queryParams.subscribe((params) => {
+    this.routeSub = this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
   }
 
   toggleExpandTask(task: Task) {
@@ -175,12 +182,12 @@ export class KanbanView implements OnInit {
     if (!todoId) return;
 
     this.dataSyncProvider
-      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, undefined, todoId)
+      .crud<Subtask>("update", "subtasks", { id: subtask.id, data: { status: newStatus }, parentTodoId: todoId })
       .subscribe({
-        next: (result) => {
-          this.storageService.updateItem("subtask", subtask.id, result);
+        next: () => {
+          // Storage updated automatically by DataSyncProvider
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update subtask");
         },
       });
@@ -254,12 +261,12 @@ export class KanbanView implements OnInit {
     if (!todoId) return;
 
     this.dataSyncProvider
-      .update<Task>("tasks", taskId, { status: newStatus }, undefined, todoId)
+      .crud<Task>("update", "tasks", { id: taskId, data: { status: newStatus }, parentTodoId: todoId })
       .subscribe({
-        next: (result) => {
-          this.storageService.updateItem("task", taskId, result);
+        next: () => {
+          // Storage updated automatically by DataSyncProvider
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update task");
         },
       });

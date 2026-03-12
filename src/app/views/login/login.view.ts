@@ -19,8 +19,8 @@ import { LoginForm } from "@models/login-form.model";
 import { CheckboxField, TypeField } from "@models/form-field.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";

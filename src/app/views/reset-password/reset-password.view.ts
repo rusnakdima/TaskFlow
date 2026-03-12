@@ -16,8 +16,8 @@ import {
 import { Common } from "@helpers/common.helper";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 @Component({
   selector: "app-reset-password",

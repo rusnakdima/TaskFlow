@@ -17,13 +17,15 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { AdminStorageService } from "@services/admin-storage.service";
-import { NotifyService } from "@services/notify.service";
-import { FilterService } from "@services/filter.service";
-import { SortService } from "@services/sort.service";
-import { BulkActionService } from "@services/bulk-action.service";
-import { AdminService } from "@services/admin.service";
-import { DataSyncService } from "@services/data-sync.service";
+import { AdminStorageService } from "@services/core/admin-storage.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AdminService } from "@services/data/admin.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+
+/* helpers */
+import { FilterHelper } from "@helpers/filter.helper";
+import { SortHelper } from "@helpers/sort.helper";
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
@@ -61,15 +63,20 @@ interface AdminData {
   templateUrl: "./admin.view.html",
 })
 export class AdminView implements OnInit {
+  private filterService: FilterHelper;
+  private sortService: SortHelper;
+  private bulkActionService: BulkActionHelper;
+
   constructor(
     private adminStorageService: AdminStorageService,
     private notifyService: NotifyService,
-    private filterService: FilterService,
-    private sortService: SortService,
-    private bulkActionService: BulkActionService,
     private adminService: AdminService,
     private dataSyncService: DataSyncService
-  ) {}
+  ) {
+    this.filterService = new FilterHelper();
+    this.sortService = new SortHelper();
+    this.bulkActionService = new BulkActionHelper();
+  }
 
   adminData = signal<AdminData>({});
   selectedType = signal<string>("todos");

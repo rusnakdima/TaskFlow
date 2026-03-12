@@ -1,10 +1,18 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, inject, computed } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  computed,
+  OnDestroy,
+  HostListener,
+} from "@angular/core";
 import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
-import { HostListener } from "@angular/core";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -14,18 +22,23 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { FilterService } from "@services/filter.service";
-import { SortService } from "@services/sort.service";
-import { StorageService } from "@services/storage.service";
-import { TemplateService } from "@services/template.service";
-import { TodosBlueprintService } from "@services/todos-blueprint.service";
-import { DragDropOrderService } from "@services/drag-drop-order.service";
-import { DataSyncService } from "@services/data-sync.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { StorageService } from "@services/core/storage.service";
+import { TemplateService } from "@services/features/template.service";
+import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
+import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { DataSyncService } from "@services/data/data-sync.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
+
+/* bases */
+import { FilterableViewBase } from "@bases/filterable-view.base";
+
+/* helpers */
+import { FilterHelper } from "@helpers/filter.helper";
+import { SortHelper } from "@helpers/sort.helper";
 
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
@@ -46,10 +59,8 @@ import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-
   ],
   templateUrl: "./todos.view.html",
 })
-export class TodosView implements OnInit {
+export class TodosView extends FilterableViewBase implements OnInit {
   // Services
-  private filterService = inject(FilterService);
-  private sortService = inject(SortService);
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   private dragDropService = inject(DragDropOrderService);
@@ -59,14 +70,20 @@ export class TodosView implements OnInit {
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
   private dataSyncService = inject(DataSyncService);
+  private filterService: FilterHelper;
+  private sortService: SortHelper;
+
+  constructor() {
+    super();
+    this.filterService = new FilterHelper();
+    this.sortService = new SortHelper();
+  }
 
   // State
   todos = this.storageService.todos;
-  activeFilter = signal("all");
-  showFilter = signal(false);
-  searchQuery = signal("");
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
+  private routeSub?: Subscription;
 
   // Computed signals
   listTodos = computed(() => {
@@ -124,7 +141,7 @@ export class TodosView implements OnInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     // Handle highlight from query params
-    this.route.queryParams.subscribe((queryParams: any) => {
+    this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.highlightTodoId) {
         this.highlightTodoId.set(queryParams.highlightTodoId);
         setTimeout(() => {
@@ -153,6 +170,10 @@ export class TodosView implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
+
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.ctrlKey && event.key === "f") {
@@ -163,27 +184,6 @@ export class TodosView implements OnInit {
       event.preventDefault();
       this.dataSyncService.loadAllData(true).subscribe();
     }
-  }
-
-  toggleFilter() {
-    this.showFilter.update((val) => !val);
-  }
-
-  onFilterChange(filter: string) {
-    this.activeFilter.set(filter);
-  }
-
-  onSearchChange(query: string) {
-    this.searchQuery.set(query);
-  }
-
-  onSearchResults(results: any[]) {
-    // Reactive via listTodos
-  }
-
-  clearFilters() {
-    this.activeFilter.set("all");
-    this.searchQuery.set("");
   }
 
   getFilteredCount(filter: string): number {
@@ -210,9 +210,8 @@ export class TodosView implements OnInit {
 
   deleteTodoById(todoId: string): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.dataSyncProvider.delete("todos", todoId).subscribe({
+      this.dataSyncProvider.crud("delete", "todos", { id: todoId }).subscribe({
         next: () => {
-          this.storageService.removeItem("todo", todoId);
           this.notifyService.showSuccess("Todo deleted successfully");
         },
         error: (err) => {
@@ -224,7 +223,7 @@ export class TodosView implements OnInit {
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.listTodos(), "todo", "todos", undefined, {
+      .handleDrop(event, this.listTodos(), "todos", "todos", undefined, {
         isOwner: true,
         isPrivate: true,
       })

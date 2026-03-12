@@ -16,8 +16,8 @@ import {
 import { MatIconModule } from "@angular/material/icon";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
 import { PasswordReset } from "@models/password-reset-form.model";
