@@ -27,17 +27,17 @@ use routes::{
     exportToCloud, getAllDataForAdmin, importToLocal, manageData, permanentlyDeleteRecord,
     toggleDeleteStatus,
   },
-  profile_route::{profileCreate, profileDelete, profileGet, profileGetAll, profileUpdate},
+  profile_route::{profileSyncToCloud, profileSyncAllForUser},
   statistics_route::statisticsGet,
 };
 
 /* services */
 use services::{
   about_service::AboutService, activity_monitor_service::ActivityMonitorService,
-  auth_service::AuthService, cascade_service::CascadeService, crud_service::CrudService,
+  auth_service::AuthService, cascade::CascadeService, crud_service::CrudService,
   entity_resolution_service::EntityResolutionService, live_sync_service::LiveSyncService,
   manage_db_service::ManageDbService, profile_service::ProfileService,
-  statistics_service::StatisticsService, websocket_server_service::WebSocketServerService,
+  statistics_service::StatisticsService, websocket::WebSocketServerService,
 };
 
 pub struct AppState {
@@ -160,11 +160,8 @@ pub fn run() {
       manageData,
       permanentlyDeleteRecord,
       toggleDeleteStatus,
-      profileCreate,
-      profileDelete,
-      profileGet,
-      profileGetAll,
-      profileUpdate,
+      profileSyncToCloud,
+      profileSyncAllForUser,
       statisticsGet
     ])
     .run(tauri::generate_context!())
