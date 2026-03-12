@@ -1,5 +1,4 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
@@ -12,9 +11,6 @@ import { formatDateShort } from "./date-conversion.helper";
  * Base helper for item components (Task, Subtask, Todo)
  * Provides common methods for status/priority handling
  */
-@Injectable({
-  providedIn: "root",
-})
 export class BaseItemHelper {
   /**
    * Get status color class
@@ -79,6 +75,31 @@ export class BaseItemHelper {
   getInitials(name: string): string {
     if (!name) return "?";
     return name.substring(0, 1).toUpperCase();
+  }
+
+  /**
+   * Get the next status in the cycle: Pending -> Completed -> Skipped -> Failed -> Pending
+   */
+  getNextStatus(currentStatus: TaskStatus): TaskStatus {
+    const statusCycle: TaskStatus[] = [
+      TaskStatus.PENDING,
+      TaskStatus.COMPLETED,
+      TaskStatus.SKIPPED,
+      TaskStatus.FAILED,
+    ];
+
+    const currentIndex = statusCycle.indexOf(currentStatus);
+    if (currentIndex === -1 || currentIndex === statusCycle.length - 1) {
+      return statusCycle[0];
+    }
+    return statusCycle[currentIndex + 1];
+  }
+
+  /**
+   * Alias for getNextStatus
+   */
+  cycleStatus(currentStatus: TaskStatus): TaskStatus {
+    return this.getNextStatus(currentStatus);
   }
 
   /**
