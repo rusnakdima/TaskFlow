@@ -9,16 +9,14 @@ use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 /* services */
 use crate::services::{
-  admin_manager::AdminManager, cascade_service::CascadeService,
-  entity_resolution_service::EntityResolutionService, export_manager::ExportManager,
-  sync_manager::SyncManager,
+  admin_manager::AdminManager, cascade::CascadeService,
+  entity_resolution_service::EntityResolutionService,
 };
 
 /// ManageDbService - Facade for database management operations
-/// Delegates to specialized managers: SyncManager, ExportManager, AdminManager
 pub struct ManageDbService {
-  pub syncManager: SyncManager,
-  pub exportManager: ExportManager,
+  pub jsonProvider: JsonProvider,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
   pub adminManager: Option<AdminManager>,
 }
 
@@ -29,8 +27,6 @@ impl ManageDbService {
     cascadeService: CascadeService,
     entityResolution: Arc<EntityResolutionService>,
   ) -> Self {
-    let syncManager = SyncManager::new(jsonProvider.clone(), mongodbProvider.clone());
-    let exportManager = ExportManager::new(jsonProvider.clone(), mongodbProvider.clone());
     let adminManager = mongodbProvider.clone().map(|mp| {
       AdminManager::new(
         jsonProvider.clone(),
@@ -41,20 +37,62 @@ impl ManageDbService {
     });
 
     Self {
-      syncManager,
-      exportManager,
+      jsonProvider,
+      mongodbProvider,
       adminManager,
     }
   }
 
-  /// Import data from cloud to local
+  /// Import data from cloud MongoDB to local JSON
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    self.syncManager.importToLocal(userId).await
+    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
+      status: ResponseStatus::Error,
+      message: "MongoDB not available".to_string(),
+      data: DataValue::String("".to_string()),
+    })?;
+
+    match mongodbProvider
+      .mongodbSync
+      .importToLocal(userId, &self.jsonProvider)
+      .await
+    {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "Data imported to local JSON DB successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error importing data: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
-  /// Export data from local to cloud
+  /// Export data from local JSON to cloud MongoDB
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    self.exportManager.exportToCloud(userId).await
+    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
+      status: ResponseStatus::Error,
+      message: "MongoDB not available".to_string(),
+      data: DataValue::String("".to_string()),
+    })?;
+
+    match mongodbProvider
+      .mongodbSync
+      .exportToCloud(userId, &self.jsonProvider)
+      .await
+    {
+      Ok(_) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "Data exported to cloud MongoDB successfully".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error exporting data: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
   /// Get all data for admin view

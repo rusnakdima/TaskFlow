@@ -14,7 +14,7 @@ use crate::helpers::timestamp_helper;
 
 /* services */
 use crate::services::admin::relation_definitions;
-use crate::services::cascade_service::CascadeService;
+use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */
