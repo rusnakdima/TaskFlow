@@ -1,20 +1,43 @@
 <div class="flex flex-col gap-6">
-  @if (fromKanban()) {
-    <!-- Back button -->
-    <div class="flex items-center">
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <mat-spinner diameter="40" class="mx-auto" />
+      <span class="ml-4 textMuted">Loading subtasks...</span>
+    </div>
+  }
+
+  @if (!loading() && !task()) {
+    <div
+      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+    >
+      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="error_outline" />
+      <h3 class="text-xl font-semibold textNormal mb-2">Unable to load task</h3>
+      <p class="textMuted">The requested task could not be found</p>
       <button
-        class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-        [routerLink]="['/kanban']"
-        [queryParams]="{ projectId: todoId() }"
-        title="Back to Kanban"
+        class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        routerLink="/todos"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="arrow_back" />
-        <span class="font-medium">Back to Kanban</span>
+        Back to Todos
       </button>
     </div>
   }
 
-  @if (task()) {
+  @if (!loading() && task()) {
+    @if (fromKanban()) {
+      <!-- Back button -->
+      <div class="flex items-center">
+        <button
+          class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+          [routerLink]="['/kanban']"
+          [queryParams]="{ projectId: todoId() }"
+          title="Back to Kanban"
+        >
+          <mat-icon class="w-5! h-5! text-xl!" fontIcon="arrow_back" />
+          <span class="font-medium">Back to Kanban</span>
+        </button>
+      </div>
+    }
+
     <app-task-information
       [task]="task()!"
       [todoId]="todoId()"
@@ -23,81 +46,80 @@
       [isOwner]="isOwner"
       [isPrivate]="isPrivate"
     />
-  }
 
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <div>
-      <h2 class="text-xl font-bold textNormal">Subtasks</h2>
-      <p class="textMuted">Break down the task into specific action items</p>
-    </div>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-xl font-bold textNormal">Subtasks</h2>
+        <p class="textMuted">Break down the task into specific action items</p>
+      </div>
 
-    <div class="flex gap-2">
-      <button
-        class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
-        (click)="toggleFilter()"
-      >
-        <mat-icon
-          class="w-5! h-5! text-xl!"
-          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
-        />
-        Filter
-      </button>
-      <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_subtask">
-        <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
-        New Subtask
-      </button>
-    </div>
-  </div>
-
-  <!-- Filter Sidebar -->
-  <app-filter-bar
-    [filterOptions]="filterOptions"
-    [activeFilter]="activeFilter()"
-    [showFilter]="showFilter()"
-    [searchTempArray]="taskSubtasks()"
-    [searchByFields]="['title']"
-    filterLabel="Status"
-    filterGroupName="subtask-filter"
-    (filterToggle)="toggleFilter()"
-    (filterChange)="changeFilter($any($event))"
-    (searchChange)="onSearchChange($any($event))"
-    (searchResults)="onSearchResults($any($event))"
-    (applyFiltersEvent)="applyFilter()"
-    (clearFiltersEvent)="clearFilters()"
-  />
-
-  @if (listSubtasks().length === 0) {
-    <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
-    >
-      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="check_box" />
-      <h3 class="text-xl font-semibold textNormal mb-2">No subtasks found</h3>
-    </div>
-  } @else {
-    <div
-      class="flex flex-col space-y-2"
-      cdkDropList
-      cdkDropListOrientation="mixed"
-      (cdkDropListDropped)="onSubtaskDrop($event)"
-    >
-      @for (subtask of listSubtasks(); track subtask.id) {
-        <app-subtask
-          cdkDrag
-          [subtask]="subtask"
-          [index]="$index"
-          [isOwner]="isOwner"
-          [isPrivate]="isPrivate"
-          [highlight]="highlightSubtask() === subtask.id"
-          [highlightComment]="highlightComment()"
-          [openComments]="openComments()"
-          (deleteSubtaskEvent)="deleteSubtask($event)"
-          (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
-          (updateSubtaskEvent)="updateSubtaskInline($event)"
+      <div class="flex gap-2">
+        <button
+          class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          (click)="toggleFilter()"
         >
-          <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-lg h-16 w-full"></div>
-        </app-subtask>
-      }
+          <mat-icon
+            class="w-5! h-5! text-xl!"
+            [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
+          />
+          Filter
+        </button>
+        <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_subtask">
+          <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
+          New Subtask
+        </button>
+      </div>
     </div>
+
+    <!-- Filter Sidebar -->
+    <app-filter-bar
+      [filterOptions]="filterOptions"
+      [activeFilter]="activeFilter()"
+      [showFilter]="showFilter()"
+      [searchTempArray]="taskSubtasks()"
+      [searchByFields]="['title']"
+      filterLabel="Status"
+      filterGroupName="subtask-filter"
+      (filterToggle)="toggleFilter()"
+      (filterChange)="changeFilter($any($event))"
+      (searchChange)="onSearchChange($any($event))"
+      (clearFiltersEvent)="clearFilters()"
+    />
+
+    @if (listSubtasks().length === 0) {
+      <div
+        class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+      >
+        <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="check_box" />
+        <h3 class="text-xl font-semibold textNormal mb-2">No subtasks found</h3>
+      </div>
+    } @else {
+      <div
+        class="flex flex-col space-y-2"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        (cdkDropListDropped)="onSubtaskDrop($event)"
+      >
+        @for (subtask of listSubtasks(); track subtask.id) {
+          <app-subtask
+            cdkDrag
+            [subtask]="subtask"
+            [todoId]="todoId()"
+            [index]="$index"
+            [isOwner]="isOwner"
+            [isPrivate]="isPrivate"
+            [highlight]="highlightSubtask() === subtask.id"
+            [highlightComment]="highlightComment()"
+            [openComments]="openComments()"
+            (deleteSubtaskEvent)="deleteSubtask($event)"
+            (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
+            (updateSubtaskEvent)="updateSubtaskInline($event)"
+          >
+            <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-lg h-16 w-full"></div>
+          </app-subtask>
+        }
+      </div>
+    }
   }
 </div>
 
