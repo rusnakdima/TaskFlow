@@ -12,7 +12,7 @@ import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
 import { DataSyncProvider } from "@providers/data-sync.provider";
-import { StorageService } from "@services/storage.service";
+import { StorageService } from "@services/core/storage.service";
 
 @Injectable({
   providedIn: "root",
@@ -46,21 +46,23 @@ export class MainResolver implements Resolve<any> {
         }
 
         // If not in storage, fetch from backend
-        const taskObservable = this.dataSyncProvider.get<Task>(
-          "tasks",
-          { id: taskId },
-          { isOwner, isPrivate }
-        );
+        const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", { filter: { id: taskId }, isOwner, isPrivate });
 
-        const task = await firstValueFrom(taskObservable);
+        const task: Task = await firstValueFrom(taskObservable);
 
-        const todoObservable = this.dataSyncProvider.get<Todo>(
-          "todos",
-          { id: todoId },
-          { isOwner, isPrivate, relations: RelationsHelper.getTodoRelations() }
-        );
+        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelations() });
 
-        const todo = await firstValueFrom(todoObservable);
+        const todo: Todo = await firstValueFrom(todoObservable);
+
+        // Store in storage if fetched successfully
+        if (todo && todo.id) {
+          const existingTodo = this.storageService.getTodoById(todoId);
+          if (existingTodo) {
+            this.storageService.updateItem("todos", todoId, todo);
+          } else {
+            this.storageService.addItem("todos", todo);
+          }
+        }
 
         return { task, todo };
       } else if (paramsMap.get("todoId")) {
@@ -69,18 +71,27 @@ export class MainResolver implements Resolve<any> {
         // First, try to get data from storage (already loaded)
         const todoFromStorage = this.storageService.getTodoById(todoId);
 
+        // Use storage if todo exists (even if tasks don't have complete relations)
+        // The view can work with partial data and fetch missing data if needed
         if (todoFromStorage) {
           return todoFromStorage;
         }
 
         // If not in storage, fetch from backend
-        const todoObservable = this.dataSyncProvider.get<Todo>(
-          "todos",
-          { id: todoId },
-          { isOwner, isPrivate, relations: RelationsHelper.getTodoRelations() }
-        );
+        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelationsWithUser() });
 
-        const todo = await firstValueFrom(todoObservable);
+        const todo: Todo = await firstValueFrom(todoObservable);
+
+        // Store in storage if fetched successfully
+        if (todo && todo.id) {
+          const existingTodo = this.storageService.getTodoById(todoId);
+          if (existingTodo) {
+            this.storageService.updateItem("todos", todoId, todo);
+          } else {
+            this.storageService.addItem("todos", todo);
+          }
+        }
+
         return todo;
       } else {
         return "";
