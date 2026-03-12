@@ -9,4 +9,5 @@ export interface Comment {
   taskId?: string;
   subtaskId?: string;
   readBy: string[];
+  isDeleted?: boolean;
 }
