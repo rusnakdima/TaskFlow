@@ -10,11 +10,15 @@ use crate::errors::ApiResult;
 /* models */
 use crate::models::table_model::validateModel;
 
+/// BaseRepository - Generic repository with automatic model validation
+/// Currently unused but kept for future refactoring opportunities
+#[allow(dead_code)]
 pub struct BaseRepository<P: CrudProvider> {
   pub provider: P,
   pub tableName: String,
 }
 
+#[allow(dead_code)]
 impl<P: CrudProvider> BaseRepository<P> {
   pub fn new(provider: P, tableName: String) -> Self {
     Self {
