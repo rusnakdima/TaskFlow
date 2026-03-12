@@ -97,20 +97,35 @@ impl From<TodoCreateModel> for TodoModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TodoUpdateModel {
+  #[serde(default)]
   pub _id: Option<ObjectId>,
-  pub id: String,
+  #[serde(default)]
+  pub id: Option<String>,
+  #[serde(default)]
   pub userId: Option<String>,
+  #[serde(default)]
   pub title: Option<String>,
+  #[serde(default)]
   pub description: Option<String>,
+  #[serde(default)]
   pub startDate: Option<String>,
+  #[serde(default)]
   pub endDate: Option<String>,
+  #[serde(default)]
   pub categories: Option<Vec<String>>,
+  #[serde(default)]
   pub assignees: Option<Vec<String>>,
+  #[serde(default)]
   pub visibility: Option<String>,
+  #[serde(default)]
   pub priority: Option<String>,
+  #[serde(default)]
   pub order: Option<i32>,
+  #[serde(default)]
   pub isDeleted: Option<bool>,
+  #[serde(default)]
   pub createdAt: Option<String>,
+  #[serde(default)]
   pub updatedAt: Option<String>,
 }
 

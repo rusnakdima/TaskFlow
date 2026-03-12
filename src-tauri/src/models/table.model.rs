@@ -5,12 +5,14 @@ use serde_json::Value;
 use crate::models::{
   category_model::{CategoryCreateModel, CategoryModel, CategoryUpdateModel},
   chat_model::{ChatCreateModel, ChatModel, ChatUpdateModel},
+  comment_model::{CommentCreateModel, CommentModel, CommentUpdateModel},
   daily_activity_model::{DailyActivityCreateModel, DailyActivityModel},
   profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
   task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
   user_model::{UserCreateModel, UserModel, UserUpdateModel},
+  traits::Validatable,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -23,6 +25,7 @@ pub enum TableModelType {
   Profile,
   DailyActivity,
   Chat,
+  Comment,
 }
 
 pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
@@ -35,8 +38,9 @@ pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
     "profiles" => Ok(TableModelType::Profile),
     "daily_activities" => Ok(TableModelType::DailyActivity),
     "chats" => Ok(TableModelType::Chat),
+    "comments" => Ok(TableModelType::Comment),
     _ => Err(format!(
-      "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities, chats",
+      "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities, chats, comments",
       tableName
     )),
   }
@@ -163,6 +167,21 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
           .map_err(|e| format!("Failed to serialize daily activity model: {}", e))
       } else {
         // DailyActivity update - just return data as-is
+        Ok(data.clone())
+      }
+    }
+    TableModelType::Comment => {
+      if isCreate {
+        let createModel: CommentCreateModel = serde_json::from_value(data.clone())
+          .map_err(|e| format!("Invalid comment data: {}", e))?;
+        createModel.validate()?;
+        let model: CommentModel = createModel.into();
+        serde_json::to_value(&model)
+          .map_err(|e| format!("Failed to serialize comment model: {}", e))
+      } else {
+        let updateModel: CommentUpdateModel = serde_json::from_value(data.clone())
+          .map_err(|e| format!("Invalid comment update data: {}", e))?;
+        updateModel.validate()?;
         Ok(data.clone())
       }
     }

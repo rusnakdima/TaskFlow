@@ -72,18 +72,27 @@ impl From<UserCreateModel> for UserModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserUpdateModel {
+  #[serde(default)]
   pub _id: Option<ObjectId>,
-  pub id: String,
+  #[serde(default)]
+  pub id: Option<String>,
+  #[serde(default)]
   pub email: Option<String>,
+  #[serde(default)]
   pub username: Option<String>,
+  #[serde(default)]
   pub password: Option<String>,
+  #[serde(default)]
   pub role: Option<String>,
   #[serde(default)]
   pub temporaryCode: Option<String>,
   #[serde(default)]
   pub codeExpiresAt: Option<String>,
+  #[serde(default)]
   pub profileId: Option<String>,
+  #[serde(default)]
   pub createdAt: Option<String>,
+  #[serde(default)]
   pub updatedAt: Option<String>,
 }
 
@@ -110,7 +119,7 @@ impl From<UserUpdateModel> for UserModel {
 
     UserModel {
       _id: value._id.unwrap_or_else(ObjectId::new),
-      id: value.id,
+      id: value.id.unwrap_or_default(),
       email: value.email.unwrap_or_default(),
       username: value.username.unwrap_or_default(),
       password: value.password.unwrap_or_default(),
