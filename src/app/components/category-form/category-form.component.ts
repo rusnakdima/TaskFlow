@@ -19,9 +19,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { Category } from "@models/category.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
-import { AuthService } from "@services/auth.service";
-import { StorageService } from "@services/storage.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { AuthService } from "@services/auth/auth.service";
+import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
@@ -106,16 +106,14 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
     };
 
     this.dataSyncProvider
-      .create<Category>("categories", categoryData)
+      .crud<Category>("create", "categories", { data: categoryData })
       .subscribe({
-        next: (createdCategory) => {
-          // Update cache
-          this.storageService.addItem("category", createdCategory);
+        next: (createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
           this.closeModal();
           this.saved.emit();
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to create category");
         },
       })
@@ -133,16 +131,14 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
     };
 
     this.dataSyncProvider
-      .update<Category>("categories", this.editingCategory.id, updatedCategory)
+      .crud<Category>("update", "categories", { id: this.editingCategory.id, data: updatedCategory })
       .subscribe({
         next: () => {
-          // Update cache
-          this.storageService.updateItem("category", this.editingCategory!.id, updatedCategory);
           this.notifyService.showSuccess("Category updated successfully");
           this.closeModal();
           this.saved.emit();
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update category");
         },
       })

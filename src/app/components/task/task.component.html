@@ -211,7 +211,7 @@
 
         @if (showComments()) {
           <app-comments
-            [comments]="task.comments || []"
+            [comments]="getActiveComments(task.comments)"
             [taskId]="task.id"
             [isOwner]="isOwner"
             [isPrivate]="isPrivate"
@@ -303,8 +303,10 @@
                   class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
                 ></div>
               }
-              @if (task.comments && task.comments.length > 0) {
-                <span class="text-[10px] font-bold">{{ task.comments.length }}</span>
+              @if (task.comments && getActiveComments(task.comments).length > 0) {
+                <span class="text-[10px] font-bold">{{
+                  getActiveComments(task.comments).length
+                }}</span>
               }
             </div>
           </button>

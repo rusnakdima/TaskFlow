@@ -150,8 +150,10 @@
                 class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
               ></div>
             }
-            @if (subtask.comments && subtask.comments.length > 0) {
-              <span class="text-[10px] font-bold">{{ subtask.comments.length }}</span>
+            @if (subtask.comments && getActiveComments(subtask.comments).length > 0) {
+              <span class="text-[10px] font-bold">{{
+                getActiveComments(subtask.comments).length
+              }}</span>
             }
           </div>
         </button>
@@ -182,7 +184,7 @@
 
     @if (showComments()) {
       <app-comments
-        [comments]="subtask.comments || []"
+        [comments]="getActiveComments(subtask.comments)"
         [subtaskId]="subtask.id"
         [isOwner]="true"
         [isPrivate]="isPrivate"

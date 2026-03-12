@@ -11,7 +11,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -33,7 +33,7 @@ export class TaskInformationComponent {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private dataSyncProvider = inject(DataSyncProvider);
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
 
   public showActions = signal(false);
 
@@ -69,19 +69,13 @@ export class TaskInformationComponent {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
       this.dataSyncProvider
-        .update<Task>(
-          "tasks",
-          this.task.id,
-          updatedTask,
-          { isOwner: this.isOwner, isPrivate: this.isPrivate },
-          this.todoId
-        )
+        .crud<Task>("update", "tasks", { id: this.task.id, data: updatedTask, parentTodoId: this.todoId, isOwner: this.isOwner, isPrivate: this.isPrivate })
         .subscribe({
-          next: (result) => {
+          next: (result: Task) => {
             this.task.status = TaskStatus.COMPLETED;
             this.notifyService.showSuccess("Task marked as complete!");
           },
-          error: (err) => {
+          error: (err: any) => {
             this.notifyService.showError(err.message || "Failed to update task");
           },
         });
@@ -100,18 +94,13 @@ export class TaskInformationComponent {
 
   deleteTask() {
     this.dataSyncProvider
-      .delete(
-        "tasks",
-        this.task?.id ?? "",
-        { isOwner: this.isOwner, isPrivate: this.isPrivate },
-        this.todoId
-      )
+      .crud("delete", "tasks", { id: this.task?.id ?? "", parentTodoId: this.todoId, isOwner: this.isOwner, isPrivate: this.isPrivate })
       .subscribe({
-        next: (result) => {
+        next: (result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");
           this.router.navigate(["/todos", this.todoId, "tasks"]);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to delete task");
         },
       });

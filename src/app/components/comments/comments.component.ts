@@ -25,7 +25,7 @@ import { Comment } from "@models/comment.model";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { AuthService } from "@services/auth.service";
+import { AuthService } from "@services/auth/auth.service";
 
 @Component({
   selector: "app-comments",
@@ -34,7 +34,7 @@ import { AuthService } from "@services/auth.service";
   templateUrl: "./comments.component.html",
 })
 export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
 
   @Input() comments: Comment[] = [];
@@ -110,17 +110,22 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
     this.observer = new IntersectionObserver(
       (entries) => {
         const visibleUnreadIds: string[] = [];
+        const entriesToUnobserve: Element[] = [];
+        
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const commentId = entry.target.getAttribute("data-comment-id");
             if (commentId) {
               visibleUnreadIds.push(commentId);
+              entriesToUnobserve.push(entry.target);
             }
           }
         });
 
         if (visibleUnreadIds.length > 0) {
           this.markAsReadEvent.emit(visibleUnreadIds);
+          // Unobserve elements after marking as read to prevent infinite loop
+          entriesToUnobserve.forEach((el) => this.observer?.unobserve(el));
         }
       },
       {

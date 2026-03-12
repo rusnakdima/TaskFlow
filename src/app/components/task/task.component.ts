@@ -27,9 +27,10 @@ import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { StorageService } from "@services/storage.service";
+import { AuthService } from "@services/auth/auth.service";
+import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
@@ -54,10 +55,11 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskComponent implements OnInit, OnChanges {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
+  private notifyService = inject(NotifyService);
 
   @Input() task: Task | null = null;
   @Input() todoId: string | null = null;
@@ -117,66 +119,51 @@ export class TaskComponent implements OnInit, OnChanges {
     return this.baseHelper.isBlockedByDependencies(this.task?.dependsOn, this.allTasks);
   }
 
+  /**
+   * Filter out deleted comments
+   */
+  getActiveComments(comments: Comment[] | undefined): Comment[] {
+    return (comments || []).filter((c) => !c.isDeleted);
+  }
+
   toggleComments() {
     this.showComments.update((v) => !v);
     this.cdr.markForCheck();
   }
 
   onAddComment(content: string) {
-    const userId = this.authService.getValueByKey("id");
-    const username = this.authService.getValueByKey("username");
-
-    if (this.task && userId) {
-      // Get todoId from input or from task
+    if (this.task) {
+      const userId = this.authService.getValueByKey("id");
+      const username = this.authService.getValueByKey("username");
       const effectiveTodoId = this.todoId || this.task.todoId;
-      if (!effectiveTodoId) {
-        console.error("Cannot add comment: todoId not found");
+
+      if (!userId || !effectiveTodoId) {
+        this.notifyService.showError("Cannot add comment: User or Project not found");
         return;
       }
 
-      const newComment: Comment = {
-        id: crypto.randomUUID(),
+      const commentForBackend: any = {
         authorId: userId,
         authorName: username || "Unknown",
         content: content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         taskId: this.task.id,
         readBy: [userId],
+        isDeleted: false,
       };
 
-      // Create comment as separate document (not embedded)
-      // WebSocket will broadcast the event and update storage automatically
-      this.dataSyncProvider
-        .create<Comment>("comments", newComment, undefined, effectiveTodoId)
-        .subscribe({
-          next: () => {
-            this.showComments.set(true);
-            this.cdr.markForCheck();
-          },
-          error: (err) => {
-            console.error("Failed to create comment:", err);
-          },
-        });
+      this.dataSyncProvider.crud<Comment>("create", "comments", { data: commentForBackend, parentTodoId: effectiveTodoId }).subscribe({
+        next: () => {
+          this.showComments.set(true);
+          this.cdr.markForCheck();
+        },
+      });
     }
   }
 
   onDeleteComment(commentId: string) {
-    if (this.task) {
-      // Get todoId from input or from task
-      const effectiveTodoId = this.todoId || this.task.todoId;
-      if (!effectiveTodoId) {
-        console.error("Cannot delete comment: todoId not found");
-        return;
-      }
-
-      // Delete comment as separate document
-      // WebSocket will broadcast the event and update storage automatically
-      this.dataSyncProvider.delete("comments", commentId, undefined, effectiveTodoId).subscribe({
-        error: (err) => {
-          console.error("Failed to delete comment:", err);
-        },
-      });
+    const effectiveTodoId = this.todoId || this.task?.todoId;
+    if (effectiveTodoId) {
+      this.dataSyncProvider.crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId }).subscribe({});
     }
   }
 

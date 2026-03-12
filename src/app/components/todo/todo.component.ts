@@ -25,9 +25,9 @@ import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { NotifyService } from "@services/notify.service";
-import { TemplateService } from "@services/template.service";
+import { AuthService } from "@services/auth/auth.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { TemplateService } from "@services/features/template.service";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -43,7 +43,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoComponent implements OnInit {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private templateService = inject(TemplateService);

@@ -7,7 +7,7 @@ import { Subscription } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
 import {

@@ -1,6 +1,11 @@
 <ng-template #progressTemplate>
   <div class="mb-4">
-    <app-progress-bar [items]="todo?.tasks ?? []" size="md" />
+    <app-progress-bar
+      [items]="todo?.tasks ?? []"
+      size="md"
+      [showPercentage]="true"
+      [showLegend]="true"
+    />
   </div>
 </ng-template>
 
@@ -85,6 +90,7 @@
                   >
                     <img
                       [src]="getAssigneeImageUrl(assignee)"
+                      (error)="$event.target.src = 'assets/images/user.png'"
                       class="w-8 h-8 rounded-full"
                       alt=""
                     />

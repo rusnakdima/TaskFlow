@@ -22,8 +22,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { Chat } from "@models/chat.model";
 
 /* services */
-import { ChatService } from "@services/chat.service";
-import { AuthService } from "@services/auth.service";
+import { ChatService } from "@services/features/chat.service";
+import { AuthService } from "@services/auth/auth.service";
+import { StorageService } from "@services/core/storage.service";
 
 @Component({
   selector: "app-chat-window",
@@ -39,6 +40,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   chatService = inject(ChatService);
   authService = inject(AuthService);
+  storageService = inject(StorageService);
 
   newMessage = "";
   private shouldScroll = false;
@@ -53,14 +55,15 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   ngOnInit() {
-    this.chatService.loadChats(this.todoId).subscribe(() => {
-      this.shouldScroll = true;
-      setTimeout(() => this.initIntersectionObserver(), 500);
+    this.chatService.loadChats(this.todoId).subscribe({
+      next: (chats) => {
+        this.shouldScroll = true;
+        setTimeout(() => this.initIntersectionObserver(), 500);
+      }
     });
   }
 
   ngOnDestroy() {
-    this.chatService.closeChat();
     if (this.observer) {
       this.observer.disconnect();
     }
@@ -96,17 +99,22 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     this.observer = new IntersectionObserver(
       (entries) => {
         const visibleUnreadIds: string[] = [];
+        const entriesToUnobserve: Element[] = [];
+        
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const chatId = entry.target.getAttribute("data-chat-id");
             if (chatId) {
               visibleUnreadIds.push(chatId);
+              entriesToUnobserve.push(entry.target);
             }
           }
         });
 
         if (visibleUnreadIds.length > 0) {
           this.markSpecificAsRead(visibleUnreadIds);
+          // Unobserve elements after marking as read to prevent infinite loop
+          entriesToUnobserve.forEach((el) => this.observer?.unobserve(el));
         }
       },
       {
@@ -131,8 +139,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private markSpecificAsRead(ids: string[]) {
     const currentUserId = this.authService.getValueByKey("id");
     const unreadInList = this.chatService
-      .chats()
-      .filter((c) => ids.includes(c.id) && (!c.readBy || !c.readBy.includes(currentUserId)));
+      .getChats(this.todoId)
+      .filter((c: Chat) => ids.includes(c.id) && (!c.readBy || !c.readBy.includes(currentUserId)));
 
     if (unreadInList.length > 0) {
       this.chatService.markAsRead(this.todoId, ids).subscribe();
@@ -141,7 +149,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   private smartScroll(): void {
     const currentUserId = this.authService.getValueByKey("id");
-    const unread = this.chatService.chats().find((c) => !this.isRead(c));
+    const unread = this.chatService.getChats(this.todoId).find((c) => !this.isRead(c));
 
     if (unread && this.isFirstLoad) {
       const element = document.getElementById("chat-" + unread.id);
@@ -174,9 +182,15 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     return !!chat.readBy && chat.readBy.includes(userId);
   }
 
+  getUnreadCount(): number {
+    const currentUserId = this.authService.getValueByKey("id");
+    const chats = this.storageService.getChatsByTodo(this.todoId);
+    return chats.filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
+  }
+
   isOwner(): boolean {
     const currentUserId = this.authService.getValueByKey("id");
-    const todo = this.chatService.storageService.getTodoById(this.todoId);
+    const todo = this.storageService.getTodoById(this.todoId);
     return todo?.userId === currentUserId;
   }
 

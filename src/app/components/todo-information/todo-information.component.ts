@@ -24,7 +24,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
   templateUrl: "./todo-information.component.html",
 })
 export class TodoInformationComponent {
-  private baseHelper = inject(BaseItemHelper);
+  private baseHelper = new BaseItemHelper();
 
   @Input() todo!: Todo;
   @Input() isOwner: boolean = true;
