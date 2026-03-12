@@ -21,6 +21,11 @@ pub async fn manageData(
   relations: Option<Vec<RelationObj>>,
   syncMetadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
+  println!("[manageData Route] Received: op={}, table={}, id={:?}", operation, table, id);
+  if let Some(ref d) = data {
+    println!("[manageData Route] Data: {}", d);
+  }
+  
   state
     .crudService
     .execute(operation, table, id, data, filter, relations, syncMetadata)
