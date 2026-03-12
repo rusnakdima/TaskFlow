@@ -9,7 +9,7 @@ import { SyncMetadata } from "@models/sync-metadata";
 import { RelationObj } from "@models/relation-obj.model";
 
 /* services */
-import { NotifyService } from "@services/notify.service";
+import { NotifyService } from "@services/notifications/notify.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -66,7 +66,8 @@ export class LocalWebSocketService {
             this.messageSubject.next(data);
           }
         } catch (e) {
-          // Failed to parse message
+          // Parse error - likely not a JSON message, ignore silently
+          // This can happen during WebSocket handshake or non-JSON messages
         }
       };
     } catch (error) {

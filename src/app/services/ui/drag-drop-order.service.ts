@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
-import { StorageService, StorageEntity } from "@services/storage.service";
-import { DataSyncService } from "@services/data-sync.service";
-import { NotifyService } from "@services/notify.service";
+import { StorageService, StorageEntity } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { moveItemInArray, CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
@@ -66,8 +66,8 @@ export class DragDropOrderService {
         order: items.length - 1 - index,
       };
 
-      // Handle special fields for Todo
-      if (entityType === "todo") {
+      // Handle special fields for todos
+      if (entityType === "todos") {
         const todo = item as any;
         (updatedItem as any).categories =
           todo.categories?.map((cat: any) => (typeof cat === "string" ? cat : cat.id)) || [];
@@ -78,25 +78,17 @@ export class DragDropOrderService {
       return updatedItem;
     });
 
-    // Optimistic update to storage
-    transformedItems.forEach((item) => {
-      this.storageService.updateItem(entityType, item.id, { order: item.order });
-    });
-
-    this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
     this.updatingOrders.add(operationKey);
 
     return this.dataSyncProvider
-      .updateAll<T>(table, transformedItems, syncOptions, parentTodoId)
+      .crud<T[]>("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, ...syncOptions }, true)
       .pipe(
         tap(() => {
           this.updatingOrders.delete(operationKey);
+          // Storage updated automatically by DataSyncProvider
+          this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
         }),
         catchError((err) => {
-          // Rollback
-          previousItems.forEach((item) => {
-            this.storageService.updateItem(entityType, item.id, { order: item.order });
-          });
           this.updatingOrders.delete(operationKey);
           this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
           // Reload all data to ensure consistency on fatal error

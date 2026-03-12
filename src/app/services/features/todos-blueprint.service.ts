@@ -1,8 +1,8 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
-import { TemplateService } from "@services/template.service";
-import { NotifyService } from "@services/notify.service";
+import { TemplateService } from "@services/features/template.service";
+import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { Observable, forkJoin, of } from "rxjs";
 import { switchMap, tap, catchError } from "rxjs/operators";
@@ -89,9 +89,9 @@ export class TodosBlueprintService {
     };
 
     return this.dataSyncProvider
-      .create<Todo>("todos", todo, { isOwner: true, isPrivate: true })
+      .crud<Todo>("create", "todos", { data: todo, isOwner: true, isPrivate: true })
       .pipe(
-        switchMap((createdTodo) => {
+        switchMap((createdTodo: Todo) => {
           const todoId = createdTodo.id;
           const tasks = this.templateService.applyTemplate(template, todoId, userId);
 
@@ -102,14 +102,9 @@ export class TodosBlueprintService {
           const taskObservables = tasks.map((task: any) => {
             const { subtasks, ...taskWithoutSubtasks } = task;
             return this.dataSyncProvider
-              .create<Task>(
-                "tasks",
-                taskWithoutSubtasks,
-                { isOwner: true, isPrivate: true },
-                todoId
-              )
+              .crud<Task>("create", "tasks", { data: taskWithoutSubtasks, parentTodoId: todoId, isOwner: true, isPrivate: true })
               .pipe(
-                switchMap((createdTask) => {
+                switchMap((createdTask: Task) => {
                   const subtasksToCreate = subtasks || [];
                   if (subtasksToCreate.length === 0) {
                     return of(createdTask);
@@ -121,12 +116,7 @@ export class TodosBlueprintService {
                       taskId: createdTask.id,
                       todoId: todoId,
                     };
-                    return this.dataSyncProvider.create<any>(
-                      "subtasks",
-                      subtaskWithActualTaskId,
-                      { isOwner: true, isPrivate: true },
-                      todoId
-                    );
+                    return this.dataSyncProvider.crud<any>("create", "subtasks", { data: subtaskWithActualTaskId, parentTodoId: todoId, isOwner: true, isPrivate: true });
                   });
 
                   return forkJoin(subtaskObservables);

@@ -14,8 +14,8 @@ import { RelationsHelper } from "@helpers/relations.helper";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
-import { JwtTokenService } from "@services/jwt-token.service";
-import { StorageService } from "@services/storage.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { StorageService } from "@services/core/storage.service";
 
 @Injectable({
   providedIn: "root",
@@ -28,7 +28,8 @@ export class DataSyncService {
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
 
   /**
-   * Load all application data
+   * Load all application data INCLUDING PROFILE
+   * FIX: Profile is now loaded once here instead of by each view
    */
   loadAllData(force: boolean = false): Observable<any> {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -43,59 +44,41 @@ export class DataSyncService {
       return of({
         todos: this.storageService.todos(),
         categories: this.storageService.categories(),
+        profile: this.storageService.profile(), // ✅ Return cached profile
       });
     }
 
     if (this.storageService.loading()) return of(null);
 
     this.storageService.setLoading(true);
+
     // Use relations with user data to load complete todo information
     const todoRelations = RelationsHelper.getTodoRelationsWithUser();
     const profileRelations = RelationsHelper.getProfileRelations();
 
+    // ✅ FIX: Load profile FIRST and store in StorageService
     return this.dataSyncProvider.getProfileByUserId(userId, profileRelations).pipe(
-      switchMap((profile) => {
+      tap((profile) => {
+        // Store profile in StorageService for all views to use
         this.storageService.setProfile(profile || null);
-
+      }),
+      switchMap((profile) => {
         return forkJoin({
-          privateTodos: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { userId, visibility: "private" },
-            { isOwner: true, isPrivate: true, relations: todoRelations }
-          ),
-          teamTodosOwner: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { userId, visibility: "team" },
-            { isOwner: true, isPrivate: false, relations: todoRelations }
-          ),
-          teamTodosAssignee: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { assignees: userId, visibility: "team" },
-            { isOwner: false, isPrivate: false, relations: todoRelations }
-          ),
-          categories: this.dataSyncProvider.getAll<Category>("categories", { userId }),
+          privateTodos: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId, visibility: "private" }, isOwner: true, isPrivate: true, relations: todoRelations }, true),
+          teamTodosOwner: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId, visibility: "team" }, isOwner: true, isPrivate: false, relations: todoRelations }, true),
+          teamTodosAssignee: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { assignees: userId, visibility: "team" }, isOwner: false, isPrivate: false, relations: todoRelations }, true),
+          categories: this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId } }, true),
         });
       }),
       catchError((error) => {
+        // Profile load failed - continue loading other data
         this.storageService.setProfile(null);
-        // Continue loading other data even if profile fails
+
         return forkJoin({
-          privateTodos: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { userId, visibility: "private" },
-            { isOwner: true, isPrivate: true, relations: todoRelations }
-          ),
-          teamTodosOwner: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { userId, visibility: "team" },
-            { isOwner: true, isPrivate: false, relations: todoRelations }
-          ),
-          teamTodosAssignee: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { assignees: userId, visibility: "team" },
-            { isOwner: false, isPrivate: false, relations: todoRelations }
-          ),
-          categories: this.dataSyncProvider.getAll<Category>("categories", { userId }),
+          privateTodos: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId, visibility: "private" }, isOwner: true, isPrivate: true, relations: todoRelations }, true),
+          teamTodosOwner: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId, visibility: "team" }, isOwner: true, isPrivate: false, relations: todoRelations }, true),
+          teamTodosAssignee: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { assignees: userId, visibility: "team" }, isOwner: false, isPrivate: false, relations: todoRelations }, true),
+          categories: this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId } }, true),
         });
       }),
       tap(({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
@@ -107,8 +90,6 @@ export class DataSyncService {
         );
         this.storageService.setSharedTodos(Array.from(sharedTodoMap.values()));
 
-        // Categories are loaded both separately and via relations in todos
-        // This ensures categories are available even if todos fail to load
         this.storageService.setCategories(categories);
         this.storageService.setLoading(false);
         this.storageService.setLoaded(true);
@@ -131,17 +112,9 @@ export class DataSyncService {
         this.storageService.setProfile(profile);
 
         return forkJoin({
-          myTeamProjects: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { userId, visibility: "team" },
-            { isOwner: true, isPrivate: false, relations: todoRelations }
-          ),
-          sharedTeamProjects: this.dataSyncProvider.getAll<Todo>(
-            "todos",
-            { assignees: userId, visibility: "team" },
-            { isOwner: false, isPrivate: false, relations: todoRelations }
-          ),
-          categories: this.dataSyncProvider.getAll<Category>("categories", { userId }),
+          myTeamProjects: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { userId, visibility: "team" }, isOwner: true, isPrivate: false, relations: todoRelations }, true),
+          sharedTeamProjects: this.dataSyncProvider.crud<Todo[]>("getAll", "todos", { filter: { assignees: userId, visibility: "team" }, isOwner: false, isPrivate: false, relations: todoRelations }, true),
+          categories: this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId } }, true),
         });
       }),
       map(({ myTeamProjects, sharedTeamProjects, categories }) => {

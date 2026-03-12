@@ -2,7 +2,7 @@
 import { Injectable, inject } from "@angular/core";
 
 /* services */
-import { StorageService, StorageEntity } from "@services/storage.service";
+import { StorageService, StorageEntity } from "@services/core/storage.service";
 
 @Injectable({
   providedIn: "root",
@@ -14,12 +14,12 @@ export class WebSocketDispatcherService {
    * Initialize all WebSocket listeners and map them to StorageService updates
    */
   initWebSocketListeners(): void {
-    const entities: Array<Exclude<StorageEntity, "profile">> = [
-      "todo",
-      "task",
-      "subtask",
-      "category",
-      "comment",
+    const entities: Array<Exclude<StorageEntity, "profiles">> = [
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "comments",
     ];
 
     entities.forEach((entity) => {

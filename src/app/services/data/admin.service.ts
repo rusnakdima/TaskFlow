@@ -7,7 +7,7 @@ import { Observable, from } from "rxjs";
 import { Response } from "@models/response.model";
 
 /* services */
-import { AuthService } from "@services/auth.service";
+import { AuthService } from "@services/auth/auth.service";
 
 @Injectable({
   providedIn: "root",

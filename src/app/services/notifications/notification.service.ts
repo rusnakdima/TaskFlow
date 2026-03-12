@@ -1,30 +1,85 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, signal, computed } from "@angular/core";
+import { Observable, filter } from "rxjs";
 
 /* services */
-import { LocalWebSocketService } from "@services/local-websocket.service";
-import { JwtTokenService } from "@services/jwt-token.service";
-import { StorageService } from "@services/storage.service";
-import {
-  NotificationStorageService,
-  NotificationAction,
-} from "@services/notification-storage.service";
-import { NotificationSoundService } from "@services/notification-sound.service";
+import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { StorageService } from "@services/core/storage.service";
 
+export interface NotificationAction {
+  id: string;
+  type: "todo" | "task" | "subtask" | "chat" | "comment";
+  action: "created" | "updated" | "deleted";
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  todoId?: string;
+  taskId?: string;
+  subtaskId?: string;
+  commentId?: string;
+  chatId?: string;
+}
+
+export interface NotificationSettings {
+  chatVolume: number;
+  commentVolume: number;
+  generalVolume: number;
+  enableSounds: boolean;
+}
+
+const DEFAULT_SETTINGS: NotificationSettings = {
+  chatVolume: 50,
+  commentVolume: 50,
+  generalVolume: 50,
+  enableSounds: true,
+};
+
+/**
+ * NotificationService - Consolidated notification management
+ * Merges: NotificationStorageService, NotificationSettingsService,
+ *         NotificationSoundService, NotificationCenterService,
+ *         NotificationEventListenerService
+ */
 @Injectable({
   providedIn: "root",
 })
-export class NotificationEventListenerService {
+export class NotificationService {
   private localWs = inject(LocalWebSocketService);
   private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
-  private notificationStorage = inject(NotificationStorageService);
-  private soundService = inject(NotificationSoundService);
+
+  // Notification state (from NotificationStorageService)
+  private notificationsSignal = signal<NotificationAction[]>([]);
+  private unreadCountSignal = signal(0);
+
+  // Settings state (from NotificationSettingsService)
+  private settingsKey = "notification_settings";
+  private settingsSignal = signal<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Track recent comment events to suppress duplicate task updates
   private recentCommentEvents = new Map<string, number>(); // taskId -> timestamp
 
+  // Public signals
+  get notifications() {
+    return this.notificationsSignal.asReadonly();
+  }
+
+  get unreadCount() {
+    return this.unreadCountSignal.asReadonly();
+  }
+
+  get settings() {
+    return this.settingsSignal.asReadonly();
+  }
+
+  totalUnreadCount = computed(() => {
+    return this.unreadCountSignal();
+  });
+
   constructor() {
+    this.loadSettings();
     this.listenToEvents();
     // Clean up old comment events every 5 seconds
     setInterval(() => {
@@ -36,6 +91,127 @@ export class NotificationEventListenerService {
       }
     }, 5000);
   }
+
+  // ==================== SETTINGS METHODS ====================
+
+  private loadSettings(): void {
+    try {
+      const saved = localStorage.getItem(this.settingsKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.settingsSignal.set({ ...DEFAULT_SETTINGS, ...parsed });
+      }
+    } catch (e) {
+      this.settingsSignal.set(DEFAULT_SETTINGS);
+    }
+  }
+
+  getSettings(): NotificationSettings {
+    return this.settingsSignal();
+  }
+
+  saveSettings(newSettings: NotificationSettings): void {
+    this.settingsSignal.set(newSettings);
+    try {
+      localStorage.setItem(this.settingsKey, JSON.stringify(newSettings));
+    } catch (e) {
+      // Failed to save settings
+    }
+  }
+
+  getVolumeForType(type: "chat" | "comment" | "general"): number {
+    const settings = this.settingsSignal();
+    if (!settings.enableSounds) return 0;
+
+    switch (type) {
+      case "chat":
+        return settings.chatVolume / 100;
+      case "comment":
+        return settings.commentVolume / 100;
+      default:
+        return settings.generalVolume / 100;
+    }
+  }
+
+  // ==================== SOUND METHODS ====================
+
+  playSound(type: "general" | "chat" | "comment") {
+    const volume = this.getVolumeForType(type);
+    this.playSoundInternal(type, volume);
+  }
+
+  playTestSound(type: "chat" | "comment" | "general", volume: number) {
+    this.playSoundInternal(type, volume);
+  }
+
+  private playSoundInternal(type: "chat" | "comment" | "general", volume: number): void {
+    if (volume <= 0) return;
+
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Different tones for different notification types
+    switch (type) {
+      case "chat":
+        // Higher pitched, friendly chime for chat messages
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(1174.66, audioContext.currentTime + 0.1); // D6
+        break;
+      case "comment":
+        // Medium pitched, softer tone for comments
+        oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+        oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.1); // G5
+        break;
+      default:
+        // General notification for todo/task/subtask create/update/delete
+        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+        oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+        break;
+    }
+
+    // Volume is already normalized (0-1), use it directly for accurate volume control
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  }
+
+  // ==================== NOTIFICATION STORAGE METHODS ====================
+
+  private addNotification(notification: NotificationAction) {
+    this.notificationsSignal.update((n) => [notification, ...n].slice(0, 50));
+    this.updateUnreadCount();
+  }
+
+  markAsRead(id: string) {
+    this.notificationsSignal.update((notifications) =>
+      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    this.updateUnreadCount();
+  }
+
+  markAllAsRead() {
+    this.notificationsSignal.update((notifications) =>
+      notifications.map((n) => ({ ...n, read: true }))
+    );
+    this.updateUnreadCount();
+  }
+
+  clearAll() {
+    this.notificationsSignal.set([]);
+    this.unreadCountSignal.set(0);
+  }
+
+  private updateUnreadCount() {
+    this.unreadCountSignal.set(this.notificationsSignal().filter((n) => !n.read).length);
+  }
+
+  // ==================== EVENT LISTENER METHODS ====================
 
   private listenToEvents() {
     const events = [
@@ -56,12 +232,12 @@ export class NotificationEventListenerService {
 
     events.forEach((event) => {
       this.localWs.onEvent(event).subscribe((data) => {
-        this.addNotification(event, data);
+        this.addNotificationEvent(event, data);
       });
     });
   }
 
-  private addNotification(event: string, data: any) {
+  private addNotificationEvent(event: string, data: any) {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     const currentUserId = this.jwtTokenService.getUserId(token);
 
@@ -158,7 +334,7 @@ export class NotificationEventListenerService {
       action === "cleared" ? "updated" : (action as NotificationAction["action"]);
 
     // Always play sound for chat/comment
-    this.soundService.playSound(type);
+    this.playSound(type);
 
     // Only store notification if not own action
     if (shouldNotify) {
@@ -176,7 +352,7 @@ export class NotificationEventListenerService {
         chatId: type === "chat" ? chatId : undefined,
       };
 
-      this.notificationStorage.addNotification(newNotification);
+      this.addNotification(newNotification);
     }
   }
 
@@ -194,7 +370,7 @@ export class NotificationEventListenerService {
     const entityName = type.charAt(0).toUpperCase() + type.slice(1);
 
     // Always play sound for create/update/delete
-    this.soundService.playSound("general");
+    this.playSound("general");
 
     if (action === "created") {
       setTimeout(() => {
@@ -252,7 +428,7 @@ export class NotificationEventListenerService {
           subtaskId,
         };
 
-        this.notificationStorage.addNotification(newNotification);
+        this.addNotification(newNotification);
       }
       return;
     }
@@ -347,7 +523,7 @@ export class NotificationEventListenerService {
         subtaskId,
       };
 
-      this.notificationStorage.addNotification(newNotification);
+      this.addNotification(newNotification);
     }
   }
 
