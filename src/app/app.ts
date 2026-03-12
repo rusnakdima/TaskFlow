@@ -17,13 +17,13 @@ import { Category } from "@models/category.model";
 import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
-import { AuthService } from "@services/auth.service";
-import { LocalWebSocketService } from "@services/local-websocket.service";
-import { NotifyService } from "@services/notify.service";
-import { ShortcutService } from "@services/shortcut.service";
-import { StorageService } from "@services/storage.service";
-import { DataSyncService } from "@services/data-sync.service";
-import { WebSocketDispatcherService } from "@services/websocket-dispatcher.service";
+import { AuthService } from "@services/auth/auth.service";
+import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { WebSocketDispatcherService } from "@services/core/websocket-dispatcher.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -151,12 +151,9 @@ export class App implements OnInit {
     });
 
     // Load categories separately to ensure they're available
-    this.dataSyncProvider.getAll<Category>("categories", { userId }).subscribe({
-      next: (categories) => {
+    this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId } }, true).subscribe({
+      next: (categories: Category[]) => {
         this.storageService.setCategories(categories);
-      },
-      error: (error) => {
-        console.error("Failed to load categories:", error);
       },
     });
   }
@@ -164,8 +161,9 @@ export class App implements OnInit {
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      this.dataSyncProvider.get<Profile>("profiles", { userId }).subscribe({
-        next: (profile) => {
+      this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: { userId } }, true).subscribe({
+        next: (profiles: Profile[]) => {
+          const profile = profiles && profiles.length > 0 ? profiles[0] : null;
           if (!profile || !profile.user || !profile.user.username) {
             this.router.navigate(["/create-profile"]);
           }
