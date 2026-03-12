@@ -13,7 +13,7 @@ import { Profile } from "@models/profile.model";
 import { Response } from "@models/response.model";
 
 /* services */
-import { AdminService } from "@services/admin.service";
+import { AdminService } from "@services/data/admin.service";
 
 interface AdminDataWithRelations {
   [key: string]: any[];

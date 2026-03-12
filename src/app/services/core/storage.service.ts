@@ -8,8 +8,9 @@ import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 import { Comment as CommentModel } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
 
-export type StorageEntity = "todo" | "task" | "subtask" | "category" | "comment" | "profile";
+export type StorageEntity = "todos" | "tasks" | "subtasks" | "categories" | "comments" | "profiles" | "chats";
 
 @Injectable({
   providedIn: "root",
@@ -19,10 +20,48 @@ export class StorageService {
   private sharedTodosSignal = signal<Todo[]>([]);
   private categoriesSignal = signal<Category[]>([]);
   private profileSignal = signal<Profile | null>(null);
+  private chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
 
   private loadingSignal = signal(false);
   private loadedSignal = signal(false);
   private lastLoadedSignal = signal<Date | null>(null);
+
+  // Computed signals created once (not in getters)
+  private todosComputed = computed(() => {
+    const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
+    const uniqueTodoMap = new Map<string, Todo>();
+    const conflicts: string[] = [];
+
+    allTodos.forEach((todo) => {
+      if (uniqueTodoMap.has(todo.id)) {
+        const existing = uniqueTodoMap.get(todo.id)!;
+        if (todo.updatedAt && existing.updatedAt) {
+          const todoDate = new Date(todo.updatedAt).getTime();
+          const existingDate = new Date(existing.updatedAt).getTime();
+          if (todoDate > existingDate) {
+            conflicts.push(todo.id);
+            uniqueTodoMap.set(todo.id, todo);
+          } else {
+            conflicts.push(todo.id);
+          }
+        } else {
+          conflicts.push(todo.id);
+        }
+      } else {
+        uniqueTodoMap.set(todo.id, todo);
+      }
+    });
+
+    if (conflicts.length > 0) {
+    }
+
+    return Array.from(uniqueTodoMap.values());
+  });
+
+  private tasksComputed = computed(() => this.todosComputed().flatMap((todo) => todo.tasks || []));
+  private subtasksComputed = computed(() =>
+    this.tasksComputed().flatMap((task) => task.subtasks || [])
+  );
 
   // ==================== PUBLIC SIGNALS ====================
 
@@ -33,29 +72,23 @@ export class StorageService {
     return this.sharedTodosSignal.asReadonly();
   }
   get todos() {
-    return computed(() => {
-      const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
-      // Remove duplicates by ID, keeping the first occurrence
-      const uniqueTodoMap = new Map<string, Todo>();
-      allTodos.forEach((todo) => {
-        if (!uniqueTodoMap.has(todo.id)) {
-          uniqueTodoMap.set(todo.id, todo);
-        }
-      });
-      return Array.from(uniqueTodoMap.values());
-    });
+    return this.todosComputed;
   }
   get tasks() {
-    return computed(() => this.todos().flatMap((todo) => todo.tasks || []));
+    return this.tasksComputed;
   }
   get subtasks() {
-    return computed(() => this.tasks().flatMap((task) => task.subtasks || []));
+    return this.subtasksComputed;
   }
   get categories() {
     return this.categoriesSignal.asReadonly();
   }
   get profile() {
     return this.profileSignal.asReadonly();
+  }
+
+  get chatsByTodo() {
+    return this.chatsByTodoSignal.asReadonly();
   }
 
   // Setters
@@ -73,6 +106,60 @@ export class StorageService {
 
   setProfile(profile: Profile | null): void {
     this.profileSignal.set(profile);
+  }
+
+  setChatsByTodo(todoId: string, chats: Chat[]): void {
+    this.chatsByTodoSignal.update((map) => {
+      const newMap = new Map(map);
+      newMap.set(todoId, chats);
+      return newMap;
+    });
+  }
+
+  addChatToTodo(todoId: string, chat: Chat): void {
+    this.chatsByTodoSignal.update((map) => {
+      const newMap = new Map(map);
+      const chats = newMap.get(todoId) || [];
+      // Prevent duplicates - check if chat with same id already exists
+      if (!chats.some((c) => c.id === chat.id)) {
+        newMap.set(todoId, [...chats, chat]);
+      }
+      return newMap;
+    });
+  }
+
+  updateChatInTodo(todoId: string, chat: Chat): void {
+    this.chatsByTodoSignal.update((map) => {
+      const newMap = new Map(map);
+      const chats = newMap.get(todoId) || [];
+      const index = chats.findIndex((c) => c.id === chat.id);
+      if (index !== -1) {
+        chats[index] = chat;
+        newMap.set(todoId, chats);
+      }
+      return newMap;
+    });
+  }
+
+  deleteChatFromTodo(todoId: string, chatId: string): void {
+    this.chatsByTodoSignal.update((map) => {
+      const newMap = new Map(map);
+      const chats = newMap.get(todoId) || [];
+      newMap.set(todoId, chats.filter((c) => c.id !== chatId));
+      return newMap;
+    });
+  }
+
+  getChatsByTodo(todoId: string): Chat[] {
+    return this.chatsByTodoSignal().get(todoId) || [];
+  }
+
+  clearChatsByTodo(todoId: string): void {
+    this.chatsByTodoSignal.update((map) => {
+      const newMap = new Map(map);
+      newMap.set(todoId, []);
+      return newMap;
+    });
   }
 
   setLoading(isLoading: boolean): void {
@@ -123,17 +210,24 @@ export class StorageService {
   // ==================== GENERIC CRUD METHODS ====================
 
   addItem(type: StorageEntity, data: any): void {
-    if (!data.id) return;
+    if (!data.id) {
+      console.warn(`[StorageService] addItem called without id for type: ${type}`, data);
+      return;
+    }
+    console.log(`[StorageService] addItem: ${type}`, data);
 
     switch (type) {
-      case "todo":
-        if (this.getTodoById(data.id)) return;
+      case "todos":
+        if (this.getTodoById(data.id)) {
+          console.warn(`[StorageService] Todo with id ${data.id} already exists`);
+          return;
+        }
         const signal =
           data.visibility === "private" ? this.privateTodosSignal : this.sharedTodosSignal;
         signal.update((todos) => [data, ...todos]);
         break;
 
-      case "task":
+      case "tasks":
         if (this.getTaskById(data.id)) return;
         this.updateTaskInTodo(data.todoId, data.id, (tasks) =>
           tasks.some((t) => t.id === data.id) ? tasks : [...tasks, data]
@@ -142,7 +236,7 @@ export class StorageService {
         this.ensureTaskHasSubtasks(data.todoId, data.id);
         break;
 
-      case "subtask":
+      case "subtasks":
         if (this.getSubtaskById(data.id)) return;
         const task = this.getTaskById(data.taskId);
         if (!task) return;
@@ -151,33 +245,38 @@ export class StorageService {
         );
         break;
 
-      case "category":
+      case "categories":
         if (this.getCategoryById(data.id)) return;
         this.categoriesSignal.update((categories) => [...categories, data]);
         break;
 
-      case "comment":
+      case "comments":
         this.handleCommentUpdate(data, "add");
         break;
 
-      case "profile":
+      case "profiles":
         this.profileSignal.set(data);
+        break;
+
+      case "chats":
+        this.addChatToTodo(data.todoId, data);
         break;
     }
   }
 
   updateItem(type: StorageEntity, id: string, updates: Partial<any>): void {
+    console.log(`[StorageService] updateItem: ${type}, id: ${id}`, updates);
     if (updates["isDeleted"]) {
       this.removeItem(type, id);
       return;
     }
 
     switch (type) {
-      case "todo":
+      case "todos":
         this.handleTodoUpdate(id, updates);
         break;
 
-      case "task":
+      case "tasks":
         const task = this.getTaskById(id);
         if (!task) return;
         this.updateTaskInTodo(task.todoId, id, (tasks) =>
@@ -185,7 +284,7 @@ export class StorageService {
         );
         break;
 
-      case "subtask":
+      case "subtasks":
         const subtask = this.getSubtaskById(id);
         if (!subtask) return;
         const parentTask = this.getTaskById(subtask.taskId);
@@ -195,28 +294,33 @@ export class StorageService {
         );
         break;
 
-      case "category":
+      case "categories":
         this.categoriesSignal.update((categories) =>
           categories.map((c) => (c.id === id ? { ...c, ...updates } : c))
         );
         break;
 
-      case "profile":
+      case "profiles":
         if (this.profileSignal()) {
           this.profileSignal.set({ ...this.profileSignal()!, ...updates });
         }
+        break;
+
+      case "chats":
+        this.updateChatInTodo((updates as any).todoId, { ...(updates as any), id });
         break;
     }
   }
 
   removeItem(type: StorageEntity, id: string): void {
+    console.log(`[StorageService] removeItem: ${type}, id: ${id}`);
     switch (type) {
-      case "todo":
+      case "todos":
         this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
         this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
         break;
 
-      case "task":
+      case "tasks":
         const task = this.getTaskById(id);
         if (!task) return;
         this.updateTodoSignal(task.todoId, (todos) =>
@@ -228,7 +332,7 @@ export class StorageService {
         );
         break;
 
-      case "subtask":
+      case "subtasks":
         const subtask = this.getSubtaskById(id);
         if (!subtask) return;
         const parentTask = this.getTaskById(subtask.taskId);
@@ -248,12 +352,23 @@ export class StorageService {
         );
         break;
 
-      case "category":
+      case "categories":
         this.categoriesSignal.update((categories) => categories.filter((c) => c.id !== id));
         break;
 
-      case "comment":
+      case "comments":
         this.handleCommentUpdate({ id }, "remove");
+        break;
+
+      case "chats":
+        // Find todoId from chats storage
+        const chatsMap = this.chatsByTodoSignal();
+        for (const [todoId, chats] of chatsMap.entries()) {
+          if (chats.some((c) => c.id === id)) {
+            this.deleteChatFromTodo(todoId, id);
+            break;
+          }
+        }
         break;
     }
   }
@@ -262,12 +377,18 @@ export class StorageService {
 
   private handleTodoUpdate(todoId: string, updates: Partial<Todo>): void {
     const currentTodo = this.getTodoById(todoId);
-    if (!currentTodo) return;
+    if (!currentTodo) {
+      console.warn(`[StorageService] handleTodoUpdate: Todo with id ${todoId} not found`);
+      return;
+    }
+
+    console.log(`[StorageService] handleTodoUpdate for ${todoId}`, updates);
 
     // Check if this is a full todo replacement (has tasks array)
     const isFullReplacement = updates.tasks !== undefined;
 
     if (updates.visibility && updates.visibility !== currentTodo.visibility) {
+      console.log(`[StorageService] Visibility changed for ${todoId} to ${updates.visibility}`);
       const updatedTodo: Todo =
         isFullReplacement && updates.id && updates.userId
           ? (updates as Todo)
@@ -283,6 +404,10 @@ export class StorageService {
       // Only update the array where the todo actually exists
       const isInPrivate = this.privateTodosSignal().some((t) => t.id === todoId);
       const isInShared = this.sharedTodosSignal().some((t) => t.id === todoId);
+
+      console.log(
+        `[StorageService] Updating todo in: private=${isInPrivate}, shared=${isInShared}`
+      );
 
       if (isInPrivate) {
         this.privateTodosSignal.update((todos) =>
@@ -301,11 +426,11 @@ export class StorageService {
     if (action === "add") {
       if (!data.id) return;
       if (data.taskId) {
-        this.updateItem("task", data.taskId, {
+        this.updateItem("tasks", data.taskId, {
           comments: [...(this.getTaskById(data.taskId)?.comments || []), data],
         });
       } else if (data.subtaskId) {
-        this.updateItem("subtask", data.subtaskId, {
+        this.updateItem("subtasks", data.subtaskId, {
           comments: [...(this.getSubtaskById(data.subtaskId)?.comments || []), data],
         });
       }
@@ -494,6 +619,25 @@ export class StorageService {
           ),
         };
       })
+    );
+  }
+
+  /**
+   * Remove comment from all tasks and subtasks (used by LiveSyncService)
+   */
+  removeCommentFromAll(commentId: string): void {
+    this.updateTodoSignal("", (todos) =>
+      todos.map((todo) => ({
+        ...todo,
+        tasks: (todo.tasks || []).map((task) => ({
+          ...task,
+          comments: (task.comments || []).filter((c) => c.id !== commentId),
+          subtasks: (task.subtasks || []).map((subtask) => ({
+            ...subtask,
+            comments: (subtask.comments || []).filter((c) => c.id !== commentId),
+          })),
+        })),
+      }))
     );
   }
 

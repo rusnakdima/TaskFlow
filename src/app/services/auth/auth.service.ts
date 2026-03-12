@@ -12,7 +12,7 @@ import { PasswordReset } from "@models/password-reset-form.model";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
-import { JwtTokenService } from "@services/jwt-token.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 @Injectable({
   providedIn: "root",
@@ -24,27 +24,27 @@ export class AuthService {
   constructor() {}
 
   checkToken<R>(token: string): Observable<R> {
-    return this.dataSyncProvider.checkToken(token);
+    return this.dataSyncProvider.invokeCommand<R>("checkToken", { token });
   }
 
   login<R>(loginData: LoginForm): Observable<R> {
-    return this.dataSyncProvider.login(loginData);
+    return this.dataSyncProvider.invokeCommand<R>("login", { loginForm: loginData });
   }
 
   signup<R>(signupData: SignupForm): Observable<R> {
-    return this.dataSyncProvider.signup(signupData);
+    return this.dataSyncProvider.invokeCommand<R>("register", { signupForm: signupData });
   }
 
   requestPasswordReset<R>(email: string): Observable<R> {
-    return this.dataSyncProvider.requestPasswordReset(email);
+    return this.dataSyncProvider.invokeCommand<R>("requestPasswordReset", { email });
   }
 
   verifyCode<R>(email: string, code: string): Observable<R> {
-    return this.dataSyncProvider.verifyCode(email, code);
+    return this.dataSyncProvider.invokeCommand<R>("verifyCode", { email, code });
   }
 
   resetPassword<R>(passwordReset: PasswordReset): Observable<R> {
-    return this.dataSyncProvider.resetPassword(passwordReset);
+    return this.dataSyncProvider.invokeCommand<R>("resetPassword", { resetData: passwordReset });
   }
 
   logout() {
