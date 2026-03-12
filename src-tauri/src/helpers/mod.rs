@@ -9,6 +9,8 @@ pub mod comparison_helper;
 pub mod config;
 #[path = "db.helper.rs"]
 pub mod db_helper;
+#[path = "model_helper.rs"]
+pub mod model_helper;
 #[path = "response.helper.rs"]
 pub mod response_helper;
 #[path = "timestamp.helper.rs"]
