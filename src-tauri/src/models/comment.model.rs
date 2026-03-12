@@ -1,5 +1,7 @@
-use mongodb::bson::{oid::ObjectId, Uuid};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+
+use crate::models::traits::Validatable;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommentModel {
@@ -20,27 +22,71 @@ pub struct CommentModel {
   pub readBy: Vec<String>,
 }
 
-impl CommentModel {
-  #[allow(dead_code)]
-  pub fn new(
-    authorId: String,
-    authorName: String,
-    content: String,
-    taskId: Option<String>,
-    subtaskId: Option<String>,
-  ) -> Self {
-    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    Self {
-      _id: Some(ObjectId::new()),
-      id: Some(Uuid::new().to_string()),
-      authorId: authorId.clone(),
-      authorName,
-      content,
-      createdAt: now.clone(),
-      updatedAt: now,
-      taskId,
-      subtaskId,
-      readBy: vec![authorId],
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommentCreateModel {
+  pub authorId: String,
+  pub authorName: String,
+  pub content: String,
+  pub taskId: Option<String>,
+  pub subtaskId: Option<String>,
+}
+
+impl Validatable for CommentCreateModel {
+  fn validate(&self) -> Result<(), String> {
+    if self.authorId.is_empty() {
+      return Err("authorId cannot be empty".to_string());
     }
+    if self.authorName.is_empty() {
+      return Err("authorName cannot be empty".to_string());
+    }
+    if self.content.is_empty() {
+      return Err("content cannot be empty".to_string());
+    }
+    // Must belong to either a task or subtask
+    if self.taskId.is_none() && self.subtaskId.is_none() {
+      return Err("Comment must belong to either a task or subtask".to_string());
+    }
+    Ok(())
+  }
+}
+
+impl From<CommentCreateModel> for CommentModel {
+  fn from(value: CommentCreateModel) -> Self {
+    let now = chrono::Utc::now();
+    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+    CommentModel {
+      _id: Some(ObjectId::new()),
+      id: Some(uuid::Uuid::new_v4().to_string()),
+      authorId: value.authorId,
+      authorName: value.authorName,
+      content: value.content,
+      createdAt: formatted.clone(),
+      updatedAt: formatted.clone(),
+      taskId: value.taskId,
+      subtaskId: value.subtaskId,
+      readBy: vec![],
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommentUpdateModel {
+  #[serde(default)]
+  pub content: Option<String>,
+  #[serde(default)]
+  pub readBy: Option<Vec<String>>,
+  #[serde(default)]
+  pub updatedAt: Option<String>,
+}
+
+impl Validatable for CommentUpdateModel {
+  fn validate(&self) -> Result<(), String> {
+    if let Some(ref content) = self.content {
+      if content.is_empty() {
+        return Err("content cannot be empty".to_string());
+      }
+    }
+    Ok(())
   }
 }

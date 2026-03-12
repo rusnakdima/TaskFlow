@@ -122,7 +122,8 @@ impl From<TaskCreateModel> for TaskModel {
 pub struct TaskUpdateModel {
   #[serde(default)]
   pub _id: Option<ObjectId>,
-  pub id: String,
+  #[serde(default)]
+  pub id: Option<String>,
   #[serde(default)]
   pub todoId: Option<String>,
   #[serde(default)]

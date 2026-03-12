@@ -78,7 +78,8 @@ impl From<SubtaskCreateModel> for SubtaskModel {
 pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub _id: Option<ObjectId>,
-  pub id: String,
+  #[serde(default)]
+  pub id: Option<String>,
   #[serde(default)]
   pub taskId: Option<String>,
   #[serde(default)]

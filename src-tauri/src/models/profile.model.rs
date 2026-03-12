@@ -59,14 +59,23 @@ impl From<ProfileCreateModel> for ProfileModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileUpdateModel {
+  #[serde(default)]
   pub _id: Option<ObjectId>,
-  pub id: String,
+  #[serde(default)]
+  pub id: Option<String>,
+  #[serde(default)]
   pub name: Option<String>,
+  #[serde(default)]
   pub lastName: Option<String>,
+  #[serde(default)]
   pub bio: Option<String>,
+  #[serde(default)]
   pub imageUrl: Option<String>,
+  #[serde(default)]
   pub userId: Option<String>,
+  #[serde(default)]
   pub createdAt: Option<String>,
+  #[serde(default)]
   pub updatedAt: Option<String>,
 }
 
@@ -88,7 +97,7 @@ impl From<ProfileUpdateModel> for ProfileModel {
 
     ProfileModel {
       _id: value._id.unwrap_or_else(ObjectId::new),
-      id: value.id,
+      id: value.id.unwrap_or_default(),
       name: value.name.unwrap_or_default(),
       lastName: value.lastName.unwrap_or_default(),
       bio: value.bio.unwrap_or_default(),
