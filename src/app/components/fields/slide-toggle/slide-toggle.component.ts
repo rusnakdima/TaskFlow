@@ -23,8 +23,6 @@ import { SlideToggleField } from "@models/form-field.model";
   templateUrl: "./slide-toggle.component.html",
 })
 export class SlideToggleComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: SlideToggleField;

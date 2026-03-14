@@ -17,8 +17,6 @@ import { RadioField } from "@models/form-field.model";
   templateUrl: "./radio.component.html",
 })
 export class RadioComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() parentForm!: FormGroup;
   @Input() form!: FormGroup;

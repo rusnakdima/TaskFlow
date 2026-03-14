@@ -17,8 +17,6 @@ import { SliderRangeField } from "@models/form-field.model";
   templateUrl: "./slider-range.component.html",
 })
 export class SliderRangeComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: SliderRangeField;

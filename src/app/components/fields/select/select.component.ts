@@ -17,8 +17,6 @@ import { SelectField } from "@models/form-field.model";
   templateUrl: "./select.component.html",
 })
 export class SelectComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() parentForm!: FormGroup;
   @Input() form!: FormGroup;

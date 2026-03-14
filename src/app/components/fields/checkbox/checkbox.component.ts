@@ -17,8 +17,6 @@ import { CheckboxField } from "@models/form-field.model";
   templateUrl: "./checkbox.component.html",
 })
 export class CheckboxComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form?: FormGroup;
   @Input() field?: CheckboxField;

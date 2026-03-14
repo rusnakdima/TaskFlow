@@ -113,8 +113,6 @@ export class FilterBarComponent {
   @Input() isAllSelected: boolean = false;
   @Input() selectedCount: number = 0;
   @Input() searchQuery: string = "";
-  @Input() searchTempArray: any[] = [];
-  @Input() searchByFields: string[] = [];
   @Input() filterLabel: string = "";
   @Input() filterGroupName: string = "";
 
@@ -123,9 +121,6 @@ export class FilterBarComponent {
   @Output() selectAll = new EventEmitter<void>();
   @Output() clearSelection = new EventEmitter<void>();
   @Output() searchChange = new EventEmitter<string>();
-  @Output() searchResults = new EventEmitter<any[]>();
-  @Output() applyFiltersEvent = new EventEmitter<void>();
-  @Output() clearFiltersEvent = new EventEmitter<void>();
 
   @HostListener("document:keydown.escape")
   handleEscapeKey() {
@@ -154,11 +149,6 @@ export class FilterBarComponent {
     this.searchChange.emit(query);
   }
 
-  onSearchResults(results: any[]) {
-    // Emit both the results and trigger filter change
-    this.searchResults.emit(results);
-  }
-
   closeSidebar() {
     this.showFilter = false;
     this.filterToggle.emit();
@@ -167,7 +157,6 @@ export class FilterBarComponent {
   clearAllFilters() {
     this.activeFilter = "all";
     this.searchQuery = "";
-    this.clearFiltersEvent.emit();
     // Also trigger filter change to re-apply with cleared filters
     this.filterChange.emit("all");
   }
@@ -177,16 +166,6 @@ export class FilterBarComponent {
     this.searchChange.emit("");
     // Trigger a re-filter with empty search
     this.filterChange.emit(this.activeFilter);
-  }
-
-  applyFilters() {
-    this.applyFiltersEvent.emit();
-  }
-
-  clearFilters() {
-    this.activeFilter = "all";
-    this.searchQuery = "";
-    this.clearFiltersEvent.emit();
   }
 
   onSelectAll() {

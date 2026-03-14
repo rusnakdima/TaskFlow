@@ -17,8 +17,6 @@ import { TextField } from "@models/form-field.model";
   templateUrl: "./text.component.html",
 })
 export class TextComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: TextField;
