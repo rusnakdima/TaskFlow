@@ -23,6 +23,9 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
+/* helpers */
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
+
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
@@ -159,17 +162,8 @@ export class LoginView implements OnDestroy {
         }, 500);
         this.submitted.set(false);
       } catch (err: any) {
-        // Check error type
-        const isNetworkError =
-          err.message?.includes("NetworkError") ||
-          err.message?.includes("network") ||
-          err.message?.includes("offline") ||
-          err.message?.includes("Failed to fetch") ||
-          err.message?.includes("Server selection timeout") ||
-          err.message?.includes("Connection refused") ||
-          err.message?.includes("Database error");
-
-        if (isNetworkError) {
+        // Check error type using centralized helper
+        if (NetworkErrorHelper.isNetworkError(err)) {
           // Check if we have users in local database
           if (this.hasLocalUsers()) {
             // Have local users but something else went wrong

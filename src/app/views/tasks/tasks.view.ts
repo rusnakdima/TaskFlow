@@ -34,7 +34,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* bases */
-import { FilterableViewBase } from "@bases/filterable-view.base";
+import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -69,7 +69,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
   ],
   templateUrl: "./tasks.view.html",
 })
-export class TasksView extends FilterableViewBase implements OnInit {
+export class TasksView extends BaseView implements OnInit {
   private filterService: FilterHelper;
   private sortService: SortHelper;
   private bulkActionService: BulkActionHelper;
@@ -90,13 +90,15 @@ export class TasksView extends FilterableViewBase implements OnInit {
 
   // State signals
   todo = signal<Todo | null>(null);
-  loading = signal(false);
   highlightTaskId = signal<string | null>(null);
   highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
   openChat = signal(false);
   selectedTasks = signal<Set<string>>(new Set());
   showBulkActions = signal(false);
+  showFilter = signal(false);
+  activeFilter = signal<string>("all");
+  searchQuery = signal<string>("");
   expandedTasks = signal<Set<string>>(new Set());
   private routeSub?: Subscription;
 
@@ -543,5 +545,26 @@ export class TasksView extends FilterableViewBase implements OnInit {
       const val = prompt(`Enter new ${actionId}:`);
       if (val) actionId === "priority" ? this.bulkUpdatePriority(val) : this.bulkUpdateStatus(val);
     }
+  }
+
+  /**
+   * Toggle filter bar visibility
+   */
+  toggleFilter(): void {
+    this.showFilter.update(v => !v);
+  }
+
+  /**
+   * Handle search query change
+   */
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  /**
+   * Handle filter change
+   */
+  changeFilter(filter: string): void {
+    this.activeFilter.set(filter);
   }
 }
