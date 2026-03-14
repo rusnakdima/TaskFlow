@@ -41,6 +41,7 @@ export class AdminDataTableComponent {
   @Input() selectedRecords = new Set<string>();
   @Input() titleKey = "title";
   @Input() descriptionKey = "description";
+  @Input() showActions = true;
 
   @Output() selectRecord = new EventEmitter<string>();
   @Output() deleteRecord = new EventEmitter<any>();

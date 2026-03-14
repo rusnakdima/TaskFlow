@@ -56,6 +56,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   private shouldScroll = false;
   private forceScrollBottom = false;
   private observer?: IntersectionObserver;
+  private processedCommentIds = new Set<string>(); // Track processed comments to prevent infinite loop
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["comments"] && !changes["comments"].isFirstChange()) {
@@ -64,6 +65,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
     }
     if ((changes["taskId"] || changes["subtaskId"]) && !changes["taskId"]?.isFirstChange()) {
       this.isFirstLoad = true;
+      this.processedCommentIds.clear(); // Reset processed comments when task/subtask changes
     }
   }
 
@@ -115,9 +117,10 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const commentId = entry.target.getAttribute("data-comment-id");
-            if (commentId) {
+            if (commentId && !this.processedCommentIds.has(commentId)) {
               visibleUnreadIds.push(commentId);
               entriesToUnobserve.push(entry.target);
+              this.processedCommentIds.add(commentId); // Mark as processed
             }
           }
         });
@@ -138,7 +141,13 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
       const list = this.commentsList?.nativeElement;
       if (list) {
         const unreadElements = list.querySelectorAll(".unread-comment");
-        unreadElements.forEach((el: Element) => this.observer?.observe(el));
+        unreadElements.forEach((el: Element) => {
+          const commentId = el.getAttribute("data-comment-id");
+          // Only observe if not already processed
+          if (!commentId || !this.processedCommentIds.has(commentId)) {
+            this.observer?.observe(el);
+          }
+        });
       }
     }, 100);
   }
@@ -172,7 +181,11 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
 
   isUnread(comment: Comment): boolean {
     const userId = this.currentUserId;
-    return !!userId && (!comment.readBy || !comment.readBy.includes(userId));
+    if (!userId) return false;
+    // User's own comments are always considered "read"
+    if (comment.authorId === userId) return false;
+    // Check if user has read the comment
+    return !comment.readBy || !comment.readBy.includes(userId);
   }
 
   addComment() {
