@@ -10,8 +10,6 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { User } from "@models/user.model";
 import { Response } from "@models/response.model";
-import { Profile } from "@models/profile.model";
-import { Category } from "@models/category.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -24,6 +22,8 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataSyncService } from "@services/data/data-sync.service";
 import { WebSocketDispatcherService } from "@services/core/websocket-dispatcher.service";
+import { LocalAuthService } from "@services/auth/local-auth.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -60,6 +60,8 @@ export class App implements OnInit {
   private dataSyncService = inject(DataSyncService);
   private wsDispatcher = inject(WebSocketDispatcherService);
   private dataSyncProvider = inject(DataSyncProvider);
+  private localAuthService = inject(LocalAuthService);
+  private jwtTokenService = inject(JwtTokenService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -67,6 +69,7 @@ export class App implements OnInit {
   url = signal<string>("");
   showComponents = signal<boolean>(true);
   private isDataLoaded = false;
+  private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
 
@@ -81,41 +84,51 @@ export class App implements OnInit {
       this.triggerSync();
     });
 
-    this.localWs.getConnectionStatus().subscribe(() => {});
-
     const theme = localStorage.getItem("theme") ?? "";
     document.querySelector("html")!.setAttribute("class", theme);
 
     this.updateShowComponents();
 
-    const token = localStorage.getItem("token") ?? "";
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
     if (!token) {
+      // No token - check if we can authenticate offline
       setTimeout(() => {
-        if (
-          this.router.url.indexOf("/login") == -1 &&
-          this.router.url.indexOf("/signup") == -1 &&
-          this.router.url.indexOf("/reset-password") == -1 &&
-          this.router.url.indexOf("/change-password") == -1
-        ) {
+        if (!this.authRoutes.some((route) => this.router.url.startsWith(route))) {
+          // Check if offline auth is available
+          if (this.authService.canAuthenticateOffline()) {
+            this.notifyService.showInfo("Offline authentication available - please login");
+          }
           this.router.navigate(["/login"]);
         }
       }, 1000);
     }
 
     if (token) {
-      this.authService.checkToken<User>(token).subscribe({
-        next: (user: User) => {
-          this.loadAllData();
+      // First check if token is valid locally (without backend call)
+      const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
 
-          this.triggerSync();
-
-          this.checkUserProfile();
-        },
-        error: (err: Response<string>) => {
-          this.notifyService.showError(err.message ?? err.toString());
+      if (!isTokenExpired) {
+        // Token appears valid locally - try to load data
+        // If backend is available, data will sync; if not, we use cached data
+        this.loadAllData();
+        this.checkTokenWithBackend(token); // Check in background
+      } else {
+        // Token expired - try offline auth with cached credentials
+        const userId = this.jwtTokenService.getUserId(token);
+        if (userId) {
+          const localUser = this.localAuthService.getUserById(userId);
+          if (localUser && localUser.availableForOffline && localUser.lastToken) {
+            // We have offline credentials - user needs to re-enter password
+            this.notifyService.showWarning("Session expired - please login again");
+            this.router.navigate(["/login"]);
+          } else {
+            this.router.navigate(["/login"]);
+          }
+        } else {
           this.router.navigate(["/login"]);
-        },
-      });
+        }
+      }
     }
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
@@ -125,6 +138,39 @@ export class App implements OnInit {
           : this.router.url.length;
       this.url.set(this.router.url.slice(0, lastIndex));
       this.updateShowComponents();
+    });
+  }
+
+  /**
+   * Check token with backend in background (non-blocking)
+   */
+  private checkTokenWithBackend(token: string): void {
+    this.authService.checkToken<User>(token).subscribe({
+      next: (user: User) => {
+        // Token is valid on backend - update local data if needed
+        this.localAuthService.updateToken(user.id, token);
+        this.loadAllData();
+        this.triggerSync();
+      },
+      error: (err: Response<string>) => {
+        // Backend check failed - could be offline
+        // Check if it's a network error
+        const isNetworkError =
+          err.message?.includes("NetworkError") ||
+          err.message?.includes("network") ||
+          err.message?.includes("offline") ||
+          err.message?.includes("Failed to fetch");
+
+        if (isNetworkError) {
+          // We're offline - use cached data
+          this.isOfflineMode = true;
+          this.notifyService.showWarning("Working offline - data sync paused");
+        } else {
+          // Token invalid - redirect to login
+          this.notifyService.showError(err.message ?? err.toString());
+          this.router.navigate(["/login"]);
+        }
+      },
     });
   }
 
@@ -144,29 +190,31 @@ export class App implements OnInit {
     const todoRelations = RelationsHelper.getTodoRelationsWithUser();
 
     this.dataSyncService.loadAllData(false).subscribe({
-      next: () => {},
+      next: () => {
+        // Check profile after data is loaded
+        this.checkUserProfile();
+      },
       error: (error) => {
         this.notifyService.showError("Failed to load data. Please refresh the page.");
       },
     });
 
-    // Load categories separately to ensure they're available
-    this.dataSyncProvider.crud<Category[]>("getAll", "categories", { filter: { userId } }, true).subscribe({
-      next: (categories: Category[]) => {
-        this.storageService.setCategories(categories);
-      },
-    });
+    // Categories are loaded by dataSyncService, no need to load separately
   }
 
   async checkUserProfile() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: { userId } }, true).subscribe({
-        next: (profiles: Profile[]) => {
-          const profile = profiles && profiles.length > 0 ? profiles[0] : null;
+      // Fetch profile from backend with userId filter
+      this.dataSyncProvider.getProfileByUserId(userId).subscribe({
+        next: (profile) => {
           if (!profile || !profile.user || !profile.user.username) {
-            this.router.navigate(["/create-profile"]);
+            this.router.navigate(["/profile/create-profile"]);
           }
+        },
+        error: (err) => {
+          // Failed to load profile
+          this.router.navigate(["/profile/create-profile"]);
         },
       });
     }
@@ -175,7 +223,8 @@ export class App implements OnInit {
   /**
    * Trigger a manual synchronization
    */
-  triggerSync(): void {
-    this.headerComponent?.syncAll();
+  triggerSync(silent: boolean = true): void {
+    // Silent by default for background syncs
+    this.headerComponent?.syncAll(silent);
   }
 }
