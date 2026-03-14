@@ -30,16 +30,18 @@ import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
-import { NotificationAction } from "@services/notifications/notification.service";
+import { NotificationAction } from "@services/notifications/notify.service";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncService } from "@services/data/sync.service";
-import { NotificationService } from "@services/notifications/notification.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { StorageService } from "@services/core/storage.service";
+
+/* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* components */
 import { SyncStatusComponent } from "@components/sync-status/sync-status.component";
@@ -73,7 +75,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService,
     private syncService: SyncService,
-    private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
     private location: Location
   ) {}
@@ -95,8 +96,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isBack = signal(false);
   isSyncing = signal(false);
 
-  notifications = this.notificationService.notifications;
-  unreadCount = this.notificationService.unreadCount;
+  notifications = this.notifyService.notifications;
+  unreadCount = this.notifyService.unreadCount;
 
   breadcrumbs = signal<Breadcrumb[]>([]);
   private syncSubscription: Subscription | null = null;
@@ -110,18 +111,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.isSyncing.set(isSyncing)
     );
 
-    // Poll for profile data since it may not be loaded yet
-    const checkProfile = () => {
-      const profile = this.storageService.profile();
-      if (profile) {
-        this.profile.set(profile);
+    // Subscribe to profile signal changes - will update automatically when data is loaded
+    const profileSignal = this.storageService.profile;
+    this.profile.set(profileSignal());
+    const startTime = Date.now();
+    
+    // Set up effect to watch for profile changes
+    const checkProfileInterval = setInterval(() => {
+      const currentProfile = profileSignal();
+      if (currentProfile) {
+        this.profile.set(currentProfile);
         this.cdr.detectChanges();
-      } else {
-        // Check again after 100ms if profile not loaded
-        setTimeout(checkProfile, 100);
       }
-    };
-    checkProfile();
+      // Clear interval after 5 seconds (max wait time)
+      if (this.storageService.loaded() || Date.now() - startTime > 5000) {
+        clearInterval(checkProfileInterval);
+      }
+    }, 100);
 
     this.router.events
       .pipe(
@@ -239,15 +245,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   markAsRead(id: string) {
-    this.notificationService.markAsRead(id);
+    this.notifyService.markAsRead(id);
   }
 
   markAllAsRead() {
-    this.notificationService.markAllAsRead();
+    this.notifyService.markAllAsRead();
   }
 
   clearNotifications() {
-    this.notificationService.clearAll();
+    this.notifyService.clearAll();
   }
 
   onNotificationClick(notif: NotificationAction): void {
@@ -328,17 +334,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
           this.notifyService.showSuccess("Synchronization completed successfully!");
         }
       } else {
-        // Check if it's a network error (MongoDB offline)
-        const isNetworkError =
-          response.message?.includes("NetworkError") ||
-          response.message?.includes("network") ||
-          response.message?.includes("offline") ||
-          response.message?.includes("Failed to fetch") ||
-          response.message?.includes("Server selection timeout") ||
-          response.message?.includes("Connection refused") ||
-          response.message?.includes("Database error");
-
-        if (isNetworkError) {
+        // Check if it's a network error using centralized helper
+        if (NetworkErrorHelper.isNetworkError(response.message)) {
           // Network error - sync is optional, don't show error
           console.warn("[Sync] Network unavailable - using local data only");
           if (!silent) {
@@ -350,18 +347,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      // Check if it's a network error
+      // Check if it's a network error using centralized helper
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const isNetworkError =
-        errorMessage.includes("NetworkError") ||
-        errorMessage.includes("network") ||
-        errorMessage.includes("offline") ||
-        errorMessage.includes("Failed to fetch") ||
-        errorMessage.includes("Server selection timeout") ||
-        errorMessage.includes("Connection refused") ||
-        errorMessage.includes("Database error");
-
-      if (isNetworkError) {
+      if (NetworkErrorHelper.isNetworkError(errorMessage)) {
         // Network error - sync is optional, don't show error
         console.warn("[Sync] Network unavailable - using local data only");
         if (!silent) {
