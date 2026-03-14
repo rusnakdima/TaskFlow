@@ -13,7 +13,6 @@ import { MatIconModule } from "@angular/material/icon";
   templateUrl: "./search.component.html",
 })
 export class SearchComponent implements OnInit {
-  constructor() {}
   @Input() tempArray: Array<any> = [];
   @Input() searchByFields: Array<any> = [];
   @Input() isShowSearchField: boolean = false;

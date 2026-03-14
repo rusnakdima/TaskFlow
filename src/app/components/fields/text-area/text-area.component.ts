@@ -17,8 +17,6 @@ import { TextareaField } from "@models/form-field.model";
   templateUrl: "./text-area.component.html",
 })
 export class TextAreaComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: TextareaField;

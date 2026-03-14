@@ -9,8 +9,6 @@ import * as ProgressBar from "progressbar.js";
   templateUrl: "./circle-progress.component.html",
 })
 export class CircleProgressComponent implements OnInit, OnChanges, AfterViewInit {
-  constructor() {}
-
   bar: any = ProgressBar.Circle;
 
   @Input() percentCompletedTasks: number = 0;

@@ -27,8 +27,6 @@ import { DatePickerField } from "@models/form-field.model";
   templateUrl: "./date-picker.component.html",
 })
 export class DatePickerComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: DatePickerField;

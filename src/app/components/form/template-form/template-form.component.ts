@@ -31,8 +31,6 @@ import { BlockFieldsComponent } from "@components/form/block-fields/block-fields
   templateUrl: "./template-form.component.html",
 })
 export class TemplateFormComponent {
-  constructor() {}
-
   @Input() parentForm!: FormGroup;
   @Input() form!: FormGroup;
   @Input() formFields!: Array<FormField>;

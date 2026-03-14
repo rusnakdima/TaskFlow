@@ -17,8 +17,6 @@ import { ImageField } from "@models/form-field.model";
   templateUrl: "./image.component.html",
 })
 export class ImageComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: ImageField;

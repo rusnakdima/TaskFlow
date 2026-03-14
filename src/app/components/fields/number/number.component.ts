@@ -17,8 +17,6 @@ import { NumberField } from "@models/form-field.model";
   templateUrl: "./number.component.html",
 })
 export class NumberComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: NumberField;

@@ -39,8 +39,6 @@ import { SliderRangeComponent } from "@components/fields/slider-range/slider-ran
   templateUrl: "./block-fields.component.html",
 })
 export class BlockFieldsComponent {
-  constructor() {}
-
   @Input() parentForm!: FormGroup;
   @Input() formG!: FormGroup;
   @Input() field!: FormField;

@@ -17,8 +17,6 @@ import { SliderField } from "@models/form-field.model";
   templateUrl: "./slider.component.html",
 })
 export class SliderComponent {
-  constructor() {}
-
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: SliderField;
