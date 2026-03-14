@@ -22,14 +22,13 @@ export { DataSyncService, SyncService, AdminService } from "./data";
 
 // Features services
 export {
-  ChatService,
   TemplateService,
   TodosBlueprintService,
   AboutService,
 } from "./features";
 
 // Notifications services
-export { NotificationService, NotifyService } from "./notifications";
+export { NotificationService } from "./notifications";
 
 // UI services
 export {
