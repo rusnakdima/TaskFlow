@@ -64,6 +64,38 @@
             <mat-icon class="w-5! h-5! text-xl!" fontIcon="logout" />
             <span class="font-medium">Logout</span>
           </button>
+
+          @if (showImportExport()) {
+            <div class="col-span-1 sm:col-span-2 border-t border-gray-200 dark:border-zinc-700 pt-4 mt-2">
+              <h4 class="text-sm font-semibold textNormal mb-3">Offline Authentication</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  class="w-full flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                  (click)="exportUserData()"
+                  [disabled]="!canExportData()"
+                >
+                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="download" />
+                  <span class="font-medium">Export User Data</span>
+                </button>
+
+                <label
+                  class="w-full flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
+                >
+                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="upload" />
+                  <span class="font-medium">Import User Data</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    class="hidden"
+                    (change)="importUserData($event)"
+                  />
+                </label>
+              </div>
+              @if (importError()) {
+                <p class="text-sm text-red-600 dark:text-red-400 mt-2">{{ importError() }}</p>
+              }
+            </div>
+          }
         } @else {
           <div
             class="col-span-1 sm:col-span-2 py-4 textMuted italic text-center border-2 border-dashed border-gray-200 dark:border-zinc-700 rounded-lg"

@@ -21,7 +21,7 @@ import { Common } from "@helpers/common.helper";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { SignupForm } from "@models/signup-form.model";
+import { SignupForm } from "@models/index";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -110,29 +110,27 @@ export class SignupView implements OnDestroy {
       Object.values(this.regForm.controls).forEach((control) => {
         control.markAsTouched();
       });
+      this.submitted.set(false);
+      return;
     }
 
-    if (this.regForm.valid) {
-      const authData: SignupForm = {
-        email: this.f["email"].value,
-        username: this.f["username"].value,
-        password: this.f["password"].value,
-      };
-      this.authService.signup<string>(authData).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Registration successful");
-          setTimeout(() => {
-            this.router.navigate(["/login"]);
-          }, 500);
-          this.submitted.set(false);
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message ?? err.toString());
-          this.submitted.set(false);
-        },
-      });
-    } else {
-      this.notifyService.showError("Error sending data! Enter the data in the field.");
-    }
+    const authData: SignupForm = {
+      email: this.f["email"].value,
+      username: this.f["username"].value,
+      password: this.f["password"].value,
+    };
+    this.authService.signup<string>(authData).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Registration successful");
+        setTimeout(() => {
+          this.router.navigate(["/login"]);
+        }, 500);
+        this.submitted.set(false);
+      },
+      error: (err: any) => {
+        this.notifyService.showError(err.message ?? err.toString());
+        this.submitted.set(false);
+      },
+    });
   }
 }
