@@ -22,7 +22,6 @@ pub enum ApiError {
   Serialization(String),
 }
 
-#[allow(dead_code)]
 pub type ApiResult<T> = Result<T, ApiError>;
 
 impl From<ApiError> for ResponseModel {

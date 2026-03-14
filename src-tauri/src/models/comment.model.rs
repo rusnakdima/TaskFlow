@@ -20,6 +20,8 @@ pub struct CommentModel {
   pub subtaskId: Option<String>,
   #[serde(default)]
   pub readBy: Vec<String>,
+  #[serde(default)]
+  pub isDeleted: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +68,7 @@ impl From<CommentCreateModel> for CommentModel {
       taskId: value.taskId,
       subtaskId: value.subtaskId,
       readBy: vec![],
+      isDeleted: false,
     }
   }
 }

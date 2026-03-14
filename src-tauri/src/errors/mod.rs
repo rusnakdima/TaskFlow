@@ -1,2 +1,2 @@
 pub mod api_error;
-pub use api_error::{ApiError, ApiResult};
+pub use api_error::ApiResult;
