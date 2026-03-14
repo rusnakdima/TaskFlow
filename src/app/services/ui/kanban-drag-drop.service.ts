@@ -13,8 +13,6 @@ import { Task, TaskStatus } from "@models/task.model";
   providedIn: "root",
 })
 export class KanbanDragDropService {
-  constructor() {}
-
   /**
    * Handle task drop event on Kanban board
    * @param event - CDK drag-drop event
