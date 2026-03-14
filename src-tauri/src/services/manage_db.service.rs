@@ -95,10 +95,35 @@ impl ManageDbService {
     }
   }
 
-  /// Get all data for admin view
+  /// Get all data for admin view (from MongoDB)
   pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
       Some(manager) => manager.getAllDataForAdmin().await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  /// Get all data for Archive page from local JSON (all users, includes deleted)
+  pub async fn getAllDataForArchive(&self) -> Result<ResponseModel, ResponseModel> {
+    match &self.adminManager {
+      Some(manager) => manager.getAllDataForArchive().await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  /// Get all data for user from local JSON (includes deleted records for restoration)
+  #[allow(dead_code)]
+  pub async fn getAllDataForUser(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    match &self.adminManager {
+      Some(manager) => manager.getAllDataForUser(userId).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -115,6 +140,22 @@ impl ManageDbService {
   ) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
       Some(manager) => manager.permanentlyDeleteRecord(table, id).await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  /// Permanently delete a record with cascade to children
+  pub async fn permanentlyDeleteRecordWithCascade(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    match &self.adminManager {
+      Some(manager) => manager.permanentlyDeleteRecordWithCascade(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),

@@ -50,6 +50,27 @@ pub async fn exportToCloud(
   state.manageDbService.exportToCloud(userId).await
 }
 
+// ==================== ADMIN MANAGEMENT ENDPOINTS ====================
+
+/// Get all data from local JSON for Archive page (all users, includes deleted)
+#[tauri::command]
+pub async fn getAllDataForArchive(
+  state: State<'_, AppState>,
+) -> Result<ResponseModel, ResponseModel> {
+  state.manageDbService.getAllDataForArchive().await
+}
+
+/// Get all data for regular user from local JSON (includes deleted records for restoration)
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn getAllDataForUser(
+  state: State<'_, AppState>,
+  userId: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.manageDbService.getAllDataForUser(userId).await
+}
+
+/// Get all data for admin from MongoDB (global view with all users' data)
 #[tauri::command]
 pub async fn getAllDataForAdmin(
   state: State<'_, AppState>,
@@ -66,6 +87,18 @@ pub async fn permanentlyDeleteRecord(
   state
     .manageDbService
     .permanentlyDeleteRecord(table, id)
+    .await
+}
+
+#[tauri::command]
+pub async fn permanentlyDeleteRecordWithCascade(
+  state: State<'_, AppState>,
+  table: String,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manageDbService
+    .permanentlyDeleteRecordWithCascade(table, id)
     .await
 }
 
