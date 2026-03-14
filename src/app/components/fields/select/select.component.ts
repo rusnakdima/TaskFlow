@@ -10,21 +10,16 @@ import { MatSelectModule } from "@angular/material/select";
 /* models */
 import { SelectField } from "@models/form-field.model";
 
+/* base */
+import { BaseFieldComponent } from "../base-field.component";
+
 @Component({
   selector: "app-select",
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatSelectModule],
   templateUrl: "./select.component.html",
 })
-export class SelectComponent {
-  @Input() label: string = "";
+export class SelectComponent extends BaseFieldComponent {
+  override field!: SelectField;
   @Input() parentForm!: FormGroup;
-  @Input() form!: FormGroup;
-  @Input() field!: SelectField;
-
-  isInvalid(attr: string) {
-    return (
-      (this.form.get(attr)?.touched || this.form.get(attr)?.dirty) && this.form.get(attr)?.errors
-    );
-  }
 }

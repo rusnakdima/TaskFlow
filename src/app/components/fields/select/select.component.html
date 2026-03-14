@@ -3,7 +3,7 @@
     <mat-label>{{ label }}</mat-label>
     <mat-select formControlName="{{ field.name }}">
       @for (option of field.options; track $index) {
-        @if (option.isShow(parentForm)) {
+        @if (option.isShow(form)) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
         }
       }
