@@ -227,7 +227,9 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     try {
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
-    } catch (err) {}
+    } catch (err) {
+      console.warn("[ChatWindow] Failed to scroll to bottom:", err);
+    }
   }
 
   isMyMessage(chat: Chat): boolean {
