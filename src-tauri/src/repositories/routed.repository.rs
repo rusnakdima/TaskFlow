@@ -88,7 +88,7 @@ impl RoutedRepository {
     }
   }
 
-  pub async fn create(&self, data: Value, syncMetadata: Option<&SyncMetadata>) -> ApiResult<bool> {
+  pub async fn create(&self, data: Value, syncMetadata: Option<&SyncMetadata>) -> ApiResult<Value> {
     if self.useJsonProvider(syncMetadata) {
       self
         .jsonProvider
@@ -112,7 +112,7 @@ impl RoutedRepository {
     id: &str,
     data: Value,
     syncMetadata: Option<&SyncMetadata>,
-  ) -> ApiResult<bool> {
+  ) -> ApiResult<Value> {
     if self.useJsonProvider(syncMetadata) {
       self
         .jsonProvider

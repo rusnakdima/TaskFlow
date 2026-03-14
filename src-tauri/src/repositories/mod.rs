@@ -1,2 +1,2 @@
-#[path = "base.repository.rs"]
-pub mod base_repository;
+#[path = "routed.repository.rs"]
+pub mod routed_repository;

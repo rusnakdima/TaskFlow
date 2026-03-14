@@ -1,7 +1,8 @@
 /* sys lib */
 use async_trait::async_trait;
 use serde_json::{from_str, json, to_string_pretty, Value};
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
+use tokio::fs;
 
 /* providers */
 use crate::errors::ApiResult;
@@ -22,7 +23,8 @@ impl JsonCrudProvider {
   }
 
   /// Strip nested relation fields from data before saving to prevent storing embedded relations
-  /// This ensures tasks/subtasks/comments are stored in their own tables, not nested in parent records
+  /// This ensures tasks/subtasks are stored in their own tables, not nested in parent records
+  /// Note: comments are stored inline in tasks/subtasks, not stripped
   fn stripNestedRelations(table: &str, mut data: Value) -> Value {
     if let Some(obj) = data.as_object_mut() {
       match table {
@@ -31,14 +33,13 @@ impl JsonCrudProvider {
           obj.remove("tasks");
           obj.remove("subtasks");
         }
-        // Task records should not contain nested subtasks or comments
+        // Task records - keep comments (stored inline), only strip subtasks
         "tasks" => {
           obj.remove("subtasks");
-          obj.remove("comments");
         }
-        // Subtask records should not contain nested comments
+        // Subtask records - keep comments (stored inline)
         "subtasks" => {
-          obj.remove("comments");
+          // Don't strip comments - they're stored inline
         }
         _ => {}
       }
@@ -62,15 +63,15 @@ impl JsonCrudProvider {
     let tablePath = self.getTablePath(nameTable);
 
     if let Some(parentDir) = tablePath.parent() {
-      fs::create_dir_all(parentDir).map_err(|e| e.to_string())?;
+      fs::create_dir_all(parentDir).await.map_err(|e| e.to_string())?;
     }
 
     if !tablePath.exists() {
-      fs::write(&tablePath, "[]").map_err(|e| e.to_string())?;
+      fs::write(&tablePath, "[]").await.map_err(|e| e.to_string())?;
       return Ok(Vec::new());
     }
 
-    let content = fs::read_to_string(&tablePath).map_err(|e| e.to_string())?;
+    let content = fs::read_to_string(&tablePath).await.map_err(|e| e.to_string())?;
 
     if content.trim().is_empty() {
       return Ok(vec![]);
@@ -86,7 +87,7 @@ impl JsonCrudProvider {
 
     // Ensure directory exists
     if let Some(parent) = tablePath.parent() {
-      if let Err(e) = fs::create_dir_all(parent) {
+      if let Err(e) = fs::create_dir_all(parent).await {
         return Err(format!("Failed to create directory: {}", e).into());
       }
     }
@@ -95,13 +96,13 @@ impl JsonCrudProvider {
 
     let tempPath = tablePath.with_extension("tmp");
 
-    if let Err(e) = fs::write(&tempPath, &jsonString) {
-      let _ = fs::remove_file(&tempPath);
+    if let Err(e) = fs::write(&tempPath, &jsonString).await {
+      let _ = fs::remove_file(&tempPath).await;
       return Err(format!("Failed to write temp file: {}", e).into());
     }
 
-    if let Err(e) = fs::rename(&tempPath, &tablePath) {
-      let _ = fs::remove_file(&tempPath);
+    if let Err(e) = fs::rename(&tempPath, &tablePath).await {
+      let _ = fs::remove_file(&tempPath).await;
       return Err(format!("Failed to rename file: {}", e).into());
     }
 
@@ -325,28 +326,21 @@ impl CrudProvider for JsonCrudProvider {
   }
 
   async fn create(&self, nameTable: &str, data: Value) -> ApiResult<Value> {
-    println!("[JsonCrudProvider] create in table: {}", nameTable);
     let mut listRecords = self.getDataTable(nameTable).await?;
 
-    // Ensure all required fields are present before saving
     let data_with_defaults = ensure_required_fields(nameTable, data);
 
-    // Strip nested relations before saving
     let cleanData = Self::stripNestedRelations(nameTable, data_with_defaults);
-    
-    // Get the created record before pushing
+
     let created_record = cleanData.clone();
-    
+
     listRecords.push(cleanData);
     self.saveDataTable(nameTable, &listRecords).await?;
-    println!("[JsonCrudProvider] create successful, record saved to file");
 
-    // ✅ Return the created record
     Ok(created_record)
   }
 
   async fn update(&self, nameTable: &str, id: &str, updates: Value) -> ApiResult<Value> {
-    println!("[JsonCrudProvider] update in table: {}, id: {}", nameTable, id);
     let mut listRecords = self.getDataTable(nameTable).await?;
 
     let record = listRecords.iter_mut().find(|record| {
@@ -360,7 +354,6 @@ impl CrudProvider for JsonCrudProvider {
     if let Some(record) = record {
       if let (Some(recordObj), Some(updatesObj)) = (record.as_object_mut(), updates.as_object()) {
         for (key, value) in updatesObj {
-          // Skip nested relation fields during update
           if key == "tasks" || key == "subtasks" || key == "comments" {
             continue;
           }
@@ -368,14 +361,10 @@ impl CrudProvider for JsonCrudProvider {
         }
       }
 
-      // Clone the updated record BEFORE passing listRecords to saveDataTable
       let updated_record = record.clone();
       self.saveDataTable(nameTable, &listRecords).await?;
-      println!("[JsonCrudProvider] update successful, record saved to file");
-      // ✅ Return the updated record
       Ok(updated_record)
     } else {
-      println!("[JsonCrudProvider] update failed: record not found");
       Err(format!("Record with id {} not found", id).into())
     }
   }
