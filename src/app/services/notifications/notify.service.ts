@@ -19,7 +19,7 @@ export class NotifyService {
     try {
       this.notify.next({ status, message });
     } catch (error) {
-      console.error("Error in showNotify:", error);
+      // Error showing notification
     }
   }
 

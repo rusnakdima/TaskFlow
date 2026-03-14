@@ -1,11 +1,14 @@
 /* sys lib */
 import { Injectable, inject, signal, computed } from "@angular/core";
-import { Observable, filter } from "rxjs";
+import { Observable, Subject, filter } from "rxjs";
 
 /* services */
 import { LocalWebSocketService } from "@services/core/local-websocket.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/core/storage.service";
+
+/* models */
+import { INotify, ResponseStatus } from "@models/response.model";
 
 export interface NotificationAction {
   id: string;
@@ -50,6 +53,9 @@ export class NotificationService {
   private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
 
+  // NotifyService subject for toast notifications
+  private notify = new Subject<INotify>();
+
   // Notification state (from NotificationStorageService)
   private notificationsSignal = signal<NotificationAction[]>([]);
   private unreadCountSignal = signal(0);
@@ -74,10 +80,6 @@ export class NotificationService {
     return this.settingsSignal.asReadonly();
   }
 
-  totalUnreadCount = computed(() => {
-    return this.unreadCountSignal();
-  });
-
   constructor() {
     this.loadSettings();
     this.listenToEvents();
@@ -90,6 +92,54 @@ export class NotificationService {
         }
       }
     }, 5000);
+  }
+
+  // ==================== NOTIFY SERVICE METHODS (Toast Notifications) ====================
+
+  /**
+   * Get the notify subject for toast notifications
+   */
+  getNotifySubject(): Subject<INotify> {
+    return this.notify;
+  }
+
+  /**
+   * Show a toast notification
+   */
+  showNotify(status: ResponseStatus, message: string) {
+    try {
+      this.notify.next({ status, message });
+    } catch (error) {
+      // Error showing notification
+    }
+  }
+
+  /**
+   * Show a success toast notification
+   */
+  showSuccess(message: string) {
+    this.showNotify(ResponseStatus.SUCCESS, message);
+  }
+
+  /**
+   * Show an info toast notification
+   */
+  showInfo(message: string) {
+    this.showNotify(ResponseStatus.INFO, message);
+  }
+
+  /**
+   * Show a warning toast notification
+   */
+  showWarning(message: string) {
+    this.showNotify(ResponseStatus.WARNING, message);
+  }
+
+  /**
+   * Show an error toast notification
+   */
+  showError(message: string) {
+    this.showNotify(ResponseStatus.ERROR, message);
   }
 
   // ==================== SETTINGS METHODS ====================
