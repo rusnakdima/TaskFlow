@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 #[async_trait]
-#[allow(dead_code)]
 pub trait CrudProvider: Send + Sync {
   async fn getAll(&self, table: &str, filter: Option<Value>) -> ApiResult<Vec<Value>>;
   async fn get(&self, table: &str, id: &str) -> ApiResult<Value>;
