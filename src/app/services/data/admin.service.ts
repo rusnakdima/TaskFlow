@@ -19,8 +19,16 @@ export class AdminService {
     return from(invoke<Response<R>>("getAllDataForAdmin"));
   }
 
+  getAllDataForArchive<R>(): Observable<Response<R>> {
+    return from(invoke<Response<R>>("getAllDataForArchive"));
+  }
+
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {
     return await invoke<Response<void>>("permanentlyDeleteRecord", { table, id });
+  }
+
+  async permanentlyDeleteRecordWithCascade(table: string, id: string): Promise<Response<void>> {
+    return await invoke<Response<void>>("permanentlyDeleteRecordWithCascade", { table, id });
   }
 
   async toggleDeleteStatus(table: string, id: string): Promise<Response<void>> {
