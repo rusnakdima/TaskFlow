@@ -13,17 +13,16 @@ import { Response } from "@models/response.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataSyncService } from "@services/data/data-sync.service";
-import { WebSocketDispatcherService } from "@services/core/websocket-dispatcher.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -53,15 +52,13 @@ import { CommandPaletteComponent } from "@components/command-palette/command-pal
 export class App implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
-  private localWs = inject(LocalWebSocketService);
+  private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private storageService = inject(StorageService);
   private dataSyncService = inject(DataSyncService);
-  private wsDispatcher = inject(WebSocketDispatcherService);
   private dataSyncProvider = inject(DataSyncProvider);
   private localAuthService = inject(LocalAuthService);
-  private jwtTokenService = inject(JwtTokenService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -74,7 +71,7 @@ export class App implements OnInit {
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
 
   ngOnInit(): void {
-    this.wsDispatcher.initWebSocketListeners();
+    this.ws.initStorageListeners();
 
     this.shortcutService.help$.subscribe(() => {
       this.shortcutHelp.show();
@@ -89,46 +86,13 @@ export class App implements OnInit {
 
     this.updateShowComponents();
 
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    // Initialize session from stored token
+    this.authService.initializeSession(this.authRoutes);
 
-    if (!token) {
-      // No token - check if we can authenticate offline
-      setTimeout(() => {
-        if (!this.authRoutes.some((route) => this.router.url.startsWith(route))) {
-          // Check if offline auth is available
-          if (this.authService.canAuthenticateOffline()) {
-            this.notifyService.showInfo("Offline authentication available - please login");
-          }
-          this.router.navigate(["/login"]);
-        }
-      }, 1000);
-    }
-
-    if (token) {
-      // First check if token is valid locally (without backend call)
-      const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
-
-      if (!isTokenExpired) {
-        // Token appears valid locally - try to load data
-        // If backend is available, data will sync; if not, we use cached data
-        this.loadAllData();
-        this.checkTokenWithBackend(token); // Check in background
-      } else {
-        // Token expired - try offline auth with cached credentials
-        const userId = this.jwtTokenService.getUserId(token);
-        if (userId) {
-          const localUser = this.localAuthService.getUserById(userId);
-          if (localUser && localUser.availableForOffline && localUser.lastToken) {
-            // We have offline credentials - user needs to re-enter password
-            this.notifyService.showWarning("Session expired - please login again");
-            this.router.navigate(["/login"]);
-          } else {
-            this.router.navigate(["/login"]);
-          }
-        } else {
-          this.router.navigate(["/login"]);
-        }
-      }
+    // Load all data immediately if user is authenticated
+    // This ensures data is available even before token backend validation completes
+    if (this.authService.isLoggedIn()) {
+      this.loadAllData();
     }
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
@@ -149,19 +113,13 @@ export class App implements OnInit {
       next: (user: User) => {
         // Token is valid on backend - update local data if needed
         this.localAuthService.updateToken(user.id, token);
-        this.loadAllData();
+        // Data already loaded on init, just trigger sync
         this.triggerSync();
       },
       error: (err: Response<string>) => {
         // Backend check failed - could be offline
-        // Check if it's a network error
-        const isNetworkError =
-          err.message?.includes("NetworkError") ||
-          err.message?.includes("network") ||
-          err.message?.includes("offline") ||
-          err.message?.includes("Failed to fetch");
-
-        if (isNetworkError) {
+        // Check if it's a network error using centralized helper
+        if (NetworkErrorHelper.isNetworkError(err)) {
           // We're offline - use cached data
           this.isOfflineMode = true;
           this.notifyService.showWarning("Working offline - data sync paused");
@@ -195,7 +153,9 @@ export class App implements OnInit {
         this.checkUserProfile();
       },
       error: (error) => {
-        this.notifyService.showError("Failed to load data. Please refresh the page.");
+        // Silently fail - data may be available from cache
+        // User can manually trigger sync if needed
+        console.warn('[App] Data load failed, using cached data if available');
       },
     });
 
