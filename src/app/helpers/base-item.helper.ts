@@ -5,7 +5,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* helpers */
-import { formatDateShort } from "./date-conversion.helper";
+import { DateHelper } from "./date-helpers";
 
 /**
  * Base helper for item components (Task, Subtask, Todo)
@@ -96,13 +96,6 @@ export class BaseItemHelper {
   }
 
   /**
-   * Alias for getNextStatus
-   */
-  cycleStatus(currentStatus: TaskStatus): TaskStatus {
-    return this.getNextStatus(currentStatus);
-  }
-
-  /**
    * Get status icon
    */
   getStatusIcon(status: string): string {
@@ -185,7 +178,7 @@ export class BaseItemHelper {
   /**
    * Format date string
    */
-  formatDate = formatDateShort;
+  formatDate = DateHelper.formatDateShort;
 
   /**
    * Check if item is blocked by dependencies
@@ -206,35 +199,65 @@ export class BaseItemHelper {
   }
 
   /**
-   * Count unread comments for an entity (todo, task, or subtask)
-   * Recursively counts comments for nested entities
+   * Count unread comments for an entity (task or subtask)
+   * Only counts non-deleted comments that haven't been read by the user
    */
   countUnreadComments(
     entity: any,
     userId: string | null,
-    entityType: "todo" | "task" | "subtask" = "task"
+    entityType: "task" | "subtask" = "task"
   ): number {
     if (!entity || !userId) return 0;
 
     let count = 0;
 
     // Count direct comments on this entity
-    if (entity.comments) {
-      count += entity.comments.filter((c: any) => !c.readBy || !c.readBy.includes(userId)).length;
-    }
-
-    // Recursively count nested comments based on entity type
-    if (entityType === "todo" && entity.tasks) {
-      entity.tasks.forEach((task: any) => {
-        count += this.countUnreadComments(task, userId, "task");
-      });
-    } else if ((entityType === "todo" || entityType === "task") && entity.subtasks) {
-      entity.subtasks.forEach((subtask: any) => {
-        count += this.countUnreadComments(subtask, userId, "subtask");
-      });
+    if (entity.comments && entity.comments.length > 0) {
+      count += entity.comments.filter((c: any) => {
+        // Skip deleted comments
+        if (c.isDeleted) return false;
+        // Skip if user has read the comment
+        if (c.readBy && c.readBy.includes(userId)) return false;
+        // For tasks, only count task comments (not subtask comments)
+        if (entityType === "task" && c.subtaskId) return false;
+        // For subtasks, only count subtask comments
+        if (entityType === "subtask" && !c.subtaskId) return false;
+        return true;
+      }).length;
     }
 
     return count;
+  }
+
+  /**
+   * Mark all comments as read for a task or subtask
+   */
+  markCommentsAsRead(
+    entity: any,
+    userId: string,
+    entityType: "task" | "subtask" = "task"
+  ): any[] {
+    if (!entity || !entity.comments || !userId) return entity.comments || [];
+    if (entity.comments.length === 0) return entity.comments;
+
+    return entity.comments.map((comment: any) => {
+      // Skip deleted comments
+      if (comment.isDeleted) return comment;
+
+      // For tasks, only mark task comments (not subtask comments)
+      if (entityType === "task" && comment.subtaskId) return comment;
+      // For subtasks, only mark subtask comments
+      if (entityType === "subtask" && !comment.subtaskId) return comment;
+
+      // Mark as read if not already
+      if (!comment.readBy || !comment.readBy.includes(userId)) {
+        return {
+          ...comment,
+          readBy: [...(comment.readBy || []), userId]
+        };
+      }
+      return comment;
+    });
   }
 
   /**

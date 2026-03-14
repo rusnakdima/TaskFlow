@@ -1,22 +1,42 @@
 /* sys lib */
 import { FormGroup } from "@angular/forms";
 
-/* services */
-import { NotifyService } from "@services/notifications/notify.service";
-
 /**
- * DateValidatorHelper - Reusable date validation logic
+ * ValidationHelper - Reusable form validation logic
  * Used across manage-task, manage-subtask, manage-todo views
  */
-export class DateValidatorHelper {
-  constructor(private notifyService: NotifyService) {}
+export class ValidationHelper {
+  /**
+   * Validate form and mark all controls as touched
+   * @param form - FormGroup to validate
+   * @param notifyService - NotifyService for showing errors
+   * @param isSubmitting - Signal or boolean indicating if form is currently submitting
+   * @returns true if form is valid and can proceed, false otherwise
+   */
+  static validateForm(form: FormGroup, notifyService: any, isSubmitting: boolean = false): boolean {
+    if (form.invalid || isSubmitting) {
+      Object.values(form.controls).forEach((control) => {
+        control.markAsTouched();
+      });
+
+      if (form.invalid) {
+        notifyService.showError("Please fill in all required fields");
+        return false;
+      }
+
+      return false;
+    }
+
+    return true;
+  }
 
   /**
    * Validate dates from a FormGroup
    * @param form - FormGroup with startDate and endDate controls
+   * @param notifyService - NotifyService for showing errors
    * @returns true if dates are valid, false otherwise
    */
-  validateDatesFromForm(form: FormGroup): boolean {
+  static validateDates(form: FormGroup, notifyService: any): boolean {
     const startDate = form.get("startDate")?.value;
     const endDate = form.get("endDate")?.value;
 
@@ -25,7 +45,7 @@ export class DateValidatorHelper {
       const end = new Date(endDate);
 
       if (end < start) {
-        this.notifyService.showError("End date cannot be earlier than start date");
+        notifyService.showError("End date cannot be earlier than start date");
         return false;
       }
     }
@@ -44,7 +64,7 @@ export class DateValidatorHelper {
    * @param form - FormGroup containing the date controls
    * @returns Filter function for MatDatepicker
    */
-  createEndDateFilter(startDateControl: string, form: FormGroup) {
+  static createEndDateFilter(startDateControl: string, form: FormGroup) {
     return (date: Date | null): boolean => {
       const startDateValue = form.get(startDateControl)?.value;
       if (!startDateValue) {
@@ -66,7 +86,7 @@ export class DateValidatorHelper {
    * @param form - FormGroup with startDate and endDate controls
    * @param startDate - New start date value
    */
-  updateEndDateValidation(form: FormGroup, startDate: string): void {
+  static updateEndDateValidation(form: FormGroup, startDate: string): void {
     const endDateControl = form.get("endDate");
     if (!startDate) {
       endDateControl?.setValue("");
