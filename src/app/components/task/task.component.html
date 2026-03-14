@@ -298,12 +298,12 @@
           >
             <div class="flex items-center gap-1 relative">
               <mat-icon class="w-5! h-5! text-xl!" fontIcon="forum" />
-              @if (hasUnreadComments) {
+              @if (unreadCommentsCount > 0) {
                 <div
                   class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
                 ></div>
               }
-              @if (task.comments && getActiveComments(task.comments).length > 0) {
+              @if (task.comments && getActiveComments(task.comments).length > 0 && unreadCommentsCount === 0) {
                 <span class="text-[10px] font-bold">{{
                   getActiveComments(task.comments).length
                 }}</span>

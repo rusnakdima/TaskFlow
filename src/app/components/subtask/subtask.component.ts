@@ -68,6 +68,7 @@ export class SubtaskComponent implements OnChanges {
   @Input() highlight: boolean = false;
   @Input() highlightComment: string | null = null;
   @Input() openComments: boolean = false;
+  @Input() unreadCommentsCount: number = 0;
 
   @Output() deleteSubtaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
@@ -91,14 +92,6 @@ export class SubtaskComponent implements OnChanges {
     }
   }
 
-  get unreadCommentsCount(): number {
-    return this.baseHelper.countUnreadComments(
-      this.subtask,
-      this.authService.getValueByKey("id"),
-      "subtask"
-    );
-  }
-
   get hasUnreadComments(): boolean {
     return this.unreadCommentsCount > 0;
   }
@@ -109,11 +102,63 @@ export class SubtaskComponent implements OnChanges {
    * Filter out deleted comments
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
-    return (comments || []).filter((c) => !c.isDeleted);
+    if (!comments || comments.length === 0) return [];
+    return comments.filter((c) => !c.isDeleted);
   }
 
   toggleComments() {
+    const wasOpen = this.showComments();
     this.showComments.update((v) => !v);
+
+    // Mark comments as read when opening
+    if (!wasOpen && this.subtask) {
+      const userId = this.authService.getValueByKey("id");
+      if (userId && this.subtask.comments && this.subtask.comments.length > 0) {
+        // Check if there are any unread comments (excluding own comments)
+        const hasUnread = this.subtask.comments.some((c: any) =>
+          !c.isDeleted && c.subtaskId && c.authorId !== userId && (!c.readBy || !c.readBy.includes(userId))
+        );
+
+        if (hasUnread) {
+          // Update storage directly - mark comments as read
+          const updatedComments = this.subtask.comments.map((c: any) => {
+            // Skip deleted comments and task comments (only subtask comments)
+            if (c.isDeleted || !c.subtaskId) return c;
+            // Skip if user is author (already read)
+            if (c.authorId === userId) return c;
+
+            // Mark as read if not already
+            if (!c.readBy || !c.readBy.includes(userId)) {
+              return {
+                ...c,
+                readBy: [...(c.readBy || []), userId]
+              };
+            }
+            return c;
+          });
+
+          this.storageService.updateItem("subtasks", this.subtask.id, {
+            ...this.subtask,
+            comments: updatedComments
+          });
+
+          // Send update to backend (only ids and readBy)
+          const effectiveTodoId = this.todoId || this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+          if (effectiveTodoId) {
+            const commentsToUpdate = updatedComments
+              .filter((c: any) => !c.isDeleted && c.subtaskId === this.subtask?.id && c.authorId !== userId);
+            
+            if (commentsToUpdate.length > 0) {
+              this.dataSyncProvider.crud("updateAll", "comments", {
+                data: commentsToUpdate.map((c: any) => ({ id: c.id, readBy: c.readBy })),
+                parentTodoId: effectiveTodoId
+              }).subscribe();
+            }
+          }
+        }
+      }
+    }
+
     this.cdr.markForCheck();
   }
 
@@ -139,9 +184,13 @@ export class SubtaskComponent implements OnChanges {
 
       this.dataSyncProvider.crud<Comment>("create", "comments", { data: commentForBackend, parentTodoId: effectiveTodoId }).subscribe({
         next: () => {
+          // DataSyncProvider auto-updates storage, just refresh UI
           this.showComments.set(true);
           this.cdr.markForCheck();
         },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add comment");
+        }
       });
     }
   }

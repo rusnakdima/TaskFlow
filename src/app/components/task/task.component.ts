@@ -73,6 +73,7 @@ export class TaskComponent implements OnInit, OnChanges {
   @Input() showExpandButton: boolean = false;
   @Input() highlightCommentId: string | null = null;
   @Input() autoOpenComments: boolean = false;
+  @Input() unreadCommentsCount: number = 0;
 
   @Output() deleteTaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Task> = new EventEmitter();
@@ -103,14 +104,6 @@ export class TaskComponent implements OnInit, OnChanges {
 
   truncateString = Common.truncateString;
 
-  get unreadCommentsCount(): number {
-    return this.baseHelper.countUnreadComments(
-      this.task,
-      this.authService.getValueByKey("id"),
-      "task"
-    );
-  }
-
   get hasUnreadComments(): boolean {
     return this.unreadCommentsCount > 0;
   }
@@ -123,11 +116,71 @@ export class TaskComponent implements OnInit, OnChanges {
    * Filter out deleted comments
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
-    return (comments || []).filter((c) => !c.isDeleted);
+    if (!comments || comments.length === 0) return [];
+    return comments.filter((c) => !c.isDeleted);
   }
 
   toggleComments() {
+    const wasOpen = this.showComments();
     this.showComments.update((v) => !v);
+
+    // Mark subtask comments as read when opening (task's own comments are not counted in badge)
+    if (!wasOpen && this.task && this.task.subtasks && this.task.subtasks.length > 0) {
+      const userId = this.authService.getValueByKey("id");
+      if (userId) {
+        let hasUpdates = false;
+
+        // Mark all subtask comments as read
+        const updatedSubtasks = this.task.subtasks.map((subtask: any) => {
+          if (!subtask.comments || subtask.comments.length === 0) return subtask;
+
+          const updatedComments = subtask.comments.map((c: any) => {
+            // Skip deleted comments and task comments (only subtask comments)
+            if (c.isDeleted || !c.subtaskId) return c;
+            // Skip if user is author (already read)
+            if (c.authorId === userId) return c;
+
+            // Mark as read if not already
+            if (!c.readBy || !c.readBy.includes(userId)) {
+              hasUpdates = true;
+              return {
+                ...c,
+                readBy: [...(c.readBy || []), userId],
+              };
+            }
+            return c;
+          });
+
+          return { ...subtask, comments: updatedComments };
+        });
+
+        if (hasUpdates) {
+          // Update storage
+          this.storageService.updateItem("tasks", this.task.id, {
+            ...this.task,
+            subtasks: updatedSubtasks,
+          });
+
+          // Send update to backend for subtask comments only
+          const effectiveTodoId = this.todoId || this.task.todoId;
+          if (effectiveTodoId) {
+            const allSubtaskComments = updatedSubtasks.flatMap((s: any) =>
+              (s.comments || []).filter((c: any) => !c.isDeleted && c.subtaskId && c.authorId !== userId)
+            );
+
+            if (allSubtaskComments.length > 0) {
+              this.dataSyncProvider
+                .crud("updateAll", "comments", {
+                  data: allSubtaskComments.map((c: any) => ({ id: c.id, readBy: c.readBy })),
+                  parentTodoId: effectiveTodoId,
+                })
+                .subscribe();
+            }
+          }
+        }
+      }
+    }
+
     this.cdr.markForCheck();
   }
 
@@ -147,23 +200,34 @@ export class TaskComponent implements OnInit, OnChanges {
         authorName: username || "Unknown",
         content: content,
         taskId: this.task.id,
-        readBy: [userId],
+        readBy: [userId], // Creator has already read it
         isDeleted: false,
       };
 
-      this.dataSyncProvider.crud<Comment>("create", "comments", { data: commentForBackend, parentTodoId: effectiveTodoId }).subscribe({
-        next: () => {
-          this.showComments.set(true);
-          this.cdr.markForCheck();
-        },
-      });
+      this.dataSyncProvider
+        .crud<Comment>("create", "comments", {
+          data: commentForBackend,
+          parentTodoId: effectiveTodoId,
+        })
+        .subscribe({
+          next: () => {
+            // DataSyncProvider auto-updates storage, just refresh UI
+            this.showComments.set(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to add comment");
+          },
+        });
     }
   }
 
   onDeleteComment(commentId: string) {
     const effectiveTodoId = this.todoId || this.task?.todoId;
     if (effectiveTodoId) {
-      this.dataSyncProvider.crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId }).subscribe({});
+      this.dataSyncProvider
+        .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
+        .subscribe({});
     }
   }
 
