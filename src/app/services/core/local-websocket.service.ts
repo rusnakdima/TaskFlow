@@ -8,9 +8,6 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { SyncMetadata } from "@models/sync-metadata";
 import { RelationObj } from "@models/relation-obj.model";
 
-/* services */
-import { NotifyService } from "@services/notifications/notify.service";
-
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
 interface CrudParams {
@@ -33,8 +30,6 @@ export class LocalWebSocketService {
   private messageSubject = new Subject<any>();
   private eventSubject = new Subject<{ event: string; data: any }>();
 
-  private notifyService = inject(NotifyService);
-
   constructor() {
     this.connect();
   }
@@ -49,11 +44,10 @@ export class LocalWebSocketService {
 
       this.socket.onclose = () => {
         this.isConnected$.next(false);
-
         setTimeout(() => this.connect(), 5000);
       };
 
-      this.socket.onerror = (error) => {
+      this.socket.onerror = () => {
         this.isConnected$.next(false);
       };
 
@@ -61,25 +55,19 @@ export class LocalWebSocketService {
         try {
           const data = JSON.parse(event.data);
           if (data.event) {
-            this.handleBroadcast(data);
+            const eventName = `ws-${data.event}`;
+            window.dispatchEvent(new CustomEvent(eventName, { detail: data.data }));
+            this.eventSubject.next({ event: data.event, data: data.data });
           } else {
             this.messageSubject.next(data);
           }
         } catch (e) {
           // Parse error - likely not a JSON message, ignore silently
-          // This can happen during WebSocket handshake or non-JSON messages
         }
       };
     } catch (error) {
       this.isConnected$.next(false);
     }
-  }
-
-  private handleBroadcast(data: any): void {
-    const eventName = `ws-${data.event}`;
-    window.dispatchEvent(new CustomEvent(eventName, { detail: data.data }));
-
-    this.eventSubject.next({ event: data.event, data: data.data });
   }
 
   isConnected(): boolean {
@@ -95,13 +83,6 @@ export class LocalWebSocketService {
       filter((e) => e.event === eventName),
       map((e) => e.data)
     );
-  }
-
-  emit(action: string, payload: any): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    this.socket.send(JSON.stringify({ action, ...payload }));
   }
 
   private request<T>(action: string, payload: any): Observable<T> {
@@ -123,13 +104,6 @@ export class LocalWebSocketService {
       timeout(30000),
       map((response: { response: Response<T>; requestId?: string }) => {
         const resp = response.response || response;
-        // Only show notification for non-success or custom messages (not generic "Operation successful")
-        if (
-          resp.status !== ResponseStatus.SUCCESS ||
-          (resp.message && resp.message !== "Operation successful")
-        ) {
-          this.notifyService.showNotify(resp.status, resp.message);
-        }
         if (resp.status === ResponseStatus.SUCCESS) {
           return resp.data;
         } else {
@@ -145,7 +119,7 @@ export class LocalWebSocketService {
     );
   }
 
-  private buildPayload(operation: Operation, params: CrudParams): any {
+  crud<T>(operation: Operation, params: CrudParams): Observable<T> {
     const payload: any = { entity: params.table };
 
     switch (operation) {
@@ -180,24 +154,15 @@ export class LocalWebSocketService {
       payload.syncMetadata = params.syncMetadata;
     }
 
-    return payload;
-  }
-
-  private mapOperation(operation: Operation): string {
-    const map: Record<Operation, string> = {
+    const action: string = {
       getAll: "get-all",
       get: "get",
       create: "create",
       update: "update",
       updateAll: "update-all",
       delete: "delete",
-    };
-    return map[operation];
-  }
+    }[operation];
 
-  crud<T>(operation: Operation, params: CrudParams): Observable<T> {
-    const payload = this.buildPayload(operation, params);
-    const action = this.mapOperation(operation);
     return this.request<T>(action, payload);
   }
 }
