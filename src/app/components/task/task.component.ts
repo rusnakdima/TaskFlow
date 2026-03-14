@@ -21,6 +21,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+import { BaseEntityComponent } from "@components/base-entity.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -54,7 +55,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskComponent implements OnInit, OnChanges {
+export class TaskComponent extends BaseEntityComponent implements OnInit, OnChanges {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
@@ -64,9 +65,6 @@ export class TaskComponent implements OnInit, OnChanges {
   @Input() task: Task | null = null;
   @Input() todoId: string | null = null;
   @Input() index: number = 0;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
-  @Input() highlight: boolean = false;
   @Input() isExpanded: boolean = false;
   @Input() isSelected: boolean = false;
   @Input() allTasks: Task[] = [];
@@ -87,7 +85,9 @@ export class TaskComponent implements OnInit, OnChanges {
   editingValue = signal("");
   showComments = signal(false);
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {
+    super();
+  }
 
   ngOnInit() {}
 

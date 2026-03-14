@@ -19,6 +19,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+import { BaseEntityComponent } from "@components/base-entity.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -42,7 +43,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   templateUrl: "./todo.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TodoComponent implements OnInit {
+export class TodoComponent extends BaseEntityComponent implements OnInit {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
@@ -50,9 +51,6 @@ export class TodoComponent implements OnInit {
 
   @Input() todo: Todo | null = null;
   @Input() index: number = 0;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
-  @Input() highlight: boolean = false;
   @Input() unreadCommentsCount: number = 0;
 
   @Output() deleteTodoEvent: EventEmitter<string> = new EventEmitter();
@@ -60,7 +58,9 @@ export class TodoComponent implements OnInit {
 
   isExpandedDetails = signal(false);
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {
+    super();
+  }
 
   ngOnInit() {}
 
