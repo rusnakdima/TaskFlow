@@ -1,18 +1,19 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { tap } from "rxjs/operators";
 
 /* models */
 import { Response } from "@models/response.model";
-import { LoginForm } from "@models/login-form.model";
-import { SignupForm } from "@models/signup-form.model";
-import { PasswordReset } from "@models/password-reset-form.model";
+import { LoginForm, SignupForm, PasswordReset } from "@models/index";
+import { OfflineAuthResult } from "@models/local-user.model";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { LocalAuthService } from "@services/auth/local-auth.service";
 
 @Injectable({
   providedIn: "root",
@@ -20,11 +21,110 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 export class AuthService {
   private dataSyncProvider = inject(DataSyncProvider);
   private jwtTokenService = inject(JwtTokenService);
+  private localAuthService = inject(LocalAuthService);
 
-  constructor() {}
-
+  /**
+   * Check if token is valid on backend
+   */
   checkToken<R>(token: string): Observable<R> {
     return this.dataSyncProvider.invokeCommand<R>("checkToken", { token });
+  }
+
+  /**
+   * Attempt offline-first authentication
+   * ALWAYS checks local storage first, then tries cloud
+   */
+  async loginWithOfflineFirst(loginData: LoginForm): Promise<{ token: string; requiresDataSync: boolean; isOffline: boolean }> {
+    // STEP 1: Always check local storage FIRST
+    const offlineResult = await this.localAuthService.authenticateOffline(loginData);
+
+    // STEP 2: If offline auth succeeded with cached token, use it immediately
+    if (offlineResult.success && offlineResult.token) {
+      return {
+        token: offlineResult.token,
+        requiresDataSync: true,
+        isOffline: true,
+      };
+    }
+
+    // STEP 3: User found locally but needs online auth (no cached token or incomplete data)
+    // OR user not found locally - try online either way
+    return new Promise((resolve, reject) => {
+      this.performOnlineLogin(loginData).subscribe({
+        next: (token: string) => {
+          // ✅ Online login successful
+          resolve({
+            token,
+            requiresDataSync: true,
+            isOffline: false,
+          });
+        },
+        error: (err: any) => {
+          // ❌ Online login failed - check why
+          const isNetworkError =
+            err.message?.includes("NetworkError") ||
+            err.message?.includes("network") ||
+            err.message?.includes("offline") ||
+            err.message?.includes("Failed to fetch") ||
+            err.message?.includes("Server selection timeout") ||
+            err.message?.includes("Connection refused") ||
+            err.message?.includes("Database error");
+
+          if (isNetworkError) {
+            // Network error - check if we have local user data
+            if (offlineResult.user && offlineResult.user.availableForOffline) {
+              // ✅ User exists locally with valid credentials - allow offline login
+              // Use cached token even if it might be expired (better than nothing)
+              const tokenToUse = offlineResult.user.lastToken || "";
+              
+              if (tokenToUse) {
+                resolve({
+                  token: tokenToUse,
+                  requiresDataSync: true,
+                  isOffline: true,
+                });
+              } else {
+                // User exists locally but no token - can't login without network
+                reject(new Error("No internet connection. User data exists but no cached token available."));
+              }
+            } else {
+              // ❌ No local user data - can't login offline
+              reject(new Error("No internet connection. Please login online first to enable offline access."));
+            }
+          } else {
+            // Not a network error - actual authentication failure (wrong password, etc.)
+            reject(err);
+          }
+        },
+      });
+    });
+  }
+
+  /**
+   * Perform online login and store user data for future offline auth
+   */
+  private performOnlineLogin(loginData: LoginForm): Observable<string> {
+    return this.dataSyncProvider.invokeCommand<string>("login", { loginForm: loginData }).pipe(
+      tap((token: string) => {
+        // Store user data for future offline auth
+        // Extract user info from token
+        const userId = this.jwtTokenService.getUserId(token);
+        const username = this.jwtTokenService.getValueByKey(token, "username");
+        const email = this.jwtTokenService.getValueByKey(token, "email");
+        const role = this.jwtTokenService.getRole(token);
+
+        if (userId && username && email) {
+          this.localAuthService.storeUserDataAfterAuth(
+            userId,
+            username,
+            email,
+            loginData.password, // Store password hash for offline auth
+            role || "user",
+            token
+          );
+        }
+      })
+    );
   }
 
   login<R>(loginData: LoginForm): Observable<R> {
@@ -32,7 +132,27 @@ export class AuthService {
   }
 
   signup<R>(signupData: SignupForm): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("register", { signupForm: signupData });
+    return this.dataSyncProvider.invokeCommand<R>("register", { signupForm: signupData }).pipe(
+      tap((token: R) => {
+        // Store user data for future offline auth after successful signup
+        const tokenStr = token as unknown as string;
+        const userId = this.jwtTokenService.getUserId(tokenStr);
+        const username = this.jwtTokenService.getValueByKey(tokenStr, "username");
+        const email = this.jwtTokenService.getValueByKey(tokenStr, "email");
+        const role = this.jwtTokenService.getRole(tokenStr);
+
+        if (userId && username && email) {
+          this.localAuthService.storeUserDataAfterAuth(
+            userId,
+            username,
+            email,
+            signupData.password,
+            role || "user",
+            tokenStr
+          );
+        }
+      })
+    );
   }
 
   requestPasswordReset<R>(email: string): Observable<R> {
@@ -50,6 +170,19 @@ export class AuthService {
   logout() {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
+    // Keep local user data for future offline auth
+    // Clear only the current session
+    this.localAuthService.clearCurrentUser();
+    window.location.reload();
+  }
+
+  /**
+   * Full logout - clear all local user data
+   */
+  logoutAll() {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    this.localAuthService.clearAllUserData();
     window.location.reload();
   }
 
@@ -73,6 +206,20 @@ export class AuthService {
     return false;
   }
 
+  /**
+   * Check if user can authenticate offline
+   */
+  canAuthenticateOffline(): boolean {
+    return this.localAuthService.hasOfflineUsers();
+  }
+
+  /**
+   * Get list of users available for offline auth
+   */
+  getOfflineAvailableUsers(): Array<{ id: string; username: string; email: string }> {
+    return this.localAuthService.getOfflineAvailableUsers();
+  }
+
   getTokenLS() {
     return localStorage.getItem("token");
   }
@@ -93,5 +240,21 @@ export class AuthService {
   getValueByKey(key: string) {
     const token = this.getToken();
     return this.jwtTokenService.getValueByKey(token, key);
+  }
+
+  /**
+   * Export current user's data for backup/transfer
+   */
+  exportUserData(): string | null {
+    const userId = this.getValueByKey("id");
+    if (!userId) return null;
+    return this.localAuthService.exportUserData(userId);
+  }
+
+  /**
+   * Import user data for offline authentication
+   */
+  importUserData(userData: string): { success: boolean; error?: string } {
+    return this.localAuthService.importUserData(userData);
   }
 }
