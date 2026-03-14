@@ -121,6 +121,13 @@ export const routes: Routes = [
     canActivate: [canActivateAuth],
   },
   {
+    path: "archive",
+    loadComponent: () => import("@views/archive/archive.view").then((m) => m.ArchiveView),
+    title: "Archive",
+    data: { breadcrumb: "Archive" },
+    canActivate: [canActivateAuth],
+  },
+  {
     path: "settings",
     component: SettingsView,
     title: "Settings",

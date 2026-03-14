@@ -28,7 +28,6 @@ export class MainResolver implements Resolve<any> {
     const paramsMap = route.paramMap;
     const queryParams = route.queryParams;
 
-    // Read isOwner and isPrivate from query params (default to true for backward compatibility)
     const isOwner = queryParams["isOwner"] !== "false";
     const isPrivate = queryParams["isPrivate"] !== "false";
 
@@ -37,24 +36,31 @@ export class MainResolver implements Resolve<any> {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
 
-        // First, try to get data from storage (already loaded)
-        const taskFromStorage = this.storageService.getTaskById(taskId);
-        const todoFromStorage = this.storageService.getTodoById(todoId);
+        // First, try to get data from storage
+        let taskFromStorage = this.storageService.getTaskById(taskId);
+        let todoFromStorage = this.storageService.getTodoById(todoId);
+
+        // Wait for storage to be populated (max 2 seconds)
+        let waitCount = 0;
+        while ((!taskFromStorage || !todoFromStorage) && waitCount < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          taskFromStorage = this.storageService.getTaskById(taskId);
+          todoFromStorage = this.storageService.getTodoById(todoId);
+          waitCount++;
+        }
 
         if (taskFromStorage && todoFromStorage) {
           return { task: taskFromStorage, todo: todoFromStorage };
         }
 
-        // If not in storage, fetch from backend
+        // If not in storage after waiting, fetch from backend
         const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", { filter: { id: taskId }, isOwner, isPrivate });
-
         const task: Task = await firstValueFrom(taskObservable);
 
         const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelations() });
-
         const todo: Todo = await firstValueFrom(todoObservable);
 
-        // Store in storage if fetched successfully
+        // Store in storage
         if (todo && todo.id) {
           const existingTodo = this.storageService.getTodoById(todoId);
           if (existingTodo) {
@@ -68,21 +74,26 @@ export class MainResolver implements Resolve<any> {
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
 
-        // First, try to get data from storage (already loaded)
-        const todoFromStorage = this.storageService.getTodoById(todoId);
+        // First, try to get data from storage
+        let todoFromStorage = this.storageService.getTodoById(todoId);
 
-        // Use storage if todo exists (even if tasks don't have complete relations)
-        // The view can work with partial data and fetch missing data if needed
+        // Wait for storage to be populated (max 2 seconds)
+        let waitCount = 0;
+        while (!todoFromStorage && waitCount < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          todoFromStorage = this.storageService.getTodoById(todoId);
+          waitCount++;
+        }
+
         if (todoFromStorage) {
           return todoFromStorage;
         }
 
-        // If not in storage, fetch from backend
+        // If not in storage after waiting, fetch from backend
         const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelationsWithUser() });
-
         const todo: Todo = await firstValueFrom(todoObservable);
 
-        // Store in storage if fetched successfully
+        // Store in storage
         if (todo && todo.id) {
           const existingTodo = this.storageService.getTodoById(todoId);
           if (existingTodo) {
