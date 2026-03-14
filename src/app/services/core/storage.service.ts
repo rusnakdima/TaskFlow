@@ -10,21 +10,20 @@ import { Profile } from "@models/profile.model";
 import { Comment as CommentModel } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 
+/* base */
+import { BaseStorageService } from "./base-storage.service";
+
 export type StorageEntity = "todos" | "tasks" | "subtasks" | "categories" | "comments" | "profiles" | "chats";
 
 @Injectable({
   providedIn: "root",
 })
-export class StorageService {
+export class StorageService extends BaseStorageService {
   private privateTodosSignal = signal<Todo[]>([]);
   private sharedTodosSignal = signal<Todo[]>([]);
   private categoriesSignal = signal<Category[]>([]);
   private profileSignal = signal<Profile | null>(null);
   private chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
-
-  private loadingSignal = signal(false);
-  private loadedSignal = signal(false);
-  private lastLoadedSignal = signal<Date | null>(null);
 
   // Computed signals created once (not in getters)
   private todosComputed = computed(() => {
@@ -161,28 +160,6 @@ export class StorageService {
       newMap.set(todoId, []);
       return newMap;
     });
-  }
-
-  setLoading(isLoading: boolean): void {
-    this.loadingSignal.set(isLoading);
-  }
-
-  setLoaded(isLoaded: boolean): void {
-    this.loadedSignal.set(isLoaded);
-  }
-
-  setLastLoaded(date: Date | null): void {
-    this.lastLoadedSignal.set(date);
-  }
-
-  get loading() {
-    return this.loadingSignal.asReadonly();
-  }
-  get loaded() {
-    return this.loadedSignal.asReadonly();
-  }
-  get lastLoaded() {
-    return this.lastLoadedSignal.asReadonly();
   }
 
   // ==================== COMPUTED SIGNALS ====================
@@ -665,7 +642,7 @@ export class StorageService {
   }
 
   /**
-   * Remove comment from all tasks and subtasks (used by LiveSyncService)
+   * Remove comment from all tasks and subtasks (used by WebSocketService)
    */
   removeCommentFromAll(commentId: string): void {
     this.updateTodoSignal("", (todos) =>
@@ -730,5 +707,39 @@ export class StorageService {
     this.profileSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
+  }
+
+  /**
+   * Move a todo from private to shared (for visibility change: private -> team)
+   */
+  moveTodoToShared(todoId: string): void {
+    const todo = this.getTodoById(todoId);
+    if (!todo) return;
+
+    // Remove from private
+    this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+
+    // Add to shared if not already there
+    if (!this.sharedTodosSignal().some((t) => t.id === todoId)) {
+      const updatedTodo = { ...todo, visibility: "team" as const };
+      this.sharedTodosSignal.update((todos) => [updatedTodo, ...todos]);
+    }
+  }
+
+  /**
+   * Move a todo from shared to private (for visibility change: team -> private)
+   */
+  moveTodoToPrivate(todoId: string): void {
+    const todo = this.getTodoById(todoId);
+    if (!todo) return;
+
+    // Remove from shared
+    this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
+
+    // Add to private if not already there
+    if (!this.privateTodosSignal().some((t) => t.id === todoId)) {
+      const updatedTodo = { ...todo, visibility: "private" as const };
+      this.privateTodosSignal.update((todos) => [updatedTodo, ...todos]);
+    }
   }
 }

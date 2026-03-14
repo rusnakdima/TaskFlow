@@ -16,6 +16,7 @@ import { Response } from "@models/response.model";
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
+import { BaseStorageService } from "./base-storage.service";
 
 interface AdminDataWithRelations {
   [key: string]: any[];
@@ -24,7 +25,7 @@ interface AdminDataWithRelations {
 @Injectable({
   providedIn: "root",
 })
-export class AdminStorageService {
+export class AdminStorageService extends BaseStorageService {
   private adminService = inject(AdminService);
 
   // Admin data signals
@@ -39,11 +40,6 @@ export class AdminStorageService {
   // Users and profiles for relations
   private usersSignal = signal<User[]>([]);
   private profilesSignal = signal<Profile[]>([]);
-
-  // Loading state
-  private loadingSignal = signal(false);
-  private loadedSignal = signal(false);
-  private lastLoadedSignal = signal<Date | null>(null);
 
   // Cache expiry: 5 minutes
   private readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
@@ -76,24 +72,13 @@ export class AdminStorageService {
   get profiles() {
     return this.profilesSignal.asReadonly();
   }
-  get loading() {
-    return this.loadingSignal.asReadonly();
-  }
-  get loaded() {
-    return this.loadedSignal.asReadonly();
-  }
-  get lastLoaded() {
-    return this.lastLoadedSignal.asReadonly();
-  }
 
   /**
    * Check if cache is valid (not expired)
+   * @override to use admin-specific cache expiry
    */
-  private isCacheValid(): boolean {
-    if (!this.loadedSignal()) return false;
-    const lastLoaded = this.lastLoadedSignal();
-    if (!lastLoaded) return false;
-    return new Date().getTime() - lastLoaded.getTime() < this.CACHE_EXPIRY_MS;
+  protected override isCacheValid(): boolean {
+    return super.isCacheValid(this.CACHE_EXPIRY_MS);
   }
 
   /**
