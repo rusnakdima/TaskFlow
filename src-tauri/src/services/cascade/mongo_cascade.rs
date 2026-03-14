@@ -63,18 +63,18 @@ impl MongoCascadeHandler {
     Ok(cascade_ids)
   }
 
-  /// Collect children for a todo (tasks and chats)
+  /// Collect children for a todo (tasks, comments, and chats)
+  /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTodoChildren(
     &self,
     todo_id: &str,
     cascade_ids: &mut CascadeIds,
     queue: &mut VecDeque<(String, String)>,
   ) -> Result<(), ResponseModel> {
-    // Fetch tasks for this todo
+    // Fetch ALL tasks for this todo (including deleted ones for proper cascade)
     let tasks = self
       .mongodbProvider
-      .mongodbCrud
-      .getAll("tasks", Some(json!({"todoId": todo_id})))
+      .getAllWithDeleted("tasks", Some(json!({"todoId": todo_id})))
       .await
       .map_err(|e| errResponseFormatted("Mongo cascade failed", &e.to_string()))?;
 
@@ -83,14 +83,39 @@ impl MongoCascadeHandler {
         let task_id_str = task_id.to_string();
         cascade_ids.task_ids.push(task_id_str.clone());
         queue.push_back(("tasks".to_string(), task_id_str));
+
+        // Collect ALL task comments (including deleted ones)
+        let task_comments = self
+          .mongodbProvider
+          .getAllWithDeleted("comments", Some(json!({"taskId": task_id})))
+          .await
+          .unwrap_or_default();
+
+        for comment in task_comments {
+          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+            cascade_ids.comment_ids.push(comment_id.to_string());
+          }
+        }
       }
     }
 
-    // Fetch chats for this todo
+    // Collect ALL todo-level comments (comments directly on todo, not on tasks)
+    let todo_comments = self
+      .mongodbProvider
+      .getAllWithDeleted("comments", Some(json!({"todoId": todo_id})))
+      .await
+      .unwrap_or_default();
+
+    for comment in todo_comments {
+      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+        cascade_ids.comment_ids.push(comment_id.to_string());
+      }
+    }
+
+    // Fetch ALL chats for this todo (including deleted ones)
     let chats = self
       .mongodbProvider
-      .mongodbCrud
-      .getAll("chats", Some(json!({ "todoId": todo_id })))
+      .getAllWithDeleted("chats", Some(json!({ "todoId": todo_id })))
       .await
       .unwrap_or_default();
 
@@ -103,23 +128,54 @@ impl MongoCascadeHandler {
     Ok(())
   }
 
-  /// Collect children for a task (subtasks only)
+  /// Collect children for a task (subtasks and comments)
+  /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTaskChildren(
     &self,
     task_id: &str,
     cascade_ids: &mut CascadeIds,
   ) -> Result<(), ResponseModel> {
-    // Fetch subtasks for this task
+    // Fetch ALL subtasks for this task (including deleted ones)
     let subtasks = self
       .mongodbProvider
-      .mongodbCrud
-      .getAll("subtasks", Some(json!({"taskId": task_id})))
+      .getAllWithDeleted("subtasks", Some(json!({"taskId": task_id})))
       .await
       .map_err(|e| errResponseFormatted("Mongo cascade failed", &e.to_string()))?;
 
-    for subtask in subtasks {
+    // Collect all subtask IDs first
+    let mut subtask_ids: Vec<&str> = Vec::new();
+    for subtask in &subtasks {
       if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
         cascade_ids.subtask_ids.push(subtask_id.to_string());
+        subtask_ids.push(subtask_id);
+      }
+    }
+
+    // Collect ALL subtask comments in one query (including deleted ones)
+    if !subtask_ids.is_empty() {
+      let subtask_comments = self
+        .mongodbProvider
+        .getAllWithDeleted("comments", Some(json!({"subtaskId": {"$in": subtask_ids}})))
+        .await
+        .unwrap_or_default();
+
+      for comment in subtask_comments {
+        if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+          cascade_ids.comment_ids.push(comment_id.to_string());
+        }
+      }
+    }
+
+    // Collect ALL task-level comments (comments directly on task)
+    let task_comments = self
+      .mongodbProvider
+      .getAllWithDeleted("comments", Some(json!({"taskId": task_id})))
+      .await
+      .unwrap_or_default();
+
+    for comment in task_comments {
+      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+        cascade_ids.comment_ids.push(comment_id.to_string());
       }
     }
 
@@ -138,7 +194,11 @@ impl MongoCascadeHandler {
     // Collect all IDs to cascade
     let cascade_ids = self.collectCascadeIds(table, id).await?;
 
-    let update_data = json!({ "isDeleted": !is_restore });
+    let timestamp = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let update_data = json!({ 
+      "isDeleted": !is_restore,
+      "updatedAt": timestamp
+    });
 
     // Update all tables
     if !cascade_ids.task_ids.is_empty() {
@@ -157,6 +217,17 @@ impl MongoCascadeHandler {
           .mongodbProvider
           .mongodbCrud
           .update("subtasks", sid, update_data.clone())
+          .await;
+      }
+    }
+
+    // Update comments
+    if !cascade_ids.comment_ids.is_empty() {
+      for cid in &cascade_ids.comment_ids {
+        let _ = self
+          .mongodbProvider
+          .mongodbCrud
+          .update("comments", cid, update_data.clone())
           .await;
       }
     }

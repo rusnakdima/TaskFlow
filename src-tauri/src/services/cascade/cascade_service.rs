@@ -20,8 +20,8 @@ use super::mongo_cascade::MongoCascadeHandler;
 pub struct CascadeService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongodbProvider>>,
-  jsonHandler: Option<JsonCascadeHandler>,
-  mongoHandler: Option<MongoCascadeHandler>,
+  pub jsonHandler: Option<JsonCascadeHandler>,
+  pub mongoHandler: Option<MongoCascadeHandler>,
 }
 
 impl CascadeService {
@@ -36,6 +36,21 @@ impl CascadeService {
       mongodbProvider,
       jsonHandler,
       mongoHandler,
+    }
+  }
+
+  /// Handle cascade based on provider type
+  pub async fn handleCascade(
+    &self,
+    table: &str,
+    id: &str,
+    is_restore: bool,
+    use_mongo: bool,
+  ) -> Result<CascadeIds, ResponseModel> {
+    if use_mongo {
+      self.handleMongoCascade(table, id, is_restore).await
+    } else {
+      self.handleJsonCascade(table, id, is_restore).await
     }
   }
 
@@ -63,20 +78,5 @@ impl CascadeService {
       return handler.handleCascade(table, id, is_restore).await;
     }
     Err(errResponseFormatted("MongoDB not available", ""))
-  }
-
-  /// Handle cascade based on provider type
-  pub async fn handleCascade(
-    &self,
-    table: &str,
-    id: &str,
-    is_restore: bool,
-    use_mongo: bool,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if use_mongo {
-      self.handleMongoCascade(table, id, is_restore).await
-    } else {
-      self.handleJsonCascade(table, id, is_restore).await
-    }
   }
 }

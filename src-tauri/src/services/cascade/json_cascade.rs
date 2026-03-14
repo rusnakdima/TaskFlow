@@ -3,7 +3,6 @@ use serde_json::json;
 use std::collections::{HashSet, VecDeque};
 
 /* providers */
-use crate::providers::base_crud::CrudProvider;
 use crate::providers::json_provider::JsonProvider;
 
 /* models */
@@ -62,18 +61,18 @@ impl JsonCascadeHandler {
     Ok(cascade_ids)
   }
 
-  /// Collect children for a todo (tasks and chats)
+  /// Collect children for a todo (tasks, comments, and chats)
+  /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTodoChildren(
     &self,
     todo_id: &str,
     cascade_ids: &mut CascadeIds,
     queue: &mut VecDeque<(String, String)>,
   ) -> Result<(), ResponseModel> {
-    // Fetch tasks for this todo
+    // Fetch ALL tasks for this todo (including deleted ones for proper cascade)
     let tasks: Vec<serde_json::Value> = self
       .jsonProvider
-      .jsonCrud
-      .getAll("tasks", Some(json!({"todoId": todo_id})))
+      .getAllWithDeleted("tasks", Some(json!({"todoId": todo_id})))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
@@ -82,14 +81,26 @@ impl JsonCascadeHandler {
         let task_id_str = task_id.to_string();
         cascade_ids.task_ids.push(task_id_str.clone());
         queue.push_back(("tasks".to_string(), task_id_str));
+
+        // Collect ALL task comments (including deleted ones)
+        let task_comments: Vec<serde_json::Value> = self
+          .jsonProvider
+          .getAllWithDeleted("comments", Some(json!({"taskId": task_id})))
+          .await
+          .unwrap_or_default();
+
+        for comment in task_comments {
+          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+            cascade_ids.comment_ids.push(comment_id.to_string());
+          }
+        }
       }
     }
 
-    // Fetch chats for this todo
+    // Fetch ALL chats for this todo (including deleted ones)
     let chats: Vec<serde_json::Value> = self
       .jsonProvider
-      .jsonCrud
-      .getAll("chats", Some(json!({ "todoId": todo_id })))
+      .getAllWithDeleted("chats", Some(json!({ "todoId": todo_id })))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
@@ -102,24 +113,37 @@ impl JsonCascadeHandler {
     Ok(())
   }
 
-  /// Collect children for a task (subtasks only)
+  /// Collect children for a task (subtasks and comments)
+  /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTaskChildren(
     &self,
     task_id: &str,
     cascade_ids: &mut CascadeIds,
   ) -> Result<(), ResponseModel> {
-    // Fetch subtasks for this task
+    // Fetch ALL subtasks for this task (including deleted ones)
     let subtasks: Vec<serde_json::Value> = self
       .jsonProvider
-      .jsonCrud
-      .getAll("subtasks", Some(json!({"taskId": task_id})))
+      .getAllWithDeleted("subtasks", Some(json!({"taskId": task_id})))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
     for subtask in subtasks {
       if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.subtask_ids.push(subtask_id.to_string());
-        // Subtasks don't have children, no need to add to queue
+        let subtask_id_str = subtask_id.to_string();
+        cascade_ids.subtask_ids.push(subtask_id_str.clone());
+
+        // Collect ALL subtask comments (including deleted ones)
+        let subtask_comments: Vec<serde_json::Value> = self
+          .jsonProvider
+          .getAllWithDeleted("comments", Some(json!({"subtaskId": subtask_id})))
+          .await
+          .unwrap_or_default();
+
+        for comment in subtask_comments {
+          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+            cascade_ids.comment_ids.push(comment_id.to_string());
+          }
+        }
       }
     }
 
@@ -150,6 +174,13 @@ impl JsonCascadeHandler {
     if !cascade_ids.subtask_ids.is_empty() {
       let _ = self
         .batchUpdate("subtasks", &cascade_ids.subtask_ids, &update_data)
+        .await?;
+    }
+
+    // Batch update comments
+    if !cascade_ids.comment_ids.is_empty() {
+      let _ = self
+        .batchUpdate("comments", &cascade_ids.comment_ids, &update_data)
         .await?;
     }
 
