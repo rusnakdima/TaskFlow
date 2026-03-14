@@ -20,25 +20,6 @@ class AuthGuard {
     private authService: AuthService
   ) {}
 
-  async getStatusMaintenance(): Promise<boolean> {
-    let status = false;
-
-    await new Promise((res) => setTimeout(res, 300));
-    return status;
-  }
-
-  async canActivateMain(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Promise<boolean> {
-    if (await this.getStatusMaintenance()) {
-      this.router.navigate(["/maintenance"]);
-      return false;
-    }
-
-    return true;
-  }
-
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     if (this.authService.isLoggedIn()) {
       const requiredRoles = route.data["expectedRoles"];
@@ -63,13 +44,6 @@ class AuthGuard {
     }
   }
 }
-
-export const canActivateMaintenance: CanActivateFn = async (
-  route: ActivatedRouteSnapshot,
-  state: RouterStateSnapshot
-): Promise<boolean> => {
-  return await inject(AuthGuard).canActivateMain(route, state);
-};
 
 export const canActivateAuth: CanActivateFn = (
   route: ActivatedRouteSnapshot,
