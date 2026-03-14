@@ -31,12 +31,9 @@ impl WebSocketServerService {
       .await
       .expect("Failed to bind to address");
 
-    // Create shared components
     let broadcast = BroadcastHelper::new(self.clients.clone());
     let crud_handlers = Arc::new(CrudHandlers::new(self.crud_service.clone(), broadcast));
     let connection_manager = Arc::new(ConnectionManager::new(crud_handlers, self.clients.clone()));
-
-    eprintln!("[WebSocket] Server starting on {}", addr);
 
     while let Ok((stream, _)) = listener.accept().await {
       let manager_clone = connection_manager.clone();
