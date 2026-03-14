@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { BehaviorSubject, Observable, Subject } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -31,7 +31,6 @@ export class SyncService {
     progress: 0,
     message: "Ready to sync",
   });
-  private abortSubject = new Subject<void>(); // For aborting sync
 
   constructor(
     private jwtTokenService: JwtTokenService,
@@ -46,10 +45,6 @@ export class SyncService {
 
   get progress$(): Observable<SyncProgress> {
     return this.progressSubject.asObservable();
-  }
-
-  get abort$(): Observable<void> {
-    return this.abortSubject.asObservable();
   }
 
   setSyncing(isSyncing: boolean): void {
@@ -200,25 +195,5 @@ export class SyncService {
     } finally {
       this.setSyncing(false);
     }
-  }
-
-  /**
-   * Abort the current sync operation
-   */
-  abortSync(): void {
-    this.abortSubject.next();
-    this.setSyncing(false);
-    this.updateProgress({
-      currentStep: "error",
-      message: "Sync aborted by user",
-      progress: 0,
-    });
-  }
-
-  /**
-   * Get current sync progress
-   */
-  getCurrentProgress(): SyncProgress {
-    return this.progressSubject.value;
   }
 }
