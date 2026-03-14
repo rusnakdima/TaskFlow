@@ -21,6 +21,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
+import { BaseEntityComponent } from "@components/base-entity.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -51,21 +52,20 @@ import { Task } from "@models/task.model";
   templateUrl: "./subtask.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtaskComponent implements OnChanges {
+export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {
+    super();
+  }
 
   @Input() subtask: Subtask | null = null;
   @Input() todoId: string | null = null;
   @Input() index: number = 0;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
-  @Input() highlight: boolean = false;
   @Input() highlightComment: string | null = null;
   @Input() openComments: boolean = false;
   @Input() unreadCommentsCount: number = 0;
