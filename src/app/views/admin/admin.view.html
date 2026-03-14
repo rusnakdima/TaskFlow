@@ -280,7 +280,7 @@
             [data]="getCurrentData()"
             [fields]="getFieldConfig()"
             [selectedRecords]="selectedRecords()"
-            [titleKey]="selectedType() === 'daily_activities' ? 'id' : 'title'"
+            [titleKey]="selectedType() === 'daily_activities' ? 'date' : (selectedType() === 'comments' || selectedType() === 'chats' ? 'content' : 'title')"
             (selectRecord)="toggleSelect($event)"
             (deleteRecord)="deleteRecord($event)"
             (toggleDelete)="toggleDeleteStatus($event)"
