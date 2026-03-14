@@ -33,14 +33,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
-import {
-  normalizeDateFields,
-  convertDatesToUtc,
-  convertDatesFromUtcToLocal,
-} from "@helpers/date-conversion.helper";
-import { DateHelper } from "@helpers/date.helper";
-import { FormValidatorHelper } from "@helpers/form-validator.helper";
-import { DateValidatorHelper } from "@helpers/date-validator.helper";
+import { DateHelper, ValidationHelper } from "@helpers/index";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -66,9 +59,6 @@ interface PriorityOption {
   templateUrl: "./manage-task.view.html",
 })
 export class ManageTaskView implements OnInit, OnDestroy {
-  private formValidator: FormValidatorHelper;
-  private dateValidator: DateValidatorHelper;
-
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -79,8 +69,6 @@ export class ManageTaskView implements OnInit, OnDestroy {
     private storageService: StorageService,
     private shortcutService: ShortcutService
   ) {
-    this.formValidator = new FormValidatorHelper(notifyService);
-    this.dateValidator = new DateValidatorHelper(notifyService);
     this.form = fb.group({
       _id: [""],
       id: [""],
@@ -104,7 +92,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
-        this.dateValidator.updateEndDateValidation(this.form, startDate);
+        ValidationHelper.updateEndDateValidation(this.form, startDate);
       }
     });
 
@@ -181,20 +169,20 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
+    return ValidationHelper.createEndDateFilter("startDate", this.form)(date);
   };
 
   getTaskInfo(taskId: string) {
     // First, try to get from storage
     const taskFromStorage = this.storageService.getTaskById(taskId);
     if (taskFromStorage) {
-      const localDates = convertDatesFromUtcToLocal(taskFromStorage);
+      const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
       this.form.patchValue(localDates);
 
       const startDate = localDates.startDate;
       const endDate = localDates.endDate;
       if (startDate && endDate) {
-        this.dateValidator.updateEndDateValidation(this.form, startDate);
+        ValidationHelper.updateEndDateValidation(this.form, startDate);
       }
       return;
     }
@@ -202,13 +190,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
     // Fallback to fetch if not in storage
     this.dataSyncProvider.crud<Task>("get", "tasks", { filter: { id: taskId } }).subscribe({
       next: (taskData: Task) => {
-        const localDates = convertDatesFromUtcToLocal(taskData);
+        const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         this.form.patchValue(localDates);
 
         const startDate = localDates.startDate;
         const endDate = localDates.endDate;
         if (startDate && endDate) {
-          this.dateValidator.updateEndDateValidation(this.form, startDate);
+          ValidationHelper.updateEndDateValidation(this.form, startDate);
         }
       },
       error: (err: any) => {
@@ -245,11 +233,11 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!this.dateValidator.validateDatesFromForm(this.form)) {
+    if (!ValidationHelper.validateDates(this.form, this.notifyService)) {
       return;
     }
 
-    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) {
+    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
       return;
     }
 
@@ -262,7 +250,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   validateDates(): boolean {
-    return this.dateValidator.validateDatesFromForm(this.form);
+    return ValidationHelper.validateDates(this.form, this.notifyService);
   }
 
   clearDates() {
@@ -276,10 +264,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
         const todoId = this.projectInfo()?.id;
         if (!todoId) throw new Error("Project ID not found");
 
-        const tasks = await firstValueFrom(this.dataSyncProvider.crud<Task[]>("getAll", "tasks", { filter: { todoId } }, true));
+        const tasks = this.storageService.getAllTasksByTodoId(todoId);
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeDateFields(formValue);
-        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+        const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
         const body = {
           ...convertedDates,
           order: tasks.length,
@@ -289,7 +277,6 @@ export class ManageTaskView implements OnInit, OnDestroy {
         // Sync with backend
         this.dataSyncProvider.crud<Task>("create", "tasks", { data: body, parentTodoId: todoId }).subscribe({
           next: (result: Task) => {
-            // ✅ Navigate back AFTER successful creation
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Task created successfully");
             this.back();
@@ -313,8 +300,8 @@ export class ManageTaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.projectInfo()?.id;
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeDateFields(formValue);
-      const convertedDates = convertDatesToUtc(normalizedFormValue);
+      const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+      const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
 
       // Ensure id is included in the update payload
       const body = {

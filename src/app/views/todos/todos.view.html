@@ -35,14 +35,11 @@
     [filterOptions]="filterOptionsWithCounts"
     [activeFilter]="activeFilter()"
     [showFilter]="showFilter()"
-    [searchTempArray]="todos()"
-    [searchByFields]="['title', 'description']"
     filterLabel="Status"
     filterGroupName="todo-filter"
     (filterToggle)="toggleFilter()"
     (filterChange)="changeFilter($any($event))"
     (searchChange)="onSearchChange($any($event))"
-    (clearFiltersEvent)="clearFilters()"
   />
 
   <!-- Stats Cards -->
@@ -123,6 +120,7 @@
           [isOwner]="true"
           [isPrivate]="true"
           [highlight]="highlightTodoId() === todo.id"
+          [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
           (deleteTodoEvent)="deleteTodoById($any($event))"
           (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
         />
