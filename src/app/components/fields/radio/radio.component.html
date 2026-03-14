@@ -2,7 +2,7 @@
   <mat-radio-group class="flex flex-col" formControlName="{{ field.name }}">
     <mat-label>{{ label }}</mat-label>
     @for (option of field.options; track $index) {
-      @if (option.isShow(parentForm)) {
+      @if (option.isShow(form)) {
         <mat-radio-button [value]="option.value">{{ option.label }}</mat-radio-button>
       }
     }
