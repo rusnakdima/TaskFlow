@@ -7,9 +7,7 @@
 export {
   StorageService,
   AdminStorageService,
-  LiveSyncService,
-  WebSocketDispatcherService,
-  LocalWebSocketService,
+  WebSocketService,
   ConflictDetectionService,
   OfflineQueueService,
 } from "./core";
@@ -26,9 +24,6 @@ export {
   TodosBlueprintService,
   AboutService,
 } from "./features";
-
-// Notifications services
-export { NotificationService } from "./notifications";
 
 // UI services
 export {
