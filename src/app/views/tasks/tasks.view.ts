@@ -29,7 +29,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
-import { ChatService } from "@services/features/chat.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -80,7 +79,6 @@ export class TasksView extends FilterableViewBase implements OnInit {
   private dataSyncProvider = inject(DataSyncProvider);
   private route = inject(ActivatedRoute);
   private dragDropService = inject(DragDropOrderService);
-  public chatService = inject(ChatService);
   private baseHelper = new BaseItemHelper();
 
   constructor() {
@@ -149,6 +147,29 @@ export class TasksView extends FilterableViewBase implements OnInit {
 
     return this.sortService.sortByOrder(filtered, "desc");
   });
+
+  // Get unread comments count for a task (from all subtasks, NOT task's own comments)
+  // Only counts comments where user is NOT the author AND hasn't read
+  getTaskUnreadCommentsCount(task: Task): number {
+    const userId = this.authService.getValueByKey("id");
+    if (!userId || !task.subtasks || task.subtasks.length === 0) return 0;
+
+    let count = 0;
+    // Count only subtask comments (not task's own comments)
+    for (const subtask of task.subtasks) {
+      if (!subtask.comments || subtask.comments.length === 0) continue;
+      count += subtask.comments.filter((c: any) => {
+        if (c.isDeleted) return false;
+        // Skip if user is the author (they've read their own comment)
+        if (c.authorId === userId) return false;
+        if (c.readBy && c.readBy.includes(userId)) return false;
+        // Only count subtask comments (must have subtaskId)
+        if (!c.subtaskId) return false;
+        return true;
+      }).length;
+    }
+    return count;
+  }
 
   isOwner: boolean = true;
   isPrivate: boolean = true;

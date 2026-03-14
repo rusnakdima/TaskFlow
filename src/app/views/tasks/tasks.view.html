@@ -54,14 +54,11 @@
       [filterOptions]="filterOptions"
       [activeFilter]="activeFilter()"
       [showFilter]="showFilter()"
-      [searchTempArray]="todoTasks()"
-      [searchByFields]="['title']"
       filterLabel="Status"
       filterGroupName="task-filter"
       (filterToggle)="toggleFilter()"
       (filterChange)="changeFilter($any($event))"
       (searchChange)="onSearchChange($any($event))"
-      (clearFiltersEvent)="clearFilters()"
     />
 
     @if (showBulkActions()) {
@@ -112,6 +109,7 @@
             [showExpandButton]="task.subtasks && task.subtasks.length > 0"
             [highlightCommentId]="highlightCommentId()"
             [autoOpenComments]="openComments()"
+            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
             (deleteTaskEvent)="deleteTask($event)"
             (toggleCompletionEvent)="toggleTaskCompletion($event)"
             (updateTaskEvent)="updateTaskInline($event)"

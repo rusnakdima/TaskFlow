@@ -87,7 +87,8 @@ export class TodosView extends FilterableViewBase implements OnInit {
 
   // Computed signals
   listTodos = computed(() => {
-    let filtered = this.todos().filter((todo) => todo.visibility === "private" && !todo.isDeleted);
+    // Show all todos including deleted ones (deleted will be styled differently)
+    let filtered = this.todos().filter((todo) => todo.visibility === "private");
     const filter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
 
@@ -118,6 +119,30 @@ export class TodosView extends FilterableViewBase implements OnInit {
 
     return this.sortService.sortByOrder(filtered, "desc");
   });
+
+  // Get unread comments count for a todo (from all tasks, not subtasks)
+  // Only counts comments where user is NOT the author AND hasn't read
+  getTodoUnreadCommentsCount(todo: Todo): number {
+    const userId = this.authService.getValueByKey("id");
+    if (!userId || !todo.tasks || todo.tasks.length === 0) return 0;
+
+    let count = 0;
+    for (const task of todo.tasks) {
+      if (!task.comments || task.comments.length === 0) continue;
+      count += task.comments.filter((c: any) => {
+        // Skip deleted comments
+        if (c.isDeleted) return false;
+        // Skip if user is the author (they've read their own comment)
+        if (c.authorId === userId) return false;
+        // Skip if user has read the comment
+        if (c.readBy && c.readBy.includes(userId)) return false;
+        // Only count task comments (not subtask comments)
+        if (c.subtaskId) return false;
+        return true;
+      }).length;
+    }
+    return count;
+  }
 
   filterOptions: FilterOption[] = [
     { key: "all", label: "All" },
@@ -187,7 +212,8 @@ export class TodosView extends FilterableViewBase implements OnInit {
   }
 
   getFilteredCount(filter: string): number {
-    const todos = this.todos().filter((todo) => todo.visibility === "private" && !todo.isDeleted);
+    // Count all todos including deleted ones
+    const todos = this.todos().filter((todo) => todo.visibility === "private");
 
     switch (filter) {
       case "all":
@@ -213,6 +239,8 @@ export class TodosView extends FilterableViewBase implements OnInit {
       this.dataSyncProvider.crud("delete", "todos", { id: todoId }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo deleted successfully");
+          // Reload all data to reflect changes
+          this.dataSyncService.loadAllData(true).subscribe();
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to delete todo");

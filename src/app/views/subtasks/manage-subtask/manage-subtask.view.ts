@@ -33,14 +33,7 @@ import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
-import {
-  normalizeDateFields,
-  convertDatesToUtc,
-  convertDatesFromUtcToLocal,
-} from "@helpers/date-conversion.helper";
-import { DateHelper } from "@helpers/date.helper";
-import { FormValidatorHelper } from "@helpers/form-validator.helper";
-import { DateValidatorHelper } from "@helpers/date-validator.helper";
+import { DateHelper, ValidationHelper } from "@helpers/index";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -65,9 +58,6 @@ interface PriorityOption {
   templateUrl: "./manage-subtask.view.html",
 })
 export class ManageSubtaskView implements OnInit, OnDestroy {
-  private formValidator: FormValidatorHelper;
-  private dateValidator: DateValidatorHelper;
-
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -79,8 +69,6 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     private storageService: StorageService,
     private shortcutService: ShortcutService
   ) {
-    this.formValidator = new FormValidatorHelper(notifyService);
-    this.dateValidator = new DateValidatorHelper(notifyService);
     this.form = fb.group({
       _id: [""],
       id: [""],
@@ -102,7 +90,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
-        this.dateValidator.updateEndDateValidation(this.form, startDate);
+        ValidationHelper.updateEndDateValidation(this.form, startDate);
       }
     });
 
@@ -162,17 +150,17 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    return this.dateValidator.createEndDateFilter("startDate", this.form)(date);
+    return ValidationHelper.createEndDateFilter("startDate", this.form)(date);
   };
 
   async getSubtaskInfo(subtaskId: string) {
     // First, try to get from storage
     const subtaskFromStorage = this.storageService.getSubtaskById(subtaskId);
     if (subtaskFromStorage) {
-      const localDates = convertDatesFromUtcToLocal(subtaskFromStorage);
+      const localDates = DateHelper.convertDatesFromUtcToLocal(subtaskFromStorage);
       this.form.patchValue(localDates);
       if (localDates.startDate)
-        this.dateValidator.updateEndDateValidation(this.form, localDates.startDate);
+        ValidationHelper.updateEndDateValidation(this.form, localDates.startDate);
       return;
     }
 
@@ -183,10 +171,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         this.dataSyncProvider.crud<Subtask[]>("getAll", "subtasks", { filter: { id: subtaskId }, parentTodoId: todoId }, true)
       );
       if (subtasks.length > 0) {
-        const localDates = convertDatesFromUtcToLocal(subtasks[0]);
+        const localDates = DateHelper.convertDatesFromUtcToLocal(subtasks[0]);
         this.form.patchValue(localDates);
         if (localDates.startDate)
-          this.dateValidator.updateEndDateValidation(this.form, localDates.startDate);
+          ValidationHelper.updateEndDateValidation(this.form, localDates.startDate);
       }
     } catch (err: any) {
       this.notifyService.showError(err.message || "Failed to load subtask");
@@ -239,12 +227,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       try {
         const todoId = this.todoId();
-        const subtasks = await firstValueFrom(
-          this.dataSyncProvider.crud<Subtask[]>("getAll", "subtasks", { filter: { taskId: this.taskId() } }, true)
-        );
+        const subtasks = this.storageService.getAllSubtasksByTaskId(this.taskId());
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeDateFields(formValue);
-        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+        const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
         const duplicateData = {
           ...convertedDates,
           id: "",
@@ -254,7 +240,6 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           order: subtasks.length,
         };
 
-        // Create subtask via DataSyncProvider (storage updated automatically)
         this.dataSyncProvider.crud<Subtask>("create", "subtasks", { data: duplicateData, parentTodoId: todoId })
           .subscribe({
             next: () => {
@@ -276,8 +261,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!this.dateValidator.validateDatesFromForm(this.form)) return;
-    if (!this.formValidator.validateForm(this.form, this.isSubmitting())) return;
+    if (!ValidationHelper.validateDates(this.form, this.notifyService)) return;
+    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) return;
 
     this.isSubmitting.set(true);
     if (this.isEdit()) this.updateSubtask();
@@ -285,7 +270,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   validateDates(): boolean {
-    return this.dateValidator.validateDatesFromForm(this.form);
+    return ValidationHelper.validateDates(this.form, this.notifyService);
   }
 
   clearDates() {
@@ -297,18 +282,14 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       try {
         const todoId = this.todoId();
-        const subtasks = await firstValueFrom(
-          this.dataSyncProvider.crud<Subtask[]>("getAll", "subtasks", { filter: { taskId: this.taskId() } }, true)
-        );
+        const subtasks = this.storageService.getAllSubtasksByTaskId(this.taskId());
         const formValue = this.form.value;
-        const normalizedFormValue = normalizeDateFields(formValue);
-        const convertedDates = convertDatesToUtc(normalizedFormValue);
+        const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+        const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
         const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
 
-        // Sync with backend
         this.dataSyncProvider.crud<Subtask>("create", "subtasks", { data: body, parentTodoId: todoId }).subscribe({
           next: (result: Subtask) => {
-            // ✅ Navigate back AFTER successful creation
             this.isSubmitting.set(false);
             this.notifyService.showSuccess("Subtask created successfully");
             this.back();
@@ -332,8 +313,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       const todoId = this.todoId();
       const formValue = this.form.value;
-      const normalizedFormValue = normalizeDateFields(formValue);
-      const convertedDates = convertDatesToUtc(normalizedFormValue);
+      const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+      const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
 
       // Ensure id is included in the update payload
       const body = {

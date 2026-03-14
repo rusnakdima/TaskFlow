@@ -76,14 +76,11 @@
       [filterOptions]="filterOptions"
       [activeFilter]="activeFilter()"
       [showFilter]="showFilter()"
-      [searchTempArray]="taskSubtasks()"
-      [searchByFields]="['title']"
       filterLabel="Status"
       filterGroupName="subtask-filter"
       (filterToggle)="toggleFilter()"
       (filterChange)="changeFilter($any($event))"
       (searchChange)="onSearchChange($any($event))"
-      (clearFiltersEvent)="clearFilters()"
     />
 
     @if (listSubtasks().length === 0) {
