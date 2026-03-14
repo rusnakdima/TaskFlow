@@ -14,6 +14,9 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { Router } from "@angular/router";
 
 @Injectable({
   providedIn: "root",
@@ -22,6 +25,9 @@ export class AuthService {
   private dataSyncProvider = inject(DataSyncProvider);
   private jwtTokenService = inject(JwtTokenService);
   private localAuthService = inject(LocalAuthService);
+  private dataSyncService = inject(DataSyncService);
+  private notifyService = inject(NotifyService);
+  private router = inject(Router);
 
   /**
    * Check if token is valid on backend
@@ -256,5 +262,60 @@ export class AuthService {
    */
   importUserData(userData: string): { success: boolean; error?: string } {
     return this.localAuthService.importUserData(userData);
+  }
+
+  /**
+   * Initialize user session from stored token
+   * Handles both valid and expired tokens with offline fallback
+   */
+  initializeSession(authRoutes: string[] = ["/login", "/signup", "/reset-password", "/change-password"]): void {
+    const token = this.getToken();
+
+    if (!token) {
+      // No token - check if we can authenticate offline
+      setTimeout(() => {
+        if (!authRoutes.some((route) => this.router.url.startsWith(route))) {
+          if (this.canAuthenticateOffline()) {
+            this.notifyService.showInfo("Offline authentication available - please login");
+          }
+          this.router.navigate(["/login"]);
+        }
+      }, 1000);
+      return;
+    }
+
+    // Token exists - validate it
+    const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
+
+    if (!isTokenExpired) {
+      // Token is valid locally - load data
+      this.dataSyncService.loadAllData();
+      this.checkTokenWithBackend(token);
+    } else {
+      // Token expired - try offline auth
+      const userId = this.jwtTokenService.getUserId(token);
+      if (userId) {
+        const localUser = this.localAuthService.getUserById(userId);
+        if (localUser && localUser.availableForOffline && localUser.lastToken) {
+          this.notifyService.showWarning("Session expired - please login again");
+          this.router.navigate(["/login"]);
+        } else {
+          this.router.navigate(["/login"]);
+        }
+      } else {
+        this.router.navigate(["/login"]);
+      }
+    }
+  }
+
+  /**
+   * Check token with backend in background (non-blocking)
+   */
+  private checkTokenWithBackend(token: string): void {
+    this.checkToken(token).subscribe({
+      error: () => {
+        // Backend check failed - token might be invalid but we already loaded data
+      },
+    });
   }
 }
