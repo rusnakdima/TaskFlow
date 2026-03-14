@@ -23,14 +23,14 @@ pub struct Claims {
 #[derive(Clone)]
 pub struct AuthTokenService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Arc<MongodbProvider>,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
   pub jwtSecret: String,
 }
 
 impl AuthTokenService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Arc<MongodbProvider>,
+    mongodbProvider: Option<Arc<MongodbProvider>>,
     jwtSecret: String,
   ) -> Self {
     Self {
@@ -71,6 +71,7 @@ impl AuthTokenService {
   }
 
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    // Decode and validate JWT token
     let tokenData = decode::<Claims>(
       &token,
       &DecodingKey::from_secret(self.jwtSecret.as_ref()),
@@ -84,13 +85,53 @@ impl AuthTokenService {
 
     let userId = tokenData.claims.id;
 
-    match self.mongodbProvider.get("users", &userId).await {
+    // STEP 1: Check local JSON database FIRST (works offline)
+    match self.jsonProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel = serde_json::from_value(userVal).map_err(|e| ResponseModel {
+        let user: UserModel = serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Failed to parse user: {}", e),
           data: DataValue::String("".to_string()),
         })?;
+
+        // Try to sync with MongoDB in background (non-blocking)
+        if self.mongodbProvider.is_some() {
+          let _ = self.syncUserToCloud(userVal.clone()).await;
+        }
+
+        return Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: "Token is valid (local)".to_string(),
+          data: DataValue::Object(serde_json::to_value(&user).unwrap()),
+        });
+      }
+      Err(_) => {
+        // Local database error - continue to MongoDB
+      }
+    }
+
+    // STEP 2: Local database failed - try MongoDB (if available)
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "User not found in local database and MongoDB unavailable".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongoProvider.get("users", &userId).await {
+      Ok(userVal) => {
+        let user: UserModel = serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Failed to parse user: {}", e),
+          data: DataValue::String("".to_string()),
+        })?;
+
+        // Sync user to local database for future offline use
+        let _ = self.jsonProvider.create("users", userVal).await;
 
         Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -104,5 +145,18 @@ impl AuthTokenService {
         data: DataValue::String("".to_string()),
       }),
     }
+  }
+
+  /// Sync user data to MongoDB (non-blocking, best effort)
+  async fn syncUserToCloud(&self, userVal: serde_json::Value) -> Result<(), ()> {
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => return Ok(()), // Skip sync if MongoDB unavailable
+    };
+
+    let clonedVal = userVal.clone();
+    let userId = clonedVal.get("id").and_then(|v| v.as_str()).ok_or(())?;
+    let _ = mongoProvider.update("users", userId, userVal).await;
+    Ok(())
   }
 }

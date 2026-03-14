@@ -22,11 +22,11 @@ use crate::helpers::timestamp_helper;
 #[derive(Clone)]
 pub struct AuthPasswordService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Arc<MongodbProvider>,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
 }
 
 impl AuthPasswordService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -40,7 +40,18 @@ impl AuthPasswordService {
   ) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "email": email });
 
-    match self.mongodbProvider.getAll("users", Some(filter)).await {
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Password reset unavailable: MongoDB offline".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
@@ -80,8 +91,7 @@ impl AuthPasswordService {
             data: DataValue::String("".to_string()),
           })?;
 
-        match self
-          .mongodbProvider
+        match mongoProvider
           .update("users", &userId, userJson.clone())
           .await
         {
@@ -116,7 +126,18 @@ impl AuthPasswordService {
   ) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "email": email });
 
-    match self.mongodbProvider.getAll("users", Some(filter)).await {
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Verification unavailable: MongoDB offline".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
@@ -173,7 +194,18 @@ impl AuthPasswordService {
 
     let filter = json!({ "email": email });
 
-    match self.mongodbProvider.getAll("users", Some(filter)).await {
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Password reset unavailable: MongoDB offline".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
@@ -204,6 +236,8 @@ impl AuthPasswordService {
 
         match self
           .mongodbProvider
+          .as_ref()
+          .unwrap()
           .update("users", &userId, userJson.clone())
           .await
         {
