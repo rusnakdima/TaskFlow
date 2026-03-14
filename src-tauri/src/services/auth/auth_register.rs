@@ -7,6 +7,9 @@ use uuid::Uuid;
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
+/* services */
+use super::auth_token::AuthTokenService;
+
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
@@ -17,14 +20,20 @@ use crate::models::{
 #[derive(Clone)]
 pub struct AuthRegisterService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Arc<MongodbProvider>,
+  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub tokenService: Arc<AuthTokenService>,
 }
 
 impl AuthRegisterService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Arc<MongodbProvider>) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Option<Arc<MongodbProvider>>,
+    tokenService: Arc<AuthTokenService>,
+  ) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
+      tokenService,
     }
   }
 
@@ -35,7 +44,19 @@ impl AuthRegisterService {
 
     let filter = json!({ "email": email });
 
-    match self.mongodbProvider.getAll("users", Some(filter)).await {
+    // Check if MongoDB is available
+    let mongoProvider = match &self.mongodbProvider {
+      Some(provider) => provider,
+      None => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Registration unavailable: MongoDB offline".to_string(),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
         if !users.is_empty() {
           return Err(ResponseModel {
@@ -69,14 +90,19 @@ impl AuthRegisterService {
 
         let userVal = serde_json::to_value(&newUser).unwrap();
 
-        match self.mongodbProvider.create("users", userVal.clone()).await {
+        match mongoProvider.create("users", userVal.clone()).await {
           Ok(_) => {
             let _ = self.jsonProvider.create("users", userVal).await;
+
+            // Generate JWT token with user info (same as login)
+            let token = self
+              .tokenService
+              .generateToken(&newUser.id, &newUser.username, &newUser.role)?;
 
             Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "User registered successfully".to_string(),
-              data: DataValue::Object(serde_json::to_value(&newUser).unwrap()),
+              data: DataValue::String(token),
             })
           }
           Err(e) => Err(ResponseModel {

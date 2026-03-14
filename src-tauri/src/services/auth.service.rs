@@ -30,22 +30,26 @@ pub struct AuthService {
 impl AuthService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Arc<MongodbProvider>,
+    mongodbProvider: Option<Arc<MongodbProvider>>,
     jwtSecret: String,
   ) -> Self {
+    // For offline mode, we still need MongoDB for auth services
+    // But login will fall back to local JSON if MongoDB is unavailable
+    let mongoProvider = mongodbProvider.expect("MongoDB provider required for auth initialization");
+    
     let tokenService = Arc::new(AuthTokenService::new(
       jsonProvider.clone(),
-      Arc::clone(&mongodbProvider),
+      Some(Arc::clone(&mongoProvider)),
       jwtSecret,
     ));
     let loginService = AuthLoginService::new(
       jsonProvider.clone(),
-      Arc::clone(&mongodbProvider),
+      Some(Arc::clone(&mongoProvider)),
       Arc::clone(&tokenService),
     );
     let registerService =
-      AuthRegisterService::new(jsonProvider.clone(), Arc::clone(&mongodbProvider));
-    let passwordService = AuthPasswordService::new(jsonProvider, mongodbProvider);
+      AuthRegisterService::new(jsonProvider.clone(), Some(Arc::clone(&mongoProvider)), Arc::clone(&tokenService));
+    let passwordService = AuthPasswordService::new(jsonProvider, Some(mongoProvider));
 
     Self {
       tokenService,
