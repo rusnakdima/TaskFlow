@@ -8,6 +8,8 @@ import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
+import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
 import { User } from "@models/user.model";
 import { Profile } from "@models/profile.model";
 import { Response } from "@models/response.model";
@@ -29,6 +31,8 @@ export class AdminStorageService {
   private todosSignal = signal<Todo[]>([]);
   private tasksSignal = signal<Task[]>([]);
   private subtasksSignal = signal<Subtask[]>([]);
+  private commentsSignal = signal<Comment[]>([]);
+  private chatsSignal = signal<Chat[]>([]);
   private categoriesSignal = signal<Category[]>([]);
   private dailyActivitiesSignal = signal<any[]>([]);
 
@@ -54,6 +58,12 @@ export class AdminStorageService {
   get subtasks() {
     return this.subtasksSignal.asReadonly();
   }
+  get comments() {
+    return this.commentsSignal.asReadonly();
+  }
+  get chats() {
+    return this.chatsSignal.asReadonly();
+  }
   get categories() {
     return this.categoriesSignal.asReadonly();
   }
@@ -74,67 +84,6 @@ export class AdminStorageService {
   }
   get lastLoaded() {
     return this.lastLoadedSignal.asReadonly();
-  }
-
-  // Computed signals with relations
-  getTodoWithRelations(todoId: string) {
-    return computed(() => {
-      const todo = this.todos().find((t) => t.id === todoId);
-      if (!todo) return null;
-
-      const user = this.users().find((u) => u.id === todo.userId);
-      const profile = user?.profileId ? this.profiles().find((p) => p.id === user.profileId) : null;
-      const categories = this.categories().filter((c) =>
-        todo.categories?.some((cat) => (typeof cat === "string" ? cat === c.id : cat.id === c.id))
-      );
-
-      return {
-        ...todo,
-        user,
-        profile,
-        categories,
-      };
-    });
-  }
-
-  getTaskWithRelations(taskId: string) {
-    return computed(() => {
-      const task = this.tasks().find((t) => t.id === taskId);
-      if (!task) return null;
-
-      const todo = this.todos().find((t) => t.id === task.todoId);
-      const user = todo ? this.users().find((u) => u.id === todo.userId) : null;
-      const profile = user?.profileId ? this.profiles().find((p) => p.id === user.profileId) : null;
-      const subtasks = this.subtasks().filter((s) => s.taskId === task.id);
-
-      return {
-        ...task,
-        todo,
-        user,
-        profile,
-        subtasks,
-      };
-    });
-  }
-
-  getSubtaskWithRelations(subtaskId: string) {
-    return computed(() => {
-      const subtask = this.subtasks().find((s) => s.id === subtaskId);
-      if (!subtask) return null;
-
-      const task = this.tasks().find((t) => t.id === subtask.taskId);
-      const todo = task ? this.todos().find((t) => t.id === task.todoId) : null;
-      const user = todo ? this.users().find((u) => u.id === todo.userId) : null;
-      const profile = user?.profileId ? this.profiles().find((p) => p.id === user.profileId) : null;
-
-      return {
-        ...subtask,
-        task,
-        todo,
-        user,
-        profile,
-      };
-    });
   }
 
   /**
@@ -186,6 +135,8 @@ export class AdminStorageService {
           this.todosSignal.set(response.data["todos"] || []);
           this.tasksSignal.set(response.data["tasks"] || []);
           this.subtasksSignal.set(response.data["subtasks"] || []);
+          this.commentsSignal.set(response.data["comments"] || []);
+          this.chatsSignal.set(response.data["chats"] || []);
           this.categoriesSignal.set(response.data["categories"] || []);
           this.dailyActivitiesSignal.set(response.data["daily_activities"] || []);
 
@@ -262,6 +213,26 @@ export class AdminStorageService {
       }
     });
 
+    // Extract from comments
+    data["comments"]?.forEach((comment: any) => {
+      if (comment.user) {
+        usersMap.set(comment.user.id, comment.user);
+        if (comment.user.profile) {
+          profilesMap.set(comment.user.profile.id, comment.user.profile);
+        }
+      }
+    });
+
+    // Extract from chats
+    data["chats"]?.forEach((chat: any) => {
+      if (chat.user) {
+        usersMap.set(chat.user.id, chat.user);
+        if (chat.user.profile) {
+          profilesMap.set(chat.user.profile.id, chat.user.profile);
+        }
+      }
+    });
+
     this.usersSignal.set(Array.from(usersMap.values()));
     this.profilesSignal.set(Array.from(profilesMap.values()));
   }
@@ -274,6 +245,8 @@ export class AdminStorageService {
       todos: this.todos(),
       tasks: this.tasks(),
       subtasks: this.subtasks(),
+      comments: this.comments(),
+      chats: this.chats(),
       categories: this.categories(),
       daily_activities: this.dailyActivities(),
       users: this.users(),
@@ -301,6 +274,16 @@ export class AdminStorageService {
           items.map((item) => (item.id === id ? { ...item, ...updates } : item))
         );
         break;
+      case "comments":
+        this.commentsSignal.update((items) =>
+          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+        );
+        break;
+      case "chats":
+        this.chatsSignal.update((items) =>
+          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+        );
+        break;
       case "categories":
         this.categoriesSignal.update((items) =>
           items.map((item) => (item.id === id ? { ...item, ...updates } : item))
@@ -315,18 +298,49 @@ export class AdminStorageService {
   }
 
   /**
+   * Update all related records when parent is deleted/restored
+   */
+  updateRelatedRecords(parentTable: string, parentId: string, updates: any): void {
+    if (parentTable === "todos") {
+      // Update all tasks for this todo
+      this.tasksSignal.update((tasks) =>
+        tasks.map((task) =>
+          task.todoId === parentId ? { ...task, ...updates } : task
+        )
+      );
+    } else if (parentTable === "tasks") {
+      // Update all subtasks for this task
+      this.subtasksSignal.update((subtasks) =>
+        subtasks.map((subtask) =>
+          subtask.taskId === parentId ? { ...subtask, ...updates } : subtask
+        )
+      );
+    }
+  }
+
+  /**
    * Remove a record from the store
    */
   removeRecord(table: string, id: string): void {
     switch (table) {
       case "todos":
         this.todosSignal.update((items) => items.filter((item) => item.id !== id));
+        // Remove all related tasks
+        this.tasksSignal.update((tasks) => tasks.filter((task) => task.todoId !== id));
         break;
       case "tasks":
         this.tasksSignal.update((items) => items.filter((item) => item.id !== id));
+        // Remove all related subtasks
+        this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.taskId !== id));
         break;
       case "subtasks":
         this.subtasksSignal.update((items) => items.filter((item) => item.id !== id));
+        break;
+      case "comments":
+        this.commentsSignal.update((items) => items.filter((item) => item.id !== id));
+        break;
+      case "chats":
+        this.chatsSignal.update((items) => items.filter((item) => item.id !== id));
         break;
       case "categories":
         this.categoriesSignal.update((items) => items.filter((item) => item.id !== id));
@@ -344,6 +358,8 @@ export class AdminStorageService {
     this.todosSignal.set([]);
     this.tasksSignal.set([]);
     this.subtasksSignal.set([]);
+    this.commentsSignal.set([]);
+    this.chatsSignal.set([]);
     this.categoriesSignal.set([]);
     this.dailyActivitiesSignal.set([]);
     this.usersSignal.set([]);

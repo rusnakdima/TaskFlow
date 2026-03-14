@@ -29,9 +29,17 @@ export class WebSocketDispatcherService {
       window.addEventListener(`ws-${entity}-updated`, (event: any) =>
         this.storageService.updateItem(entity, event.detail.id, event.detail)
       );
-      window.addEventListener(`ws-${entity}-deleted`, (event: any) =>
-        this.storageService.removeItem(entity, event.detail.id)
-      );
+      window.addEventListener(`ws-${entity}-deleted`, (event: any) => {
+        // Check if this is a soft delete (isDeleted flag set) or hard delete
+        const data = event.detail;
+        if (data.isDeleted === true) {
+          // Soft delete - update the item with isDeleted flag
+          this.storageService.updateItem(entity, data.id, data);
+        } else {
+          // Hard delete - remove from storage
+          this.storageService.removeItem(entity, data.id);
+        }
+      });
     });
   }
 }

@@ -273,44 +273,4 @@ export class OfflineQueueService {
       this.notifyService.showWarning("Cannot sync: offline");
     }
   }
-
-  /**
-   * Get operations by status
-   */
-  getOperationsByStatus(status: QueuedOperation["status"]): QueuedOperation[] {
-    return Array.from(this.queue.values()).filter((op) => op.status === status);
-  }
-
-  /**
-   * Get failed operations
-   */
-  getFailedOperations(): QueuedOperation[] {
-    return this.getOperationsByStatus("failed");
-  }
-
-  /**
-   * Retry a specific failed operation
-   */
-  retryOperation(operationId: string): void {
-    const op = this.queue.get(operationId);
-    if (op && op.status === "failed") {
-      op.status = "pending";
-      op.retryCount = 0;
-      op.errorMessage = undefined;
-      this.processTriggerSubject.next();
-    }
-  }
-
-  /**
-   * Retry all failed operations
-   */
-  retryAllFailed(): void {
-    const failed = this.getFailedOperations();
-    failed.forEach((op) => {
-      op.status = "pending";
-      op.retryCount = 0;
-      op.errorMessage = undefined;
-    });
-    this.processTriggerSubject.next();
-  }
 }

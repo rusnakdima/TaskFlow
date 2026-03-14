@@ -53,6 +53,7 @@ export class StorageService {
     });
 
     if (conflicts.length > 0) {
+      // Conflicts detected but auto-resolved
     }
 
     return Array.from(uniqueTodoMap.values());
@@ -211,10 +212,8 @@ export class StorageService {
 
   addItem(type: StorageEntity, data: any): void {
     if (!data.id) {
-      console.warn(`[StorageService] addItem called without id for type: ${type}`, data);
       return;
     }
-    console.log(`[StorageService] addItem: ${type}`, data);
 
     switch (type) {
       case "todos":
@@ -265,10 +264,14 @@ export class StorageService {
   }
 
   updateItem(type: StorageEntity, id: string, updates: Partial<any>): void {
-    console.log(`[StorageService] updateItem: ${type}, id: ${id}`, updates);
-    if (updates["isDeleted"]) {
-      this.removeItem(type, id);
-      return;
+    // Prevent infinite loops by checking if update would change anything
+    if (updates["isDeleted"] !== undefined) {
+      // For soft delete/restore operations, check if item already has same isDeleted value
+      const existing = this.getExistingItem(type, id);
+      if (existing && existing["isDeleted"] === updates["isDeleted"]) {
+        // Item already has this isDeleted value, skip update to prevent loops
+        return;
+      }
     }
 
     switch (type) {
@@ -312,12 +315,39 @@ export class StorageService {
     }
   }
 
+  /**
+   * Helper to get existing item by type and id
+   */
+  private getExistingItem(type: StorageEntity, id: string): any {
+    switch (type) {
+      case "todos":
+        return this.getTodoById(id);
+      case "tasks":
+        return this.getTaskById(id);
+      case "subtasks":
+        return this.getSubtaskById(id);
+      case "categories":
+        return this.getCategoryById(id);
+      case "chats":
+        // Find chat by id
+        const chatsMap = this.chatsByTodoSignal();
+        for (const chats of chatsMap.values()) {
+          const found = chats.find((c) => c.id === id);
+          if (found) return found;
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+
   removeItem(type: StorageEntity, id: string): void {
-    console.log(`[StorageService] removeItem: ${type}, id: ${id}`);
     switch (type) {
       case "todos":
         this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
         this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
+        // Also clear chats for this todo
+        this.clearChatsByTodo(id);
         break;
 
       case "tasks":
@@ -357,7 +387,8 @@ export class StorageService {
         break;
 
       case "comments":
-        this.handleCommentUpdate({ id }, "remove");
+        // Remove comment from all tasks and subtasks
+        this.removeCommentFromAll(id);
         break;
 
       case "chats":
@@ -378,17 +409,12 @@ export class StorageService {
   private handleTodoUpdate(todoId: string, updates: Partial<Todo>): void {
     const currentTodo = this.getTodoById(todoId);
     if (!currentTodo) {
-      console.warn(`[StorageService] handleTodoUpdate: Todo with id ${todoId} not found`);
       return;
     }
 
-    console.log(`[StorageService] handleTodoUpdate for ${todoId}`, updates);
-
-    // Check if this is a full todo replacement (has tasks array)
     const isFullReplacement = updates.tasks !== undefined;
 
     if (updates.visibility && updates.visibility !== currentTodo.visibility) {
-      console.log(`[StorageService] Visibility changed for ${todoId} to ${updates.visibility}`);
       const updatedTodo: Todo =
         isFullReplacement && updates.id && updates.userId
           ? (updates as Todo)
@@ -401,13 +427,8 @@ export class StorageService {
         this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
       }
     } else {
-      // Only update the array where the todo actually exists
       const isInPrivate = this.privateTodosSignal().some((t) => t.id === todoId);
       const isInShared = this.sharedTodosSignal().some((t) => t.id === todoId);
-
-      console.log(
-        `[StorageService] Updating todo in: private=${isInPrivate}, shared=${isInShared}`
-      );
 
       if (isInPrivate) {
         this.privateTodosSignal.update((todos) =>
@@ -437,17 +458,36 @@ export class StorageService {
     } else {
       // Remove comment by searching across all tasks/subtasks
       this.updateTodoSignal("", (todos) =>
-        todos.map((todo) => ({
-          ...todo,
-          tasks: (todo.tasks || []).map((task) => ({
-            ...task,
-            comments: (task.comments || []).filter((c) => c.id !== data.id),
-            subtasks: (task.subtasks || []).map((subtask) => ({
-              ...subtask,
-              comments: (subtask.comments || []).filter((c) => c.id !== data.id),
-            })),
-          })),
-        }))
+        todos.map((todo) => {
+          const hasTasks = todo.tasks && todo.tasks.length > 0;
+          if (!hasTasks) return todo;
+          
+          return {
+            ...todo,
+            tasks: todo.tasks.map((task) => {
+              const hasTaskComments = task.comments && task.comments.length > 0;
+              const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+              
+              // Skip if no comments and no subtasks to process
+              if (!hasTaskComments && !hasSubtasks) return task;
+              
+              return {
+                ...task,
+                comments: hasTaskComments 
+                  ? task.comments.filter((c) => c.id !== data.id)
+                  : task.comments,
+                subtasks: hasSubtasks
+                  ? task.subtasks.map((subtask) => ({
+                      ...subtask,
+                      comments: (subtask.comments && subtask.comments.length > 0)
+                        ? subtask.comments.filter((c) => c.id !== data.id)
+                        : subtask.comments,
+                    }))
+                  : task.subtasks,
+              };
+            }),
+          };
+        })
       );
     }
   }
@@ -545,6 +585,7 @@ export class StorageService {
   removeCommentFromTask(taskId: string, commentId: string): void {
     const task = this.getTaskById(taskId);
     if (!task) return;
+    if (!task.comments || task.comments.length === 0) return;
 
     this.updateTodoSignal(task.todoId, (todos) =>
       todos.map((todo) => {
@@ -593,6 +634,7 @@ export class StorageService {
   removeCommentFromSubtask(subtaskId: string, commentId: string): void {
     const subtask = this.getSubtaskById(subtaskId);
     if (!subtask) return;
+    if (!subtask.comments || subtask.comments.length === 0) return;
 
     const task = this.getTaskById(subtask.taskId);
     if (!task) return;
@@ -629,14 +671,28 @@ export class StorageService {
     this.updateTodoSignal("", (todos) =>
       todos.map((todo) => ({
         ...todo,
-        tasks: (todo.tasks || []).map((task) => ({
-          ...task,
-          comments: (task.comments || []).filter((c) => c.id !== commentId),
-          subtasks: (task.subtasks || []).map((subtask) => ({
-            ...subtask,
-            comments: (subtask.comments || []).filter((c) => c.id !== commentId),
-          })),
-        })),
+        tasks: (todo.tasks || []).map((task) => {
+          const hasTaskComments = task.comments && task.comments.length > 0;
+          const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+          
+          // Skip if no comments and no subtasks to process
+          if (!hasTaskComments && !hasSubtasks) return task;
+          
+          return {
+            ...task,
+            comments: hasTaskComments 
+              ? task.comments.filter((c) => c.id !== commentId)
+              : task.comments,
+            subtasks: hasSubtasks
+              ? task.subtasks.map((subtask) => ({
+                  ...subtask,
+                  comments: (subtask.comments && subtask.comments.length > 0)
+                    ? subtask.comments.filter((c) => c.id !== commentId)
+                    : subtask.comments,
+                }))
+              : task.subtasks,
+          };
+        }),
       }))
     );
   }
@@ -651,8 +707,16 @@ export class StorageService {
     return this.tasks().find((task) => task.id === taskId);
   }
 
+  getAllTasksByTodoId(todoId: string): Task[] {
+    return this.tasks().filter((task) => task.todoId === todoId);
+  }
+
   getSubtaskById(subtaskId: string): Subtask | undefined {
     return this.subtasks().find((subtask) => subtask.id === subtaskId);
+  }
+
+  getAllSubtasksByTaskId(taskId: string): Subtask[] {
+    return this.subtasks().filter((subtask) => subtask.taskId === taskId);
   }
 
   getCategoryById(categoryId: string): Category | undefined {

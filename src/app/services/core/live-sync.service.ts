@@ -23,17 +23,38 @@ export class LiveSyncService implements OnDestroy {
     // Todo events
     "todo-created": (data) => this.storageService.addItem("todos", data),
     "todo-updated": (data) => this.storageService.updateItem("todos", data.id, data),
-    "todo-deleted": (data) => this.storageService.removeItem("todos", data.id),
+    "todo-deleted": (data) => {
+      // Check if this is a soft delete (isDeleted flag set) or hard delete
+      if (data.isDeleted === true) {
+        this.storageService.updateItem("todos", data.id, data);
+      } else {
+        this.storageService.removeItem("todos", data.id);
+      }
+    },
 
     // Task events
     "task-created": (data) => this.storageService.addItem("tasks", data),
     "task-updated": (data) => this.storageService.updateItem("tasks", data.id, data),
-    "task-deleted": (data) => this.storageService.removeItem("tasks", data.id),
+    "task-deleted": (data) => {
+      // Check if this is a soft delete (isDeleted flag set) or hard delete
+      if (data.isDeleted === true) {
+        this.storageService.updateItem("tasks", data.id, data);
+      } else {
+        this.storageService.removeItem("tasks", data.id);
+      }
+    },
 
     // Subtask events
     "subtask-created": (data) => this.storageService.addItem("subtasks", data),
     "subtask-updated": (data) => this.storageService.updateItem("subtasks", data.id, data),
-    "subtask-deleted": (data) => this.storageService.removeItem("subtasks", data.id),
+    "subtask-deleted": (data) => {
+      // Check if this is a soft delete (isDeleted flag set) or hard delete
+      if (data.isDeleted === true) {
+        this.storageService.updateItem("subtasks", data.id, data);
+      } else {
+        this.storageService.removeItem("subtasks", data.id);
+      }
+    },
 
     // Category events
     "category-created": (data) => this.storageService.addItem("categories", data),
