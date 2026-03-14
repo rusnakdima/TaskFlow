@@ -12,7 +12,13 @@
           <div class="flex items-start justify-between mb-2">
             <div class="flex-1 min-w-0">
               <h4 class="font-semibold textNormal text-lg mb-1 truncate">
-                {{ item[titleKey] || "No Title" }}
+                @if (titleKey === 'content') {
+                  {{ item[titleKey] || 'No content' }}
+                } @else if (titleKey === 'date') {
+                  {{ item[titleKey] || formatDate(item.createdAt) }}
+                } @else {
+                  {{ item[titleKey] || 'No Title' }}
+                }
               </h4>
               <div class="flex items-center gap-4 text-sm textMuted">
                 <span class="truncate">ID: {{ item.id }}</span>
@@ -28,25 +34,27 @@
                   {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
                 </mat-icon>
               </button>
-              <button
-                mat-icon-button
-                class="w-8 h-8 text-blue-600"
-                (click)="toggleDelete.emit(item)"
-                [title]="item.isDeleted ? 'Restore record' : 'Soft delete record'"
-              >
-                <mat-icon
-                  class="w-5! h-5! text-xl!"
-                  [fontIcon]="item.isDeleted ? 'restore_from_trash' : 'delete'"
-                />
-              </button>
-              <button
-                mat-icon-button
-                class="w-8 h-8 text-red-600"
-                (click)="deleteRecord.emit(item)"
-                title="Permanently delete record"
-              >
-                <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
-              </button>
+              @if (showActions) {
+                <button
+                  mat-icon-button
+                  class="w-8 h-8 text-blue-600"
+                  (click)="toggleDelete.emit(item)"
+                  [title]="item.isDeleted ? 'Restore record' : 'Soft delete record'"
+                >
+                  <mat-icon
+                    class="w-5! h-5! text-xl!"
+                    [fontIcon]="item.isDeleted ? 'restore_from_trash' : 'delete'"
+                  />
+                </button>
+                <button
+                  mat-icon-button
+                  class="w-8 h-8 text-red-600"
+                  (click)="deleteRecord.emit(item)"
+                  title="Permanently delete record"
+                >
+                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
+                </button>
+              }
             </div>
           </div>
 

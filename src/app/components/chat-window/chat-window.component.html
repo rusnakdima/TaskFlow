@@ -30,7 +30,7 @@
   </div>
 
   <div #scrollContainer class="flex-1 overflow-y-auto p-4 space-y-4">
-    @for (chat of chatService.getChats(todoId); track chat.id) {
+    @for (chat of getChats(todoId); track chat.id) {
       <div
         [id]="'chat-' + chat.id"
         [attr.data-chat-id]="chat.id"
@@ -63,7 +63,7 @@
         >
           <p class="text-sm break-words">{{ chat.content }}</p>
 
-          @if (chatService.canDelete(chat)) {
+          @if (canDelete(chat)) {
             <button
               (click)="deleteMessage(chat.id)"
               class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
