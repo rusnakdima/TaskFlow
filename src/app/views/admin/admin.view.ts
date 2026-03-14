@@ -127,6 +127,21 @@ export class AdminView implements OnInit {
     { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
+  commentFields: AdminFieldConfig[] = [
+    { key: "content", label: "Comment", type: "text" },
+    { key: "authorName", label: "Author", type: "text" },
+    { key: "taskId", label: "Task ID", type: "text" },
+    { key: "subtaskId", label: "Subtask ID", type: "text" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
+  ];
+
+  chatFields: AdminFieldConfig[] = [
+    { key: "content", label: "Message", type: "text" },
+    { key: "authorName", label: "Author", type: "text" },
+    { key: "todoId", label: "Todo ID", type: "text" },
+    { key: "createdAt", label: "Created", type: "date" },
+  ];
+
   getFieldConfig(): AdminFieldConfig[] {
     switch (this.selectedType()) {
       case "todos":
@@ -135,6 +150,10 @@ export class AdminView implements OnInit {
         return this.taskFields;
       case "subtasks":
         return this.subtaskFields;
+      case "comments":
+        return this.commentFields;
+      case "chats":
+        return this.chatFields;
       case "categories":
         return this.categoryFields;
       case "daily_activities":
@@ -176,6 +195,18 @@ export class AdminView implements OnInit {
       id: "subtasks",
       label: "Subtasks",
       icon: "assignment",
+      count: 0,
+    },
+    {
+      id: "comments",
+      label: "Comments",
+      icon: "forum",
+      count: 0,
+    },
+    {
+      id: "chats",
+      label: "Chats",
+      icon: "chat",
       count: 0,
     },
     {
@@ -292,33 +323,27 @@ export class AdminView implements OnInit {
 
   async deleteRecord(record: any) {
     const typeSingular = this.selectedType().slice(0, -1);
-    if (!confirm(`Are you sure you want to delete this ${typeSingular} record?`)) {
+    const table = this.selectedType();
+
+    // Use cascade delete for todos and tasks (they have children)
+    const useCascade = table === "todos" || table === "tasks";
+    const confirmMessage = useCascade
+      ? `WARNING: This will permanently delete this ${typeSingular} and ALL related data (tasks, subtasks, comments, chats). This action cannot be undone. Are you sure?`
+      : `Are you sure you want to delete this ${typeSingular} record?`;
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const response = await this.adminService.permanentlyDeleteRecord(
-        this.selectedType(),
-        record.id
-      );
+      const response = useCascade
+        ? await this.adminService.permanentlyDeleteRecordWithCascade(table, record.id)
+        : await this.adminService.permanentlyDeleteRecord(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        // Update local storage instead of reloading all data
-        this.adminStorageService.removeRecord(this.selectedType(), record.id);
-        this.adminData.update((data) => {
-          const updated = { ...data };
-          updated[this.selectedType()] = (updated[this.selectedType()] || []).filter(
-            (item) => item.id !== record.id
-          );
-          return updated;
-        });
-        // Update count
-        const type = this.dataTypes.find((t) => t.id === this.selectedType());
-        if (type) {
-          type.count = Math.max(0, type.count - 1);
-        }
-        this.dataSyncService.loadAllData(true).subscribe();
+        // Reload all data after deletion
+        this.loadAdminData();
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
       }
@@ -333,25 +358,8 @@ export class AdminView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-        // Update local storage with new isDeleted status and updatedAt timestamp
-        const updatedData = {
-          isDeleted: !record.isDeleted,
-          updatedAt: new Date().toISOString(),
-        };
-        this.adminStorageService.updateRecord(this.selectedType(), record.id, updatedData);
-        this.adminData.update((data) => {
-          const updated = { ...data };
-          const index = (updated[this.selectedType()] || []).findIndex(
-            (item) => item.id === record.id
-          );
-          if (index !== -1) {
-            updated[this.selectedType()][index] = {
-              ...updated[this.selectedType()][index],
-              ...updatedData,
-            };
-          }
-          return updated;
-        });
+        // Reload all data to get cascade updates
+        this.loadAdminData();
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
       }
@@ -448,16 +456,8 @@ export class AdminView implements OnInit {
           this.notifyService.showSuccess(
             `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
           );
-
-          // Update local storage
-          const deletedIds = selectedItems
-            .filter((_, i) => i < result.successCount)
-            .map((item) => item.id);
-          // Actually we should use result.errors to know which ones failed, but bulkDelete result doesn't explicitly map success per ID in a simple way for filtering here without more logic.
-          // Let's assume most succeed or we reload if any succeed.
-
-          this.dataSyncService.loadAllData(true).subscribe();
-          this.loadAdminData(); // Reload all admin data to be safe and update counts
+          // Reload all data after deletion
+          this.loadAdminData();
         }
 
         if (result.errorCount > 0) {
