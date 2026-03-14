@@ -372,6 +372,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
       const newVisibility = formValue.visibility as "private" | "team";
       const visibilityChanged = this.isPrivate !== (newVisibility === "private");
+      const todoId = body.id;
 
       // Determine sync metadata based on visibility and ownership
       const isPrivate = newVisibility === "private";
@@ -383,8 +384,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
           next: async (result: Todo) => {
             if (visibilityChanged) {
               try {
-                await this.dataSyncProvider.syncAfterVisibilityChange(newVisibility);
-                this.dataSyncService.loadAllData(true).subscribe();
+                // Use optimized single-record sync instead of full sync
+                await this.dataSyncProvider.syncSingleTodoVisibilityChange(todoId, newVisibility);
               } catch (err) {
                 this.notifyService.showWarning("Todo updated, but sync may not have completed.");
               }

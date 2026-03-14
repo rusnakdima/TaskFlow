@@ -22,7 +22,7 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
-import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { StorageService } from "@services/core/storage.service";
@@ -54,7 +54,7 @@ export class KanbanView implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private dataSyncProvider = inject(DataSyncProvider);
-  private localWs = inject(LocalWebSocketService);
+  private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);
   private baseHelper = new BaseItemHelper();

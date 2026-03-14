@@ -34,7 +34,7 @@ import { DataSyncService } from "@services/data/data-sync.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* bases */
-import { FilterableViewBase } from "@bases/filterable-view.base";
+import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -59,7 +59,7 @@ import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-
   ],
   templateUrl: "./todos.view.html",
 })
-export class TodosView extends FilterableViewBase implements OnInit {
+export class TodosView extends BaseView implements OnInit {
   // Services
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
@@ -82,13 +82,16 @@ export class TodosView extends FilterableViewBase implements OnInit {
   // State
   todos = this.storageService.todos;
   highlightTodoId = signal<string | null>(null);
+  showFilter = signal(false);
+  activeFilter = signal<string>("all");
+  searchQuery = signal<string>("");
   userId = signal("");
   private routeSub?: Subscription;
 
   // Computed signals
   listTodos = computed(() => {
-    // Show all todos including deleted ones (deleted will be styled differently)
-    let filtered = this.todos().filter((todo) => todo.visibility === "private");
+    // Filter only private visibility todos
+    let filtered = this.storageService.privateTodos();
     const filter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
 
@@ -212,8 +215,8 @@ export class TodosView extends FilterableViewBase implements OnInit {
   }
 
   getFilteredCount(filter: string): number {
-    // Count all todos including deleted ones
-    const todos = this.todos().filter((todo) => todo.visibility === "private");
+    // Count only private visibility todos
+    const todos = this.storageService.privateTodos();
 
     switch (filter) {
       case "all":
@@ -297,5 +300,26 @@ export class TodosView extends FilterableViewBase implements OnInit {
       (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
     );
     return listCompletedTasks.length === listTasks.length;
+  }
+
+  /**
+   * Toggle filter bar visibility
+   */
+  toggleFilter(): void {
+    this.showFilter.update(v => !v);
+  }
+
+  /**
+   * Handle search query change
+   */
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  /**
+   * Handle filter change
+   */
+  changeFilter(filter: string): void {
+    this.activeFilter.set(filter);
   }
 }

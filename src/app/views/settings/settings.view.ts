@@ -8,7 +8,6 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { NotificationService } from "@services/notifications/notification.service";
 
 @Component({
   selector: "app-settings",
@@ -17,7 +16,6 @@ import { NotificationService } from "@services/notifications/notification.servic
   templateUrl: "./settings.view.html",
 })
 export class SettingsView implements OnInit {
-  private notificationService = inject(NotificationService);
   private notifyService = inject(NotifyService);
 
   // Notification sound settings
@@ -28,7 +26,7 @@ export class SettingsView implements OnInit {
 
   ngOnInit(): void {
     // Load saved settings
-    const settings = this.notificationService.getSettings();
+    const settings = this.notifyService.getSettings();
     this.chatNotificationVolume.set(settings.chatVolume);
     this.commentNotificationVolume.set(settings.commentVolume);
     this.generalNotificationVolume.set(settings.generalVolume);
@@ -36,7 +34,7 @@ export class SettingsView implements OnInit {
   }
 
   saveSettings(): void {
-    this.notificationService.saveSettings({
+    this.notifyService.saveSettings({
       chatVolume: this.chatNotificationVolume(),
       commentVolume: this.commentNotificationVolume(),
       generalVolume: this.generalNotificationVolume(),
@@ -60,6 +58,6 @@ export class SettingsView implements OnInit {
         : type === "comment"
           ? this.commentNotificationVolume()
           : this.generalNotificationVolume();
-    this.notificationService.playTestSound(type, volume / 100);
+    this.notifyService.playTestSound(type, volume / 100);
   }
 }

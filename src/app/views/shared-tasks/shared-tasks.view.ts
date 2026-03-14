@@ -43,18 +43,17 @@ export class SharedTasksView implements OnInit {
 
   myProjects = computed(() => {
     const userId = this.userId();
-    // ✅ Only show team projects where user is the owner
+    // Only show team projects where user is the owner
     return this.storageService
       .sharedTodos()
-      .filter((todo) => todo.userId === userId && todo.visibility === "team" && !todo.isDeleted);
+      .filter((todo) => todo.userId === userId && !todo.isDeleted);
   });
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
-    // ✅ Only show team projects where user is NOT the owner but is an assignee
+    // Only show team projects where user is NOT the owner but is an assignee
     return this.storageService.sharedTodos().filter((todo) => {
       const isNotOwner = todo.userId !== userId;
-      const isTeam = todo.visibility === "team";
 
       const isAssignee = todo.assignees?.some((assignee: any) => {
         if (typeof assignee === "string") {
@@ -65,7 +64,7 @@ export class SharedTasksView implements OnInit {
         return false;
       });
 
-      return isNotOwner && isAssignee && isTeam && !todo.isDeleted;
+      return isNotOwner && isAssignee && !todo.isDeleted;
     });
   });
 

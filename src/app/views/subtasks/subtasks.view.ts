@@ -33,7 +33,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* bases */
-import { FilterableViewBase } from "@bases/filterable-view.base";
+import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -63,7 +63,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
   ],
   templateUrl: "./subtasks.view.html",
 })
-export class SubtasksView extends FilterableViewBase implements OnInit {
+export class SubtasksView extends BaseView implements OnInit {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
@@ -83,7 +83,6 @@ export class SubtasksView extends FilterableViewBase implements OnInit {
 
   // State signals
   task = signal<Task | null>(null);
-  loading = signal(false);
   showChat = signal(false);
   todoId = signal("");
   todo = signal<Todo | null>(null);
@@ -92,6 +91,9 @@ export class SubtasksView extends FilterableViewBase implements OnInit {
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
   openComments = signal(false);
+  showFilter = signal(false);
+  activeFilter = signal<string>("all");
+  searchQuery = signal<string>("");
   private routeSub?: Subscription;
 
   // Computed signals for data flow - Always use storage as the single source of truth
@@ -316,5 +318,26 @@ export class SubtasksView extends FilterableViewBase implements OnInit {
         isPrivate: this.isPrivate,
       })
       .subscribe();
+  }
+
+  /**
+   * Toggle filter bar visibility
+   */
+  toggleFilter(): void {
+    this.showFilter.update(v => !v);
+  }
+
+  /**
+   * Handle search query change
+   */
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  /**
+   * Handle filter change
+   */
+  changeFilter(filter: string): void {
+    this.activeFilter.set(filter);
   }
 }
