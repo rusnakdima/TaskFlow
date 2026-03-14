@@ -36,10 +36,7 @@ impl ConnectionManager {
   pub async fn handle_connection(&self, stream: TcpStream) {
     let ws_stream = match accept_async(stream).await {
       Ok(ws) => ws,
-      Err(e) => {
-        eprintln!("[WebSocket] Failed to accept connection: {}", e);
-        return;
-      }
+      Err(_) => return,
     };
 
     let (tx, mut rx) = futures::channel::mpsc::unbounded();
@@ -47,7 +44,6 @@ impl ConnectionManager {
 
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
-    // Spawn send task
     let send_task = tauri::async_runtime::spawn(async move {
       while let Some(msg) = rx.next().await {
         if ws_sender.send(msg).await.is_err() {
@@ -56,7 +52,6 @@ impl ConnectionManager {
       }
     });
 
-    // Process incoming messages
     while let Some(msg) = ws_receiver.next().await {
       match msg {
         Ok(Message::Text(text)) => {
@@ -69,23 +64,15 @@ impl ConnectionManager {
 
           let _ = tx.unbounded_send(Message::Text(response_json.into()));
         }
-        Ok(Message::Close(_)) => {
-          eprintln!("[WebSocket] Client disconnected, cleaning up");
-          break;
-        }
-        Err(e) => {
-          eprintln!("[WebSocket] Connection error: {}", e);
-          break;
-        }
+        Ok(Message::Close(_)) => break,
+        Err(_) => break,
         _ => (),
       }
     }
 
     send_task.abort();
 
-    // Remove disconnected client from the list
     self.clients.lock().unwrap().retain(|client| !client.is_closed());
-    eprintln!("[WebSocket] Client connection cleaned up");
   }
 
   /// Process incoming WebSocket message

@@ -61,14 +61,11 @@ impl LiveSyncService {
             Ok(change) => {
               let eventName = format!("db-change-{}", collectionName);
 
-              // Convert BSON change to JSON value for Tauri emission
               if let Ok(changeJson) = to_value(&change) {
                 let _ = self.appHandle.emit(&eventName, changeJson);
               }
             }
-            Err(e) => {
-              eprintln!("Error in change stream for {}: {}", collectionName, e);
-              // Small delay before retry
+            Err(_) => {
               tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             }
           }
@@ -77,12 +74,7 @@ impl LiveSyncService {
       Err(e) => {
         let errorMessage = e.to_string();
         if errorMessage.contains("40573") || errorMessage.contains("replica sets") {
-          eprintln!(
-            "LIVE MODE DISABLED for {}: MongoDB must be a Replica Set to use Change Streams.",
-            collectionName
-          );
-        } else {
-          eprintln!("Failed to start watch on {}: {}", collectionName, e);
+          // MongoDB must be a Replica Set to use Change Streams
         }
       }
     }
