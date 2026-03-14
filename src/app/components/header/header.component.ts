@@ -110,7 +110,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.isSyncing.set(isSyncing)
     );
 
-    this.getProfile();
+    // Poll for profile data since it may not be loaded yet
+    const checkProfile = () => {
+      const profile = this.storageService.profile();
+      if (profile) {
+        this.profile.set(profile);
+        this.cdr.detectChanges();
+      } else {
+        // Check again after 100ms if profile not loaded
+        setTimeout(checkProfile, 100);
+      }
+    };
+    checkProfile();
 
     this.router.events
       .pipe(
@@ -138,20 +149,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.syncSubscription?.unsubscribe();
-  }
-
-  getProfile() {
-    const relations = RelationsHelper.getProfileRelations();
-    this.dataSyncProvider
-      .crud<Profile[]>("getAll", "profiles", { filter: { userId: this.userId() }, relations }, true)
-      .subscribe({
-        next: (profiles: Profile[]) => {
-          this.profile.set(profiles && profiles.length > 0 ? profiles[0] : null);
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to load profile");
-        },
-      });
   }
 
   async createBreadcrumbs(
@@ -317,20 +314,63 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  async syncAll() {
+  async syncAll(silent: boolean = false) {
     if (this.isSyncing()) return;
 
-    this.notifyService.showInfo("Starting synchronization...");
+    if (!silent) {
+      this.notifyService.showInfo("Starting synchronization...");
+    }
 
     try {
       const response = await this.syncService.syncAll();
       if (response.status === ResponseStatus.SUCCESS) {
-        this.notifyService.showSuccess("Synchronization completed successfully!");
+        if (!silent) {
+          this.notifyService.showSuccess("Synchronization completed successfully!");
+        }
       } else {
-        this.notifyService.showError(response.message || "Synchronization failed");
+        // Check if it's a network error (MongoDB offline)
+        const isNetworkError =
+          response.message?.includes("NetworkError") ||
+          response.message?.includes("network") ||
+          response.message?.includes("offline") ||
+          response.message?.includes("Failed to fetch") ||
+          response.message?.includes("Server selection timeout") ||
+          response.message?.includes("Connection refused") ||
+          response.message?.includes("Database error");
+
+        if (isNetworkError) {
+          // Network error - sync is optional, don't show error
+          console.warn("[Sync] Network unavailable - using local data only");
+          if (!silent) {
+            this.notifyService.showWarning("Working offline - sync unavailable");
+          }
+        } else if (!silent) {
+          // Other error - show it
+          this.notifyService.showError(response.message || "Synchronization failed");
+        }
       }
     } catch (error) {
-      this.notifyService.showError("Synchronization failed: " + error);
+      // Check if it's a network error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isNetworkError =
+        errorMessage.includes("NetworkError") ||
+        errorMessage.includes("network") ||
+        errorMessage.includes("offline") ||
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("Server selection timeout") ||
+        errorMessage.includes("Connection refused") ||
+        errorMessage.includes("Database error");
+
+      if (isNetworkError) {
+        // Network error - sync is optional, don't show error
+        console.warn("[Sync] Network unavailable - using local data only");
+        if (!silent) {
+          this.notifyService.showWarning("Working offline - sync unavailable");
+        }
+      } else if (!silent) {
+        // Other error - show it
+        this.notifyService.showError("Synchronization failed: " + errorMessage);
+      }
     }
   }
 
