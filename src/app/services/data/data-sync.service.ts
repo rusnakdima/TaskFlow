@@ -9,6 +9,7 @@ import { Category } from "@models/category.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -26,6 +27,25 @@ export class DataSyncService {
   private storageService = inject(StorageService);
 
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
+
+  /**
+   * Check if error is a network-related error
+   * @deprecated Use NetworkErrorHelper.isNetworkError() instead
+   */
+  private isNetworkError(error: any): boolean {
+    return NetworkErrorHelper.isNetworkError(error);
+  }
+
+  /**
+   * Handle sync errors with appropriate fallback behavior
+   */
+  private handleSyncError<T>(context: string, fallbackValue: T, error: any): Observable<T> {
+    if (this.isNetworkError(error)) {
+      console.warn(`[DataSyncService] ${context} - Working offline`);
+      return of(fallbackValue);
+    }
+    throw error;
+  }
 
   /**
    * Load all application data INCLUDING PROFILE
@@ -107,15 +127,7 @@ export class DataSyncService {
         });
       }),
       catchError((error) => {
-        // Profile load failed - check if it's a network error
-        const isNetworkError =
-          error.message?.includes("NetworkError") ||
-          error.message?.includes("network") ||
-          error.message?.includes("offline") ||
-          error.message?.includes("Failed to fetch");
-
-        if (isNetworkError) {
-          // We're offline - use cached data
+        if (this.isNetworkError(error)) {
           console.warn("[DataSyncService] Working offline - using cached data");
           this.storageService.setLoading(false);
           this.storageService.setLoaded(true);
@@ -128,7 +140,6 @@ export class DataSyncService {
           });
         }
 
-        // Not a network error - continue with other data loading
         this.storageService.setProfile(null);
 
         return forkJoin({
@@ -188,15 +199,7 @@ export class DataSyncService {
         this.storageService.setLastLoaded(new Date());
       }),
       catchError((error) => {
-        // All data loading failed - check if offline
-        const isNetworkError =
-          error.message?.includes("NetworkError") ||
-          error.message?.includes("network") ||
-          error.message?.includes("offline") ||
-          error.message?.includes("Failed to fetch");
-
-        if (isNetworkError && this.storageService.loaded()) {
-          // We're offline but have cached data - that's OK
+        if (this.isNetworkError(error) && this.storageService.loaded()) {
           console.warn("[DataSyncService] Using cached data (offline mode)");
           return of({
             todos: this.storageService.todos(),
@@ -205,7 +208,6 @@ export class DataSyncService {
           });
         }
 
-        // Critical error - no cached data available
         this.storageService.setLoading(false);
         throw error;
       })

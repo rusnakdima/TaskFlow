@@ -15,7 +15,7 @@ import { Task } from "@models/task.model";
 import { RelationsHelper } from "@helpers/relations.helper";
 
 /* services */
-import { LocalWebSocketService } from "@services/core/local-websocket.service";
+import { WebSocketService } from "@services/core/websocket.service";
 import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
@@ -49,7 +49,7 @@ export class DataSyncProvider {
     "users",
   ];
 
-  private localWebSocketService = inject(LocalWebSocketService);
+  private ws = inject(WebSocketService);
   private jwtTokenService = inject(JwtTokenService);
   private offlineQueueService = inject(OfflineQueueService);
   private injector = inject(Injector);
@@ -270,10 +270,10 @@ export class DataSyncProvider {
 
     const request$ = new Observable<T>((subscriber) => {
       const tryWebSocket = (attempt: number) => {
-        const isConnected = this.localWebSocketService.isConnected();
+        const isConnected = this.ws.isConnected();
 
         if (isConnected) {
-          wsSubscription = this.localWebSocketService.crud<T>(operation, params).subscribe({
+          wsSubscription = this.ws.crud<T>(operation, params).subscribe({
             next: (data) => {
               subscriber.next(data);
               subscriber.complete();
@@ -458,6 +458,70 @@ export class DataSyncProvider {
     }
   }
 
+  /**
+   * Optimized visibility change handler that syncs only the specific record
+   * - Private to Team: Upload to MongoDB, remove from local DB, update storage
+   * - Team to Private: Update in MongoDB, import to local, update storage
+   */
+  async syncSingleTodoVisibilityChange(
+    todoId: string,
+    newVisibility: "private" | "team"
+  ): Promise<void> {
+    try {
+      if (newVisibility === "team") {
+        // Private -> Team: Upload only this record to MongoDB, remove from local
+        await this.uploadTodoToCloud(todoId);
+        this.storageService.moveTodoToShared(todoId);
+      } else {
+        // Team -> Private: Update in MongoDB, import to local only this record
+        await this.downloadTodoFromCloud(todoId);
+        this.storageService.moveTodoToPrivate(todoId);
+      }
+      this.clearCache("todos");
+    } catch (error) {
+      console.error(`[DataSyncProvider] syncSingleTodoVisibilityChange failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a single todo to cloud (for private -> team transition)
+   */
+  private async uploadTodoToCloud(todoId: string): Promise<void> {
+    const todo = this.storageService.getTodoById(todoId);
+    if (!todo) {
+      throw new Error(`Todo with id ${todoId} not found`);
+    }
+
+    return new Promise((resolve, reject) => {
+      this.crud<Todo>("update", "todos", { id: todoId, data: todo }).subscribe({
+        next: () => {
+          resolve();
+        },
+        error: (err) => reject(err),
+      });
+    });
+  }
+
+  /**
+   * Download a single todo from cloud (for team -> private transition)
+   */
+  private async downloadTodoFromCloud(todoId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
+        next: (todo) => {
+          if (todo) {
+            this.storageService.updateItem("todos", todoId, todo);
+            resolve();
+          } else {
+            reject(new Error(`Todo with id ${todoId} not found in cloud`));
+          }
+        },
+        error: (err) => reject(err),
+      });
+    });
+  }
+
   private updateStorageAfterOperation(
     operation: Operation,
     table: string,
@@ -544,7 +608,7 @@ export class DataSyncProvider {
           break;
       }
     } catch (error) {
-      // Failed to update storage after operation
+      console.error('[DataSyncProvider] Failed to update storage after operation:', error);
     }
   }
 
