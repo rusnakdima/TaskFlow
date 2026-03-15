@@ -53,7 +53,9 @@ impl MongodbSyncProvider {
   }
 
   /// Sync a single record from cloud to local based on updatedAt
-  /// If local doesn't exist, create it. If local exists and cloud is newer, update it.
+  /// If local doesn't exist and cloud is not deleted, create it.
+  /// If local exists and cloud is newer, update it.
+  /// Deleted records (isDeleted: true) are never synced from cloud to local.
   async fn syncRecordToLocal(
     &self,
     jsonProvider: &JsonProvider,
@@ -65,13 +67,21 @@ impl MongodbSyncProvider {
       return Ok(());
     }
 
+    // Check if cloud record is deleted - skip syncing deleted records
+    let isDeleted = cloudVal.get("isDeleted").and_then(|v| v.as_bool()).unwrap_or(false);
+    if isDeleted {
+      return Ok(());
+    }
+
     match jsonProvider.get(table, id).await {
       Ok(localVal) => {
+        // Local record exists - update if cloud is newer
         if comparison_helper::shouldUpdateTarget(&cloudVal, &localVal) {
           jsonProvider.update(table, id, cloudVal.clone()).await?;
         }
       }
       Err(_) => {
+        // Local record doesn't exist - create it (already checked isDeleted above)
         jsonProvider.create(table, cloudVal).await?;
       }
     }
@@ -80,7 +90,7 @@ impl MongodbSyncProvider {
 
   /// Export data from local JSON to cloud MongoDB
   /// Local records with newer updatedAt will overwrite cloud records
-  /// Includes ALL records (including those with isDeleted: true)
+  /// Excludes deleted records (isDeleted: true) - deletions stay local only
   pub async fn exportToCloud(
     &self,
     userId: String,
@@ -98,11 +108,15 @@ impl MongodbSyncProvider {
     ];
 
     for (table, filterField) in tables {
-      let filter = serde_json::json!({ filterField: userId });
-      // Use getAllWithDeleted to include records with isDeleted: true
+      // Filter to exclude deleted records (deletions don't sync to cloud)
+      let filter = serde_json::json!({
+        filterField: userId,
+        "isDeleted": false
+      });
+
       let localRecords: Vec<Value> = jsonProvider
         .jsonCrud
-        .getAllWithDeleted(table, Some(filter))
+        .getAll(table, Some(filter))
         .await?;
 
       for localVal in localRecords {
@@ -115,7 +129,7 @@ impl MongodbSyncProvider {
 
   /// Import data from cloud MongoDB to local JSON
   /// Cloud records with newer updatedAt will overwrite local records
-  /// Note: Does NOT handle soft/hard deletes - that's managed via admin page
+  /// Excludes deleted records (isDeleted: true) - deletions don't sync from cloud
   pub async fn importToLocal(
     &self,
     userId: String,
