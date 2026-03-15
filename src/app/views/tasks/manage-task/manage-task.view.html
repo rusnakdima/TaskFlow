@@ -190,12 +190,11 @@
             @for (task of availableTasksForDependency(); track task.id) {
               <label
                 class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+                (click)="$event.stopPropagation()"
               >
-                <input
-                  type="checkbox"
+                <app-checkbox
                   [checked]="isTaskDependent(task.id)"
-                  (change)="toggleDependency(task.id)"
-                  class="w-4 h-4 text-purple-600 rounded"
+                  (checkedChange)="toggleDependency(task.id)"
                 />
                 <div class="flex-1">
                   <div class="font-medium textNormal">{{ task.title }}</div>

@@ -43,8 +43,8 @@
       [todoId]="todoId()"
       [projectTitle]="projectTitle()"
       [listSubtasks]="listSubtasks()"
-      [isOwner]="isOwner"
-      [isPrivate]="isPrivate"
+      [isOwner]="isOwner()"
+      [isPrivate]="isPrivate()"
     />
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -55,7 +55,33 @@
 
       <div class="flex gap-2">
         <button
-          class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          class="h-min px-3 py-1 border border-gray-300 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          (click)="toggleSelectAll()"
+        >
+          <app-checkbox
+            [checked]="isAllSelected()"
+            [indeterminate]="selectedSubtasks().size > 0 && !isAllSelected()"
+            [highlight]="selectedSubtasks().size > 0 && !isAllSelected()"
+          />
+          <span
+            class="text-sm font-medium"
+            [ngClass]="
+              selectedSubtasks().size > 0 && !isAllSelected()
+                ? 'text-yellow-700 dark:text-yellow-400'
+                : 'textNormal'
+            "
+          >
+            {{
+              isAllSelected()
+                ? "Deselect All"
+                : selectedSubtasks().size > 0
+                  ? "Clear Selection"
+                  : "Select All"
+            }}
+          </span>
+        </button>
+        <button
+          class="h-min p-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
           (click)="toggleFilter()"
         >
           <mat-icon
@@ -64,24 +90,12 @@
           />
           Filter
         </button>
-        <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_subtask">
+        <button class="styleButSuccess text-sm h-min p-3" routerLink="create_subtask">
           <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
           New Subtask
         </button>
       </div>
     </div>
-
-    <!-- Filter Sidebar -->
-    <app-filter-bar
-      [filterOptions]="filterOptions"
-      [activeFilter]="activeFilter()"
-      [showFilter]="showFilter()"
-      filterLabel="Status"
-      filterGroupName="subtask-filter"
-      (filterToggle)="toggleFilter()"
-      (filterChange)="changeFilter($any($event))"
-      (searchChange)="onSearchChange($any($event))"
-    />
 
     @if (listSubtasks().length === 0) {
       <div
@@ -103,14 +117,16 @@
             [subtask]="subtask"
             [todoId]="todoId()"
             [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
+            [isOwner]="isOwner()"
+            [isPrivate]="isPrivate()"
             [highlight]="highlightSubtask() === subtask.id"
             [highlightComment]="highlightComment()"
             [openComments]="openComments()"
+            [isSelected]="selectedSubtasks().has(subtask.id)"
             (deleteSubtaskEvent)="deleteSubtask($event)"
             (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
             (updateSubtaskEvent)="updateSubtaskInline($event)"
+            (selectionChangeEvent)="toggleSubtaskSelection($event)"
           >
             <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-lg h-16 w-full"></div>
           </app-subtask>
@@ -139,3 +155,24 @@
 @if (showChat() && todoId()) {
   <app-chat-window [todoId]="todoId()" (close)="toggleChat()" />
 }
+
+<app-filter-bar
+  [filterOptions]="filterOptions"
+  [activeFilter]="activeFilter()"
+  [showFilter]="showFilter()"
+  filterLabel="Status"
+  filterGroupName="subtask-filter"
+  (filterToggle)="toggleFilter()"
+  (filterChange)="changeFilter($any($event))"
+  (searchChange)="onSearchChange($any($event))"
+/>
+
+<app-bulk-actions
+  [selectedCount]="selectedSubtasks().size"
+  [isAllSelected]="isAllSelected()"
+  mode="subtasks"
+  (selectAllEvent)="toggleSelectAll()"
+  (setStatusEvent)="bulkUpdateStatus($event)"
+  (softDeleteEvent)="bulkArchive()"
+  (cancelEvent)="clearSelection()"
+/>

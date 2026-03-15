@@ -23,7 +23,7 @@
   }
 
   @if (!loading() && todo()) {
-    <app-todo-information [todo]="todo()!" [isOwner]="isOwner" [isPrivate]="isPrivate" />
+    <app-todo-information [todo]="todo()!" [isOwner]="isOwner()" [isPrivate]="isPrivate()" />
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
@@ -33,7 +33,33 @@
 
       <div class="flex flex-wrap gap-2">
         <button
-          class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          class="h-min px-3 py-1 border border-gray-300 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+          (click)="toggleSelectAll()"
+        >
+          <app-checkbox
+            [checked]="isAllSelected()"
+            [indeterminate]="selectedTasks().size > 0 && !isAllSelected()"
+            [highlight]="selectedTasks().size > 0 && !isAllSelected()"
+          />
+          <span
+            class="text-sm font-medium"
+            [ngClass]="
+              selectedTasks().size > 0 && !isAllSelected()
+                ? 'text-yellow-700 dark:text-yellow-400'
+                : 'textNormal'
+            "
+          >
+            {{
+              isAllSelected()
+                ? "Deselect All"
+                : selectedTasks().size > 0
+                  ? "Clear Selection"
+                  : "Select All"
+            }}
+          </span>
+        </button>
+        <button
+          class="h-min p-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
           (click)="toggleFilter()"
         >
           <mat-icon
@@ -42,36 +68,12 @@
           />
           Filter
         </button>
-        <button class="styleButSuccess text-sm px-4 py-2" routerLink="create_task">
+        <button class="styleButSuccess text-sm h-min p-3" routerLink="create_task">
           <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
           New Task
         </button>
       </div>
     </div>
-
-    <!-- Filter Sidebar -->
-    <app-filter-bar
-      [filterOptions]="filterOptions"
-      [activeFilter]="activeFilter()"
-      [showFilter]="showFilter()"
-      filterLabel="Status"
-      filterGroupName="task-filter"
-      (filterToggle)="toggleFilter()"
-      (filterChange)="changeFilter($any($event))"
-      (searchChange)="onSearchChange($any($event))"
-    />
-
-    @if (showBulkActions()) {
-      <app-bulk-actions
-        [selectedCount]="selectedTasks().size"
-        [isAllSelected]="isAllSelected()"
-        (selectAllEvent)="toggleSelectAll()"
-        (bulkPriorityEvent)="bulkUpdatePriority($any($event))"
-        (bulkStatusEvent)="bulkUpdateStatus($any($event))"
-        (bulkDeleteEvent)="bulkDelete()"
-        (cancelEvent)="clearSelection()"
-      />
-    }
 
     @if (listTasks().length === 0) {
       <div
@@ -100,8 +102,8 @@
             [task]="task"
             [todoId]="todo()?.id || null"
             [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
+            [isOwner]="isOwner()"
+            [isPrivate]="isPrivate()"
             [highlight]="highlightTaskId() === task.id"
             [isSelected]="selectedTasks().has(task.id)"
             [allTasks]="todo()?.tasks || []"
@@ -147,3 +149,24 @@
 @if (openChat()) {
   <app-chat-window [todoId]="todo()?.id || ''" (close)="toggleChat()" />
 }
+
+<app-filter-bar
+  [filterOptions]="filterOptions"
+  [activeFilter]="activeFilter()"
+  [showFilter]="showFilter()"
+  filterLabel="Status"
+  filterGroupName="task-filter"
+  (filterToggle)="toggleFilter()"
+  (filterChange)="changeFilter($any($event))"
+  (searchChange)="onSearchChange($any($event))"
+/>
+
+<app-bulk-actions
+  [selectedCount]="selectedTasks().size"
+  [isAllSelected]="isAllSelected()"
+  mode="tasks"
+  (selectAllEvent)="toggleSelectAll()"
+  (setStatusEvent)="bulkUpdateStatus($event)"
+  (softDeleteEvent)="bulkArchive()"
+  (cancelEvent)="clearSelection()"
+/>

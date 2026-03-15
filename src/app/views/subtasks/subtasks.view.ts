@@ -4,15 +4,17 @@ import {
   Component,
   OnInit,
   signal,
+  effect,
   ChangeDetectorRef,
   inject,
   computed,
   OnDestroy,
   HostListener,
 } from "@angular/core";
-import { ActivatedRoute, RouterModule } from "@angular/router";
+import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
-import { Subscription } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
+import { filter } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -28,12 +30,12 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { BulkActionService } from "@services/bulk-action.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
-
-/* bases */
-import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -44,7 +46,9 @@ import { SortHelper } from "@helpers/sort.helper";
 import { SubtaskComponent } from "@components/subtask/subtask.component";
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 
 @Component({
   selector: "app-subtasks",
@@ -60,33 +64,77 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
     FilterBarComponent,
     DragDropModule,
     ChatWindowComponent,
+    CheckboxComponent,
+    BulkActionsComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
-export class SubtasksView extends BaseView implements OnInit {
+export class SubtasksView implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncService = inject(DataSyncService);
+  private shortcutService = inject(ShortcutService);
   private cdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
   private baseHelper = new BaseItemHelper();
   private filterService: FilterHelper;
   private sortService: SortHelper;
+  public bulkService = inject(BulkActionService);
+
+  // Loading and error state
+  protected loading = signal(false);
+  protected error = signal<string | null>(null);
 
   constructor() {
-    super();
     this.filterService = new FilterHelper();
     this.sortService = new SortHelper();
   }
 
+  /**
+   * Handle errors by setting the error signal
+   */
+  protected handleError(err: any): void {
+    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
+    this.error.set(errorMessage);
+  }
+
+  /**
+   * Clear error state
+   */
+  protected clearError(): void {
+    this.error.set(null);
+  }
+
   // State signals
-  task = signal<Task | null>(null);
   showChat = signal(false);
   todoId = signal("");
-  todo = signal<Todo | null>(null);
   projectTitle = signal("");
+  chats = signal<any[]>([]);
+
+  private chatEffect = effect(() => {
+    const tid = this.todoId();
+    if (tid) {
+      const reactiveChats = this.storageService.getChatsByTodoReactive(tid)();
+      this.chats.set(reactiveChats);
+    }
+  });
+
+  task = computed(() => {
+    const taskId = this.route.snapshot.paramMap.get("taskId");
+    if (!taskId) return null;
+    return this.storageService.getTaskReactive(taskId)() || null;
+  });
+
+  todo = computed(() => {
+    const t = this.task();
+    if (!t?.todoId) return null;
+    return this.storageService.getTodoReactive(t.todoId)() || null;
+  });
+
   fromKanban = signal(false);
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
@@ -96,13 +144,16 @@ export class SubtasksView extends BaseView implements OnInit {
   searchQuery = signal<string>("");
   private routeSub?: Subscription;
 
+  // Bulk selection state (like admin page)
+  selectedSubtasks = signal<Set<string>>(new Set());
+
   // Computed signals for data flow - Always use storage as the single source of truth
   taskSubtasks = computed(() => {
     const taskFromSignal = this.task();
     const taskId = taskFromSignal?.id;
     if (!taskId) return [];
     // Always use storage data for real-time updates
-    return this.storageService.getSubtasksByTaskId(taskId)();
+    return this.storageService.getSubtasksByTaskId(taskId);
   });
 
   listSubtasks = computed(() => {
@@ -146,12 +197,14 @@ export class SubtasksView extends BaseView implements OnInit {
       );
     }
 
-    return this.sortService.sortByOrder(filtered, "desc");
+    const result = this.sortService.sortByOrder(filtered, "desc");
+    return result;
   });
 
   userId: string = "";
-  isOwner: boolean = true;
-  isPrivate: boolean = true;
+
+  isOwner = computed(() => this.todo()?.userId === this.userId);
+  isPrivate = computed(() => this.todo()?.visibility === "private");
 
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
@@ -173,6 +226,22 @@ export class SubtasksView extends BaseView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+
+    // Initialize bulk action service
+    this.bulkService.setMode("subtasks");
+    this.bulkService.updateTotalCount(0);
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.shortcutService.refresh$.subscribe(() => {
+      this.dataSyncService.loadAllData(true).subscribe(() => {
+        this.notifyService.showSuccess("Data refreshed");
+      });
+    });
+
+    // Clear selection when navigating away from this view
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.clearSelection();
+    });
 
     this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.fromKanban !== undefined) {
@@ -206,29 +275,18 @@ export class SubtasksView extends BaseView implements OnInit {
       const dataResolve = routeData["task"];
       if (dataResolve?.["todo"]) {
         const todoData = dataResolve["todo"];
-        this.todo.set(todoData);
-        this.isOwner = todoData.userId === this.userId;
-        this.isPrivate = todoData.visibility === "private";
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
       }
-      if (dataResolve?.["task"]) {
-        this.task.set(dataResolve["task"]);
-        this.cdr.detectChanges();
-      }
+      this.cdr.detectChanges();
     } else {
       // Fallback: try to get task from storage
-      this.loading.set(true);
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const taskFromStorage = this.storageService.getTaskById(taskId);
+        const taskFromStorage = this.storageService.getById("tasks", taskId);
         if (taskFromStorage) {
-          this.task.set(taskFromStorage);
-          const todoFromStorage = this.storageService.getTodoById(taskFromStorage.todoId);
+          const todoFromStorage = this.storageService.getById("todos", taskFromStorage.todoId);
           if (todoFromStorage) {
-            this.todo.set(todoFromStorage);
-            this.isOwner = todoFromStorage.userId === this.userId;
-            this.isPrivate = todoFromStorage.visibility === "private";
             this.todoId.set(todoFromStorage.id);
             this.projectTitle.set(todoFromStorage.title);
           }
@@ -254,7 +312,7 @@ export class SubtasksView extends BaseView implements OnInit {
     const todoId = this.todoId();
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
-    const chats = this.storageService.getChatsByTodo(todoId);
+    const chats = this.chats();
     return chats.filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
   }
 
@@ -265,7 +323,11 @@ export class SubtasksView extends BaseView implements OnInit {
     const newStatus = this.baseHelper.getNextStatus(subtask.status);
 
     this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", { id: subtask.id, data: { status: newStatus }, parentTodoId: todoId })
+      .crud<Subtask>("update", "subtasks", {
+        id: subtask.id,
+        data: { status: newStatus },
+        parentTodoId: todoId,
+      })
       .subscribe({
         next: () => {
           // Storage updated automatically by DataSyncProvider
@@ -281,7 +343,11 @@ export class SubtasksView extends BaseView implements OnInit {
     if (!todoId) return;
 
     this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", { id: event.subtask.id, data: { [event.field]: event.value }, parentTodoId: todoId })
+      .crud<Subtask>("update", "subtasks", {
+        id: event.subtask.id,
+        data: { [event.field]: event.value },
+        parentTodoId: todoId,
+      })
       .subscribe({
         next: () => {
           // Storage updated automatically by DataSyncProvider
@@ -314,8 +380,8 @@ export class SubtasksView extends BaseView implements OnInit {
 
     this.dragDropService
       .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", todoId, {
-        isOwner: this.isOwner,
-        isPrivate: this.isPrivate,
+        isOwner: this.isOwner(),
+        isPrivate: this.isPrivate(),
       })
       .subscribe();
   }
@@ -324,7 +390,7 @@ export class SubtasksView extends BaseView implements OnInit {
    * Toggle filter bar visibility
    */
   toggleFilter(): void {
-    this.showFilter.update(v => !v);
+    this.showFilter.update((v) => !v);
   }
 
   /**
@@ -339,5 +405,148 @@ export class SubtasksView extends BaseView implements OnInit {
    */
   changeFilter(filter: string): void {
     this.activeFilter.set(filter);
+  }
+
+  // Bulk Actions Methods
+
+  /**
+   * Toggle selection of a single subtask
+   */
+  toggleSubtaskSelection(event: { id: string; selected: boolean }): void {
+    const { id, selected } = event;
+    this.selectedSubtasks.update((subtaskIds) => {
+      const newSelected = new Set(subtaskIds);
+      if (selected) {
+        newSelected.add(id);
+      } else {
+        newSelected.delete(id);
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
+      return newSelected;
+    });
+  }
+
+  /**
+   * Toggle select all subtasks in current view
+   */
+  toggleSelectAll(): void {
+    const allSubtasks = this.listSubtasks();
+    const allSelected = this.isAllSelected();
+
+    this.selectedSubtasks.update((selected) => {
+      const newSelected = new Set(selected);
+      if (allSelected) {
+        allSubtasks.forEach((subtask) => newSelected.delete(subtask.id));
+      } else {
+        allSubtasks.forEach((subtask) => newSelected.add(subtask.id));
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, !allSelected);
+      return newSelected;
+    });
+  }
+
+  /**
+   * Check if all subtasks are selected
+   */
+  isAllSelected(): boolean {
+    const currentList = this.listSubtasks();
+    return (
+      currentList.length > 0 &&
+      currentList.every((subtask) => this.selectedSubtasks().has(subtask.id))
+    );
+  }
+
+  /**
+   * Bulk update status of selected subtasks
+   */
+  bulkUpdateStatus(status: string): void {
+    const selected = this.selectedSubtasks();
+    if (selected.size === 0) return;
+
+    const todoId = this.todoId();
+    if (!todoId) return;
+
+    const updatePromises = Array.from(selected).map((subtaskId) => {
+      return firstValueFrom(
+        this.dataSyncProvider.crud<Subtask>("update", "subtasks", {
+          id: subtaskId,
+          data: { status: status as TaskStatus },
+          parentTodoId: todoId,
+        })
+      );
+    });
+
+    Promise.all(updatePromises)
+      .then((results) => {
+        // Force storage refresh
+        this.dataSyncService.loadAllData(true).subscribe();
+        this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
+        this.clearSelection();
+      })
+      .catch((err) => {
+        this.notifyService.showError(err.message || "Failed to update subtasks");
+      });
+  }
+
+  /**
+   * Bulk delete selected subtasks
+   */
+  bulkDelete(): void {
+    const selected = this.selectedSubtasks();
+    if (selected.size === 0) return;
+
+    const todoId = this.todoId();
+    if (!todoId) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.size} subtask(s)?`)) {
+      const deleteRequests = Array.from(selected).map((subtaskId) =>
+        this.dataSyncProvider.crud("delete", "subtasks", { id: subtaskId, parentTodoId: todoId })
+      );
+
+      Promise.all(deleteRequests)
+        .then(() => {
+          this.notifyService.showSuccess(`${selected.size} subtask(s) deleted successfully`);
+          this.clearSelection();
+        })
+        .catch((err) => {
+          this.notifyService.showError(err.message || "Failed to delete subtasks");
+        });
+    }
+  }
+
+  /**
+   * Bulk archive selected subtasks (move to archive)
+   */
+  bulkArchive(): void {
+    const selected = this.selectedSubtasks();
+    if (selected.size === 0) return;
+
+    const todoId = this.todoId();
+    if (!todoId) return;
+
+    if (confirm(`Archive ${selected.size} subtask(s)?`)) {
+      const deleteRequests = Array.from(selected).map((subtaskId) =>
+        this.dataSyncProvider.crud("delete", "subtasks", { id: subtaskId, parentTodoId: todoId })
+      );
+
+      Promise.all(deleteRequests)
+        .then(() => {
+          this.notifyService.showSuccess(`${selected.size} subtask(s) archived successfully`);
+          this.clearSelection();
+        })
+        .catch((err) => {
+          this.notifyService.showError(err.message || "Failed to archive subtasks");
+        });
+    }
+  }
+
+  /**
+   * Clear selection
+   */
+  clearSelection(): void {
+    this.selectedSubtasks.set(new Set());
+    this.bulkService.setSelectionState(0, false);
   }
 }
