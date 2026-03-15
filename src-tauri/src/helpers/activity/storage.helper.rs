@@ -67,7 +67,9 @@ impl ActivityStorage {
           }
         }
       }
-      Err(_) => {}
+      Err(e) => {
+        // Log error silently
+      }
     }
 
     let createModel = DailyActivityCreateModel {
@@ -98,7 +100,9 @@ impl ActivityStorage {
                 }
               }
             }
-            _ => {}
+            _ => {
+              // Silently handle unexpected result
+            }
           }
         }
         Err(ResponseModel {

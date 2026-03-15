@@ -150,7 +150,7 @@ impl StatisticsService {
 
     // Filter by date range and deduplicate by date (keep latest)
     let mut dateMap: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
-    
+
     for activity in docs {
       if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
         if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
@@ -158,13 +158,19 @@ impl StatisticsService {
             // Keep the latest record for each date (based on updatedAt)
             let should_insert = match dateMap.get(dateStr) {
               Some(existing) => {
-                let existing_updated = existing.get("updatedAt").and_then(|v| v.as_str()).unwrap_or("");
-                let new_updated = activity.get("updatedAt").and_then(|v| v.as_str()).unwrap_or("");
+                let existing_updated = existing
+                  .get("updatedAt")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("");
+                let new_updated = activity
+                  .get("updatedAt")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("");
                 new_updated > existing_updated
               }
               None => true,
             };
-            
+
             if should_insert {
               dateMap.insert(dateStr.to_string(), activity);
             }
@@ -172,7 +178,7 @@ impl StatisticsService {
         }
       }
     }
-    
+
     // Convert map to vector
     dateMap.into_values().collect()
   }

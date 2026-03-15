@@ -225,14 +225,24 @@ fn add_table_specific_defaults(table: &str, obj: &mut serde_json::Map<String, Va
 
 /// Generate a MongoDB-style ObjectId
 fn generate_object_id() -> Value {
-  let timestamp = format!("{:x}", std::time::SystemTime::now()
-    .duration_since(std::time::UNIX_EPOCH)
-    .unwrap()
-    .as_secs());
+  let timestamp = format!(
+    "{:x}",
+    std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .unwrap()
+      .as_secs()
+  );
 
   let random_part: String = (0..24)
     .map(|_| {
-      format!("{:x}", (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() % 16) as u8)
+      format!(
+        "{:x}",
+        (std::time::SystemTime::now()
+          .duration_since(std::time::UNIX_EPOCH)
+          .unwrap()
+          .as_nanos()
+          % 16) as u8
+      )
     })
     .collect();
 

@@ -6,24 +6,41 @@ pub struct DateCalculator;
 impl DateCalculator {
   pub fn calculateDateRange(timeRange: &str) -> (DateTime<Local>, DateTime<Local>) {
     let now = Utc::now().with_timezone(&Local);
-    
+
     // FIX: Calculate proper date ranges based on user expectations
     let startDate = match timeRange {
       "day" => {
         // Today: start of current day
-        now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap()
-      },
+        now
+          .date_naive()
+          .and_hms_opt(0, 0, 0)
+          .unwrap()
+          .and_local_timezone(Local)
+          .unwrap()
+      }
       "week" => {
         // Current week (Monday to today)
         let weekday = now.weekday();
         let days_since_monday = weekday.num_days_from_monday() as i64;
         let start_of_week = now - Duration::days(days_since_monday);
-        start_of_week.date_naive().and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap()
-      },
+        start_of_week
+          .date_naive()
+          .and_hms_opt(0, 0, 0)
+          .unwrap()
+          .and_local_timezone(Local)
+          .unwrap()
+      }
       "month" => {
         // Current month (1st to today)
-        now.date_naive().with_day(1).unwrap().and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap()
-      },
+        now
+          .date_naive()
+          .with_day(1)
+          .unwrap()
+          .and_hms_opt(0, 0, 0)
+          .unwrap()
+          .and_local_timezone(Local)
+          .unwrap()
+      }
       "quarter" => {
         // Current quarter (start of quarter to today)
         let month = now.month();
@@ -33,7 +50,8 @@ impl DateCalculator {
           7..=9 => 7,
           _ => 10,
         };
-        now.date_naive()
+        now
+          .date_naive()
           .with_month(quarter_start_month)
           .unwrap()
           .with_day(1)
@@ -42,12 +60,16 @@ impl DateCalculator {
           .unwrap()
           .and_local_timezone(Local)
           .unwrap()
-      },
+      }
       "year" => {
         // Current year (Jan 1 to today)
         let start_of_year = now.date_naive().with_ordinal(1).unwrap();
-        start_of_year.and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap()
-      },
+        start_of_year
+          .and_hms_opt(0, 0, 0)
+          .unwrap()
+          .and_local_timezone(Local)
+          .unwrap()
+      }
       _ => {
         // Default: last 7 days (for backward compatibility)
         now - Duration::days(7)
