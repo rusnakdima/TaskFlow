@@ -1,5 +1,14 @@
 /* sys lib */
-import { Component, OnInit, signal, effect, computed, inject, OnDestroy } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  effect,
+  computed,
+  inject,
+  OnDestroy,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, ActivatedRoute, RouterModule } from "@angular/router";
@@ -59,6 +68,7 @@ export class KanbanView implements OnInit, OnDestroy {
   private dragDropService = inject(KanbanDragDropService);
   private baseHelper = new BaseItemHelper();
   private storageService = inject(StorageService);
+  private cdr = inject(ChangeDetectorRef);
 
   private routeSub?: Subscription;
 
@@ -86,13 +96,16 @@ export class KanbanView implements OnInit, OnDestroy {
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    const tasks = this.storageService
-      .getTasksByTodoId(todoId)()
-      .filter((task) => !task.isDeleted);
+    // Directly access todos and find the matching one, then get its tasks
+    const todo = this.storageService.todos().find((t) => t.id === todoId);
+    const tasks = todo?.tasks || [];
+
+    // Filter out deleted tasks
+    const filteredTasks = tasks.filter((task) => !task.isDeleted);
 
     // Remove duplicates by ID, keeping the first occurrence
     const uniqueTaskMap = new Map<string, Task>();
-    tasks.forEach((task) => {
+    filteredTasks.forEach((task) => {
       if (!uniqueTaskMap.has(task.id)) {
         uniqueTaskMap.set(task.id, task);
       }
@@ -182,7 +195,11 @@ export class KanbanView implements OnInit, OnDestroy {
     if (!todoId) return;
 
     this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", { id: subtask.id, data: { status: newStatus }, parentTodoId: todoId })
+      .crud<Subtask>("update", "subtasks", {
+        id: subtask.id,
+        data: { status: newStatus },
+        parentTodoId: todoId,
+      })
       .subscribe({
         next: () => {
           // Storage updated automatically by DataSyncProvider
@@ -194,7 +211,7 @@ export class KanbanView implements OnInit, OnDestroy {
   }
 
   getSubtasksForTask(taskId: string): Subtask[] {
-    return this.storageService.getSubtasksByTaskId(taskId)();
+    return this.storageService.getSubtasksByTaskId(taskId);
   }
 
   getCompletedSubtasksCount(taskId: string): number {
@@ -251,8 +268,10 @@ export class KanbanView implements OnInit, OnDestroy {
       (taskId, newStatus) => this.moveTaskToStatus(taskId, newStatus)
     );
 
+    // Note: Notification will be shown in moveTaskToStatus after API response
     if (result.moved && result.task) {
-      this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${result.newStatus}`);
+      // Visual update happens via transferArrayItem in dragDropService
+      // The actual data update and notification will happen after API response
     }
   }
 
@@ -261,13 +280,25 @@ export class KanbanView implements OnInit, OnDestroy {
     if (!todoId) return;
 
     this.dataSyncProvider
-      .crud<Task>("update", "tasks", { id: taskId, data: { status: newStatus }, parentTodoId: todoId })
+      .crud<Task>("update", "tasks", {
+        id: taskId,
+        data: { status: newStatus },
+        parentTodoId: todoId,
+      })
       .subscribe({
-        next: () => {
-          // Storage updated automatically by DataSyncProvider
+        next: (updatedTask) => {
+          // Force reload of project tasks from storage to ensure UI is updated
+          // This is needed because the storage update happens in nested arrays
+          setTimeout(() => {
+            this.cdr.detectChanges();
+          }, 0);
+          this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
         },
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update task");
+          setTimeout(() => {
+            this.cdr.detectChanges();
+          }, 0);
         },
       });
   }
