@@ -34,10 +34,7 @@ impl MongodbSyncProvider {
     table: &str,
     localVal: Value,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let id = localVal
-      .get("id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
+    let id = localVal.get("id").and_then(|v| v.as_str()).unwrap_or("");
     if id.is_empty() {
       return Ok(());
     }
@@ -63,10 +60,7 @@ impl MongodbSyncProvider {
     table: &str,
     cloudVal: Value,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let id = cloudVal
-      .get("id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
+    let id = cloudVal.get("id").and_then(|v| v.as_str()).unwrap_or("");
     if id.is_empty() {
       return Ok(());
     }
@@ -142,7 +136,9 @@ impl MongodbSyncProvider {
 
     // Process todos
     for cloudVal in cloudTodos {
-      self.syncRecordToLocal(jsonProvider, "todos", cloudVal).await?;
+      self
+        .syncRecordToLocal(jsonProvider, "todos", cloudVal)
+        .await?;
     }
 
     // Step 2: Fetch tasks by todoId (not userId)
@@ -159,7 +155,9 @@ impl MongodbSyncProvider {
         if let Some(id) = cloudVal.get("id").and_then(|v| v.as_str()) {
           taskIds.push(id.to_string());
         }
-        self.syncRecordToLocal(jsonProvider, "tasks", cloudVal).await?;
+        self
+          .syncRecordToLocal(jsonProvider, "tasks", cloudVal)
+          .await?;
       }
     }
 
@@ -172,7 +170,9 @@ impl MongodbSyncProvider {
         .await?;
 
       for cloudVal in cloudSubtasks {
-        self.syncRecordToLocal(jsonProvider, "subtasks", cloudVal).await?;
+        self
+          .syncRecordToLocal(jsonProvider, "subtasks", cloudVal)
+          .await?;
       }
     }
 
@@ -184,7 +184,9 @@ impl MongodbSyncProvider {
       .await?;
 
     for cloudVal in cloudCategories {
-      self.syncRecordToLocal(jsonProvider, "categories", cloudVal).await?;
+      self
+        .syncRecordToLocal(jsonProvider, "categories", cloudVal)
+        .await?;
     }
 
     // Step 5: Import daily_activities (has userId)
@@ -195,13 +197,15 @@ impl MongodbSyncProvider {
       .await?;
 
     for cloudVal in cloudActivities {
-      self.syncRecordToLocal(jsonProvider, "daily_activities", cloudVal).await?;
+      self
+        .syncRecordToLocal(jsonProvider, "daily_activities", cloudVal)
+        .await?;
     }
 
     // Step 6: Import comments (has userId or taskId or subtaskId)
     // Fetch all comments for this user's todos/tasks/subtasks
     if !todoIds.is_empty() && !taskIds.is_empty() {
-      let commentFilter = serde_json::json!({ 
+      let commentFilter = serde_json::json!({
         "$or": [
           { "userId": userId },
           { "taskId": { "$in": &taskIds } },
@@ -214,13 +218,15 @@ impl MongodbSyncProvider {
         .await?;
 
       for cloudVal in cloudComments {
-        self.syncRecordToLocal(jsonProvider, "comments", cloudVal).await?;
+        self
+          .syncRecordToLocal(jsonProvider, "comments", cloudVal)
+          .await?;
       }
     }
 
     // Step 7: Import chats (has todoId or userId)
     if !todoIds.is_empty() {
-      let chatFilter = serde_json::json!({ 
+      let chatFilter = serde_json::json!({
         "$or": [
           { "todoId": { "$in": &todoIds } },
           { "userId": userId }
@@ -232,7 +238,9 @@ impl MongodbSyncProvider {
         .await?;
 
       for cloudVal in cloudChats {
-        self.syncRecordToLocal(jsonProvider, "chats", cloudVal).await?;
+        self
+          .syncRecordToLocal(jsonProvider, "chats", cloudVal)
+          .await?;
       }
     }
 
@@ -245,7 +253,9 @@ impl MongodbSyncProvider {
       .await?;
 
     for cloudVal in cloudUsers {
-      self.syncRecordToLocal(jsonProvider, "users", cloudVal).await?;
+      self
+        .syncRecordToLocal(jsonProvider, "users", cloudVal)
+        .await?;
     }
 
     // Step 9: Import profiles (cloud → local ONLY, local never overwrites cloud)
@@ -256,7 +266,9 @@ impl MongodbSyncProvider {
       .await?;
 
     for cloudVal in cloudProfiles {
-      self.syncRecordToLocal(jsonProvider, "profiles", cloudVal).await?;
+      self
+        .syncRecordToLocal(jsonProvider, "profiles", cloudVal)
+        .await?;
     }
 
     Ok(())
