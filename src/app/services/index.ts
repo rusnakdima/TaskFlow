@@ -19,15 +19,7 @@ export { AuthService, JwtTokenService } from "./auth";
 export { DataSyncService, SyncService, AdminService } from "./data";
 
 // Features services
-export {
-  TemplateService,
-  TodosBlueprintService,
-  AboutService,
-} from "./features";
+export { TemplateService, TodosBlueprintService, AboutService } from "./features";
 
 // UI services
-export {
-  DragDropOrderService,
-  ShortcutService,
-  KanbanDragDropService,
-} from "./ui";
+export { DragDropOrderService, ShortcutService, KanbanDragDropService } from "./ui";

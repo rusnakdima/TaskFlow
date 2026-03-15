@@ -102,7 +102,12 @@ export class TodosBlueprintService {
           const taskObservables = tasks.map((task: any) => {
             const { subtasks, ...taskWithoutSubtasks } = task;
             return this.dataSyncProvider
-              .crud<Task>("create", "tasks", { data: taskWithoutSubtasks, parentTodoId: todoId, isOwner: true, isPrivate: true })
+              .crud<Task>("create", "tasks", {
+                data: taskWithoutSubtasks,
+                parentTodoId: todoId,
+                isOwner: true,
+                isPrivate: true,
+              })
               .pipe(
                 switchMap((createdTask: Task) => {
                   const subtasksToCreate = subtasks || [];
@@ -116,7 +121,12 @@ export class TodosBlueprintService {
                       taskId: createdTask.id,
                       todoId: todoId,
                     };
-                    return this.dataSyncProvider.crud<any>("create", "subtasks", { data: subtaskWithActualTaskId, parentTodoId: todoId, isOwner: true, isPrivate: true });
+                    return this.dataSyncProvider.crud<any>("create", "subtasks", {
+                      data: subtaskWithActualTaskId,
+                      parentTodoId: todoId,
+                      isOwner: true,
+                      isPrivate: true,
+                    });
                   });
 
                   return forkJoin(subtaskObservables);

@@ -232,11 +232,7 @@ export class BaseItemHelper {
   /**
    * Mark all comments as read for a task or subtask
    */
-  markCommentsAsRead(
-    entity: any,
-    userId: string,
-    entityType: "task" | "subtask" = "task"
-  ): any[] {
+  markCommentsAsRead(entity: any, userId: string, entityType: "task" | "subtask" = "task"): any[] {
     if (!entity || !entity.comments || !userId) return entity.comments || [];
     if (entity.comments.length === 0) return entity.comments;
 
@@ -253,7 +249,7 @@ export class BaseItemHelper {
       if (!comment.readBy || !comment.readBy.includes(userId)) {
         return {
           ...comment,
-          readBy: [...(comment.readBy || []), userId]
+          readBy: [...(comment.readBy || []), userId],
         };
       }
       return comment;

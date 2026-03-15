@@ -19,12 +19,3 @@ export interface SignupForm {
   username: string;
   password: string;
 }
-
-/**
- * Password reset form interface
- */
-export interface PasswordReset {
-  email: string;
-  code: string;
-  newPassword: string;
-}

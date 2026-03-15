@@ -107,7 +107,7 @@ export class NotifyService {
     try {
       this.notify.next({ status, message });
     } catch (error) {
-      console.error('[NotifyService] Error showing notification:', error);
+      // Error silently ignored
     }
   }
 
@@ -162,7 +162,7 @@ export class NotifyService {
     try {
       localStorage.setItem(this.settingsKey, JSON.stringify(newSettings));
     } catch (e) {
-      console.error('[NotifyService] Failed to save settings:', e);
+      // Error silently ignored
     }
   }
 
@@ -183,6 +183,7 @@ export class NotifyService {
   // ==================== SOUND METHODS ====================
 
   playSound(type: "general" | "chat" | "comment") {
+    const settings = this.settingsSignal();
     const volume = this.getVolumeForType(type);
     this.playSoundInternal(type, volume);
   }
@@ -192,7 +193,9 @@ export class NotifyService {
   }
 
   private playSoundInternal(type: "chat" | "comment" | "general", volume: number): void {
-    if (volume <= 0) return;
+    if (volume <= 0) {
+      return;
+    }
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -318,13 +321,13 @@ export class NotifyService {
 
     let todoTitle = "";
     if (todoId) {
-      const todo = this.storageService.getTodoById(todoId);
+      const todo = this.storageService.getById("todos", todoId);
       todoTitle = todo?.title || "";
     }
 
     let taskTitle = "";
     if (taskId) {
-      const task = this.storageService.getTaskById(taskId);
+      const task = this.storageService.getById("tasks", taskId);
       taskTitle = task?.title || "";
     }
 
@@ -406,12 +409,12 @@ export class NotifyService {
       setTimeout(() => {
         let todoTitle = "";
         if (todoId) {
-          const todo = this.storageService.getTodoById(todoId);
+          const todo = this.storageService.getById("todos", todoId);
           todoTitle = todo?.title || "";
         }
         let taskTitle = "";
         if (taskId) {
-          const task = this.storageService.getTaskById(taskId);
+          const task = this.storageService.getById("tasks", taskId);
           taskTitle = task?.title || "";
         }
         this.buildAndAddNotification(
@@ -436,7 +439,7 @@ export class NotifyService {
         todoId = data.todoId;
       } else if (type === "subtask" && !taskId) {
         taskId = data.taskId;
-        const task = this.storageService.getTaskById(data.taskId);
+        const task = this.storageService.getById("tasks", data.taskId);
         todoId = task?.todoId;
       }
 
@@ -466,12 +469,12 @@ export class NotifyService {
     setTimeout(() => {
       let todoTitle = "";
       if (todoId) {
-        const todo = this.storageService.getTodoById(todoId);
+        const todo = this.storageService.getById("todos", todoId);
         todoTitle = todo?.title || "";
       }
       let taskTitle = "";
       if (taskId) {
-        const task = this.storageService.getTaskById(taskId);
+        const task = this.storageService.getById("tasks", taskId);
         taskTitle = task?.title || "";
       }
       this.buildAndAddNotification(
