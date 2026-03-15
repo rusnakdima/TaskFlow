@@ -8,11 +8,13 @@ import {
   computed,
   OnDestroy,
   HostListener,
+  effect,
 } from "@angular/core";
-import { RouterModule, ActivatedRoute } from "@angular/router";
+import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { Subscription } from "rxjs";
+import { filter } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -29,12 +31,11 @@ import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DataSyncService } from "@services/data/data-sync.service";
+import { BulkActionService } from "@services/bulk-action.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
-
-/* bases */
-import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -43,6 +44,8 @@ import { SortHelper } from "@helpers/sort.helper";
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
 import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 
 @Component({
   selector: "app-todos",
@@ -56,15 +59,20 @@ import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-
     TodoComponent,
     FilterBarComponent,
     DragDropModule,
+    CheckboxComponent,
+    BulkActionsComponent,
   ],
   templateUrl: "./todos.view.html",
 })
-export class TodosView extends BaseView implements OnInit {
+export class TodosView implements OnInit {
   // Services
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
+  public bulkService = inject(BulkActionService);
+  private shortcutService = inject(ShortcutService);
   private dragDropService = inject(DragDropOrderService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
@@ -73,10 +81,28 @@ export class TodosView extends BaseView implements OnInit {
   private filterService: FilterHelper;
   private sortService: SortHelper;
 
+  // Loading and error state
+  protected loading = signal(false);
+  protected error = signal<string | null>(null);
+
   constructor() {
-    super();
     this.filterService = new FilterHelper();
     this.sortService = new SortHelper();
+  }
+
+  /**
+   * Handle errors by setting the error signal
+   */
+  protected handleError(err: any): void {
+    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
+    this.error.set(errorMessage);
+  }
+
+  /**
+   * Clear error state
+   */
+  protected clearError(): void {
+    this.error.set(null);
   }
 
   // State
@@ -87,6 +113,9 @@ export class TodosView extends BaseView implements OnInit {
   searchQuery = signal<string>("");
   userId = signal("");
   private routeSub?: Subscription;
+
+  // Bulk selection state (like admin page)
+  selectedTodos = signal<Set<string>>(new Set());
 
   // Computed signals
   listTodos = computed(() => {
@@ -120,7 +149,8 @@ export class TodosView extends BaseView implements OnInit {
       );
     }
 
-    return this.sortService.sortByOrder(filtered, "desc");
+    const result = this.sortService.sortByOrder(filtered, "desc");
+    return result;
   });
 
   // Get unread comments count for a todo (from all tasks, not subtasks)
@@ -168,6 +198,22 @@ export class TodosView extends BaseView implements OnInit {
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
 
+    // Initialize bulk action service
+    this.bulkService.setMode("todos");
+    this.bulkService.updateTotalCount(this.storageService.privateTodos().length);
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.shortcutService.refresh$.subscribe(() => {
+      this.dataSyncService.loadAllData(true).subscribe(() => {
+        this.notifyService.showSuccess("Data refreshed");
+      });
+    });
+
+    // Clear selection when navigating away from this view
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.clearSelection();
+    });
+
     // Handle highlight from query params
     this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.highlightTodoId) {
@@ -207,10 +253,6 @@ export class TodosView extends BaseView implements OnInit {
     if (event.ctrlKey && event.key === "f") {
       event.preventDefault();
       this.toggleFilter();
-    }
-    if (event.ctrlKey && event.key === "r") {
-      event.preventDefault();
-      this.dataSyncService.loadAllData(true).subscribe();
     }
   }
 
@@ -306,7 +348,7 @@ export class TodosView extends BaseView implements OnInit {
    * Toggle filter bar visibility
    */
   toggleFilter(): void {
-    this.showFilter.update(v => !v);
+    this.showFilter.update((v) => !v);
   }
 
   /**
@@ -321,5 +363,112 @@ export class TodosView extends BaseView implements OnInit {
    */
   changeFilter(filter: string): void {
     this.activeFilter.set(filter);
+  }
+
+  // Bulk Actions Methods
+
+  /**
+   * Toggle selection of a single todo
+   */
+  toggleTodoSelection(event: { id: string; selected: boolean }): void {
+    const { id, selected } = event;
+    this.selectedTodos.update((todoIds) => {
+      const newSelected = new Set(todoIds);
+      if (selected) {
+        newSelected.add(id);
+      } else {
+        newSelected.delete(id);
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
+      return newSelected;
+    });
+  }
+
+  /**
+   * Toggle select all todos in current view
+   */
+  toggleSelectAll(): void {
+    const allIds = this.listTodos();
+    const allSelected = this.isAllSelected();
+
+    this.selectedTodos.update((selected) => {
+      const newSelected = new Set(selected);
+      if (allSelected) {
+        // Deselect all in current view
+        allIds.forEach((todo) => newSelected.delete(todo.id));
+      } else {
+        // Select all in current view
+        allIds.forEach((todo) => newSelected.add(todo.id));
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, !allSelected);
+      return newSelected;
+    });
+  }
+
+  /**
+   * Check if all todos are selected
+   */
+  isAllSelected(): boolean {
+    const currentList = this.listTodos();
+    return currentList.length > 0 && currentList.every((todo) => this.selectedTodos().has(todo.id));
+  }
+
+  /**
+   * Clear selection
+   */
+  clearSelection(): void {
+    this.selectedTodos.set(new Set());
+    this.bulkService.setSelectionState(0, false);
+  }
+
+  /**
+   * Bulk archive selected todos (move to archive)
+   */
+  bulkArchive(): void {
+    const selected = this.selectedTodos();
+    if (selected.size === 0) return;
+
+    if (confirm(`Are you sure you want to archive ${selected.size} project(s)?`)) {
+      const archiveRequests = Array.from(selected).map((todoId) =>
+        this.dataSyncProvider.crud("delete", "todos", { id: todoId })
+      );
+
+      Promise.all(archiveRequests)
+        .then(() => {
+          this.notifyService.showSuccess(`${selected.size} project(s) archived successfully`);
+          this.clearSelection();
+          this.dataSyncService.loadAllData(true).subscribe();
+        })
+        .catch((err) => {
+          this.notifyService.showError(err.message || "Failed to archive projects");
+        });
+    }
+  }
+
+  /**
+   * Bulk delete selected todos
+   */
+  bulkDelete(): void {
+    const selected = this.selectedTodos();
+    if (selected.size === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.size} project(s)?`)) {
+      const deleteRequests = Array.from(selected).map((todoId) =>
+        this.dataSyncProvider.crud("delete", "todos", { id: todoId })
+      );
+
+      Promise.all(deleteRequests)
+        .then(() => {
+          this.notifyService.showSuccess(`${selected.size} project(s) deleted successfully`);
+          this.selectedTodos.set(new Set());
+          this.bulkService.setSelectionState(0, false);
+          this.dataSyncService.loadAllData(true).subscribe();
+        })
+        .catch((err) => {
+          this.notifyService.showError(err.message || "Failed to delete projects");
+        });
+    }
   }
 }
