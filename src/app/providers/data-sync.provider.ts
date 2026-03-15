@@ -553,34 +553,20 @@ export class DataSyncProvider {
 
   // ==================== Visibility Sync ====================
 
-  async syncAfterVisibilityChange(newVisibility: "private" | "team"): Promise<void> {
-    try {
-      if (newVisibility === "private") {
-        await this.syncService.importToLocal();
-      } else {
-        await this.syncService.exportToCloud();
-      }
-      this.clearCache();
-    } catch (error) {
-      // Error silently ignored
-    }
-  }
-
   async syncSingleTodoVisibilityChange(
     todoId: string,
     newVisibility: "private" | "team"
   ): Promise<void> {
     try {
       if (newVisibility === "team") {
-        // Changing from private to team: upload to cloud and move to shared
-        await this.uploadTodoToCloud(todoId);
+        // Changing from private to team:
+        // 1. Update local storage first
+        // Note: Cloud was already updated by the crud() call in manage-todo.view.ts
         this.storageService.moveTodoToShared(todoId);
       } else {
         // Changing from team to private:
-        // 1. Update cloud DB to mark as private
-        // 2. Import from cloud to local DB
-        // 3. Move from shared to private in storage
-        await this.updateTodoVisibilityInCloud(todoId, "private");
+        // 1. Import from cloud to local DB (cloud was already updated by crud())
+        // 2. Move from shared to private in storage
         await this.importTodoToLocalDb(todoId);
         this.storageService.moveTodoToPrivate(todoId);
       }
@@ -588,30 +574,6 @@ export class DataSyncProvider {
     } catch (error) {
       throw error;
     }
-  }
-
-  private async uploadTodoToCloud(todoId: string): Promise<void> {
-    const todo = this.storageService.getById("todos", todoId);
-    if (!todo) {
-      throw new Error(`Todo with id ${todoId} not found`);
-    }
-
-    // Update visibility to team and upload
-    const updatedTodo = { ...todo, visibility: "team" as const };
-    await firstValueFrom(this.crud<Todo>("update", "todos", { id: todoId, data: updatedTodo }));
-  }
-
-  private async updateTodoVisibilityInCloud(
-    todoId: string,
-    visibility: "private" | "team"
-  ): Promise<void> {
-    const todo = this.storageService.getById("todos", todoId);
-    if (!todo) {
-      throw new Error(`Todo with id ${todoId} not found`);
-    }
-
-    const updatedTodo = { ...todo, visibility };
-    await firstValueFrom(this.crud<Todo>("update", "todos", { id: todoId, data: updatedTodo }));
   }
 
   private async importTodoToLocalDb(todoId: string): Promise<void> {
@@ -626,6 +588,36 @@ export class DataSyncProvider {
 
     // Update local storage with cloud data
     this.storageService.updateItem("todos", todoId, cloudTodo);
+  }
+
+  // ==================== Archive Operations ====================
+
+  private archiveTodoWithCascade(todoId: string): void {
+    const todo = this.storageService.getById("todos", todoId);
+    if (!todo) return;
+
+    // Archive todo
+    this.storageService.updateItem("todos", todoId, { isDeleted: true });
+
+    // Archive all tasks and their subtasks/comments
+    todo.tasks?.forEach((task) => {
+      this.storageService.updateItem("tasks", task.id, { isDeleted: true });
+
+      // Archive all subtasks and their comments
+      task.subtasks?.forEach((subtask) => {
+        this.storageService.updateItem("subtasks", subtask.id, { isDeleted: true });
+
+        // Archive subtask comments
+        subtask.comments?.forEach((comment: Comment) => {
+          this.storageService.updateItem("comments", comment.id, { isDeleted: true });
+        });
+      });
+
+      // Archive task comments
+      task.comments?.forEach((comment: Comment) => {
+        this.storageService.updateItem("comments", comment.id, { isDeleted: true });
+      });
+    });
   }
 
   // ==================== Storage Updates ====================
@@ -646,14 +638,20 @@ export class DataSyncProvider {
           this.handleUpdateOperation(table, result);
           break;
         case "delete":
-          // For tasks/subtasks, lookup parent ID before deletion
-          let parentId: string | undefined;
-          if (table === "tasks") {
-            parentId = this.storageService.getById("tasks", id!)?.todoId;
-          } else if (table === "subtasks") {
-            parentId = this.storageService.getById("subtasks", id!)?.taskId;
+          // For soft delete (archive), update isDeleted field instead of removing
+          if (table === "todos") {
+            // Archive todo with cascade (set isDeleted: true for todo and all related entities)
+            this.archiveTodoWithCascade(id!);
+          } else {
+            // For tasks/subtasks, lookup parent ID before deletion
+            let parentId: string | undefined;
+            if (table === "tasks") {
+              parentId = this.storageService.getById("tasks", id!)?.todoId;
+            } else if (table === "subtasks") {
+              parentId = this.storageService.getById("subtasks", id!)?.taskId;
+            }
+            this.storageService.removeItem(table as any, id!, parentId);
           }
-          this.storageService.removeItem(table as any, id!, parentId);
           break;
         case "updateAll":
           // Special handling for chats - set the entire list
