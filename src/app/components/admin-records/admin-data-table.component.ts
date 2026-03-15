@@ -43,7 +43,7 @@ export class AdminDataTableComponent {
   @Input() descriptionKey = "description";
   @Input() showActions = true;
 
-  @Output() selectRecord = new EventEmitter<string>();
+  @Output() selectRecord = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() deleteRecord = new EventEmitter<any>();
   @Output() toggleDelete = new EventEmitter<any>();
 
@@ -69,8 +69,8 @@ export class AdminDataTableComponent {
     return this.selectedRecords.has(recordId);
   }
 
-  onSelectChange(recordId: string): void {
-    this.selectRecord.emit(recordId);
+  onSelectChange(recordId: string, checked: boolean): void {
+    this.selectRecord.emit({ id: recordId, selected: checked });
   }
 
   formatDate(dateStr: string): string {

@@ -113,7 +113,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
       (entries) => {
         const visibleUnreadIds: string[] = [];
         const entriesToUnobserve: Element[] = [];
-        
+
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const commentId = entry.target.getAttribute("data-comment-id");

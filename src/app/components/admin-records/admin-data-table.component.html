@@ -5,19 +5,19 @@
         <app-checkbox
           class="mt-1"
           [checked]="isSelected(item.id)"
-          (checkedChange)="onSelectChange(item.id)"
+          (checkedChange)="onSelectChange(item.id, $event)"
         />
 
         <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between mb-2">
             <div class="flex-1 min-w-0">
               <h4 class="font-semibold textNormal text-lg mb-1 truncate">
-                @if (titleKey === 'content') {
-                  {{ item[titleKey] || 'No content' }}
-                } @else if (titleKey === 'date') {
+                @if (titleKey === "content") {
+                  {{ item[titleKey] || "No content" }}
+                } @else if (titleKey === "date") {
                   {{ item[titleKey] || formatDate(item.createdAt) }}
                 } @else {
-                  {{ item[titleKey] || 'No Title' }}
+                  {{ item[titleKey] || "No Title" }}
                 }
               </h4>
               <div class="flex items-center gap-4 text-sm textMuted">

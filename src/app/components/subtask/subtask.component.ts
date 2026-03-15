@@ -21,7 +21,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
-import { BaseEntityComponent } from "@components/base-entity.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -48,31 +48,39 @@ import { Task } from "@models/task.model";
     MatIconModule,
     DragDropModule,
     CommentsComponent,
+    CheckboxComponent,
   ],
   templateUrl: "./subtask.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
+export class SubtaskComponent implements OnChanges {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
+  private cdr = inject(ChangeDetectorRef);
 
-  constructor(private cdr: ChangeDetectorRef) {
-    super();
-  }
-
+  @Input() isOwner: boolean = true;
+  @Input() isPrivate: boolean = true;
+  @Input() highlight: boolean = false;
+  @Input() showActions: boolean = true;
   @Input() subtask: Subtask | null = null;
   @Input() todoId: string | null = null;
   @Input() index: number = 0;
   @Input() highlightComment: string | null = null;
   @Input() openComments: boolean = false;
   @Input() unreadCommentsCount: number = 0;
+  @Input() isSelected: boolean = false;
 
   @Output() deleteSubtaskEvent: EventEmitter<string> = new EventEmitter();
   @Output() toggleCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
   @Output() updateSubtaskEvent: EventEmitter<{ subtask: Subtask; field: string; value: any }> =
+    new EventEmitter();
+  @Output() edit = new EventEmitter<void>();
+  @Output() delete = new EventEmitter<void>();
+  @Output() toggle = new EventEmitter<void>();
+  @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
 
   editingField = signal<string | null>(null);
@@ -115,8 +123,12 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
       const userId = this.authService.getValueByKey("id");
       if (userId && this.subtask.comments && this.subtask.comments.length > 0) {
         // Check if there are any unread comments (excluding own comments)
-        const hasUnread = this.subtask.comments.some((c: any) =>
-          !c.isDeleted && c.subtaskId && c.authorId !== userId && (!c.readBy || !c.readBy.includes(userId))
+        const hasUnread = this.subtask.comments.some(
+          (c: any) =>
+            !c.isDeleted &&
+            c.subtaskId &&
+            c.authorId !== userId &&
+            (!c.readBy || !c.readBy.includes(userId))
         );
 
         if (hasUnread) {
@@ -131,7 +143,7 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
             if (!c.readBy || !c.readBy.includes(userId)) {
               return {
                 ...c,
-                readBy: [...(c.readBy || []), userId]
+                readBy: [...(c.readBy || []), userId],
               };
             }
             return c;
@@ -139,20 +151,24 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
 
           this.storageService.updateItem("subtasks", this.subtask.id, {
             ...this.subtask,
-            comments: updatedComments
+            comments: updatedComments,
           });
 
           // Send update to backend (only ids and readBy)
-          const effectiveTodoId = this.todoId || this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+          const effectiveTodoId =
+            this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
           if (effectiveTodoId) {
-            const commentsToUpdate = updatedComments
-              .filter((c: any) => !c.isDeleted && c.subtaskId === this.subtask?.id && c.authorId !== userId);
-            
+            const commentsToUpdate = updatedComments.filter(
+              (c: any) => !c.isDeleted && c.subtaskId === this.subtask?.id && c.authorId !== userId
+            );
+
             if (commentsToUpdate.length > 0) {
-              this.dataSyncProvider.crud("updateAll", "comments", {
-                data: commentsToUpdate.map((c: any) => ({ id: c.id, readBy: c.readBy })),
-                parentTodoId: effectiveTodoId
-              }).subscribe();
+              this.dataSyncProvider
+                .crud("updateAll", "comments", {
+                  data: commentsToUpdate.map((c: any) => ({ id: c.id, readBy: c.readBy })),
+                  parentTodoId: effectiveTodoId,
+                })
+                .subscribe();
             }
           }
         }
@@ -166,7 +182,8 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
     if (this.subtask) {
       const userId = this.authService.getValueByKey("id");
       const username = this.authService.getValueByKey("username");
-      const effectiveTodoId = this.todoId || this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+      const effectiveTodoId =
+        this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
 
       if (!userId || !effectiveTodoId) {
         this.notifyService.showError("Cannot add comment: User or Project not found");
@@ -182,23 +199,32 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
         isDeleted: false,
       };
 
-      this.dataSyncProvider.crud<Comment>("create", "comments", { data: commentForBackend, parentTodoId: effectiveTodoId }).subscribe({
-        next: () => {
-          // DataSyncProvider auto-updates storage, just refresh UI
-          this.showComments.set(true);
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to add comment");
-        }
-      });
+      this.dataSyncProvider
+        .crud<Comment>("create", "comments", {
+          data: commentForBackend,
+          parentTodoId: effectiveTodoId,
+        })
+        .subscribe({
+          next: () => {
+            // DataSyncProvider auto-updates storage, just refresh UI
+            this.showComments.set(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to add comment");
+          },
+        });
     }
   }
 
   onDeleteComment(commentId: string) {
-    const effectiveTodoId = this.todoId || this.subtask && this.storageService.getTaskById(this.subtask.taskId)?.todoId;
+    const effectiveTodoId =
+      this.todoId ||
+      (this.subtask && this.storageService.getById("tasks", this.subtask.taskId)?.todoId);
     if (effectiveTodoId) {
-      this.dataSyncProvider.crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId }).subscribe({});
+      this.dataSyncProvider
+        .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
+        .subscribe({});
     }
   }
 
@@ -271,6 +297,24 @@ export class SubtaskComponent extends BaseEntityComponent implements OnChanges {
   deleteSubtask() {
     if (this.subtask) {
       this.deleteSubtaskEvent.emit(this.subtask.id);
+    }
+  }
+
+  onEditClick(): void {
+    this.edit.emit();
+  }
+
+  onDeleteClick(): void {
+    this.delete.emit();
+  }
+
+  onToggleClick(): void {
+    this.toggle.emit();
+  }
+
+  toggleSelection(checked: boolean): void {
+    if (this.subtask) {
+      this.selectionChangeEvent.emit({ id: this.subtask.id, selected: checked });
     }
   }
 }

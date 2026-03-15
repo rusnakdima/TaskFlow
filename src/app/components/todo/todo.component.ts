@@ -19,7 +19,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
-import { BaseEntityComponent } from "@components/base-entity.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -39,28 +39,42 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
 @Component({
   selector: "app-todo",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, ProgressBarComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    DragDropModule,
+    ProgressBarComponent,
+    CheckboxComponent,
+  ],
   templateUrl: "./todo.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TodoComponent extends BaseEntityComponent implements OnInit {
+export class TodoComponent implements OnInit {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private templateService = inject(TemplateService);
+  private cdr = inject(ChangeDetectorRef);
 
+  @Input() isOwner: boolean = true;
+  @Input() isPrivate: boolean = true;
+  @Input() highlight: boolean = false;
+  @Input() showActions: boolean = true;
   @Input() todo: Todo | null = null;
   @Input() index: number = 0;
   @Input() unreadCommentsCount: number = 0;
+  @Input() isSelected: boolean = false;
 
   @Output() deleteTodoEvent: EventEmitter<string> = new EventEmitter();
   @Output() saveAsBlueprintEvent: EventEmitter<Todo> = new EventEmitter();
+  @Output() edit = new EventEmitter<void>();
+  @Output() delete = new EventEmitter<void>();
+  @Output() toggle = new EventEmitter<void>();
+  @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
+    new EventEmitter();
 
   isExpandedDetails = signal(false);
-
-  constructor(private cdr: ChangeDetectorRef) {
-    super();
-  }
 
   ngOnInit() {}
 
@@ -122,5 +136,23 @@ export class TodoComponent extends BaseEntityComponent implements OnInit {
 
   get countTasks(): number {
     return this.todo?.tasks?.length ?? 0;
+  }
+
+  onEditClick(): void {
+    this.edit.emit();
+  }
+
+  onDeleteClick(): void {
+    this.delete.emit();
+  }
+
+  onToggleClick(): void {
+    this.toggle.emit();
+  }
+
+  toggleSelection(checked: boolean): void {
+    if (this.todo) {
+      this.selectionChangeEvent.emit({ id: this.todo.id, selected: checked });
+    }
   }
 }

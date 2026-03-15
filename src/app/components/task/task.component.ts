@@ -21,7 +21,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
-import { BaseEntityComponent } from "@components/base-entity.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -51,17 +51,23 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
     DragDropModule,
     CommentsComponent,
     ProgressBarComponent,
+    CheckboxComponent,
   ],
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskComponent extends BaseEntityComponent implements OnInit, OnChanges {
+export class TaskComponent implements OnInit, OnChanges {
   private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
+  private cdr = inject(ChangeDetectorRef);
 
+  @Input() isOwner: boolean = true;
+  @Input() isPrivate: boolean = true;
+  @Input() highlight: boolean = false;
+  @Input() showActions: boolean = true;
   @Input() task: Task | null = null;
   @Input() todoId: string | null = null;
   @Input() index: number = 0;
@@ -79,15 +85,15 @@ export class TaskComponent extends BaseEntityComponent implements OnInit, OnChan
     new EventEmitter();
   @Output() toggleSubtasksEvent: EventEmitter<Task> = new EventEmitter();
   @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
-  @Output() selectionChangeEvent: EventEmitter<string> = new EventEmitter();
+  @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
+    new EventEmitter();
+  @Output() edit = new EventEmitter<void>();
+  @Output() delete = new EventEmitter<void>();
+  @Output() toggle = new EventEmitter<void>();
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
   showComments = signal(false);
-
-  constructor(private cdr: ChangeDetectorRef) {
-    super();
-  }
 
   ngOnInit() {}
 
@@ -165,7 +171,9 @@ export class TaskComponent extends BaseEntityComponent implements OnInit, OnChan
           const effectiveTodoId = this.todoId || this.task.todoId;
           if (effectiveTodoId) {
             const allSubtaskComments = updatedSubtasks.flatMap((s: any) =>
-              (s.comments || []).filter((c: any) => !c.isDeleted && c.subtaskId && c.authorId !== userId)
+              (s.comments || []).filter(
+                (c: any) => !c.isDeleted && c.subtaskId && c.authorId !== userId
+              )
             );
 
             if (allSubtaskComments.length > 0) {
@@ -263,9 +271,9 @@ export class TaskComponent extends BaseEntityComponent implements OnInit, OnChan
     }
   }
 
-  onSelectionChange(): void {
+  onSelectionChange(checked: boolean): void {
     if (this.task) {
-      this.selectionChangeEvent.emit(this.task.id);
+      this.selectionChangeEvent.emit({ id: this.task.id, selected: checked });
     }
   }
 
@@ -337,5 +345,17 @@ export class TaskComponent extends BaseEntityComponent implements OnInit, OnChan
     if (this.task) {
       this.deleteTaskEvent.emit(this.task.id);
     }
+  }
+
+  onEditClick(): void {
+    this.edit.emit();
+  }
+
+  onDeleteClick(): void {
+    this.delete.emit();
+  }
+
+  onToggleClick(): void {
+    this.toggle.emit();
   }
 }

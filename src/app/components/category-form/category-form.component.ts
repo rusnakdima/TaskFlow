@@ -21,7 +21,6 @@ import { Category } from "@models/category.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
@@ -33,7 +32,6 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private authService: AuthService,
-    private storageService: StorageService,
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService
   ) {}
@@ -131,7 +129,10 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
     };
 
     this.dataSyncProvider
-      .crud<Category>("update", "categories", { id: this.editingCategory.id, data: updatedCategory })
+      .crud<Category>("update", "categories", {
+        id: this.editingCategory.id,
+        data: updatedCategory,
+      })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");
