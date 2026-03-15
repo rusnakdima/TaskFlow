@@ -59,6 +59,9 @@ export class StorageService extends BaseStorageService {
     const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
+      // Filter out deleted todos
+      if (todo.isDeleted) return;
+
       if (
         !uniqueTodoMap.has(todo.id) ||
         (todo.updatedAt && uniqueTodoMap.get(todo.id)!.updatedAt! < todo.updatedAt)
@@ -69,12 +72,24 @@ export class StorageService extends BaseStorageService {
     return Array.from(uniqueTodoMap.values());
   });
 
+  private readonly privateTodosComputed = computed(() => {
+    return this.privateTodosSignal().filter(todo => !todo.isDeleted);
+  });
+
+  private readonly sharedTodosComputed = computed(() => {
+    return this.sharedTodosSignal().filter(todo => !todo.isDeleted);
+  });
+
   // ==================== PUBLIC SIGNALS ====================
-  readonly privateTodos = this.privateTodosSignal.asReadonly();
-  readonly sharedTodos = this.sharedTodosSignal.asReadonly();
+  readonly privateTodos = this.privateTodosComputed;
+  readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
-  readonly tasks = computed(() => this.todos().flatMap((todo) => todo.tasks || []));
-  readonly subtasks = computed(() => this.tasks().flatMap((task) => task.subtasks || []));
+  readonly tasks = computed(() => 
+    this.todos().flatMap((todo) => (todo.tasks || []).filter(task => !task.isDeleted))
+  );
+  readonly subtasks = computed(() => 
+    this.tasks().flatMap((task) => (task.subtasks || []).filter(subtask => !subtask.isDeleted))
+  );
   readonly comments = computed(() => {
     const todos = this.todos();
     const allComments: Comment[] = [];
@@ -334,10 +349,14 @@ export class StorageService extends BaseStorageService {
         this.profileSignal.set(items as Profile | null);
         break;
       case "privateTodos":
-        this.privateTodosSignal.set(items as Todo[]);
+        // Filter out deleted todos before setting
+        const filteredPrivateTodos = (items as Todo[]).filter(todo => !todo.isDeleted);
+        this.privateTodosSignal.set(filteredPrivateTodos);
         break;
       case "sharedTodos":
-        this.sharedTodosSignal.set(items as Todo[]);
+        // Filter out deleted todos before setting
+        const filteredSharedTodos = (items as Todo[]).filter(todo => !todo.isDeleted);
+        this.sharedTodosSignal.set(filteredSharedTodos);
         break;
     }
   }
