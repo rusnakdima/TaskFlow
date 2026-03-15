@@ -41,11 +41,8 @@ export class AdminDataTableComponent {
   @Input() selectedRecords = new Set<string>();
   @Input() titleKey = "title";
   @Input() descriptionKey = "description";
-  @Input() showActions = true;
 
   @Output() selectRecord = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() deleteRecord = new EventEmitter<any>();
-  @Output() toggleDelete = new EventEmitter<any>();
 
   expandedRecords = signal<Set<string>>(new Set());
 
