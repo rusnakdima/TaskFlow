@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
-import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { Component, Input } from "@angular/core";
+import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -11,9 +11,6 @@ import { provideNativeDateAdapter } from "@angular/material/core";
 
 /* models */
 import { DatePickerField } from "@models/form-field.model";
-
-/* base */
-import { BaseFieldComponent } from "../base-field.component";
 
 @Component({
   selector: "app-date-picker",
@@ -29,6 +26,14 @@ import { BaseFieldComponent } from "../base-field.component";
   ],
   templateUrl: "./date-picker.component.html",
 })
-export class DatePickerComponent extends BaseFieldComponent {
-  override field!: DatePickerField;
+export class DatePickerComponent {
+  @Input() label: string = "";
+  @Input() form!: FormGroup;
+  @Input() field!: DatePickerField;
+
+  isInvalid(attr: string): boolean {
+    const control = this.form.get(attr);
+    if (!control) return false;
+    return (control.touched || control.dirty) && !!control.errors;
+  }
 }

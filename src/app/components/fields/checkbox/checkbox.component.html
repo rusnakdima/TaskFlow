@@ -10,16 +10,21 @@
     }
   </div>
 } @else {
-  <div class="flex flex-col">
+  <div class="flex items-center gap-2">
     <mat-checkbox
       class="no-check-icon"
       [checked]="checked"
       [indeterminate]="indeterminate"
+      [ngClass]="highlight ? 'text-yellow-600 dark:text-yellow-400' : ''"
       (change)="onToggle($event)"
-    >
-      @if (label) {
-        <mat-label>{{ label }}</mat-label>
-      }
-    </mat-checkbox>
+    />
+    @if (label) {
+      <label
+        class="text-sm font-medium textNormal cursor-pointer select-none"
+        (click)="onToggle($event)"
+      >
+        {{ label }}
+      </label>
+    }
   </div>
 }
