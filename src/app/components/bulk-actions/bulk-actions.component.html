@@ -1,86 +1,137 @@
-<div class="bulk-actions-panel">
+@if (showBulkActions) {
   <div
-    class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-xl shadow-lg p-4"
+    class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 pointer-events-auto"
   >
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-      <!-- Left Side - Selection Info -->
+    <div
+      class="bg-gray-900/95 dark:bg-gray-800/95 backdrop-blur-sm text-white rounded-2xl shadow-2xl border border-gray-700/50 px-5 py-3"
+    >
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-full">
-          <mat-icon class="w-5! h-5! text-base!">check_circle</mat-icon>
-          <span class="font-semibold">{{ selectedCount }} task(s) selected</span>
-        </div>
-        <button
-          class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-          (click)="onSelectAll()"
-        >
-          {{ isAllSelected ? "Deselect All" : "Select All" }}
-        </button>
-      </div>
-
-      <!-- Right Side - Action Buttons -->
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-blue-100 mr-2 hidden sm:inline">Actions:</span>
-
-        <!-- Priority Buttons Group -->
-        <div class="flex items-center gap-1.5">
-          <button
-            class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex items-center gap-1.5"
-            (click)="onPriorityChange('high')"
-            title="Set High Priority"
+        <!-- Selection Info -->
+        <div class="flex items-center gap-2 pr-3 border-r border-gray-700">
+          <div
+            class="flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 rounded-full whitespace-nowrap"
           >
-            <mat-icon class="w-4! h-4! text-base!" fontIcon="priority_high" />
-            <span class="hidden sm:inline">High</span>
-          </button>
-
+            <mat-icon class="w-5! h-5! text-xl! leading-none!">check_circle</mat-icon>
+            <span class="font-semibold text-xs whitespace-nowrap"
+              >{{ selectedCountValue }} selected</span
+            >
+          </div>
           <button
-            class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex items-center gap-1.5"
-            (click)="onPriorityChange('medium')"
-            title="Set Medium Priority"
+            class="font-medium text-gray-300 hover:text-white transition-colors min-w-0! px-2! py-1!"
+            (click)="onSelectAll()"
           >
-            <mat-icon class="w-4! h-4! text-base!" fontIcon="remove" />
-            <span class="hidden sm:inline">Medium</span>
-          </button>
-
-          <button
-            class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex items-center gap-1.5"
-            (click)="onPriorityChange('low')"
-            title="Set Low Priority"
-          >
-            <mat-icon class="w-4! h-4! text-base!" fontIcon="arrow_downward" />
-            <span class="hidden sm:inline">Low</span>
+            {{ isAllSelectedValue ? "Deselect All" : "Select All" }}
           </button>
         </div>
 
-        <div class="w-px h-6 bg-white/30 mx-1"></div>
+        <!-- Action Buttons - Admin/Archive Mode -->
+        @if (modeValue === "admin" || modeValue === "archive") {
+          <div class="flex items-center gap-1.5">
+            <!-- Archive Button -->
+            <button
+              color="warn"
+              class="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSoftDelete()"
+              matTooltip="Toggle Archive Status"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">archive</mat-icon>
+              <span class="hidden sm:inline">Archive/Restore</span>
+            </button>
 
-        <!-- Complete Button -->
-        <button
-          class="px-3 py-1.5 text-sm font-medium bg-green-500/80 hover:bg-green-500 rounded-lg transition-colors flex items-center gap-1.5"
-          (click)="onStatusChange()"
-        >
-          <mat-icon class="w-4! h-4! text-base!" fontIcon="check_circle" />
-          <span class="hidden sm:inline">Complete</span>
-        </button>
+            <!-- Hard Delete Button -->
+            <button
+              color="warn"
+              class="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onHardDelete()"
+              matTooltip="Permanently Delete"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">delete_forever</mat-icon>
+              <span class="hidden sm:inline">Delete</span>
+            </button>
+          </div>
+        }
 
-        <!-- Delete Button -->
-        <button
-          class="px-3 py-1.5 text-sm font-medium bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors flex items-center gap-1.5"
-          (click)="onDelete()"
-        >
-          <mat-icon class="w-4! h-4! text-base!" fontIcon="delete" />
-          <span class="hidden sm:inline">Delete</span>
-        </button>
+        <!-- Action Buttons - Todos Mode (Archive only) -->
+        @if (modeValue === "todos") {
+          <div class="flex items-center gap-1.5">
+            <!-- Archive Button -->
+            <button
+              color="warn"
+              class="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSoftDelete()"
+              matTooltip="Move to Archive"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">archive</mat-icon>
+              <span class="hidden sm:inline">Archive</span>
+            </button>
+          </div>
+        }
 
-        <div class="w-px h-6 bg-white/30 mx-1"></div>
+        <!-- Action Buttons - Tasks/Subtasks Mode -->
+        @if (modeValue === "tasks" || modeValue === "subtasks") {
+          <div class="flex items-center gap-1.5">
+            <!-- Status Buttons -->
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSetStatus('pending')"
+              matTooltip="Mark as Pending"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">schedule</mat-icon>
+              <span class="hidden sm:inline">Pending</span>
+            </button>
+
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSetStatus('completed')"
+              matTooltip="Mark as Completed"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">check_circle</mat-icon>
+              <span class="hidden sm:inline">Complete</span>
+            </button>
+
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSetStatus('skipped')"
+              matTooltip="Mark as Skipped"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">skip_next</mat-icon>
+              <span class="hidden sm:inline">Skip</span>
+            </button>
+
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSetStatus('failed')"
+              matTooltip="Mark as Failed"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">error</mat-icon>
+              <span class="hidden sm:inline">Fail</span>
+            </button>
+
+            <!-- Archive Button -->
+            <button
+              color="warn"
+              class="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onSoftDelete()"
+              matTooltip="Move to Archive"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">archive</mat-icon>
+              <span class="hidden sm:inline">Archive</span>
+            </button>
+          </div>
+        }
+
+        <!-- Divider -->
+        <div class="w-px h-6 bg-gray-700"></div>
 
         <!-- Cancel Button -->
         <button
-          class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+          class="text-gray-400 hover:text-white transition-colors min-w-8! h-8! w-8!"
           (click)="onCancel()"
+          matTooltip="Cancel Selection"
         >
-          <mat-icon class="w-4! h-4! text-base!" fontIcon="close" />
+          <mat-icon class="w-5! h-5! text-xl! leading-none!">close</mat-icon>
         </button>
       </div>
     </div>
   </div>
-</div>
+}
