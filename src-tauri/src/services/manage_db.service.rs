@@ -114,7 +114,7 @@ impl ManageDbService {
     }
   }
 
-  /// Permanently delete a record with cascade to children
+  /// Permanently delete a record with cascade to children (MongoDB - Admin page)
   pub async fn permanentlyDeleteRecord(
     &self,
     table: String,
@@ -130,7 +130,23 @@ impl ManageDbService {
     }
   }
 
-  /// Toggle delete status of a record with cascade to children
+  /// Permanently delete a record with cascade to children (local JSON - Archive page)
+  pub async fn permanentlyDeleteRecordLocal(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    match &self.adminManager {
+      Some(manager) => manager.permanentlyDeleteRecordLocal(table, id).await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  /// Toggle delete status of a record with cascade to children (MongoDB - Admin page)
   pub async fn toggleDeleteStatus(
     &self,
     table: String,
@@ -138,6 +154,22 @@ impl ManageDbService {
   ) -> Result<ResponseModel, ResponseModel> {
     match &self.adminManager {
       Some(manager) => manager.toggleDeleteStatus(table, id).await,
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
+  }
+
+  /// Toggle delete status of a record with cascade to children (local JSON - Archive page)
+  pub async fn toggleDeleteStatusLocal(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    match &self.adminManager {
+      Some(manager) => manager.toggleDeleteStatusLocal(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
