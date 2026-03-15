@@ -15,7 +15,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { LoginForm } from "@models/index";
+import { LoginForm } from "@models/auth-forms.model";
 import { CheckboxField, TypeField } from "@models/form-field.model";
 
 /* services */
@@ -109,7 +109,6 @@ export class LoginView implements OnDestroy {
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {
-        console.error('[LoginView] Failed to check local users:', err);
         this.hasLocalUsers.set(false);
       },
     });
@@ -167,15 +166,13 @@ export class LoginView implements OnDestroy {
           // Check if we have users in local database
           if (this.hasLocalUsers()) {
             // Have local users but something else went wrong
-            this.notifyService.showError(
-              "No internet connection. Using local database..."
-            );
+            this.notifyService.showError("No internet connection. Using local database...");
           } else {
             // No local users - need to login online first
             this.notifyService.showError(
               "⚠️ No internet connection AND no users in local database.\n\n" +
-              "You must login/register ONLINE at least once.\n\n" +
-              "Please connect to internet and try again."
+                "You must login/register ONLINE at least once.\n\n" +
+                "Please connect to internet and try again."
             );
           }
         } else if (err.message?.includes("User data exists but no cached token")) {
