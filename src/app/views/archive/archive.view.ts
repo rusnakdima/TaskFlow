@@ -350,11 +350,11 @@ export class ArchiveView implements OnInit {
     }
 
     try {
-      // Permanently delete record with cascade
-      const response = await this.adminService.permanentlyDeleteRecord(table, record.id);
+      // Permanently delete record with cascade (local JSON only)
+      const response = await this.adminService.permanentlyDeleteRecordLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
-        this.notifyService.showSuccess("Record permanently deleted");
+        this.notifyService.showSuccess("Record permanently deleted from local database");
 
         // Update local storage immediately - simply remove from lists
         this.adminStorageService.removeRecordWithCascade(table, record.id);
@@ -373,8 +373,8 @@ export class ArchiveView implements OnInit {
 
   async toggleDeleteStatus(record: any) {
     try {
-      // Toggle delete status with cascade
-      const response = await this.adminService.toggleDeleteStatus(this.selectedType(), record.id);
+      // Toggle delete status with cascade (local JSON only)
+      const response = await this.adminService.toggleDeleteStatusLocal(this.selectedType(), record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
@@ -577,9 +577,9 @@ export class ArchiveView implements OnInit {
     const currentData = this.getCurrentData();
     const selectedItems = currentData.filter((item) => this.isSelected(item.id));
 
-    // Delete all records (always uses cascade)
+    // Delete all records (always uses cascade) - local JSON only
     const deleteObservable = this.bulkActionService.bulkDelete(selectedItems, (id: string) =>
-      from(this.adminService.permanentlyDeleteRecord(table, id))
+      from(this.adminService.permanentlyDeleteRecordLocal(table, id))
     );
 
     deleteObservable.subscribe((result) => {

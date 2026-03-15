@@ -91,14 +91,17 @@ export class SharedTasksView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.dataSyncProvider.crud("delete", "todos", { id: todoId }).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Project deleted successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete project");
-        },
-      });
+      this.dataSyncProvider
+        .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: false })
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Project deleted successfully");
+            // No need to reload - storage is already updated by archiveTodoWithCascade()
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete project");
+          },
+        });
     }
   }
 
