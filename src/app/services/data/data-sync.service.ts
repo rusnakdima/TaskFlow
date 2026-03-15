@@ -101,7 +101,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { userId, visibility: "private" },
+            filter: { userId, visibility: "private", isDeleted: false },
             isOwner: true,
             isPrivate: true,
             relations: todoRelations,
@@ -114,7 +114,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { userId, visibility: "team" },
+            filter: { userId, visibility: "team", isDeleted: false },
             isOwner: true,
             isPrivate: false,
             relations: todoRelations,
@@ -127,7 +127,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { assignees: userId, visibility: "team" },
+            filter: { assignees: userId, visibility: "team", isDeleted: false },
             isOwner: false,
             isPrivate: false,
             relations: todoRelations,
@@ -139,7 +139,7 @@ export class DataSyncService {
         return this.dataSyncProvider.crud<Category[]>(
           "getAll",
           "categories",
-          { filter: { userId } },
+          { filter: { userId, isDeleted: false } },
           true
         );
       }),
@@ -207,7 +207,7 @@ export class DataSyncService {
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "team" },
+          filter: { userId, visibility: "team", isDeleted: false },
           isOwner: true,
           isPrivate: false,
           relations: todoRelations,
@@ -218,7 +218,7 @@ export class DataSyncService {
         "getAll",
         "todos",
         {
-          filter: { assignees: userId, visibility: "team" },
+          filter: { assignees: userId, visibility: "team", isDeleted: false },
           isOwner: false,
           isPrivate: false,
           relations: todoRelations,
@@ -228,7 +228,7 @@ export class DataSyncService {
       categories: this.dataSyncProvider.crud<Category[]>(
         "getAll",
         "categories",
-        { filter: { userId } },
+        { filter: { userId, isDeleted: false } },
         true
       ),
     }).pipe(
