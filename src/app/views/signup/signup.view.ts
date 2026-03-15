@@ -21,7 +21,7 @@ import { Common } from "@helpers/common.helper";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { SignupForm } from "@models/index";
+import { SignupForm } from "@models/auth-forms.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";

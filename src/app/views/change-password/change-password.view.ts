@@ -20,7 +20,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
-import { PasswordReset } from "@models/index";
+import { PasswordReset } from "@models/password-reset.model";
 
 @Component({
   selector: "app-change-password",
