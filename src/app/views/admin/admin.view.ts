@@ -444,46 +444,6 @@ export class AdminView implements OnInit {
     }
   }
 
-  async deleteSelected(): Promise<void> {
-    const count = this.selectedRecords().size;
-    if (count === 0) return;
-
-    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
-    const plural = count > 1 ? "records" : "record";
-
-    if (
-      !confirm(
-        `Are you sure you want to permanently delete ${count} ${typeSingular} ${plural}? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
-    const currentData = this.getCurrentData();
-    const selectedItems = currentData.filter((item) => this.isSelected(item.id));
-
-    this.bulkActionService
-      .bulkDelete(selectedItems, (id: string) =>
-        from(this.adminService.permanentlyDeleteRecord(this.selectedType(), id))
-      )
-      .subscribe((result) => {
-        this.clearSelection();
-        if (result.successCount > 0) {
-          this.notifyService.showSuccess(
-            `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
-          );
-          // Reload all data after deletion
-          this.loadAdminData();
-        }
-
-        if (result.errorCount > 0) {
-          this.notifyService.showError(
-            `Failed to delete ${result.errorCount} ${result.errorCount === 1 ? "record" : "records"}`
-          );
-        }
-      });
-  }
-
   // ==================== FLOATING BULK ACTIONS ====================
 
   onBulkSelectAll(): void {
