@@ -20,9 +20,6 @@ impl CascadeIds {
   }
 
   pub fn total_count(&self) -> usize {
-    self.task_ids.len()
-      + self.subtask_ids.len()
-      + self.comment_ids.len()
-      + self.chat_ids.len()
+    self.task_ids.len() + self.subtask_ids.len() + self.comment_ids.len() + self.chat_ids.len()
   }
 }

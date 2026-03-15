@@ -12,6 +12,7 @@ use crate::helpers::response_helper::errResponseFormatted;
 use crate::models::response_model::ResponseModel;
 
 use super::cascade_ids::CascadeIds;
+use super::cascade_provider::CascadeProvider;
 
 /// MongoCascadeHandler - Handles BFS cascade ID collection for MongoDB provider
 #[derive(Clone)]
@@ -23,7 +24,25 @@ impl MongoCascadeHandler {
   pub fn new(mongodbProvider: Arc<MongodbProvider>) -> Self {
     Self { mongodbProvider }
   }
+}
 
+/// Implement CascadeProvider trait for MongoCascadeHandler
+impl CascadeProvider for MongoCascadeHandler {
+  async fn delete_with_cascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
+    self.collectCascadeIds(table, id).await
+  }
+
+  async fn archive_with_cascade(
+    &self,
+    table: &str,
+    id: &str,
+    _is_restore: bool,
+  ) -> Result<CascadeIds, ResponseModel> {
+    self.collectCascadeIds(table, id).await
+  }
+}
+
+impl MongoCascadeHandler {
   /// Collect all cascade IDs for MongoDB using BFS with proper cycle detection
   pub async fn collectCascadeIds(
     &self,
@@ -35,6 +54,7 @@ impl MongoCascadeHandler {
     let mut cascade_ids = CascadeIds::default();
     let mut visited_todos = HashSet::new();
     let mut visited_tasks = HashSet::new();
+    let mut visited_subtasks = HashSet::new();
 
     // Queue for BFS: (table, id)
     let mut queue: VecDeque<(String, String)> = VecDeque::new();
@@ -45,6 +65,7 @@ impl MongoCascadeHandler {
       let already_visited = match current_table.as_str() {
         "todos" => !visited_todos.insert(current_id.clone()),
         "tasks" => !visited_tasks.insert(current_id.clone()),
+        "subtasks" => !visited_subtasks.insert(current_id.clone()),
         _ => false,
       };
 
@@ -53,9 +74,17 @@ impl MongoCascadeHandler {
       }
 
       if current_table == "todos" {
-        self.collectTodoChildren(&current_id, &mut cascade_ids, &mut queue).await?;
+        self
+          .collectTodoChildren(&current_id, &mut cascade_ids, &mut queue)
+          .await?;
       } else if current_table == "tasks" {
-        self.collectTaskChildren(&current_id, &mut cascade_ids).await?;
+        self
+          .collectTaskChildren(&current_id, &mut cascade_ids)
+          .await?;
+      } else if current_table == "subtasks" {
+        self
+          .collectSubtaskChildren(&current_id, &mut cascade_ids)
+          .await?;
       }
     }
 
@@ -96,6 +125,19 @@ impl MongoCascadeHandler {
             cascade_ids.comment_ids.push(comment_id.to_string());
           }
         }
+      }
+    }
+
+    // Collect ALL todo-level comments (comments directly on todo, not on tasks)
+    let todo_comments = self
+      .mongodbProvider
+      .getAllWithDeleted("comments", Some(json!({"todoId": todo_id})))
+      .await
+      .unwrap_or_default();
+
+    for comment in todo_comments {
+      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+        cascade_ids.comment_ids.push(comment_id.to_string());
       }
     }
 
@@ -182,6 +224,29 @@ impl MongoCascadeHandler {
     Ok(())
   }
 
+  /// Collect children for a subtask (comments only)
+  /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
+  async fn collectSubtaskChildren(
+    &self,
+    subtask_id: &str,
+    cascade_ids: &mut CascadeIds,
+  ) -> Result<(), ResponseModel> {
+    // Collect ALL subtask comments (including deleted ones)
+    let subtask_comments = self
+      .mongodbProvider
+      .getAllWithDeleted("comments", Some(json!({"subtaskId": subtask_id})))
+      .await
+      .unwrap_or_default();
+
+    for comment in subtask_comments {
+      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+        cascade_ids.comment_ids.push(comment_id.to_string());
+      }
+    }
+
+    Ok(())
+  }
+
   /// Handle MongoDB Cascade (delete/restore)
   pub async fn handleCascade(
     &self,
@@ -195,7 +260,7 @@ impl MongoCascadeHandler {
     let cascade_ids = self.collectCascadeIds(table, id).await?;
 
     let timestamp = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    let update_data = json!({ 
+    let update_data = json!({
       "isDeleted": !is_restore,
       "updatedAt": timestamp
     });
