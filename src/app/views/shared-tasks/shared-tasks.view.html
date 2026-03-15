@@ -21,7 +21,7 @@
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
-            (deleteEvent)="deleteTodoById($any($event), true)"
+            (deleteTodoEvent)="deleteTodoById($any($event), true)"
             (saveAsBlueprintEvent)="onSaveAsBlueprint($any($event))"
           />
         }
@@ -44,7 +44,7 @@
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
-            (deleteEvent)="deleteTodoById($any($event), todoIsOwner(todo))"
+            (deleteTodoEvent)="deleteTodoById($any($event), todoIsOwner(todo))"
           />
         }
       </div>
