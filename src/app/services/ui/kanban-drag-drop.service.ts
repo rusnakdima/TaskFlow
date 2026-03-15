@@ -19,7 +19,7 @@ export class KanbanDragDropService {
    * @param targetStatus - The status of the target column
    * @param isUpdatingOrder - Signal indicating if an order update is in progress
    * @param onMoveTask - Callback to move task to new status
-   * @returns Object with updated containers and task to move (if any)
+   * @returns Object with task to update (if any)
    */
   handleTaskDrop(
     event: CdkDragDrop<Task[]>,
@@ -43,14 +43,8 @@ export class KanbanDragDropService {
       return { moved: false };
     } else {
       // Moving to a different column
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
-
-      // Update the task status in backend
+      // Don't use transferArrayItem here because the data comes from a computed signal
+      // The UI will update automatically when the API response updates the storage
       onMoveTask(task.id, targetStatus);
       return { moved: true, task, newStatus: targetStatus };
     }

@@ -1,3 +1,0 @@
-/**
- * Notifications Services - Notification management
- */

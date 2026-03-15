@@ -81,7 +81,9 @@ export class DragDropOrderService {
     this.updatingOrders.add(operationKey);
 
     return this.dataSyncProvider
-      .crud<T[]>("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, ...syncOptions }, true)
+      .crud<
+        T[]
+      >("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, ...syncOptions }, true)
       .pipe(
         tap(() => {
           this.updatingOrders.delete(operationKey);

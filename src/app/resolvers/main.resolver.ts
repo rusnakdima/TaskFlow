@@ -37,15 +37,15 @@ export class MainResolver implements Resolve<any> {
         const todoId = paramsMap.get("todoId") ?? "";
 
         // First, try to get data from storage
-        let taskFromStorage = this.storageService.getTaskById(taskId);
-        let todoFromStorage = this.storageService.getTodoById(todoId);
+        let taskFromStorage = this.storageService.getById("tasks", taskId);
+        let todoFromStorage = this.storageService.getById("todos", todoId);
 
         // Wait for storage to be populated (max 2 seconds)
         let waitCount = 0;
         while ((!taskFromStorage || !todoFromStorage) && waitCount < 20) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          taskFromStorage = this.storageService.getTaskById(taskId);
-          todoFromStorage = this.storageService.getTodoById(todoId);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          taskFromStorage = this.storageService.getById("tasks", taskId);
+          todoFromStorage = this.storageService.getById("todos", todoId);
           waitCount++;
         }
 
@@ -54,15 +54,24 @@ export class MainResolver implements Resolve<any> {
         }
 
         // If not in storage after waiting, fetch from backend
-        const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", { filter: { id: taskId }, isOwner, isPrivate });
+        const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", {
+          filter: { id: taskId },
+          isOwner,
+          isPrivate,
+        });
         const task: Task = await firstValueFrom(taskObservable);
 
-        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelations() });
+        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
+          filter: { id: todoId },
+          isOwner,
+          isPrivate,
+          relations: RelationsHelper.getTodoRelations(),
+        });
         const todo: Todo = await firstValueFrom(todoObservable);
 
         // Store in storage
         if (todo && todo.id) {
-          const existingTodo = this.storageService.getTodoById(todoId);
+          const existingTodo = this.storageService.getById("todos", todoId);
           if (existingTodo) {
             this.storageService.updateItem("todos", todoId, todo);
           } else {
@@ -75,13 +84,13 @@ export class MainResolver implements Resolve<any> {
         const todoId = paramsMap.get("todoId") ?? "";
 
         // First, try to get data from storage
-        let todoFromStorage = this.storageService.getTodoById(todoId);
+        let todoFromStorage = this.storageService.getById("todos", todoId);
 
         // Wait for storage to be populated (max 2 seconds)
         let waitCount = 0;
         while (!todoFromStorage && waitCount < 20) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          todoFromStorage = this.storageService.getTodoById(todoId);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          todoFromStorage = this.storageService.getById("todos", todoId);
           waitCount++;
         }
 
@@ -90,12 +99,17 @@ export class MainResolver implements Resolve<any> {
         }
 
         // If not in storage after waiting, fetch from backend
-        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId }, isOwner, isPrivate, relations: RelationsHelper.getTodoRelationsWithUser() });
+        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
+          filter: { id: todoId },
+          isOwner,
+          isPrivate,
+          relations: RelationsHelper.getTodoRelationsWithUser(),
+        });
         const todo: Todo = await firstValueFrom(todoObservable);
 
         // Store in storage
         if (todo && todo.id) {
-          const existingTodo = this.storageService.getTodoById(todoId);
+          const existingTodo = this.storageService.getById("todos", todoId);
           if (existingTodo) {
             this.storageService.updateItem("todos", todoId, todo);
           } else {

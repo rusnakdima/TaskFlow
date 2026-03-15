@@ -10,6 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 /* models */
 import { User } from "@models/user.model";
 import { Response } from "@models/response.model";
+import { Profile } from "@models/profile.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -33,6 +34,7 @@ import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.c
 import { HeaderComponent } from "@components/header/header.component";
 import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component";
 import { CommandPaletteComponent } from "@components/command-palette/command-palette.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 
 @Component({
   selector: "app-root",
@@ -46,6 +48,7 @@ import { CommandPaletteComponent } from "@components/command-palette/command-pal
     HeaderComponent,
     BottomNavComponent,
     CommandPaletteComponent,
+    BulkActionsComponent,
   ],
   templateUrl: "./app.html",
 })
@@ -148,35 +151,40 @@ export class App implements OnInit {
     const todoRelations = RelationsHelper.getTodoRelationsWithUser();
 
     this.dataSyncService.loadAllData(false).subscribe({
-      next: () => {
-        // Check profile after data is loaded
-        this.checkUserProfile();
+      next: (data) => {
+        // Load profile after main data is loaded
+        this.loadUserProfile();
       },
       error: (error) => {
-        // Silently fail - data may be available from cache
-        // User can manually trigger sync if needed
-        console.warn('[App] Data load failed, using cached data if available');
+        // Error handled silently
       },
     });
 
     // Categories are loaded by dataSyncService, no need to load separately
   }
 
-  async checkUserProfile() {
+  private loadUserProfile(): void {
     const userId = this.authService.getValueByKey("id");
-    if (userId && userId != "") {
-      // Fetch profile from backend with userId filter
-      this.dataSyncProvider.getProfileByUserId(userId).subscribe({
-        next: (profile) => {
-          if (!profile || !profile.user || !profile.user.username) {
-            this.router.navigate(["/profile/create-profile"]);
-          }
-        },
-        error: (err) => {
-          // Failed to load profile
-          this.router.navigate(["/profile/create-profile"]);
-        },
-      });
+    if (!userId) {
+      return;
+    }
+
+    this.dataSyncService.loadProfile().subscribe({
+      next: (profile) => {
+        this.checkUserProfile(profile);
+      },
+      error: (error) => {
+        // Check if offline - if so, use cached profile
+        if (this.storageService.profile()) {
+          this.checkUserProfile(this.storageService.profile());
+        }
+      },
+    });
+  }
+
+  private checkUserProfile(profile: Profile | null): void {
+    if (!profile || !profile.user || !profile.user.username) {
+      this.router.navigate(["/profile/create-profile"]);
     }
   }
 

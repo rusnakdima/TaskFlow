@@ -5,7 +5,8 @@ import { tap } from "rxjs/operators";
 
 /* models */
 import { Response } from "@models/response.model";
-import { LoginForm, SignupForm, PasswordReset } from "@models/index";
+import { LoginForm, SignupForm } from "@models/auth-forms.model";
+import { PasswordReset } from "@models/password-reset.model";
 import { OfflineAuthResult } from "@models/local-user.model";
 
 /* providers */
@@ -40,7 +41,9 @@ export class AuthService {
    * Attempt offline-first authentication
    * ALWAYS checks local storage first, then tries cloud
    */
-  async loginWithOfflineFirst(loginData: LoginForm): Promise<{ token: string; requiresDataSync: boolean; isOffline: boolean }> {
+  async loginWithOfflineFirst(
+    loginData: LoginForm
+  ): Promise<{ token: string; requiresDataSync: boolean; isOffline: boolean }> {
     // STEP 1: Always check local storage FIRST
     const offlineResult = await this.localAuthService.authenticateOffline(loginData);
 
@@ -82,7 +85,7 @@ export class AuthService {
               // ✅ User exists locally with valid credentials - allow offline login
               // Use cached token even if it might be expired (better than nothing)
               const tokenToUse = offlineResult.user.lastToken || "";
-              
+
               if (tokenToUse) {
                 resolve({
                   token: tokenToUse,
@@ -91,11 +94,19 @@ export class AuthService {
                 });
               } else {
                 // User exists locally but no token - can't login without network
-                reject(new Error("No internet connection. User data exists but no cached token available."));
+                reject(
+                  new Error(
+                    "No internet connection. User data exists but no cached token available."
+                  )
+                );
               }
             } else {
               // ❌ No local user data - can't login offline
-              reject(new Error("No internet connection. Please login online first to enable offline access."));
+              reject(
+                new Error(
+                  "No internet connection. Please login online first to enable offline access."
+                )
+              );
             }
           } else {
             // Not a network error - actual authentication failure (wrong password, etc.)
@@ -268,7 +279,9 @@ export class AuthService {
    * Initialize user session from stored token
    * Handles both valid and expired tokens with offline fallback
    */
-  initializeSession(authRoutes: string[] = ["/login", "/signup", "/reset-password", "/change-password"]): void {
+  initializeSession(
+    authRoutes: string[] = ["/login", "/signup", "/reset-password", "/change-password"]
+  ): void {
     const token = this.getToken();
 
     if (!token) {

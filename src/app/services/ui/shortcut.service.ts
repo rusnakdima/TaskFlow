@@ -19,6 +19,9 @@ export class ShortcutService {
   private syncSubject = new Subject<void>();
   sync$ = this.syncSubject.asObservable();
 
+  private refreshSubject = new Subject<void>();
+  refresh$ = this.refreshSubject.asObservable();
+
   private currentUrl = "";
 
   constructor(
@@ -72,7 +75,14 @@ export class ShortcutService {
         return;
       }
 
-      // 5. Alt + Shift + N (Context-aware New Action)
+      // 5. Ctrl + R (Refresh/Reload Data)
+      if ((event.ctrlKey || event.metaKey) && event.key === "r") {
+        event.preventDefault();
+        this.zone.run(() => this.refreshSubject.next());
+        return;
+      }
+
+      // 6. Alt + Shift + N (Context-aware New Action)
       if (event.altKey && event.shiftKey && event.key === "N") {
         event.preventDefault();
         this.zone.run(() => this.handleNewAction());
@@ -149,6 +159,11 @@ export class ShortcutService {
               // Alt + A -> About
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/about"]));
+              break;
+            case "z":
+              // Alt + Z -> Archive
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/archive"]));
               break;
             case "l":
               // Alt + L -> Calendar
