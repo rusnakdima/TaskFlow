@@ -28,7 +28,11 @@ impl CrudHandlers {
   }
 
   /// Handle get-all action
-  pub async fn handle_get_all(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
+  pub async fn handle_get_all(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
     let filter = request.filter.unwrap_or(json!({}));
     self
       .crud_service
@@ -64,7 +68,11 @@ impl CrudHandlers {
   }
 
   /// Handle create action with broadcast
-  pub async fn handle_create(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
+  pub async fn handle_create(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
     if let Some(data) = request.data {
       let res = self
         .crud_service
@@ -82,7 +90,9 @@ impl CrudHandlers {
 
       if res.status == ResponseStatus::Success {
         if let DataValue::Object(ref obj) = res.data {
-          self.broadcast.broadcast_created(&request.entity, obj.clone());
+          self
+            .broadcast
+            .broadcast_created(&request.entity, obj.clone());
         }
       }
       res
@@ -92,7 +102,11 @@ impl CrudHandlers {
   }
 
   /// Handle update action with broadcast
-  pub async fn handle_update(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
+  pub async fn handle_update(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
     if let (Some(id), Some(data)) = (request.id, request.data) {
       let res = self
         .crud_service
@@ -110,7 +124,9 @@ impl CrudHandlers {
 
       if res.status == ResponseStatus::Success {
         if let DataValue::Object(ref obj) = res.data {
-          self.broadcast.broadcast_updated(&request.entity, obj.clone());
+          self
+            .broadcast
+            .broadcast_updated(&request.entity, obj.clone());
         }
       }
       res
@@ -120,7 +136,11 @@ impl CrudHandlers {
   }
 
   /// Handle update-all action with special chat clearing broadcast
-  pub async fn handle_update_all(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
+  pub async fn handle_update_all(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
     if let Some(data) = request.data {
       let res = self
         .crud_service
@@ -171,7 +191,11 @@ impl CrudHandlers {
   }
 
   /// Handle delete action with broadcast
-  pub async fn handle_delete(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
+  pub async fn handle_delete(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
     if let Some(id) = request.id {
       // Get original record for broadcast data
       let original = self
@@ -212,7 +236,9 @@ impl CrudHandlers {
           json!({ "id": id })
         };
 
-        self.broadcast.broadcast_deleted(&request.entity, broadcast_data);
+        self
+          .broadcast
+          .broadcast_deleted(&request.entity, broadcast_data);
       }
       res
     } else {

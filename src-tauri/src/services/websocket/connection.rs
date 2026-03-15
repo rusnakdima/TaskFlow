@@ -72,7 +72,11 @@ impl ConnectionManager {
 
     send_task.abort();
 
-    self.clients.lock().unwrap().retain(|client| !client.is_closed());
+    self
+      .clients
+      .lock()
+      .unwrap()
+      .retain(|client| !client.is_closed());
   }
 
   /// Process incoming WebSocket message
@@ -94,12 +98,37 @@ impl ConnectionManager {
     });
 
     let res = match request.action.as_str() {
-      "get-all" => self.crud_handlers.handle_get_all(request, sync_metadata).await,
+      "get-all" => {
+        self
+          .crud_handlers
+          .handle_get_all(request, sync_metadata)
+          .await
+      }
       "get" => self.crud_handlers.handle_get(request, sync_metadata).await,
-      "create" => self.crud_handlers.handle_create(request, sync_metadata).await,
-      "update" => self.crud_handlers.handle_update(request, sync_metadata).await,
-      "update-all" => self.crud_handlers.handle_update_all(request, sync_metadata).await,
-      "delete" => self.crud_handlers.handle_delete(request, sync_metadata).await,
+      "create" => {
+        self
+          .crud_handlers
+          .handle_create(request, sync_metadata)
+          .await
+      }
+      "update" => {
+        self
+          .crud_handlers
+          .handle_update(request, sync_metadata)
+          .await
+      }
+      "update-all" => {
+        self
+          .crud_handlers
+          .handle_update_all(request, sync_metadata)
+          .await
+      }
+      "delete" => {
+        self
+          .crud_handlers
+          .handle_delete(request, sync_metadata)
+          .await
+      }
       _ => ResponseModel::from(format!(
         "Unknown action: {} on {}",
         request.action, request.entity

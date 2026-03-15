@@ -11,7 +11,11 @@ pub struct BroadcastHelper {
 }
 
 impl BroadcastHelper {
-  pub fn new(clients: std::sync::Arc<std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>) -> Self {
+  pub fn new(
+    clients: std::sync::Arc<
+      std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>,
+    >,
+  ) -> Self {
     Self { clients }
   }
 
@@ -44,23 +48,39 @@ impl BroadcastHelper {
   /// Broadcast entity created event
   pub fn broadcast_created(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(&format!("{}-created", broadcast_entity), &broadcast_entity, data);
+    self.broadcast(
+      &format!("{}-created", broadcast_entity),
+      &broadcast_entity,
+      data,
+    );
   }
 
   /// Broadcast entity updated event
   pub fn broadcast_updated(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(&format!("{}-updated", broadcast_entity), &broadcast_entity, data);
+    self.broadcast(
+      &format!("{}-updated", broadcast_entity),
+      &broadcast_entity,
+      data,
+    );
   }
 
   /// Broadcast entity deleted event
   pub fn broadcast_deleted(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(&format!("{}-deleted", broadcast_entity), &broadcast_entity, data);
+    self.broadcast(
+      &format!("{}-deleted", broadcast_entity),
+      &broadcast_entity,
+      data,
+    );
   }
 
   /// Broadcast chat cleared event (special case)
   pub fn broadcast_chat_cleared(&self, todo_id: &str) {
-    self.broadcast("chat-cleared", "chat", serde_json::json!({ "todoId": todo_id }));
+    self.broadcast(
+      "chat-cleared",
+      "chat",
+      serde_json::json!({ "todoId": todo_id }),
+    );
   }
 }
