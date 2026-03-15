@@ -7,6 +7,9 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
+/* helpers */
+use crate::helpers::response_helper::require_mongo;
+
 /* services */
 use crate::services::{
   admin_manager::AdminManager, cascade::CascadeService,
@@ -45,11 +48,7 @@ impl ManageDbService {
 
   /// Import data from cloud MongoDB to local JSON
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
-      status: ResponseStatus::Error,
-      message: "MongoDB not available".to_string(),
-      data: DataValue::String("".to_string()),
-    })?;
+    let mongodbProvider = require_mongo(&self.mongodbProvider)?;
 
     match mongodbProvider
       .mongodbSync
@@ -71,11 +70,7 @@ impl ManageDbService {
 
   /// Export data from local JSON to cloud MongoDB
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
-      status: ResponseStatus::Error,
-      message: "MongoDB not available".to_string(),
-      data: DataValue::String("".to_string()),
-    })?;
+    let mongodbProvider = require_mongo(&self.mongodbProvider)?;
 
     match mongodbProvider
       .mongodbSync
@@ -119,20 +114,7 @@ impl ManageDbService {
     }
   }
 
-  /// Get all data for user from local JSON (includes deleted records for restoration)
-  #[allow(dead_code)]
-  pub async fn getAllDataForUser(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.getAllDataForUser(userId).await,
-      None => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  /// Permanently delete a record
+  /// Permanently delete a record with cascade to children
   pub async fn permanentlyDeleteRecord(
     &self,
     table: String,
@@ -148,23 +130,7 @@ impl ManageDbService {
     }
   }
 
-  /// Permanently delete a record with cascade to children
-  pub async fn permanentlyDeleteRecordWithCascade(
-    &self,
-    table: String,
-    id: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.permanentlyDeleteRecordWithCascade(table, id).await,
-      None => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  /// Toggle delete status of a record
+  /// Toggle delete status of a record with cascade to children
   pub async fn toggleDeleteStatus(
     &self,
     table: String,

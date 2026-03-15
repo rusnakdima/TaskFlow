@@ -24,10 +24,10 @@ use routes::{
   about_route::{downloadUpdate, getBinaryNameFile, openFile},
   auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
   manage_db_route::{
-    exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData, permanentlyDeleteRecord,
-    permanentlyDeleteRecordWithCascade, toggleDeleteStatus,
+    exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
+    permanentlyDeleteRecord, toggleDeleteStatus,
   },
-  profile_route::{profileSyncToCloud, profileSyncAllForUser},
+  profile_route::{profileSyncAllForUser, profileSyncToCloud},
   statistics_route::statisticsGet,
 };
 
@@ -66,17 +66,8 @@ pub fn run() {
         let uri = configHelper.mongoDbUri.clone();
         let dbName = configHelper.mongoDbName.clone();
         match tauri::async_runtime::block_on(MongodbProvider::new(uri.clone(), dbName.clone())) {
-          Ok(p) => {
-            eprintln!("✅ MongoDB connection established: {}", dbName);
-            Some(Arc::new(p))
-          }
-          Err(e) => {
-            eprintln!("❌ MongoDB connection FAILED: {}", e);
-            eprintln!("   URI: {}", uri);
-            eprintln!("   Database: {}", dbName);
-            eprintln!("   → Application will run in OFFLINE mode (local JSON database only)");
-            None
-          }
+          Ok(p) => Some(Arc::new(p)),
+          Err(_) => None,
         }
       };
 
@@ -169,7 +160,6 @@ pub fn run() {
       importToLocal,
       manageData,
       permanentlyDeleteRecord,
-      permanentlyDeleteRecordWithCascade,
       toggleDeleteStatus,
       profileSyncToCloud,
       profileSyncAllForUser,

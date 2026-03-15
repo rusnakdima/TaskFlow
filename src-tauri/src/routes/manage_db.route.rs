@@ -21,11 +21,6 @@ pub async fn manageData(
   relations: Option<Vec<RelationObj>>,
   syncMetadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
-  println!("[manageData Route] Received: op={}, table={}, id={:?}", operation, table, id);
-  if let Some(ref d) = data {
-    println!("[manageData Route] Data: {}", d);
-  }
-  
   state
     .crudService
     .execute(operation, table, id, data, filter, relations, syncMetadata)
@@ -60,16 +55,6 @@ pub async fn getAllDataForArchive(
   state.manageDbService.getAllDataForArchive().await
 }
 
-/// Get all data for regular user from local JSON (includes deleted records for restoration)
-#[allow(dead_code)]
-#[tauri::command]
-pub async fn getAllDataForUser(
-  state: State<'_, AppState>,
-  userId: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.getAllDataForUser(userId).await
-}
-
 /// Get all data for admin from MongoDB (global view with all users' data)
 #[tauri::command]
 pub async fn getAllDataForAdmin(
@@ -87,18 +72,6 @@ pub async fn permanentlyDeleteRecord(
   state
     .manageDbService
     .permanentlyDeleteRecord(table, id)
-    .await
-}
-
-#[tauri::command]
-pub async fn permanentlyDeleteRecordWithCascade(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manageDbService
-    .permanentlyDeleteRecordWithCascade(table, id)
     .await
 }
 

@@ -12,12 +12,12 @@ pub struct DbPool {
 impl DbPool {
   pub async fn new(uri: &str) -> ApiResult<Self> {
     let mut clientOptions = ClientOptions::parse(uri).await?;
-    
+
     // Increased timeouts for more reliable connections
     // 3 seconds was too aggressive for networks with latency
     clientOptions.connect_timeout = Some(Duration::from_secs(10));
     clientOptions.server_selection_timeout = Some(Duration::from_secs(10));
-    
+
     // Set max pool size for better connection management
     clientOptions.max_pool_size = Some(50);
     clientOptions.min_pool_size = Some(1);

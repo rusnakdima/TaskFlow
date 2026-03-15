@@ -46,7 +46,9 @@ pub async fn updateUserProfileId(
 
         let _ = mongodb.update("users", userId, user_json).await;
       }
-      Err(_) => {}
+      Err(e) => {
+        // Silently handle error
+      }
     }
   }
 
@@ -64,7 +66,9 @@ pub async fn updateUserProfileId(
 
       let _ = jsonProvider.update("users", userId, updatedUser).await;
     }
-    Err(_) => {}
+    Err(e) => {
+      // Silently handle error
+    }
   }
 
   Ok(())

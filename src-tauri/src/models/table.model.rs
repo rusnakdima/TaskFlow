@@ -11,8 +11,8 @@ use crate::models::{
   subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
   task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
   todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
-  user_model::{UserCreateModel, UserModel, UserUpdateModel},
   traits::Validatable,
+  user_model::{UserCreateModel, UserModel, UserUpdateModel},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

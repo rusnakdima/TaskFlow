@@ -104,108 +104,6 @@ impl AdminManager {
     })
   }
 
-  /// Get ALL data from local JSON for a specific user (includes deleted records)
-  /// This allows users to manage their own data and restore deleted records
-  #[allow(dead_code)]
-  pub async fn getAllDataForUser(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let tables = vec![
-      ("todos", "userId"),
-      ("tasks", "todoId"),
-      ("subtasks", "taskId"),
-      ("categories", "userId"),
-      ("daily_activities", "userId"),
-    ];
-
-    let mut allData = std::collections::HashMap::new();
-
-    // Get user data from local JSON
-    let userFilter = serde_json::json!({ "id": userId });
-    let users = match self.jsonProvider.getAll("users", Some(userFilter)).await {
-      Ok(u) => u,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting user: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-    allData.insert("users".to_string(), users);
-
-    // Get user's profile from local JSON
-    let profileFilter = serde_json::json!({ "userId": userId });
-    let profiles = match self.jsonProvider.getAll("profiles", Some(profileFilter)).await {
-      Ok(p) => p,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting profile: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
-    allData.insert("profiles".to_string(), profiles);
-
-    // Get all todos for this user (including deleted)
-    for (table, filterField) in tables {
-      let filter = serde_json::json!({ filterField: userId });
-      let docs = match self.jsonProvider.getAll(table, Some(filter)).await {
-        Ok(d) => d,
-        Err(e) => {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error getting data for {}: {}", table, e),
-            data: DataValue::String("".to_string()),
-          });
-        }
-      };
-      allData.insert(table.to_string(), docs);
-    }
-
-    // For tasks and subtasks, we need to get them by relation, not userId
-    // Get todos first to collect todoIds
-    let todoIds: Vec<String> = match allData.get("todos") {
-      Some(arr) => arr
-        .iter()
-        .filter_map(|doc| doc.get("id").and_then(|id| id.as_str()).map(String::from))
-        .collect(),
-      None => Vec::new(),
-    };
-
-    if !todoIds.is_empty() {
-      // Get tasks by todoId
-      let taskFilter = serde_json::json!({ "todoId": { "$in": &todoIds } });
-      let tasks = match self.jsonProvider.getAll("tasks", Some(taskFilter)).await {
-        Ok(t) => t,
-        Err(_) => Vec::new(),
-      };
-
-      // Get task IDs from tasks before inserting into allData
-      let taskIds: Vec<String> = tasks
-        .iter()
-        .filter_map(|doc| doc.get("id").and_then(|id| id.as_str()).map(String::from))
-        .collect();
-
-      allData.insert("tasks".to_string(), tasks);
-
-      if !taskIds.is_empty() {
-        // Get subtasks by taskId
-        let subtaskFilter = serde_json::json!({ "taskId": { "$in": &taskIds } });
-        let subtasks = match self.jsonProvider.getAll("subtasks", Some(subtaskFilter)).await {
-          Ok(s) => s,
-          Err(_) => Vec::new(),
-        };
-        allData.insert("subtasks".to_string(), subtasks);
-      }
-    }
-
-    Ok(ResponseModel {
-      status: ResponseStatus::Success,
-      message: "User data retrieved successfully from local database".to_string(),
-      data: convertDataToObject(&allData),
-    })
-  }
-
   /// Get all data for admin view with relations (includes deleted and non-deleted records)
   /// Only accessible by admin users - fetches from MongoDB
   pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
@@ -278,60 +176,16 @@ impl AdminManager {
     })
   }
 
-  /// Permanently delete a record from MongoDB and its local copy
+  /// Permanently delete a record and all its children (cascade hard delete)
+  /// Works with local JSON (Archive page)
   pub async fn permanentlyDeleteRecord(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let record = self
-      .mongodbProvider
-      .get(&table, &id)
-      .await
-      .unwrap_or_default();
-    let userId = self
-      .entityResolution
-      .getUserIdForEntity(&table, &record)
-      .await;
-
-    match self.mongodbProvider.hardDelete(&table, &id).await {
-      Ok(_) => {
-        let _ = self.jsonProvider.hardDelete(&table, &id).await;
-
-        // If it was a user or profile, we might need a full re-sync
-        if let Some(uid) = userId {
-          let _ = self
-            .mongodbProvider
-            .mongodbSync
-            .importToLocal(uid, &self.jsonProvider)
-            .await;
-        }
-
-        Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "Record permanently deleted".to_string(),
-          data: DataValue::String(id),
-        })
-      }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error deleting record from cloud: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
-    }
-  }
-
-  /// Permanently delete a record and all its children (cascade hard delete)
-  pub async fn permanentlyDeleteRecordWithCascade(
-    &self,
-    table: String,
-    id: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    // Step 1: Collect all cascade IDs using MongoDB (admin operations are on MongoDB)
-    // We use collectCascadeIds directly to just get IDs without doing soft delete
-    let cascade_ids = if table == "todos" || table == "tasks" {
-      // Use the mongo cascade handler to collect IDs (without updating)
-      if let Some(ref handler) = self.cascadeService.mongoHandler {
+    // Step 1: Collect all cascade IDs from local JSON
+    let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
+      if let Some(ref handler) = self.cascadeService.jsonHandler {
         handler.collectCascadeIds(&table, &id).await?
       } else {
         crate::services::cascade::cascade_ids::CascadeIds::default()
@@ -340,60 +194,29 @@ impl AdminManager {
       crate::services::cascade::cascade_ids::CascadeIds::default()
     };
 
-    // Step 2: Hard delete the main record
-    let record = self
-      .mongodbProvider
-      .get(&table, &id)
+    // Step 2: Hard delete the main record from local JSON
+    self
+      .jsonProvider
+      .hardDelete(&table, &id)
       .await
-      .unwrap_or_default();
-    let userId = self
-      .entityResolution
-      .getUserIdForEntity(&table, &record)
-      .await;
-
-    // Hard delete from MongoDB
-    self.mongodbProvider.hardDelete(&table, &id).await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Error deleting record from cloud: {}", e),
+        message: format!("Error deleting record from local JSON: {}", e),
         data: DataValue::String("".to_string()),
       })?;
 
-    // Hard delete from local JSON
-    let _ = self.jsonProvider.hardDelete(&table, &id).await;
-
-    // Step 3: Hard delete all children from both MongoDB and JSON
-    // Delete tasks
+    // Step 3: Hard delete all children from local JSON
     for task_id in &cascade_ids.task_ids {
-      let _ = self.mongodbProvider.hardDelete("tasks", task_id).await;
       let _ = self.jsonProvider.hardDelete("tasks", task_id).await;
     }
-
-    // Delete subtasks
     for subtask_id in &cascade_ids.subtask_ids {
-      let _ = self.mongodbProvider.hardDelete("subtasks", subtask_id).await;
       let _ = self.jsonProvider.hardDelete("subtasks", subtask_id).await;
     }
-
-    // Delete comments
     for comment_id in &cascade_ids.comment_ids {
-      let _ = self.mongodbProvider.hardDelete("comments", comment_id).await;
       let _ = self.jsonProvider.hardDelete("comments", comment_id).await;
     }
-
-    // Delete chats
     for chat_id in &cascade_ids.chat_ids {
-      let _ = self.mongodbProvider.hardDelete("chats", chat_id).await;
       let _ = self.jsonProvider.hardDelete("chats", chat_id).await;
-    }
-
-    // Step 4: Re-sync user data if needed
-    if let Some(uid) = userId {
-      let _ = self
-        .mongodbProvider
-        .mongodbSync
-        .importToLocal(uid, &self.jsonProvider)
-        .await;
     }
 
     Ok(ResponseModel {
@@ -404,17 +227,19 @@ impl AdminManager {
   }
 
   /// Toggle isDeleted status for a record and all its children
+  /// Works with local JSON (Archive page)
   pub async fn toggleDeleteStatus(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let record = match self.mongodbProvider.get(&table, &id).await {
+    // Get the record from local JSON
+    let record = match self.jsonProvider.get(&table, &id).await {
       Ok(doc) => doc,
       Err(e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Record not found: {}", e),
+          message: format!("Record not found in local database: {}", e),
           data: DataValue::String("".to_string()),
         });
       }
@@ -433,38 +258,28 @@ impl AdminManager {
       obj.insert("updatedAt".to_string(), json!(timestamp));
     }
 
-    // Handle children recursively via CascadeService
+    // Handle children recursively via CascadeService (local JSON cascade)
+    let is_restore = isDeleted;
     self
       .cascadeService
-      .handleMongoCascade(&table, &id, isDeleted) // isDeleted is the original status, so if it was deleted, handleMongoCascade(isRestore=true)
+      .handleJsonCascade(&table, &id, is_restore)
       .await?;
 
-    match self.mongodbProvider.update(&table, &id, updateVal).await {
-      Ok(_) => {
-        // Sync to local
-        let userId = self
-          .entityResolution
-          .getUserIdForEntity(&table, &record)
-          .await;
-        if let Some(uid) = userId {
-          let _ = self
-            .mongodbProvider
-            .mongodbSync
-            .importToLocal(uid, &self.jsonProvider)
-            .await;
-        }
-
-        Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: format!("Record delete status toggled to {}", newStatus),
-          data: DataValue::Bool(newStatus),
-        })
-      }
-      Err(e) => Err(ResponseModel {
+    // Update the main record in local JSON
+    self
+      .jsonProvider
+      .update(&table, &id, updateVal.clone())
+      .await
+      .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Error updating cloud record: {}", e),
+        message: format!("Error updating local record: {}", e),
         data: DataValue::String("".to_string()),
-      }),
-    }
+      })?;
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Record delete status toggled to {}", newStatus),
+      data: DataValue::Bool(newStatus),
+    })
   }
 }
