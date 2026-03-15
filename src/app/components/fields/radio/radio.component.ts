@@ -10,16 +10,21 @@ import { MatRadioModule } from "@angular/material/radio";
 /* models */
 import { RadioField } from "@models/form-field.model";
 
-/* base */
-import { BaseFieldComponent } from "../base-field.component";
-
 @Component({
   selector: "app-radio",
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatRadioModule],
   templateUrl: "./radio.component.html",
 })
-export class RadioComponent extends BaseFieldComponent {
-  override field!: RadioField;
+export class RadioComponent {
+  @Input() label: string = "";
+  @Input() form!: FormGroup;
+  @Input() field!: RadioField;
   @Input() parentForm!: FormGroup;
+
+  isInvalid(attr: string): boolean {
+    const control = this.form.get(attr);
+    if (!control) return false;
+    return (control.touched || control.dirty) && !!control.errors;
+  }
 }
