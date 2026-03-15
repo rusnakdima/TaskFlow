@@ -72,16 +72,16 @@ export class ConflictDetectionService {
 
     switch (entityType) {
       case "todos":
-        localData = this.storageService.getTodoById(entityId);
+        localData = this.storageService.getById("todos", entityId);
         break;
       case "tasks":
-        localData = this.storageService.getTaskById(entityId);
+        localData = this.storageService.getById("tasks", entityId);
         break;
       case "subtasks":
-        localData = this.storageService.getSubtaskById(entityId);
+        localData = this.storageService.getById("subtasks", entityId);
         break;
       case "categories":
-        localData = this.storageService.getCategoryById(entityId);
+        localData = this.storageService.getById("categories", entityId);
         break;
       default:
         // For comments and other types, skip conflict detection for now

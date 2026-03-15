@@ -223,6 +223,64 @@ export class AdminStorageService extends BaseStorageService {
   }
 
   /**
+   * Remove todo with all related data (tasks, subtasks, comments, chats)
+   */
+  removeTodoWithCascade(todoId: string): void {
+    const todo = this.todosSignal().find((t) => t.id === todoId);
+    if (!todo) return;
+
+    // Get all related IDs
+    const taskIds = todo.tasks?.map((t) => t.id) || [];
+    const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+
+    // Remove related data
+    this.tasksSignal.set(this.tasksSignal().filter((t) => t.todoId !== todoId));
+    this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
+    // Remove all comments related to this todo (todo-level, task-level, subtask-level)
+    this.commentsSignal.set(
+      this.commentsSignal().filter((c) => {
+        // Keep comment if it's NOT related to this todo
+        const isTodoComment = (c as any).todoId === todoId;
+        const isTaskComment = c.taskId && taskIds.includes(c.taskId);
+        const isSubtaskComment = c.subtaskId && subtaskIds.includes(c.subtaskId);
+        return !isTodoComment && !isTaskComment && !isSubtaskComment;
+      })
+    );
+    this.chatsSignal.set(this.chatsSignal().filter((c) => c.todoId !== todoId));
+
+    // Remove todo
+    this.todosSignal.set(this.todosSignal().filter((t) => t.id !== todoId));
+  }
+
+  /**
+   * Restore todo with all related data
+   */
+  restoreTodoWithCascade(data: {
+    todo: Todo;
+    tasks: Task[];
+    subtasks: Subtask[];
+    comments: Comment[];
+    chats: Chat[];
+  }): void {
+    // Restore todo
+    this.todosSignal.set([data.todo, ...this.todosSignal()]);
+
+    // Restore related data
+    if (data.tasks?.length) {
+      this.tasksSignal.set([...this.tasksSignal(), ...data.tasks]);
+    }
+    if (data.subtasks?.length) {
+      this.subtasksSignal.set([...this.subtasksSignal(), ...data.subtasks]);
+    }
+    if (data.comments?.length) {
+      this.commentsSignal.set([...this.commentsSignal(), ...data.comments]);
+    }
+    if (data.chats?.length) {
+      this.chatsSignal.set([...this.chatsSignal(), ...data.chats]);
+    }
+  }
+
+  /**
    * Get admin data with computed relations
    */
   private getAdminDataWithRelations(): AdminDataWithRelations {
@@ -289,9 +347,7 @@ export class AdminStorageService extends BaseStorageService {
     if (parentTable === "todos") {
       // Update all tasks for this todo
       this.tasksSignal.update((tasks) =>
-        tasks.map((task) =>
-          task.todoId === parentId ? { ...task, ...updates } : task
-        )
+        tasks.map((task) => (task.todoId === parentId ? { ...task, ...updates } : task))
       );
     } else if (parentTable === "tasks") {
       // Update all subtasks for this task
@@ -316,7 +372,9 @@ export class AdminStorageService extends BaseStorageService {
       case "tasks":
         this.tasksSignal.update((items) => items.filter((item) => item.id !== id));
         // Remove all related subtasks
-        this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.taskId !== id));
+        this.subtasksSignal.update((subtasks) =>
+          subtasks.filter((subtask) => subtask.taskId !== id)
+        );
         break;
       case "subtasks":
         this.subtasksSignal.update((items) => items.filter((item) => item.id !== id));
@@ -333,6 +391,132 @@ export class AdminStorageService extends BaseStorageService {
       case "daily_activities":
         this.dailyActivitiesSignal.update((items) => items.filter((item) => item.id !== id));
         break;
+    }
+  }
+
+  /**
+   * Update record delete status (for soft delete/restore)
+   */
+  updateRecordDeleteStatus(table: string, id: string, isDeleted: boolean): void {
+    const timestamp = new Date().toISOString();
+    this.updateRecord(table, id, { isDeleted, updatedAt: timestamp });
+  }
+
+  /**
+   * Update record delete status with cascade (for soft delete/restore)
+   */
+  updateRecordDeleteStatusWithCascade(table: string, id: string, isDeleted: boolean): void {
+    const timestamp = new Date().toISOString();
+
+    if (table === "todos") {
+      // Update todo
+      this.updateRecordDeleteStatus(table, id, isDeleted);
+
+      // Update all tasks for this todo
+      const todo = this.todosSignal().find((t) => t.id === id);
+      if (todo) {
+        const taskIds = todo.tasks?.map((t) => t.id) || [];
+
+        // Update tasks
+        this.tasksSignal.update((tasks) =>
+          tasks.map((task) =>
+            task.todoId === id ? { ...task, isDeleted, updatedAt: timestamp } : task
+          )
+        );
+
+        // Update subtasks
+        const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+        this.subtasksSignal.update((subtasks) =>
+          subtasks.map((subtask) =>
+            subtaskIds.includes(subtask.id)
+              ? { ...subtask, isDeleted, updatedAt: timestamp }
+              : subtask
+          )
+        );
+
+        // Update comments (task-level and subtask-level)
+        this.commentsSignal.update((comments) =>
+          comments.map((comment) => {
+            const isRelated =
+              (comment.taskId && taskIds.includes(comment.taskId)) ||
+              (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
+            return isRelated ? { ...comment, isDeleted, updatedAt: timestamp } : comment;
+          })
+        );
+
+        // Update chats
+        this.chatsSignal.update((chats) =>
+          chats.map((chat) =>
+            chat.todoId === id ? { ...chat, isDeleted, updatedAt: timestamp } : chat
+          )
+        );
+      }
+    } else if (table === "tasks") {
+      // Update task
+      this.updateRecordDeleteStatus(table, id, isDeleted);
+
+      // Update subtasks and comments for this task
+      const task = this.tasksSignal().find((t) => t.id === id);
+      if (task) {
+        const subtaskIds = task.subtasks?.map((s) => s.id) || [];
+
+        // Update subtasks
+        this.subtasksSignal.update((subtasks) =>
+          subtasks.map((subtask) =>
+            subtaskIds.includes(subtask.id)
+              ? { ...subtask, isDeleted, updatedAt: timestamp }
+              : subtask
+          )
+        );
+
+        // Update comments (task-level and subtask-level)
+        this.commentsSignal.update((comments) =>
+          comments.map((comment) => {
+            const isRelated =
+              comment.taskId === id ||
+              (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
+            return isRelated ? { ...comment, isDeleted, updatedAt: timestamp } : comment;
+          })
+        );
+      }
+    } else if (table === "subtasks") {
+      // Update subtask
+      this.updateRecordDeleteStatus(table, id, isDeleted);
+
+      // Update subtask comments
+      this.commentsSignal.update((comments) =>
+        comments.map((comment) =>
+          comment.subtaskId === id ? { ...comment, isDeleted, updatedAt: timestamp } : comment
+        )
+      );
+    } else {
+      // Update single record
+      this.updateRecordDeleteStatus(table, id, isDeleted);
+    }
+  }
+
+  /**
+   * Remove record with cascade for admin storage
+   */
+  removeRecordWithCascade(table: string, id: string): void {
+    if (table === "todos") {
+      this.removeTodoWithCascade(id);
+    } else if (table === "tasks") {
+      // Remove task and its subtasks
+      const task = this.tasksSignal().find((t) => t.id === id);
+      if (task) {
+        const subtaskIds = task.subtasks?.map((s) => s.id) || [];
+        this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
+        // Remove task comments
+        this.commentsSignal.set(this.commentsSignal().filter((c) => c.taskId !== id));
+        this.tasksSignal.set(this.tasksSignal().filter((t) => t.id !== id));
+      }
+    } else if (table === "subtasks") {
+      // Remove subtask and its comments
+      this.commentsSignal.set(this.commentsSignal().filter((c) => c.subtaskId !== id));
+      this.subtasksSignal.set(this.subtasksSignal().filter((s) => s.id !== id));
+    } else {
+      this.removeRecord(table, id);
     }
   }
 
