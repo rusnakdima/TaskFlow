@@ -111,21 +111,31 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.isSyncing.set(isSyncing)
     );
 
-    // Subscribe to profile signal changes - will update automatically when data is loaded
+    // Subscribe to profile signal changes - update when profile is loaded
     const profileSignal = this.storageService.profile;
+
+    // Set initial profile value
     this.profile.set(profileSignal());
+
     const startTime = Date.now();
-    
-    // Set up effect to watch for profile changes
+
+    // Watch for profile changes using effect-like pattern
+    let lastProfile = profileSignal();
     const checkProfileInterval = setInterval(() => {
       const currentProfile = profileSignal();
-      if (currentProfile) {
+      if (currentProfile !== lastProfile) {
         this.profile.set(currentProfile);
+        lastProfile = currentProfile;
         this.cdr.detectChanges();
       }
-      // Clear interval after 5 seconds (max wait time)
+      // Clear interval after data is loaded or 5 seconds timeout
       if (this.storageService.loaded() || Date.now() - startTime > 5000) {
         clearInterval(checkProfileInterval);
+
+        // If still no profile after timeout, try to load it directly
+        if (!this.profile() && this.userId()) {
+          this.loadProfile();
+        }
       }
     }, 100);
 
@@ -320,6 +330,34 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+  loadProfile() {
+    if (!this.userId()) return;
+
+    // Check if profile already exists in storage
+    const existingProfile = this.storageService.profile();
+    if (existingProfile) {
+      this.profile.set(existingProfile);
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Load profile from server
+    this.dataSyncProvider
+      .crud<Profile[]>("getAll", "profiles", { filter: { userId: this.userId() } }, true)
+      .subscribe({
+        next: (profiles) => {
+          if (profiles && profiles.length > 0) {
+            this.profile.set(profiles[0]);
+            this.storageService.setCollection("profiles", profiles[0]);
+            this.cdr.detectChanges();
+          }
+        },
+        error: (error) => {
+          // Error silently ignored
+        },
+      });
+  }
+
   async syncAll(silent: boolean = false) {
     if (this.isSyncing()) return;
 
@@ -337,7 +375,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         // Check if it's a network error using centralized helper
         if (NetworkErrorHelper.isNetworkError(response.message)) {
           // Network error - sync is optional, don't show error
-          console.warn("[Sync] Network unavailable - using local data only");
           if (!silent) {
             this.notifyService.showWarning("Working offline - sync unavailable");
           }
@@ -351,7 +388,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (NetworkErrorHelper.isNetworkError(errorMessage)) {
         // Network error - sync is optional, don't show error
-        console.warn("[Sync] Network unavailable - using local data only");
         if (!silent) {
           this.notifyService.showWarning("Working offline - sync unavailable");
         }

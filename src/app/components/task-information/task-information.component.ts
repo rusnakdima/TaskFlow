@@ -69,7 +69,13 @@ export class TaskInformationComponent {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
       this.dataSyncProvider
-        .crud<Task>("update", "tasks", { id: this.task.id, data: updatedTask, parentTodoId: this.todoId, isOwner: this.isOwner, isPrivate: this.isPrivate })
+        .crud<Task>("update", "tasks", {
+          id: this.task.id,
+          data: updatedTask,
+          parentTodoId: this.todoId,
+          isOwner: this.isOwner,
+          isPrivate: this.isPrivate,
+        })
         .subscribe({
           next: (result: Task) => {
             this.task.status = TaskStatus.COMPLETED;
@@ -94,7 +100,12 @@ export class TaskInformationComponent {
 
   deleteTask() {
     this.dataSyncProvider
-      .crud("delete", "tasks", { id: this.task?.id ?? "", parentTodoId: this.todoId, isOwner: this.isOwner, isPrivate: this.isPrivate })
+      .crud("delete", "tasks", {
+        id: this.task?.id ?? "",
+        parentTodoId: this.todoId,
+        isOwner: this.isOwner,
+        isPrivate: this.isPrivate,
+      })
       .subscribe({
         next: (result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");

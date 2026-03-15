@@ -1,7 +1,13 @@
 <div
-  class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-2 border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow"
+  class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-2 border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow relative"
+  [ngClass]="{ 'bg-blue-50 dark:bg-blue-900/20 border-blue-500': isSelected }"
 >
-  <div class="flex items-center justify-between">
+  <!-- Selection Checkbox -->
+  <div class="absolute top-2 left-2" (click)="$event.stopPropagation()">
+    <app-checkbox [checked]="isSelected" (checkedChange)="toggleSelection($event)" />
+  </div>
+
+  <div class="flex items-center justify-between pl-6">
     <h4 class="font-medium textNormal">{{ category.title }}</h4>
     <div class="flex gap-2">
       <button

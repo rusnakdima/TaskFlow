@@ -14,12 +14,7 @@
               class="inline-flex items-center cursor-pointer select-none"
               (click)="$event.stopPropagation()"
             >
-              <input
-                type="checkbox"
-                [checked]="isSelected"
-                (change)="onSelectionChange()"
-                class="styleCheckbox"
-              />
+              <app-checkbox [checked]="isSelected" (checkedChange)="onSelectionChange($event)" />
               <span class="checkmark ml-2"></span>
             </label>
             <button
@@ -303,7 +298,11 @@
                   class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
                 ></div>
               }
-              @if (task.comments && getActiveComments(task.comments).length > 0 && unreadCommentsCount === 0) {
+              @if (
+                task.comments &&
+                getActiveComments(task.comments).length > 0 &&
+                unreadCommentsCount === 0
+              ) {
                 <span class="text-[10px] font-bold">{{
                   getActiveComments(task.comments).length
                 }}</span>

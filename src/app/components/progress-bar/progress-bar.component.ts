@@ -5,9 +5,6 @@ import { CommonModule } from "@angular/common";
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
-/* models */
-import { TaskStatus } from "@models/task.model";
-
 export interface ProgressBarSegment {
   status: string;
   percentage: number;

@@ -109,18 +109,15 @@ export class FilterBarComponent {
   @Input() filterOptions: FilterOption[] = [];
   @Input() activeFilter: string = "all";
   @Input() showFilter: boolean = false;
-  @Input() showSelectAll: boolean = false;
-  @Input() isAllSelected: boolean = false;
-  @Input() selectedCount: number = 0;
   @Input() searchQuery: string = "";
   @Input() filterLabel: string = "";
   @Input() filterGroupName: string = "";
+  @Input() showBlueprintButton: boolean = false;
 
   @Output() filterChange = new EventEmitter<string>();
   @Output() filterToggle = new EventEmitter<void>();
-  @Output() selectAll = new EventEmitter<void>();
-  @Output() clearSelection = new EventEmitter<void>();
   @Output() searchChange = new EventEmitter<string>();
+  @Output() openBlueprints = new EventEmitter<void>();
 
   @HostListener("document:keydown.escape")
   handleEscapeKey() {
@@ -168,11 +165,7 @@ export class FilterBarComponent {
     this.filterChange.emit(this.activeFilter);
   }
 
-  onSelectAll() {
-    this.selectAll.emit();
-  }
-
-  onClearSelection() {
-    this.clearSelection.emit();
+  onOpenBlueprints() {
+    this.openBlueprints.emit();
   }
 }

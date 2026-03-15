@@ -14,46 +14,56 @@
     <ng-content></ng-content>
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
-      [ngClass]="{ 
+      [ngClass]="{
         'ring-4 ring-blue-500 animate-pulse': highlight,
-        'opacity-60 grayscale': todo.isDeleted
+        'opacity-60 grayscale': todo.isDeleted,
+        'bg-blue-50 dark:bg-blue-900/20 border-blue-500': isSelected,
       }"
       [routerLink]="['/todos/' + todo.id + '/tasks']"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
     >
       <div class="flex flex-col grow">
         <div class="flex flex-row items-start justify-between mb-4">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3 mb-2">
-              <h3
-                class="text-lg font-semibold textNormal group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate"
-              >
-                {{ todo.title }}
-              </h3>
-              @if (todo.isDeleted) {
-                <div
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold shadow-sm"
-                  title="Deleted"
+          <div class="flex flex-row flex-1 items-start gap-3">
+            <label
+              class="inline-flex items-center cursor-pointer select-none"
+              (click)="$event.stopPropagation()"
+            >
+              <app-checkbox [checked]="isSelected" (checkedChange)="toggleSelection($event)" />
+              <span class="checkmark ml-2"></span>
+            </label>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-3 mb-2">
+                <h3
+                  class="text-lg font-semibold textNormal group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate"
                 >
-                  <mat-icon class="w-3! h-3! text-xs!" fontIcon="delete" />
-                  Deleted
-                </div>
-              }
-              @if (unreadCommentsCount > 0) {
-                <div
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold animate-pulse shadow-sm"
-                  title="{{ unreadCommentsCount }} unread comments"
-                >
-                  <mat-icon class="w-3! h-3! text-xs!" fontIcon="forum" />
-                  {{ unreadCommentsCount }}
-                </div>
+                  {{ todo.title }}
+                </h3>
+                @if (todo.isDeleted) {
+                  <div
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold shadow-sm"
+                    title="Deleted"
+                  >
+                    <mat-icon class="w-3! h-3! text-xs!" fontIcon="delete" />
+                    Deleted
+                  </div>
+                }
+                @if (unreadCommentsCount > 0) {
+                  <div
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold animate-pulse shadow-sm"
+                    title="{{ unreadCommentsCount }} unread comments"
+                  >
+                    <mat-icon class="w-3! h-3! text-xs!" fontIcon="forum" />
+                    {{ unreadCommentsCount }}
+                  </div>
+                }
+              </div>
+              @if (todo.description) {
+                <p class="text-sm textMuted line-clamp-2">
+                  {{ truncateString(todo.description, 100) }}
+                </p>
               }
             </div>
-            @if (todo.description) {
-              <p class="text-sm textMuted line-clamp-2">
-                {{ truncateString(todo.description, 100) }}
-              </p>
-            }
           </div>
 
           <div class="flex flex-col items-center justify-between gap-2 ml-2 h-full">
