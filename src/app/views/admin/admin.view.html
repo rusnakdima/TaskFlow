@@ -269,14 +269,6 @@
               />
               Refresh
             </button>
-            <button
-              class="styleButDanger"
-              [disabled]="selectedRecords().size === 0"
-              (click)="deleteSelected()"
-            >
-              <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="delete_forever" />
-              Delete Selected ({{ selectedRecords().size }})
-            </button>
             <button class="styleButInfo" (click)="showFilters.set(!showFilters())">
               <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
               Filters
