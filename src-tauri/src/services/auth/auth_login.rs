@@ -43,7 +43,11 @@ impl AuthLoginService {
     let filter = json!({ "username": username });
 
     // STEP 1: Try local JSON database FIRST (works offline)
-    match self.jsonProvider.getAll("users", Some(filter.clone())).await {
+    match self
+      .jsonProvider
+      .getAll("users", Some(filter.clone()))
+      .await
+    {
       Ok(users) => {
         if let Some(userVal) = users.first() {
           // User found in local database
@@ -58,9 +62,10 @@ impl AuthLoginService {
             Ok(valid) => {
               if valid {
                 // ✅ Password matches - generate token from local data
-                let token = self
-                  .tokenService
-                  .generateToken(&user.id, &user.username, &user.role)?;
+                let token =
+                  self
+                    .tokenService
+                    .generateToken(&user.id, &user.username, &user.role)?;
 
                 // Try to sync with MongoDB in background (non-blocking)
                 if self.mongodbProvider.is_some() {
@@ -196,9 +201,13 @@ impl AuthLoginService {
 
     match self.jsonProvider.get("profiles", profileId).await {
       Ok(profileVal) => {
-        let _ = mongoProvider.update("profiles", profileId, profileVal).await;
+        let _ = mongoProvider
+          .update("profiles", profileId, profileVal)
+          .await;
       }
-      Err(_) => {}
+      Err(e) => {
+        // Silently handle error
+      }
     }
     Ok(())
   }

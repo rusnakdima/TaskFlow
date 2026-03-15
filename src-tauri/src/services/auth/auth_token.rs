@@ -88,11 +88,12 @@ impl AuthTokenService {
     // STEP 1: Check local JSON database FIRST (works offline)
     match self.jsonProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel = serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Failed to parse user: {}", e),
-          data: DataValue::String("".to_string()),
-        })?;
+        let user: UserModel =
+          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Failed to parse user: {}", e),
+            data: DataValue::String("".to_string()),
+          })?;
 
         // Try to sync with MongoDB in background (non-blocking)
         if self.mongodbProvider.is_some() {
@@ -124,11 +125,12 @@ impl AuthTokenService {
 
     match mongoProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel = serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Failed to parse user: {}", e),
-          data: DataValue::String("".to_string()),
-        })?;
+        let user: UserModel =
+          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Failed to parse user: {}", e),
+            data: DataValue::String("".to_string()),
+          })?;
 
         // Sync user to local database for future offline use
         let _ = self.jsonProvider.create("users", userVal).await;

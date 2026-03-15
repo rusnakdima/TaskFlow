@@ -95,9 +95,10 @@ impl AuthRegisterService {
             let _ = self.jsonProvider.create("users", userVal).await;
 
             // Generate JWT token with user info (same as login)
-            let token = self
-              .tokenService
-              .generateToken(&newUser.id, &newUser.username, &newUser.role)?;
+            let token =
+              self
+                .tokenService
+                .generateToken(&newUser.id, &newUser.username, &newUser.role)?;
 
             Ok(ResponseModel {
               status: ResponseStatus::Success,
