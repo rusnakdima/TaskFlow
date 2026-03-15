@@ -12,4 +12,5 @@ export interface User {
   profileId: string;
   createdAt: string;
   updatedAt: string;
+  isDeleted?: boolean;
 }

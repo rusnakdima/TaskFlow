@@ -27,6 +27,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
+import { AdminStorageService } from "@services/core/admin-storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -75,6 +76,7 @@ export class TodosView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
+  private adminStorageService = inject(AdminStorageService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
   private dataSyncService = inject(DataSyncService);
@@ -121,6 +123,13 @@ export class TodosView implements OnInit {
   listTodos = computed(() => {
     // Filter only private visibility todos
     let filtered = this.storageService.privateTodos();
+    
+    // Filter out todos from deleted users
+    const deletedUserIds = new Set(
+      this.adminStorageService.users().filter((u) => u.isDeleted).map((u) => u.id)
+    );
+    filtered = filtered.filter((todo) => !deletedUserIds.has(todo.userId));
+    
     const filter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
 
@@ -281,16 +290,18 @@ export class TodosView implements OnInit {
 
   deleteTodoById(todoId: string): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.dataSyncProvider.crud("delete", "todos", { id: todoId }).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo deleted successfully");
-          // Reload all data to reflect changes
-          this.dataSyncService.loadAllData(true).subscribe();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete todo");
-        },
-      });
+      this.dataSyncProvider
+        .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: true })
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Todo deleted successfully");
+            // No need to reload - storage is already updated by archiveTodoWithCascade()
+            // The deleted todo will be filtered out by the computed signal
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete todo");
+          },
+        });
     }
   }
 
