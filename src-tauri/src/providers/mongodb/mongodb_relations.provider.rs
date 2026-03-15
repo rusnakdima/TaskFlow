@@ -75,7 +75,7 @@ impl MongodbRelationsProvider {
               .await
             {
               Ok(recs) => recs,
-              Err(_) => Vec::new()
+              Err(_) => Vec::new(),
             };
 
             if let Some(sub_relations) = &relation.relations {

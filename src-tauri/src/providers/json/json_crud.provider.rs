@@ -63,15 +63,21 @@ impl JsonCrudProvider {
     let tablePath = self.getTablePath(nameTable);
 
     if let Some(parentDir) = tablePath.parent() {
-      fs::create_dir_all(parentDir).await.map_err(|e| e.to_string())?;
+      fs::create_dir_all(parentDir)
+        .await
+        .map_err(|e| e.to_string())?;
     }
 
     if !tablePath.exists() {
-      fs::write(&tablePath, "[]").await.map_err(|e| e.to_string())?;
+      fs::write(&tablePath, "[]")
+        .await
+        .map_err(|e| e.to_string())?;
       return Ok(Vec::new());
     }
 
-    let content = fs::read_to_string(&tablePath).await.map_err(|e| e.to_string())?;
+    let content = fs::read_to_string(&tablePath)
+      .await
+      .map_err(|e| e.to_string())?;
 
     if content.trim().is_empty() {
       return Ok(vec![]);
