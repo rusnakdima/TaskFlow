@@ -25,7 +25,8 @@ use routes::{
   auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
   manage_db_route::{
     exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
-    permanentlyDeleteRecord, toggleDeleteStatus,
+    permanentlyDeleteRecord, permanentlyDeleteRecordLocal, toggleDeleteStatus,
+    toggleDeleteStatusLocal,
   },
   profile_route::{profileSyncAllForUser, profileSyncToCloud},
   statistics_route::statisticsGet,
@@ -160,7 +161,9 @@ pub fn run() {
       importToLocal,
       manageData,
       permanentlyDeleteRecord,
+      permanentlyDeleteRecordLocal,
       toggleDeleteStatus,
+      toggleDeleteStatusLocal,
       profileSyncToCloud,
       profileSyncAllForUser,
       statisticsGet
