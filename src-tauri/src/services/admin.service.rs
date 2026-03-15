@@ -3,7 +3,9 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use crate::providers::{
+  base_crud::CrudProvider, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+};
 
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
@@ -177,8 +179,58 @@ impl AdminManager {
   }
 
   /// Permanently delete a record and all its children (cascade hard delete)
-  /// Works with local JSON (Archive page)
+  /// Works with MongoDB (admin page) - deletes only from MongoDB
   pub async fn permanentlyDeleteRecord(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    // Step 1: Collect all cascade IDs from MongoDB
+    let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
+      if let Some(ref handler) = self.cascadeService.mongoHandler {
+        handler.collectCascadeIds(&table, &id).await?
+      } else {
+        crate::services::cascade::cascade_ids::CascadeIds::default()
+      }
+    } else {
+      crate::services::cascade::cascade_ids::CascadeIds::default()
+    };
+
+    // Step 2: Hard delete the main record from MongoDB
+    self
+      .mongodbProvider
+      .mongodbCrud
+      .hardDelete(&table, &id)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error deleting record from MongoDB: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    // Step 3: Hard delete all children from MongoDB
+    for task_id in &cascade_ids.task_ids {
+      let _ = self.mongodbProvider.mongodbCrud.hardDelete("tasks", task_id).await;
+    }
+    for subtask_id in &cascade_ids.subtask_ids {
+      let _ = self.mongodbProvider.mongodbCrud.hardDelete("subtasks", subtask_id).await;
+    }
+    for comment_id in &cascade_ids.comment_ids {
+      let _ = self.mongodbProvider.mongodbCrud.hardDelete("comments", comment_id).await;
+    }
+    for chat_id in &cascade_ids.chat_ids {
+      let _ = self.mongodbProvider.mongodbCrud.hardDelete("chats", chat_id).await;
+    }
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: "Record and all children permanently deleted from MongoDB".to_string(),
+      data: DataValue::String(id),
+    })
+  }
+
+  /// Permanently delete a record and all its children from local JSON only (Archive page)
+  pub async fn permanentlyDeleteRecordLocal(
     &self,
     table: String,
     id: String,
@@ -221,14 +273,71 @@ impl AdminManager {
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: "Record and all children permanently deleted".to_string(),
+      message: "Record and all children permanently deleted from local database".to_string(),
       data: DataValue::String(id),
     })
   }
 
   /// Toggle isDeleted status for a record and all its children
-  /// Works with local JSON (Archive page)
+  /// Works with MongoDB (admin page) - updates only MongoDB
   pub async fn toggleDeleteStatus(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    // Get the record from MongoDB
+    let record = match self.mongodbProvider.mongodbCrud.get(&table, &id).await {
+      Ok(doc) => doc,
+      Err(e) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Record not found in MongoDB: {}", e),
+          data: DataValue::String("".to_string()),
+        });
+      }
+    };
+
+    let isDeleted = record
+      .get("isDeleted")
+      .and_then(|v| v.as_bool())
+      .unwrap_or(false);
+    let newStatus = !isDeleted;
+    let timestamp = timestamp_helper::getCurrentTimestamp();
+
+    let mut updateVal = record.clone();
+    if let Some(obj) = updateVal.as_object_mut() {
+      obj.insert("isDeleted".to_string(), json!(newStatus));
+      obj.insert("updatedAt".to_string(), json!(timestamp));
+    }
+
+    // Handle children recursively via MongoDB cascade
+    let is_restore = isDeleted;
+    self
+      .cascadeService
+      .handleMongoCascade(&table, &id, is_restore)
+      .await?;
+
+    // Update the main record in MongoDB
+    self
+      .mongodbProvider
+      .mongodbCrud
+      .update(&table, &id, updateVal.clone())
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error updating MongoDB record: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Record delete status toggled to {} in MongoDB", newStatus),
+      data: DataValue::Bool(newStatus),
+    })
+  }
+
+  /// Toggle isDeleted status for a record and all its children in local JSON only (Archive page)
+  pub async fn toggleDeleteStatusLocal(
     &self,
     table: String,
     id: String,
@@ -258,7 +367,7 @@ impl AdminManager {
       obj.insert("updatedAt".to_string(), json!(timestamp));
     }
 
-    // Handle children recursively via CascadeService (local JSON cascade)
+    // Handle children recursively via local JSON cascade
     let is_restore = isDeleted;
     self
       .cascadeService
@@ -278,7 +387,7 @@ impl AdminManager {
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: format!("Record delete status toggled to {}", newStatus),
+      message: format!("Record delete status toggled to {} in local database", newStatus),
       data: DataValue::Bool(newStatus),
     })
   }
