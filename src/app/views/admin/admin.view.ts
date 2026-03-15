@@ -21,6 +21,7 @@ import { AdminStorageService } from "@services/core/admin-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { DataSyncService } from "@services/data/data-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -28,8 +29,10 @@ import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* components */
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { BulkActionMode } from "@services/bulk-action.service";
 
 /* models */
 import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
@@ -57,8 +60,9 @@ interface AdminData {
     MatDatepickerModule,
     MatNativeDateModule,
     FormsModule,
-    CheckboxComponent,
     AdminDataTableComponent,
+    BulkActionsComponent,
+    CheckboxComponent,
   ],
   templateUrl: "./admin.view.html",
 })
@@ -71,7 +75,8 @@ export class AdminView implements OnInit {
     private adminStorageService: AdminStorageService,
     private notifyService: NotifyService,
     private adminService: AdminService,
-    private dataSyncService: DataSyncService
+    private dataSyncService: DataSyncService,
+    private shortcutService: ShortcutService
   ) {
     this.filterService = new FilterHelper();
     this.sortService = new SortHelper();
@@ -225,11 +230,18 @@ export class AdminView implements OnInit {
 
   ngOnInit(): void {
     this.loadAdminData();
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.shortcutService.refresh$.subscribe(() => {
+      this.loadAdminData(true);
+      this.notifyService.showSuccess("Data refreshed");
+    });
   }
 
-  loadAdminData() {
+  loadAdminData(force: boolean = false) {
     this.loading.set(true);
-    this.adminStorageService.loadAdminData().subscribe({
+    // Always force reload from backend when explicitly called by user
+    this.adminStorageService.loadAdminData(true).subscribe({
       next: (data) => {
         this.adminData.set(data);
 
@@ -325,8 +337,8 @@ export class AdminView implements OnInit {
     const typeSingular = this.selectedType().slice(0, -1);
     const table = this.selectedType();
 
-    // Use cascade delete for todos and tasks (they have children)
-    const useCascade = table === "todos" || table === "tasks";
+    // Use cascade delete for todos, tasks, and subtasks (they have children)
+    const useCascade = table === "todos" || table === "tasks" || table === "subtasks";
     const confirmMessage = useCascade
       ? `WARNING: This will permanently delete this ${typeSingular} and ALL related data (tasks, subtasks, comments, chats). This action cannot be undone. Are you sure?`
       : `Are you sure you want to delete this ${typeSingular} record?`;
@@ -336,13 +348,15 @@ export class AdminView implements OnInit {
     }
 
     try {
-      const response = useCascade
-        ? await this.adminService.permanentlyDeleteRecordWithCascade(table, record.id)
-        : await this.adminService.permanentlyDeleteRecord(table, record.id);
+      const response = await this.adminService.permanentlyDeleteRecord(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        // Reload all data after deletion
+
+        // Update local storage immediately
+        this.adminStorageService.removeRecordWithCascade(table, record.id);
+
+        // Reload all data to ensure consistency
         this.loadAdminData();
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
@@ -358,8 +372,9 @@ export class AdminView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-        // Reload all data to get cascade updates
-        this.loadAdminData();
+
+        // Force reload all data to get fresh data from MongoDB with updated cascade
+        this.loadAdminData(true);
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
       }
@@ -368,13 +383,14 @@ export class AdminView implements OnInit {
     }
   }
 
-  toggleSelect(id: string): void {
+  toggleSelect(event: { id: string; selected: boolean }): void {
+    const { id, selected } = event;
     this.selectedRecords.update((records) => {
       const newRecords = new Set(records);
-      if (newRecords.has(id)) {
-        newRecords.delete(id);
-      } else {
+      if (selected) {
         newRecords.add(id);
+      } else {
+        newRecords.delete(id);
       }
       return newRecords;
     });
@@ -466,5 +482,97 @@ export class AdminView implements OnInit {
           );
         }
       });
+  }
+
+  // ==================== FLOATING BULK ACTIONS ====================
+
+  onBulkSelectAll(): void {
+    const currentData = this.getCurrentData();
+    if (this.isAllSelected()) {
+      this.clearSelection();
+    } else {
+      this.selectedRecords.update((records) => {
+        const newRecords = new Set(records);
+        currentData.forEach((item) => newRecords.add(item.id));
+        return newRecords;
+      });
+    }
+  }
+
+  async onBulkSoftDelete(): Promise<void> {
+    const count = this.selectedRecords().size;
+    if (count === 0) return;
+
+    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
+    const plural = count > 1 ? "records" : "record";
+
+    if (!confirm(`Move ${count} ${typeSingular} ${plural} to archive?`)) {
+      return;
+    }
+
+    const currentData = this.getCurrentData();
+    const selectedItems = currentData.filter((item) => this.isSelected(item.id));
+    let completed = 0;
+
+    selectedItems.forEach((item) => {
+      this.adminService.toggleDeleteStatus(this.selectedType(), item.id).then((response) => {
+        completed++;
+        if (response.status === ResponseStatus.SUCCESS) {
+          // Update storage
+          const adminData = this.adminData();
+          const tableData = adminData[this.selectedType()] || [];
+          const record = tableData.find((r: any) => r.id === item.id);
+          if (record) {
+            this.adminStorageService.updateRecordDeleteStatus(this.selectedType(), item.id, true);
+          }
+        }
+        if (completed === selectedItems.length) {
+          this.notifyService.showSuccess(`${count} ${plural} moved to archive`);
+          this.clearSelection();
+          this.loadAdminData(true);
+        }
+      });
+    });
+  }
+
+  async onBulkHardDelete(): Promise<void> {
+    const count = this.selectedRecords().size;
+    if (count === 0) return;
+
+    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
+    const plural = count > 1 ? "records" : "record";
+
+    if (
+      !confirm(
+        `WARNING: Permanently delete ${count} ${typeSingular} ${plural} and all related data? This cannot be undone!`
+      )
+    ) {
+      return;
+    }
+
+    const currentData = this.getCurrentData();
+    const selectedItems = currentData.filter((item) => this.isSelected(item.id));
+    let completed = 0;
+
+    selectedItems.forEach((item) => {
+      const deletePromise = this.adminService.permanentlyDeleteRecord(this.selectedType(), item.id);
+
+      deletePromise.then((response) => {
+        completed++;
+        if (response.status === ResponseStatus.SUCCESS) {
+          // Update storage
+          this.adminStorageService.removeRecordWithCascade(this.selectedType(), item.id);
+        }
+        if (completed === selectedItems.length) {
+          this.notifyService.showSuccess(`${count} ${plural} permanently deleted`);
+          this.clearSelection();
+          this.loadAdminData(true);
+        }
+      });
+    });
+  }
+
+  onBulkCancel(): void {
+    this.clearSelection();
   }
 }

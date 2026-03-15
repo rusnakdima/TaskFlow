@@ -203,12 +203,36 @@
             <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
           </div>
           <div class="flex flex-row gap-2 items-center flex-wrap">
-            <app-checkbox
-              label="Select All"
-              [checked]="isAllSelected()"
-              [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
-              (checkedChange)="toggleSelectAll()"
-            />
+            <button
+              class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              (click)="toggleSelectAll()"
+              [ngClass]="{
+                'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-300':
+                  isAllSelected(),
+              }"
+            >
+              <app-checkbox
+                [checked]="isAllSelected()"
+                [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
+                [highlight]="selectedRecords().size > 0 && !isAllSelected()"
+              />
+              <span
+                class="text-sm font-medium"
+                [ngClass]="
+                  selectedRecords().size > 0 && !isAllSelected()
+                    ? 'text-yellow-700 dark:text-yellow-400'
+                    : 'textNormal'
+                "
+              >
+                {{
+                  isAllSelected()
+                    ? "Deselect All"
+                    : selectedRecords().size > 0
+                      ? "Clear Selection"
+                      : "Select All"
+                }}
+              </span>
+            </button>
             <mat-form-field class="w-32">
               <mat-label>Sort By</mat-label>
               <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
@@ -261,32 +285,36 @@
         </div>
       </div>
 
-      <div class="p-4 lg:p-6">
-        @if (loading()) {
-          <div class="flex items-center justify-center py-16">
-            <mat-icon class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin" fontIcon="sync" />
-            <span class="ml-3 textNormal">Loading data...</span>
-          </div>
-        } @else if (getCurrentData().length === 0) {
-          <div class="text-center py-16">
-            <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
-            <h3 class="text-lg font-medium text-gray-500">No records found</h3>
-            <p class="mt-2 text-sm textMuted">
-              No {{ getSelectedTypeLabel().toLowerCase() }} data available
-            </p>
-          </div>
-        } @else {
-          <app-admin-data-table
-            [data]="getCurrentData()"
-            [fields]="getFieldConfig()"
-            [selectedRecords]="selectedRecords()"
-            [titleKey]="selectedType() === 'daily_activities' ? 'date' : (selectedType() === 'comments' || selectedType() === 'chats' ? 'content' : 'title')"
-            (selectRecord)="toggleSelect($event)"
-            (deleteRecord)="deleteRecord($event)"
-            (toggleDelete)="toggleDeleteStatus($event)"
-          />
-        }
-      </div>
+      @if (loading()) {
+        <div class="flex items-center justify-center py-16">
+          <mat-icon class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin" fontIcon="sync" />
+          <span class="ml-3 textNormal">Loading data...</span>
+        </div>
+      } @else if (getCurrentData().length === 0) {
+        <div class="text-center py-16">
+          <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
+          <h3 class="text-lg font-medium text-gray-500">No records found</h3>
+          <p class="mt-2 text-sm textMuted">
+            No {{ getSelectedTypeLabel().toLowerCase() }} data available
+          </p>
+        </div>
+      } @else {
+        <app-admin-data-table
+          [data]="getCurrentData()"
+          [fields]="getFieldConfig()"
+          [selectedRecords]="selectedRecords()"
+          [titleKey]="
+            selectedType() === 'daily_activities'
+              ? 'date'
+              : selectedType() === 'comments' || selectedType() === 'chats'
+                ? 'content'
+                : 'title'
+          "
+          (selectRecord)="toggleSelect($event)"
+          (deleteRecord)="deleteRecord($event)"
+          (toggleDelete)="toggleDeleteStatus($event)"
+        />
+      }
     </div>
   </div>
 
@@ -299,4 +327,15 @@
   @if (showFilters()) {
     <div class="fixed inset-0 z-30 bg-black/50" (click)="closeFilters()"></div>
   }
+
+  <!-- Floating Bulk Actions Bar -->
+  <app-bulk-actions
+    [selectedCount]="selectedRecords().size"
+    [isAllSelected]="isAllSelected()"
+    mode="admin"
+    (selectAllEvent)="onBulkSelectAll()"
+    (softDeleteEvent)="onBulkSoftDelete()"
+    (hardDeleteEvent)="onBulkHardDelete()"
+    (cancelEvent)="onBulkCancel()"
+  />
 </div>
