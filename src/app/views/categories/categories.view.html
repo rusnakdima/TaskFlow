@@ -32,6 +32,18 @@
       />
     </div>
 
+    <!-- Bulk Actions Bar -->
+    @if (showBulkActions()) {
+      <app-bulk-actions
+        [selectedCount]="selectedCategories().size"
+        [isAllSelected]="isAllSelected()"
+        mode="todos"
+        (selectAllEvent)="toggleSelectAll()"
+        (softDeleteEvent)="bulkDelete()"
+        (cancelEvent)="clearSelection()"
+      />
+    }
+
     @if (listCategories().length === 0) {
       <div class="text-center py-5">
         <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="category" />
@@ -39,12 +51,25 @@
         <p class="textMuted mb-6">Get started by creating your first category</p>
       </div>
     } @else {
+      <div class="flex items-center justify-between mb-4">
+        <app-checkbox
+          label="Select All"
+          [checked]="isAllSelected()"
+          [indeterminate]="selectedCategories().size > 0 && !isAllSelected()"
+          (checkedChange)="toggleSelectAll()"
+        />
+        <span class="text-sm textMuted">
+          {{ selectedCategories().size > 0 ? selectedCategories().size + " selected" : "" }}
+        </span>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @for (category of listCategories(); track $index) {
           <app-category-card
             [category]="category"
+            [isSelected]="selectedCategories().has(category.id)"
             (edit)="editCategory($event)"
             (delete)="deleteCategory($event)"
+            (selectionChangeEvent)="toggleCategorySelection($event)"
           />
         }
       </div>

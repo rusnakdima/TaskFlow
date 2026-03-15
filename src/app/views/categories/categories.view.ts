@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect } from "@angular/core";
+import { Component, OnInit, signal, effect, computed } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 
@@ -20,6 +20,8 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { SearchComponent } from "@components/fields/search/search.component";
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 @Component({
   selector: "app-categories",
@@ -33,6 +35,8 @@ import { CategoryCardComponent } from "@components/category-card/category-card.c
     SearchComponent,
     CategoryFormComponent,
     CategoryCardComponent,
+    BulkActionsComponent,
+    CheckboxComponent,
   ],
   templateUrl: "./categories.view.html",
 })
@@ -55,13 +59,23 @@ export class CategoriesView implements OnInit {
   // Use storage signals directly for source data
   categories = this.storageService.categories;
 
-  // Separate signals for filtered/sorted display list
+  // Signal for display list - will be synced with categories via effect
   listCategories = signal<Category[]>([]);
   tempListCategories = signal<Category[]>([]);
+
+  private categoriesEffect = effect(() => {
+    const cats = this.categories();
+    this.listCategories.set(cats);
+    this.tempListCategories.set(cats);
+  });
 
   userId = signal("");
   showCreateForm = signal(false);
   editingCategory = signal<Category | null>(null);
+
+  // Bulk selection state
+  selectedCategories = signal<Set<string>>(new Set());
+  showBulkActions = signal(false);
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
@@ -119,5 +133,74 @@ export class CategoriesView implements OnInit {
 
   cancelEdit() {
     this.toggleCreateForm();
+  }
+
+  // Bulk Actions Methods
+
+  /**
+   * Toggle selection of a single category
+   */
+  toggleCategorySelection(categoryId: string): void {
+    const selected = this.selectedCategories();
+    if (selected.has(categoryId)) {
+      selected.delete(categoryId);
+    } else {
+      selected.add(categoryId);
+    }
+    this.selectedCategories.set(new Set(selected));
+    this.showBulkActions.set(selected.size > 0);
+  }
+
+  /**
+   * Toggle select all categories in current view
+   */
+  toggleSelectAll(): void {
+    if (this.isAllSelected()) {
+      this.selectedCategories.set(new Set());
+      this.showBulkActions.set(false);
+    } else {
+      const allIds = new Set(this.listCategories().map((cat) => cat.id));
+      this.selectedCategories.set(allIds);
+      this.showBulkActions.set(true);
+    }
+  }
+
+  /**
+   * Check if all categories are selected
+   */
+  isAllSelected(): boolean {
+    const list = this.listCategories();
+    return list.length > 0 && this.selectedCategories().size === list.length;
+  }
+
+  /**
+   * Bulk delete selected categories
+   */
+  bulkDelete(): void {
+    const selected = this.selectedCategories();
+    if (selected.size === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.size} categorie(s)?`)) {
+      const deleteRequests = Array.from(selected).map((categoryId) =>
+        this.dataSyncProvider.crud("delete", "categories", { id: categoryId })
+      );
+
+      Promise.all(deleteRequests)
+        .then(() => {
+          this.notifyService.showSuccess(`${selected.size} categori(es) deleted successfully`);
+          this.clearSelection();
+        })
+        .catch((err) => {
+          this.notifyService.showError(err.message || "Failed to delete categories");
+        });
+    }
+  }
+
+  /**
+   * Clear selection
+   */
+  clearSelection(): void {
+    this.selectedCategories.set(new Set());
+    this.showBulkActions.set(false);
   }
 }
