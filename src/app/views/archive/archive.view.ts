@@ -21,6 +21,8 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { DataSyncService } from "@services/data/data-sync.service";
 import { AdminStorageService } from "@services/core/admin-storage.service";
+import { StorageService } from "@services/core/storage.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -28,8 +30,9 @@ import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* components */
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* models */
 import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
@@ -57,8 +60,9 @@ interface ArchiveData {
     MatDatepickerModule,
     MatNativeDateModule,
     FormsModule,
-    CheckboxComponent,
     AdminDataTableComponent,
+    BulkActionsComponent,
+    CheckboxComponent,
   ],
   templateUrl: "./archive.view.html",
 })
@@ -71,7 +75,9 @@ export class ArchiveView implements OnInit {
     private notifyService: NotifyService,
     private adminService: AdminService,
     private dataSyncService: DataSyncService,
-    private adminStorageService: AdminStorageService
+    private adminStorageService: AdminStorageService,
+    private storageService: StorageService,
+    private shortcutService: ShortcutService
   ) {
     this.filterService = new FilterHelper();
     this.sortService = new SortHelper();
@@ -225,10 +231,17 @@ export class ArchiveView implements OnInit {
 
   ngOnInit(): void {
     this.loadArchiveData();
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.shortcutService.refresh$.subscribe(() => {
+      this.loadArchiveData();
+      this.notifyService.showSuccess("Data refreshed");
+    });
   }
 
   loadArchiveData() {
     this.loading.set(true);
+    // Always force reload from backend when explicitly called by user
     this.adminService.getAllDataForArchive().subscribe({
       next: (response) => {
         const data = response.data as unknown as ArchiveData;
@@ -238,6 +251,11 @@ export class ArchiveView implements OnInit {
           const tableData = data[type.id];
           type.count = tableData ? tableData.length : 0;
         });
+
+        // Sync to main storage - set all data (including deleted for archive view)
+        // But main storage should filter out deleted records
+        this.syncArchiveToStorage(data);
+
         this.loading.set(false);
       },
       error: (error) => {
@@ -245,6 +263,22 @@ export class ArchiveView implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * Sync archive data to main storage
+   * Filters out deleted records for main storage
+   */
+  syncArchiveToStorage(data: ArchiveData) {
+    // Set private todos (filtering out deleted)
+    const privateTodos = (data["todos"] || []).filter((t: any) => !t.isDeleted);
+    this.storageService.setCollection("privateTodos", privateTodos);
+
+    // For now, clear shared todos (can be updated based on your logic)
+    this.storageService.setCollection("sharedTodos", []);
+
+    // Categories
+    this.storageService.setCollection("categories", data["categories"] || []);
   }
 
   selectDataType(typeId: string) {
@@ -309,24 +343,25 @@ export class ArchiveView implements OnInit {
     const typeSingular = this.selectedType().slice(0, -1);
     const table = this.selectedType();
 
-    // Use cascade delete for todos and tasks (they have children)
-    const useCascade = table === "todos" || table === "tasks";
-    const confirmMessage = useCascade
-      ? `WARNING: This will permanently delete this ${typeSingular} and ALL related data (tasks, subtasks, comments, chats). This action cannot be undone. Are you sure?`
-      : `Are you sure you want to delete this ${typeSingular} record?`;
+    const confirmMessage = `WARNING: This will permanently delete this ${typeSingular} and ALL related data (tasks, subtasks, comments, chats). This action cannot be undone. Are you sure?`;
 
     if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const response = useCascade
-        ? await this.adminService.permanentlyDeleteRecordWithCascade(table, record.id)
-        : await this.adminService.permanentlyDeleteRecord(table, record.id);
+      // Permanently delete record with cascade
+      const response = await this.adminService.permanentlyDeleteRecord(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        // Reload all data after deletion
+
+        // Update local storage immediately - simply remove from lists
+        this.adminStorageService.removeRecordWithCascade(table, record.id);
+        // Also update main storage
+        this.storageService.removeRecordWithCascade(table, record.id);
+
+        // Reload all data after deletion to get fresh data from DB
         this.loadArchiveData();
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
@@ -338,28 +373,100 @@ export class ArchiveView implements OnInit {
 
   async toggleDeleteStatus(record: any) {
     try {
+      // Toggle delete status with cascade
       const response = await this.adminService.toggleDeleteStatus(this.selectedType(), record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
-        this.notifyService.showSuccess("Record restored successfully");
+        this.notifyService.showSuccess("Record status updated");
+
+        // Update main storage with the new status
+        const isDeleted = response.data === true;
+        if (this.selectedType() === "todos") {
+          if (isDeleted) {
+            // Mark as deleted - remove from main storage
+            this.storageService.removeTodoWithCascade(record.id);
+          } else {
+            // Restore - reload data to get restored todo
+            // Trigger a reload in the main app by reloading archive data
+          }
+        } else {
+          // For other types, update the status
+          this.storageService.updateItem(this.selectedType() as any, record.id, { isDeleted });
+        }
+
+        // Reload all data from DB to get fresh state
+        this.loadArchiveData();
+
+        // For todos, use cascade restore to restore all related data
+        if (this.selectedType() === "todos" && !isDeleted) {
+          // Fetch the restored todo with all related data from backend
+          this.adminService.getAllDataForArchive().subscribe({
+            next: (archiveResponse) => {
+              const data = archiveResponse.data as any;
+              const restoredTodo = data["todos"]?.find((t: any) => t.id === record.id);
+              if (restoredTodo) {
+                // Get related data
+                const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
+                const subtaskIds =
+                  restoredTodo.tasks?.flatMap(
+                    (t: any) => t.subtasks?.map((s: any) => s.id) || []
+                  ) || [];
+
+                const relatedTasks =
+                  data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
+                const relatedSubtasks =
+                  data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
+                const relatedComments =
+                  data["comments"]?.filter(
+                    (c: any) =>
+                      c.taskId === record.id ||
+                      taskIds.includes(c.taskId) ||
+                      subtaskIds.includes(c.subtaskId)
+                  ) || [];
+                const relatedChats =
+                  data["chats"]?.filter((c: any) => c.todoId === record.id) || [];
+
+                // Restore with cascade in admin storage
+                this.adminStorageService.restoreTodoWithCascade({
+                  todo: restoredTodo,
+                  tasks: relatedTasks,
+                  subtasks: relatedSubtasks,
+                  comments: relatedComments,
+                  chats: relatedChats,
+                });
+
+                // Also restore in main storage if needed
+                this.storageService.restoreTodoWithCascade({
+                  todo: restoredTodo,
+                  tasks: relatedTasks,
+                  subtasks: relatedSubtasks,
+                  comments: relatedComments,
+                });
+              }
+            },
+          });
+        }
+
         // Reload all data to get cascade updates
         this.loadArchiveData();
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
       }
     } catch (error: any) {
-      const errorMsg = error?.message || (typeof error === "object" ? JSON.stringify(error) : String(error));
+      const errorMsg =
+        error?.message || (typeof error === "object" ? JSON.stringify(error) : String(error));
       this.notifyService.showError("Error updating record status: " + errorMsg);
     }
   }
 
-  toggleSelect(id: string): void {
+  toggleSelect(event: { id: string; selected: boolean }): void {
+    const { id, selected } = event;
     this.selectedRecords.update((records) => {
       const newRecords = new Set(records);
-      if (newRecords.has(id)) {
-        newRecords.delete(id);
-      } else {
+      if (selected) {
         newRecords.add(id);
+      } else {
+        newRecords.delete(id);
       }
       return newRecords;
     });
@@ -413,7 +520,7 @@ export class ArchiveView implements OnInit {
     }
   }
 
-  async deleteSelected(): Promise<void> {
+  async toggleArchiveStatus(): Promise<void> {
     const count = this.selectedRecords().size;
     if (count === 0) return;
 
@@ -422,7 +529,7 @@ export class ArchiveView implements OnInit {
 
     if (
       !confirm(
-        `Are you sure you want to permanently delete ${count} ${typeSingular} ${plural}? This cannot be undone.`
+        `Are you sure you want to toggle archive status for ${count} ${typeSingular} ${plural}?`
       )
     ) {
       return;
@@ -432,24 +539,125 @@ export class ArchiveView implements OnInit {
     const selectedItems = currentData.filter((item) => this.isSelected(item.id));
 
     this.bulkActionService
-      .bulkDelete(selectedItems, (id: string) =>
-        from(this.adminService.permanentlyDeleteRecord(this.selectedType(), id))
+      .bulkUpdateField(selectedItems, "isDeleted", false, (id: string, data: any) =>
+        from(this.adminService.toggleDeleteStatus(this.selectedType(), id))
       )
       .subscribe((result) => {
         this.clearSelection();
         if (result.successCount > 0) {
           this.notifyService.showSuccess(
-            `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
+            `${result.successCount} ${result.successCount === 1 ? "record" : "records"} status toggled`
           );
-          // Reload all data after deletion
+          // Reload all data after toggling
           this.loadArchiveData();
         }
 
         if (result.errorCount > 0) {
           this.notifyService.showError(
-            `Failed to delete ${result.errorCount} ${result.errorCount === 1 ? "record" : "records"}`
+            `Failed to toggle ${result.errorCount} ${result.errorCount === 1 ? "record" : "records"}`
           );
         }
       });
+  }
+
+  async deleteSelected(): Promise<void> {
+    const count = this.selectedRecords().size;
+    if (count === 0) return;
+
+    const typeSingular = this.selectedType().slice(0, -1).toLowerCase();
+    const plural = count > 1 ? "records" : "record";
+    const table = this.selectedType();
+
+    const confirmMessage = `WARNING: This will permanently delete ${count} ${typeSingular} ${plural} and ALL related data (tasks, subtasks, comments, chats). This action cannot be undone. Are you sure?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    const currentData = this.getCurrentData();
+    const selectedItems = currentData.filter((item) => this.isSelected(item.id));
+
+    // Delete all records (always uses cascade)
+    const deleteObservable = this.bulkActionService.bulkDelete(selectedItems, (id: string) =>
+      from(this.adminService.permanentlyDeleteRecord(table, id))
+    );
+
+    deleteObservable.subscribe((result) => {
+      if (result.successCount > 0) {
+        // Update archive data directly by removing deleted items
+        this.archiveData.update((data) => {
+          const updated = { ...data };
+          selectedItems.forEach((item) => {
+            if (updated[table]) {
+              updated[table] = updated[table].filter((record: any) => record.id !== item.id);
+            }
+
+            // Also remove related data for cascade deletes
+            if (table === "todos") {
+              // Remove tasks for this todo
+              if (updated["tasks"]) {
+                const todoTasks = updated["tasks"].filter((t: any) => t.todoId === item.id);
+                const todoTaskIds = todoTasks.map((t: any) => t.id);
+                updated["tasks"] = updated["tasks"].filter((t: any) => t.todoId !== item.id);
+
+                // Remove subtasks for these tasks
+                if (updated["subtasks"]) {
+                  updated["subtasks"] = updated["subtasks"].filter(
+                    (s: any) => !todoTaskIds.includes(s.taskId)
+                  );
+                }
+              }
+              // Remove comments for this todo
+              if (updated["comments"]) {
+                updated["comments"] = updated["comments"].filter((c: any) => c.todoId !== item.id);
+              }
+              // Remove chats for this todo
+              if (updated["chats"]) {
+                updated["chats"] = updated["chats"].filter((c: any) => c.todoId !== item.id);
+              }
+            } else if (table === "tasks") {
+              // Remove subtasks for this task
+              if (updated["subtasks"]) {
+                updated["subtasks"] = updated["subtasks"].filter((s: any) => s.taskId !== item.id);
+              }
+              // Remove comments for this task
+              if (updated["comments"]) {
+                updated["comments"] = updated["comments"].filter((c: any) => c.taskId !== item.id);
+              }
+            } else if (table === "subtasks") {
+              // Remove comments for this subtask
+              if (updated["comments"]) {
+                updated["comments"] = updated["comments"].filter(
+                  (c: any) => c.subtaskId !== item.id
+                );
+              }
+            }
+          });
+          return updated;
+        });
+
+        // Also update admin storage
+        selectedItems.forEach((item) => {
+          this.adminStorageService.removeRecordWithCascade(table, item.id);
+          this.storageService.removeRecordWithCascade(table, item.id);
+        });
+
+        this.clearSelection();
+        this.notifyService.showSuccess(
+          `${result.successCount} ${result.successCount === 1 ? "record" : "records"} permanently deleted`
+        );
+        // Update data type counts
+        this.dataTypes.forEach((type) => {
+          const tableData = this.archiveData()[type.id];
+          type.count = tableData ? tableData.length : 0;
+        });
+      }
+
+      if (result.errorCount > 0) {
+        this.notifyService.showError(
+          `Failed to delete ${result.errorCount} ${result.errorCount === 1 ? "record" : "records"}`
+        );
+      }
+    });
   }
 }

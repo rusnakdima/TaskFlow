@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnDestroy, OnInit, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal, ChangeDetectorRef } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -38,7 +38,8 @@ import { DataSyncService } from "@services/data/data-sync.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
-import { DateHelper, ValidationHelper } from "@helpers/index";
+import { DateHelper } from "@helpers/date-helpers";
+import { ValidationHelper } from "@helpers/validation.helper";
 
 @Component({
   selector: "app-manage-todo",
@@ -70,7 +71,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private dataSyncProvider: DataSyncProvider,
     private shortcutService: ShortcutService,
-    private dataSyncService: DataSyncService
+    private dataSyncService: DataSyncService,
+    private cdr: ChangeDetectorRef
   ) {
     this.form = fb.group({
       _id: [""],
@@ -164,7 +166,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   getTodoInfo(todoId: string) {
     // First, try to get from storage
-    const todoFromStorage = this.storageService.getTodoById(todoId);
+    const todoFromStorage = this.storageService.getById("todos", todoId);
     if (todoFromStorage) {
       const localDates = DateHelper.convertDatesFromUtcToLocal(todoFromStorage);
       this.form.patchValue(localDates);
@@ -174,16 +176,24 @@ export class ManageTodoView implements OnInit, OnDestroy {
       // Update form with correct visibility
       this.form.patchValue({ visibility: todoFromStorage.visibility });
 
+      // Load assignees if they exist
+      if (todoFromStorage.assignees && todoFromStorage.assignees.length > 0) {
+        this.form.patchValue({ assignees: todoFromStorage.assignees });
+      }
+
       if (!this.isPrivate) {
         this.notifyService.showInfo(
           "You're editing a shared todo. Changes will be sent to the owner."
         );
       }
+
+      // Trigger change detection to update radio buttons
+      this.cdr.markForCheck();
       return;
     }
 
     // Fallback to fetch if not in storage
-    this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
+    this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
       next: (todo: Todo) => {
         const localDates = DateHelper.convertDatesFromUtcToLocal(todo);
         this.form.patchValue(localDates);
@@ -191,8 +201,18 @@ export class ManageTodoView implements OnInit, OnDestroy {
         this.isPrivate = todo.visibility === "private";
         this.form.patchValue({ visibility: todo.visibility });
 
+        // Load assignees if they exist
+        if (todo.assignees && todo.assignees.length > 0) {
+          this.form.patchValue({ assignees: todo.assignees });
+        }
+
         if (!this.isPrivate)
-          this.notifyService.showInfo("You're editing a shared todo. Changes will be sent to the owner.");
+          this.notifyService.showInfo(
+            "You're editing a shared todo. Changes will be sent to the owner."
+          );
+
+        // Trigger change detection to update radio buttons
+        this.cdr.markForCheck();
       },
       error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
     });
@@ -342,17 +362,19 @@ export class ManageTodoView implements OnInit, OnDestroy {
         order: formValue.order || 0,
       };
 
-      this.dataSyncProvider.crud<Todo>("create", "todos", { data: body, parentTodoId: body.userId }).subscribe({
-        next: (result: Todo) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showSuccess("Todo created successfully");
-          this.back();
-        },
-        error: (err: any) => {
-          this.isSubmitting.set(false);
-          this.notifyService.showError(err.message || "Failed to create todo");
-        },
-      });
+      this.dataSyncProvider
+        .crud<Todo>("create", "todos", { data: body, parentTodoId: body.userId })
+        .subscribe({
+          next: (result: Todo) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showSuccess("Todo created successfully");
+            this.back();
+          },
+          error: (err: any) => {
+            this.isSubmitting.set(false);
+            this.notifyService.showError(err.message || "Failed to create todo");
+          },
+        });
     } else {
       this.isSubmitting.set(false);
       this.notifyService.showError("Error sending data! Enter the data in the field.");
@@ -379,7 +401,13 @@ export class ManageTodoView implements OnInit, OnDestroy {
       const isOwner = formValue.userId === this.userId();
       const syncMetadata = { isOwner, isPrivate };
 
-      this.dataSyncProvider.crud<Todo>("update", "todos", { id: body.id, data: body, parentTodoId: body.id, ...syncMetadata })
+      this.dataSyncProvider
+        .crud<Todo>("update", "todos", {
+          id: body.id,
+          data: body,
+          parentTodoId: body.id,
+          ...syncMetadata,
+        })
         .subscribe({
           next: async (result: Todo) => {
             if (visibilityChanged) {
