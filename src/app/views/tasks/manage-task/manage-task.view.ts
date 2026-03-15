@@ -19,6 +19,9 @@ import { MatDatepickerModule, MatCalendarCellCssClasses } from "@angular/materia
 import { MatSelectModule } from "@angular/material/select";
 import { MatNativeDateModule } from "@angular/material/core";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 /* models */
 import { PriorityTask, Task, TaskStatus, RepeatInterval } from "@models/task.model";
 import { Todo } from "@models/todo.model";
@@ -33,7 +36,8 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
-import { DateHelper, ValidationHelper } from "@helpers/index";
+import { DateHelper } from "@helpers/date-helpers";
+import { ValidationHelper } from "@helpers/validation.helper";
 
 interface PriorityOption {
   value: PriorityTask;
@@ -55,6 +59,7 @@ interface PriorityOption {
     MatDatepickerModule,
     MatInputModule,
     MatSelectModule,
+    CheckboxComponent,
   ],
   templateUrl: "./manage-task.view.html",
 })
@@ -174,7 +179,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   getTaskInfo(taskId: string) {
     // First, try to get from storage
-    const taskFromStorage = this.storageService.getTaskById(taskId);
+    const taskFromStorage = this.storageService.getById("tasks", taskId);
     if (taskFromStorage) {
       const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
       this.form.patchValue(localDates);
@@ -211,7 +216,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   loadProjectInfo(todoId: string) {
     // Try to get from storage first
-    const cachedTodo = this.storageService.getTodoById(todoId);
+    const cachedTodo = this.storageService.getById("todos", todoId);
     if (cachedTodo) {
       this.projectInfo.set(cachedTodo);
       this.isOwner = cachedTodo.userId === this.userId;
@@ -264,7 +269,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         const todoId = this.projectInfo()?.id;
         if (!todoId) throw new Error("Project ID not found");
 
-        const tasks = this.storageService.getAllTasksByTodoId(todoId);
+        const tasks = this.storageService.getAllByParentId("tasks", todoId);
         const formValue = this.form.value;
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
         const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
@@ -275,17 +280,19 @@ export class ManageTaskView implements OnInit, OnDestroy {
         };
 
         // Sync with backend
-        this.dataSyncProvider.crud<Task>("create", "tasks", { data: body, parentTodoId: todoId }).subscribe({
-          next: (result: Task) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showSuccess("Task created successfully");
-            this.back();
-          },
-          error: (err: any) => {
-            this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to create task");
-          },
-        });
+        this.dataSyncProvider
+          .crud<Task>("create", "tasks", { data: body, parentTodoId: todoId })
+          .subscribe({
+            next: (result: Task) => {
+              this.isSubmitting.set(false);
+              this.notifyService.showSuccess("Task created successfully");
+              this.back();
+            },
+            error: (err: any) => {
+              this.isSubmitting.set(false);
+              this.notifyService.showError(err.message || "Failed to create task");
+            },
+          });
       } catch (err: any) {
         this.isSubmitting.set(false);
         this.notifyService.showError("Failed to get existing tasks count");
@@ -310,7 +317,8 @@ export class ManageTaskView implements OnInit, OnDestroy {
       };
 
       // Update task via DataSyncProvider (storage updated automatically)
-      this.dataSyncProvider.crud<Task>("update", "tasks", { id: body.id, data: body, parentTodoId: todoId })
+      this.dataSyncProvider
+        .crud<Task>("update", "tasks", { id: body.id, data: body, parentTodoId: todoId })
         .subscribe({
           next: (result: Task) => {
             this.isSubmitting.set(false);

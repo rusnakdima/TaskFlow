@@ -4,15 +4,17 @@ import {
   Component,
   OnInit,
   signal,
+  effect,
   inject,
   computed,
   OnDestroy,
   HostListener,
 } from "@angular/core";
-import { ActivatedRoute, RouterModule } from "@angular/router";
+import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
-import { Subscription } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
+import { filter } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -29,12 +31,12 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { BulkActionService } from "@services/bulk-action.service";
+import { DataSyncService } from "@services/data/data-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
-
-/* bases */
-import { BaseView } from "@bases/base.view";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -45,9 +47,10 @@ import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.help
 /* components */
 import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
-import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 
 @Component({
   selector: "app-tasks",
@@ -62,45 +65,85 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
     RouterModule,
     TaskComponent,
     TodoInformationComponent,
-    BulkActionsComponent,
     FilterBarComponent,
     ChatWindowComponent,
     DragDropModule,
+    CheckboxComponent,
+    BulkActionsComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
-export class TasksView extends BaseView implements OnInit {
+export class TasksView implements OnInit {
   private filterService: FilterHelper;
   private sortService: SortHelper;
-  private bulkActionService: BulkActionHelper;
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncService = inject(DataSyncService);
+  private shortcutService = inject(ShortcutService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
   private baseHelper = new BaseItemHelper();
+  public bulkService = inject(BulkActionService);
+  private bulkActionHelper = new BulkActionHelper();
+
+  // Loading and error state
+  protected loading = signal(false);
+  protected error = signal<string | null>(null);
 
   constructor() {
-    super();
     this.filterService = new FilterHelper();
     this.sortService = new SortHelper();
-    this.bulkActionService = new BulkActionHelper();
+  }
+
+  /**
+   * Handle errors by setting the error signal
+   */
+  protected handleError(err: any): void {
+    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
+    this.error.set(errorMessage);
+  }
+
+  /**
+   * Clear error state
+   */
+  protected clearError(): void {
+    this.error.set(null);
   }
 
   // State signals
-  todo = signal<Todo | null>(null);
   highlightTaskId = signal<string | null>(null);
   highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
   openChat = signal(false);
-  selectedTasks = signal<Set<string>>(new Set());
-  showBulkActions = signal(false);
   showFilter = signal(false);
   activeFilter = signal<string>("all");
   searchQuery = signal<string>("");
   expandedTasks = signal<Set<string>>(new Set());
+  chats = signal<any[]>([]);
   private routeSub?: Subscription;
+
+  // Bulk selection state (like admin page)
+  selectedTasks = signal<Set<string>>(new Set());
+
+  private chatEffect = effect(() => {
+    const tid = this.todo()?.id;
+    if (tid) {
+      const reactiveChats = this.storageService.getChatsByTodoReactive(tid)();
+      this.chats.set(reactiveChats);
+    }
+  });
+
+  todo = computed(() => {
+    const tid = this.route.snapshot.paramMap.get("todoId") || this.route.snapshot.data["todo"]?.id;
+    if (!tid) return null;
+    return this.storageService.getTodoReactive(tid)() || null;
+  });
+
+  isOwner = computed(() => this.todo()?.userId === this.userId);
+  isPrivate = computed(() => this.todo()?.visibility === "private");
 
   // Computed signals for data flow - Always use storage as the single source of truth
   todoTasks = computed(() => {
@@ -108,7 +151,7 @@ export class TasksView extends BaseView implements OnInit {
     const todoId = todoFromSignal?.id;
     if (!todoId) return [];
     // Always use storage data for real-time updates
-    return this.storageService.getTasksByTodoId(todoId)();
+    return this.storageService.getTasksByTodoId(todoId);
   });
 
   listTasks = computed(() => {
@@ -147,7 +190,8 @@ export class TasksView extends BaseView implements OnInit {
       );
     }
 
-    return this.sortService.sortByOrder(filtered, "desc");
+    const result = this.sortService.sortByOrder(filtered, "desc");
+    return result;
   });
 
   // Get unread comments count for a task (from all subtasks, NOT task's own comments)
@@ -173,8 +217,6 @@ export class TasksView extends BaseView implements OnInit {
     return count;
   }
 
-  isOwner: boolean = true;
-  isPrivate: boolean = true;
   userId: string = "";
 
   @HostListener("window:keydown", ["$event"])
@@ -197,6 +239,22 @@ export class TasksView extends BaseView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+
+    // Initialize bulk action service
+    this.bulkService.setMode("tasks");
+    this.bulkService.updateTotalCount(0);
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.shortcutService.refresh$.subscribe(() => {
+      this.dataSyncService.loadAllData(true).subscribe(() => {
+        this.notifyService.showSuccess("Data refreshed");
+      });
+    });
+
+    // Clear selection when navigating away from this view
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.clearSelection();
+    });
 
     this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.highlightTaskId) {
@@ -225,43 +283,12 @@ export class TasksView extends BaseView implements OnInit {
       }
     });
 
-    // Get resolved todo data from route
+    // Get resolved todo data from route - todo is now computed from storage
     const routeData = this.route.snapshot.data;
-    if (routeData?.["todo"]) {
-      const todoData = routeData["todo"];
-      this.todo.set(todoData);
-      this.isOwner = todoData.userId === this.userId;
-      this.isPrivate = todoData.visibility === "private";
-    } else {
-      // Fallback: try to get todo ID from route params and fetch from storage
-      this.loading.set(true);
-      const todoId = this.route.snapshot.paramMap.get("todoId");
-      if (todoId) {
-        const todoFromStorage = this.storageService.getTodoById(todoId);
-        if (todoFromStorage) {
-          this.todo.set(todoFromStorage);
-          this.isOwner = todoFromStorage.userId === this.userId;
-          this.isPrivate = todoFromStorage.visibility === "private";
-        } else {
-          // Wait a bit for storage to be populated (e.g., after creating a task)
-          setTimeout(() => {
-            const retryTodo = this.storageService.getTodoById(todoId);
-            if (retryTodo) {
-              this.todo.set(retryTodo);
-              this.isOwner = retryTodo.userId === this.userId;
-              this.isPrivate = retryTodo.visibility === "private";
-            } else {
-              this.notifyService.showError("Todo not found. Please try again.");
-            }
-            this.loading.set(false);
-          }, 300);
-          return; // Don't set loading to false yet
-        }
-      } else {
-        this.notifyService.showError("Invalid todo ID.");
-      }
-      this.loading.set(false);
+    if (!routeData?.["todo"] && !this.route.snapshot.paramMap.get("todoId")) {
+      this.notifyService.showError("Invalid todo ID.");
     }
+    this.loading.set(false);
   }
 
   ngOnDestroy(): void {
@@ -283,7 +310,12 @@ export class TasksView extends BaseView implements OnInit {
     const newStatus = this.baseHelper.getNextStatus(task.status);
 
     // Update task status via DataSyncProvider (storage updated automatically)
-    this.dataSyncProvider.crud<Task>("update", "tasks", { id: task.id, data: { status: newStatus }, parentTodoId: todoId })
+    this.dataSyncProvider
+      .crud<Task>("update", "tasks", {
+        id: task.id,
+        data: { status: newStatus },
+        parentTodoId: todoId,
+      })
       .subscribe();
   }
 
@@ -324,7 +356,12 @@ export class TasksView extends BaseView implements OnInit {
     }
 
     // Update subtask status via DataSyncProvider (storage updated automatically)
-    this.dataSyncProvider.crud<Subtask>("update", "subtasks", { id: subtask.id, data: { status: newStatus }, parentTodoId: todoId })
+    this.dataSyncProvider
+      .crud<Subtask>("update", "subtasks", {
+        id: subtask.id,
+        data: { status: newStatus },
+        parentTodoId: todoId,
+      })
       .subscribe();
   }
 
@@ -372,15 +409,17 @@ export class TasksView extends BaseView implements OnInit {
       if (nextEnd) nextTask.endDate = nextEnd.toISOString();
     }
 
-    this.dataSyncProvider.crud<Task>("create", "tasks", { data: nextTask, parentTodoId: todoId }).subscribe({
-      next: (result: Task) => {
-        // Storage updated automatically by DataSyncProvider
-        this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-      },
-      error: () => {
-        this.notifyService.showError("Failed to create recurring task");
-      },
-    });
+    this.dataSyncProvider
+      .crud<Task>("create", "tasks", { data: nextTask, parentTodoId: todoId })
+      .subscribe({
+        next: (result: Task) => {
+          // Storage updated automatically by DataSyncProvider
+          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+        },
+        error: () => {
+          this.notifyService.showError("Failed to create recurring task");
+        },
+      });
   }
 
   toggleChat() {
@@ -391,7 +430,7 @@ export class TasksView extends BaseView implements OnInit {
     const todoId = this.todo()?.id;
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
-    const chats = this.storageService.getChatsByTodo(todoId);
+    const chats = this.chats();
     return chats.filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
   }
 
@@ -400,7 +439,12 @@ export class TasksView extends BaseView implements OnInit {
     if (!todoId) return;
 
     // Update task via DataSyncProvider (storage updated automatically)
-    this.dataSyncProvider.crud<Task>("update", "tasks", { id: event.task.id, data: { [event.field]: event.value }, parentTodoId: todoId })
+    this.dataSyncProvider
+      .crud<Task>("update", "tasks", {
+        id: event.task.id,
+        data: { [event.field]: event.value },
+        parentTodoId: todoId,
+      })
       .subscribe();
   }
 
@@ -411,12 +455,11 @@ export class TasksView extends BaseView implements OnInit {
     if (!confirm("Are you sure?")) return;
 
     // Delete task via DataSyncProvider (storage updated automatically)
-    this.dataSyncProvider.crud("delete", "tasks", { id: taskId, parentTodoId: todoId })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Task deleted successfully");
-        },
-      });
+    this.dataSyncProvider.crud("delete", "tasks", { id: taskId, parentTodoId: todoId }).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Task deleted successfully");
+      },
+    });
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {
@@ -425,46 +468,70 @@ export class TasksView extends BaseView implements OnInit {
 
     this.dragDropService
       .handleDrop(event, this.listTasks(), "tasks", "tasks", todoId, {
-        isOwner: this.isOwner,
-        isPrivate: this.isPrivate,
+        isOwner: this.isOwner(),
+        isPrivate: this.isPrivate(),
       })
       .subscribe();
   }
 
-  toggleTaskSelection(taskId: string) {
-    const newSelected = this.bulkActionService.toggleSelection(this.selectedTasks(), taskId);
-    this.selectedTasks.set(newSelected);
-    this.showBulkActions.set(newSelected.size > 0);
+  /**
+   * Toggle selection of a single task
+   */
+  toggleTaskSelection(event: { id: string; selected: boolean }) {
+    const { id, selected } = event;
+    this.selectedTasks.update((selectedIds) => {
+      const newSelected = new Set(selectedIds);
+      if (selected) {
+        newSelected.add(id);
+      } else {
+        newSelected.delete(id);
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
+      return newSelected;
+    });
   }
 
   toggleSelectAll() {
-    if (this.isAllSelected()) this.clearSelection();
-    else {
-      this.selectedTasks.set(this.bulkActionService.selectAll(this.listTasks()));
-      this.showBulkActions.set(true);
-    }
+    const allTasks = this.listTasks();
+    const allSelected = this.isAllSelected();
+
+    this.selectedTasks.update((selected) => {
+      const newSelected = new Set(selected);
+      if (allSelected) {
+        allTasks.forEach((task) => newSelected.delete(task.id));
+      } else {
+        allTasks.forEach((task) => newSelected.add(task.id));
+      }
+      // Sync with bulk service for display
+      this.bulkService.setSelectionState(newSelected.size, !allSelected);
+      return newSelected;
+    });
   }
 
   clearSelection() {
     this.selectedTasks.set(new Set());
-    this.showBulkActions.set(false);
+    this.bulkService.setSelectionState(0, false);
   }
+
   isAllSelected() {
-    return this.bulkActionService.isAllSelected(this.selectedTasks(), this.listTasks());
+    const currentList = this.listTasks();
+    return currentList.length > 0 && currentList.every((task) => this.selectedTasks().has(task.id));
   }
 
   bulkUpdatePriority(priority: string) {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    const selectedIds = Array.from(this.selectedTasks());
+    const selectedIds: string[] = Array.from(this.selectedTasks());
 
-    this.bulkActionService
+    this.bulkActionHelper
       .bulkUpdateField(
         selectedIds.map((id) => ({ id })),
         "priority",
         priority,
-        (id, data) => this.dataSyncProvider.crud<Task>("update", "tasks", { id, data, parentTodoId: todoId })
+        (id, data) =>
+          this.dataSyncProvider.crud<Task>("update", "tasks", { id, data, parentTodoId: todoId })
       )
       .subscribe({
         next: (result: BulkOperationResult) => {
@@ -485,30 +552,31 @@ export class TasksView extends BaseView implements OnInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    const selectedIds = Array.from(this.selectedTasks());
+    const selectedIds: string[] = Array.from(this.selectedTasks());
 
-    this.bulkActionService
-      .bulkUpdateStatus(
-        selectedIds.map((id) => ({ id, status: "" })),
-        status,
-        (id, data) => {
-          // Ensure id is included in the update payload
-          const updateData = { ...data, id };
-          return this.dataSyncProvider.crud<Task>("update", "tasks", { id, data: updateData, parentTodoId: todoId });
-        }
-      )
-      .subscribe({
-        next: (result: BulkOperationResult) => {
-          // Storage updated automatically by DataSyncProvider for each successful update
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Updated ${result.successCount} tasks, ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(`Updated ${result.successCount} tasks.`);
-          }
-        },
+    if (selectedIds.length === 0) {
+      return;
+    }
+
+    const updatePromises = Array.from(selectedIds).map((id) => {
+      return firstValueFrom(
+        this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (id, data) => {
+          return this.dataSyncProvider.crud<Task>("update", "tasks", {
+            id,
+            data: { status },
+            parentTodoId: todoId,
+          });
+        })
+      );
+    });
+
+    Promise.all(updatePromises)
+      .then(() => {
+        this.clearSelection();
+        this.notifyService.showSuccess(`${selectedIds.length} task(s) updated`);
+      })
+      .catch((err) => {
+        this.notifyService.showError("Failed to update tasks");
       });
   }
 
@@ -516,10 +584,10 @@ export class TasksView extends BaseView implements OnInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    const selectedIds = Array.from(this.selectedTasks());
+    const selectedIds: string[] = Array.from(this.selectedTasks());
     if (!confirm(`Delete ${selectedIds.length} tasks?`)) return;
 
-    this.bulkActionService
+    this.bulkActionHelper
       .bulkDelete(
         selectedIds.map((id) => ({ id })),
         (id) => this.dataSyncProvider.crud("delete", "tasks", { id, parentTodoId: todoId })
@@ -539,6 +607,37 @@ export class TasksView extends BaseView implements OnInit {
       });
   }
 
+  /**
+   * Bulk archive selected tasks (move to archive)
+   */
+  bulkArchive() {
+    const todoId = this.todo()?.id;
+    if (!todoId) return;
+
+    const selectedIds: string[] = Array.from(this.selectedTasks());
+    if (selectedIds.length === 0) return;
+
+    if (confirm(`Archive ${selectedIds.length} task(s)?`)) {
+      this.bulkActionHelper
+        .bulkDelete(
+          selectedIds.map((id) => ({ id })),
+          (id) => this.dataSyncProvider.crud("delete", "tasks", { id, parentTodoId: todoId })
+        )
+        .subscribe({
+          next: (result) => {
+            this.clearSelection();
+            if (result.errorCount > 0) {
+              this.notifyService.showWarning(
+                `Archived ${result.successCount} tasks, ${result.errorCount} failed.`
+              );
+            } else {
+              this.notifyService.showSuccess(`Archived ${result.successCount} tasks.`);
+            }
+          },
+        });
+    }
+  }
+
   onBulkAction(actionId: string) {
     if (actionId === "delete") this.bulkDelete();
     else {
@@ -551,7 +650,7 @@ export class TasksView extends BaseView implements OnInit {
    * Toggle filter bar visibility
    */
   toggleFilter(): void {
-    this.showFilter.update(v => !v);
+    this.showFilter.update((v) => !v);
   }
 
   /**
