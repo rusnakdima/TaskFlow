@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, Injector, inject } from "@angular/core";
-import { Observable, from, share, of, firstValueFrom } from "rxjs";
+import { Observable, from, share, of, firstValueFrom, defer } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 import { finalize, tap, catchError, map } from "rxjs/operators";
 
@@ -10,6 +10,8 @@ import { RelationObj } from "@models/relation-obj.model";
 import { SyncMetadata } from "@models/sync-metadata";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Comment } from "@models/comment.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -20,7 +22,6 @@ import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { OfflineQueueService } from "@services/core/offline-queue.service";
-import { Profile } from "@models/profile.model";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -34,31 +35,447 @@ interface CrudParams {
   syncMetadata?: SyncMetadata;
 }
 
+// Constants
+const ALLOWED_TABLES = [
+  "todos",
+  "tasks",
+  "subtasks",
+  "categories",
+  "chats",
+  "comments",
+  "profiles",
+  "users",
+];
+const CACHE_TTL_MS = 5000;
+const WS_RETRY_ATTEMPTS = 3;
+const WS_RETRY_DELAY_MS = 100;
+
 @Injectable({
   providedIn: "root",
 })
 export class DataSyncProvider {
-  private allowedTables = [
-    "todos",
-    "tasks",
-    "subtasks",
-    "categories",
-    "chats",
-    "comments",
-    "profiles",
-    "users",
-  ];
-
   private ws = inject(WebSocketService);
   private jwtTokenService = inject(JwtTokenService);
   private offlineQueueService = inject(OfflineQueueService);
   private injector = inject(Injector);
+
+  private inFlightRequests = new Map<string, Observable<any>>();
+  private requestCache = new Map<string, { data: any; timestamp: number }>();
 
   constructor() {
     this.offlineQueueService.setExecuteFunction(
       (operation, entityType, entityId, data, parentTodoId) =>
         this.executeOperationForQueue(operation, entityType, entityId, data, parentTodoId)
     );
+  }
+
+  private get syncService(): SyncService {
+    return this.injector.get(SyncService);
+  }
+
+  private get storageService(): StorageService {
+    return this.injector.get(StorageService);
+  }
+
+  invokeCommand<T>(command: string, args: Record<string, any> = {}): Observable<T> {
+    return from(
+      invoke<Response<T>>(command, args).then((response) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          return response.data as T;
+        }
+        throw new Error(response.message || `Command ${command} failed`);
+      })
+    );
+  }
+
+  // ==================== Metadata Resolution ====================
+
+  private getCurrentUserId(): string | null {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const userId = this.jwtTokenService.getUserId(token);
+    return userId;
+  }
+
+  private createDefaultMetadata(): SyncMetadata {
+    return { isOwner: true, isPrivate: true };
+  }
+
+  private resolveMetadata(table: string, todoId?: string, record?: any, id?: string): SyncMetadata {
+    const currentUserId = this.getCurrentUserId();
+    const metadata: SyncMetadata = this.createDefaultMetadata();
+
+    if (table === "todos") {
+      const targetId = id || record?.id || todoId;
+      const todo = record || (targetId ? this.storageService.getById("todos", targetId) : null);
+      if (todo) {
+        return {
+          isPrivate: todo.visibility === "private",
+          isOwner: todo.userId === currentUserId,
+        };
+      }
+    }
+
+    const effectiveTodoId = this.resolveTodoId(table, todoId, record, id);
+    if (effectiveTodoId) {
+      const todo = this.storageService.getById("todos", effectiveTodoId);
+      if (todo) {
+        metadata.isPrivate = todo.visibility === "private";
+        metadata.isOwner = todo.userId === currentUserId;
+      }
+    }
+
+    return metadata;
+  }
+
+  private async resolveMetadataAsync(table: string, id: string): Promise<SyncMetadata> {
+    const currentUserId = this.getCurrentUserId();
+    const defaultMetadata: SyncMetadata = this.createDefaultMetadata();
+
+    try {
+      if (table === "todos") {
+        const todo = await this.fetchEntityById<Todo>("todos", id);
+        if (todo) {
+          return {
+            isPrivate: todo.visibility === "private",
+            isOwner: todo.userId === currentUserId,
+          };
+        }
+      }
+
+      if (table === "tasks") {
+        const task = await this.fetchEntityById<Task>("tasks", id);
+        if (task?.todoId) {
+          const todo = await this.fetchEntityById<Todo>("todos", task.todoId);
+          if (todo) {
+            return {
+              isPrivate: todo.visibility === "private",
+              isOwner: todo.userId === currentUserId,
+            };
+          }
+        }
+      }
+    } catch {
+      // Fall through to default metadata
+    }
+
+    return defaultMetadata;
+  }
+
+  private resolveTodoId(table: string, todoId?: string, record?: any, id?: string): string | null {
+    let effectiveTodoId = todoId || record?.todoId;
+
+    if (!effectiveTodoId && (record?.id || id)) {
+      const targetId = id || record?.id;
+      if (table === "tasks") {
+        effectiveTodoId = this.storageService.getById("tasks", targetId!)?.todoId;
+      } else if (table === "subtasks") {
+        const subtask = this.storageService.getById("subtasks", targetId!);
+        if (subtask) {
+          effectiveTodoId = this.storageService.getById("tasks", subtask.taskId)?.todoId;
+        }
+      }
+    }
+
+    return effectiveTodoId || null;
+  }
+
+  private async fetchEntityById<T>(table: string, id: string): Promise<T | null> {
+    try {
+      return await firstValueFrom(
+        this.crud<T>("get", table, { filter: { id } }).pipe(catchError(() => of(null)))
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  // ==================== CRUD Parameter Building ====================
+
+  private buildCrudParams(
+    table: string,
+    options: {
+      filter?: { [key: string]: any };
+      data?: any;
+      id?: string;
+      parentTodoId?: string;
+      relations?: RelationObj[];
+      isOwner?: boolean;
+      isPrivate?: boolean;
+    }
+  ): CrudParams {
+    if (!ALLOWED_TABLES.includes(table)) {
+      throw new Error(`Table '${table}' is not supported. Allowed: ${ALLOWED_TABLES.join(", ")}`);
+    }
+
+    const metadata =
+      options.isOwner !== undefined
+        ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
+        : this.resolveMetadata(
+            table,
+            options.parentTodoId || options.data?.todoId,
+            options.data,
+            options.id
+          );
+
+    const relations = options.relations ?? RelationsHelper.getRelationsForTable(table);
+
+    const result = {
+      table,
+      filter: options.filter,
+      data: options.data,
+      id: options.id,
+      parentTodoId: options.parentTodoId,
+      relations,
+      syncMetadata: metadata,
+    };
+    return result;
+  }
+
+  // ==================== Request Execution ====================
+
+  private buildRequestKey(
+    operation: Operation,
+    table: string,
+    id?: string,
+    filter?: { [key: string]: any }
+  ): string {
+    const filterKey = filter ? JSON.stringify(Object.entries(filter).sort()) : "no-filter";
+    return `${operation}:${table}:${id || "no-id"}:${filterKey}`;
+  }
+
+  private executeWithFallback<T>(operation: Operation, params: CrudParams): Observable<T> {
+    const requestKey = this.buildRequestKey(operation, params.table, params.id, params.filter);
+
+    if (this.isCacheable(operation)) {
+      const cached = this.getCached(requestKey);
+      if (cached) {
+        return of(cached as T);
+      }
+    }
+
+    const existingRequest = this.inFlightRequests.get(requestKey);
+    if (existingRequest) {
+      return existingRequest as Observable<T>;
+    }
+
+    // Use defer to ensure the Observable is created lazily when subscribed
+    const request$ = defer(() => {
+      return new Observable<T>((subscriber) => {
+        this.tryWebSocket(operation, params, requestKey, subscriber, 0);
+      });
+    }).pipe(
+      tap({
+        next: (data) => {
+          if (this.isCacheable(operation)) {
+            this.cacheRequest(requestKey, data);
+          }
+        },
+        error: (err) => {
+          // Error logged internally
+        },
+      }),
+      finalize(() => {
+        this.inFlightRequests.delete(requestKey);
+      })
+    );
+
+    this.inFlightRequests.set(requestKey, request$);
+    return request$;
+  }
+
+  private isCacheable(operation: Operation): boolean {
+    return operation === "get" || operation === "getAll";
+  }
+
+  private getCached(requestKey: string): any | null {
+    const cached = this.requestCache.get(requestKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  private cacheRequest(requestKey: string, data: any): void {
+    this.requestCache.set(requestKey, { data, timestamp: Date.now() });
+  }
+
+  private createRequestObservable<T>(
+    operation: Operation,
+    params: CrudParams,
+    requestKey: string
+  ): Observable<T> {
+    return new Observable<T>((subscriber) => {
+      this.tryWebSocket(operation, params, requestKey, subscriber, 0);
+    });
+  }
+
+  private tryWebSocket<T>(
+    operation: Operation,
+    params: CrudParams,
+    requestKey: string,
+    subscriber: any,
+    attempt: number
+  ): void {
+    if (this.ws.isConnected()) {
+      const wsSubscription = this.ws.crud<T>(operation, params).subscribe({
+        next: (data) => {
+          subscriber.next(data);
+          subscriber.complete();
+        },
+        error: (err) => {
+          this.executeTauriFallback(operation, params, subscriber, requestKey);
+        },
+        complete: () => {
+          // WebSocket subscription completed
+        },
+      });
+
+      // Store subscription to allow cleanup if needed
+      subscriber.add(wsSubscription);
+    } else if (attempt < WS_RETRY_ATTEMPTS) {
+      setTimeout(
+        () => this.tryWebSocket(operation, params, requestKey, subscriber, attempt + 1),
+        WS_RETRY_DELAY_MS
+      );
+    } else {
+      this.executeTauriFallback(operation, params, subscriber, requestKey);
+    }
+  }
+
+  // ==================== Tauri Fallback ====================
+
+  private executeTauriFallback<T>(
+    operation: Operation,
+    params: CrudParams,
+    subscriber: any,
+    requestKey: string
+  ): void {
+    const payload = this.buildTauriPayload(operation, params);
+
+    if (operation === "updateAll" && params.data) {
+      this.executeUpdateAll(payload, params, subscriber, requestKey);
+    } else {
+      this.executeSingleOperation(payload, operation, params, subscriber, requestKey);
+    }
+  }
+
+  private buildTauriPayload(operation: Operation, params: CrudParams): any {
+    const payload: any = {
+      operation,
+      table: params.table,
+      syncMetadata: params.syncMetadata,
+    };
+
+    if (params.filter) payload.filter = params.filter;
+    if (params.relations) payload.relations = params.relations;
+    if (params.id) payload.id = params.id;
+    if (params.data) payload.data = params.data;
+
+    return payload;
+  }
+
+  private handleError(
+    err: any,
+    operation: Operation,
+    params: CrudParams,
+    subscriber: any,
+    requestKey?: string
+  ): void {
+    const isValidationError =
+      err?.message?.includes("Validation failed") ||
+      (err?.status === "Error" && err?.message?.includes("Validation"));
+
+    if (operation !== "getAll" && operation !== "get" && !isValidationError) {
+      this.queueOperation(operation, params);
+    }
+
+    subscriber.error(err);
+    if (requestKey) {
+      this.inFlightRequests.delete(requestKey);
+    }
+  }
+
+  private executeUpdateAll<T>(
+    payload: any,
+    params: CrudParams,
+    subscriber: any,
+    requestKey: string
+  ): void {
+    Promise.all(
+      params.data.map((item: any) =>
+        invoke<Response<T>>("manageData", {
+          operation: item.id ? "update" : "create",
+          table: params.table,
+          id: item.id,
+          data: item,
+          syncMetadata: params.syncMetadata,
+        })
+      )
+    )
+      .then((responses: Response<T>[]) => {
+        const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
+        if (success) {
+          subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
+          subscriber.complete();
+        } else {
+          this.handleError(
+            new Error("Failed to update all records"),
+            "updateAll",
+            params,
+            subscriber,
+            requestKey
+          );
+        }
+        this.inFlightRequests.delete(requestKey);
+      })
+      .catch((err) => {
+        this.handleError(err, "updateAll", params, subscriber, requestKey);
+      });
+  }
+
+  private executeSingleOperation<T>(
+    payload: any,
+    operation: Operation,
+    params: CrudParams,
+    subscriber: any,
+    requestKey: string
+  ): void {
+    invoke<Response<T>>("manageData", payload)
+      .then((response: Response<T>) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          subscriber.next(response.data as T);
+          subscriber.complete();
+        } else {
+          this.handleError(
+            new Error(response.message || `Failed to ${operation}`),
+            operation,
+            params,
+            subscriber,
+            requestKey
+          );
+        }
+        this.inFlightRequests.delete(requestKey);
+      })
+      .catch((err) => {
+        this.handleError(err, operation, params, subscriber, requestKey);
+      });
+  }
+
+  // ==================== Queue Operations ====================
+
+  private queueOperation(operation: Operation, params: CrudParams): void {
+    if (operation === "getAll" || operation === "get") {
+      return;
+    }
+
+    this.offlineQueueService.enqueue({
+      operation: operation as "create" | "update" | "delete",
+      entityType: params.table,
+      entityId: params.id || "",
+      data: params.data,
+      parentTodoId: params.parentTodoId,
+      syncMetadata: params.syncMetadata,
+    });
   }
 
   private async executeOperationForQueue(
@@ -89,314 +506,7 @@ export class DataSyncProvider {
     });
   }
 
-  private get syncService(): SyncService {
-    return this.injector.get(SyncService);
-  }
-
-  private get storageService(): StorageService {
-    return this.injector.get(StorageService);
-  }
-
-  invokeCommand<T>(command: string, args: Record<string, any> = {}): Observable<T> {
-    return from(
-      invoke<Response<T>>(command, args).then((response) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data as T;
-        }
-        throw new Error(response.message || `Command ${command} failed`);
-      })
-    );
-  }
-
-  private resolveMetadataInternal(
-    table: string,
-    todoId?: string,
-    record?: any,
-    id?: string
-  ): SyncMetadata {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    const currentUserId = this.jwtTokenService.getUserId(token);
-    let metadata: SyncMetadata = { isOwner: true, isPrivate: true };
-
-    if (table === "todos") {
-      const targetId = id || record?.id || todoId;
-      const todo = record || (targetId ? this.storageService.getTodoById(targetId) : null);
-      if (todo) {
-        metadata.isPrivate = todo.visibility === "private";
-        metadata.isOwner = todo.userId === currentUserId;
-        return metadata;
-      }
-    }
-
-    let effectiveTodoId = todoId || record?.todoId;
-    if (!effectiveTodoId && (record?.id || id)) {
-      const targetId = id || record?.id;
-      if (table === "tasks") {
-        effectiveTodoId = this.storageService.getTaskById(targetId!)?.todoId;
-      } else if (table === "subtasks") {
-        const subtask = this.storageService.getSubtaskById(targetId!);
-        if (subtask) {
-          effectiveTodoId = this.storageService.getTaskById(subtask.taskId)?.todoId;
-        }
-      }
-    }
-
-    if (effectiveTodoId) {
-      const todo = this.storageService.getTodoById(effectiveTodoId);
-      if (todo) {
-        metadata.isPrivate = todo.visibility === "private";
-        metadata.isOwner = todo.userId === currentUserId;
-      }
-    }
-
-    return metadata;
-  }
-
-  private async resolveMetadataAsync(table: string, id: string): Promise<SyncMetadata> {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    const currentUserId = this.jwtTokenService.getUserId(token);
-    const metadata: SyncMetadata = { isOwner: true, isPrivate: true };
-
-    if (table === "todos") {
-      try {
-        const todo = await firstValueFrom(
-          this.crud<Todo>("get", "todos", { filter: { id } }).pipe(catchError(() => of(null)))
-        );
-        if (todo) {
-          return {
-            isPrivate: todo.visibility === "private",
-            isOwner: todo.userId === currentUserId,
-          };
-        }
-      } catch {
-        /* Fall through */
-      }
-    }
-
-    if (table === "tasks") {
-      try {
-        const task = await firstValueFrom(
-          this.crud<Task>("get", "tasks", { filter: { id } }).pipe(catchError(() => of(null)))
-        );
-        if (task && task.todoId) {
-          const todo = await firstValueFrom(
-            this.crud<Todo>("get", "todos", { filter: { id: task.todoId } }).pipe(
-              catchError(() => of(null))
-            )
-          );
-          if (todo) {
-            return {
-              isPrivate: todo.visibility === "private",
-              isOwner: todo.userId === currentUserId,
-            };
-          }
-        }
-      } catch {
-        /* Fall through */
-      }
-    }
-
-    return metadata;
-  }
-
-  private buildCrudParams(
-    table: string,
-    options: {
-      filter?: { [key: string]: any };
-      data?: any;
-      id?: string;
-      parentTodoId?: string;
-      relations?: RelationObj[];
-      isOwner?: boolean;
-      isPrivate?: boolean;
-    }
-  ): CrudParams {
-    // Inline validateTable
-    if (!this.allowedTables.includes(table)) {
-      throw new Error(
-        `Table '${table}' is not supported. Allowed: ${this.allowedTables.join(", ")}`
-      );
-    }
-
-    const metadata =
-      options.isOwner !== undefined
-        ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
-        : this.resolveMetadataInternal(
-            table,
-            options.parentTodoId || options.data?.todoId,
-            options.data,
-            options.id
-          );
-
-    // Inline getDefaultRelations
-    const relations = options.relations ?? RelationsHelper.getRelationsForTable(table);
-
-    return {
-      table,
-      filter: options.filter,
-      data: options.data,
-      id: options.id,
-      parentTodoId: options.parentTodoId,
-      relations,
-      syncMetadata: metadata,
-    };
-  }
-
-  private inFlightRequests = new Map<string, Observable<any>>();
-  private requestCache = new Map<string, { data: any; timestamp: number }>();
-  private readonly CACHE_TTL_MS = 5000;
-
-  private executeWithFallback<T>(
-    operation: Operation,
-    params: CrudParams,
-    isArray: boolean = false
-  ): Observable<T> {
-    const requestKey = `${operation}:${params.table}:${params.id || "no-id"}`;
-
-    if (operation === "get" || operation === "getAll") {
-      const cached = this.requestCache.get(requestKey);
-      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
-        return of(cached.data as T);
-      }
-    }
-
-    const existingRequest = this.inFlightRequests.get(requestKey);
-    if (existingRequest) {
-      return existingRequest as Observable<T>;
-    }
-
-    let wsSubscription: any = null;
-    let retryTimeout: any = null;
-
-    const request$ = new Observable<T>((subscriber) => {
-      const tryWebSocket = (attempt: number) => {
-        const isConnected = this.ws.isConnected();
-
-        if (isConnected) {
-          wsSubscription = this.ws.crud<T>(operation, params).subscribe({
-            next: (data) => {
-              subscriber.next(data);
-              subscriber.complete();
-            },
-            error: (err) => {
-              this.executeTauriFallback(operation, params, subscriber, requestKey);
-            },
-            complete: () => {},
-          });
-        } else if (attempt < 3) {
-          retryTimeout = setTimeout(() => tryWebSocket(attempt + 1), 100);
-        } else {
-          this.executeTauriFallback(operation, params, subscriber, requestKey);
-        }
-      };
-
-      tryWebSocket(0);
-      return () => {
-        if (wsSubscription) wsSubscription.unsubscribe();
-        if (retryTimeout) clearTimeout(retryTimeout);
-      };
-    }).pipe(
-      share(),
-      tap({
-        next: (data) => {
-          if (operation === "get" || operation === "getAll") {
-            this.requestCache.set(requestKey, { data, timestamp: Date.now() });
-          }
-        },
-      }),
-      finalize(() => {
-        this.inFlightRequests.delete(requestKey);
-      })
-    );
-
-    this.inFlightRequests.set(requestKey, request$);
-    return request$;
-  }
-
-  private executeTauriFallback<T>(
-    operation: Operation,
-    params: CrudParams,
-    subscriber: any,
-    requestKey: string
-  ): void {
-    const payload: any = {
-      operation: operation,
-      table: params.table,
-      syncMetadata: params.syncMetadata,
-    };
-
-    if (params.filter) payload.filter = params.filter;
-    if (params.relations) payload.relations = params.relations;
-    if (params.id) payload.id = params.id;
-    if (params.data) payload.data = params.data;
-
-    const handleError = (err: any) => {
-      const isValidationError =
-        err?.message?.includes("Validation failed") ||
-        (err?.status === "Error" && err?.message?.includes("Validation"));
-      if (operation !== "getAll" && operation !== "get" && !isValidationError) {
-        this.queueOperation(operation, params);
-      }
-      subscriber.error(err);
-      if (requestKey) this.inFlightRequests.delete(requestKey);
-    };
-
-    if (operation === "updateAll" && params.data) {
-      Promise.all(
-        params.data.map((item: any) =>
-          invoke<Response<T>>("manageData", {
-            operation: item.id ? "update" : "create",
-            table: params.table,
-            id: item.id,
-            data: item,
-            syncMetadata: params.syncMetadata,
-          })
-        )
-      )
-        .then((responses: Response<T>[]) => {
-          const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
-          if (success) {
-            subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
-            subscriber.complete();
-          } else {
-            handleError(new Error("Failed to update all records"));
-          }
-          if (requestKey) this.inFlightRequests.delete(requestKey);
-        })
-        .catch((err) => {
-          handleError(err);
-        });
-    } else {
-      invoke<Response<T>>("manageData", payload)
-        .then((response: Response<T>) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            subscriber.next(response.data as T);
-            subscriber.complete();
-          } else {
-            handleError(new Error(response.message || `Failed to ${operation}`));
-          }
-          if (requestKey) this.inFlightRequests.delete(requestKey);
-        })
-        .catch((err) => {
-          handleError(err);
-        });
-    }
-  }
-
-  private queueOperation(operation: Operation, params: CrudParams): void {
-    if (operation === "getAll" || operation === "get") {
-      return;
-    }
-    const entityType = params.table;
-    this.offlineQueueService.enqueue({
-      operation: operation as "create" | "update" | "delete",
-      entityType,
-      entityId: params.id || "",
-      data: params.data,
-      parentTodoId: params.parentTodoId,
-      syncMetadata: params.syncMetadata,
-    });
-  }
+  // ==================== Public CRUD API ====================
 
   crud<T>(
     operation: Operation,
@@ -413,37 +523,35 @@ export class DataSyncProvider {
     isArray: boolean = false
   ): Observable<T> {
     const crudParams = this.buildCrudParams(table, options);
-    return this.executeWithFallback<T>(operation, crudParams, isArray).pipe(
+    return this.executeWithFallback<T>(operation, crudParams).pipe(
       tap((result) => {
         if (operation !== "get" && operation !== "getAll") {
-          this.updateStorageAfterOperation(operation, table, result, options.id);
+          this.updateStorageAfterOperation(
+            operation,
+            table,
+            result,
+            options.id,
+            options.parentTodoId
+          );
           this.clearCache(table);
         }
         if (operation === "getAll" && table === "chats") {
-          const chats = result as any[];
-          if (chats && chats.length > 0) {
-            const todoId = chats[0]?.todoId || options.filter?.["todoId"];
-            if (todoId) {
-              this.storageService.setChatsByTodo(todoId, chats);
-            }
-          }
+          this.handleChatsResult(result as any[], options.filter);
         }
       })
     );
   }
 
-  getProfileByUserId(userId: string): Observable<Profile | null> {
-    // Always fetch from backend with userId filter to get latest profile
-    return this.crud<Profile[]>("getAll", "profiles", { filter: { userId: userId } }, true).pipe(
-      map((profiles) => {
-        const profile = profiles && profiles.length > 0 ? profiles[0] : null;
-        if (profile) {
-          this.storageService.setProfile(profile);
-        }
-        return profile;
-      })
-    );
+  private handleChatsResult(chats: any[], filter?: { [key: string]: any }): void {
+    if (chats && chats.length > 0) {
+      const todoId = chats[0]?.todoId || filter?.["todoId"];
+      if (todoId) {
+        this.storageService.setChatsByTodo(todoId, chats);
+      }
+    }
   }
+
+  // ==================== Visibility Sync ====================
 
   async syncAfterVisibilityChange(newVisibility: "private" | "team"): Promise<void> {
     try {
@@ -454,163 +562,180 @@ export class DataSyncProvider {
       }
       this.clearCache();
     } catch (error) {
-      console.error(`[DataSyncProvider] syncAfterVisibilityChange failed`, error);
+      // Error silently ignored
     }
   }
 
-  /**
-   * Optimized visibility change handler that syncs only the specific record
-   * - Private to Team: Upload to MongoDB, remove from local DB, update storage
-   * - Team to Private: Update in MongoDB, import to local, update storage
-   */
   async syncSingleTodoVisibilityChange(
     todoId: string,
     newVisibility: "private" | "team"
   ): Promise<void> {
     try {
       if (newVisibility === "team") {
-        // Private -> Team: Upload only this record to MongoDB, remove from local
+        // Changing from private to team: upload to cloud and move to shared
         await this.uploadTodoToCloud(todoId);
         this.storageService.moveTodoToShared(todoId);
       } else {
-        // Team -> Private: Update in MongoDB, import to local only this record
-        await this.downloadTodoFromCloud(todoId);
+        // Changing from team to private:
+        // 1. Update cloud DB to mark as private
+        // 2. Import from cloud to local DB
+        // 3. Move from shared to private in storage
+        await this.updateTodoVisibilityInCloud(todoId, "private");
+        await this.importTodoToLocalDb(todoId);
         this.storageService.moveTodoToPrivate(todoId);
       }
       this.clearCache("todos");
     } catch (error) {
-      console.error(`[DataSyncProvider] syncSingleTodoVisibilityChange failed`, error);
       throw error;
     }
   }
 
-  /**
-   * Upload a single todo to cloud (for private -> team transition)
-   */
   private async uploadTodoToCloud(todoId: string): Promise<void> {
-    const todo = this.storageService.getTodoById(todoId);
+    const todo = this.storageService.getById("todos", todoId);
     if (!todo) {
       throw new Error(`Todo with id ${todoId} not found`);
     }
 
-    return new Promise((resolve, reject) => {
-      this.crud<Todo>("update", "todos", { id: todoId, data: todo }).subscribe({
-        next: () => {
-          resolve();
-        },
-        error: (err) => reject(err),
-      });
-    });
+    // Update visibility to team and upload
+    const updatedTodo = { ...todo, visibility: "team" as const };
+    await firstValueFrom(this.crud<Todo>("update", "todos", { id: todoId, data: updatedTodo }));
   }
 
-  /**
-   * Download a single todo from cloud (for team -> private transition)
-   */
-  private async downloadTodoFromCloud(todoId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
-        next: (todo) => {
-          if (todo) {
-            this.storageService.updateItem("todos", todoId, todo);
-            resolve();
-          } else {
-            reject(new Error(`Todo with id ${todoId} not found in cloud`));
-          }
-        },
-        error: (err) => reject(err),
-      });
-    });
+  private async updateTodoVisibilityInCloud(
+    todoId: string,
+    visibility: "private" | "team"
+  ): Promise<void> {
+    const todo = this.storageService.getById("todos", todoId);
+    if (!todo) {
+      throw new Error(`Todo with id ${todoId} not found`);
+    }
+
+    const updatedTodo = { ...todo, visibility };
+    await firstValueFrom(this.crud<Todo>("update", "todos", { id: todoId, data: updatedTodo }));
   }
+
+  private async importTodoToLocalDb(todoId: string): Promise<void> {
+    // Fetch the latest todo from cloud using id parameter
+    const cloudTodo = await firstValueFrom(
+      this.crud<Todo>("get", "todos", { id: todoId }).pipe(catchError(() => of(null)))
+    );
+
+    if (!cloudTodo) {
+      throw new Error(`Todo with id ${todoId} not found in cloud`);
+    }
+
+    // Update local storage with cloud data
+    this.storageService.updateItem("todos", todoId, cloudTodo);
+  }
+
+  // ==================== Storage Updates ====================
 
   private updateStorageAfterOperation(
     operation: Operation,
     table: string,
     result: any,
-    id?: string
+    id?: string,
+    parentTodoId?: string
   ): void {
     try {
       switch (operation) {
         case "create":
-          this.storageService.addItem(table as any, result);
-
-          // For comments, also add to parent task/subtask (check for duplicates)
-          if (table === "comments" && result) {
-            if (result.taskId) {
-              const existingTask = this.storageService.getTaskById(result.taskId);
-              if (existingTask) {
-                const commentExists = (existingTask.comments || []).some((c: any) => c.id === result.id);
-                if (!commentExists) {
-                  const updatedComments = [...(existingTask.comments || []), result];
-                  this.storageService.updateItem("tasks", result.taskId, {
-                    ...existingTask,
-                    comments: updatedComments
-                  });
-                }
-              }
-            } else if (result.subtaskId) {
-              const existingSubtask = this.storageService.getSubtaskById(result.subtaskId);
-              if (existingSubtask) {
-                const commentExists = (existingSubtask.comments || []).some((c: any) => c.id === result.id);
-                if (!commentExists) {
-                  const updatedComments = [...(existingSubtask.comments || []), result];
-                  this.storageService.updateItem("subtasks", result.subtaskId, {
-                    ...existingSubtask,
-                    comments: updatedComments
-                  });
-                }
-              }
-            }
-          }
+          this.handleCreateOperation(table, result);
           break;
         case "update":
-          if (!result || !result.id) {
-            return;
-          }
-
-          // For tasks, preserve comments and subtasks fields
-          if (table === "tasks") {
-            const existingTask = this.storageService.getTaskById(result.id);
-            if (existingTask) {
-              const mergedResult = {
-                ...result,
-                comments: (result.comments && result.comments.length > 0) ? result.comments : existingTask.comments,
-                subtasks: (result.subtasks && result.subtasks.length > 0) ? result.subtasks : existingTask.subtasks
-              };
-              this.storageService.updateItem(table as any, result.id, mergedResult);
-              return;
-            }
-          }
-
-          // For subtasks, preserve comments field
-          if (table === "subtasks") {
-            const existingSubtask = this.storageService.getSubtaskById(result.id);
-            if (existingSubtask) {
-              const mergedResult = {
-                ...result,
-                comments: (result.comments && result.comments.length > 0) ? result.comments : existingSubtask.comments
-              };
-              this.storageService.updateItem(table as any, result.id, mergedResult);
-              return;
-            }
-          }
-
-          this.storageService.updateItem(table as any, result.id, result);
+          this.handleUpdateOperation(table, result);
           break;
         case "delete":
-          this.storageService.removeItem(table as any, id!);
+          // For tasks/subtasks, lookup parent ID before deletion
+          let parentId: string | undefined;
+          if (table === "tasks") {
+            parentId = this.storageService.getById("tasks", id!)?.todoId;
+          } else if (table === "subtasks") {
+            parentId = this.storageService.getById("subtasks", id!)?.taskId;
+          }
+          this.storageService.removeItem(table as any, id!, parentId);
           break;
         case "updateAll":
-          (result as any[]).forEach((item) => {
-            if (item && item.id) {
-              this.storageService.updateItem(table as any, item.id, item);
+          // Special handling for chats - set the entire list
+          if (table === "chats" && result && Array.isArray(result)) {
+            const todoId = parentTodoId || (result[0] as any)?.todoId;
+            if (todoId) {
+              this.storageService.setChatsByTodo(todoId, result);
             }
-          });
+          } else {
+            (result as any[]).forEach((item) => {
+              if (item && item.id) {
+                this.storageService.updateItem(table as any, item.id, item);
+              }
+            });
+          }
           break;
       }
     } catch (error) {
-      console.error('[DataSyncProvider] Failed to update storage after operation:', error);
+      // Error silently ignored
     }
   }
+
+  private handleCreateOperation(table: string, result: any): void {
+    this.storageService.addItem(table as any, result);
+    // Comments are automatically added to their parent (task/subtask) by StorageService.addItem
+  }
+
+  private handleUpdateOperation(table: string, result: any): void {
+    if (!result || !result.id) {
+      return;
+    }
+
+    if (table === "tasks") {
+      const existingTask = this.storageService.getById("tasks", result.id);
+      if (existingTask) {
+        const merged = this.preserveEntityFields(result, existingTask, ["comments", "subtasks"]);
+        this.storageService.updateItem(table as any, result.id, merged);
+      } else {
+        // Entity not in storage, update with backend response directly
+        this.storageService.updateItem(table as any, result.id, result);
+      }
+      return;
+    }
+
+    if (table === "subtasks") {
+      const existingSubtask = this.storageService.getById("subtasks", result.id);
+      if (existingSubtask) {
+        const merged = this.preserveEntityFields(result, existingSubtask, ["comments"]);
+        this.storageService.updateItem(table as any, result.id, merged);
+      } else {
+        // Entity not in storage, update with backend response directly
+        this.storageService.updateItem(table as any, result.id, result);
+      }
+      return;
+    }
+
+    this.storageService.updateItem(table as any, result.id, result);
+  }
+
+  private preserveEntityFields<T extends Record<string, any>>(
+    incoming: T,
+    existing: T,
+    fieldsToPreserve: string[]
+  ): T {
+    const result: any = { ...incoming };
+    for (const field of fieldsToPreserve) {
+      const incomingValue = incoming[field];
+      const existingValue = existing[field];
+
+      // Always prefer incoming value if it exists (backend is source of truth)
+      // Only use existing value if incoming doesn't have this field
+      if (incomingValue !== undefined && incomingValue !== null) {
+        result[field] = incomingValue;
+      } else if (existingValue) {
+        result[field] = existingValue;
+      }
+    }
+
+    return result as T;
+  }
+
+  // ==================== Cache Management ====================
 
   clearCache(table?: string): void {
     if (table) {

@@ -27,11 +27,7 @@ export class AdminService {
     return await invoke<Response<void>>("permanentlyDeleteRecord", { table, id });
   }
 
-  async permanentlyDeleteRecordWithCascade(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("permanentlyDeleteRecordWithCascade", { table, id });
-  }
-
-  async toggleDeleteStatus(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("toggleDeleteStatus", { table, id });
+  async toggleDeleteStatus(table: string, id: string): Promise<Response<boolean>> {
+    return await invoke<Response<boolean>>("toggleDeleteStatus", { table, id });
   }
 }

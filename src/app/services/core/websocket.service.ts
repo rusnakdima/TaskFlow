@@ -1,7 +1,7 @@
 /* sys lib */
 import { inject, Injectable, NgZone, OnDestroy } from "@angular/core";
 import { Observable, BehaviorSubject, Subject, throwError } from "rxjs";
-import { take, map, timeout, filter, catchError } from "rxjs/operators";
+import { take, map, timeout, filter, catchError, tap } from "rxjs/operators";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* models */
@@ -229,12 +229,12 @@ export class WebSocketService implements OnDestroy {
 
   private handleCommentCreate(data: Comment): void {
     if (data.taskId) {
-      const task = this.storageService.getTaskById(data.taskId);
+      const task = this.storageService.getById("tasks", data.taskId);
       if (task) {
         this.storageService.addCommentToTask(data.taskId, data);
       }
     } else if (data.subtaskId) {
-      const subtask = this.storageService.getSubtaskById(data.subtaskId);
+      const subtask = this.storageService.getById("subtasks", data.subtaskId);
       if (subtask) {
         this.storageService.addCommentToSubtask(data.subtaskId, data);
       }
@@ -265,21 +265,51 @@ export class WebSocketService implements OnDestroy {
 
     this.socket.send(JSON.stringify(request));
 
+    let messageCount = 0;
+
     return this.messageSubject.asObservable().pipe(
+      tap(() => {
+        messageCount++;
+      }),
       filter((response) => {
-        const reqId = response.requestId || response.response?.requestId;
-        return reqId === requestId;
+        // Response format: { requestId: "xxx", response: { status, data, message } }
+        const responseRequestId = response.requestId;
+        const matches = responseRequestId === requestId;
+        return matches;
       }),
       take(1),
       timeout(30000),
-      map((response: { response: Response<T>; requestId?: string }) => {
-        const resp = response.response || response;
-        if (resp.status === ResponseStatus.SUCCESS) {
-          return resp.data;
-        } else {
-          throw new Error(resp.message || "Operation failed");
+      map(
+        (response: {
+          requestId?: string;
+          response?: Response<T>;
+          status?: string;
+          data?: T;
+          message?: string;
+        }) => {
+          // Handle both nested format { requestId, response: {...} } and flat format { requestId, status, data, message }
+          let resp: Response<T>;
+          if (response.response) {
+            // Nested format
+            resp = response.response;
+          } else if (response.status) {
+            // Flat format - wrap in Response object
+            resp = {
+              status: response.status as ResponseStatus,
+              message: response.message || "",
+              data: response.data as T,
+            } as Response<T>;
+          } else {
+            throw new Error("Invalid response format");
+          }
+
+          if (resp.status === ResponseStatus.SUCCESS) {
+            return resp.data as T;
+          } else {
+            throw new Error(resp.message || "Operation failed");
+          }
         }
-      }),
+      ),
       catchError((error) => {
         if (error.name === "TimeoutError") {
           return throwError(() => new Error("Request timed out - no response from server"));
@@ -294,7 +324,11 @@ export class WebSocketService implements OnDestroy {
 
     switch (operation) {
       case "getAll":
+        if (params.filter) payload.filter = params.filter;
+        if (params.relations) payload.relations = params.relations;
+        break;
       case "get":
+        if (params.id) payload.id = params.id;
         if (params.filter) payload.filter = params.filter;
         if (params.relations) payload.relations = params.relations;
         break;
@@ -343,6 +377,11 @@ export class WebSocketService implements OnDestroy {
    * Maps WebSocket events to StorageService updates
    */
   initStorageListeners(): void {
+    // Listen for Tauri invoke events
+    listen("websocket-message", (event: any) => {
+      this.messageSubject.next(event.payload);
+    }).then((unlisten) => this.unlistenFns.push(unlisten));
+
     const entities: Array<"todos" | "tasks" | "subtasks" | "categories" | "comments"> = [
       "todos",
       "tasks",

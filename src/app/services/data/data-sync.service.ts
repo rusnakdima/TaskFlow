@@ -1,11 +1,24 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, of, forkJoin, catchError } from "rxjs";
-import { tap, switchMap, map } from "rxjs/operators";
+import {
+  Observable,
+  of,
+  forkJoin,
+  catchError,
+  BehaviorSubject,
+  filter,
+  take,
+  combineLatest,
+  defer,
+  Subject,
+  map,
+} from "rxjs";
+import { tap, switchMap } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
+import { Profile } from "@models/profile.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -27,29 +40,23 @@ export class DataSyncService {
   private storageService = inject(StorageService);
 
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
-
-  /**
-   * Check if error is a network-related error
-   * @deprecated Use NetworkErrorHelper.isNetworkError() instead
-   */
-  private isNetworkError(error: any): boolean {
-    return NetworkErrorHelper.isNetworkError(error);
-  }
+  private loadInProgress = false;
+  private loadSubject = new BehaviorSubject<any>(null);
 
   /**
    * Handle sync errors with appropriate fallback behavior
    */
   private handleSyncError<T>(context: string, fallbackValue: T, error: any): Observable<T> {
-    if (this.isNetworkError(error)) {
-      console.warn(`[DataSyncService] ${context} - Working offline`);
+    if (NetworkErrorHelper.isNetworkError(error)) {
       return of(fallbackValue);
     }
     throw error;
   }
 
   /**
-   * Load all application data INCLUDING PROFILE
+   * Load all application data (todos and categories)
    * Works in offline mode - uses cached data if backend unavailable
+   * Profile is loaded separately via loadProfile()
    */
   loadAllData(force: boolean = false): Observable<any> {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -58,160 +65,133 @@ export class DataSyncService {
     const hasData =
       this.storageService.privateTodos().length > 0 || this.storageService.sharedTodos().length > 0;
 
-    if (!hasData) force = true;
+    if (!hasData) {
+      force = true;
+    }
 
     // Check if we have valid cached data
     if (!force && this.isCacheValid()) {
       return of({
         todos: this.storageService.todos(),
         categories: this.storageService.categories(),
-        profile: this.storageService.profile(),
       });
     }
 
-    if (this.storageService.loading()) return of(null);
+    // If already loading, return the existing observable
+    if (this.loadInProgress) {
+      return this.loadSubject.asObservable().pipe(
+        filter((data) => data !== null),
+        take(1)
+      );
+    }
 
+    this.loadInProgress = true;
     this.storageService.setLoading(true);
 
     // Use relations with user data to load complete todo information
     const todoRelations = RelationsHelper.getTodoRelationsWithUser();
-    const profileRelations = RelationsHelper.getProfileRelations();
 
-    // Load profile FIRST and store in StorageService
-    return this.dataSyncProvider.getProfileByUserId(userId).pipe(
-      tap((profile) => {
-        // Store profile in StorageService for all views to use
-        this.storageService.setProfile(profile || null);
-      }),
-      switchMap((profile) => {
-        return forkJoin({
-          privateTodos: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { userId, visibility: "private" },
-              isOwner: true,
-              isPrivate: true,
-              relations: todoRelations,
-            },
-            true
-          ),
-          teamTodosOwner: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { userId, visibility: "team" },
-              isOwner: true,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          teamTodosAssignee: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { assignees: userId, visibility: "team" },
-              isOwner: false,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          categories: this.dataSyncProvider.crud<Category[]>(
-            "getAll",
-            "categories",
-            { filter: { userId } },
-            true
-          ),
-        });
-      }),
-      catchError((error) => {
-        if (this.isNetworkError(error)) {
-          console.warn("[DataSyncService] Working offline - using cached data");
-          this.storageService.setLoading(false);
-          this.storageService.setLoaded(true);
-          this.storageService.setLastLoaded(new Date());
-          return of({
-            privateTodos: [],
-            teamTodosOwner: [],
-            teamTodosAssignee: [],
-            categories: this.storageService.categories(),
-          });
-        }
+    // Create a subject to bridge internal execution with external subscribers
+    const resultSubject = new Subject<any>();
 
-        this.storageService.setProfile(null);
-
-        return forkJoin({
-          privateTodos: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { userId, visibility: "private" },
-              isOwner: true,
-              isPrivate: true,
-              relations: todoRelations,
-            },
-            true
-          ),
-          teamTodosOwner: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { userId, visibility: "team" },
-              isOwner: true,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          teamTodosAssignee: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { assignees: userId, visibility: "team" },
-              isOwner: false,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          categories: this.dataSyncProvider.crud<Category[]>(
-            "getAll",
-            "categories",
-            { filter: { userId } },
-            true
-          ),
-        });
+    // Create the forkJoin and subscribe internally to ensure execution
+    forkJoin({
+      privateTodos: defer(() => {
+        return this.dataSyncProvider.crud<Todo[]>(
+          "getAll",
+          "todos",
+          {
+            filter: { userId, visibility: "private" },
+            isOwner: true,
+            isPrivate: true,
+            relations: todoRelations,
+          },
+          true
+        );
       }),
-      tap(({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
-        this.storageService.setPrivateTodos(privateTodos);
+      teamTodosOwner: defer(() => {
+        return this.dataSyncProvider.crud<Todo[]>(
+          "getAll",
+          "todos",
+          {
+            filter: { userId, visibility: "team" },
+            isOwner: true,
+            isPrivate: false,
+            relations: todoRelations,
+          },
+          true
+        );
+      }),
+      teamTodosAssignee: defer(() => {
+        return this.dataSyncProvider.crud<Todo[]>(
+          "getAll",
+          "todos",
+          {
+            filter: { assignees: userId, visibility: "team" },
+            isOwner: false,
+            isPrivate: false,
+            relations: todoRelations,
+          },
+          true
+        );
+      }),
+      categories: defer(() => {
+        return this.dataSyncProvider.crud<Category[]>(
+          "getAll",
+          "categories",
+          { filter: { userId } },
+          true
+        );
+      }),
+    }).subscribe({
+      next: ({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
+        this.storageService.setCollection("privateTodos", privateTodos);
 
         const sharedTodoMap = new Map<string, Todo>();
         [...teamTodosOwner, ...teamTodosAssignee].forEach((todo) =>
           sharedTodoMap.set(todo.id, todo)
         );
-        this.storageService.setSharedTodos(Array.from(sharedTodoMap.values()));
+        this.storageService.setCollection("sharedTodos", Array.from(sharedTodoMap.values()));
 
-        this.storageService.setCategories(categories);
+        this.storageService.setCollection("categories", categories);
         this.storageService.setLoading(false);
         this.storageService.setLoaded(true);
         this.storageService.setLastLoaded(new Date());
-      }),
-      catchError((error) => {
-        if (this.isNetworkError(error) && this.storageService.loaded()) {
-          console.warn("[DataSyncService] Using cached data (offline mode)");
-          return of({
+        this.loadInProgress = false;
+
+        const result = {
+          todos: this.storageService.todos(),
+          categories: this.storageService.categories(),
+        };
+
+        // Emit to all waiting subscribers
+        this.loadSubject.next(result);
+        resultSubject.next(result);
+        resultSubject.complete();
+      },
+      error: (error) => {
+        this.loadInProgress = false;
+        this.storageService.setLoading(false);
+
+        if (NetworkErrorHelper.isNetworkError(error) && this.storageService.loaded()) {
+          const cachedData = {
             todos: this.storageService.todos(),
             categories: this.storageService.categories(),
-            profile: this.storageService.profile(),
+          };
+          this.loadSubject.next(cachedData);
+          resultSubject.next(cachedData);
+        } else {
+          this.loadSubject.next({
+            todos: [],
+            categories: [],
           });
         }
+        resultSubject.error(error);
+      },
+    });
 
-        this.storageService.setLoading(false);
-        throw error;
-      })
-    );
+    // Return the subject for external subscribers
+    return resultSubject.asObservable();
   }
 
   /**
@@ -222,52 +202,75 @@ export class DataSyncService {
     const userId = this.jwtTokenService.getUserId(token) || "";
     const todoRelations = RelationsHelper.getTodoRelations();
 
-    return this.dataSyncProvider.getProfileByUserId(userId).pipe(
-      switchMap((profile) => {
-        this.storageService.setProfile(profile);
-
-        return forkJoin({
-          myTeamProjects: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { userId, visibility: "team" },
-              isOwner: true,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          sharedTeamProjects: this.dataSyncProvider.crud<Todo[]>(
-            "getAll",
-            "todos",
-            {
-              filter: { assignees: userId, visibility: "team" },
-              isOwner: false,
-              isPrivate: false,
-              relations: todoRelations,
-            },
-            true
-          ),
-          categories: this.dataSyncProvider.crud<Category[]>(
-            "getAll",
-            "categories",
-            { filter: { userId } },
-            true
-          ),
-        });
-      }),
+    return forkJoin({
+      myTeamProjects: this.dataSyncProvider.crud<Todo[]>(
+        "getAll",
+        "todos",
+        {
+          filter: { userId, visibility: "team" },
+          isOwner: true,
+          isPrivate: false,
+          relations: todoRelations,
+        },
+        true
+      ),
+      sharedTeamProjects: this.dataSyncProvider.crud<Todo[]>(
+        "getAll",
+        "todos",
+        {
+          filter: { assignees: userId, visibility: "team" },
+          isOwner: false,
+          isPrivate: false,
+          relations: todoRelations,
+        },
+        true
+      ),
+      categories: this.dataSyncProvider.crud<Category[]>(
+        "getAll",
+        "categories",
+        { filter: { userId } },
+        true
+      ),
+    }).pipe(
       map(({ myTeamProjects, sharedTeamProjects, categories }) => {
         const todoMap = new Map<string, Todo>();
         [...myTeamProjects, ...sharedTeamProjects].forEach((todo) => todoMap.set(todo.id, todo));
         const uniqueTodos = Array.from(todoMap.values());
 
-        this.storageService.setSharedTodos(uniqueTodos);
-        this.storageService.setCategories(categories);
+        this.storageService.setCollection("sharedTodos", uniqueTodos);
+        this.storageService.setCollection("categories", categories);
 
         return uniqueTodos;
       })
     );
+  }
+
+  /**
+   * Load user profile and store in StorageService
+   */
+  loadProfile(): Observable<Profile | null> {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const userId = this.jwtTokenService.getUserId(token) || "";
+
+    if (!userId) {
+      return of(null);
+    }
+
+    // Check if profile already exists in storage
+    const existingProfile = this.storageService.profile();
+    if (existingProfile) {
+      return of(existingProfile);
+    }
+
+    // Use getAll with filter instead of get
+    return this.dataSyncProvider
+      .crud<Profile[]>("getAll", "profiles", { filter: { userId } }, true)
+      .pipe(
+        map((profiles) => (profiles && profiles.length > 0 ? profiles[0] : null)),
+        tap((profile: Profile | null) => {
+          this.storageService.setCollection("profiles", profile);
+        })
+      );
   }
 
   private isCacheValid(): boolean {
