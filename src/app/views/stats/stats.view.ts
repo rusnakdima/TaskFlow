@@ -76,17 +76,22 @@ export class StatsView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.dataSyncProvider.invokeCommand<StatisticsResponse>("statisticsGet", { userId, timeRange: this.selectedTimeRange() }).subscribe({
-        next: (response: StatisticsResponse) => {
-          this.statistics.set(response.statistics);
-          this.chartData.set(response.chartData);
-          this.achievements.set(response.achievements);
-          this.detailedMetrics.set(response.detailedMetrics);
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message);
-        },
-      });
+      this.dataSyncProvider
+        .invokeCommand<StatisticsResponse>("statisticsGet", {
+          userId,
+          timeRange: this.selectedTimeRange(),
+        })
+        .subscribe({
+          next: (response: StatisticsResponse) => {
+            this.statistics.set(response.statistics);
+            this.chartData.set(response.chartData);
+            this.achievements.set(response.achievements);
+            this.detailedMetrics.set(response.detailedMetrics);
+          },
+          error: (err: any) => {
+            this.notifyService.showError(err.message);
+          },
+        });
     }
   }
 

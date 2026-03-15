@@ -15,6 +15,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { StorageService } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 
 @Component({
@@ -26,6 +27,7 @@ import { LocalAuthService } from "@services/auth/local-auth.service";
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private localAuthService = inject(LocalAuthService);
+  private dataSyncService = inject(DataSyncService);
 
   constructor(
     private route: ActivatedRoute,
@@ -50,11 +52,10 @@ export class ProfileView implements OnInit, OnDestroy {
 
     this.routeSub = this.route.queryParams.subscribe((params: any) => {
       if (params.id && params.id != "") {
-        // ✅ Profile already loaded in StorageService - just use it
-        // No need to fetch again unless explicitly needed
+        // Profile is loaded centrally in app.ts - just use cached signal
         const cachedProfile = this.storageService.profile();
         if (!cachedProfile) {
-          // Only fetch if not in cache (should rarely happen)
+          // If somehow not cached, trigger a reload via DataSyncService
           this.getProfile(params.id);
         }
       }
@@ -75,18 +76,8 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   getProfile(userId: string) {
-    // ⚠️ Only called when profile not in cache
-    this.dataSyncProvider.getProfileByUserId(userId).subscribe({
-      next: (profile: Profile | null) => {
-        if (profile) {
-          // ✅ Cache the profile
-          this.storageService.setProfile(profile);
-        }
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to load profile");
-      },
-    });
+    // Only called when profile not in cache - use DataSyncService
+    this.dataSyncService.loadProfile().subscribe();
   }
 
   /**

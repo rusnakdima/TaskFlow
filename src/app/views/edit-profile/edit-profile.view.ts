@@ -25,6 +25,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { StorageService } from "@services/core/storage.service";
+import { DataSyncService } from "@services/data/data-sync.service";
 
 @Component({
   selector: "app-edit-profile",
@@ -46,7 +47,8 @@ export class EditProfileView {
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
     private notifyService: NotifyService,
-    private storageService: StorageService // ✅ Inject StorageService
+    private storageService: StorageService,
+    private dataSyncService: DataSyncService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -95,20 +97,18 @@ export class EditProfileView {
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
 
-      // ✅ FIX: Check if profile is already cached in StorageService
+      // Check if profile is already cached in StorageService
       const cachedProfile = this.storageService.profile();
 
       if (cachedProfile) {
-        // ✅ Use cached profile - no API call needed
+        // Use cached profile - no API call needed
         this.form.patchValue(cachedProfile);
       } else {
-        // ⚠️ Profile not cached - fetch it (should rarely happen)
-        this.dataSyncProvider.getProfileByUserId(userId).subscribe({
-          next: (profile: Profile | null) => {
+        // Profile not cached - fetch it via DataSyncService
+        this.dataSyncService.loadProfile().subscribe({
+          next: (profile) => {
             if (profile) {
               this.form.patchValue(profile);
-              // ✅ Cache it for other views
-              this.storageService.setProfile(profile);
             }
           },
           error: (err) => {
@@ -132,15 +132,17 @@ export class EditProfileView {
 
     if (this.form.valid) {
       const body = this.form.value;
-      this.dataSyncProvider.crud<Profile>("update", "profiles", { id: body.id, data: body }).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Profile updated successfully");
-          this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to update profile");
-        },
-      });
+      this.dataSyncProvider
+        .crud<Profile>("update", "profiles", { id: body.id, data: body })
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Profile updated successfully");
+            this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
+          },
+          error: (err: any) => {
+            this.notifyService.showError(err.message || "Failed to update profile");
+          },
+        });
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");
     }

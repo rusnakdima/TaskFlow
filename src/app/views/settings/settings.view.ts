@@ -6,13 +6,16 @@ import { FormsModule } from "@angular/forms";
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 
 @Component({
   selector: "app-settings",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent],
   templateUrl: "./settings.view.html",
 })
 export class SettingsView implements OnInit {
