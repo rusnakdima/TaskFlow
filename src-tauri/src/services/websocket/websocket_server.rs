@@ -13,7 +13,13 @@ use super::handlers::CrudHandlers;
 /// WebSocketServerService - Manages WebSocket server and client connections
 pub struct WebSocketServerService {
   crud_service: Arc<CrudService>,
-  clients: Arc<std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<tokio_tungstenite::tungstenite::protocol::Message>>>>,
+  clients: Arc<
+    std::sync::Mutex<
+      Vec<
+        futures::channel::mpsc::UnboundedSender<tokio_tungstenite::tungstenite::protocol::Message>,
+      >,
+    >,
+  >,
 }
 
 impl WebSocketServerService {
