@@ -350,18 +350,12 @@ export class ArchiveView implements OnInit {
     }
 
     try {
-      // Permanently delete record with cascade (local JSON only)
       const response = await this.adminService.permanentlyDeleteRecordLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted from local database");
-
-        // Update local storage immediately - simply remove from lists
         this.adminStorageService.removeRecordWithCascade(table, record.id);
-        // Also update main storage
         this.storageService.removeRecordWithCascade(table, record.id);
-
-        // Reload all data after deletion to get fresh data from DB
         this.loadArchiveData();
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
@@ -373,81 +367,61 @@ export class ArchiveView implements OnInit {
 
   async toggleDeleteStatus(record: any) {
     try {
-      // Toggle delete status with cascade (local JSON only)
       const response = await this.adminService.toggleDeleteStatusLocal(this.selectedType(), record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-
-        // Update main storage with the new status
         const isDeleted = response.data === true;
         if (this.selectedType() === "todos") {
           if (isDeleted) {
-            // Mark as deleted - remove from main storage
             this.storageService.removeTodoWithCascade(record.id);
           } else {
-            // Restore - reload data to get restored todo
-            // Trigger a reload in the main app by reloading archive data
+            this.adminService.getAllDataForArchive().subscribe({
+              next: (archiveResponse) => {
+                const data = archiveResponse.data as any;
+                const restoredTodo = data["todos"]?.find((t: any) => t.id === record.id);
+                if (restoredTodo) {
+                  const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
+                  const subtaskIds =
+                    restoredTodo.tasks?.flatMap(
+                      (t: any) => t.subtasks?.map((s: any) => s.id) || []
+                    ) || [];
+
+                  const relatedTasks =
+                    data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
+                  const relatedSubtasks =
+                    data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
+                  const relatedComments =
+                    data["comments"]?.filter(
+                      (c: any) =>
+                        c.taskId === record.id ||
+                        taskIds.includes(c.taskId) ||
+                        subtaskIds.includes(c.subtaskId)
+                    ) || [];
+                  const relatedChats =
+                    data["chats"]?.filter((c: any) => c.todoId === record.id) || [];
+
+                  this.adminStorageService.restoreTodoWithCascade({
+                    todo: restoredTodo,
+                    tasks: relatedTasks,
+                    subtasks: relatedSubtasks,
+                    comments: relatedComments,
+                    chats: relatedChats,
+                  });
+
+                  this.storageService.restoreTodoWithCascade({
+                    todo: restoredTodo,
+                    tasks: relatedTasks,
+                    subtasks: relatedSubtasks,
+                    comments: relatedComments,
+                  });
+                }
+              },
+            });
           }
         } else {
-          // For other types, update the status
           this.storageService.updateItem(this.selectedType() as any, record.id, { isDeleted });
         }
-
-        // Reload all data from DB to get fresh state
-        this.loadArchiveData();
-
-        // For todos, use cascade restore to restore all related data
-        if (this.selectedType() === "todos" && !isDeleted) {
-          // Fetch the restored todo with all related data from backend
-          this.adminService.getAllDataForArchive().subscribe({
-            next: (archiveResponse) => {
-              const data = archiveResponse.data as any;
-              const restoredTodo = data["todos"]?.find((t: any) => t.id === record.id);
-              if (restoredTodo) {
-                // Get related data
-                const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
-                const subtaskIds =
-                  restoredTodo.tasks?.flatMap(
-                    (t: any) => t.subtasks?.map((s: any) => s.id) || []
-                  ) || [];
-
-                const relatedTasks =
-                  data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
-                const relatedSubtasks =
-                  data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
-                const relatedComments =
-                  data["comments"]?.filter(
-                    (c: any) =>
-                      c.taskId === record.id ||
-                      taskIds.includes(c.taskId) ||
-                      subtaskIds.includes(c.subtaskId)
-                  ) || [];
-                const relatedChats =
-                  data["chats"]?.filter((c: any) => c.todoId === record.id) || [];
-
-                // Restore with cascade in admin storage
-                this.adminStorageService.restoreTodoWithCascade({
-                  todo: restoredTodo,
-                  tasks: relatedTasks,
-                  subtasks: relatedSubtasks,
-                  comments: relatedComments,
-                  chats: relatedChats,
-                });
-
-                // Also restore in main storage if needed
-                this.storageService.restoreTodoWithCascade({
-                  todo: restoredTodo,
-                  tasks: relatedTasks,
-                  subtasks: relatedSubtasks,
-                  comments: relatedComments,
-                });
-              }
-            },
-          });
-        }
-
-        // Reload all data to get cascade updates
         this.loadArchiveData();
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
