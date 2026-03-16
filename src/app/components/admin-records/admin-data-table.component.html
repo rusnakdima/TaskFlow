@@ -34,6 +34,27 @@
                   {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
                 </mat-icon>
               </button>
+              @if (showActions) {
+                <button
+                  mat-icon-button
+                  class="w-8 h-8 text-blue-600"
+                  (click)="toggleDelete.emit(item)"
+                  [title]="item.isDeleted ? 'Restore record' : 'Soft delete record'"
+                >
+                  <mat-icon
+                    class="w-5! h-5! text-xl!"
+                    [fontIcon]="item.isDeleted ? 'restore_from_trash' : 'delete'"
+                  />
+                </button>
+                <button
+                  mat-icon-button
+                  class="w-8 h-8 text-red-600"
+                  (click)="deleteRecord.emit(item)"
+                  title="Permanently delete record"
+                >
+                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete_forever" />
+                </button>
+              }
             </div>
           </div>
 
