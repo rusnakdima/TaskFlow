@@ -80,6 +80,7 @@ export class TodosBlueprintService {
       categories: [],
       tasks: [],
       assignees: [],
+      assigneesProfiles: [],
       priority: template.priority || "medium",
       order: 0,
       startDate: "",

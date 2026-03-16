@@ -30,17 +30,23 @@ export class TodoHandler extends EntityHandler<Todo> {
   }
 
   update(id: string, updates: Partial<Todo>): void {
-    const updateSignal = (signal: WritableSignal<Todo[]>) => {
-      signal.update((todos) => {
-        const hasTodo = todos.some((t) => t.id === id);
-        if (!hasTodo) return todos;
-        return todos.map((todo) => (todo.id === id ? { ...todo, ...updates } : todo));
-      });
-    };
+    // Find which signal contains this todo
+    const existsInPrivate = this.privateSignal().some((t) => t.id === id);
+    const existsInShared = this.sharedSignal().some((t) => t.id === id);
 
-    updateSignal(this.privateSignal);
-    updateSignal(this.sharedSignal);
+    // Update only the signal where the todo exists
+    if (existsInPrivate) {
+      this.privateSignal.update((todos) =>
+        todos.map((todo) => (todo.id === id ? { ...todo, ...updates } : todo))
+      );
+    }
+    if (existsInShared) {
+      this.sharedSignal.update((todos) =>
+        todos.map((todo) => (todo.id === id ? { ...todo, ...updates } : todo))
+      );
+    }
 
+    // Handle visibility change if needed
     if (updates.visibility) {
       this.handleVisibilityChange(id, updates.visibility);
     }
@@ -97,13 +103,20 @@ export class TodoHandler extends EntityHandler<Todo> {
         ? [this.sharedSignal, this.privateSignal]
         : [this.privateSignal, this.sharedSignal];
 
-    const todo = this.getById(todoId);
+    // Get the todo from either signal
+    const todo =
+      this.privateSignal().find((t) => t.id === todoId) ||
+      this.sharedSignal().find((t) => t.id === todoId);
+
     if (!todo) return;
 
+    // Remove from both signals to ensure clean state
     from.update((todos) => todos.filter((t) => t.id !== todoId));
-    to.update((todos) => [
-      { ...todo, visibility: newVisibility },
-      ...todos.filter((t) => t.id !== todoId),
-    ]);
+    to.update((todos) => {
+      // Ensure todo doesn't already exist in target signal
+      const exists = todos.some((t) => t.id === todoId);
+      if (exists) return todos;
+      return [{ ...todo, visibility: newVisibility }, ...todos];
+    });
   }
 }

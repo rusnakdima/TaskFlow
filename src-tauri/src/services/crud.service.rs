@@ -8,7 +8,6 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 
 /* models */
 use crate::models::{
-  provider_type_model::ProviderType,
   relation_obj::RelationObj,
   response_model::{DataValue, ResponseModel},
   sync_metadata_model::SyncMetadata,
@@ -16,10 +15,9 @@ use crate::models::{
 };
 
 /* helpers */
-use crate::helpers::user_sync_helper;
 use crate::helpers::{
-  common::getProviderType,
   response_helper::{errResponse, errResponseFormatted, successResponse},
+  user_sync_helper,
 };
 
 /* services */
@@ -28,6 +26,9 @@ use crate::services::admin::relation_definitions;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
+/* repositories */
+use crate::repositories::routed_repository::RoutedRepository;
+
 #[derive(Clone)]
 pub struct CrudService {
   pub jsonProvider: JsonProvider,
@@ -35,6 +36,7 @@ pub struct CrudService {
   pub cascadeService: CascadeService,
   pub entityResolution: Arc<EntityResolutionService>,
   pub activityMonitor: ActivityMonitorService,
+  pub routedRepository: Arc<RoutedRepository>,
 }
 
 impl CrudService {
@@ -44,6 +46,7 @@ impl CrudService {
     cascadeService: CascadeService,
     entityResolution: Arc<EntityResolutionService>,
     activityMonitor: ActivityMonitorService,
+    routedRepository: Arc<RoutedRepository>,
   ) -> Self {
     Self {
       jsonProvider,
@@ -51,6 +54,7 @@ impl CrudService {
       cascadeService,
       entityResolution,
       activityMonitor,
+      routedRepository,
     }
   }
 
@@ -65,37 +69,19 @@ impl CrudService {
     relations: Option<Vec<RelationObj>>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let use_json = self.determineProvider(&syncMetadata)?;
-
-    let effective_rels = relations.or_else(|| relation_definitions::getTableRelations(&table));
-
     match operation.as_str() {
       "getAll" => {
         self
-          .handleGetAll(table, filter, effective_rels, use_json)
+          .handleGetAll(table, filter, relations, syncMetadata)
           .await
       }
-      "get" => self.handleGet(table, id, effective_rels, use_json).await,
-      "create" => self.handleCreate(table, data, use_json).await,
-      "update" => self.handleUpdate(table, id, data, use_json).await,
-      "updateAll" => self.handleUpdateAll(table, data, use_json).await,
-      "delete" => self.handleDelete(table, id, use_json).await,
-      "restore" => self.handleRestore(table, id, use_json).await,
+      "get" => self.handleGet(table, id, relations, syncMetadata).await,
+      "create" => self.handleCreate(table, data, syncMetadata).await,
+      "update" => self.handleUpdate(table, id, data, syncMetadata).await,
+      "updateAll" => self.handleUpdateAll(table, data, syncMetadata).await,
+      "delete" => self.handleDelete(table, id, syncMetadata).await,
+      "restore" => self.handleRestore(table, id, syncMetadata).await,
       _ => Err(errResponse(&format!("Unknown operation: {}", operation))),
-    }
-  }
-
-  fn determineProvider(&self, syncMetadata: &Option<SyncMetadata>) -> Result<bool, ResponseModel> {
-    if let Some(ref metadata) = syncMetadata {
-      match getProviderType(metadata) {
-        Ok(provider_type) => match provider_type {
-          ProviderType::Json => Ok(true),
-          ProviderType::Mongo => Ok(false),
-        },
-        Err(e) => Err(e),
-      }
-    } else {
-      Ok(true)
     }
   }
 
@@ -104,20 +90,21 @@ impl CrudService {
     table: String,
     filter: Option<Value>,
     relations: Option<Vec<RelationObj>>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mut docs = if use_json {
-      self.jsonProvider.jsonCrud.getAll(&table, filter).await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.getAll(&table, filter).await
-    }
-    .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
 
-    if let Some(rels) = relations {
+    let mut docs = repo
+      .getAll(filter, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Get all failed", &e))?;
+
+    let effective_rels = relations.or_else(|| relation_definitions::getTableRelations(&table));
+    if let Some(rels) = effective_rels {
       for doc in &mut docs {
         let _ = self
           .jsonProvider
@@ -135,22 +122,23 @@ impl CrudService {
     table: String,
     id: Option<String>,
     relations: Option<Vec<RelationObj>>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for get"))?;
 
-    let mut doc = if use_json {
-      self.jsonProvider.jsonCrud.get(&table, &id_str).await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.get(&table, &id_str).await
-    }
-    .map_err(|e| errResponseFormatted("Get failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
 
-    if let Some(rels) = relations {
+    let mut doc = repo
+      .get(&id_str, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Get failed", &e))?;
+
+    let effective_rels = relations.or_else(|| relation_definitions::getTableRelations(&table));
+    if let Some(rels) = effective_rels {
       let _ = self
         .jsonProvider
         .jsonRelations
@@ -165,7 +153,7 @@ impl CrudService {
     &self,
     table: String,
     data: Option<Value>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| errResponse("Data required for create"))?;
 
@@ -176,33 +164,22 @@ impl CrudService {
     let validated_data = validateModel(&table, &data_val, true)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let result = if use_json {
-      self
-        .jsonProvider
-        .jsonCrud
-        .create(&table, validated_data.clone())
-        .await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb
-        .mongodbCrud
-        .create(&table, validated_data.clone())
-        .await
-    };
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
 
-    match result {
-      Ok(created_record) => {
-        self
-          .activityMonitor
-          .logAction(&table, "create", &created_record, None)
-          .await;
-        Ok(successResponse(DataValue::Object(created_record)))
-      }
-      Err(e) => Err(errResponseFormatted("Create failed", &e.to_string())),
-    }
+    let created_record = repo
+      .create(validated_data.clone(), syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Create failed", &e))?;
+
+    self
+      .activityMonitor
+      .logAction(&table, "create", &created_record, None)
+      .await;
+    Ok(successResponse(DataValue::Object(created_record)))
   }
 
   async fn handleUpdate(
@@ -210,59 +187,42 @@ impl CrudService {
     table: String,
     id: Option<String>,
     data: Option<Value>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for update"))?;
     let data_val = data.ok_or_else(|| errResponse("Data required for update"))?;
 
-    let original = if use_json {
-      self.jsonProvider.jsonCrud.get(&table, &id_str).await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.get(&table, &id_str).await
-    }
-    .map_err(|e| errResponseFormatted("Fetch original failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
+
+    let original = repo
+      .get(&id_str, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Fetch original failed", &e))?;
 
     let validated_data = validateModel(&table, &data_val, false)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let result = if use_json {
-      self
-        .jsonProvider
-        .jsonCrud
-        .update(&table, &id_str, validated_data.clone())
-        .await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb
-        .mongodbCrud
-        .update(&table, &id_str, validated_data.clone())
-        .await
-    };
+    let updated_record = repo
+      .update(&id_str, validated_data.clone(), syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Update failed", &e))?;
 
-    match result {
-      Ok(updated_record) => {
-        self
-          .activityMonitor
-          .logAction(&table, "update", &updated_record, Some(&original))
-          .await;
-        Ok(successResponse(DataValue::Object(updated_record)))
-      }
-      Err(e) => Err(errResponseFormatted("Update failed", &e.to_string())),
-    }
+    self
+      .activityMonitor
+      .logAction(&table, "update", &updated_record, Some(&original))
+      .await;
+    Ok(successResponse(DataValue::Object(updated_record)))
   }
 
   async fn handleUpdateAll(
     &self,
     table: String,
     data: Option<Value>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| errResponse("Data required for updateAll"))?;
 
@@ -272,16 +232,16 @@ impl CrudService {
       .ok_or_else(|| errResponse("Data must be an array for updateAll"))?
       .clone();
 
-    if use_json {
-      self.jsonProvider.updateAll(&table, records.clone()).await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.updateAll(&table, records.clone()).await
-    }
-    .map_err(|e| errResponseFormatted("Update all failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
+
+    repo
+      .updateAll(records.clone(), syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Update all failed", &e))?;
 
     // Return the updated records so frontend can update storage
     Ok(successResponse(DataValue::Array(records)))
@@ -291,33 +251,33 @@ impl CrudService {
     &self,
     table: String,
     id: Option<String>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for delete"))?;
 
-    let original = if use_json {
-      self.jsonProvider.jsonCrud.get(&table, &id_str).await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.get(&table, &id_str).await
-    }
-    .map_err(|e| errResponseFormatted("Fetch original failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
 
-    if use_json {
-      self.jsonProvider.jsonCrud.delete(&table, &id_str).await?;
+    let original = repo
+      .get(&id_str, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Fetch original failed", &e))?;
+
+    repo
+      .delete(&id_str, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Delete failed", &e))?;
+
+    // Handle cascade delete
+    if table == "todos" {
       self
         .cascadeService
         .handleJsonCascade(&table, &id_str, false)
         .await?;
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb.mongodbCrud.delete(&table, &id_str).await?;
+    } else if table == "tasks" {
       self
         .cascadeService
         .handleMongoCascade(&table, &id_str, false)
@@ -335,40 +295,27 @@ impl CrudService {
     &self,
     table: String,
     id: Option<String>,
-    use_json: bool,
+    syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for restore"))?;
     let update_data = json!({ "isDeleted": false });
 
-    if use_json {
-      self
-        .jsonProvider
-        .jsonCrud
-        .update(&table, &id_str, update_data.clone())
-        .await
-    } else {
-      let mongodb = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or_else(|| errResponseFormatted("MongoDB not available", ""))?;
-      mongodb
-        .mongodbCrud
-        .update(&table, &id_str, update_data.clone())
-        .await
-    }
-    .map_err(|e| errResponseFormatted("Restore failed", &e.to_string()))?;
+    let repo = RoutedRepository::new(
+      self.jsonProvider.clone(),
+      self.mongodbProvider.clone(),
+      table.clone(),
+    );
 
-    if use_json {
-      self
-        .cascadeService
-        .handleJsonCascade(&table, &id_str, true)
-        .await?;
-    } else {
-      self
-        .cascadeService
-        .handleMongoCascade(&table, &id_str, true)
-        .await?;
-    }
+    repo
+      .update(&id_str, update_data, syncMetadata.as_ref())
+      .await
+      .map_err(|e| errResponseFormatted("Restore failed", &e))?;
+
+    // Handle cascade restore
+    self
+      .cascadeService
+      .handleJsonCascade(&table, &id_str, true)
+      .await?;
 
     Ok(successResponse(DataValue::String(id_str)))
   }

@@ -90,7 +90,10 @@ pub async fn toggleDeleteStatusLocal(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.toggleDeleteStatusLocal(table, id).await
+  state
+    .manageDbService
+    .toggleDeleteStatusLocal(table, id)
+    .await
 }
 
 #[tauri::command]
@@ -99,5 +102,8 @@ pub async fn permanentlyDeleteRecordLocal(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.permanentlyDeleteRecordLocal(table, id).await
+  state
+    .manageDbService
+    .permanentlyDeleteRecordLocal(table, id)
+    .await
 }

@@ -221,18 +221,28 @@ export class ConflictDetectionService {
 
     const entityName = entityNames[conflict.entityType] || conflict.entityType;
 
-    this.notifyService.showWarning(
-      `Conflict detected on ${entityName}. Your version is newer than the server.`
-    );
+    // Check if this is a private todo (safe to auto-resolve)
+    const isPrivateTodo =
+      conflict.entityType === "todos" && conflict.localData?.visibility === "private";
 
-    // Auto-resolve after 5 seconds (prefer local)
-    setTimeout(() => {
-      const stillExists = this.conflicts.has(`${conflict.entityType}:${conflict.entityId}`);
-      if (stillExists) {
-        this.resolveConflict(conflict.entityType, conflict.entityId, "local");
-        this.notifyService.showInfo("Conflict auto-resolved: kept your version");
-      }
-    }, 5000);
+    if (isPrivateTodo) {
+      // For private todos, auto-resolve is safe (no other users can edit)
+      this.notifyService.showInfo(`Version conflict on ${entityName}. Your version will be kept.`);
+
+      setTimeout(() => {
+        const stillExists = this.conflicts.has(`${conflict.entityType}:${conflict.entityId}`);
+        if (stillExists) {
+          this.resolveConflict(conflict.entityType, conflict.entityId, "local");
+        }
+      }, 5000);
+    } else {
+      // For team todos and other shared data, require user decision
+      this.notifyService.showWarning(
+        `Conflict detected on ${entityName}. Your version is newer than the server. ` +
+          `Please review in sync status.`
+      );
+      // NO auto-resolve for team data - user must decide
+    }
   }
 
   /**

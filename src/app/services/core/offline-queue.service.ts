@@ -6,6 +6,7 @@ import { switchMap, takeWhile } from "rxjs/operators";
 /* services */
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { ConflictDetectionService } from "@services/core/conflict-detection.service";
 
 /* models */
 import { SyncMetadata } from "@models/sync-metadata";
@@ -40,6 +41,7 @@ export type ExecuteOperationFn = (
 export class OfflineQueueService {
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
+  private conflictDetectionService = inject(ConflictDetectionService);
 
   private queue = new Map<string, QueuedOperation>();
   private isOnlineSubject = new BehaviorSubject<boolean>(this.checkOnlineStatus());
@@ -141,6 +143,26 @@ export class OfflineQueueService {
    * Add operation to queue
    */
   enqueue(operation: Omit<QueuedOperation, "id" | "timestamp" | "retryCount" | "status">): string {
+    // Check for conflicts before queuing update operations
+    if (operation.operation === "update") {
+      const hasConflict = this.conflictDetectionService.hasConflict(
+        operation.entityType,
+        operation.entityId
+      );
+
+      if (hasConflict) {
+        this.notifyService.showError(
+          `Cannot sync: ${operation.entityType} has unresolved conflict. Please resolve first.`
+        );
+        // Mark as having conflict but still queue (user may resolve while offline)
+        operation.syncMetadata = {
+          isOwner: operation.syncMetadata?.isOwner ?? true,
+          isPrivate: operation.syncMetadata?.isPrivate ?? true,
+          hasConflict: true,
+        };
+      }
+    }
+
     const queueOp: QueuedOperation = {
       ...operation,
       id: Math.random().toString(36).substring(7),

@@ -123,13 +123,16 @@ export class TodosView implements OnInit {
   listTodos = computed(() => {
     // Filter only private visibility todos
     let filtered = this.storageService.privateTodos();
-    
+
     // Filter out todos from deleted users
     const deletedUserIds = new Set(
-      this.adminStorageService.users().filter((u) => u.isDeleted).map((u) => u.id)
+      this.adminStorageService
+        .users()
+        .filter((u) => u.isDeleted)
+        .map((u) => u.id)
     );
     filtered = filtered.filter((todo) => !deletedUserIds.has(todo.userId));
-    
+
     const filter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
 

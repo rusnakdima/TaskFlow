@@ -40,20 +40,11 @@
             [type]="isShowPassword() ? 'text' : 'password'"
             formControlName="password"
           />
-          <button class="absolute right-1 h-7.5!">
-            @if (isShowPassword()) {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility_off"
-                (click)="isShowPassword.set(false)"
-              />
-            } @else {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility"
-                (click)="isShowPassword.set(true)"
-              />
-            }
+          <button class="absolute right-1.5 h-7.5!" (click)="isShowPassword.set(!isShowPassword())">
+            <mat-icon
+              class="w-7.5! h-full! text-3xl! text-red-500!"
+              [fontIcon]="isShowPassword() ? 'visibility_off' : 'visibility'"
+            />
           </button>
         </div>
 
@@ -75,20 +66,14 @@
             [type]="isShowConfirmPassword() ? 'text' : 'password'"
             formControlName="confirm_password"
           />
-          <button class="absolute right-1 h-7.5!">
-            @if (isShowConfirmPassword()) {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility_off"
-                (click)="isShowConfirmPassword.set(false)"
-              />
-            } @else {
-              <mat-icon
-                class="w-7.5! h-full! text-3xl! text-red-500!"
-                fontIcon="visibility"
-                (click)="isShowConfirmPassword.set(true)"
-              />
-            }
+          <button
+            class="absolute right-1.5 h-7.5!"
+            (click)="isShowConfirmPassword.set(!isShowConfirmPassword())"
+          >
+            <mat-icon
+              class="w-7.5! h-full! text-3xl! text-red-500!"
+              [fontIcon]="isShowConfirmPassword() ? 'visibility_off' : 'visibility'"
+            />
           </button>
         </div>
 

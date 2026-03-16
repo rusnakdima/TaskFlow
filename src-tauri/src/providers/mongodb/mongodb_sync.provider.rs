@@ -68,7 +68,10 @@ impl MongodbSyncProvider {
     }
 
     // Check if cloud record is deleted - skip syncing deleted records
-    let isDeleted = cloudVal.get("isDeleted").and_then(|v| v.as_bool()).unwrap_or(false);
+    let isDeleted = cloudVal
+      .get("isDeleted")
+      .and_then(|v| v.as_bool())
+      .unwrap_or(false);
     if isDeleted {
       return Ok(());
     }
@@ -96,32 +99,195 @@ impl MongodbSyncProvider {
     userId: String,
     jsonProvider: &JsonProvider,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Define tables to sync with their filter fields
-    let tables = vec![
-      ("todos", "userId"),
-      ("tasks", "userId"),
-      ("subtasks", "userId"),
-      ("comments", "userId"),
-      ("chats", "userId"),
-      ("categories", "userId"),
-      ("daily_activities", "userId"),
-    ];
+    // Step 1: Export todos first to get the list of user's todo IDs
+    let todoFilter = serde_json::json!({
+      "userId": &userId,
+      "isDeleted": false
+    });
 
-    for (table, filterField) in tables {
-      // Filter to exclude deleted records (deletions don't sync to cloud)
-      let filter = serde_json::json!({
-        filterField: userId,
-        "isDeleted": false
-      });
+    let localTodos: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAll("todos", Some(todoFilter))
+      .await?;
 
-      let localRecords: Vec<Value> = jsonProvider
+    // Collect all todo IDs for this user
+    let todoIds: Vec<String> = localTodos
+      .iter()
+      .filter_map(|todo| todo.get("id").and_then(|v| v.as_str()).map(String::from))
+      .collect();
+
+    // Export todos
+    for localVal in localTodos {
+      self.syncRecordToCloud("todos", localVal).await?;
+    }
+
+    // Step 2: Export tasks by todoId (not userId)
+    let mut taskIds: Vec<String> = Vec::new();
+
+    if !todoIds.is_empty() {
+      let taskFilter = serde_json::json!({ "todoId": { "$in": &todoIds } });
+      let localTasks: Vec<Value> = jsonProvider
         .jsonCrud
-        .getAll(table, Some(filter))
+        .getAll("tasks", Some(taskFilter))
         .await?;
 
-      for localVal in localRecords {
-        self.syncRecordToCloud(table, localVal).await?;
+      for localVal in localTasks {
+        if let Some(id) = localVal.get("id").and_then(|v| v.as_str()) {
+          taskIds.push(id.to_string());
+        }
+        self.syncRecordToCloud("tasks", localVal).await?;
       }
+    }
+
+    // Step 3: Export subtasks by taskId (not userId)
+    if !taskIds.is_empty() {
+      let subtaskFilter = serde_json::json!({ "taskId": { "$in": &taskIds } });
+      let localSubtasks: Vec<Value> = jsonProvider
+        .jsonCrud
+        .getAll("subtasks", Some(subtaskFilter))
+        .await?;
+
+      for localVal in localSubtasks {
+        self.syncRecordToCloud("subtasks", localVal).await?;
+      }
+    }
+
+    // Step 4: Export categories (has userId)
+    let categoryFilter = serde_json::json!({
+      "userId": &userId,
+      "isDeleted": false
+    });
+
+    let localCategories: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAll("categories", Some(categoryFilter))
+      .await?;
+
+    for localVal in localCategories {
+      self.syncRecordToCloud("categories", localVal).await?;
+    }
+
+    // Step 5: Export comments - fetch all and filter manually (JSON doesn't support $or)
+    // Comments can have userId, taskId, subtaskId, or todoId
+    let allLocalComments: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAllWithDeleted("comments", None)
+      .await?;
+
+    for localVal in allLocalComments {
+      // Skip deleted comments
+      let isDeleted = localVal
+        .get("isDeleted")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+      if isDeleted {
+        continue;
+      }
+
+      // Check if comment belongs to this user's todos/tasks/subtasks
+      let belongsToUser = localVal
+        .get("userId")
+        .and_then(|v| v.as_str())
+        .map(|v| v == userId)
+        .unwrap_or(false)
+        || localVal
+          .get("todoId")
+          .and_then(|v| v.as_str())
+          .map(|v| todoIds.contains(&v.to_string()))
+          .unwrap_or(false)
+        || localVal
+          .get("taskId")
+          .and_then(|v| v.as_str())
+          .map(|v| taskIds.contains(&v.to_string()))
+          .unwrap_or(false)
+        || localVal
+          .get("subtaskId")
+          .and_then(|v| v.as_str())
+          .map(|v| taskIds.contains(&v.to_string()))
+          .unwrap_or(false);
+
+      if belongsToUser {
+        self.syncRecordToCloud("comments", localVal).await?;
+      }
+    }
+
+    // Step 6: Export chats - fetch all and filter manually (JSON doesn't support $or)
+    // Chats can have todoId or userId
+    let allLocalChats: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAllWithDeleted("chats", None)
+      .await?;
+
+    for localVal in allLocalChats {
+      // Skip deleted chats
+      let isDeleted = localVal
+        .get("isDeleted")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+      if isDeleted {
+        continue;
+      }
+
+      // Check if chat belongs to this user's todos
+      let belongsToUser = localVal
+        .get("todoId")
+        .and_then(|v| v.as_str())
+        .map(|v| todoIds.contains(&v.to_string()))
+        .unwrap_or(false)
+        || localVal
+          .get("userId")
+          .and_then(|v| v.as_str())
+          .map(|v| v == userId)
+          .unwrap_or(false);
+
+      if belongsToUser {
+        self.syncRecordToCloud("chats", localVal).await?;
+      }
+    }
+
+    // Step 7: Export profiles (has userId) - exclude deleted
+    let profileFilter = serde_json::json!({
+      "userId": &userId,
+      "isDeleted": false
+    });
+
+    let localProfiles: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAll("profiles", Some(profileFilter))
+      .await?;
+
+    for localVal in localProfiles {
+      self.syncRecordToCloud("profiles", localVal).await?;
+    }
+
+    // Step 8: Export users (has userId) - exclude deleted
+    let userFilter = serde_json::json!({
+      "userId": &userId,
+      "isDeleted": false
+    });
+
+    let localUsers: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAll("users", Some(userFilter))
+      .await?;
+
+    for localVal in localUsers {
+      self.syncRecordToCloud("users", localVal).await?;
+    }
+
+    // Step 9: Export daily_activities (has userId) - exclude deleted
+    let activityFilter = serde_json::json!({
+      "userId": &userId,
+      "isDeleted": false
+    });
+
+    let localActivities: Vec<Value> = jsonProvider
+      .jsonCrud
+      .getAll("daily_activities", Some(activityFilter))
+      .await?;
+
+    for localVal in localActivities {
+      self.syncRecordToCloud("daily_activities", localVal).await?;
     }
 
     Ok(())

@@ -15,7 +15,8 @@ export interface Todo {
   endDate: string;
   categories: Array<Category>;
   tasks: Array<Task>;
-  assignees: Array<Profile> | Array<string>; // Can be Profile objects (with relations) or user IDs (strings)
+  assignees: Array<string>; // List of user IDs
+  assigneesProfiles: Array<Profile>; // Full profile data for each assignee
   visibility: "private" | "team";
   priority: string;
   order: number;

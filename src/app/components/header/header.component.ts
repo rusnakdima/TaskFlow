@@ -179,57 +179,67 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     for (const child of children) {
-      if (child.snapshot.data["breadcrumb"]) {
-        const routeURL: string = child.snapshot.url.map((segment) => segment.path).join("/");
-        if (routeURL == "") {
-          return this.createBreadcrumbs(child, url, breadcrumbs);
-        }
+      const routeURL: string = child.snapshot.url.map((segment) => segment.path).join("/");
 
-        const newUrl = url + "/" + routeURL;
+      // Skip empty path segments but still recurse into their children
+      if (routeURL == "") {
+        return this.createBreadcrumbs(child, url, breadcrumbs);
+      }
 
-        let label: string = "";
-        let description: string = "";
-        const breadcrumbData = child.snapshot.data["breadcrumb"];
+      const breadcrumbData = child.snapshot.data["breadcrumb"];
+      const newUrl = url + "/" + routeURL;
+
+      let label: string = "";
+      let description: string = "";
+
+      if (breadcrumbData) {
         if (typeof breadcrumbData === "function") {
-          const data = await breadcrumbData(child.snapshot as ActivatedRouteSnapshot);
-          if (data.task) {
-            const object = data.task as { task: Task; todo: Todo };
-            if (object) {
-              const task = object.task as Task;
-              if (task) {
-                this.task.set(task);
-                label = (task as any).title || "Task";
-                description = task.description || "";
-                this.description.set(description);
-              }
-            }
-          }
-          if (data.todo) {
-            const todo = data.todo as Todo;
-            if (todo) {
-              this.todo.set(todo);
-              if (!label) {
-                label = todo.title;
-              }
-              description = todo.description || "";
+          // Access resolved data directly from snapshot
+          const resolvedTodo = child.snapshot.data["todo"];
+          const resolvedTask = child.snapshot.data["task"];
+
+          // Subtasks route: resolvedTask = { task: Task, todo: Todo }
+          if (resolvedTask) {
+            const taskData = resolvedTask as { task: Task; todo: Todo };
+            if (taskData?.task) {
+              const task = taskData.task as Task;
+              this.task.set(task);
+              label = task.title || "Task";
+              description = task.description || "";
               this.description.set(description);
             }
+            if (taskData?.todo) {
+              this.todo.set(taskData.todo);
+            }
           }
+          // Tasks route: resolvedTodo = Todo object
+          else if (resolvedTodo) {
+            const todo = resolvedTodo as Todo;
+            this.todo.set(todo);
+            label = todo.title;
+            description = todo.description || "";
+            this.description.set(description);
+          }
+
+          // Fallback if no label was set
           if (!label) {
-            label = breadcrumbData;
+            label = "TaskFlow";
           }
         } else {
           label = breadcrumbData;
         }
-
-        breadcrumbs.push({
-          label: label,
-          description: description,
-          url: newUrl,
-        });
-
-        return this.createBreadcrumbs(child, newUrl, breadcrumbs);
+      } else {
+        // No breadcrumb data, use route title as fallback
+        label = child.snapshot.title?.toString() || routeURL;
       }
+
+      breadcrumbs.push({
+        label: label,
+        description: description,
+        url: newUrl,
+      });
+
+      return this.createBreadcrumbs(child, newUrl, breadcrumbs);
     }
 
     return breadcrumbs;

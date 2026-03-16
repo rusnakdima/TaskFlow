@@ -50,9 +50,9 @@ export class RelationsHelper {
       },
       {
         nameTable: "profiles",
-        typeField: TypesField.ManyToOne,
+        typeField: TypesField.ManyToMany,
         nameField: "assignees",
-        newNameField: "assignees",
+        newNameField: "assigneesProfiles",
         relations: [
           {
             nameTable: "users",
@@ -125,9 +125,9 @@ export class RelationsHelper {
       },
       {
         nameTable: "profiles",
-        typeField: TypesField.ManyToOne,
+        typeField: TypesField.ManyToMany,
         nameField: "assignees",
-        newNameField: "assignees",
+        newNameField: "assigneesProfiles",
         relations: [
           {
             nameTable: "users",

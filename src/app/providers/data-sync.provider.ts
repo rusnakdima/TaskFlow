@@ -2,7 +2,7 @@
 import { Injectable, Injector, inject } from "@angular/core";
 import { Observable, from, share, of, firstValueFrom, defer } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
-import { finalize, tap, catchError, map } from "rxjs/operators";
+import { finalize, tap, catchError, map, switchMap } from "rxjs/operators";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -22,6 +22,7 @@ import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { OfflineQueueService } from "@services/core/offline-queue.service";
+import { ConflictDetectionService } from "@services/core/conflict-detection.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -57,6 +58,7 @@ export class DataSyncProvider {
   private ws = inject(WebSocketService);
   private jwtTokenService = inject(JwtTokenService);
   private offlineQueueService = inject(OfflineQueueService);
+  private conflictDetectionService = inject(ConflictDetectionService);
   private injector = inject(Injector);
 
   private inFlightRequests = new Map<string, Observable<any>>();
@@ -493,7 +495,44 @@ export class DataSyncProvider {
           obs = this.crud("create", table, { data, parentTodoId });
           break;
         case "update":
-          obs = this.crud("update", table, { id: entityId, data, parentTodoId });
+          // Fetch latest version first to check for conflicts
+          obs = this.crud("get", table, { id: entityId, parentTodoId }).pipe(
+            switchMap((latest: any) => {
+              const localVersion = data?.version || 0;
+              const remoteVersion = latest?.version || 0;
+
+              // If remote is newer, check for conflict and potentially abort
+              if (remoteVersion > localVersion) {
+                // Check if this is a team todo (conflict possible) or private (safe to overwrite)
+                const isPrivateTodo = table === "todos" && latest?.visibility === "private";
+                const isOwner = latest?.userId === this.getCurrentUserId();
+
+                // For private todos owned by user, safe to proceed with update
+                if (isPrivateTodo && isOwner) {
+                  return this.crud("update", table, { id: entityId, data, parentTodoId });
+                }
+
+                // For team todos, check conflict and abort if remote is newer
+                const hasConflict = this.conflictDetectionService.checkConflict(
+                  entityType as any,
+                  latest
+                );
+
+                if (hasConflict) {
+                  throw new Error(
+                    `Conflict: ${entityType} "${entityId}" was modified by another user. ` +
+                      `Please refresh and try again.`
+                  );
+                }
+
+                // No conflict detected, proceed with update
+                return this.crud("update", table, { id: entityId, data, parentTodoId });
+              }
+
+              // Local is newer or same version, safe to update
+              return this.crud("update", table, { id: entityId, data, parentTodoId });
+            })
+          );
           break;
         case "delete":
           obs = this.crud("delete", table, { id: entityId, parentTodoId });
@@ -553,23 +592,23 @@ export class DataSyncProvider {
 
   // ==================== Visibility Sync ====================
 
+  /**
+   * Sync todo visibility change to local storage
+   * Called after CRUD update successfully changes visibility in MongoDB
+   *
+   * Flow:
+   * - Private → Team: Import from cloud to get updated visibility, TodoHandler auto-moves to shared
+   * - Team → Private: Import from cloud to get updated visibility, TodoHandler auto-moves to private
+   */
   async syncSingleTodoVisibilityChange(
     todoId: string,
     newVisibility: "private" | "team"
   ): Promise<void> {
     try {
-      if (newVisibility === "team") {
-        // Changing from private to team:
-        // 1. Update local storage first
-        // Note: Cloud was already updated by the crud() call in manage-todo.view.ts
-        this.storageService.moveTodoToShared(todoId);
-      } else {
-        // Changing from team to private:
-        // 1. Import from cloud to local DB (cloud was already updated by crud())
-        // 2. Move from shared to private in storage
-        await this.importTodoToLocalDb(todoId);
-        this.storageService.moveTodoToPrivate(todoId);
-      }
+      // Import the updated todo from cloud
+      // The TodoHandler.update() will automatically detect visibility change
+      // and move the todo between private/shared signals
+      await this.importTodoToLocalDb(todoId);
       this.clearCache("todos");
     } catch (error) {
       throw error;
@@ -587,40 +626,86 @@ export class DataSyncProvider {
     }
 
     // Update local storage with cloud data
+    // TodoHandler.update() will automatically handle visibility change
+    // and move todo between private/shared signals
     this.storageService.updateItem("todos", todoId, cloudTodo);
   }
 
   // ==================== Archive Operations ====================
 
-  private archiveTodoWithCascade(todoId: string): void {
+  private archiveTodoWithCascade(todoId: string, isTeam: boolean = false): void {
     const todo = this.storageService.getById("todos", todoId);
     if (!todo) return;
 
+    // For team entities, pass isPrivate: false to prevent local JSON persistence
+    const options = { isPrivate: !isTeam };
+
     // Archive todo
-    this.storageService.updateItem("todos", todoId, { isDeleted: true });
+    this.storageService.updateItem("todos", todoId, { isDeleted: true }, options);
 
     // Archive all tasks and their subtasks/comments
     todo.tasks?.forEach((task) => {
-      this.storageService.updateItem("tasks", task.id, { isDeleted: true });
+      this.storageService.updateItem("tasks", task.id, { isDeleted: true }, options);
 
       // Archive all subtasks and their comments
       task.subtasks?.forEach((subtask) => {
-        this.storageService.updateItem("subtasks", subtask.id, { isDeleted: true });
+        this.storageService.updateItem("subtasks", subtask.id, { isDeleted: true }, options);
 
         // Archive subtask comments
         subtask.comments?.forEach((comment: Comment) => {
-          this.storageService.updateItem("comments", comment.id, { isDeleted: true });
+          this.storageService.updateItem("comments", comment.id, { isDeleted: true }, options);
         });
       });
 
       // Archive task comments
       task.comments?.forEach((comment: Comment) => {
-        this.storageService.updateItem("comments", comment.id, { isDeleted: true });
+        this.storageService.updateItem("comments", comment.id, { isDeleted: true }, options);
       });
     });
   }
 
   // ==================== Storage Updates ====================
+
+  /**
+   * Check if an entity belongs to a team visibility todo
+   * Team entities should only update in-memory signals, not persist to local JSON
+   */
+  private isTeamEntity(table: string, id?: string, parentTodoId?: string): boolean {
+    if (table === "todos" && id) {
+      const todo = this.storageService.getById("todos", id);
+      return todo?.visibility === "team";
+    }
+
+    if (table === "tasks" && id) {
+      const todoId = parentTodoId || this.storageService.getById("tasks", id)?.todoId;
+      if (!todoId) return false;
+      const todo = this.storageService.getById("todos", todoId);
+      return todo?.visibility === "team";
+    }
+
+    if (table === "subtasks" && id) {
+      const taskId = this.storageService.getById("subtasks", id)?.taskId;
+      if (!taskId) return false;
+      const task = this.storageService.getById("tasks", taskId);
+      if (!task?.todoId) return false;
+      const todo = this.storageService.getById("todos", task.todoId);
+      return todo?.visibility === "team";
+    }
+
+    if (table === "comments" && id) {
+      // Comments can be on tasks or subtasks - find parent todo
+      const comment = this.storageService.getById("comments", id);
+      if (comment?.taskId) {
+        const task = this.storageService.getById("tasks", comment.taskId);
+        if (task?.todoId) {
+          const todo = this.storageService.getById("todos", task.todoId);
+          return todo?.visibility === "team";
+        }
+      }
+    }
+
+    return false;
+  }
 
   private updateStorageAfterOperation(
     operation: Operation,
@@ -630,18 +715,21 @@ export class DataSyncProvider {
     parentTodoId?: string
   ): void {
     try {
+      // Check if this is a team entity - if so, only update in-memory (not local JSON)
+      const isTeam = this.isTeamEntity(table, id, parentTodoId);
+
       switch (operation) {
         case "create":
-          this.handleCreateOperation(table, result);
+          this.handleCreateOperation(table, result, isTeam);
           break;
         case "update":
-          this.handleUpdateOperation(table, result);
+          this.handleUpdateOperation(table, result, isTeam);
           break;
         case "delete":
           // For soft delete (archive), update isDeleted field instead of removing
           if (table === "todos") {
             // Archive todo with cascade (set isDeleted: true for todo and all related entities)
-            this.archiveTodoWithCascade(id!);
+            this.archiveTodoWithCascade(id!, isTeam);
           } else {
             // For tasks/subtasks, lookup parent ID before deletion
             let parentId: string | undefined;
@@ -650,7 +738,7 @@ export class DataSyncProvider {
             } else if (table === "subtasks") {
               parentId = this.storageService.getById("subtasks", id!)?.taskId;
             }
-            this.storageService.removeItem(table as any, id!, parentId);
+            this.storageService.removeItem(table as any, id!, parentId, isTeam);
           }
           break;
         case "updateAll":
@@ -663,7 +751,7 @@ export class DataSyncProvider {
           } else {
             (result as any[]).forEach((item) => {
               if (item && item.id) {
-                this.storageService.updateItem(table as any, item.id, item);
+                this.storageService.updateItem(table as any, item.id, item, { isPrivate: !isTeam });
               }
             });
           }
@@ -674,24 +762,28 @@ export class DataSyncProvider {
     }
   }
 
-  private handleCreateOperation(table: string, result: any): void {
-    this.storageService.addItem(table as any, result);
+  private handleCreateOperation(table: string, result: any, isTeam: boolean = false): void {
+    // For team entities, pass isPrivate: false to prevent local JSON persistence
+    this.storageService.addItem(table as any, result, { isPrivate: !isTeam });
     // Comments are automatically added to their parent (task/subtask) by StorageService.addItem
   }
 
-  private handleUpdateOperation(table: string, result: any): void {
+  private handleUpdateOperation(table: string, result: any, isTeam: boolean = false): void {
     if (!result || !result.id) {
       return;
     }
+
+    // For team entities, pass isPrivate: false to prevent local JSON persistence
+    const options = { isPrivate: !isTeam };
 
     if (table === "tasks") {
       const existingTask = this.storageService.getById("tasks", result.id);
       if (existingTask) {
         const merged = this.preserveEntityFields(result, existingTask, ["comments", "subtasks"]);
-        this.storageService.updateItem(table as any, result.id, merged);
+        this.storageService.updateItem(table as any, result.id, merged, options);
       } else {
         // Entity not in storage, update with backend response directly
-        this.storageService.updateItem(table as any, result.id, result);
+        this.storageService.updateItem(table as any, result.id, result, options);
       }
       return;
     }
@@ -700,15 +792,15 @@ export class DataSyncProvider {
       const existingSubtask = this.storageService.getById("subtasks", result.id);
       if (existingSubtask) {
         const merged = this.preserveEntityFields(result, existingSubtask, ["comments"]);
-        this.storageService.updateItem(table as any, result.id, merged);
+        this.storageService.updateItem(table as any, result.id, merged, options);
       } else {
         // Entity not in storage, update with backend response directly
-        this.storageService.updateItem(table as any, result.id, result);
+        this.storageService.updateItem(table as any, result.id, result, options);
       }
       return;
     }
 
-    this.storageService.updateItem(table as any, result.id, result);
+    this.storageService.updateItem(table as any, result.id, result, options);
   }
 
   private preserveEntityFields<T extends Record<string, any>>(

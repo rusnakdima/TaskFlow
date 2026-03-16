@@ -55,14 +55,9 @@ export class SharedTasksView implements OnInit {
     return this.storageService.sharedTodos().filter((todo) => {
       const isNotOwner = todo.userId !== userId;
 
-      const isAssignee = todo.assignees?.some((assignee: any) => {
-        if (typeof assignee === "string") {
-          return assignee === userId;
-        } else if (assignee && typeof assignee === "object") {
-          return assignee.id === userId || assignee.userId === userId;
-        }
-        return false;
-      });
+      const isAssignee =
+        todo.assignees?.includes(userId) ||
+        todo.assigneesProfiles?.some((profile) => profile.userId === userId);
 
       return isNotOwner && isAssignee && !todo.isDeleted;
     });

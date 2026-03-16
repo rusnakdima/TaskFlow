@@ -73,22 +73,22 @@ export class StorageService extends BaseStorageService {
   });
 
   private readonly privateTodosComputed = computed(() => {
-    return this.privateTodosSignal().filter(todo => !todo.isDeleted);
+    return this.privateTodosSignal().filter((todo) => !todo.isDeleted);
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter(todo => !todo.isDeleted);
+    return this.sharedTodosSignal().filter((todo) => !todo.isDeleted);
   });
 
   // ==================== PUBLIC SIGNALS ====================
   readonly privateTodos = this.privateTodosComputed;
   readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
-  readonly tasks = computed(() => 
-    this.todos().flatMap((todo) => (todo.tasks || []).filter(task => !task.isDeleted))
+  readonly tasks = computed(() =>
+    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.isDeleted))
   );
-  readonly subtasks = computed(() => 
-    this.tasks().flatMap((task) => (task.subtasks || []).filter(subtask => !subtask.isDeleted))
+  readonly subtasks = computed(() =>
+    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.isDeleted))
   );
   readonly comments = computed(() => {
     const todos = this.todos();
@@ -114,20 +114,31 @@ export class StorageService extends BaseStorageService {
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
 
   // ==================== GENERIC CRUD ====================
-  addItem(type: StorageEntity, data: any): void {
+  addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
     this.handlers[type]?.add(data);
+    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // isPrivate option kept for backward compatibility but not used here
   }
 
-  updateItem(type: StorageEntity, id: string, updates: Partial<any>): void {
+  updateItem(
+    type: StorageEntity,
+    id: string,
+    updates: Partial<any>,
+    options?: { isPrivate?: boolean }
+  ): void {
     if (updates["isDeleted"] === true) {
       const existing: any = this.getById(type, id);
       if (existing?.["isDeleted"] === true) return;
     }
     this.handlers[type]?.update(id, updates);
+    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // isPrivate option kept for backward compatibility but not used here
   }
 
-  removeItem(type: StorageEntity, id: string, parentId?: string): void {
+  removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
     this.handlers[type]?.remove(id, parentId);
+    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // isTeam parameter kept for backward compatibility but not used here
   }
 
   // ==================== PUBLIC GETTERS ====================
@@ -350,12 +361,12 @@ export class StorageService extends BaseStorageService {
         break;
       case "privateTodos":
         // Filter out deleted todos before setting
-        const filteredPrivateTodos = (items as Todo[]).filter(todo => !todo.isDeleted);
+        const filteredPrivateTodos = (items as Todo[]).filter((todo) => !todo.isDeleted);
         this.privateTodosSignal.set(filteredPrivateTodos);
         break;
       case "sharedTodos":
         // Filter out deleted todos before setting
-        const filteredSharedTodos = (items as Todo[]).filter(todo => !todo.isDeleted);
+        const filteredSharedTodos = (items as Todo[]).filter((todo) => !todo.isDeleted);
         this.sharedTodosSignal.set(filteredSharedTodos);
         break;
     }

@@ -291,6 +291,11 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       try {
         const todoId = this.todoId();
+
+        // ✅ Check parent todo visibility to determine if subtask should sync to MongoDB only
+        const parentTodo = this.storageService.getById("todos", todoId);
+        const isPrivate = parentTodo?.visibility !== "team";
+
         const subtasks = this.storageService.getAllByParentId("subtasks", this.taskId());
         const formValue = this.form.value;
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
@@ -298,7 +303,11 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
 
         this.dataSyncProvider
-          .crud<Subtask>("create", "subtasks", { data: body, parentTodoId: todoId })
+          .crud<Subtask>("create", "subtasks", {
+            data: body,
+            parentTodoId: todoId,
+            isPrivate: isPrivate,
+          })
           .subscribe({
             next: (result: Subtask) => {
               this.isSubmitting.set(false);
@@ -323,6 +332,15 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   updateSubtask() {
     if (this.form.valid) {
       const todoId = this.todoId();
+      if (!todoId) {
+        this.notifyService.showError("Project ID not found");
+        return;
+      }
+
+      // ✅ Check parent todo visibility to determine if subtask should sync to MongoDB only
+      const parentTodo = this.storageService.getById("todos", todoId);
+      const isPrivate = parentTodo?.visibility !== "team";
+
       const formValue = this.form.value;
       const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
       const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
@@ -333,9 +351,14 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         id: formValue.id, // Include id field for backend validation
       };
 
-      // Update subtask via DataSyncProvider (storage updated automatically)
+      // Update subtask via DataSyncProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
-        .crud<Subtask>("update", "subtasks", { id: body.id, data: body, parentTodoId: todoId })
+        .crud<Subtask>("update", "subtasks", {
+          id: body.id,
+          data: body,
+          parentTodoId: todoId,
+          isPrivate: isPrivate,
+        })
         .subscribe({
           next: (result: Subtask) => {
             this.isSubmitting.set(false);

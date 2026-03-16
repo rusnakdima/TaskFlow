@@ -210,16 +210,32 @@ impl AdminManager {
 
     // Step 3: Hard delete all children from MongoDB
     for task_id in &cascade_ids.task_ids {
-      let _ = self.mongodbProvider.mongodbCrud.hardDelete("tasks", task_id).await;
+      let _ = self
+        .mongodbProvider
+        .mongodbCrud
+        .hardDelete("tasks", task_id)
+        .await;
     }
     for subtask_id in &cascade_ids.subtask_ids {
-      let _ = self.mongodbProvider.mongodbCrud.hardDelete("subtasks", subtask_id).await;
+      let _ = self
+        .mongodbProvider
+        .mongodbCrud
+        .hardDelete("subtasks", subtask_id)
+        .await;
     }
     for comment_id in &cascade_ids.comment_ids {
-      let _ = self.mongodbProvider.mongodbCrud.hardDelete("comments", comment_id).await;
+      let _ = self
+        .mongodbProvider
+        .mongodbCrud
+        .hardDelete("comments", comment_id)
+        .await;
     }
     for chat_id in &cascade_ids.chat_ids {
-      let _ = self.mongodbProvider.mongodbCrud.hardDelete("chats", chat_id).await;
+      let _ = self
+        .mongodbProvider
+        .mongodbCrud
+        .hardDelete("chats", chat_id)
+        .await;
     }
 
     Ok(ResponseModel {
@@ -387,7 +403,10 @@ impl AdminManager {
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: format!("Record delete status toggled to {} in local database", newStatus),
+      message: format!(
+        "Record delete status toggled to {} in local database",
+        newStatus
+      ),
       data: DataValue::Bool(newStatus),
     })
   }

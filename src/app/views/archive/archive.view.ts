@@ -367,7 +367,10 @@ export class ArchiveView implements OnInit {
 
   async toggleDeleteStatus(record: any) {
     try {
-      const response = await this.adminService.toggleDeleteStatusLocal(this.selectedType(), record.id);
+      const response = await this.adminService.toggleDeleteStatusLocal(
+        this.selectedType(),
+        record.id
+      );
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
