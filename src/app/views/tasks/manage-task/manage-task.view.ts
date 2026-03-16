@@ -269,6 +269,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
         const todoId = this.projectInfo()?.id;
         if (!todoId) throw new Error("Project ID not found");
 
+        // ✅ Check parent todo visibility to determine if task should sync to MongoDB only
+        const parentTodo = this.storageService.getById("todos", todoId);
+        const isPrivate = parentTodo?.visibility !== "team";
+
         const tasks = this.storageService.getAllByParentId("tasks", todoId);
         const formValue = this.form.value;
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
@@ -279,9 +283,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
           todoId: todoId,
         };
 
-        // Sync with backend
+        // Sync with backend - pass isPrivate flag to control storage behavior
         this.dataSyncProvider
-          .crud<Task>("create", "tasks", { data: body, parentTodoId: todoId })
+          .crud<Task>("create", "tasks", {
+            data: body,
+            parentTodoId: todoId,
+            isPrivate: isPrivate,
+          })
           .subscribe({
             next: (result: Task) => {
               this.isSubmitting.set(false);
@@ -306,6 +314,15 @@ export class ManageTaskView implements OnInit, OnDestroy {
   updateTask() {
     if (this.form.valid) {
       const todoId = this.projectInfo()?.id;
+      if (!todoId) {
+        this.notifyService.showError("Project ID not found");
+        return;
+      }
+
+      // ✅ Check parent todo visibility to determine if task should sync to MongoDB only
+      const parentTodo = this.storageService.getById("todos", todoId);
+      const isPrivate = parentTodo?.visibility !== "team";
+
       const formValue = this.form.value;
       const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
       const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
@@ -316,9 +333,14 @@ export class ManageTaskView implements OnInit, OnDestroy {
         id: formValue.id, // Include id field for backend validation
       };
 
-      // Update task via DataSyncProvider (storage updated automatically)
+      // Update task via DataSyncProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
-        .crud<Task>("update", "tasks", { id: body.id, data: body, parentTodoId: todoId })
+        .crud<Task>("update", "tasks", {
+          id: body.id,
+          data: body,
+          parentTodoId: todoId,
+          isPrivate: isPrivate,
+        })
         .subscribe({
           next: (result: Task) => {
             this.isSubmitting.set(false);
