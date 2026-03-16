@@ -9,7 +9,8 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription } from "rxjs";
+import { Subscription, Observable, of } from "rxjs";
+import { map, catchError } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -169,16 +170,29 @@ export class ManageTodoView implements OnInit, OnDestroy {
     const todoFromStorage = this.storageService.getById("todos", todoId);
     if (todoFromStorage) {
       const localDates = DateHelper.convertDatesFromUtcToLocal(todoFromStorage);
-      this.form.patchValue(localDates);
       this.isOwner = todoFromStorage.userId === this.userId();
       this.isPrivate = todoFromStorage.visibility === "private";
 
-      // Update form with correct visibility
-      this.form.patchValue({ visibility: todoFromStorage.visibility });
+      // Prepare form values
+      const formValues: any = {
+        ...localDates,
+        visibility: todoFromStorage.visibility,
+        assignees: [],
+      };
+      console.log(formValues);
 
-      // Load assignees if they exist
+      // Load assignees - convert from user IDs to Profile objects if needed
       if (todoFromStorage.assignees && todoFromStorage.assignees.length > 0) {
-        this.form.patchValue({ assignees: todoFromStorage.assignees });
+        this.resolveAssigneesToProfiles(todoFromStorage.assignees).subscribe((profiles) => {
+          formValues.assignees = profiles;
+          console.log(profiles);
+          this.form.patchValue(formValues);
+          // Force change detection to update radio buttons and UI
+          setTimeout(() => this.cdr.detectChanges(), 0);
+        });
+      } else {
+        this.form.patchValue(formValues);
+        setTimeout(() => this.cdr.detectChanges(), 0);
       }
 
       if (!this.isPrivate) {
@@ -187,8 +201,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
         );
       }
 
-      // Trigger change detection to update radio buttons
-      this.cdr.markForCheck();
       return;
     }
 
@@ -196,26 +208,80 @@ export class ManageTodoView implements OnInit, OnDestroy {
     this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
       next: (todo: Todo) => {
         const localDates = DateHelper.convertDatesFromUtcToLocal(todo);
-        this.form.patchValue(localDates);
         this.isOwner = todo.userId === this.userId();
         this.isPrivate = todo.visibility === "private";
-        this.form.patchValue({ visibility: todo.visibility });
 
-        // Load assignees if they exist
+        // Prepare form values
+        const formValues: any = {
+          ...localDates,
+          visibility: todo.visibility,
+          assignees: [],
+        };
+
+        // Load assignees - convert from user IDs to Profile objects if needed
         if (todo.assignees && todo.assignees.length > 0) {
-          this.form.patchValue({ assignees: todo.assignees });
+          this.resolveAssigneesToProfiles(todo.assignees).subscribe((profiles) => {
+            formValues.assignees = profiles;
+            this.form.patchValue(formValues);
+            // Force change detection to update radio buttons and UI
+            setTimeout(() => this.cdr.detectChanges(), 0);
+          });
+        } else {
+          this.form.patchValue(formValues);
+          setTimeout(() => this.cdr.detectChanges(), 0);
         }
 
         if (!this.isPrivate)
           this.notifyService.showInfo(
             "You're editing a shared todo. Changes will be sent to the owner."
           );
-
-        // Trigger change detection to update radio buttons
-        this.cdr.markForCheck();
       },
       error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
     });
+  }
+
+  /**
+   * Resolve assignees to Profile objects
+   * Assignees are user IDs (strings), resolve to Profile objects from assigneesProfiles
+   */
+  private resolveAssigneesToProfiles(assignees: string[]): Observable<Profile[]> {
+    // Extract user IDs from assignees
+    const userIds = assignees.filter((a) => typeof a === "string") as string[];
+
+    if (userIds.length === 0) {
+      return of([]);
+    }
+
+    // First try to get profiles from storage using assigneesProfiles
+    const storedProfiles = this.storageService
+      .todos()
+      .flatMap((todo) => todo.assigneesProfiles || [])
+      .filter((p) => userIds.includes(p.userId));
+
+    // If we found all profiles in storage, return them
+    if (storedProfiles.length === userIds.length) {
+      return of(storedProfiles);
+    }
+
+    // Otherwise, fetch all profiles and filter
+    return this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: {} }, true).pipe(
+      map((profiles) => {
+        if (!profiles || profiles.length === 0) {
+          // Return what we found in storage
+          return storedProfiles;
+        }
+        // Filter profiles by user IDs and merge with stored profiles
+        const fetchedProfiles = profiles.filter((p) => userIds.includes(p.userId));
+        const profileMap = new Map<string, Profile>();
+        storedProfiles.forEach((p) => profileMap.set(p.userId, p));
+        fetchedProfiles.forEach((p) => profileMap.set(p.userId, p));
+        return Array.from(profileMap.values());
+      }),
+      catchError(() => {
+        // On error, return what we found in storage
+        return of(storedProfiles);
+      })
+    );
   }
 
   back() {
@@ -230,10 +296,38 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   async fetchProfiles(): Promise<void> {
-    const profile = this.storageService.profile();
-    if (profile) {
-      this.availableProfiles.set([profile]);
+    // Get current user's profile
+    const currentProfile = this.storageService.profile();
+    const profiles: Profile[] = currentProfile ? [currentProfile] : [];
+
+    // Also collect all unique profiles from shared todos (assignees)
+    const sharedTodos = this.storageService.sharedTodos();
+    const profileMap = new Map<string, Profile>();
+
+    // Add current user's profile
+    if (currentProfile) {
+      profileMap.set(currentProfile.userId, currentProfile);
     }
+
+    // Collect profiles from assignees in shared todos
+    sharedTodos.forEach((todo) => {
+      if (todo.assigneesProfiles) {
+        todo.assigneesProfiles.forEach((profile) => {
+          if (profile?.userId) {
+            profileMap.set(profile.userId, profile);
+          }
+        });
+      }
+    });
+
+    // Merge profiles
+    Array.from(profileMap.values()).forEach((p) => {
+      if (!profiles.some((existing) => existing.userId === p.userId)) {
+        profiles.push(p);
+      }
+    });
+
+    this.availableProfiles.set(profiles);
   }
 
   getFilteredUsers() {
@@ -249,7 +343,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   addProfile(profile: Profile) {
     const currentAssignees = this.form.get("assignees")?.value || [];
-    if (!currentAssignees.some((p: Profile) => p.id === profile.id)) {
+    if (!currentAssignees.some((p: Profile) => p.userId === profile.userId)) {
       this.form.patchValue({ assignees: [...currentAssignees, profile] });
     }
   }
@@ -257,7 +351,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   removeProfile(profile: Profile) {
     const currentAssignees = this.form.get("assignees")?.value || [];
     this.form.patchValue({
-      assignees: currentAssignees.filter((p: Profile) => p.id !== profile.id),
+      assignees: currentAssignees.filter((p: Profile) => p.userId !== profile.userId),
     });
   }
 
@@ -396,11 +490,11 @@ export class ManageTodoView implements OnInit, OnDestroy {
       const visibilityChanged = this.isPrivate !== (newVisibility === "private");
       const todoId = body.id;
 
-      // Determine sync metadata based on visibility and ownership
-      const isPrivate = newVisibility === "private";
+      // Determine sync metadata based on ownership
       const isOwner = formValue.userId === this.userId();
-      const syncMetadata = { isOwner, isPrivate };
+      const syncMetadata = { isOwner, isPrivate: newVisibility === "private" };
 
+      // ✅ MongoDB sync FIRST - update local storage only on success
       this.dataSyncProvider
         .crud<Todo>("update", "todos", {
           id: body.id,
@@ -410,9 +504,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
         })
         .subscribe({
           next: async (result: Todo) => {
+            // ✅ Update local storage AFTER MongoDB confirms success
+            // This ensures local DB matches MongoDB state
+            this.storageService.updateItem("todos", todoId, result);
+
             if (visibilityChanged) {
               try {
-                // Use optimized single-record sync instead of full sync
+                // Sync visibility change to local storage
+                // This imports the updated todo from cloud and TodoHandler auto-moves it
                 await this.dataSyncProvider.syncSingleTodoVisibilityChange(todoId, newVisibility);
               } catch (err) {
                 this.notifyService.showWarning("Todo updated, but sync may not have completed.");

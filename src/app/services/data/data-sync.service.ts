@@ -12,6 +12,7 @@ import {
   defer,
   Subject,
   map,
+  timeout,
 } from "rxjs";
 import { tap, switchMap } from "rxjs/operators";
 
@@ -40,6 +41,7 @@ export class DataSyncService {
   private storageService = inject(StorageService);
 
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
+  private readonly OFFLINE_TIMEOUT_MS = 3000; // Short timeout for offline detection
   private loadInProgress = false;
   private loadSubject = new BehaviorSubject<any>(null);
 
@@ -95,6 +97,7 @@ export class DataSyncService {
     const resultSubject = new Subject<any>();
 
     // Create the forkJoin and subscribe internally to ensure execution
+    // ✅ Add timeout to prevent hanging on offline MongoDB queries
     forkJoin({
       privateTodos: defer(() => {
         return this.dataSyncProvider.crud<Todo[]>(
@@ -143,52 +146,67 @@ export class DataSyncService {
           true
         );
       }),
-    }).subscribe({
-      next: ({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
-        this.storageService.setCollection("privateTodos", privateTodos);
+    })
+      .pipe(
+        timeout(this.OFFLINE_TIMEOUT_MS) // Short timeout for fast offline detection
+      )
+      .subscribe({
+        next: ({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
+          this.storageService.setCollection("privateTodos", privateTodos);
 
-        const sharedTodoMap = new Map<string, Todo>();
-        [...teamTodosOwner, ...teamTodosAssignee].forEach((todo) =>
-          sharedTodoMap.set(todo.id, todo)
-        );
-        this.storageService.setCollection("sharedTodos", Array.from(sharedTodoMap.values()));
+          const sharedTodoMap = new Map<string, Todo>();
+          [...teamTodosOwner, ...teamTodosAssignee].forEach((todo) =>
+            sharedTodoMap.set(todo.id, todo)
+          );
+          this.storageService.setCollection("sharedTodos", Array.from(sharedTodoMap.values()));
 
-        this.storageService.setCollection("categories", categories);
-        this.storageService.setLoading(false);
-        this.storageService.setLoaded(true);
-        this.storageService.setLastLoaded(new Date());
-        this.loadInProgress = false;
+          this.storageService.setCollection("categories", categories);
+          this.storageService.setLoading(false);
+          this.storageService.setLoaded(true);
+          this.storageService.setLastLoaded(new Date());
+          this.loadInProgress = false;
 
-        const result = {
-          todos: this.storageService.todos(),
-          categories: this.storageService.categories(),
-        };
-
-        // Emit to all waiting subscribers
-        this.loadSubject.next(result);
-        resultSubject.next(result);
-        resultSubject.complete();
-      },
-      error: (error) => {
-        this.loadInProgress = false;
-        this.storageService.setLoading(false);
-
-        if (NetworkErrorHelper.isNetworkError(error) && this.storageService.loaded()) {
-          const cachedData = {
+          const result = {
             todos: this.storageService.todos(),
             categories: this.storageService.categories(),
           };
-          this.loadSubject.next(cachedData);
-          resultSubject.next(cachedData);
-        } else {
-          this.loadSubject.next({
-            todos: [],
-            categories: [],
-          });
-        }
-        resultSubject.error(error);
-      },
-    });
+
+          // Emit to all waiting subscribers
+          this.loadSubject.next(result);
+          resultSubject.next(result);
+          resultSubject.complete();
+        },
+        error: (error) => {
+          this.loadInProgress = false;
+          this.storageService.setLoading(false);
+
+          // ✅ Handle timeout/network errors - use cached data if available
+          const isTimeout = error.name === "TimeoutError";
+          const isNetworkError = NetworkErrorHelper.isNetworkError(error);
+
+          if ((isTimeout || isNetworkError) && this.storageService.loaded()) {
+            // Use cached data on timeout or network error
+            console.log("Using cached data (offline mode)");
+            const cachedData = {
+              todos: this.storageService.todos(),
+              categories: this.storageService.categories(),
+            };
+            this.loadSubject.next(cachedData);
+            resultSubject.next(cachedData);
+            resultSubject.complete();
+          } else {
+            // No cached data or different error - return empty
+            console.warn("Data load failed, no cache available:", error.message);
+            const emptyData = {
+              todos: [],
+              categories: [],
+            };
+            this.loadSubject.next(emptyData);
+            resultSubject.next(emptyData);
+            resultSubject.complete();
+          }
+        },
+      });
 
     // Return the subject for external subscribers
     return resultSubject.asObservable();
@@ -247,6 +265,7 @@ export class DataSyncService {
 
   /**
    * Load user profile and store in StorageService
+   * Uses explicit syncMetadata to ensure JSON provider is used (works offline)
    */
   loadProfile(): Observable<Profile | null> {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -263,12 +282,27 @@ export class DataSyncService {
     }
 
     // Use getAll with filter instead of get
+    // ✅ Explicit syncMetadata ensures JSON provider is used (offline-safe)
     return this.dataSyncProvider
-      .crud<Profile[]>("getAll", "profiles", { filter: { userId } }, true)
+      .crud<Profile[]>(
+        "getAll",
+        "profiles",
+        {
+          filter: { userId },
+          isPrivate: true,
+          isOwner: true,
+        },
+        true
+      )
       .pipe(
+        timeout(3000), // 3 second timeout to prevent hanging
         map((profiles) => (profiles && profiles.length > 0 ? profiles[0] : null)),
         tap((profile: Profile | null) => {
           this.storageService.setCollection("profiles", profile);
+        }),
+        catchError((error) => {
+          // Return cached profile on timeout/error (should be null since we checked above)
+          return of(this.storageService.profile());
         })
       );
   }

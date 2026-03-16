@@ -217,8 +217,14 @@ impl JsonCrudProvider {
                   .map(|recordValue| {
                     if let Some(filterValue) = filterValue.as_object() {
                       if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
+                        // Handle $in operator
                         if let Some(vecRec) = recordValue.as_array() {
+                          // Record value is array (e.g., assignees: ["id1", "id2"])
                           inVals.iter().any(|inVal| vecRec.contains(inVal))
+                        } else if let Some(recStr) = recordValue.as_str() {
+                          // Record value is string (e.g., todoId: "id1")
+                          // Check if string is in the $in array
+                          inVals.iter().any(|inVal| inVal.as_str() == Some(recStr))
                         } else {
                           false
                         }
@@ -285,8 +291,14 @@ impl CrudProvider for JsonCrudProvider {
                 .map(|recordValue| {
                   if let Some(filterValue) = filterValue.as_object() {
                     if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
+                      // Handle $in operator
                       if let Some(vecRec) = recordValue.as_array() {
+                        // Record value is array (e.g., assignees: ["id1", "id2"])
                         inVals.iter().any(|inVal| vecRec.contains(inVal))
+                      } else if let Some(recStr) = recordValue.as_str() {
+                        // Record value is string (e.g., todoId: "id1")
+                        // Check if string is in the $in array
+                        inVals.iter().any(|inVal| inVal.as_str() == Some(recStr))
                       } else {
                         false
                       }

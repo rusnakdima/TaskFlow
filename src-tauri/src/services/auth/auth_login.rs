@@ -205,7 +205,7 @@ impl AuthLoginService {
           .update("profiles", profileId, profileVal)
           .await;
       }
-      Err(e) => {
+      Err(_e) => {
         // Silently handle error
       }
     }

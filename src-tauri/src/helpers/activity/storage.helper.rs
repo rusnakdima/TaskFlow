@@ -67,7 +67,7 @@ impl ActivityStorage {
           }
         }
       }
-      Err(e) => {
+      Err(_e) => {
         // Log error silently
       }
     }

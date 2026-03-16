@@ -79,8 +79,37 @@ export class LoginView implements OnDestroy {
     };
     document.addEventListener("keydown", this.keydownHandler);
 
-    // Check if there are users in local JSON database
-    this.checkLocalUsers();
+    // Check database connection status
+    this.checkDatabaseConnection();
+  }
+
+  /**
+   * Check database connection and local users
+   */
+  checkDatabaseConnection() {
+    // First check if we can connect to the database
+    this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
+      next: (users) => {
+        // Filter out deleted users (isDeleted: false means active)
+        const activeUsers = (users || []).filter((u) => !u.isDeleted);
+        this.hasLocalUsers.set(activeUsers.length > 0);
+      },
+      error: (err) => {
+        console.error("Database connection error:", err);
+        this.hasLocalUsers.set(false);
+
+        // Show more helpful error message
+        if (NetworkErrorHelper.isNetworkError(err)) {
+          this.notifyService.showWarning(
+            "Cannot connect to database. Please check:\n" +
+              "1. MongoDB server is running\n" +
+              "2. Connection string in .env is correct\n" +
+              "3. Network/firewall allows connection\n\n" +
+              "Check terminal for detailed error message."
+          );
+        }
+      },
+    });
   }
 
   ngOnDestroy() {
@@ -95,23 +124,6 @@ export class LoginView implements OnDestroy {
 
   isInvalid(attr: string) {
     return (this.submitted() || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
-  }
-
-  /**
-   * Check if there are users in local JSON database
-   */
-  checkLocalUsers() {
-    // Get all users and filter out deleted ones
-    this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
-      next: (users) => {
-        // Filter out deleted users (isDeleted: false means active)
-        const activeUsers = (users || []).filter((u) => !u.isDeleted);
-        this.hasLocalUsers.set(activeUsers.length > 0);
-      },
-      error: (err) => {
-        this.hasLocalUsers.set(false);
-      },
-    });
   }
 
   async send() {
@@ -161,6 +173,8 @@ export class LoginView implements OnDestroy {
         }, 500);
         this.submitted.set(false);
       } catch (err: any) {
+        console.error("Login error:", err);
+
         // Check error type using centralized helper
         if (NetworkErrorHelper.isNetworkError(err)) {
           // Check if we have users in local database
@@ -170,9 +184,12 @@ export class LoginView implements OnDestroy {
           } else {
             // No local users - need to login online first
             this.notifyService.showError(
-              "⚠️ No internet connection AND no users in local database.\n\n" +
-                "You must login/register ONLINE at least once.\n\n" +
-                "Please connect to internet and try again."
+              "⚠️ Cannot connect to database.\n\n" +
+                "Please check:\n" +
+                "1. Your internet connection\n" +
+                "2. Backend server is running\n" +
+                "3. Database connection is configured\n\n" +
+                "You must connect to the database at least once to login."
             );
           }
         } else if (err.message?.includes("User data exists but no cached token")) {

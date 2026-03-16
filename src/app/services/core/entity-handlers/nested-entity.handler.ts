@@ -1,7 +1,6 @@
 import { WritableSignal } from "@angular/core";
 import { EntityHandler } from "./entity-handler.base";
-import { TodoUpdater } from "../todo-updater";
-import { AddOperation, UpdateOperation, RemoveOperation } from "../operations";
+import { AddOperation, UpdateOperation, RemoveOperation } from "../operations/operation.interface";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
@@ -9,15 +8,32 @@ import { Todo } from "@models/todo.model";
 type NestedEntity = Task | Subtask;
 
 export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T> {
-  private todoUpdater: TodoUpdater;
-
   constructor(
     private privateSignal: WritableSignal<Todo[]>,
     private sharedSignal: WritableSignal<Todo[]>,
     private entityType: "tasks" | "subtasks"
   ) {
     super();
-    this.todoUpdater = new TodoUpdater(privateSignal, sharedSignal);
+  }
+
+  /**
+   * Update a todo in both private and shared signals
+   */
+  private updateTodo(todoId: string, updater: (todo: Todo) => Todo): void {
+    this.updateSignal(this.privateSignal, todoId, updater);
+    this.updateSignal(this.sharedSignal, todoId, updater);
+  }
+
+  private updateSignal(
+    signal: WritableSignal<Todo[]>,
+    todoId: string,
+    updater: (todo: Todo) => Todo
+  ): void {
+    signal.update((todos) => {
+      const hasTodo = todos.some((todo) => todo.id === todoId);
+      if (!hasTodo) return todos;
+      return todos.map((todo) => (todo.id === todoId ? updater(todo) : todo));
+    });
   }
 
   add(data: T): void {
@@ -33,7 +49,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
       }
     }
 
-    this.todoUpdater.update(todoId, (todo) => {
+    this.updateTodo(todoId, (todo) => {
       if (this.entityType === "tasks") {
         const operation = new AddOperation<Task>(data as Task);
         return {
@@ -70,7 +86,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
       }
     }
 
-    this.todoUpdater.update(todoId, (todo) => {
+    this.updateTodo(todoId, (todo) => {
       if (this.entityType === "tasks") {
         const operation = new UpdateOperation<Task>(id, updates);
         return {
@@ -102,7 +118,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
       }
     }
 
-    this.todoUpdater.update(todoId, (todo) => {
+    this.updateTodo(todoId, (todo) => {
       if (this.entityType === "tasks") {
         const operation = new RemoveOperation<Task>(id);
         return {

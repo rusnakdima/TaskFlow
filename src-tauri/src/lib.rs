@@ -41,6 +41,9 @@ use services::{
   statistics_service::StatisticsService, websocket::WebSocketServerService,
 };
 
+/* repositories */
+use repositories::routed_repository::RoutedRepository;
+
 pub struct AppState {
   pub configHelper: Arc<ConfigHelper>,
   pub jsonProvider: JsonProvider,
@@ -67,8 +70,17 @@ pub fn run() {
         let uri = configHelper.mongoDbUri.clone();
         let dbName = configHelper.mongoDbName.clone();
         match tauri::async_runtime::block_on(MongodbProvider::new(uri.clone(), dbName.clone())) {
-          Ok(p) => Some(Arc::new(p)),
-          Err(_) => None,
+          Ok(p) => {
+            println!("✓ MongoDB connected successfully to {}", dbName);
+            Some(Arc::new(p))
+          }
+          Err(e) => {
+            eprintln!("✗ MongoDB connection failed: {}", e);
+            eprintln!("  URI: {}", uri);
+            eprintln!("  Database: {}", dbName);
+            eprintln!("  Falling back to JSON provider only");
+            None
+          }
         }
       };
 
@@ -92,12 +104,19 @@ pub fn run() {
       let activityMonitor =
         ActivityMonitorService::new(activityLogHelper.clone(), entityResolution.clone());
 
+      let routedRepository = Arc::new(RoutedRepository::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+        String::new(), // Table is set per operation
+      ));
+
       let crudService = Arc::new(CrudService::new(
         jsonProvider.clone(),
         mongodbProvider.clone(),
         cascadeService.clone(),
         entityResolution.clone(),
         activityMonitor,
+        routedRepository,
       ));
 
       let authService = Arc::new(AuthService::new(

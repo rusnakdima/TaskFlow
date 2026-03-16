@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot, Routes } from "@angular/router";
 
 /* reslver */
 import { MainResolver } from "@resolvers/main.resolver";
+import { InitialDataResolver } from "@resolvers/initial-data.resolver";
 
 /* guards */
 import { canActivateAuth } from "@guards/auth.guard";
@@ -35,65 +36,176 @@ import { NotFoundView } from "@views/not-found/not-found.view";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
+
+  // Parent route for all authenticated routes - ensures data is loaded first
   {
-    path: "dashboard",
-    component: DashboardView,
-    title: "Dashboard",
-    data: { breadcrumb: "Dashboard" },
+    path: "",
     canActivate: [canActivateAuth],
-  },
-  {
-    path: "stats",
-    loadComponent: () => import("@views/stats/stats.view").then((m) => m.StatsView),
-    title: "Statistic",
-    data: { breadcrumb: "Statistic" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "calendar",
-    loadComponent: () => import("@views/calendar/calendar.view").then((m) => m.CalendarView),
-    title: "Calendar",
-    data: { breadcrumb: "Calendar" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "shared-tasks",
-    component: SharedTasksView,
-    title: "Shared Projects",
-    data: { breadcrumb: "Shared Projects" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "kanban",
-    component: KanbanView,
-    title: "Kanban Board",
-    data: { breadcrumb: "Kanban" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "about",
-    loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
-    title: "About",
-    data: { breadcrumb: "About" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "sync",
-    component: SyncView,
-    title: "Data Synchronization",
-    data: { breadcrumb: "Sync" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "categories",
-    component: CategoriesView,
-    title: "Categories",
-    data: { breadcrumb: "Categories" },
-    canActivate: [canActivateAuth],
+    resolve: { initData: InitialDataResolver },
+    children: [
+      {
+        path: "dashboard",
+        component: DashboardView,
+        title: "Dashboard",
+        data: { breadcrumb: "Dashboard" },
+      },
+      {
+        path: "stats",
+        loadComponent: () => import("@views/stats/stats.view").then((m) => m.StatsView),
+        title: "Statistic",
+        data: { breadcrumb: "Statistic" },
+      },
+      {
+        path: "calendar",
+        loadComponent: () => import("@views/calendar/calendar.view").then((m) => m.CalendarView),
+        title: "Calendar",
+        data: { breadcrumb: "Calendar" },
+      },
+      {
+        path: "shared-tasks",
+        component: SharedTasksView,
+        title: "Shared Projects",
+        data: { breadcrumb: "Shared Projects" },
+      },
+      {
+        path: "kanban",
+        component: KanbanView,
+        title: "Kanban Board",
+        data: { breadcrumb: "Kanban" },
+      },
+      {
+        path: "about",
+        loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
+        title: "About",
+        data: { breadcrumb: "About" },
+      },
+      {
+        path: "sync",
+        component: SyncView,
+        title: "Data Synchronization",
+        data: { breadcrumb: "Sync" },
+      },
+      {
+        path: "categories",
+        component: CategoriesView,
+        title: "Categories",
+        data: { breadcrumb: "Categories" },
+      },
+      {
+        path: "admin",
+        loadComponent: () => import("@views/admin/admin.view").then((m) => m.AdminView),
+        title: "Admin",
+        data: { breadcrumb: "Admin" },
+      },
+      {
+        path: "archive",
+        loadComponent: () => import("@views/archive/archive.view").then((m) => m.ArchiveView),
+        title: "Archive",
+        data: { breadcrumb: "Archive" },
+      },
+      {
+        path: "settings",
+        component: SettingsView,
+        title: "Settings",
+        data: { breadcrumb: "Settings" },
+      },
+      {
+        path: "profile",
+        title: "Profile",
+        data: { breadcrumb: "Profile" },
+        children: [
+          {
+            path: "",
+            component: ProfileView,
+          },
+          {
+            path: "create-profile",
+            component: CreateProfileView,
+            title: "Create Profile",
+            data: { breadcrumb: "Create Profile" },
+          },
+          {
+            path: "edit_profile",
+            component: EditProfileView,
+            title: "Create Profile",
+            data: { breadcrumb: "Create Profile" },
+          },
+        ],
+      },
+      {
+        path: "todos",
+        title: "Projects",
+        data: { breadcrumb: "Projects" },
+        children: [
+          {
+            path: "",
+            component: TodosView,
+          },
+          {
+            path: "create_todo",
+            component: ManageTodoView,
+            title: "Create Todo",
+            data: { breadcrumb: "Create Todo" },
+          },
+          {
+            path: ":todoId/edit_todo",
+            component: ManageTodoView,
+            title: "Edit Todo",
+            data: { breadcrumb: "Edit Todo" },
+          },
+          {
+            path: ":todoId/tasks",
+            component: TasksView,
+            title: "Tasks",
+            data: {
+              breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
+            },
+            resolve: {
+              todo: MainResolver,
+            },
+          },
+          {
+            path: ":todoId/tasks/create_task",
+            component: ManageTaskView,
+            title: "Create Task",
+            data: { breadcrumb: "Create Task" },
+          },
+          {
+            path: ":todoId/tasks/:taskId/edit_task",
+            component: ManageTaskView,
+            title: "Edit Task",
+            data: { breadcrumb: "Edit Task" },
+          },
+          {
+            path: ":todoId/tasks/:taskId/subtasks",
+            component: SubtasksView,
+            title: "Task",
+            data: {
+              breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
+            },
+            resolve: {
+              task: MainResolver,
+            },
+          },
+          {
+            path: ":todoId/tasks/:taskId/subtasks/create_subtask",
+            component: ManageSubtaskView,
+            title: "Create Subtask",
+            data: { breadcrumb: "Create Subtask" },
+          },
+          {
+            path: ":todoId/tasks/:taskId/subtasks/:subtaskId/edit_subtask",
+            component: ManageSubtaskView,
+            title: "Edit Subtask",
+            data: { breadcrumb: "Edit Subtask" },
+          },
+        ],
+      },
+    ],
   },
 
+  // Public routes (no auth, no data resolver)
   { path: "login", component: LoginView, title: "Login", data: { breadcrumb: "Login" } },
-
   {
     path: "signup",
     component: SignupView,
@@ -111,131 +223,6 @@ export const routes: Routes = [
     component: ChangePasswordView,
     title: "Change Password",
     data: { breadcrumb: "Change Password" },
-  },
-
-  {
-    path: "admin",
-    loadComponent: () => import("@views/admin/admin.view").then((m) => m.AdminView),
-    title: "Admin",
-    data: { breadcrumb: "Admin" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "archive",
-    loadComponent: () => import("@views/archive/archive.view").then((m) => m.ArchiveView),
-    title: "Archive",
-    data: { breadcrumb: "Archive" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "settings",
-    component: SettingsView,
-    title: "Settings",
-    data: { breadcrumb: "Settings" },
-    canActivate: [canActivateAuth],
-  },
-  {
-    path: "profile",
-    title: "Profile",
-    data: { breadcrumb: "Profile" },
-    canActivate: [canActivateAuth],
-    children: [
-      {
-        path: "",
-        component: ProfileView,
-      },
-      {
-        path: "create-profile",
-        component: CreateProfileView,
-        title: "Create Profile",
-        data: { breadcrumb: "Create Profile" },
-      },
-      {
-        path: "edit_profile",
-        component: EditProfileView,
-        title: "Create Profile",
-        data: { breadcrumb: "Create Profile" },
-      },
-    ],
-  },
-
-  {
-    path: "todos",
-    title: "Projects",
-    data: { breadcrumb: "Projects" },
-    canActivate: [canActivateAuth],
-    children: [
-      {
-        path: "",
-        component: TodosView,
-      },
-      {
-        path: "create_todo",
-        component: ManageTodoView,
-        title: "Create Todo",
-        data: { breadcrumb: "Create Todo" },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/edit_todo",
-        component: ManageTodoView,
-        title: "Edit Todo",
-        data: { breadcrumb: "Edit Todo" },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks",
-        component: TasksView,
-        title: "Tasks",
-        data: {
-          breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
-        },
-        resolve: {
-          todo: MainResolver,
-        },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks/create_task",
-        component: ManageTaskView,
-        title: "Create Task",
-        data: { breadcrumb: "Create Task" },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks/:taskId/edit_task",
-        component: ManageTaskView,
-        title: "Edit Task",
-        data: { breadcrumb: "Edit Task" },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks/:taskId/subtasks",
-        component: SubtasksView,
-        title: "Task",
-        data: {
-          breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
-        },
-        resolve: {
-          task: MainResolver,
-        },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks/:taskId/subtasks/create_subtask",
-        component: ManageSubtaskView,
-        title: "Create Subtask",
-        data: { breadcrumb: "Create Subtask" },
-        canActivate: [canActivateAuth],
-      },
-      {
-        path: ":todoId/tasks/:taskId/subtasks/:subtaskId/edit_subtask",
-        component: ManageSubtaskView,
-        title: "Edit Subtask",
-        data: { breadcrumb: "Edit Subtask" },
-        canActivate: [canActivateAuth],
-      },
-    ],
   },
 
   {

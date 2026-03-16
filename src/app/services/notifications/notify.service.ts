@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, inject, signal, computed } from "@angular/core";
+import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
 import { Subject, filter } from "rxjs";
 
 /* services */
@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 @Injectable({
   providedIn: "root",
 })
-export class NotifyService {
+export class NotifyService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
 
@@ -64,6 +64,9 @@ export class NotifyService {
 
   // Track recent comment events to suppress duplicate task updates
   private recentCommentEvents = new Map<string, number>(); // taskId -> timestamp
+
+  // Audio context for playing notification sounds (reused across calls)
+  private audioContext: AudioContext | null = null;
 
   // Public signals
   get notifications() {
@@ -192,12 +195,52 @@ export class NotifyService {
     this.playSoundInternal(type, volume);
   }
 
+  /**
+   * Get or create the AudioContext instance
+   */
+  private getAudioContext(): AudioContext {
+    if (!this.audioContext) {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return this.audioContext;
+  }
+
+  /**
+   * Resume the AudioContext if it's suspended
+   */
+  private async resumeAudioContext(): Promise<void> {
+    const ctx = this.getAudioContext();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+  }
+
   private playSoundInternal(type: "chat" | "comment" | "general", volume: number): void {
     if (volume <= 0) {
       return;
     }
 
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = this.getAudioContext();
+
+    // Resume the audio context if suspended (required for user interaction)
+    this.resumeAudioContext()
+      .then(() => {
+        this.playOscillatorSound(audioContext, type, volume);
+      })
+      .catch(() => {
+        // If resume fails, try playing anyway (might work in some cases)
+        this.playOscillatorSound(audioContext, type, volume);
+      });
+  }
+
+  /**
+   * Play the actual oscillator sound after audio context is ready
+   */
+  private playOscillatorSound(
+    audioContext: AudioContext,
+    type: "chat" | "comment" | "general",
+    volume: number
+  ): void {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -230,8 +273,6 @@ export class NotifyService {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
   }
-
-  // ==================== NOTIFICATION STORAGE METHODS ====================
 
   private addNotification(notification: NotificationAction) {
     this.notificationsSignal.update((n) => [notification, ...n].slice(0, 50));
@@ -570,6 +611,15 @@ export class NotifyService {
         return "Failed";
       default:
         return "Pending";
+    }
+  }
+
+  // ==================== CLEANUP ====================
+
+  ngOnDestroy(): void {
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
     }
   }
 }

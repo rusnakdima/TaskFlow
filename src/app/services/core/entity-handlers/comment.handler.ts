@@ -1,18 +1,44 @@
 import { WritableSignal } from "@angular/core";
 import { EntityHandler } from "./entity-handler.base";
-import { TodoUpdater } from "../todo-updater";
 import { Todo } from "@models/todo.model";
 import { Comment } from "@models/comment.model";
 
 export class CommentHandler extends EntityHandler<Comment> {
-  private todoUpdater: TodoUpdater;
-
   constructor(
     private privateSignal: WritableSignal<Todo[]>,
     private sharedSignal: WritableSignal<Todo[]>
   ) {
     super();
-    this.todoUpdater = new TodoUpdater(privateSignal, sharedSignal);
+  }
+
+  /**
+   * Update a todo in both private and shared signals
+   */
+  private updateTodo(todoId: string | null, updater: (todo: Todo) => Todo): void {
+    if (!todoId) {
+      // Update all todos
+      this.updateAll(updater);
+      return;
+    }
+    this.updateSignal(this.privateSignal, todoId, updater);
+    this.updateSignal(this.sharedSignal, todoId, updater);
+  }
+
+  private updateSignal(
+    signal: WritableSignal<Todo[]>,
+    todoId: string,
+    updater: (todo: Todo) => Todo
+  ): void {
+    signal.update((todos) => {
+      const hasTodo = todos.some((todo) => todo.id === todoId);
+      if (!hasTodo) return todos;
+      return todos.map((todo) => (todo.id === todoId ? updater(todo) : todo));
+    });
+  }
+
+  private updateAll(updater: (todo: Todo) => Todo): void {
+    this.privateSignal.update((todos) => todos.map(updater));
+    this.sharedSignal.update((todos) => todos.map(updater));
   }
 
   add(data: Comment): void {
@@ -30,7 +56,7 @@ export class CommentHandler extends EntityHandler<Comment> {
   }
 
   remove(id: string): void {
-    this.todoUpdater.update(null, (todo) => ({
+    this.updateTodo(null, (todo) => ({
       ...todo,
       tasks: todo.tasks?.map((task) => ({
         ...task,
@@ -67,7 +93,7 @@ export class CommentHandler extends EntityHandler<Comment> {
     const todoId = this.resolveTodoId(entityId, entityType);
     if (!todoId) return;
 
-    this.todoUpdater.update(todoId, (todo) => {
+    this.updateTodo(todoId, (todo) => {
       if (entityType === "tasks") {
         const updatedTasks = todo.tasks?.map((task) => {
           if (task.id !== entityId) return task;

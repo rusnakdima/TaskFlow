@@ -13,7 +13,6 @@ import { Response } from "@models/response.model";
 import { Profile } from "@models/profile.model";
 
 /* helpers */
-import { RelationsHelper } from "@helpers/relations.helper";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
@@ -68,7 +67,6 @@ export class App implements OnInit {
 
   url = signal<string>("");
   showComponents = signal<boolean>(true);
-  private isDataLoaded = false;
   private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
@@ -92,11 +90,8 @@ export class App implements OnInit {
     // Initialize session from stored token
     this.authService.initializeSession(this.authRoutes);
 
-    // Load all data immediately if user is authenticated
-    // This ensures data is available even before token backend validation completes
-    if (this.authService.isLoggedIn()) {
-      this.loadAllData();
-    }
+    // Data is now loaded via InitialDataResolver in routes
+    // This ensures views don't render until data is available
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
       let lastIndex =
@@ -139,53 +134,6 @@ export class App implements OnInit {
     const currentPath = this.router.url.split("?")[0];
     const isAuthPage = this.authRoutes.some((route) => currentPath.startsWith(route));
     this.showComponents.set(!isAuthPage);
-  }
-
-  private loadAllData(): void {
-    if (this.isDataLoaded) {
-      return;
-    }
-    this.isDataLoaded = true;
-
-    const userId = this.authService.getValueByKey("id") || "";
-    const todoRelations = RelationsHelper.getTodoRelationsWithUser();
-
-    this.dataSyncService.loadAllData(false).subscribe({
-      next: (data) => {
-        // Load profile after main data is loaded
-        this.loadUserProfile();
-      },
-      error: (error) => {
-        // Error handled silently
-      },
-    });
-
-    // Categories are loaded by dataSyncService, no need to load separately
-  }
-
-  private loadUserProfile(): void {
-    const userId = this.authService.getValueByKey("id");
-    if (!userId) {
-      return;
-    }
-
-    this.dataSyncService.loadProfile().subscribe({
-      next: (profile) => {
-        this.checkUserProfile(profile);
-      },
-      error: (error) => {
-        // Check if offline - if so, use cached profile
-        if (this.storageService.profile()) {
-          this.checkUserProfile(this.storageService.profile());
-        }
-      },
-    });
-  }
-
-  private checkUserProfile(profile: Profile | null): void {
-    if (!profile || !profile.user || !profile.user.username) {
-      this.router.navigate(["/profile/create-profile"]);
-    }
   }
 
   /**

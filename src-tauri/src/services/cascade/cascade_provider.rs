@@ -5,6 +5,7 @@ use super::cascade_ids::CascadeIds;
 /// CascadeProvider - Trait defining cascade operations for different storage providers
 /// This trait allows uniform handling of cascade delete/restore operations
 /// regardless of the underlying storage mechanism (JSON or MongoDB)
+#[allow(dead_code)]
 pub trait CascadeProvider {
   /// Delete an entity and all its children with cascade
   ///

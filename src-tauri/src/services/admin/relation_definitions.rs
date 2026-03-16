@@ -35,10 +35,23 @@ pub fn getTableRelations(table: &str) -> Option<Vec<RelationObj>> {
       },
       RelationObj {
         nameTable: "categories".to_string(),
-        typeField: TypesField::OneToMany,
+        typeField: TypesField::ManyToOne,
         nameField: "categories".to_string(),
-        newNameField: "categories_list".to_string(),
+        newNameField: "categories".to_string(),
         relations: None,
+      },
+      RelationObj {
+        nameTable: "profiles".to_string(),
+        typeField: TypesField::ManyToMany,
+        nameField: "assignees".to_string(),
+        newNameField: "assigneesProfiles".to_string(),
+        relations: Some(vec![RelationObj {
+          nameTable: "users".to_string(),
+          typeField: TypesField::OneToOne,
+          nameField: "userId".to_string(),
+          newNameField: "user".to_string(),
+          relations: None,
+        }]),
       },
     ]),
     "categories" => Some(vec![RelationObj {
