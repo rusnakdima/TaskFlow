@@ -97,6 +97,8 @@
         @for (task of listTasks(); track task.id) {
           <app-task
             cdkDrag
+            [cdkDragData]="task"
+            cdkDragPreviewContainer="parent"
             class="h-full"
             [id]="'task-' + task.id"
             [task]="task"
