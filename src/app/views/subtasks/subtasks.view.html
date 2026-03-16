@@ -114,6 +114,8 @@
         @for (subtask of listSubtasks(); track subtask.id) {
           <app-subtask
             cdkDrag
+            [cdkDragData]="subtask"
+            cdkDragPreviewContainer="parent"
             [subtask]="subtask"
             [todoId]="todoId()"
             [index]="$index"
