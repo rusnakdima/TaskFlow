@@ -75,7 +75,6 @@ export class CategoriesView implements OnInit {
 
   // Bulk selection state
   selectedCategories = signal<Set<string>>(new Set());
-  showBulkActions = signal(false);
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
@@ -141,14 +140,15 @@ export class CategoriesView implements OnInit {
    * Toggle selection of a single category
    */
   toggleCategorySelection(categoryId: string): void {
-    const selected = this.selectedCategories();
-    if (selected.has(categoryId)) {
-      selected.delete(categoryId);
-    } else {
-      selected.add(categoryId);
-    }
-    this.selectedCategories.set(new Set(selected));
-    this.showBulkActions.set(selected.size > 0);
+    this.selectedCategories.update((selected) => {
+      const next = new Set(selected);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
   }
 
   /**
@@ -157,11 +157,8 @@ export class CategoriesView implements OnInit {
   toggleSelectAll(): void {
     if (this.isAllSelected()) {
       this.selectedCategories.set(new Set());
-      this.showBulkActions.set(false);
     } else {
-      const allIds = new Set(this.listCategories().map((cat) => cat.id));
-      this.selectedCategories.set(allIds);
-      this.showBulkActions.set(true);
+      this.selectedCategories.set(new Set(this.listCategories().map((cat) => cat.id)));
     }
   }
 
@@ -201,6 +198,5 @@ export class CategoriesView implements OnInit {
    */
   clearSelection(): void {
     this.selectedCategories.set(new Set());
-    this.showBulkActions.set(false);
   }
 }
