@@ -42,6 +42,9 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 
+/* views */
+import { BaseListView } from "@views/base-list.view";
+
 /* components */
 import { SubtaskComponent } from "@components/subtask/subtask.component";
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
@@ -69,7 +72,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./subtasks.view.html",
 })
-export class SubtasksView implements OnInit {
+export class SubtasksView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
@@ -80,34 +83,7 @@ export class SubtasksView implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
-  private baseHelper = new BaseItemHelper();
-  private filterService: FilterHelper;
-  private sortService: SortHelper;
   public bulkService = inject(BulkActionService);
-
-  // Loading and error state
-  protected loading = signal(false);
-  protected error = signal<string | null>(null);
-
-  constructor() {
-    this.filterService = new FilterHelper();
-    this.sortService = new SortHelper();
-  }
-
-  /**
-   * Handle errors by setting the error signal
-   */
-  protected handleError(err: any): void {
-    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
-    this.error.set(errorMessage);
-  }
-
-  /**
-   * Clear error state
-   */
-  protected clearError(): void {
-    this.error.set(null);
-  }
 
   // State signals
   showChat = signal(false);
@@ -139,9 +115,6 @@ export class SubtasksView implements OnInit {
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
   openComments = signal(false);
-  showFilter = signal(false);
-  activeFilter = signal<string>("all");
-  searchQuery = signal<string>("");
   private routeSub?: Subscription;
 
   // Bulk selection state (like admin page)
@@ -164,16 +137,16 @@ export class SubtasksView implements OnInit {
     if (filter !== "all") {
       switch (filter) {
         case "active":
-          filtered = this.filterService.filterByStatus(filtered, "pending");
+          filtered = FilterHelper.filterByStatus(filtered, "pending");
           break;
         case "completed":
-          filtered = this.filterService.filterByStatus(filtered, "completed");
+          filtered = FilterHelper.filterByStatus(filtered, "completed");
           break;
         case "skipped":
-          filtered = this.filterService.filterByStatus(filtered, "skipped");
+          filtered = FilterHelper.filterByStatus(filtered, "skipped");
           break;
         case "failed":
-          filtered = this.filterService.filterByStatus(filtered, "failed");
+          filtered = FilterHelper.filterByStatus(filtered, "failed");
           break;
         case "done":
           filtered = filtered.filter(
@@ -197,7 +170,7 @@ export class SubtasksView implements OnInit {
       );
     }
 
-    const result = this.sortService.sortByOrder(filtered, "desc");
+    const result = SortHelper.sortByOrder(filtered, "desc");
     return result;
   });
 
@@ -318,9 +291,8 @@ export class SubtasksView implements OnInit {
 
   toggleSubtaskCompletion(subtask: Subtask) {
     const todoId = this.todoId();
-    if (!todoId) return;
 
-    const newStatus = this.baseHelper.getNextStatus(subtask.status);
+    const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
     this.dataSyncProvider
       .crud<Subtask>("update", "subtasks", {
@@ -340,7 +312,6 @@ export class SubtasksView implements OnInit {
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: any }) {
     const todoId = this.todoId();
-    if (!todoId) return;
 
     this.dataSyncProvider
       .crud<Subtask>("update", "subtasks", {
@@ -360,7 +331,6 @@ export class SubtasksView implements OnInit {
 
   deleteSubtask(id: string) {
     const todoId = this.todoId();
-    if (!todoId) return;
 
     if (!confirm("Are you sure?")) return;
 
@@ -375,36 +345,15 @@ export class SubtasksView implements OnInit {
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
-    const todoId = this.todoId();
-    if (!todoId) return;
+    const taskId = this.task()?.id;
+    if (!taskId) return;
 
     this.dragDropService
-      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", todoId, {
+      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId, {
         isOwner: this.isOwner(),
         isPrivate: this.isPrivate(),
       })
       .subscribe();
-  }
-
-  /**
-   * Toggle filter bar visibility
-   */
-  toggleFilter(): void {
-    this.showFilter.update((v) => !v);
-  }
-
-  /**
-   * Handle search query change
-   */
-  onSearchChange(query: string): void {
-    this.searchQuery.set(query);
-  }
-
-  /**
-   * Handle filter change
-   */
-  changeFilter(filter: string): void {
-    this.activeFilter.set(filter);
   }
 
   // Bulk Actions Methods
@@ -466,7 +415,6 @@ export class SubtasksView implements OnInit {
     if (selected.size === 0) return;
 
     const todoId = this.todoId();
-    if (!todoId) return;
 
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
@@ -498,7 +446,6 @@ export class SubtasksView implements OnInit {
     if (selected.size === 0) return;
 
     const todoId = this.todoId();
-    if (!todoId) return;
 
     if (confirm(`Are you sure you want to delete ${selected.size} subtask(s)?`)) {
       const deleteRequests = Array.from(selected).map((subtaskId) =>
@@ -524,7 +471,6 @@ export class SubtasksView implements OnInit {
     if (selected.size === 0) return;
 
     const todoId = this.todoId();
-    if (!todoId) return;
 
     if (confirm(`Archive ${selected.size} subtask(s)?`)) {
       const deleteRequests = Array.from(selected).map((subtaskId) =>

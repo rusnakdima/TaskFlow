@@ -108,14 +108,12 @@
       <div
         class="flex flex-col space-y-2"
         cdkDropList
-        cdkDropListOrientation="mixed"
+        [cdkDropListData]="listSubtasks()"
+        cdkDropListOrientation="vertical"
         (cdkDropListDropped)="onSubtaskDrop($event)"
       >
         @for (subtask of listSubtasks(); track subtask.id) {
           <app-subtask
-            cdkDrag
-            [cdkDragData]="subtask"
-            cdkDragPreviewContainer="parent"
             [subtask]="subtask"
             [todoId]="todoId()"
             [index]="$index"
@@ -130,7 +128,6 @@
             (updateSubtaskEvent)="updateSubtaskInline($event)"
             (selectionChangeEvent)="toggleSubtaskSelection($event)"
           >
-            <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-lg h-16 w-full"></div>
           </app-subtask>
         }
       </div>

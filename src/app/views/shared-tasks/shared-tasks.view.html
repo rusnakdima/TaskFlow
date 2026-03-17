@@ -10,20 +10,29 @@
     <div class="mb-8">
       <h2 class="text-xl font-semibold textNormal mb-4">My Projects</h2>
       <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         cdkDropList
-        cdkDropListOrientation="mixed"
+        cdkDropListOrientation="horizontal"
+        cdkDropListConnectedTo="sharedWithMeList"
+        id="myProjectsList"
         (cdkDropListDropped)="onMyProjectsDrop($event)"
       >
         @for (todo of myProjects(); track $index) {
           <app-todo
+            cdkDrag
+            [cdkDragData]="todo"
+            cdkDragPreviewContainer="global"
             [todo]="todo"
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
             (deleteTodoEvent)="deleteTodoById($any($event), true)"
-            (saveAsBlueprintEvent)="onSaveAsBlueprint($any($event))"
-          />
+          >
+            <div
+              *cdkDragPlaceholder
+              class="cdk-drag-placeholder rounded-xl h-full min-h-[150px]"
+            ></div>
+          </app-todo>
         }
       </div>
     </div>
@@ -33,19 +42,29 @@
     <div class="mb-8">
       <h2 class="text-xl font-semibold textNormal mb-4">Shared with Me</h2>
       <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         cdkDropList
-        cdkDropListOrientation="mixed"
+        cdkDropListOrientation="horizontal"
+        cdkDropListConnectedTo="myProjectsList"
+        id="sharedWithMeList"
         (cdkDropListDropped)="onSharedWithMeDrop($event)"
       >
         @for (todo of sharedWithMe(); track $index) {
           <app-todo
+            cdkDrag
+            [cdkDragData]="todo"
+            cdkDragPreviewContainer="global"
             [todo]="todo"
             [index]="$index"
             [isOwner]="todoIsOwner(todo)"
             [isPrivate]="false"
             (deleteTodoEvent)="deleteTodoById($any($event), todoIsOwner(todo))"
-          />
+          >
+            <div
+              *cdkDragPlaceholder
+              class="cdk-drag-placeholder rounded-xl h-full min-h-[150px]"
+            ></div>
+          </app-todo>
         }
       </div>
     </div>
@@ -61,3 +80,23 @@
     </div>
   }
 </div>
+
+<style>
+  /* Fix drag&drop positioning in grid layouts */
+  .cdk-drag-preview {
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 1000 !important;
+  }
+
+  .cdk-drag-placeholder {
+    visibility: hidden;
+    min-height: 150px;
+  }
+
+  /* Ensure grid items maintain proper spacing during drag */
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+</style>

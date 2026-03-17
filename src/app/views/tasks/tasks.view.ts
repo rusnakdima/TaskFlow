@@ -44,6 +44,9 @@ import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 
+/* views */
+import { BaseListView } from "@views/base-list.view";
+
 /* components */
 import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
@@ -73,9 +76,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./tasks.view.html",
 })
-export class TasksView implements OnInit {
-  private filterService: FilterHelper;
-  private sortService: SortHelper;
+export class TasksView extends BaseListView implements OnInit {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
@@ -85,42 +86,14 @@ export class TasksView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
-  private baseHelper = new BaseItemHelper();
-  public bulkService = inject(BulkActionService);
   private bulkActionHelper = new BulkActionHelper();
-
-  // Loading and error state
-  protected loading = signal(false);
-  protected error = signal<string | null>(null);
-
-  constructor() {
-    this.filterService = new FilterHelper();
-    this.sortService = new SortHelper();
-  }
-
-  /**
-   * Handle errors by setting the error signal
-   */
-  protected handleError(err: any): void {
-    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
-    this.error.set(errorMessage);
-  }
-
-  /**
-   * Clear error state
-   */
-  protected clearError(): void {
-    this.error.set(null);
-  }
+  public bulkService = inject(BulkActionService);
 
   // State signals
   highlightTaskId = signal<string | null>(null);
   highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
   openChat = signal(false);
-  showFilter = signal(false);
-  activeFilter = signal<string>("all");
-  searchQuery = signal<string>("");
   expandedTasks = signal<Set<string>>(new Set());
   chats = signal<any[]>([]);
   private routeSub?: Subscription;
@@ -162,22 +135,22 @@ export class TasksView implements OnInit {
     // Apply status/priority filter
     switch (filter) {
       case "active":
-        filtered = this.filterService.filterByCompletion(filtered, "active");
+        filtered = FilterHelper.filterByCompletion(filtered, "active");
         break;
       case "completed":
-        filtered = this.filterService.filterByCompletion(filtered, "completed");
+        filtered = FilterHelper.filterByCompletion(filtered, "completed");
         break;
       case "skipped":
-        filtered = this.filterService.filterByStatus(filtered, "skipped");
+        filtered = FilterHelper.filterByStatus(filtered, "skipped");
         break;
       case "failed":
-        filtered = this.filterService.filterByStatus(filtered, "failed");
+        filtered = FilterHelper.filterByStatus(filtered, "failed");
         break;
       case "done":
-        filtered = this.filterService.filterByStatus(filtered, "done");
+        filtered = FilterHelper.filterByStatus(filtered, "done");
         break;
       case "high":
-        filtered = this.filterService.filterByPriority(filtered, "high");
+        filtered = FilterHelper.filterByPriority(filtered, "high");
         break;
     }
 
@@ -190,7 +163,8 @@ export class TasksView implements OnInit {
       );
     }
 
-    const result = this.sortService.sortByOrder(filtered, "desc");
+    // Skip sorting during drag to prevent snap-back
+    const result = SortHelper.sortByOrder(filtered, "desc");
     return result;
   });
 
@@ -307,7 +281,7 @@ export class TasksView implements OnInit {
       return;
     }
 
-    const newStatus = this.baseHelper.getNextStatus(task.status);
+    const newStatus = BaseItemHelper.getNextStatus(task.status);
 
     // Update task status via DataSyncProvider (storage updated automatically)
     this.dataSyncProvider
@@ -563,7 +537,7 @@ export class TasksView implements OnInit {
         this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (id, data) => {
           return this.dataSyncProvider.crud<Task>("update", "tasks", {
             id,
-            data: { status },
+            data: { status: status as TaskStatus },
             parentTodoId: todoId,
           });
         })
@@ -644,26 +618,5 @@ export class TasksView implements OnInit {
       const val = prompt(`Enter new ${actionId}:`);
       if (val) actionId === "priority" ? this.bulkUpdatePriority(val) : this.bulkUpdateStatus(val);
     }
-  }
-
-  /**
-   * Toggle filter bar visibility
-   */
-  toggleFilter(): void {
-    this.showFilter.update((v) => !v);
-  }
-
-  /**
-   * Handle search query change
-   */
-  onSearchChange(query: string): void {
-    this.searchQuery.set(query);
-  }
-
-  /**
-   * Handle filter change
-   */
-  changeFilter(filter: string): void {
-    this.activeFilter.set(filter);
   }
 }

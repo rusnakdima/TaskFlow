@@ -67,13 +67,7 @@ export class SharedTasksView implements OnInit {
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
     this.loadSharedProjects();
-  }
-
-  onSaveAsBlueprint(todo: Todo) {
-    const name = `${todo.title} Blueprint`;
-    const description = todo.description || "";
-    this.templateService.createTemplateFromTodo(todo, name, description);
-    this.notifyService.showSuccess(`Project saved as "${name}" Blueprint`);
+    console.log(this.storageService.sharedTodos());
   }
 
   loadSharedProjects() {

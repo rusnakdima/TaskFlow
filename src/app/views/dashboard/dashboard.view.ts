@@ -18,8 +18,6 @@ import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 /* helpers */
-import { BaseItemHelper } from "@helpers/base-item.helper";
-
 interface DisplayTask {
   id: string;
   title: string;
@@ -40,7 +38,6 @@ interface DisplayTask {
   templateUrl: "./dashboard.view.html",
 })
 export class DashboardView implements OnInit {
-  public baseHelper = new BaseItemHelper();
   public TaskStatus = TaskStatus;
 
   // ✅ FIX: Use computed signal from StorageService instead of making API call
