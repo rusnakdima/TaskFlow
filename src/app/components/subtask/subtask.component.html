@@ -1,7 +1,9 @@
 @if (subtask) {
   <div
+    cdkDrag
+    cdkDragPreviewContainer="global"
     id="subtask-{{ subtask.id }}"
-    class="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow border border-gray-200 dark:border-zinc-700 hover:shadow-md transition-all duration-200 group relative"
+    class="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow border border-gray-200 dark:border-zinc-700 hover:shadow-md duration-200 group relative"
     [ngClass]="{
       'ring-4 ring-purple-500 animate-pulse': highlight,
       'bg-blue-50 dark:bg-blue-900/20 border-blue-500': isSelected,
@@ -204,6 +206,7 @@
         (deleteCommentEvent)="onDeleteComment($event)"
         (markAsReadEvent)="onMarkAsRead($event)"
       />
+      <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-lg min-h-[80px] w-full"></div>
     }
   </div>
 }

@@ -1,7 +1,12 @@
 @if (task) {
-  <div class="h-full flex flex-col" [class.expanded]="isExpanded">
+  <div
+    cdkDrag
+    cdkDragPreviewContainer="global"
+    class="h-full flex flex-col"
+    [class.expanded]="isExpanded"
+  >
     <div
-      class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
+      class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
@@ -326,6 +331,7 @@
           </button>
         </div>
       </div>
+      <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-xl min-h-[200px] w-full"></div>
     </div>
   </div>
 }

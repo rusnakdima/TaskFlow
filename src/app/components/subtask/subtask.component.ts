@@ -12,6 +12,9 @@ import {
   OnChanges,
   SimpleChanges,
 } from "@angular/core";
+
+/* base */
+import { BaseItemComponent } from "@components/base-item.component";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -53,13 +56,11 @@ import { Task } from "@models/task.model";
   templateUrl: "./subtask.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtaskComponent implements OnChanges {
-  private baseHelper = new BaseItemHelper();
+export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
-  private cdr = inject(ChangeDetectorRef);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -77,14 +78,9 @@ export class SubtaskComponent implements OnChanges {
   @Output() toggleCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
   @Output() updateSubtaskEvent: EventEmitter<{ subtask: Subtask; field: string; value: any }> =
     new EventEmitter();
-  @Output() edit = new EventEmitter<void>();
-  @Output() delete = new EventEmitter<void>();
-  @Output() toggle = new EventEmitter<void>();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
 
-  editingField = signal<string | null>(null);
-  editingValue = signal("");
   showComments = signal(false);
 
   truncateString = Common.truncateString;
@@ -104,7 +100,7 @@ export class SubtaskComponent implements OnChanges {
     return this.unreadCommentsCount > 0;
   }
 
-  getPriorityColor = this.baseHelper.getPriorityBadgeClass;
+  getPriorityColor = BaseItemHelper.getPriorityBadgeClass;
 
   /**
    * Filter out deleted comments
@@ -260,19 +256,6 @@ export class SubtaskComponent implements OnChanges {
     }
   }
 
-  startInlineEdit(field: string, currentValue: string) {
-    this.editingField.set(field);
-    this.editingValue.set(currentValue);
-    this.cdr.markForCheck();
-
-    setTimeout(() => {
-      const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
-      if (input) {
-        input.select();
-      }
-    }, 0);
-  }
-
   saveInlineEdit() {
     if (this.editingValue().trim() && this.editingField() && this.subtask) {
       const originalValue =
@@ -288,28 +271,10 @@ export class SubtaskComponent implements OnChanges {
     this.cancelInlineEdit();
   }
 
-  cancelInlineEdit() {
-    this.editingField.set(null);
-    this.editingValue.set("");
-    this.cdr.markForCheck();
-  }
-
   deleteSubtask() {
     if (this.subtask) {
       this.deleteSubtaskEvent.emit(this.subtask.id);
     }
-  }
-
-  onEditClick(): void {
-    this.edit.emit();
-  }
-
-  onDeleteClick(): void {
-    this.delete.emit();
-  }
-
-  onToggleClick(): void {
-    this.toggle.emit();
   }
 
   toggleSelection(checked: boolean): void {

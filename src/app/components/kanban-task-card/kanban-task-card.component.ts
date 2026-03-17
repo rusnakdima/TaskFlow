@@ -22,8 +22,6 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
   templateUrl: "./kanban-task-card.component.html",
 })
 export class KanbanTaskCardComponent {
-  private baseHelper = new BaseItemHelper();
-
   @Input() task!: Task;
   @Input() columnId!: string;
   @Input() columns: { id: string; label: string; icon: string }[] = [];
@@ -58,8 +56,8 @@ export class KanbanTaskCardComponent {
   }
 
   getCompletedSubtasksCount(): number {
-    return this.baseHelper.countCompleted(this.subtasks);
+    return BaseItemHelper.countCompleted(this.subtasks);
   }
 
-  formatDate = this.baseHelper.formatDate;
+  formatDate = BaseItemHelper.formatDate;
 }

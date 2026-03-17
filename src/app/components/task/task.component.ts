@@ -10,7 +10,12 @@ import {
   inject,
   OnChanges,
   SimpleChanges,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from "@angular/core";
+
+/* base */
+import { BaseItemComponent } from "@components/base-item.component";
 import { RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
@@ -38,8 +43,6 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 
-import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
-
 @Component({
   selector: "app-task",
   standalone: true,
@@ -56,13 +59,11 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   templateUrl: "./task.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskComponent implements OnInit, OnChanges {
-  private baseHelper = new BaseItemHelper();
+export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
-  private cdr = inject(ChangeDetectorRef);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -87,12 +88,7 @@ export class TaskComponent implements OnInit, OnChanges {
   @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
-  @Output() edit = new EventEmitter<void>();
-  @Output() delete = new EventEmitter<void>();
-  @Output() toggle = new EventEmitter<void>();
 
-  editingField = signal<string | null>(null);
-  editingValue = signal("");
   showComments = signal(false);
 
   ngOnInit() {}
@@ -115,7 +111,7 @@ export class TaskComponent implements OnInit, OnChanges {
   }
 
   get isBlocked(): boolean {
-    return this.baseHelper.isBlockedByDependencies(this.task?.dependsOn, this.allTasks);
+    return BaseItemHelper.isBlockedByDependencies(this.task?.dependsOn, this.allTasks);
   }
 
   /**
@@ -281,23 +277,23 @@ export class TaskComponent implements OnInit, OnChanges {
     this.toggleSubtaskCompletionEvent.emit(subtask);
   }
 
-  getSubtaskPriorityColor = this.baseHelper.getPriorityColor;
+  getSubtaskPriorityColor = BaseItemHelper.getPriorityColor;
 
-  getSubtaskStatusIcon = this.baseHelper.getStatusIcon;
+  getSubtaskStatusIcon = BaseItemHelper.getStatusIcon;
 
-  getSubtaskStatusColor = this.baseHelper.getStatusColor;
+  getSubtaskStatusColor = BaseItemHelper.getStatusColor;
 
   get countCompletedSubtasks(): number {
-    return this.baseHelper.countCompleted(this.task?.subtasks ?? []);
+    return BaseItemHelper.countCompleted(this.task?.subtasks ?? []);
   }
 
   get totalSubtasks(): number {
     return this.task?.subtasks?.length ?? 0;
   }
 
-  getPriorityColor = this.baseHelper.getPriorityBadgeClass;
+  getPriorityColor = BaseItemHelper.getPriorityBadgeClass;
 
-  formatDate = this.baseHelper.formatDate;
+  formatDate = BaseItemHelper.formatDate;
 
   toggleCompletion(event: any) {
     event.stopPropagation();
@@ -305,19 +301,6 @@ export class TaskComponent implements OnInit, OnChanges {
       this.toggleCompletionEvent.emit(this.task);
       this.cdr.markForCheck();
     }
-  }
-
-  startInlineEdit(field: string, currentValue: string) {
-    this.editingField.set(field);
-    this.editingValue.set(currentValue);
-    this.cdr.markForCheck();
-
-    setTimeout(() => {
-      const input = document.querySelector("input:focus, textarea:focus") as HTMLInputElement;
-      if (input) {
-        input.select();
-      }
-    }, 0);
   }
 
   saveInlineEdit() {
@@ -335,27 +318,9 @@ export class TaskComponent implements OnInit, OnChanges {
     this.cancelInlineEdit();
   }
 
-  cancelInlineEdit() {
-    this.editingField.set(null);
-    this.editingValue.set("");
-    this.cdr.markForCheck();
-  }
-
   deleteTask() {
     if (this.task) {
       this.deleteTaskEvent.emit(this.task.id);
     }
-  }
-
-  onEditClick(): void {
-    this.edit.emit();
-  }
-
-  onDeleteClick(): void {
-    this.delete.emit();
-  }
-
-  onToggleClick(): void {
-    this.toggle.emit();
   }
 }
