@@ -16,6 +16,8 @@ pub mod password_reset;
 pub mod profile_model;
 #[path = "provider_type.model.rs"]
 pub mod provider_type_model;
+#[path = "relation_config.model.rs"]
+pub mod relation_config;
 #[path = "relation_obj.model.rs"]
 pub mod relation_obj;
 #[path = "response.model.rs"]
