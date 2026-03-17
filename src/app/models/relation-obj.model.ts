@@ -10,5 +10,6 @@ export interface RelationObj {
   typeField: TypesField;
   nameField: string;
   newNameField: string;
+  targetField?: string; // New: Column to join against in target table
   relations: RelationObj[] | null;
 }
