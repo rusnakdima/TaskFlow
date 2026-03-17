@@ -127,17 +127,23 @@
                 [id]="'cdk-drop-list-' + column.id"
               >
                 @for (task of getTasksByStatus(column.id); track task.id) {
-                  <app-kanban-task-card
-                    [task]="task"
-                    [columnId]="column.id"
-                    [columns]="columns"
-                    [subtasks]="getSubtasksForTask(task.id)"
-                    [isExpanded]="isTaskExpanded(task.id)"
-                    [todoId]="selectedTodoId()"
-                    (toggleExpand)="onToggleExpand($event)"
-                    (moveTaskEvent)="onMoveTask($event)"
-                    (toggleSubtaskCompletion)="onSubtaskToggleCompletion($event)"
-                  />
+                  <div cdkDrag [cdkDragData]="task" class="block">
+                    <app-kanban-task-card
+                      [task]="task"
+                      [columnId]="column.id"
+                      [columns]="columns"
+                      [subtasks]="getSubtasksForTask(task.id)"
+                      [isExpanded]="isTaskExpanded(task.id)"
+                      [todoId]="selectedTodoId()"
+                      (toggleExpand)="onToggleExpand($event)"
+                      (moveTaskEvent)="onMoveTask($event)"
+                      (toggleSubtaskCompletion)="onSubtaskToggleCompletion($event)"
+                    />
+                  </div>
+                  <div
+                    *cdkDragPlaceholder
+                    class="rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/20 min-h-[140px]"
+                  ></div>
                 }
 
                 @if (getTasksByStatus(column.id).length === 0) {
@@ -197,5 +203,23 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(156, 163, 175, 0.5);
+  }
+
+  .cdk-drag-preview {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    opacity: 0.9;
+  }
+
+  .cdk-drag-placeholder {
+    opacity: 1;
+  }
+
+  .cdk-drag-animating {
+    transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .cdk-drop-list-dragging .cdk-drag {
+    transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
   }
 </style>

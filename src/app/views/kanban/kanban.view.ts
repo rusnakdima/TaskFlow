@@ -66,7 +66,6 @@ export class KanbanView implements OnInit, OnDestroy {
   private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);
-  private baseHelper = new BaseItemHelper();
   private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -74,8 +73,22 @@ export class KanbanView implements OnInit, OnDestroy {
 
   TaskStatus = TaskStatus;
 
-  // Use storage signals directly for source data
+  // Use storage signals directly for source data — both private and team todos
   todos = computed(() => this.storageService.todos().filter((todo) => !todo.isDeleted));
+
+  selectedTodo = computed(() => {
+    const todoId = this.selectedTodoId();
+    return this.storageService.todos().find((t) => t.id === todoId) ?? null;
+  });
+
+  private selectedTodoMeta = computed(() => {
+    const todo = this.selectedTodo();
+    const currentUserId = this.authService.getValueByKey("id");
+    return {
+      isPrivate: todo?.visibility === "private",
+      isOwner: todo?.userId === currentUserId,
+    };
+  });
 
   selectedTodoId = signal<string>("");
   loading = signal<boolean>(false);
@@ -194,16 +207,18 @@ export class KanbanView implements OnInit, OnDestroy {
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
+    const { isPrivate, isOwner } = this.selectedTodoMeta();
+
     this.dataSyncProvider
       .crud<Subtask>("update", "subtasks", {
         id: subtask.id,
         data: { status: newStatus },
         parentTodoId: todoId,
+        isPrivate,
+        isOwner,
       })
       .subscribe({
-        next: () => {
-          // Storage updated automatically by DataSyncProvider
-        },
+        next: () => {},
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update subtask");
         },
@@ -251,12 +266,12 @@ export class KanbanView implements OnInit, OnDestroy {
   }
 
   // Delegate UI helper methods to BaseItemHelper
-  getColumnColorClass = this.baseHelper.getColumnColorClass;
-  getAssigneeColor = this.baseHelper.getAssigneeColor;
-  getInitials = this.baseHelper.getInitials;
-  formatDate = this.baseHelper.formatDate;
-  getTaskProgressPercentage = this.baseHelper.getTaskProgressPercentage;
-  getProgressSegments = this.baseHelper.getProgressSegments;
+  getColumnColorClass = BaseItemHelper.getColumnColorClass;
+  getAssigneeColor = BaseItemHelper.getAssigneeColor;
+  getInitials = BaseItemHelper.getInitials;
+  formatDate = BaseItemHelper.formatDate;
+  getTaskProgressPercentage = BaseItemHelper.getTaskProgressPercentage;
+  getProgressSegments = BaseItemHelper.getProgressSegments;
   getConnectedDropLists = (currentColumnId: string) =>
     this.dragDropService.getConnectedDropLists(currentColumnId, this.columns);
 
@@ -279,11 +294,15 @@ export class KanbanView implements OnInit, OnDestroy {
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
+    const { isPrivate, isOwner } = this.selectedTodoMeta();
+
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
         id: taskId,
         data: { status: newStatus },
         parentTodoId: todoId,
+        isPrivate,
+        isOwner,
       })
       .subscribe({
         next: (updatedTask) => {
