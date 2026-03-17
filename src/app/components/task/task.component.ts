@@ -46,6 +46,7 @@ import { Comment } from "@models/comment.model";
 @Component({
   selector: "app-task",
   standalone: true,
+  host: { style: "display: block;" },
   imports: [
     CommonModule,
     RouterModule,
