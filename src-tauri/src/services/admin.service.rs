@@ -185,7 +185,6 @@ impl AdminManager {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    // Step 1: Collect all cascade IDs from MongoDB
     let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
       if let Some(ref handler) = self.cascadeService.mongoHandler {
         handler.collectCascadeIds(&table, &id).await?
@@ -196,7 +195,6 @@ impl AdminManager {
       crate::services::cascade::cascade_ids::CascadeIds::default()
     };
 
-    // Step 2: Hard delete the main record from MongoDB
     self
       .mongodbProvider
       .mongodbCrud
@@ -208,35 +206,7 @@ impl AdminManager {
         data: DataValue::String("".to_string()),
       })?;
 
-    // Step 3: Hard delete all children from MongoDB
-    for task_id in &cascade_ids.task_ids {
-      let _ = self
-        .mongodbProvider
-        .mongodbCrud
-        .hardDelete("tasks", task_id)
-        .await;
-    }
-    for subtask_id in &cascade_ids.subtask_ids {
-      let _ = self
-        .mongodbProvider
-        .mongodbCrud
-        .hardDelete("subtasks", subtask_id)
-        .await;
-    }
-    for comment_id in &cascade_ids.comment_ids {
-      let _ = self
-        .mongodbProvider
-        .mongodbCrud
-        .hardDelete("comments", comment_id)
-        .await;
-    }
-    for chat_id in &cascade_ids.chat_ids {
-      let _ = self
-        .mongodbProvider
-        .mongodbCrud
-        .hardDelete("chats", chat_id)
-        .await;
-    }
+    Self::hard_delete_cascade_ids_mongo(&self.mongodbProvider, &cascade_ids).await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -251,7 +221,6 @@ impl AdminManager {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    // Step 1: Collect all cascade IDs from local JSON
     let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
       if let Some(ref handler) = self.cascadeService.jsonHandler {
         handler.collectCascadeIds(&table, &id).await?
@@ -262,7 +231,6 @@ impl AdminManager {
       crate::services::cascade::cascade_ids::CascadeIds::default()
     };
 
-    // Step 2: Hard delete the main record from local JSON
     self
       .jsonProvider
       .hardDelete(&table, &id)
@@ -273,19 +241,7 @@ impl AdminManager {
         data: DataValue::String("".to_string()),
       })?;
 
-    // Step 3: Hard delete all children from local JSON
-    for task_id in &cascade_ids.task_ids {
-      let _ = self.jsonProvider.hardDelete("tasks", task_id).await;
-    }
-    for subtask_id in &cascade_ids.subtask_ids {
-      let _ = self.jsonProvider.hardDelete("subtasks", subtask_id).await;
-    }
-    for comment_id in &cascade_ids.comment_ids {
-      let _ = self.jsonProvider.hardDelete("comments", comment_id).await;
-    }
-    for chat_id in &cascade_ids.chat_ids {
-      let _ = self.jsonProvider.hardDelete("chats", chat_id).await;
-    }
+    Self::hard_delete_cascade_ids_json(&self.jsonProvider, &cascade_ids).await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -301,43 +257,28 @@ impl AdminManager {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    // Get the record from MongoDB
-    let record = match self.mongodbProvider.mongodbCrud.get(&table, &id).await {
-      Ok(doc) => doc,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Record not found in MongoDB: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+    let record = self
+      .mongodbProvider
+      .mongodbCrud
+      .get(&table, &id)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Record not found in MongoDB: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
 
-    let isDeleted = record
-      .get("isDeleted")
-      .and_then(|v| v.as_bool())
-      .unwrap_or(false);
-    let newStatus = !isDeleted;
-    let timestamp = timestamp_helper::getCurrentTimestamp();
+    let (newStatus, updateVal) = Self::build_toggle_update(&record);
 
-    let mut updateVal = record.clone();
-    if let Some(obj) = updateVal.as_object_mut() {
-      obj.insert("isDeleted".to_string(), json!(newStatus));
-      obj.insert("updatedAt".to_string(), json!(timestamp));
-    }
-
-    // Handle children recursively via MongoDB cascade
-    let is_restore = isDeleted;
     self
       .cascadeService
-      .handleMongoCascade(&table, &id, is_restore)
+      .handleMongoCascade(&table, &id, /* is_restore = */ !newStatus)
       .await?;
 
-    // Update the main record in MongoDB
     self
       .mongodbProvider
       .mongodbCrud
-      .update(&table, &id, updateVal.clone())
+      .update(&table, &id, updateVal)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -358,42 +299,26 @@ impl AdminManager {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    // Get the record from local JSON
-    let record = match self.jsonProvider.get(&table, &id).await {
-      Ok(doc) => doc,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Record not found in local database: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+    let record = self
+      .jsonProvider
+      .get(&table, &id)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Record not found in local database: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
 
-    let isDeleted = record
-      .get("isDeleted")
-      .and_then(|v| v.as_bool())
-      .unwrap_or(false);
-    let newStatus = !isDeleted;
-    let timestamp = timestamp_helper::getCurrentTimestamp();
+    let (newStatus, updateVal) = Self::build_toggle_update(&record);
 
-    let mut updateVal = record.clone();
-    if let Some(obj) = updateVal.as_object_mut() {
-      obj.insert("isDeleted".to_string(), json!(newStatus));
-      obj.insert("updatedAt".to_string(), json!(timestamp));
-    }
-
-    // Handle children recursively via local JSON cascade
-    let is_restore = isDeleted;
     self
       .cascadeService
-      .handleJsonCascade(&table, &id, is_restore)
+      .handleJsonCascade(&table, &id, /* is_restore = */ !newStatus)
       .await?;
 
-    // Update the main record in local JSON
     self
       .jsonProvider
-      .update(&table, &id, updateVal.clone())
+      .update(&table, &id, updateVal)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -409,5 +334,59 @@ impl AdminManager {
       ),
       data: DataValue::Bool(newStatus),
     })
+  }
+
+  /// Build the updated record value for a toggle-delete operation.
+  /// Returns `(new_is_deleted_status, updated_record)`.
+  fn build_toggle_update(record: &serde_json::Value) -> (bool, serde_json::Value) {
+    let isDeleted = record
+      .get("isDeleted")
+      .and_then(|v| v.as_bool())
+      .unwrap_or(false);
+    let newStatus = !isDeleted;
+    let timestamp = timestamp_helper::getCurrentTimestamp();
+
+    let mut updateVal = record.clone();
+    if let Some(obj) = updateVal.as_object_mut() {
+      obj.insert("isDeleted".to_string(), json!(newStatus));
+      obj.insert("updatedAt".to_string(), json!(timestamp));
+    }
+    (newStatus, updateVal)
+  }
+
+  async fn hard_delete_cascade_ids_mongo(
+    provider: &Arc<MongodbProvider>,
+    cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
+  ) {
+    for id in &cascade_ids.task_ids {
+      let _ = provider.mongodbCrud.hardDelete("tasks", id).await;
+    }
+    for id in &cascade_ids.subtask_ids {
+      let _ = provider.mongodbCrud.hardDelete("subtasks", id).await;
+    }
+    for id in &cascade_ids.comment_ids {
+      let _ = provider.mongodbCrud.hardDelete("comments", id).await;
+    }
+    for id in &cascade_ids.chat_ids {
+      let _ = provider.mongodbCrud.hardDelete("chats", id).await;
+    }
+  }
+
+  async fn hard_delete_cascade_ids_json(
+    provider: &JsonProvider,
+    cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
+  ) {
+    for id in &cascade_ids.task_ids {
+      let _ = provider.hardDelete("tasks", id).await;
+    }
+    for id in &cascade_ids.subtask_ids {
+      let _ = provider.hardDelete("subtasks", id).await;
+    }
+    for id in &cascade_ids.comment_ids {
+      let _ = provider.hardDelete("comments", id).await;
+    }
+    for id in &cascade_ids.chat_ids {
+      let _ = provider.hardDelete("chats", id).await;
+    }
   }
 }

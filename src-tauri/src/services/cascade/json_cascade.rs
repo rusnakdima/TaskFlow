@@ -47,8 +47,6 @@ impl JsonCascadeHandler {
     table: &str,
     id: &str,
   ) -> Result<CascadeIds, ResponseModel> {
-    let start_time = std::time::Instant::now();
-
     let mut cascade_ids = CascadeIds::default();
     let mut visited_todos = HashSet::new();
     let mut visited_tasks = HashSet::new();
@@ -86,7 +84,6 @@ impl JsonCascadeHandler {
       }
     }
 
-    let _elapsed = start_time.elapsed();
     Ok(cascade_ids)
   }
 
@@ -235,8 +232,6 @@ impl JsonCascadeHandler {
     id: &str,
     is_restore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
-    let total_start = std::time::Instant::now();
-
     // Collect all IDs to cascade
     let cascade_ids = self.collectCascadeIds(table, id).await?;
 
@@ -268,7 +263,6 @@ impl JsonCascadeHandler {
         .await?;
     }
 
-    let _total_time = total_start.elapsed();
     Ok(cascade_ids)
   }
 

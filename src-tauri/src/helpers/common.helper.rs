@@ -1,6 +1,12 @@
 /* sys lib */
 use serde::Serialize;
 
+pub const TABLES_WITHOUT_SOFT_DELETE: &[&str] = &["users", "profiles", "comments"];
+
+pub fn supports_soft_delete(table: &str) -> bool {
+  !TABLES_WITHOUT_SOFT_DELETE.contains(&table)
+}
+
 /* models */
 use crate::models::{
   provider_type_model::ProviderType,
@@ -9,9 +15,9 @@ use crate::models::{
   sync_metadata_model::SyncMetadata,
 };
 
-pub fn convertDataToArray<T: Serialize>(data: &Vec<T>) -> DataValue {
+pub fn convertDataToArray<T: Serialize>(data: &[T]) -> DataValue {
   let serialized_array: Vec<serde_json::Value> = data
-    .into_iter()
+    .iter()
     .map(|item| serde_json::to_value(item).unwrap())
     .collect();
 

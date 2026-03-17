@@ -17,6 +17,9 @@ use crate::models::{
   user_model::UserModel,
 };
 
+/* helpers */
+use crate::helpers::response_helper::errResponse;
+
 #[derive(Clone)]
 pub struct AuthRegisterService {
   pub jsonProvider: JsonProvider,
@@ -48,29 +51,18 @@ impl AuthRegisterService {
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Registration unavailable: MongoDB offline".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+        return Err(errResponse("Registration unavailable: MongoDB offline"));
       }
     };
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
         if !users.is_empty() {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "User already exists".to_string(),
-            data: DataValue::String("".to_string()),
-          });
+          return Err(errResponse("User already exists"));
         }
 
-        let hashedPassword = hash(password, DEFAULT_COST).map_err(|e| ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error hashing password: {}", e),
-          data: DataValue::String("".to_string()),
-        })?;
+        let hashedPassword = hash(password, DEFAULT_COST)
+          .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
 
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
@@ -106,18 +98,10 @@ impl AuthRegisterService {
               data: DataValue::String(token),
             })
           }
-          Err(e) => Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error creating user: {}", e),
-            data: DataValue::String("".to_string()),
-          }),
+          Err(e) => Err(errResponse(&format!("Error creating user: {}", e))),
         }
       }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error checking user: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => Err(errResponse(&format!("Error checking user: {}", e))),
     }
   }
 }

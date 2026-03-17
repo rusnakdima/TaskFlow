@@ -17,6 +17,7 @@ use crate::models::{
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
+use crate::helpers::response_helper::errResponse;
 use crate::helpers::timestamp_helper;
 
 #[derive(Clone)]
@@ -43,28 +44,16 @@ impl AuthPasswordService {
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Password reset unavailable: MongoDB offline".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+        return Err(errResponse("Password reset unavailable: MongoDB offline"));
       }
     };
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User not found".to_string(),
-          data: DataValue::String("".to_string()),
-        })?;
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserModel =
-          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user: {}", e),
-            data: DataValue::String("".to_string()),
-          })?;
+        let mut user: UserModel = serde_json::from_value(userVal.clone())
+          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Generate random 6-digit code
         let code = format!("{:06}", rand::random::<u32>() % 1000000);
@@ -85,11 +74,7 @@ impl AuthPasswordService {
         emailService
           .sendPasswordResetCode(&email, &code)
           .await
-          .map_err(|_| ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Failed to send reset email".to_string(),
-            data: DataValue::String("".to_string()),
-          })?;
+          .map_err(|_| errResponse("Failed to send reset email"))?;
 
         match mongoProvider
           .update("users", &userId, userJson.clone())
@@ -104,18 +89,10 @@ impl AuthPasswordService {
               data: DataValue::String("".to_string()),
             })
           }
-          Err(e) => Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error updating user: {}", e),
-            data: DataValue::String("".to_string()),
-          }),
+          Err(e) => Err(errResponse(&format!("Error updating user: {}", e))),
         }
       }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("User not found: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => Err(errResponse(&format!("User not found: {}", e))),
     }
   }
 
@@ -129,28 +106,16 @@ impl AuthPasswordService {
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Verification unavailable: MongoDB offline".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+        return Err(errResponse("Verification unavailable: MongoDB offline"));
       }
     };
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User not found".to_string(),
-          data: DataValue::String("".to_string()),
-        })?;
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let user: UserModel =
-          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user: {}", e),
-            data: DataValue::String("".to_string()),
-          })?;
+        let user: UserModel = serde_json::from_value(userVal.clone())
+          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         if user.temporaryCode == code && !user.temporaryCode.is_empty() {
           // Check expiration
@@ -164,24 +129,12 @@ impl AuthPasswordService {
               });
             }
           }
-          Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Code expired".to_string(),
-            data: DataValue::String("".to_string()),
-          })
+          Err(errResponse("Code expired"))
         } else {
-          Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: "Invalid verification code".to_string(),
-            data: DataValue::String("".to_string()),
-          })
+          Err(errResponse("Invalid verification code"))
         }
       }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("User not found: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => Err(errResponse(&format!("User not found: {}", e))),
     }
   }
 
@@ -197,34 +150,19 @@ impl AuthPasswordService {
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Password reset unavailable: MongoDB offline".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+        return Err(errResponse("Password reset unavailable: MongoDB offline"));
       }
     };
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User not found".to_string(),
-          data: DataValue::String("".to_string()),
-        })?;
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserModel =
-          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user: {}", e),
-            data: DataValue::String("".to_string()),
-          })?;
+        let mut user: UserModel = serde_json::from_value(userVal.clone())
+          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
-        let hashedPassword = hash(password, DEFAULT_COST).map_err(|e| ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error hashing password: {}", e),
-          data: DataValue::String("".to_string()),
-        })?;
+        let hashedPassword = hash(password, DEFAULT_COST)
+          .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
 
         user.password = hashedPassword;
         user.temporaryCode = "".to_string();
@@ -234,10 +172,7 @@ impl AuthPasswordService {
         let userId = user.id.clone();
         let userJson = serde_json::to_value(&user).unwrap();
 
-        match self
-          .mongodbProvider
-          .as_ref()
-          .unwrap()
+        match mongoProvider
           .update("users", &userId, userJson.clone())
           .await
         {
@@ -250,18 +185,10 @@ impl AuthPasswordService {
               data: DataValue::String("".to_string()),
             })
           }
-          Err(e) => Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error updating user: {}", e),
-            data: DataValue::String("".to_string()),
-          }),
+          Err(e) => Err(errResponse(&format!("Error updating user: {}", e))),
         }
       }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("User not found: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => Err(errResponse(&format!("User not found: {}", e))),
     }
   }
 }
