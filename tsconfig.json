@@ -32,7 +32,8 @@
       "@controllers/*": ["./src/app/controllers/*"],
       "@app/*": ["./src/app/*"],
       "@guards/*": ["./src/app/guards/*"],
-      "@bases/*": ["./src/app/bases/*"]
+      "@bases/*": ["./src/app/bases/*"],
+      "@stores/*": ["./src/app/stores/*"]
     }
   },
   "angularCompilerOptions": {
