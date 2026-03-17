@@ -1,6 +1,5 @@
 /* sys lib */
-import { Injectable, signal, computed, WritableSignal } from "@angular/core";
-
+import { Injectable, signal, computed, WritableSignal, inject, Injector } from "@angular/core";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
@@ -17,6 +16,7 @@ import { CommentHandler } from "./entity-handlers/comment.handler";
 import { CategoryHandler } from "./entity-handlers/category.handler";
 import { ProfileHandler } from "./entity-handlers/profile.handler";
 import { ChatHandler } from "./entity-handlers/chat.handler";
+import { DataSyncProvider } from "@providers/data-sync.provider";
 
 export type StorageEntity = keyof EntityMap;
 
@@ -32,6 +32,12 @@ interface EntityMap {
 
 @Injectable({ providedIn: "root" })
 export class StorageService extends BaseStorageService {
+  private injector = inject(Injector);
+
+  private get dataSyncProvider(): DataSyncProvider {
+    return this.injector.get(DataSyncProvider);
+  }
+
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
   private readonly sharedTodosSignal = signal<Todo[]>([]);
@@ -115,6 +121,7 @@ export class StorageService extends BaseStorageService {
 
   // ==================== GENERIC CRUD ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
+    console.log(`[StorageService] addItem - Type: ${type}, Data:`, data);
     this.handlers[type]?.add(data);
     // Note: Local JSON persistence is now handled by DataSyncProvider
     // isPrivate option kept for backward compatibility but not used here
@@ -126,6 +133,7 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
+    console.log(`[StorageService] updateItem - Type: ${type}, ID: ${id}, Updates:`, updates);
     if (updates["isDeleted"] === true) {
       const existing: any = this.getById(type, id);
       if (existing?.["isDeleted"] === true) return;
@@ -150,12 +158,6 @@ export class StorageService extends BaseStorageService {
     return this.tasks().find((t) => t.id === taskId)?.subtasks || [];
   }
 
-  get completedTasksCount(): number {
-    return this.tasks().filter(
-      (t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.SKIPPED
-    ).length;
-  }
-
   get pendingTasksCount(): number {
     return this.tasks().filter((t) => t.status === TaskStatus.PENDING).length;
   }
@@ -170,11 +172,13 @@ export class StorageService extends BaseStorageService {
   }
 
   setChatsByTodo(todoId: string, chats: Chat[]): void {
+    console.log(`[StorageService] setChatsByTodo - TodoId: ${todoId}, Chats:`, chats);
     const handler = this.handlers.chats as ChatHandler;
     handler.setByTodoId(todoId, chats);
   }
 
   addChatToTodo(todoId: string, chat: Chat): void {
+    console.log(`[StorageService] addChatToTodo - TodoId: ${todoId}, Chat:`, chat);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       const chats = newMap.get(todoId) || [];
@@ -186,6 +190,7 @@ export class StorageService extends BaseStorageService {
   }
 
   updateChatInTodo(todoId: string, chat: Chat): void {
+    console.log(`[StorageService] updateChatInTodo - TodoId: ${todoId}, Chat:`, chat);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       for (const [tid, chats] of newMap.entries()) {
@@ -200,6 +205,7 @@ export class StorageService extends BaseStorageService {
   }
 
   deleteChatFromTodo(todoId: string, chatId: string): void {
+    console.log(`[StorageService] deleteChatFromTodo - TodoId: ${todoId}, ChatId: ${chatId}`);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       const chats = newMap.get(todoId) || [];
@@ -352,6 +358,7 @@ export class StorageService extends BaseStorageService {
         ? Todo[]
         : Category[]
   ): void {
+    console.log(`[StorageService] setCollection - Type: ${type}, Data:`, items);
     switch (type) {
       case "categories":
         this.categoriesSignal.set(items as Category[]);
@@ -360,14 +367,10 @@ export class StorageService extends BaseStorageService {
         this.profileSignal.set(items as Profile | null);
         break;
       case "privateTodos":
-        // Filter out deleted todos before setting
-        const filteredPrivateTodos = (items as Todo[]).filter((todo) => !todo.isDeleted);
-        this.privateTodosSignal.set(filteredPrivateTodos);
+        this.privateTodosSignal.set(items as Todo[]);
         break;
       case "sharedTodos":
-        // Filter out deleted todos before setting
-        const filteredSharedTodos = (items as Todo[]).filter((todo) => !todo.isDeleted);
-        this.sharedTodosSignal.set(filteredSharedTodos);
+        this.sharedTodosSignal.set(items as Todo[]);
         break;
     }
   }

@@ -23,7 +23,7 @@ export class FilterHelper {
   /**
    * Apply a single filter to an array
    */
-  applyFilter<T>(data: T[], config: FilterConfig): T[] {
+  static applyFilter<T>(data: T[], config: FilterConfig): T[] {
     const { field, value, operator = "contains" } = config;
 
     if (!value && value !== 0 && value !== false) {
@@ -58,16 +58,16 @@ export class FilterHelper {
   /**
    * Apply multiple filters to an array
    */
-  applyFilters<T>(data: T[], configs: FilterConfig[]): T[] {
+  static applyFilters<T>(data: T[], configs: FilterConfig[]): T[] {
     return configs.reduce((filteredData, config) => {
-      return this.applyFilter(filteredData, config);
+      return FilterHelper.applyFilter(filteredData, config);
     }, data);
   }
 
   /**
    * Filter by status
    */
-  filterByStatus<T extends { status: string }>(data: T[], status: string): T[] {
+  static filterByStatus<T extends { status: string }>(data: T[], status: string): T[] {
     if (!status || status === "all") {
       return data;
     }
@@ -85,7 +85,7 @@ export class FilterHelper {
   /**
    * Filter by priority
    */
-  filterByPriority<T extends { priority: string }>(data: T[], priority: string): T[] {
+  static filterByPriority<T extends { priority: string }>(data: T[], priority: string): T[] {
     if (!priority || priority === "all") {
       return data;
     }
@@ -95,7 +95,7 @@ export class FilterHelper {
   /**
    * Filter by completion status
    */
-  filterByCompletion<T extends { status: string }>(
+  static filterByCompletion<T extends { status: string }>(
     data: T[],
     completion: "all" | "active" | "completed"
   ): T[] {
@@ -113,7 +113,7 @@ export class FilterHelper {
   /**
    * Filter this week
    */
-  filterThisWeek<T extends { startDate?: string; endDate?: string }>(data: T[]): T[] {
+  static filterThisWeek<T extends { startDate?: string; endDate?: string }>(data: T[]): T[] {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const startOfWeek = new Date(today);
@@ -137,14 +137,14 @@ export class FilterHelper {
   /**
    * Clear all filters
    */
-  clearFilters(): FilterConfig[] {
+  static clearFilters(): FilterConfig[] {
     return [];
   }
 
   /**
    * Admin-specific filter builder
    */
-  buildAdminFilterConfigs(filters: AdminFilterState, selectedType: string): FilterConfig[] {
+  static buildAdminFilterConfigs(filters: AdminFilterState, selectedType: string): FilterConfig[] {
     const filterConfigs: FilterConfig[] = [];
 
     if (filters.titleFilter) {
@@ -196,7 +196,11 @@ export class FilterHelper {
   /**
    * Apply admin-specific custom filters
    */
-  applyAdminCustomFilters(data: any[], filters: AdminFilterState, selectedType: string): any[] {
+  static applyAdminCustomFilters(
+    data: any[],
+    filters: AdminFilterState,
+    selectedType: string
+  ): any[] {
     if (filters.userFilter) {
       const filter = filters.userFilter.toLowerCase();
       data = data.filter((item) => {
@@ -259,7 +263,7 @@ export class FilterHelper {
   /**
    * Admin-specific status filtering (uses TaskStatus enum logic)
    */
-  filterAdminByStatus(data: any[], statusFilter: string): any[] {
+  static filterAdminByStatus(data: any[], statusFilter: string): any[] {
     if (statusFilter === "done") {
       return data.filter((item) =>
         [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(item.status)
@@ -272,7 +276,7 @@ export class FilterHelper {
           operator: "equals",
         },
       ];
-      return this.applyFilters(data, filterConfigs);
+      return FilterHelper.applyFilters(data, filterConfigs);
     }
     return data;
   }
@@ -280,7 +284,7 @@ export class FilterHelper {
   /**
    * Get default admin filter state
    */
-  getDefaultAdminFilterState(): AdminFilterState {
+  static getDefaultAdminFilterState(): AdminFilterState {
     return {
       titleFilter: "",
       descriptionFilter: "",

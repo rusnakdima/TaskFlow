@@ -1,12 +1,11 @@
 export class Common {
   static truncateString(str: string, length: number = 25): string {
     if (str) {
-      const endIndex: number = length;
-      if (str.length <= endIndex) {
+      if (str.length <= length) {
         return str;
       }
 
-      return str.slice(0, endIndex) + "...";
+      return str.slice(0, length) + "...";
     }
     return "";
   }
