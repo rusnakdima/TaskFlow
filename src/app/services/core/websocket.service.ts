@@ -24,6 +24,7 @@ interface CrudParams {
   id?: string;
   parentTodoId?: string;
   relations?: RelationObj[];
+  load?: string[]; // NEW: TypeORM-like dot notation for relations
   syncMetadata?: SyncMetadata;
 }
 
@@ -326,11 +327,13 @@ export class WebSocketService implements OnDestroy {
       case "getAll":
         if (params.filter) payload.filter = params.filter;
         if (params.relations) payload.relations = params.relations;
+        if (params.load) payload.load = params.load;
         break;
       case "get":
         if (params.id) payload.id = params.id;
         if (params.filter) payload.filter = params.filter;
         if (params.relations) payload.relations = params.relations;
+        if (params.load) payload.load = params.load;
         break;
       case "create":
         payload.data = { ...params.data };
