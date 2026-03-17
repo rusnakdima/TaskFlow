@@ -11,5 +11,8 @@ pub use mongodb::mongodb_provider;
 #[path = "base_crud.provider.rs"]
 pub mod base_crud;
 
+#[path = "relation_loader.provider.rs"]
+pub mod relation_loader;
+
 #[path = "email.provider.rs"]
 pub mod email_provider;
