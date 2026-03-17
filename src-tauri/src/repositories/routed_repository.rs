@@ -16,10 +16,13 @@ use crate::helpers::common::getProviderType;
 /// RoutedRepository - Routes CRUD operations to JSON or MongoDB based on SyncMetadata
 /// - Private + Owner = JSON provider (local storage)
 /// - Team (!Private) OR !Owner = MongoDB provider (cloud storage)
+///
+/// OFFLINE-FIRST: Auto-fallback to JSON provider when MongoDB is unavailable
 pub struct RoutedRepository {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongodbProvider>>,
   pub tableName: String,
+  pub mongoHealthy: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl RoutedRepository {
@@ -28,20 +31,72 @@ impl RoutedRepository {
     mongodbProvider: Option<Arc<MongodbProvider>>,
     tableName: String,
   ) -> Self {
+    // Initialize MongoDB health status
+    let mongo_healthy = mongodbProvider.is_some();
+
     Self {
       jsonProvider,
       mongodbProvider,
       tableName,
+      mongoHealthy: Arc::new(std::sync::atomic::AtomicBool::new(mongo_healthy)),
     }
   }
 
-  /// Determine which provider to use based on syncMetadata
+  /// Create a scoped repository for a specific table, sharing the same health-tracking AtomicBool.
+  /// This preserves MongoDB health state across calls instead of resetting it each time.
+  pub fn for_table(&self, tableName: String) -> Self {
+    Self {
+      jsonProvider: self.jsonProvider.clone(),
+      mongodbProvider: self.mongodbProvider.clone(),
+      tableName,
+      mongoHealthy: Arc::clone(&self.mongoHealthy),
+    }
+  }
+
+  fn get_mongo(&self) -> Result<&Arc<MongodbProvider>, String> {
+    self
+      .mongodbProvider
+      .as_ref()
+      .ok_or_else(|| "MongoDB provider not available".to_string())
+  }
+
+  /// Check if MongoDB connection is healthy
+  fn isMongoHealthy(&self) -> bool {
+    self.mongodbProvider.is_some() && self.mongoHealthy.load(std::sync::atomic::Ordering::Relaxed)
+  }
+
+  /// Mark MongoDB as unhealthy
+  fn markMongoUnhealthy(&self) {
+    self
+      .mongoHealthy
+      .swap(false, std::sync::atomic::Ordering::Relaxed);
+  }
+
+  /// Mark MongoDB as healthy
+  fn markMongoHealthy(&self) {
+    self
+      .mongoHealthy
+      .swap(true, std::sync::atomic::Ordering::Relaxed);
+  }
+
+  /// Determine which provider to use based on syncMetadata and connection health
   fn useJsonProvider(&self, syncMetadata: Option<&SyncMetadata>) -> bool {
+    // If no MongoDB provider, always use JSON
+    if self.mongodbProvider.is_none() {
+      return true;
+    }
+
+    // If MongoDB is unhealthy, fallback to JSON (unless explicitly requesting MongoDB)
+    if !self.isMongoHealthy() {
+      return true;
+    }
+
+    // Use syncMetadata to determine provider
     if let Some(metadata) = syncMetadata {
       match getProviderType(metadata) {
         Ok(provider_type) => match provider_type {
           crate::models::provider_type_model::ProviderType::Json => true,
-          crate::models::provider_type_model::ProviderType::Mongo => false,
+          crate::models::provider_type_model::ProviderType::Mongo => !self.isMongoHealthy(),
         },
         Err(_) => true, // Default to JSON on error
       }
@@ -63,15 +118,28 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      let mongoProvider = self.get_mongo()?;
+
+      match mongoProvider
         .mongodbCrud
-        .getAll(&self.tableName, filter)
+        .getAll(&self.tableName, filter.clone())
         .await
-        .map_err(|e| e.to_string())
+      {
+        Ok(data) => {
+          // Success - mark MongoDB as healthy
+          self.markMongoHealthy();
+          Ok(data)
+        }
+        Err(_e) => {
+          self.markMongoUnhealthy();
+          self
+            .jsonProvider
+            .jsonCrud
+            .getAll(&self.tableName, filter)
+            .await
+            .map_err(|e| e.to_string())
+        }
+      }
     }
   }
 
@@ -84,15 +152,23 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
-        .mongodbCrud
-        .get(&self.tableName, id)
-        .await
-        .map_err(|e| e.to_string())
+      let mongoProvider = self.get_mongo()?;
+
+      match mongoProvider.mongodbCrud.get(&self.tableName, id).await {
+        Ok(data) => {
+          self.markMongoHealthy();
+          Ok(data)
+        }
+        Err(_e) => {
+          self.markMongoUnhealthy();
+          self
+            .jsonProvider
+            .jsonCrud
+            .get(&self.tableName, id)
+            .await
+            .map_err(|e| e.to_string())
+        }
+      }
     }
   }
 
@@ -109,11 +185,8 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      self
+        .get_mongo()?
         .mongodbCrud
         .create(&self.tableName, data)
         .await
@@ -135,11 +208,8 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      self
+        .get_mongo()?
         .mongodbCrud
         .update(&self.tableName, id, data)
         .await
@@ -160,11 +230,8 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      self
+        .get_mongo()?
         .mongodbCrud
         .delete(&self.tableName, id)
         .await
@@ -184,11 +251,8 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      self
+        .get_mongo()?
         .hardDelete(&self.tableName, id)
         .await
         .map_err(|e| e.to_string())
@@ -207,11 +271,8 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self
-        .mongodbProvider
-        .as_ref()
-        .ok_or("MongoDB provider not available")?;
-      mongoProvider
+      self
+        .get_mongo()?
         .mongodbCrud
         .updateAll(&self.tableName, records)
         .await
