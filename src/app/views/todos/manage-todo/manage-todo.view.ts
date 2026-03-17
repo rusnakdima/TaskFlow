@@ -27,6 +27,7 @@ import { MatDividerModule } from "@angular/material/divider";
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
+import { TodoRelations, ProfileRelations } from "@models/relations.config";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -34,6 +35,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataSyncService } from "@services/data/data-sync.service";
+import { RelationLoadingService } from "@services/core/relation-loading.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -73,7 +75,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private dataSyncProvider: DataSyncProvider,
     private shortcutService: ShortcutService,
     private dataSyncService: DataSyncService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private relationLoader: RelationLoadingService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -166,62 +169,37 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   getTodoInfo(todoId: string) {
-    // First, try to get from storage
+    // First, try to get from storage with relations
     const todoFromStorage = this.storageService.getById("todos", todoId);
     if (todoFromStorage) {
-      const localDates = DateHelper.convertDatesFromUtcToLocal(todoFromStorage);
-      this.isOwner = todoFromStorage.userId === this.userId();
-      this.isPrivate = todoFromStorage.visibility === "private";
+      // Check if relations are already loaded with full objects (not just IDs)
+      const hasTasks = todoFromStorage.tasks && todoFromStorage.tasks.length > 0;
+      const hasCategories =
+        todoFromStorage.categories &&
+        todoFromStorage.categories.length > 0 &&
+        typeof todoFromStorage.categories[0] === "object" &&
+        "title" in todoFromStorage.categories[0]; // Full category object has 'title'
+      const hasRelations = hasTasks || hasCategories;
 
-      // Prepare form values
-      const formValues: any = {
-        ...localDates,
-        visibility: todoFromStorage.visibility,
-        assignees: [],
-      };
-      console.log(formValues);
-
-      // Load assignees - convert from user IDs to Profile objects if needed
-      if (todoFromStorage.assignees && todoFromStorage.assignees.length > 0) {
-        this.resolveAssigneesToProfiles(todoFromStorage.assignees).subscribe((profiles) => {
-          formValues.assignees = profiles;
-          console.log(profiles);
-          this.form.patchValue(formValues);
-          // Force change detection to update radio buttons and UI
-          setTimeout(() => this.cdr.detectChanges(), 0);
-        });
-      } else {
-        this.form.patchValue(formValues);
-        setTimeout(() => this.cdr.detectChanges(), 0);
-      }
-
-      if (!this.isPrivate) {
-        this.notifyService.showInfo(
-          "You're editing a shared todo. Changes will be sent to the owner."
-        );
-      }
-
-      return;
-    }
-
-    // Fallback to fetch if not in storage
-    this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
-      next: (todo: Todo) => {
-        const localDates = DateHelper.convertDatesFromUtcToLocal(todo);
-        this.isOwner = todo.userId === this.userId();
-        this.isPrivate = todo.visibility === "private";
+      if (hasRelations) {
+        // Use stored todo with relations
+        const localDates = DateHelper.convertDatesFromUtcToLocal(todoFromStorage);
+        this.isOwner = todoFromStorage.userId === this.userId();
+        this.isPrivate = todoFromStorage.visibility === "private";
 
         // Prepare form values
         const formValues: any = {
           ...localDates,
-          visibility: todo.visibility,
+          visibility: todoFromStorage.visibility,
           assignees: [],
         };
+        console.log(formValues);
 
         // Load assignees - convert from user IDs to Profile objects if needed
-        if (todo.assignees && todo.assignees.length > 0) {
-          this.resolveAssigneesToProfiles(todo.assignees).subscribe((profiles) => {
+        if (todoFromStorage.assignees && todoFromStorage.assignees.length > 0) {
+          this.resolveAssigneesToProfiles(todoFromStorage.assignees).subscribe((profiles) => {
             formValues.assignees = profiles;
+            console.log(profiles);
             this.form.patchValue(formValues);
             // Force change detection to update radio buttons and UI
             setTimeout(() => this.cdr.detectChanges(), 0);
@@ -231,13 +209,62 @@ export class ManageTodoView implements OnInit, OnDestroy {
           setTimeout(() => this.cdr.detectChanges(), 0);
         }
 
-        if (!this.isPrivate)
+        if (!this.isPrivate) {
           this.notifyService.showInfo(
             "You're editing a shared todo. Changes will be sent to the owner."
           );
-      },
-      error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
-    });
+        }
+
+        return;
+      }
+      // If relations not loaded, fall through to fetch with relations
+    }
+
+    // Fetch todo with relations using RelationLoadingService
+    this.relationLoader
+      .load<Todo>(
+        this.dataSyncProvider,
+        "todos",
+        todoId,
+        TodoRelations.forDetailView() // ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories"]
+      )
+      .subscribe({
+        next: (todo: Todo) => {
+          // Store the fetched todo with relations in storage
+          // This ensures categories and other relations are available globally
+          this.storageService.updateItem("todos", todo.id, todo);
+
+          const localDates = DateHelper.convertDatesFromUtcToLocal(todo);
+          this.isOwner = todo.userId === this.userId();
+          this.isPrivate = todo.visibility === "private";
+
+          // Prepare form values
+          const formValues: any = {
+            ...localDates,
+            visibility: todo.visibility,
+            assignees: [],
+          };
+
+          // Load assignees - convert from user IDs to Profile objects if needed
+          if (todo.assignees && todo.assignees.length > 0) {
+            this.resolveAssigneesToProfiles(todo.assignees).subscribe((profiles) => {
+              formValues.assignees = profiles;
+              this.form.patchValue(formValues);
+              // Force change detection to update radio buttons and UI
+              setTimeout(() => this.cdr.detectChanges(), 0);
+            });
+          } else {
+            this.form.patchValue(formValues);
+            setTimeout(() => this.cdr.detectChanges(), 0);
+          }
+
+          if (!this.isPrivate)
+            this.notifyService.showInfo(
+              "You're editing a shared todo. Changes will be sent to the owner."
+            );
+        },
+        error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
+      });
   }
 
   /**
@@ -258,30 +285,35 @@ export class ManageTodoView implements OnInit, OnDestroy {
       .flatMap((todo) => todo.assigneesProfiles || [])
       .filter((p) => userIds.includes(p.userId));
 
-    // If we found all profiles in storage, return them
-    if (storedProfiles.length === userIds.length) {
+    // Check if all stored profiles have user relation loaded
+    const allHaveUser = storedProfiles.every((p) => p.user);
+
+    // If we found all profiles in storage and they have user data, return them
+    if (storedProfiles.length === userIds.length && allHaveUser) {
       return of(storedProfiles);
     }
 
-    // Otherwise, fetch all profiles and filter
-    return this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: {} }, true).pipe(
-      map((profiles) => {
-        if (!profiles || profiles.length === 0) {
-          // Return what we found in storage
-          return storedProfiles;
-        }
-        // Filter profiles by user IDs and merge with stored profiles
-        const fetchedProfiles = profiles.filter((p) => userIds.includes(p.userId));
-        const profileMap = new Map<string, Profile>();
-        storedProfiles.forEach((p) => profileMap.set(p.userId, p));
-        fetchedProfiles.forEach((p) => profileMap.set(p.userId, p));
-        return Array.from(profileMap.values());
-      }),
-      catchError(() => {
-        // On error, return what we found in storage
-        return of(storedProfiles);
-      })
-    );
+    // Otherwise, fetch all profiles with user relation and filter
+    return this.dataSyncProvider
+      .crud<Profile[]>("getAll", "profiles", { filter: {}, load: ProfileRelations.user }, true)
+      .pipe(
+        map((profiles) => {
+          if (!profiles || profiles.length === 0) {
+            // Return what we found in storage
+            return storedProfiles;
+          }
+          // Filter profiles by user IDs and merge with stored profiles
+          const fetchedProfiles = profiles.filter((p) => userIds.includes(p.userId));
+          const profileMap = new Map<string, Profile>();
+          storedProfiles.forEach((p) => profileMap.set(p.userId, p));
+          fetchedProfiles.forEach((p) => profileMap.set(p.userId, p));
+          return Array.from(profileMap.values());
+        }),
+        catchError(() => {
+          // On error, return what we found in storage
+          return of(storedProfiles);
+        })
+      );
   }
 
   back() {
@@ -327,17 +359,40 @@ export class ManageTodoView implements OnInit, OnDestroy {
       }
     });
 
-    this.availableProfiles.set(profiles);
+    // If we don't have profiles with user data, fetch from backend with relations
+    const needsUserData = profiles.some((p) => !p.user);
+    if (needsUserData || profiles.length === 0) {
+      this.dataSyncProvider
+        .crud<Profile[]>("getAll", "profiles", { filter: {}, load: ProfileRelations.user }, true)
+        .subscribe({
+          next: (fetchedProfiles) => {
+            if (fetchedProfiles && fetchedProfiles.length > 0) {
+              // Merge fetched profiles with existing ones
+              const mergedMap = new Map<string, Profile>();
+              profiles.forEach((p) => mergedMap.set(p.userId, p));
+              fetchedProfiles.forEach((p) => mergedMap.set(p.userId, p));
+              this.availableProfiles.set(Array.from(mergedMap.values()));
+            } else {
+              this.availableProfiles.set(profiles);
+            }
+          },
+          error: (err) => {
+            console.error("Failed to fetch profiles with user data:", err);
+            // Use what we have from storage
+            this.availableProfiles.set(profiles);
+          },
+        });
+    } else {
+      this.availableProfiles.set(profiles);
+    }
   }
 
   getFilteredUsers() {
     if (!this.userSearchQuery()) return this.availableProfiles();
-    return this.availableProfiles().filter(
-      (p) =>
-        p.user &&
-        `${p.name} ${p.lastName} ${p.user.email}`
-          .toLowerCase()
-          .includes(this.userSearchQuery().toLowerCase())
+    return this.availableProfiles().filter((p) =>
+      `${p.name} ${p.lastName} ${p.user?.email || ""}`
+        .toLowerCase()
+        .includes(this.userSearchQuery().toLowerCase())
     );
   }
 
@@ -368,6 +423,22 @@ export class ManageTodoView implements OnInit, OnDestroy {
     const categories = this.storageService.categories();
     if (categories && categories.length > 0) {
       this.availableCategories.set(categories);
+    } else {
+      // If no categories in storage, fetch from backend
+      this.dataSyncProvider
+        .crud<Category[]>("getAll", "categories", { filter: { isDeleted: false } }, true)
+        .subscribe({
+          next: (cats) => {
+            if (cats && cats.length > 0) {
+              this.availableCategories.set(cats);
+              // Also update storage for future use
+              this.storageService.setCollection("categories", cats);
+            }
+          },
+          error: (err) => {
+            console.error("Failed to fetch categories:", err);
+          },
+        });
     }
   }
 
@@ -413,6 +484,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
         .subscribe({
           next: (result: Category) => {
             this.storageService.addItem("categories", result);
+            this.fetchCategories();
             this.notifyService.showSuccess("Category added successfully");
           },
           error: (err: any) => {
