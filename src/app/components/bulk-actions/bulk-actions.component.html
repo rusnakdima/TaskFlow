@@ -1,7 +1,5 @@
 @if (showBulkActions) {
-  <div
-    class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 pointer-events-auto"
-  >
+  <div class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
     <div
       class="bg-gray-900/95 dark:bg-gray-800/95 backdrop-blur-sm text-white rounded-2xl shadow-2xl border border-gray-700/50 px-5 py-3"
     >
@@ -13,19 +11,19 @@
           >
             <mat-icon class="w-5! h-5! text-xl! leading-none!">check_circle</mat-icon>
             <span class="font-semibold text-xs whitespace-nowrap"
-              >{{ selectedCountValue }} selected</span
+              >{{ selectedCount }} selected</span
             >
           </div>
           <button
             class="font-medium text-gray-300 hover:text-white transition-colors min-w-0! px-2! py-1!"
             (click)="onSelectAll()"
           >
-            {{ isAllSelectedValue ? "Deselect All" : "Select All" }}
+            {{ isAllSelected ? "Deselect All" : "Select All" }}
           </button>
         </div>
 
         <!-- Action Buttons - Admin/Archive Mode -->
-        @if (modeValue === "admin" || modeValue === "archive") {
+        @if (mode === "admin" || mode === "archive") {
           <div class="flex items-center gap-1.5">
             <!-- Archive Button -->
             <button
@@ -52,11 +50,9 @@
         }
 
         <!-- Action Buttons - Todos Mode (Archive only) -->
-        @if (modeValue === "todos") {
+        @if (mode === "todos") {
           <div class="flex items-center gap-1.5">
-            <!-- Archive Button -->
             <button
-              color="warn"
               class="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
@@ -67,8 +63,22 @@
           </div>
         }
 
+        <!-- Action Buttons - Categories Mode -->
+        @if (mode === "categories") {
+          <div class="flex items-center gap-1.5">
+            <button
+              class="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 transition-colors rounded-lg text-xs font-medium whitespace-nowrap min-h-8!"
+              (click)="onHardDelete()"
+              matTooltip="Delete selected categories"
+            >
+              <mat-icon class="w-5! h-5! text-xl! leading-none!">delete</mat-icon>
+              <span class="hidden sm:inline">Delete</span>
+            </button>
+          </div>
+        }
+
         <!-- Action Buttons - Tasks/Subtasks Mode -->
-        @if (modeValue === "tasks" || modeValue === "subtasks") {
+        @if (mode === "tasks" || mode === "subtasks") {
           <div class="flex items-center gap-1.5">
             <!-- Status Buttons -->
             <button
