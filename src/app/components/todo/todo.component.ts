@@ -40,6 +40,7 @@ import { TaskStatus } from "@models/task.model";
 @Component({
   selector: "app-todo",
   standalone: true,
+  host: { style: "display: block;" },
   imports: [
     CommonModule,
     RouterModule,

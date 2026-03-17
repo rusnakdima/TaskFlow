@@ -12,11 +12,10 @@
 @if (todo) {
   <div
     cdkDrag
-    class="h-full flex flex-col"
+    class="flex flex-col h-full"
     (cdkDragStarted)="onDragStarted()"
     (cdkDragEnded)="onDragEnded()"
   >
-    <ng-content></ng-content>
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl group cursor-pointer transition-all duration-200 ease-in-out"
       [ngClass]="{
@@ -219,10 +218,7 @@
           }
         </div>
       </div>
-      <div
-        *cdkDragPlaceholder
-        class="rounded-xl border-2 border-dashed border-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 min-h-[200px] w-full"
-      ></div>
+      <div *cdkDragPlaceholder class="min-h-[200px] w-full"></div>
     </div>
   </div>
 }

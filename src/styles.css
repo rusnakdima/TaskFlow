@@ -468,30 +468,35 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 
 /* ===== CDK Drag & Drop ===== */
 
-/* The floating card while dragging */
+/*
+ * Mixed-orientation (flex-wrap) drag-drop:
+ * CDK moves DOM elements directly — no CSS transform animation.
+ * The placeholder is invisible (opacity:0) — it holds the gap in the layout.
+ * The preview is the floating clone shown while dragging.
+ */
+
 .cdk-drag-preview {
   box-sizing: border-box;
   border-radius: 0.75rem;
   box-shadow:
-    0 10px 30px -5px rgba(0, 0, 0, 0.25),
-    0 4px 12px rgba(0, 0, 0, 0.15);
-  opacity: 0.9;
+    0 10px 30px -5px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
   cursor: grabbing !important;
 }
 
-/* The slot left behind — styled by each component's *cdkDragPlaceholder */
+/* Placeholder is invisible — it just reserves space in the flex layout */
 .cdk-drag-placeholder {
-  opacity: 1 !important;
+  opacity: 0 !important;
 }
 
-/* Snap-back animation when dropping */
+/* Vertical lists (subtasks) can animate siblings */
 .cdk-drag-animating {
-  transition: transform 180ms ease;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-/* Sibling items shift to make room */
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: transform 180ms ease;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 /* Drag handle */
@@ -499,50 +504,52 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
   @apply w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity;
 }
 
-/* Responsive grid drop lists — flex-wrap so CDK can track positions */
+/* ── Todos grid drop list ── */
 .todos-drop-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1.5rem; /* gap-6 */
 }
 
-.todos-drop-list > * {
-  flex: 1 1 calc(25% - 1.5rem);
-  min-width: 240px;
+/* Each todo card: fixed column widths matching old grid-cols-1/2/3/4 */
+.todos-drop-list > app-todo {
+  box-sizing: border-box;
+  width: calc(25% - 1.125rem); /* 4 cols: gap*(3/4) = 1.5*0.75 */
 }
 
 @media (max-width: 1279px) {
-  .todos-drop-list > * {
-    flex: 1 1 calc(33.333% - 1.5rem);
+  .todos-drop-list > app-todo {
+    width: calc(33.333% - 1rem);
   }
 }
 
 @media (max-width: 1023px) {
-  .todos-drop-list > * {
-    flex: 1 1 calc(50% - 1.5rem);
+  .todos-drop-list > app-todo {
+    width: calc(50% - 0.75rem);
   }
 }
 
 @media (max-width: 767px) {
-  .todos-drop-list > * {
-    flex: 1 1 100%;
+  .todos-drop-list > app-todo {
+    width: 100%;
   }
 }
 
+/* ── Tasks grid drop list ── */
 .tasks-drop-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
 }
 
-.tasks-drop-list > * {
-  flex: 1 1 calc(50% - 1.5rem);
-  min-width: 280px;
+.tasks-drop-list > app-task {
+  box-sizing: border-box;
+  width: calc(50% - 0.75rem); /* 2 cols */
 }
 
 @media (max-width: 1023px) {
-  .tasks-drop-list > * {
-    flex: 1 1 100%;
+  .tasks-drop-list > app-task {
+    width: 100%;
   }
 }
 

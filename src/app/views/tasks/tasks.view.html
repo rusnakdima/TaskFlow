@@ -97,7 +97,6 @@
       >
         @for (task of listTasks(); track task.id) {
           <app-task
-            class="h-full"
             [id]="'task-' + task.id"
             [task]="task"
             [todoId]="todo()?.id || null"
