@@ -7,17 +7,15 @@ use tauri::{AppHandle, Manager};
 use crate::errors::ApiResult;
 use crate::providers::base_crud::CrudProvider;
 use crate::providers::mongodb::mongodb_provider::MongodbProvider;
+use crate::providers::relation_loader::RelationLoader;
 
-use super::{
-  json_crud_provider::JsonCrudProvider, json_relations_provider::JsonRelationsProvider,
-  json_sync_provider::JsonSyncProvider,
-};
+use super::{json_crud_provider::JsonCrudProvider, json_relations_provider::JsonRelationsProvider};
 
 #[derive(Clone)]
 pub struct JsonProvider {
   pub jsonCrud: JsonCrudProvider,
-  pub jsonSync: JsonSyncProvider,
   pub jsonRelations: JsonRelationsProvider,
+  pub relationLoader: RelationLoader<JsonCrudProvider>,
 }
 
 impl JsonProvider {
@@ -25,7 +23,7 @@ impl JsonProvider {
     appHandle: AppHandle,
     envHomeFolder: String,
     envDbName: String,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    _mongodbProvider: Option<Arc<MongodbProvider>>,
   ) -> Self {
     let documentFolder = appHandle
       .path()
@@ -39,13 +37,13 @@ impl JsonProvider {
     std::fs::create_dir_all(&dbFilePath).expect("Failed to create folder for database");
 
     let jsonCrud = JsonCrudProvider::new(dbFilePath.clone());
-    let jsonSync = JsonSyncProvider::new(mongodbProvider.clone());
     let jsonRelations = JsonRelationsProvider::new(jsonCrud.clone());
+    let relationLoader = RelationLoader::new(jsonCrud.clone());
 
     Self {
       jsonCrud,
-      jsonSync,
       jsonRelations,
+      relationLoader,
     }
   }
 
