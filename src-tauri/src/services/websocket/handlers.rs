@@ -43,6 +43,7 @@ impl CrudHandlers {
         None,
         Some(filter),
         request.relations,
+        request.load,  // load parameter - now used in WebSocket
         Some(sync_metadata),
       )
       .await
@@ -61,6 +62,7 @@ impl CrudHandlers {
         None,
         Some(filter),
         request.relations,
+        request.load,  // load parameter - now used in WebSocket
         Some(sync_metadata),
       )
       .await
@@ -83,6 +85,7 @@ impl CrudHandlers {
           Some(data),
           None,
           None,
+          None,  // load parameter
           Some(sync_metadata.clone()),
         )
         .await
@@ -117,6 +120,7 @@ impl CrudHandlers {
           Some(data),
           None,
           None,
+          None,  // load parameter
           Some(sync_metadata.clone()),
         )
         .await
@@ -135,7 +139,7 @@ impl CrudHandlers {
     }
   }
 
-  /// Handle update-all action with special chat clearing broadcast
+  /// Handle update-all action with special broadcast
   pub async fn handle_update_all(
     &self,
     request: WsRequest,
@@ -151,6 +155,7 @@ impl CrudHandlers {
           Some(data.clone()),
           None,
           None,
+          None,  // load parameter
           Some(sync_metadata.clone()),
         )
         .await
@@ -207,6 +212,7 @@ impl CrudHandlers {
           None,
           None,
           None,
+          None,  // load parameter
           Some(sync_metadata.clone()),
         )
         .await
@@ -221,6 +227,7 @@ impl CrudHandlers {
           None,
           None,
           None,
+          None,  // load parameter
           Some(sync_metadata.clone()),
         )
         .await
