@@ -193,13 +193,11 @@ export class ManageTodoView implements OnInit, OnDestroy {
           visibility: todoFromStorage.visibility,
           assignees: [],
         };
-        console.log(formValues);
 
         // Load assignees - convert from user IDs to Profile objects if needed
         if (todoFromStorage.assignees && todoFromStorage.assignees.length > 0) {
           this.resolveAssigneesToProfiles(todoFromStorage.assignees).subscribe((profiles) => {
             formValues.assignees = profiles;
-            console.log(profiles);
             this.form.patchValue(formValues);
             // Force change detection to update radio buttons and UI
             setTimeout(() => this.cdr.detectChanges(), 0);

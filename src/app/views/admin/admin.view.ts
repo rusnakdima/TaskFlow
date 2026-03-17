@@ -71,7 +71,6 @@ export class AdminView extends BaseAdminView implements OnInit {
     this.loading.set(true);
     this.adminStorageService.loadAdminData(true).subscribe({
       next: (data) => {
-        console.log(data);
         this.adminData.set(data);
 
         this.dataTypes.forEach((type) => {

@@ -71,7 +71,6 @@ export class DataSyncService {
 
     // If already loading, return the existing observable
     if (this.loadInProgress) {
-      console.log("DataSyncService: Load already in progress, returning existing observable");
       return this.loadSubject.asObservable().pipe(
         filter((data) => data !== null),
         take(1)
@@ -144,26 +143,6 @@ export class DataSyncService {
       )
       .subscribe({
         next: ({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
-          console.log("DataSyncService: Received data from backend:", {
-            privateTodosCount: privateTodos.length,
-            teamTodosOwnerCount: teamTodosOwner.length,
-            teamTodosAssigneeCount: teamTodosAssignee.length,
-            categoriesCount: categories.length,
-            samplePrivateTodo: privateTodos[0]
-              ? {
-                  id: privateTodos[0].id,
-                  title: privateTodos[0].title,
-                  tasksLength: privateTodos[0].tasks?.length,
-                  hasTasks: !!privateTodos[0].tasks && privateTodos[0].tasks.length > 0,
-                  tasksData: privateTodos[0].tasks || [],
-                }
-              : null,
-          });
-
-          console.log(privateTodos);
-          console.log(teamTodosOwner);
-          console.log(teamTodosAssignee);
-
           this.storageService.setCollection("privateTodos", privateTodos);
 
           const sharedTodoMap = new Map<string, Todo>();
@@ -198,7 +177,6 @@ export class DataSyncService {
 
           if ((isTimeout || isNetworkError) && this.storageService.loaded()) {
             // Use cached data on timeout or network error
-            console.log("Using cached data (offline mode)");
             const cachedData = {
               todos: this.storageService.todos(),
               categories: this.storageService.categories(),
@@ -208,7 +186,6 @@ export class DataSyncService {
             resultSubject.complete();
           } else {
             // No cached data or different error - return empty
-            console.warn("Data load failed, no cache available:", error.message);
             const emptyData = {
               todos: [],
               categories: [],
@@ -266,25 +243,6 @@ export class DataSyncService {
       ),
     }).pipe(
       switchMap(({ myTeamProjects, sharedTeamProjects, categories }) => {
-        console.log("DataSyncService: loadTeamTodos received data:", {
-          myTeamProjectsCount: myTeamProjects.length,
-          sharedTeamProjectsCount: sharedTeamProjects.length,
-          categoriesCount: categories.length,
-          sampleTeamTodo: myTeamProjects[0]
-            ? {
-                id: myTeamProjects[0].id,
-                title: myTeamProjects[0].title,
-                hasUser: !!myTeamProjects[0].user,
-                hasTasks: !!myTeamProjects[0].tasks && myTeamProjects[0].tasks.length > 0,
-                hasAssignees:
-                  !!myTeamProjects[0].assignees && myTeamProjects[0].assignees.length > 0,
-                user: myTeamProjects[0].user,
-                tasks: myTeamProjects[0].tasks,
-                assignees: myTeamProjects[0].assignees,
-              }
-            : null,
-        });
-
         const todoMap = new Map<string, Todo>();
         [...myTeamProjects, ...sharedTeamProjects].forEach((todo) => todoMap.set(todo.id, todo));
         const uniqueTodos = Array.from(todoMap.values());
@@ -304,14 +262,6 @@ export class DataSyncService {
               (todo.categories.length === 0 || typeof todo.categories[0] === "string"))
         );
 
-        // Log what's missing
-        console.log("DataSyncService: Checking for missing relations:", {
-          todosMissingUser: todosMissingUser.length,
-          todosMissingTasks: todosMissingTasks.length,
-          todosMissingAssignees: todosMissingAssignees.length,
-          todosMissingCategories: todosMissingCategories.length,
-        });
-
         // If we have missing data, fetch it
         if (
           todosMissingUser.length > 0 ||
@@ -319,8 +269,6 @@ export class DataSyncService {
           todosMissingAssignees.length > 0 ||
           todosMissingCategories.length > 0
         ) {
-          console.log("DataSyncService: Found missing relations, fetching additional data...");
-
           // Prepare all the data we need to fetch
           const userIds = [...new Set(todosMissingUser.map((todo) => todo.userId))];
           const todoIds = [
@@ -406,8 +354,6 @@ export class DataSyncService {
           // Execute all requests in parallel
           return forkJoin(observables).pipe(
             map((results: any) => {
-              console.log("DataSyncService: Fetched additional data:", Object.keys(results));
-
               // Process users
               if (results.users && Array.isArray(results.users)) {
                 const userMap = new Map<string, any>();
@@ -420,7 +366,6 @@ export class DataSyncService {
                 uniqueTodos.forEach((todo) => {
                   if (!todo.user && todo.userId && userMap.has(todo.userId)) {
                     todo.user = userMap.get(todo.userId);
-                    console.log("DataSyncService: Added user data to todo", todo.id);
                   }
                 });
               }
@@ -440,12 +385,6 @@ export class DataSyncService {
                 uniqueTodos.forEach((todo) => {
                   if ((!todo.tasks || todo.tasks.length === 0) && tasksByTodoId.has(todo.id)) {
                     todo.tasks = tasksByTodoId.get(todo.id)!;
-                    console.log(
-                      "DataSyncService: Added",
-                      todo.tasks.length,
-                      "tasks to todo",
-                      todo.id
-                    );
                   }
                 });
               }
@@ -471,12 +410,6 @@ export class DataSyncService {
 
                     if (profiles.length > 0) {
                       todo.assigneesProfiles = profiles;
-                      console.log(
-                        "DataSyncService: Added",
-                        profiles.length,
-                        "assignee profiles to todo",
-                        todo.id
-                      );
                     }
                   }
                 });
@@ -505,25 +438,8 @@ export class DataSyncService {
 
                       if (fullCategories.length > 0) {
                         todo.categories = fullCategories;
-                        console.log(
-                          "DataSyncService: Converted",
-                          categoryIds.length,
-                          "category IDs to full objects for todo",
-                          todo.id
-                        );
-                      } else {
-                        console.log(
-                          "DataSyncService: Could not find category objects for IDs:",
-                          categoryIds
-                        );
                       }
                     }
-                  } else if (!todo.categories || (todo.categories as any[]).length === 0) {
-                    console.log(
-                      "DataSyncService: Todo",
-                      todo.id,
-                      "has no categories (this is normal if no categories are assigned)"
-                    );
                   }
                 });
               }
