@@ -484,11 +484,12 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 }
 
 @keyframes pulse {
-  0%, 100% {
-    @apply bg-blue-500/15;
+  0%,
+  100% {
+    background-color: rgb(59 130 246 / 0.15);
   }
   50% {
-    @apply bg-blue-500/25;
+    background-color: rgb(59 130 246 / 0.25);
   }
 }
 
@@ -593,3 +594,44 @@ td[role="presentation"] {
   background-color: rgba(239, 68, 68, 0.3) !important;
   border: 2px dashed #f87171 !important;
 }
+
+/* CDK Drag Drop - placeholder pushes elements */
+/* .cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  background: #fff;
+  overflow: hidden;
+  pointer-events: none;
+}
+.dark .cdk-drag-preview {
+  background: rgb(39, 39, 46);
+}
+.cdk-drag-placeholder {
+  background: rgba(59, 130, 246, 0.08);
+  border: 2px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 12px;
+  opacity: 1;
+  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
+  display: block;
+  visibility: visible;
+  z-index: 10;
+}
+app-todo .cdk-drag-placeholder {
+  min-height: 200px;
+}
+app-task .cdk-drag-placeholder {
+  min-height: 200px;
+}
+app-subtask .cdk-drag-placeholder {
+  min-height: 80px;
+}
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
+}
+.cdk-drag-animating {
+  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
+} */
