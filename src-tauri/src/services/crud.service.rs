@@ -8,6 +8,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 
 /* models */
 use crate::models::{
+  provider_type_model::ProviderType,
   relation_obj::RelationObj,
   response_model::{DataValue, ResponseModel},
   sync_metadata_model::SyncMetadata,
@@ -16,13 +17,13 @@ use crate::models::{
 
 /* helpers */
 use crate::helpers::{
+  common::getProviderType,
   response_helper::{errResponse, errResponseFormatted, successResponse},
   user_sync_helper,
 };
 
 /* services */
 use crate::services::activity_monitor_service::ActivityMonitorService;
-use crate::services::admin::relation_definitions;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
@@ -67,15 +68,20 @@ impl CrudService {
     data: Option<Value>,
     filter: Option<Value>,
     relations: Option<Vec<RelationObj>>,
+    load: Option<Vec<String>>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     match operation.as_str() {
       "getAll" => {
         self
-          .handleGetAll(table, filter, relations, syncMetadata)
+          .handleGetAll(table, filter, relations, load, syncMetadata)
           .await
       }
-      "get" => self.handleGet(table, id, relations, syncMetadata).await,
+      "get" => {
+        self
+          .handleGet(table, id, relations, load, syncMetadata)
+          .await
+      }
       "create" => self.handleCreate(table, data, syncMetadata).await,
       "update" => self.handleUpdate(table, id, data, syncMetadata).await,
       "updateAll" => self.handleUpdateAll(table, data, syncMetadata).await,
@@ -90,21 +96,77 @@ impl CrudService {
     table: String,
     filter: Option<Value>,
     relations: Option<Vec<RelationObj>>,
+    load: Option<Vec<String>>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    // Determine which provider to use
+    let provider_type = if let Some(ref metadata) = syncMetadata {
+      getProviderType(metadata).unwrap_or(ProviderType::Json)
+    } else {
+      ProviderType::Json
+    };
+
+    let repo = self.routedRepository.for_table(table.clone());
 
     let mut docs = repo
       .getAll(filter, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Get all failed", &e))?;
 
-    let effective_rels = relations.or_else(|| relation_definitions::getTableRelations(&table));
-    if let Some(rels) = effective_rels {
+    // Use NEW batch loading with RelationLoader if load parameter is provided
+    if let Some(load_paths) = load {
+      if !load_paths.is_empty() {
+        // Reset stats before batch loading
+        match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let _ = mongo.relationLoader.resetStats().await;
+            }
+          }
+          _ => {
+            let _ = self.jsonProvider.relationLoader.resetStats().await;
+          }
+        }
+
+        // Use batch loading for efficiency - loads all relations for all entities at once
+        let batch_result = match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              mongo
+                .relationLoader
+                .loadRelationsBatch(&mut docs, &table, &load_paths)
+                .await
+            } else {
+              Err("MongoDB provider not available".into())
+            }
+          }
+          _ => {
+            self
+              .jsonProvider
+              .relationLoader
+              .loadRelationsBatch(&mut docs, &table, &load_paths)
+              .await
+          }
+        };
+
+        let _ = batch_result;
+
+        // Clear cache after request is complete
+        match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let _ = mongo.relationLoader.clearCache().await;
+            }
+          }
+          _ => {
+            let _ = self.jsonProvider.relationLoader.clearCache().await;
+          }
+        }
+      }
+    }
+
+    // Fallback to old RelationObj approach for backward compatibility
+    if let Some(rels) = relations {
       for doc in &mut docs {
         let _ = self
           .jsonProvider
@@ -122,23 +184,76 @@ impl CrudService {
     table: String,
     id: Option<String>,
     relations: Option<Vec<RelationObj>>,
+    load: Option<Vec<String>>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
+    // Determine which provider to use
+    let provider_type = if let Some(ref metadata) = syncMetadata {
+      getProviderType(metadata).unwrap_or(ProviderType::Json)
+    } else {
+      ProviderType::Json
+    };
+
     let id_str = id.ok_or_else(|| errResponse("ID required for get"))?;
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let repo = self.routedRepository.for_table(table.clone());
 
     let mut doc = repo
       .get(&id_str, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Get failed", &e))?;
 
-    let effective_rels = relations.or_else(|| relation_definitions::getTableRelations(&table));
-    if let Some(rels) = effective_rels {
+    // Use new load parameter with RelationLoader if provided
+    if let Some(load_paths) = load {
+      if !load_paths.is_empty() {
+        // Reset stats before loading
+        match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let _ = mongo.relationLoader.resetStats().await;
+            }
+          }
+          _ => {
+            let _ = self.jsonProvider.relationLoader.resetStats().await;
+          }
+        }
+
+        let result = match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              mongo
+                .relationLoader
+                .loadRelations(&mut doc, &table, &load_paths)
+                .await
+            } else {
+              Err("MongoDB provider not available".into())
+            }
+          }
+          _ => {
+            self
+              .jsonProvider
+              .relationLoader
+              .loadRelations(&mut doc, &table, &load_paths)
+              .await
+          }
+        };
+
+        let _ = result;
+
+        // Clear cache after request is complete
+        match provider_type {
+          ProviderType::Mongo => {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let _ = mongo.relationLoader.clearCache().await;
+            }
+          }
+          _ => {
+            let _ = self.jsonProvider.relationLoader.clearCache().await;
+          }
+        }
+      }
+    } else if let Some(rels) = relations {
+      // Fallback to old RelationObj approach for backward compatibility
       let _ = self
         .jsonProvider
         .jsonRelations
@@ -164,11 +279,7 @@ impl CrudService {
     let validated_data = validateModel(&table, &data_val, true)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let repo = self.routedRepository.for_table(table.clone());
 
     let created_record = repo
       .create(validated_data.clone(), syncMetadata.as_ref())
@@ -192,11 +303,7 @@ impl CrudService {
     let id_str = id.ok_or_else(|| errResponse("ID required for update"))?;
     let data_val = data.ok_or_else(|| errResponse("Data required for update"))?;
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let repo = self.routedRepository.for_table(table.clone());
 
     let original = repo
       .get(&id_str, syncMetadata.as_ref())
@@ -232,11 +339,7 @@ impl CrudService {
       .ok_or_else(|| errResponse("Data must be an array for updateAll"))?
       .clone();
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let repo = self.routedRepository.for_table(table.clone());
 
     repo
       .updateAll(records.clone(), syncMetadata.as_ref())
@@ -255,11 +358,13 @@ impl CrudService {
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for delete"))?;
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let provider_type = if let Some(ref metadata) = syncMetadata {
+      getProviderType(metadata).unwrap_or(ProviderType::Json)
+    } else {
+      ProviderType::Json
+    };
+
+    let repo = self.routedRepository.for_table(table.clone());
 
     let original = repo
       .get(&id_str, syncMetadata.as_ref())
@@ -271,17 +376,20 @@ impl CrudService {
       .await
       .map_err(|e| errResponseFormatted("Delete failed", &e))?;
 
-    // Handle cascade delete
-    if table == "todos" {
-      self
-        .cascadeService
-        .handleJsonCascade(&table, &id_str, false)
-        .await?;
-    } else if table == "tasks" {
-      self
-        .cascadeService
-        .handleMongoCascade(&table, &id_str, false)
-        .await?;
+    // Handle cascade delete, routing by provider type
+    match provider_type {
+      ProviderType::Mongo => {
+        self
+          .cascadeService
+          .handleMongoCascade(&table, &id_str, false)
+          .await?;
+      }
+      _ => {
+        self
+          .cascadeService
+          .handleJsonCascade(&table, &id_str, false)
+          .await?;
+      }
     }
 
     self
@@ -300,11 +408,7 @@ impl CrudService {
     let id_str = id.ok_or_else(|| errResponse("ID required for restore"))?;
     let update_data = json!({ "isDeleted": false });
 
-    let repo = RoutedRepository::new(
-      self.jsonProvider.clone(),
-      self.mongodbProvider.clone(),
-      table.clone(),
-    );
+    let repo = self.routedRepository.for_table(table.clone());
 
     repo
       .update(&id_str, update_data, syncMetadata.as_ref())

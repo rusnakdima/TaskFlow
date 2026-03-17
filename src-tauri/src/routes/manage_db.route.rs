@@ -19,11 +19,21 @@ pub async fn manageData(
   data: Option<Value>,
   filter: Option<Value>,
   relations: Option<Vec<RelationObj>>,
+  load: Option<Vec<String>>,
   syncMetadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .crudService
-    .execute(operation, table, id, data, filter, relations, syncMetadata)
+    .execute(
+      operation,
+      table,
+      id,
+      data,
+      filter,
+      relations,
+      load,
+      syncMetadata,
+    )
     .await
 }
 

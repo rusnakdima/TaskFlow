@@ -66,21 +66,13 @@ pub fn run() {
     .setup(|app| {
       let configHelper = Arc::new(ConfigHelper::new());
 
+      // Initialize MongoDB connection (optional - app works without it)
       let mongodbProvider = {
         let uri = configHelper.mongoDbUri.clone();
         let dbName = configHelper.mongoDbName.clone();
         match tauri::async_runtime::block_on(MongodbProvider::new(uri.clone(), dbName.clone())) {
-          Ok(p) => {
-            println!("✓ MongoDB connected successfully to {}", dbName);
-            Some(Arc::new(p))
-          }
-          Err(e) => {
-            eprintln!("✗ MongoDB connection failed: {}", e);
-            eprintln!("  URI: {}", uri);
-            eprintln!("  Database: {}", dbName);
-            eprintln!("  Falling back to JSON provider only");
-            None
-          }
+          Ok(p) => Some(Arc::new(p)),
+          Err(_e) => None,
         }
       };
 
@@ -94,7 +86,10 @@ pub fn run() {
       let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
 
       let aboutService = Arc::new(AboutService::new(configHelper.nameApp.clone()));
-      let profileService = Arc::new(ProfileService::new(jsonProvider.clone()));
+      let profileService = Arc::new(ProfileService::new(
+        jsonProvider.clone(),
+        mongodbProvider.clone(),
+      ));
 
       let cascadeService = CascadeService::new(jsonProvider.clone(), mongodbProvider.clone());
       let entityResolution = Arc::new(EntityResolutionService::new(
