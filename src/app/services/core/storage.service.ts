@@ -121,7 +121,6 @@ export class StorageService extends BaseStorageService {
 
   // ==================== GENERIC CRUD ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
-    console.log(`[StorageService] addItem - Type: ${type}, Data:`, data);
     this.handlers[type]?.add(data);
     // Note: Local JSON persistence is now handled by DataSyncProvider
     // isPrivate option kept for backward compatibility but not used here
@@ -133,7 +132,6 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    console.log(`[StorageService] updateItem - Type: ${type}, ID: ${id}, Updates:`, updates);
     if (updates["isDeleted"] === true) {
       const existing: any = this.getById(type, id);
       if (existing?.["isDeleted"] === true) return;
@@ -172,13 +170,11 @@ export class StorageService extends BaseStorageService {
   }
 
   setChatsByTodo(todoId: string, chats: Chat[]): void {
-    console.log(`[StorageService] setChatsByTodo - TodoId: ${todoId}, Chats:`, chats);
     const handler = this.handlers.chats as ChatHandler;
     handler.setByTodoId(todoId, chats);
   }
 
   addChatToTodo(todoId: string, chat: Chat): void {
-    console.log(`[StorageService] addChatToTodo - TodoId: ${todoId}, Chat:`, chat);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       const chats = newMap.get(todoId) || [];
@@ -190,7 +186,6 @@ export class StorageService extends BaseStorageService {
   }
 
   updateChatInTodo(todoId: string, chat: Chat): void {
-    console.log(`[StorageService] updateChatInTodo - TodoId: ${todoId}, Chat:`, chat);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       for (const [tid, chats] of newMap.entries()) {
@@ -205,7 +200,6 @@ export class StorageService extends BaseStorageService {
   }
 
   deleteChatFromTodo(todoId: string, chatId: string): void {
-    console.log(`[StorageService] deleteChatFromTodo - TodoId: ${todoId}, ChatId: ${chatId}`);
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       const chats = newMap.get(todoId) || [];
@@ -358,7 +352,6 @@ export class StorageService extends BaseStorageService {
         ? Todo[]
         : Category[]
   ): void {
-    console.log(`[StorageService] setCollection - Type: ${type}, Data:`, items);
     switch (type) {
       case "categories":
         this.categoriesSignal.set(items as Category[]);

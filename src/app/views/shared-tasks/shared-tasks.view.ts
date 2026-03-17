@@ -67,7 +67,6 @@ export class SharedTasksView implements OnInit {
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
     this.loadSharedProjects();
-    console.log(this.storageService.sharedTodos());
   }
 
   loadSharedProjects() {

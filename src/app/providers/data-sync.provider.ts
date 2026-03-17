@@ -613,12 +613,6 @@ export class DataSyncProvider {
     parentTodoId?: string
   ): void {
     try {
-      // Log all data received from backend
-      console.log(
-        `[DataSyncProvider] Received from backend - Operation: ${operation}, Table: ${table}, Data:`,
-        result
-      );
-
       // Trigger notification for all successful mutations (create/update/delete)
       if (operation !== "get" && operation !== "getAll") {
         this.notifyService.handleLocalAction(table, operation, result || { id });

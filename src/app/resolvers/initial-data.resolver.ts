@@ -66,14 +66,12 @@ export class InitialDataResolver implements Resolve<any> {
 
     if (!token) {
       // No token - redirect to login
-      console.log("[InitialDataResolver] No token found, redirecting to login");
       this.router.navigate(["/login"]);
       return { loaded: false, redirectToLogin: true };
     }
 
     // ✅ STEP 2: Check if we already have data in storage (from previous session)
     if (this.hasCachedData()) {
-      console.log("[InitialDataResolver] Using cached data from storage");
       this.storageService.setLoaded(true);
 
       // Trigger one background sync after delay to keep data fresh
@@ -84,7 +82,6 @@ export class InitialDataResolver implements Resolve<any> {
 
     // ✅ STEP 3: Load from local JSON and then sync
     const userId = this.authService.getValueByKey("id");
-    console.log("[InitialDataResolver] Starting initial load for userId:", userId);
 
     // Load from local JSON first, then trigger sync
     this.loadFromLocalJsonSimple(userId)
@@ -92,7 +89,6 @@ export class InitialDataResolver implements Resolve<any> {
         if (hasData) {
           this.storageService.setLoaded(true);
           this.storageService.setLastLoaded(new Date());
-          console.log("[InitialDataResolver] Local JSON load completed with data");
         }
 
         // ALWAYS trigger background sync after local load attempt
@@ -215,12 +211,9 @@ export class InitialDataResolver implements Resolve<any> {
    */
   private triggerBackgroundSync(delayMs: number = 1000): void {
     setTimeout(() => {
-      console.log("[InitialDataResolver] Triggering background sync...");
-
       // Load all data with relations from network/local
       this.dataSyncService.loadAllData(true).subscribe({
         next: () => {
-          console.log("[InitialDataResolver] Background data sync completed");
           this.storageService.setLoaded(true);
           this.storageService.setLastLoaded(new Date());
         },
@@ -231,9 +224,7 @@ export class InitialDataResolver implements Resolve<any> {
 
       // Load profile with user data
       this.dataSyncService.loadProfile().subscribe({
-        next: () => {
-          console.log("[InitialDataResolver] Background profile sync completed");
-        },
+        next: () => {},
         error: (err) => {
           console.warn("[InitialDataResolver] Background profile sync failed:", err);
         },
