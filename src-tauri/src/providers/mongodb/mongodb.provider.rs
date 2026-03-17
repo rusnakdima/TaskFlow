@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::errors::ApiResult;
 use crate::helpers::db_helper::DbPool;
 use crate::providers::base_crud::CrudProvider;
+use crate::providers::relation_loader::RelationLoader;
 
 use super::{
   mongodb_crud_provider::MongodbCrudProvider, mongodb_relations_provider::MongodbRelationsProvider,
@@ -19,6 +20,7 @@ pub struct MongodbProvider {
   pub mongodbCrud: MongodbCrudProvider,
   pub mongodbRelations: MongodbRelationsProvider,
   pub mongodbSync: MongodbSyncProvider,
+  pub relationLoader: RelationLoader<MongodbCrudProvider>,
 }
 
 impl MongodbProvider {
@@ -29,6 +31,7 @@ impl MongodbProvider {
     let mongodbCrud = MongodbCrudProvider::new(db.clone());
     let mongodbRelations = MongodbRelationsProvider::new(mongodbCrud.clone());
     let mongodbSync = MongodbSyncProvider::new(mongodbCrud.clone());
+    let relationLoader = RelationLoader::new(mongodbCrud.clone());
 
     Ok(Self {
       pool,
@@ -36,6 +39,7 @@ impl MongodbProvider {
       mongodbCrud,
       mongodbRelations,
       mongodbSync,
+      relationLoader,
     })
   }
 
