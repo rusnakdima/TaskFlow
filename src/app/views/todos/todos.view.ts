@@ -8,7 +8,6 @@ import {
   computed,
   OnDestroy,
   HostListener,
-  effect,
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
@@ -42,6 +41,9 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 
+/* views */
+import { BaseListView } from "@views/base-list.view";
+
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
 import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
@@ -65,7 +67,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./todos.view.html",
 })
-export class TodosView implements OnInit {
+export class TodosView extends BaseListView implements OnInit {
   // Services
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
@@ -80,39 +82,13 @@ export class TodosView implements OnInit {
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
   private dataSyncService = inject(DataSyncService);
-  private filterService: FilterHelper;
-  private sortService: SortHelper;
-
-  // Loading and error state
-  protected loading = signal(false);
-  protected error = signal<string | null>(null);
-
   constructor() {
-    this.filterService = new FilterHelper();
-    this.sortService = new SortHelper();
-  }
-
-  /**
-   * Handle errors by setting the error signal
-   */
-  protected handleError(err: any): void {
-    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
-    this.error.set(errorMessage);
-  }
-
-  /**
-   * Clear error state
-   */
-  protected clearError(): void {
-    this.error.set(null);
+    super();
   }
 
   // State
   todos = this.storageService.todos;
   highlightTodoId = signal<string | null>(null);
-  showFilter = signal(false);
-  activeFilter = signal<string>("all");
-  searchQuery = signal<string>("");
   userId = signal("");
   private routeSub?: Subscription;
 
@@ -144,13 +120,13 @@ export class TodosView implements OnInit {
         filtered = filtered.filter((todo) => this.isCompleted(todo));
         break;
       case "week":
-        filtered = this.filterService.filterThisWeek(filtered);
+        filtered = FilterHelper.filterThisWeek(filtered);
         break;
       case "low":
       case "medium":
       case "high":
       case "urgent":
-        filtered = this.filterService.filterByPriority(filtered, filter);
+        filtered = FilterHelper.filterByPriority(filtered, filter);
         break;
     }
 
@@ -161,7 +137,7 @@ export class TodosView implements OnInit {
       );
     }
 
-    const result = this.sortService.sortByOrder(filtered, "desc");
+    const result = SortHelper.sortByOrder(filtered, "desc");
     return result;
   });
 
@@ -280,12 +256,12 @@ export class TodosView implements OnInit {
       case "completed":
         return todos.filter((todo) => this.isCompleted(todo)).length;
       case "week":
-        return this.filterService.filterThisWeek(todos).length;
+        return FilterHelper.filterThisWeek(todos).length;
       case "low":
       case "medium":
       case "high":
       case "urgent":
-        return this.filterService.filterByPriority(todos, filter).length;
+        return FilterHelper.filterByPriority(todos, filter).length;
       default:
         return 0;
     }
@@ -356,27 +332,6 @@ export class TodosView implements OnInit {
       (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
     );
     return listCompletedTasks.length === listTasks.length;
-  }
-
-  /**
-   * Toggle filter bar visibility
-   */
-  toggleFilter(): void {
-    this.showFilter.update((v) => !v);
-  }
-
-  /**
-   * Handle search query change
-   */
-  onSearchChange(query: string): void {
-    this.searchQuery.set(query);
-  }
-
-  /**
-   * Handle filter change
-   */
-  changeFilter(filter: string): void {
-    this.activeFilter.set(filter);
   }
 
   // Bulk Actions Methods

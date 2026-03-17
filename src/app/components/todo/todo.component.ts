@@ -6,10 +6,14 @@ import {
   Input,
   OnInit,
   Output,
-  ViewChild,
   signal,
   inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from "@angular/core";
+
+/* base */
+import { BaseItemComponent } from "@components/base-item.component";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -17,7 +21,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
-import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
@@ -34,8 +37,6 @@ import { TemplateService } from "@services/features/template.service";
 import { Todo } from "@models/todo.model";
 import { TaskStatus } from "@models/task.model";
 
-import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
-
 @Component({
   selector: "app-todo",
   standalone: true,
@@ -50,12 +51,10 @@ import { ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
   templateUrl: "./todo.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TodoComponent implements OnInit {
-  private baseHelper = new BaseItemHelper();
+export class TodoComponent extends BaseItemComponent implements OnInit {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private templateService = inject(TemplateService);
-  private cdr = inject(ChangeDetectorRef);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -68,15 +67,16 @@ export class TodoComponent implements OnInit {
 
   @Output() deleteTodoEvent: EventEmitter<string> = new EventEmitter();
   @Output() saveAsBlueprintEvent: EventEmitter<Todo> = new EventEmitter();
-  @Output() edit = new EventEmitter<void>();
-  @Output() delete = new EventEmitter<void>();
-  @Output() toggle = new EventEmitter<void>();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
 
   isExpandedDetails = signal(false);
+  isDragging = signal(false);
 
-  ngOnInit() {}
+  ngOnInit() {
+    // Force change detection when component initializes to ensure relation data is displayed
+    this.cdr.markForCheck();
+  }
 
   truncateString = Common.truncateString;
 
@@ -99,7 +99,7 @@ export class TodoComponent implements OnInit {
       return "bg-gray-400";
     }
 
-    const completed = this.baseHelper.countCompleted(this.todo.tasks);
+    const completed = BaseItemHelper.countCompleted(this.todo.tasks);
     if (completed === this.todo.tasks.length) {
       return "bg-green-500";
     }
@@ -110,16 +110,16 @@ export class TodoComponent implements OnInit {
     if (!this.todo || !this.todo.tasks || this.todo.tasks.length === 0) {
       return "No tasks";
     }
-    const completed = this.baseHelper.countCompleted(this.todo.tasks);
+    const completed = BaseItemHelper.countCompleted(this.todo.tasks);
     if (completed === this.todo.tasks.length) {
       return "Completed";
     }
     return "In Progress";
   }
 
-  getPriorityBadgeClass = this.baseHelper.getPriorityBadgeClass;
+  getPriorityBadgeClass = BaseItemHelper.getPriorityBadgeClass;
 
-  formatDate = this.baseHelper.formatDate;
+  formatDate = BaseItemHelper.formatDate;
 
   deleteTodo() {
     if (this.todo) {
@@ -138,21 +138,20 @@ export class TodoComponent implements OnInit {
     return this.todo?.tasks?.length ?? 0;
   }
 
-  onEditClick(): void {
-    this.edit.emit();
-  }
-
-  onDeleteClick(): void {
-    this.delete.emit();
-  }
-
-  onToggleClick(): void {
-    this.toggle.emit();
-  }
-
   toggleSelection(checked: boolean): void {
     if (this.todo) {
       this.selectionChangeEvent.emit({ id: this.todo.id, selected: checked });
     }
+  }
+
+  // Drag state management
+  onDragStarted(): void {
+    this.isDragging.set(true);
+    this.cdr.markForCheck();
+  }
+
+  onDragEnded(): void {
+    this.isDragging.set(false);
+    this.cdr.markForCheck();
   }
 }
