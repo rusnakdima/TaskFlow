@@ -15,5 +15,6 @@ pub struct RelationObj {
   pub typeField: TypesField,
   pub nameField: String,
   pub newNameField: String,
+  pub targetField: Option<String>,
   pub relations: Option<Vec<RelationObj>>,
 }
