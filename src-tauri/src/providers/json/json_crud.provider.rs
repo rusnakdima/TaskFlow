@@ -9,6 +9,7 @@ use crate::errors::ApiResult;
 use crate::providers::base_crud::CrudProvider;
 
 /* helpers */
+use crate::helpers::common::supports_soft_delete;
 use crate::helpers::model_helper::ensure_required_fields;
 
 /// JsonCrudProvider - CRUD operations for JSON file storage
@@ -47,15 +48,9 @@ impl JsonCrudProvider {
     data
   }
 
-  /// Table name mapping for file storage (keeps plural names)
-  fn getTableName(nameTable: &str) -> String {
-    nameTable.to_string()
-  }
-
   fn getTablePath(&self, nameTable: &str) -> PathBuf {
     let mut path = self.dbFilePath.clone();
-    let tableName = Self::getTableName(nameTable);
-    path.push(format!("{}.json", tableName));
+    path.push(format!("{}.json", nameTable));
     path
   }
 
@@ -201,130 +196,83 @@ impl JsonCrudProvider {
     nameTable: &str,
     filter: Option<Value>,
   ) -> ApiResult<Vec<Value>> {
-    let mut listRecords = self.getDataTable(nameTable).await?;
+    let listRecords = self.getDataTable(nameTable).await?;
+    let effectiveFilter = filter.unwrap_or_else(|| json!({}));
+    // When a record is missing a filter key, include it (permissive match for archive queries)
+    Ok(Self::apply_filter(&listRecords, &effectiveFilter, true))
+  }
 
-    let effectiveFilter = if let Some(f) = filter { f } else { json!({}) };
+  /// Apply a filter object to a slice of records, returning only matching records.
+  /// Supports: exact match, `$in` operator, array containment.
+  ///
+  /// `include_on_missing_key`: when true, records that lack a filtered key are included
+  /// (used by `getAllWithDeleted`); when false they are excluded (used by `getAll`).
+  fn apply_filter(records: &[Value], filter: &Value, include_on_missing_key: bool) -> Vec<Value> {
+    let Some(filterObj) = filter.as_object() else {
+      return records.to_vec();
+    };
 
-    if let Some(filterObj) = effectiveFilter.as_object() {
-      listRecords = listRecords
-        .into_iter()
-        .filter(|record| {
-          if let Some(recordObj) = record.as_object() {
-            filterObj.iter().all(|(key, filterValue)| {
-              if recordObj.contains_key(key) {
-                recordObj
-                  .get(key)
-                  .map(|recordValue| {
-                    if let Some(filterValue) = filterValue.as_object() {
-                      if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
-                        // Handle $in operator
-                        if let Some(vecRec) = recordValue.as_array() {
-                          // Record value is array (e.g., assignees: ["id1", "id2"])
-                          inVals.iter().any(|inVal| vecRec.contains(inVal))
-                        } else if let Some(recStr) = recordValue.as_str() {
-                          // Record value is string (e.g., todoId: "id1")
-                          // Check if string is in the $in array
-                          inVals.iter().any(|inVal| inVal.as_str() == Some(recStr))
-                        } else {
-                          false
-                        }
-                      } else {
-                        false
-                      }
-                    } else if filterValue.is_array() {
-                      filterValue.as_array().unwrap().contains(recordValue)
-                    } else {
-                      // Compare string values properly
-                      match (recordValue.as_str(), filterValue.as_str()) {
-                        (Some(recStr), Some(filterStr)) => recStr == filterStr,
-                        _ => recordValue == filterValue,
-                      }
-                    }
-                  })
-                  .unwrap_or(false)
-              } else {
-                true
-              }
-            })
-          } else {
-            false
-          }
-        })
-        .collect();
+    if filterObj.is_empty() {
+      return records.to_vec();
     }
 
-    Ok(listRecords)
+    records
+      .iter()
+      .filter(|record| {
+        let Some(recordObj) = record.as_object() else {
+          return false;
+        };
+        filterObj.iter().all(|(key, filterValue)| {
+          if !recordObj.contains_key(key) {
+            return include_on_missing_key;
+          }
+          recordObj
+            .get(key)
+            .map(|recordValue| {
+              if let Some(filterObj) = filterValue.as_object() {
+                if let Some(inVals) = filterObj.get("$in").and_then(|v| v.as_array()) {
+                  if let Some(vecRec) = recordValue.as_array() {
+                    inVals.iter().any(|inVal| vecRec.contains(inVal))
+                  } else if let Some(recStr) = recordValue.as_str() {
+                    inVals.iter().any(|inVal| inVal.as_str() == Some(recStr))
+                  } else {
+                    false
+                  }
+                } else {
+                  false
+                }
+              } else if let Some(arr) = filterValue.as_array() {
+                arr.contains(recordValue)
+              } else {
+                match (recordValue.as_str(), filterValue.as_str()) {
+                  (Some(recStr), Some(filterStr)) => recStr == filterStr,
+                  _ => recordValue == filterValue,
+                }
+              }
+            })
+            .unwrap_or(false)
+        })
+      })
+      .cloned()
+      .collect()
   }
 }
 
 #[async_trait]
 impl CrudProvider for JsonCrudProvider {
   async fn getAll(&self, nameTable: &str, filter: Option<Value>) -> ApiResult<Vec<Value>> {
-    let mut listRecords = self.getDataTable(nameTable).await?;
+    let listRecords = self.getDataTable(nameTable).await?;
 
-    let mut effectiveFilter = if let Some(f) = filter { f } else { json!({}) };
+    let mut effectiveFilter = filter.unwrap_or_else(|| json!({}));
 
-    // Skip isDeleted filter for tables that don't support soft delete (e.g., users, profiles, comments)
+    // Prepend isDeleted: false for tables that support soft delete
     if let Some(filterObj) = effectiveFilter.as_object_mut() {
-      if !filterObj.contains_key("isDeleted")
-        && nameTable != "users"
-        && nameTable != "profiles"
-        && nameTable != "comments"
-      {
+      if !filterObj.contains_key("isDeleted") && supports_soft_delete(nameTable) {
         filterObj.insert("isDeleted".to_string(), json!(false));
       }
     }
 
-    if let Some(filterObj) = effectiveFilter.as_object() {
-      listRecords = listRecords
-        .into_iter()
-        .filter(|record| {
-          if let Some(recordObj) = record.as_object() {
-            filterObj.iter().all(|(key, filterValue)| {
-              // If record doesn't have the key, it should NOT match (return false)
-              if !recordObj.contains_key(key) {
-                return false;
-              }
-
-              recordObj
-                .get(key)
-                .map(|recordValue| {
-                  if let Some(filterValue) = filterValue.as_object() {
-                    if let Some(inVals) = filterValue.get("$in").and_then(|v| v.as_array()) {
-                      // Handle $in operator
-                      if let Some(vecRec) = recordValue.as_array() {
-                        // Record value is array (e.g., assignees: ["id1", "id2"])
-                        inVals.iter().any(|inVal| vecRec.contains(inVal))
-                      } else if let Some(recStr) = recordValue.as_str() {
-                        // Record value is string (e.g., todoId: "id1")
-                        // Check if string is in the $in array
-                        inVals.iter().any(|inVal| inVal.as_str() == Some(recStr))
-                      } else {
-                        false
-                      }
-                    } else {
-                      false
-                    }
-                  } else if filterValue.is_array() {
-                    filterValue.as_array().unwrap().contains(recordValue)
-                  } else {
-                    // Compare string values properly
-                    match (recordValue.as_str(), filterValue.as_str()) {
-                      (Some(recStr), Some(filterStr)) => recStr == filterStr,
-                      _ => recordValue == filterValue,
-                    }
-                  }
-                })
-                .unwrap_or(false)
-            })
-          } else {
-            false
-          }
-        })
-        .collect();
-    }
-
-    Ok(listRecords)
+    Ok(Self::apply_filter(&listRecords, &effectiveFilter, false))
   }
 
   async fn get(&self, nameTable: &str, id: &str) -> ApiResult<Value> {
