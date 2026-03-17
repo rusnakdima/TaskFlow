@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, Injector, inject } from "@angular/core";
-import { Observable, from, share, of, firstValueFrom, defer } from "rxjs";
+import { Observable, from, of, firstValueFrom, defer } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 import { finalize, tap, catchError, map, switchMap } from "rxjs/operators";
 
@@ -15,14 +15,14 @@ import { Comment } from "@models/comment.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { WebSocketService } from "@services/core/websocket.service";
 import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
+import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { OfflineQueueService } from "@services/core/offline-queue.service";
-import { ConflictDetectionService } from "@services/core/conflict-detection.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -33,6 +33,7 @@ interface CrudParams {
   id?: string;
   parentTodoId?: string;
   relations?: RelationObj[];
+  load?: string[]; // NEW: TypeORM-like dot notation for relations
   syncMetadata?: SyncMetadata;
 }
 
@@ -56,20 +57,14 @@ const WS_RETRY_DELAY_MS = 100;
 })
 export class DataSyncProvider {
   private ws = inject(WebSocketService);
+  private notifyService = inject(NotifyService);
   private jwtTokenService = inject(JwtTokenService);
-  private offlineQueueService = inject(OfflineQueueService);
-  private conflictDetectionService = inject(ConflictDetectionService);
   private injector = inject(Injector);
 
   private inFlightRequests = new Map<string, Observable<any>>();
   private requestCache = new Map<string, { data: any; timestamp: number }>();
 
-  constructor() {
-    this.offlineQueueService.setExecuteFunction(
-      (operation, entityType, entityId, data, parentTodoId) =>
-        this.executeOperationForQueue(operation, entityType, entityId, data, parentTodoId)
-    );
-  }
+  constructor() {}
 
   private get syncService(): SyncService {
     return this.injector.get(SyncService);
@@ -93,9 +88,8 @@ export class DataSyncProvider {
   // ==================== Metadata Resolution ====================
 
   private getCurrentUserId(): string | null {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    const userId = this.jwtTokenService.getUserId(token);
-    return userId;
+    const token = this.jwtTokenService.getToken();
+    return this.jwtTokenService.getUserId(token);
   }
 
   private createDefaultMetadata(): SyncMetadata {
@@ -201,6 +195,7 @@ export class DataSyncProvider {
       id?: string;
       parentTodoId?: string;
       relations?: RelationObj[];
+      load?: string[]; // NEW: TypeORM-like dot notation
       isOwner?: boolean;
       isPrivate?: boolean;
     }
@@ -219,7 +214,11 @@ export class DataSyncProvider {
             options.id
           );
 
-    const relations = options.relations ?? RelationsHelper.getRelationsForTable(table);
+    // Use load parameter if provided, otherwise fall back to relations helper
+    const load = options.load;
+    const relations = !load
+      ? (options.relations ?? RelationsHelper.getRelationsForTable(table))
+      : undefined;
 
     const result = {
       table,
@@ -228,6 +227,7 @@ export class DataSyncProvider {
       id: options.id,
       parentTodoId: options.parentTodoId,
       relations,
+      load, // NEW: Pass load parameter to backend
       syncMetadata: metadata,
     };
     return result;
@@ -301,16 +301,6 @@ export class DataSyncProvider {
     this.requestCache.set(requestKey, { data, timestamp: Date.now() });
   }
 
-  private createRequestObservable<T>(
-    operation: Operation,
-    params: CrudParams,
-    requestKey: string
-  ): Observable<T> {
-    return new Observable<T>((subscriber) => {
-      this.tryWebSocket(operation, params, requestKey, subscriber, 0);
-    });
-  }
-
   private tryWebSocket<T>(
     operation: Operation,
     params: CrudParams,
@@ -370,6 +360,7 @@ export class DataSyncProvider {
 
     if (params.filter) payload.filter = params.filter;
     if (params.relations) payload.relations = params.relations;
+    if (params.load) payload.load = params.load; // NEW: Include load parameter
     if (params.id) payload.id = params.id;
     if (params.data) payload.data = params.data;
 
@@ -383,14 +374,6 @@ export class DataSyncProvider {
     subscriber: any,
     requestKey?: string
   ): void {
-    const isValidationError =
-      err?.message?.includes("Validation failed") ||
-      (err?.status === "Error" && err?.message?.includes("Validation"));
-
-    if (operation !== "getAll" && operation !== "get" && !isValidationError) {
-      this.queueOperation(operation, params);
-    }
-
     subscriber.error(err);
     if (requestKey) {
       this.inFlightRequests.delete(requestKey);
@@ -463,88 +446,6 @@ export class DataSyncProvider {
       });
   }
 
-  // ==================== Queue Operations ====================
-
-  private queueOperation(operation: Operation, params: CrudParams): void {
-    if (operation === "getAll" || operation === "get") {
-      return;
-    }
-
-    this.offlineQueueService.enqueue({
-      operation: operation as "create" | "update" | "delete",
-      entityType: params.table,
-      entityId: params.id || "",
-      data: params.data,
-      parentTodoId: params.parentTodoId,
-      syncMetadata: params.syncMetadata,
-    });
-  }
-
-  private async executeOperationForQueue(
-    operation: "create" | "update" | "delete",
-    entityType: string,
-    entityId: string,
-    data?: any,
-    parentTodoId?: string
-  ): Promise<any> {
-    const table = entityType;
-    return new Promise((resolve, reject) => {
-      let obs: Observable<any>;
-      switch (operation) {
-        case "create":
-          obs = this.crud("create", table, { data, parentTodoId });
-          break;
-        case "update":
-          // Fetch latest version first to check for conflicts
-          obs = this.crud("get", table, { id: entityId, parentTodoId }).pipe(
-            switchMap((latest: any) => {
-              const localVersion = data?.version || 0;
-              const remoteVersion = latest?.version || 0;
-
-              // If remote is newer, check for conflict and potentially abort
-              if (remoteVersion > localVersion) {
-                // Check if this is a team todo (conflict possible) or private (safe to overwrite)
-                const isPrivateTodo = table === "todos" && latest?.visibility === "private";
-                const isOwner = latest?.userId === this.getCurrentUserId();
-
-                // For private todos owned by user, safe to proceed with update
-                if (isPrivateTodo && isOwner) {
-                  return this.crud("update", table, { id: entityId, data, parentTodoId });
-                }
-
-                // For team todos, check conflict and abort if remote is newer
-                const hasConflict = this.conflictDetectionService.checkConflict(
-                  entityType as any,
-                  latest
-                );
-
-                if (hasConflict) {
-                  throw new Error(
-                    `Conflict: ${entityType} "${entityId}" was modified by another user. ` +
-                      `Please refresh and try again.`
-                  );
-                }
-
-                // No conflict detected, proceed with update
-                return this.crud("update", table, { id: entityId, data, parentTodoId });
-              }
-
-              // Local is newer or same version, safe to update
-              return this.crud("update", table, { id: entityId, data, parentTodoId });
-            })
-          );
-          break;
-        case "delete":
-          obs = this.crud("delete", table, { id: entityId, parentTodoId });
-          break;
-        default:
-          reject(new Error(`Unknown operation: ${operation}`));
-          return;
-      }
-      obs.subscribe({ next: resolve, error: reject });
-    });
-  }
-
   // ==================== Public CRUD API ====================
 
   crud<T>(
@@ -556,6 +457,7 @@ export class DataSyncProvider {
       id?: string;
       parentTodoId?: string;
       relations?: RelationObj[];
+      load?: string[]; // NEW: TypeORM-like dot notation for relations
       isOwner?: boolean;
       isPrivate?: boolean;
     } = {},
@@ -604,15 +506,11 @@ export class DataSyncProvider {
     todoId: string,
     newVisibility: "private" | "team"
   ): Promise<void> {
-    try {
-      // Import the updated todo from cloud
-      // The TodoHandler.update() will automatically detect visibility change
-      // and move the todo between private/shared signals
-      await this.importTodoToLocalDb(todoId);
-      this.clearCache("todos");
-    } catch (error) {
-      throw error;
-    }
+    // Import the updated todo from cloud
+    // The TodoHandler.update() will automatically detect visibility change
+    // and move the todo between private/shared signals
+    await this.importTodoToLocalDb(todoId);
+    this.clearCache("todos");
   }
 
   private async importTodoToLocalDb(todoId: string): Promise<void> {
@@ -715,6 +613,17 @@ export class DataSyncProvider {
     parentTodoId?: string
   ): void {
     try {
+      // Log all data received from backend
+      console.log(
+        `[DataSyncProvider] Received from backend - Operation: ${operation}, Table: ${table}, Data:`,
+        result
+      );
+
+      // Trigger notification for all successful mutations (create/update/delete)
+      if (operation !== "get" && operation !== "getAll") {
+        this.notifyService.handleLocalAction(table, operation, result || { id });
+      }
+
       // Check if this is a team entity - if so, only update in-memory (not local JSON)
       const isTeam = this.isTeamEntity(table, id, parentTodoId);
 
@@ -837,5 +746,38 @@ export class DataSyncProvider {
     } else {
       this.requestCache.clear();
     }
+  }
+
+  // ==================== Connection Management ====================
+
+  /**
+   * Check MongoDB connection with timeout
+   * @param timeoutMs - Timeout in milliseconds (default: 5000ms)
+   * @returns Observable that emits true if connection successful, false otherwise
+   * @deprecated Backend now uses local JSON first - this is for diagnostics only
+   */
+  checkMongoDbConnection(timeoutMs: number = 5000): Observable<boolean> {
+    return new Observable<boolean>((subscriber) => {
+      const timeoutId = setTimeout(() => {
+        subscriber.next(false);
+        subscriber.complete();
+      }, timeoutMs);
+
+      // Try a simple operation to test connection
+      this.crud<any[]>("getAll", "users", { filter: {} }, true).subscribe({
+        next: () => {
+          clearTimeout(timeoutId);
+          subscriber.next(true);
+          subscriber.complete();
+        },
+        error: (err) => {
+          clearTimeout(timeoutId);
+          // Check if it's a network error
+          const isNetworkError = NetworkErrorHelper.isNetworkError(err);
+          subscriber.next(!isNetworkError);
+          subscriber.complete();
+        },
+      });
+    });
   }
 }

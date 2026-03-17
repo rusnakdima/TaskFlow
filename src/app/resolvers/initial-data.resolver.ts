@@ -1,21 +1,25 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Resolve, Router } from "@angular/router";
-import { firstValueFrom, forkJoin, of, catchError, timeout, defer } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
+import { of, firstValueFrom, forkJoin, catchError, timeout } from "rxjs";
 
 /* services */
 import { DataSyncService } from "@services/data/data-sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* helpers */
-import { RelationsHelper } from "@helpers/relations.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /**
  * Resolver that ensures all application data is loaded before routes activate
- * Loads from local JSON database first, then syncs with cloud
+ * OFFLINE-FIRST: App starts immediately with cached data, syncs in background
+ *
+ * Loading Strategy:
+ * 1. Check if storage already has data (from previous session) - use immediately
+ * 2. Load from local JSON without relations (fast, works offline)
+ * 3. Background sync loads full data with relations when network available
  */
 @Injectable({
   providedIn: "root",
@@ -24,179 +28,216 @@ export class InitialDataResolver implements Resolve<any> {
   private dataSyncService = inject(DataSyncService);
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
+  private jwtTokenService = inject(JwtTokenService);
   private router = inject(Router);
-  private dataSyncProvider = inject(DataSyncProvider);
 
   /**
-   * Check profile SYNCHRONOUSLY from storage
+   * Check if we have sufficient data in storage from previous session
+   */
+  private hasCachedData(): boolean {
+    const hasTodos = this.storageService.privateTodos().length > 0;
+    const hasCategories = this.storageService.categories().length > 0;
+    return hasTodos || hasCategories;
+  }
+
+  /**
+   * Check profile synchronously from storage
    * Profile is valid if it has name OR user.username
    */
   private checkProfileSync(): boolean {
     const profile = this.storageService.profile();
+    if (!profile) return false;
 
-    if (!profile) {
-      console.log("Profile check: no profile");
-      return false;
-    }
-
-    // Check if profile has required fields (either name OR user.username)
     const hasName = !!(profile.name || profile.lastName);
-    const hasUser = !!profile.user;
     const hasUsername = !!profile.user?.username;
-    const isValid = hasName || hasUsername;
-
-    console.log("Profile check:", {
-      hasProfile: true,
-      hasName,
-      hasUser,
-      hasUsername,
-      isValid,
-    });
-
-    return isValid;
+    return hasName || hasUsername;
   }
 
   async resolve(): Promise<any> {
-    const userId = this.authService.getValueByKey("id");
     const currentRoute = this.router.url;
 
     // Don't block profile routes - they don't need data loaded
     if (currentRoute.startsWith("/profile")) {
-      console.log("Profile route - skipping data load");
       return { loaded: true, isProfileRoute: true };
     }
 
-    // FIRST: Try to load from local JSON database (fast, works offline)
-    // Use direct Tauri invoke to avoid WebSocket delay
-    await this.loadFromLocalJsonDirect(userId);
+    // ✅ STEP 1: Check if user is authenticated (has valid token)
+    const token = this.jwtTokenService.getToken();
 
-    // Check if we have profile synchronously
-    const hasProfile = this.checkProfileSync();
-    const hasTodos = this.storageService.privateTodos().length > 0;
+    if (!token) {
+      // No token - redirect to login
+      console.log("[InitialDataResolver] No token found, redirecting to login");
+      this.router.navigate(["/login"]);
+      return { loaded: false, redirectToLogin: true };
+    }
 
-    console.log("After local JSON load:", { hasTodos, hasProfile });
-
-    // If we have both todos and profile from local JSON, we're done
-    if (hasTodos && hasProfile) {
+    // ✅ STEP 2: Check if we already have data in storage (from previous session)
+    if (this.hasCachedData()) {
+      console.log("[InitialDataResolver] Using cached data from storage");
       this.storageService.setLoaded(true);
-      console.log("✓ Using cached data and profile");
-      return { loaded: true, hasProfile: true };
+
+      // Trigger one background sync after delay to keep data fresh
+      this.triggerBackgroundSync();
+
+      return { loaded: true, hasProfile: this.checkProfileSync(), fromCache: true };
     }
 
-    // If we have todos but no profile, allow navigation (profile might be incomplete in local JSON)
-    if (hasTodos && !hasProfile) {
-      this.storageService.setLoaded(true);
-      console.log("Have todos, proceeding without complete profile");
-      return { loaded: true, hasProfile: false };
-    }
+    // ✅ STEP 3: Load from local JSON and then sync
+    const userId = this.authService.getValueByKey("id");
+    console.log("[InitialDataResolver] Starting initial load for userId:", userId);
 
-    // No local data at all - must load from network
-    console.log("No local data, loading from network...");
-    try {
-      await firstValueFrom(
-        forkJoin({
-          data: this.dataSyncService.loadAllData(true),
-          profile: this.dataSyncService.loadProfile().pipe(
-            timeout(3000),
-            catchError(() => of(null))
-          ),
-        }).pipe(
-          catchError((error) => {
-            console.warn("Network data load failed:", error);
-            return of({ data: null, profile: null });
-          })
-        )
-      );
+    // Load from local JSON first, then trigger sync
+    this.loadFromLocalJsonSimple(userId)
+      .then((hasData: boolean) => {
+        if (hasData) {
+          this.storageService.setLoaded(true);
+          this.storageService.setLastLoaded(new Date());
+          console.log("[InitialDataResolver] Local JSON load completed with data");
+        }
 
-      if (this.checkProfileSync()) {
-        return { loaded: true, hasProfile: true };
-      }
+        // ALWAYS trigger background sync after local load attempt
+        // This will load relations and sync from network
+        this.triggerBackgroundSync(2000); // Slightly longer delay if we just loaded from JSON
+      })
+      .catch((err: any) => {
+        console.warn("[InitialDataResolver] Local JSON load failed:", err);
+        this.triggerBackgroundSync(500); // Trigger sync quickly if local load failed
+      });
 
-      // No profile after network load - allow navigation anyway
-      // User can create profile later
-      console.log("No profile found, but allowing navigation");
-      return { loaded: true, hasProfile: false };
-    } catch (error) {
-      console.warn("Initial data loading failed:", error);
-      // Even if network fails, allow route activation
-      return { loaded: false, error };
-    }
+    // ✅ CRITICAL: Always allow navigation immediately, even with empty storage
+    // User can work with empty state or create new data while background sync runs
+    this.storageService.setLoaded(true);
+
+    return {
+      loaded: true,
+      hasProfile: this.checkProfileSync(),
+      fromCache: false,
+      isEmpty: true,
+      note: "Loading data in background...",
+    };
   }
 
   /**
-   * Load data from local JSON database using DIRECT Tauri invoke
-   * This bypasses WebSocket and goes straight to local JSON
+   * Load data from local JSON WITHOUT relations (fast, offline-safe)
+   * This loads base entities only - relations are loaded on-demand by views
+   * Profile loads WITHOUT user relation to avoid MongoDB dependency
    */
-  private async loadFromLocalJsonDirect(userId: string | null): Promise<boolean> {
-    if (!userId) return false;
+  private async loadFromLocalJsonSimple(userId: string | null): Promise<boolean> {
+    if (!userId) {
+      return false;
+    }
 
     try {
-      console.log("Loading from local JSON for userId:", userId);
+      const { invoke } = await import("@tauri-apps/api/core");
 
-      // Get relations for each entity
-      const todoRelations = RelationsHelper.getTodoRelationsWithUser();
-      const profileRelations = RelationsHelper.getProfileRelations();
+      // Helper to invoke with individual timeout
+      const invokeWithTimeout = async (args: any, timeoutMs: number = 1500): Promise<any> => {
+        return Promise.race([
+          invoke<any>("manageData", args),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs)),
+        ]);
+      };
 
-      // Use direct Tauri invoke to manageData with isPrivate metadata
-      const [privateTodos, categories, profiles] = await Promise.all([
-        this.invokeLocalCrud(
-          "todos",
-          { userId, visibility: "private", isDeleted: false },
-          todoRelations
+      // Load each entity independently with individual timeouts
+      // Include tasks/subtasks relations so the initial render shows task data immediately
+      const todoLoad = ["tasks", "tasks.subtasks", "tasks.comments", "tasks.subtasks.comments"];
+
+      const [privateTodosRes, teamTodosRes, categoriesRes, profilesRes] = await Promise.all([
+        invokeWithTimeout(
+          {
+            operation: "getAll",
+            table: "todos",
+            filter: { userId, visibility: "private", isDeleted: false },
+            load: todoLoad,
+            syncMetadata: { isOwner: true, isPrivate: true },
+          },
+          3000
         ),
-        this.invokeLocalCrud("categories", { userId, isDeleted: false }, []),
-        this.invokeLocalCrud("profiles", { userId }, profileRelations),
+        invokeWithTimeout(
+          {
+            operation: "getAll",
+            table: "todos",
+            filter: { visibility: "team", isDeleted: false },
+            load: todoLoad,
+            syncMetadata: { isOwner: false, isPrivate: false },
+          },
+          3000
+        ),
+        invokeWithTimeout(
+          {
+            operation: "getAll",
+            table: "categories",
+            filter: { userId, isDeleted: false },
+            syncMetadata: { isOwner: true, isPrivate: true },
+          },
+          3000
+        ),
+        invokeWithTimeout(
+          {
+            operation: "getAll",
+            table: "profiles",
+            filter: { userId },
+            load: ["user"],
+            syncMetadata: { isOwner: true, isPrivate: true },
+          },
+          3000
+        ),
       ]);
 
-      console.log("Local JSON load result:", {
-        todosCount: privateTodos?.length || 0,
-        categoriesCount: categories?.length || 0,
-        profileFound: profiles?.length > 0,
-      });
+      const privateTodos = privateTodosRes?.data || [];
+      const teamTodos = teamTodosRes?.data || [];
+      const categories = categoriesRes?.data || [];
+      const profiles = profilesRes?.data || [];
 
-      // Store in StorageService
+      // Store in storage
       if (privateTodos && privateTodos.length > 0) {
         this.storageService.setCollection("privateTodos", privateTodos);
+      }
+      if (teamTodos && teamTodos.length > 0) {
+        this.storageService.setCollection("sharedTodos", teamTodos);
       }
       if (categories && categories.length > 0) {
         this.storageService.setCollection("categories", categories);
       }
       if (profiles && profiles.length > 0) {
-        console.log("Profile loaded from local JSON:", profiles[0]);
-        this.storageService.setCollection("profiles", profiles[0]);
+        this.storageService.setCollection("profiles", profiles[0] || profiles);
       }
 
-      const hasData = privateTodos.length > 0 || categories.length > 0;
-
-      if (hasData) {
-        this.storageService.setLoaded(true);
-        this.storageService.setLastLoaded(new Date());
-        console.log("✓ Loaded from local JSON database");
-      }
-
-      return hasData;
+      return privateTodos.length > 0 || categories.length > 0 || profiles.length > 0;
     } catch (error) {
-      console.warn("Failed to load from local JSON:", error);
+      console.warn("Local JSON load failed or timed out:", error);
       return false;
     }
   }
 
   /**
-   * Direct invoke to manageData command for local JSON
+   * Trigger ONE background synchronization to load full data with relations
    */
-  private async invokeLocalCrud(table: string, filter: any, relations: any[] = []): Promise<any[]> {
-    try {
-      const result = await invoke<any>("manageData", {
-        operation: "getAll",
-        table,
-        filter,
-        syncMetadata: { isOwner: true, isPrivate: true },
-        relations,
+  private triggerBackgroundSync(delayMs: number = 1000): void {
+    setTimeout(() => {
+      console.log("[InitialDataResolver] Triggering background sync...");
+
+      // Load all data with relations from network/local
+      this.dataSyncService.loadAllData(true).subscribe({
+        next: () => {
+          console.log("[InitialDataResolver] Background data sync completed");
+          this.storageService.setLoaded(true);
+          this.storageService.setLastLoaded(new Date());
+        },
+        error: (err) => {
+          console.warn("[InitialDataResolver] Background data sync failed:", err);
+        },
       });
-      return result?.data || [];
-    } catch (error) {
-      console.warn(`Failed to load ${table} from local JSON:`, error);
-      return [];
-    }
+
+      // Load profile with user data
+      this.dataSyncService.loadProfile().subscribe({
+        next: () => {
+          console.log("[InitialDataResolver] Background profile sync completed");
+        },
+        error: (err) => {
+          console.warn("[InitialDataResolver] Background profile sync failed:", err);
+        },
+      });
+    }, delayMs);
   }
 }

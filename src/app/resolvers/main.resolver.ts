@@ -1,14 +1,12 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, of, timeout, catchError } from "rxjs";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
-
-/* helpers */
-import { RelationsHelper } from "@helpers/relations.helper";
+import { TodoRelations } from "@models/relations.config";
 
 /* services */
 import { DataSyncProvider } from "@providers/data-sync.provider";
@@ -53,31 +51,43 @@ export class MainResolver implements Resolve<any> {
           return { task: taskFromStorage, todo: todoFromStorage };
         }
 
-        // If not in storage after waiting, fetch from backend
+        // If not in storage after waiting, fetch from backend with TIMEOUT
         const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", {
           filter: { id: taskId },
           isOwner,
           isPrivate,
         });
-        const task: Task = await firstValueFrom(taskObservable);
 
         const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
           filter: { id: todoId },
           isOwner,
           isPrivate,
-          relations: RelationsHelper.getTodoRelations(),
+          load: TodoRelations.tasks, // Load tasks with subtasks and comments
         });
-        const todo: Todo = await firstValueFrom(todoObservable);
 
-        // Store in storage
-        if (todo && todo.id) {
-          const existingTodo = this.storageService.getById("todos", todoId);
-          if (existingTodo) {
-            this.storageService.updateItem("todos", todoId, todo);
-          } else {
-            this.storageService.addItem("todos", todo);
-          }
+        // ✅ Add timeout to prevent hanging on offline MongoDB queries
+        const [task, todo] = await Promise.all([
+          firstValueFrom(
+            taskObservable.pipe(
+              timeout(5000),
+              catchError(() => of(null))
+            )
+          ),
+          firstValueFrom(
+            todoObservable.pipe(
+              timeout(5000),
+              catchError(() => of(null))
+            )
+          ),
+        ]);
+
+        if (!task || !todo) {
+          console.warn("MainResolver: Failed to load task/todo from backend");
+          // Return empty object instead of error string to prevent route failure
+          return { task: null, todo: null, error: "offline" };
         }
+
+        this.upsertTodo(todo, todoId);
 
         return { task, todo };
       } else if (paramsMap.get("todoId")) {
@@ -98,31 +108,48 @@ export class MainResolver implements Resolve<any> {
           return todoFromStorage;
         }
 
-        // If not in storage after waiting, fetch from backend
+        // If not in storage after waiting, fetch from backend with TIMEOUT
         const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
           filter: { id: todoId },
           isOwner,
           isPrivate,
-          relations: RelationsHelper.getTodoRelationsWithUser(),
+          load: TodoRelations.loadAll, // Load all relations including user
         });
-        const todo: Todo = await firstValueFrom(todoObservable);
 
-        // Store in storage
-        if (todo && todo.id) {
-          const existingTodo = this.storageService.getById("todos", todoId);
-          if (existingTodo) {
-            this.storageService.updateItem("todos", todoId, todo);
-          } else {
-            this.storageService.addItem("todos", todo);
-          }
+        // ✅ Add timeout to prevent hanging on offline MongoDB queries
+        const todo: Todo | null = await firstValueFrom(
+          todoObservable.pipe(
+            timeout(5000),
+            catchError(() => of(null))
+          )
+        );
+
+        if (!todo) {
+          console.warn("MainResolver: Failed to load todo from backend");
+          // Return empty object instead of error string
+          return { id: todoId, error: "offline" };
         }
+
+        this.upsertTodo(todo, todoId);
 
         return todo;
       } else {
         return "";
       }
     } catch (err) {
-      return "Error Resolving Data";
+      console.error("MainResolver: Error resolving data:", err);
+      // Return empty object instead of error string to prevent route failure
+      return { error: "offline" };
+    }
+  }
+
+  private upsertTodo(todo: Todo | null, todoId: string): void {
+    if (!todo?.id) return;
+    const existing = this.storageService.getById("todos", todoId);
+    if (existing) {
+      this.storageService.updateItem("todos", todoId, todo);
+    } else {
+      this.storageService.addItem("todos", todo);
     }
   }
 }
