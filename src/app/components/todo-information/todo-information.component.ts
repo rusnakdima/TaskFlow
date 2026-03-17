@@ -24,14 +24,12 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
   templateUrl: "./todo-information.component.html",
 })
 export class TodoInformationComponent {
-  private baseHelper = new BaseItemHelper();
-
   @Input() todo!: Todo;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
 
   getCompletedTasksCount(): number {
-    return this.baseHelper.countCompleted(this.todo.tasks || []);
+    return BaseItemHelper.countCompleted(this.todo.tasks || []);
   }
 
   getSkippedTasksCount(): number {

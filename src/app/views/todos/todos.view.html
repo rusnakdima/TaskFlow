@@ -123,15 +123,16 @@
     </div>
   } @else {
     <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
       cdkDropList
+      [cdkDropListData]="listTodos()"
+      cdkDropListOrientation="mixed"
       (cdkDropListDropped)="onTodoDrop($event)"
+      cdkDropListSortingDisabled="false"
+      [cdkDropListAutoScrollDisabled]="false"
     >
       @for (todo of listTodos(); track todo.id) {
         <app-todo
-          cdkDrag
-          [cdkDragData]="todo"
-          cdkDragPreviewContainer="parent"
           [todo]="todo"
           [index]="$index"
           [isOwner]="true"
@@ -143,7 +144,6 @@
           (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
           (selectionChangeEvent)="toggleTodoSelection($event)"
         >
-          <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-xl h-full min-h-[150px]"></div>
         </app-todo>
       }
     </div>
