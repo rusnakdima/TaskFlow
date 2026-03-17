@@ -2,23 +2,12 @@
   <div
     class="flex flex-col p-5 m-auto rounded-xl! styleBorderSolidLite border-4! bg-transparent backdrop-blur w-full min-[400px]:w-10/12 sm:w-[400px] text-center"
   >
-    <!-- Offline Status Indicator -->
-    @if (hasLocalUsers()) {
-      <div class="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
-        <mat-icon
-          class="w-5! h-5! text-green-500 align-middle mr-2 text-xl!"
-          fontIcon="cloud_done"
-        />
-        <span class="text-green-500 text-sm">Offline login available</span>
-      </div>
-    } @else {
+    <!-- Offline-First Login Info -->
+    @if (hasLocalUsers() === false) {
       <div class="mb-4 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
-        <mat-icon
-          class="w-5! h-5! text-orange-500 align-middle mr-2 text-xl!"
-          fontIcon="cloud_off"
-        />
+        <mat-icon class="w-5! h-5! text-orange-500 align-middle mr-2 text-xl!" fontIcon="info" />
         <span class="text-orange-500 text-sm"
-          >No users in local database - Register or login online first</span
+          >No local users found. Please login online to sync your account.</span
         >
       </div>
     }
