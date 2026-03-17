@@ -12,6 +12,9 @@ use crate::models::{
   user_model::UserModel,
 };
 
+/* helpers */
+use crate::helpers::response_helper::errResponse;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
   pub id: String,
@@ -63,11 +66,7 @@ impl AuthTokenService {
       &claims,
       &EncodingKey::from_secret(self.jwtSecret.as_ref()),
     )
-    .map_err(|e| ResponseModel {
-      status: ResponseStatus::Error,
-      message: format!("Token generation failed: {}", e),
-      data: DataValue::String("".to_string()),
-    })
+    .map_err(|e| errResponse(&format!("Token generation failed: {}", e)))
   }
 
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
@@ -77,23 +76,15 @@ impl AuthTokenService {
       &DecodingKey::from_secret(self.jwtSecret.as_ref()),
       &Validation::default(),
     )
-    .map_err(|e| ResponseModel {
-      status: ResponseStatus::Error,
-      message: format!("Invalid token: {}", e),
-      data: DataValue::String("".to_string()),
-    })?;
+    .map_err(|e| errResponse(&format!("Invalid token: {}", e)))?;
 
     let userId = tokenData.claims.id;
 
     // STEP 1: Check local JSON database FIRST (works offline)
     match self.jsonProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel =
-          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user: {}", e),
-            data: DataValue::String("".to_string()),
-          })?;
+        let user: UserModel = serde_json::from_value(userVal.clone())
+          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Try to sync with MongoDB in background (non-blocking)
         if self.mongodbProvider.is_some() {
@@ -115,22 +106,16 @@ impl AuthTokenService {
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "User not found in local database and MongoDB unavailable".to_string(),
-          data: DataValue::String("".to_string()),
-        });
+        return Err(errResponse(
+          "User not found in local database and MongoDB unavailable",
+        ));
       }
     };
 
     match mongoProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel =
-          serde_json::from_value(userVal.clone()).map_err(|e| ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user: {}", e),
-            data: DataValue::String("".to_string()),
-          })?;
+        let user: UserModel = serde_json::from_value(userVal.clone())
+          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Sync user to local database for future offline use
         let _ = self.jsonProvider.create("users", userVal).await;
@@ -141,11 +126,7 @@ impl AuthTokenService {
           data: DataValue::Object(serde_json::to_value(&user).unwrap()),
         })
       }
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("User not found: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
+      Err(e) => Err(errResponse(&format!("User not found: {}", e))),
     }
   }
 
@@ -156,9 +137,12 @@ impl AuthTokenService {
       None => return Ok(()), // Skip sync if MongoDB unavailable
     };
 
-    let clonedVal = userVal.clone();
-    let userId = clonedVal.get("id").and_then(|v| v.as_str()).ok_or(())?;
-    let _ = mongoProvider.update("users", userId, userVal).await;
+    let userId = userVal
+      .get("id")
+      .and_then(|v| v.as_str())
+      .ok_or(())?
+      .to_owned();
+    let _ = mongoProvider.update("users", &userId, userVal).await;
     Ok(())
   }
 }

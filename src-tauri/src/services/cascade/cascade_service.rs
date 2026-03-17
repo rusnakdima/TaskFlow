@@ -39,21 +39,6 @@ impl CascadeService {
     }
   }
 
-  /// Handle cascade based on provider type
-  pub async fn handleCascade(
-    &self,
-    table: &str,
-    id: &str,
-    is_restore: bool,
-    use_mongo: bool,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if use_mongo {
-      self.handleMongoCascade(table, id, is_restore).await
-    } else {
-      self.handleJsonCascade(table, id, is_restore).await
-    }
-  }
-
   /// Handle JSON Cascade (delete/restore)
   pub async fn handleJsonCascade(
     &self,

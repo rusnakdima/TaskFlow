@@ -19,10 +19,10 @@ pub struct ProfileService {
 }
 
 impl ProfileService {
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
     Self {
-      jsonProvider: jsonProvider.clone(),
-      mongodbProvider: jsonProvider.jsonSync.mongodbProvider.clone(),
+      jsonProvider,
+      mongodbProvider,
     }
   }
 

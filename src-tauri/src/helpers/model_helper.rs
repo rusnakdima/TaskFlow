@@ -223,28 +223,19 @@ fn add_table_specific_defaults(table: &str, obj: &mut serde_json::Map<String, Va
   }
 }
 
-/// Generate a MongoDB-style ObjectId
+/// Generate a MongoDB-style ObjectId (24 hex chars)
 fn generate_object_id() -> Value {
   let timestamp = format!(
-    "{:x}",
+    "{:08x}",
     std::time::SystemTime::now()
       .duration_since(std::time::UNIX_EPOCH)
       .unwrap()
-      .as_secs()
+      .as_secs() as u32
   );
 
-  let random_part: String = (0..24)
-    .map(|_| {
-      format!(
-        "{:x}",
-        (std::time::SystemTime::now()
-          .duration_since(std::time::UNIX_EPOCH)
-          .unwrap()
-          .as_nanos()
-          % 16) as u8
-      )
-    })
-    .collect();
+  // Use UUID v4 for the random 16-char portion
+  let uuid_hex = Uuid::new_v4().to_string().replace("-", "");
+  let random_part = &uuid_hex[..16];
 
   json!({ "$oid": format!("{}{}", timestamp, random_part) })
 }

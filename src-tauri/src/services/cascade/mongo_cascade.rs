@@ -49,8 +49,6 @@ impl MongoCascadeHandler {
     table: &str,
     id: &str,
   ) -> Result<CascadeIds, ResponseModel> {
-    let start_time = std::time::Instant::now();
-
     let mut cascade_ids = CascadeIds::default();
     let mut visited_todos = HashSet::new();
     let mut visited_tasks = HashSet::new();
@@ -88,7 +86,6 @@ impl MongoCascadeHandler {
       }
     }
 
-    let _elapsed = start_time.elapsed();
     Ok(cascade_ids)
   }
 
@@ -125,19 +122,6 @@ impl MongoCascadeHandler {
             cascade_ids.comment_ids.push(comment_id.to_string());
           }
         }
-      }
-    }
-
-    // Collect ALL todo-level comments (comments directly on todo, not on tasks)
-    let todo_comments = self
-      .mongodbProvider
-      .getAllWithDeleted("comments", Some(json!({"todoId": todo_id})))
-      .await
-      .unwrap_or_default();
-
-    for comment in todo_comments {
-      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.comment_ids.push(comment_id.to_string());
       }
     }
 
@@ -254,8 +238,6 @@ impl MongoCascadeHandler {
     id: &str,
     is_restore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
-    let total_start = std::time::Instant::now();
-
     // Collect all IDs to cascade
     let cascade_ids = self.collectCascadeIds(table, id).await?;
 
@@ -307,7 +289,6 @@ impl MongoCascadeHandler {
       }
     }
 
-    let _total_time = total_start.elapsed();
     Ok(cascade_ids)
   }
 }
