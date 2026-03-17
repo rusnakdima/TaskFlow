@@ -91,14 +91,12 @@
       <div
         class="grid grid-cols-1 lg:grid-cols-2 gap-6"
         cdkDropList
+        [cdkDropListData]="listTasks()"
         cdkDropListOrientation="mixed"
         (cdkDropListDropped)="onTaskDrop($event)"
       >
         @for (task of listTasks(); track task.id) {
           <app-task
-            cdkDrag
-            [cdkDragData]="task"
-            cdkDragPreviewContainer="parent"
             class="h-full"
             [id]="'task-' + task.id"
             [task]="task"
@@ -121,10 +119,7 @@
             (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
             (selectionChangeEvent)="toggleTaskSelection($event)"
           >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder rounded-xl h-full min-h-[200px]"
-            ></div>
+            <div class="cdk-drag-placeholder rounded-xl h-full min-h-[200px]"></div>
           </app-task>
         }
       </div>
@@ -172,3 +167,23 @@
   (softDeleteEvent)="bulkArchive()"
   (cancelEvent)="clearSelection()"
 />
+
+<style>
+  /* Fix drag&drop positioning in grid layouts */
+  .cdk-drag-preview {
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 1000 !important;
+  }
+
+  .cdk-drag-placeholder {
+    visibility: hidden;
+    min-height: 200px;
+  }
+
+  /* Ensure grid items maintain proper spacing during drag */
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+</style>
