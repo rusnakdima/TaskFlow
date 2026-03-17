@@ -54,4 +54,11 @@ export class JwtTokenService {
     const userRole = this.getRole(token);
     return userRole ? userRole.indexOf(role) !== -1 : false;
   }
+
+  /**
+   * Get the current auth token from storage
+   */
+  getToken(): string | null {
+    return localStorage.getItem("token") || sessionStorage.getItem("token");
+  }
 }

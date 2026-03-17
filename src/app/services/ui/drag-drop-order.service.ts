@@ -13,6 +13,13 @@ export interface Orderable {
   [key: string]: any;
 }
 
+export interface ReorderResult<T extends Orderable> {
+  itemsToUpdate: T[];
+  movedItemId: string;
+  oldIndex: number;
+  newIndex: number;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -25,13 +32,48 @@ export class DragDropOrderService {
   private updatingOrders = new Set<string>();
 
   /**
+   * Global reorder function that handles reordering for todos, tasks, and subtasks
+   * Works with descending order display (higher order value = shown first)
+   */
+  reorderItems<T extends Orderable>(
+    allItems: T[],
+    itemId: string,
+    oldIndex: number,
+    newIndex: number
+  ): ReorderResult<T> {
+    const safeOldIndex = Math.max(0, Math.min(oldIndex, allItems.length - 1));
+    const safeNewIndex = Math.max(0, Math.min(newIndex, allItems.length - 1));
+
+    if (safeOldIndex === safeNewIndex) {
+      return {
+        itemsToUpdate: [],
+        movedItemId: itemId,
+        oldIndex: safeOldIndex,
+        newIndex: safeNewIndex,
+      };
+    }
+
+    // Create a copy and move item
+    const items = [...allItems];
+    moveItemInArray(items, safeOldIndex, safeNewIndex);
+
+    // Recalculate order values for ALL items based on new positions
+    // Position 0 (first displayed) gets highest order value
+    const itemsToUpdate = items.map((item, index) => ({
+      ...item,
+      order: items.length - 1 - index,
+    }));
+
+    return {
+      itemsToUpdate: itemsToUpdate as T[],
+      movedItemId: itemId,
+      oldIndex: safeOldIndex,
+      newIndex: safeNewIndex,
+    };
+  }
+
+  /**
    * Handle drag-drop reordering for any orderable entity list
-   * @param event The CDK drag-drop event
-   * @param currentList The current filtered list being displayed
-   * @param entityType The storage entity type ('todo', 'task', 'subtask')
-   * @param table The backend table name ('todos', 'tasks', 'subtasks')
-   * @param parentTodoId Optional parent todo ID for tasks/subtasks
-   * @param syncOptions Optional sync options (isOwner, isPrivate)
    */
   handleDrop<T extends Orderable>(
     event: CdkDragDrop<T[]>,
@@ -52,30 +94,38 @@ export class DragDropOrderService {
       return of(null);
     }
 
-    const items = [...currentList];
-    const previousItems = items.map((item) => ({ ...item }));
+    // IMPORTANT: Use currentList directly - it's already sorted for display
+    // The CDK indices correspond to this sorted list
+    const draggedItem = currentList[event.previousIndex];
 
-    // Move item in array
-    moveItemInArray(items, event.previousIndex, event.currentIndex);
+    if (!draggedItem) {
+      return of(null);
+    }
 
-    // Recalculate order for ALL items in the current view
-    // Descending order: highest index = lowest order value
-    const transformedItems = items.map((item, index) => {
-      const updatedItem = {
-        ...item,
-        order: items.length - 1 - index,
-      };
+    // Use the global reorder function with currentList (already sorted for display)
+    const result = this.reorderItems(
+      currentList,
+      draggedItem.id,
+      event.previousIndex,
+      event.currentIndex
+    );
 
-      // Handle special fields for todos
+    if (result.itemsToUpdate.length === 0) {
+      return of(null);
+    }
+
+    // Handle special fields for todos
+    const transformedItems = result.itemsToUpdate.map((item) => {
       if (entityType === "todos") {
         const todo = item as any;
-        (updatedItem as any).categories =
-          todo.categories?.map((cat: any) => (typeof cat === "string" ? cat : cat.id)) || [];
-        (updatedItem as any).assignees =
-          todo.assignees?.map((a: any) => (typeof a === "string" ? a : a.userId)) || [];
+        return {
+          ...todo,
+          categories:
+            todo.categories?.map((cat: any) => (typeof cat === "string" ? cat : cat.id)) || [],
+          assignees: todo.assignees?.map((a: any) => (typeof a === "string" ? a : a.userId)) || [],
+        };
       }
-
-      return updatedItem;
+      return item;
     });
 
     this.updatingOrders.add(operationKey);
@@ -87,13 +137,11 @@ export class DragDropOrderService {
       .pipe(
         tap(() => {
           this.updatingOrders.delete(operationKey);
-          // Storage updated automatically by DataSyncProvider
           this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
         }),
         catchError((err) => {
           this.updatingOrders.delete(operationKey);
           this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
-          // Reload all data to ensure consistency on fatal error
           this.dataSyncService.loadAllData(true).subscribe();
           throw err;
         })

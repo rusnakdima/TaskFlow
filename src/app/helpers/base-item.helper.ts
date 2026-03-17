@@ -15,7 +15,7 @@ export class BaseItemHelper {
   /**
    * Get status color class
    */
-  getStatusColor(status: string): string {
+  static getStatusColor(status: string): string {
     switch (status) {
       case TaskStatus.COMPLETED:
         return "text-green-600 dark:text-green-400";
@@ -32,7 +32,7 @@ export class BaseItemHelper {
   /**
    * Get column color class based on status (Kanban specific)
    */
-  getColumnColorClass(status: string): string {
+  static getColumnColorClass(status: string): string {
     switch (status) {
       case TaskStatus.PENDING:
         return "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700";
@@ -50,7 +50,7 @@ export class BaseItemHelper {
   /**
    * Get assignee color based on name hash
    */
-  getAssigneeColor(assignee: string): string {
+  static getAssigneeColor(assignee: string): string {
     const colors = [
       "bg-blue-500",
       "bg-green-500",
@@ -72,7 +72,7 @@ export class BaseItemHelper {
   /**
    * Get initials from name
    */
-  getInitials(name: string): string {
+  static getInitials(name: string): string {
     if (!name) return "?";
     return name.substring(0, 1).toUpperCase();
   }
@@ -80,7 +80,7 @@ export class BaseItemHelper {
   /**
    * Get the next status in the cycle: Pending -> Completed -> Skipped -> Failed -> Pending
    */
-  getNextStatus(currentStatus: TaskStatus): TaskStatus {
+  static getNextStatus(currentStatus: TaskStatus): TaskStatus {
     const statusCycle: TaskStatus[] = [
       TaskStatus.PENDING,
       TaskStatus.COMPLETED,
@@ -98,7 +98,7 @@ export class BaseItemHelper {
   /**
    * Get status icon
    */
-  getStatusIcon(status: string): string {
+  static getStatusIcon(status: string): string {
     switch (status) {
       case TaskStatus.COMPLETED:
         return "check_circle";
@@ -115,7 +115,7 @@ export class BaseItemHelper {
   /**
    * Get priority color class
    */
-  getPriorityColor(priority: string): string {
+  static getPriorityColor(priority: string): string {
     switch (priority.toLowerCase()) {
       case "urgent":
         return "text-purple-600 dark:text-purple-400";
@@ -133,7 +133,7 @@ export class BaseItemHelper {
   /**
    * Get priority badge class
    */
-  getPriorityBadgeClass(priority: string): string {
+  static getPriorityBadgeClass(priority: string): string {
     switch (priority.toLowerCase()) {
       case "urgent":
         return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
@@ -151,7 +151,7 @@ export class BaseItemHelper {
   /**
    * Calculate progress percentage
    */
-  calculateProgress(completed: number, total: number): number {
+  static calculateProgress(completed: number, total: number): number {
     if (total === 0) return 0;
     return Math.round((completed / total) * 100);
   }
@@ -159,7 +159,7 @@ export class BaseItemHelper {
   /**
    * Count completed items
    */
-  countCompleted<T extends { status: string }>(items: T[]): number {
+  static countCompleted<T extends { status: string }>(items: T[]): number {
     return items.filter(
       (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
     ).length;
@@ -168,22 +168,25 @@ export class BaseItemHelper {
   /**
    * Get task progress percentage
    */
-  getTaskProgressPercentage(task: Task, subtasks: Subtask[]): number {
+  static getTaskProgressPercentage(task: Task, subtasks: Subtask[]): number {
     if (subtasks.length === 0) {
       return task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED ? 100 : 0;
     }
-    return this.calculateProgress(this.countCompleted(subtasks), subtasks.length);
+    return BaseItemHelper.calculateProgress(
+      BaseItemHelper.countCompleted(subtasks),
+      subtasks.length
+    );
   }
 
   /**
    * Format date string
    */
-  formatDate = DateHelper.formatDateShort;
+  static formatDate = DateHelper.formatDateShort;
 
   /**
    * Check if item is blocked by dependencies
    */
-  isBlockedByDependencies(
+  static isBlockedByDependencies(
     dependsOn: string[] | undefined,
     allItems: Array<{ id: string; status: string }>
   ): boolean {
@@ -202,7 +205,7 @@ export class BaseItemHelper {
    * Count unread comments for an entity (task or subtask)
    * Only counts non-deleted comments that haven't been read by the user
    */
-  countUnreadComments(
+  static countUnreadComments(
     entity: any,
     userId: string | null,
     entityType: "task" | "subtask" = "task"
@@ -232,7 +235,11 @@ export class BaseItemHelper {
   /**
    * Mark all comments as read for a task or subtask
    */
-  markCommentsAsRead(entity: any, userId: string, entityType: "task" | "subtask" = "task"): any[] {
+  static markCommentsAsRead(
+    entity: any,
+    userId: string,
+    entityType: "task" | "subtask" = "task"
+  ): any[] {
     if (!entity || !entity.comments || !userId) return entity.comments || [];
     if (entity.comments.length === 0) return entity.comments;
 
@@ -259,7 +266,7 @@ export class BaseItemHelper {
   /**
    * Get progress segments for progress bar
    */
-  getProgressSegments(items: Array<{ status: string }> | undefined | null): Array<{
+  static getProgressSegments(items: Array<{ status: string }> | undefined | null): Array<{
     status: string;
     percentage: number;
     color: string;

@@ -185,10 +185,10 @@ export class NotifyService implements OnDestroy {
 
   // ==================== SOUND METHODS ====================
 
-  playSound(type: "general" | "chat" | "comment") {
+  playSound(type: "general" | "chat" | "comment", action?: NotificationAction["action"]) {
     const settings = this.settingsSignal();
     const volume = this.getVolumeForType(type);
-    this.playSoundInternal(type, volume);
+    this.playSoundInternal(type, volume, action);
   }
 
   playTestSound(type: "chat" | "comment" | "general", volume: number) {
@@ -215,7 +215,11 @@ export class NotifyService implements OnDestroy {
     }
   }
 
-  private playSoundInternal(type: "chat" | "comment" | "general", volume: number): void {
+  private playSoundInternal(
+    type: "chat" | "comment" | "general",
+    volume: number,
+    action?: NotificationAction["action"]
+  ): void {
     if (volume <= 0) {
       return;
     }
@@ -225,11 +229,11 @@ export class NotifyService implements OnDestroy {
     // Resume the audio context if suspended (required for user interaction)
     this.resumeAudioContext()
       .then(() => {
-        this.playOscillatorSound(audioContext, type, volume);
+        this.playOscillatorSound(audioContext, type, volume, action);
       })
       .catch(() => {
         // If resume fails, try playing anyway (might work in some cases)
-        this.playOscillatorSound(audioContext, type, volume);
+        this.playOscillatorSound(audioContext, type, volume, action);
       });
   }
 
@@ -239,7 +243,8 @@ export class NotifyService implements OnDestroy {
   private playOscillatorSound(
     audioContext: AudioContext,
     type: "chat" | "comment" | "general",
-    volume: number
+    volume: number,
+    action?: NotificationAction["action"]
   ): void {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -260,9 +265,20 @@ export class NotifyService implements OnDestroy {
         oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.1); // G5
         break;
       default:
-        // General notification for todo/task/subtask create/update/delete
-        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-        oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+        // General notification for todo/task/subtask
+        if (action === "created") {
+          // Upward chime
+          oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+        } else if (action === "deleted") {
+          // Downward tone
+          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+          oscillator.frequency.exponentialRampToValueAtTime(349.23, audioContext.currentTime + 0.1); // F4
+        } else {
+          // Neutral update tone
+          oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          oscillator.frequency.exponentialRampToValueAtTime(523.25, audioContext.currentTime + 0.1);
+        }
         break;
     }
 
@@ -311,12 +327,41 @@ export class NotifyService implements OnDestroy {
     this.addNotificationEvent(event, data);
   }
 
-  private addNotificationEvent(event: string, data: any) {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+  /**
+   * Handle local user actions (from DataSyncProvider)
+   */
+  handleLocalAction(table: string, operation: string, data: any): void {
+    const typeMapping: Record<string, NotificationAction["type"]> = {
+      todos: "todo",
+      tasks: "task",
+      subtasks: "subtask",
+      comments: "comment",
+      chats: "chat",
+    };
+
+    const actionMapping: Record<string, NotificationAction["action"]> = {
+      create: "created",
+      update: "updated",
+      delete: "deleted",
+    };
+
+    const type = typeMapping[table];
+    const action = actionMapping[operation];
+
+    if (type && action) {
+      // For local actions, we always play sound and show notification in header
+      // but we mark it as "own action" so buildAndAddNotification knows how to handle it
+      this.addNotificationEvent(`${type}-${action}`, data, true);
+    }
+  }
+
+  private addNotificationEvent(event: string, data: any, isLocalAction: boolean = false) {
+    const token = this.jwtTokenService.getToken();
     const currentUserId = this.jwtTokenService.getUserId(token);
 
     // Check if this is own action
-    const isOwnAction = data.userId === currentUserId || data.authorId === currentUserId;
+    const isOwnAction =
+      isLocalAction || data.userId === currentUserId || data.authorId === currentUserId;
 
     const [type, action] = event.split("-") as [
       NotificationAction["type"],
@@ -325,7 +370,7 @@ export class NotifyService implements OnDestroy {
 
     // Handle comments and chat messages immediately (with sound)
     if (type === "comment" || type === "chat") {
-      this.handleCommentOrChatNotification(type, action, data, !isOwnAction);
+      this.handleCommentOrChatNotification(type, action, data, !isOwnAction || isLocalAction);
       return;
     }
 
@@ -339,8 +384,8 @@ export class NotifyService implements OnDestroy {
       }
     }
 
-    // Play sound for own actions, show notification for others' actions
-    this.handleOtherNotification(type, action, data, !isOwnAction);
+    // Play sound for all actions, show notification for others' actions OR local actions
+    this.handleOtherNotification(type, action, data, !isOwnAction || isLocalAction);
   }
 
   private handleCommentOrChatNotification(
@@ -349,6 +394,7 @@ export class NotifyService implements OnDestroy {
     data: any,
     shouldNotify: boolean
   ): void {
+    // Track comment events for task update suppression
     if (type === "comment" && action === "created" && data.taskId) {
       this.recentCommentEvents.set(data.taskId, Date.now());
     }
@@ -372,6 +418,7 @@ export class NotifyService implements OnDestroy {
       taskTitle = task?.title || "";
     }
 
+    // Build notification content based on type and action
     if (type === "chat") {
       if (action === "created") {
         title = "New Chat Message";
@@ -382,6 +429,8 @@ export class NotifyService implements OnDestroy {
         title = "Chat Cleared";
         message = todoTitle ? `Chat in "${todoTitle}" was cleared` : "Chat was cleared";
       } else {
+        // For other chat actions (update, delete), still play sound but don't create notification
+        this.playSound(type, action === "cleared" ? "updated" : (action as any));
         return;
       }
     } else if (type === "comment") {
@@ -400,6 +449,8 @@ export class NotifyService implements OnDestroy {
         const context = contextParts.join(" > ");
         message = `Comment on ${context || "a task"} was deleted`;
       } else {
+        // For other comment actions (update), still play sound but don't create notification
+        this.playSound(type, action as any);
         return;
       }
     }
@@ -407,11 +458,11 @@ export class NotifyService implements OnDestroy {
     const notificationAction =
       action === "cleared" ? "updated" : (action as NotificationAction["action"]);
 
-    // Always play sound for chat/comment
-    this.playSound(type);
+    // Always play sound for chat/comment actions
+    this.playSound(type, notificationAction);
 
-    // Only store notification if not own action
-    if (shouldNotify) {
+    // Only store notification if not own action and we have valid content
+    if (shouldNotify && title && message) {
       const newNotification: NotificationAction = {
         id: Math.random().toString(36).substring(7),
         type,
@@ -444,7 +495,7 @@ export class NotifyService implements OnDestroy {
     const entityName = type.charAt(0).toUpperCase() + type.slice(1);
 
     // Always play sound for create/update/delete
-    this.playSound("general");
+    this.playSound("general", action);
 
     if (action === "created") {
       setTimeout(() => {

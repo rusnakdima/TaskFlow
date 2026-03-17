@@ -43,16 +43,17 @@ export class RelationsHelper {
       },
       {
         nameTable: "categories",
-        typeField: TypesField.ManyToMany,
+        typeField: TypesField.ManyToOne,
         nameField: "categories",
         newNameField: "categories",
         relations: null,
       },
       {
         nameTable: "profiles",
-        typeField: TypesField.ManyToMany,
+        typeField: TypesField.ManyToOne,
         nameField: "assignees",
         newNameField: "assigneesProfiles",
+        targetField: "userId",
         relations: [
           {
             nameTable: "users",
@@ -125,9 +126,10 @@ export class RelationsHelper {
       },
       {
         nameTable: "profiles",
-        typeField: TypesField.ManyToMany,
+        typeField: TypesField.ManyToOne,
         nameField: "assignees",
         newNameField: "assigneesProfiles",
+        targetField: "userId",
         relations: [
           {
             nameTable: "users",

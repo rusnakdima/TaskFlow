@@ -44,6 +44,31 @@ export class BulkActionService {
   }
 
   /**
+   * Set the current pool of IDs that can be selected (e.g. current filtered list)
+   */
+  updateTotalCount(count: number, allIds?: string[]): void {
+    const currentState = this.state();
+
+    // Cleanup: remove IDs that are no longer in the list
+    const newSelected = new Set(currentState.selectedIds);
+    if (allIds) {
+      for (const id of newSelected) {
+        if (!allIds.includes(id)) {
+          newSelected.delete(id);
+        }
+      }
+    }
+
+    this.state.set({
+      ...currentState,
+      totalCount: count,
+      selectedIds: newSelected,
+      show: newSelected.size > 0,
+      isAllSelected: newSelected.size === count && count > 0,
+    });
+  }
+
+  /**
    * Toggle selection of a single item
    */
   toggleSelection(id: string): void {
@@ -56,39 +81,19 @@ export class BulkActionService {
       newSelected.add(id);
     }
 
+    const isAllSelected =
+      newSelected.size === currentState.totalCount && currentState.totalCount > 0;
+
     this.state.set({
       ...currentState,
       selectedIds: newSelected,
       show: newSelected.size > 0,
-      isAllSelected: newSelected.size === currentState.totalCount && currentState.totalCount > 0,
+      isAllSelected,
     });
   }
 
   /**
-   * Toggle select all items
-   */
-  toggleSelectAll(): void {
-    const currentState = this.state();
-
-    if (currentState.isAllSelected) {
-      // Deselect all
-      this.state.set({
-        ...currentState,
-        selectedIds: new Set(),
-        show: false,
-        isAllSelected: false,
-      });
-    } else {
-      // Select all - we need to emit event to parent to get all IDs
-      this.state.set({
-        ...currentState,
-        isAllSelected: true,
-      });
-    }
-  }
-
-  /**
-   * Select all items (called from parent with all IDs)
+   * Select all items (called with the list of current IDs)
    */
   selectAll(ids: string[]): void {
     const currentState = this.state();
@@ -96,8 +101,20 @@ export class BulkActionService {
       ...currentState,
       selectedIds: new Set(ids),
       show: ids.length > 0,
-      isAllSelected: ids.length === currentState.totalCount && currentState.totalCount > 0,
+      isAllSelected: true,
     });
+  }
+
+  /**
+   * Toggle select all (requires IDs from view if selecting all)
+   */
+  toggleSelectAll(currentIds: string[]): void {
+    const currentState = this.state();
+    if (currentState.isAllSelected) {
+      this.clearSelection();
+    } else {
+      this.selectAll(currentIds);
+    }
   }
 
   /**
@@ -110,22 +127,6 @@ export class BulkActionService {
       selectedIds: new Set(),
       show: false,
       isAllSelected: false,
-    });
-  }
-
-  /**
-   * Update total count (for filtered lists)
-   */
-  updateTotalCount(count: number): void {
-    const currentState = this.state();
-    const newSelected = new Set(
-      Array.from(currentState.selectedIds) // Keep existing selections
-    );
-
-    this.state.set({
-      ...currentState,
-      totalCount: count,
-      isAllSelected: newSelected.size === count && count > 0,
     });
   }
 

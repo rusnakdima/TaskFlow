@@ -20,7 +20,7 @@ export class SortHelper {
   /**
    * Sort array by field
    */
-  sortByField<T>(data: T[], config: SortConfig): T[] {
+  static sortByField<T>(data: T[], config: SortConfig): T[] {
     const { field, order } = config;
 
     return [...data].sort((a: any, b: any) => {
@@ -28,7 +28,7 @@ export class SortHelper {
       let bValue = ObjectHelper.getNestedValue(b, field);
 
       // Handle date fields
-      if (this.isDateField(field)) {
+      if (SortHelper.isDateField(field)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
@@ -54,7 +54,7 @@ export class SortHelper {
   /**
    * Sort by order field (for drag-drop reordering)
    */
-  sortByOrder<T extends { order: number }>(data: T[], order: "asc" | "desc" = "desc"): T[] {
+  static sortByOrder<T extends { order: number }>(data: T[], order: "asc" | "desc" = "desc"): T[] {
     return [...data].sort((a, b) => {
       return order === "asc" ? a.order - b.order : b.order - a.order;
     });
@@ -63,7 +63,7 @@ export class SortHelper {
   /**
    * Sort by status with custom order
    */
-  sortByStatus<T extends { status: string }>(data: T[], order: "asc" | "desc" = "asc"): T[] {
+  static sortByStatus<T extends { status: string }>(data: T[], order: "asc" | "desc" = "asc"): T[] {
     const statusOrder = {
       pending: 0,
       completed: 1,
@@ -81,7 +81,10 @@ export class SortHelper {
   /**
    * Sort by priority with custom order
    */
-  sortByPriority<T extends { priority: string }>(data: T[], order: "asc" | "desc" = "asc"): T[] {
+  static sortByPriority<T extends { priority: string }>(
+    data: T[],
+    order: "asc" | "desc" = "asc"
+  ): T[] {
     const priorityOrder = {
       low: 0,
       medium: 1,
@@ -98,7 +101,7 @@ export class SortHelper {
   /**
    * Check if field is a date field
    */
-  private isDateField(field: string): boolean {
+  private static isDateField(field: string): boolean {
     const dateFields = ["createdAt", "updatedAt", "startDate", "endDate"];
     return dateFields.includes(field);
   }

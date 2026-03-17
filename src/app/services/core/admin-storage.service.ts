@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, signal, computed, inject } from "@angular/core";
+import { Injectable, signal, computed, inject, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, map } from "rxjs/operators";
 
@@ -43,6 +43,16 @@ export class AdminStorageService extends BaseStorageService {
 
   // Cache expiry: 5 minutes
   private readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
+
+  private readonly signalMap: Record<string, WritableSignal<any[]>> = {
+    todos: this.todosSignal,
+    tasks: this.tasksSignal,
+    subtasks: this.subtasksSignal,
+    comments: this.commentsSignal,
+    chats: this.chatsSignal,
+    categories: this.categoriesSignal,
+    daily_activities: this.dailyActivitiesSignal,
+  };
 
   // Public signals
   get todos() {
@@ -144,82 +154,46 @@ export class AdminStorageService extends BaseStorageService {
     const usersMap = new Map<string, User>();
     const profilesMap = new Map<string, Profile>();
 
-    // Extract from todos
     data["todos"]?.forEach((todo: any) => {
-      if (todo.user) {
-        usersMap.set(todo.user.id, todo.user);
-        if (todo.user.profile) {
-          profilesMap.set(todo.user.profile.id, todo.user.profile);
-        }
-      }
-      todo.categories?.forEach((category: any) => {
-        if (category.user) {
-          usersMap.set(category.user.id, category.user);
-          if (category.user.profile) {
-            profilesMap.set(category.user.profile.id, category.user.profile);
-          }
-        }
-      });
+      this.extractUserAndProfile(todo, usersMap, profilesMap);
+      todo.categories?.forEach((category: any) =>
+        this.extractUserAndProfile(category, usersMap, profilesMap)
+      );
     });
 
-    // Extract from tasks (nested in todos)
     data["tasks"]?.forEach((task: any) => {
-      if (task.todo?.user) {
-        usersMap.set(task.todo.user.id, task.todo.user);
-        if (task.todo.user.profile) {
-          profilesMap.set(task.todo.user.profile.id, task.todo.user.profile);
-        }
-      }
+      if (task.todo) this.extractUserAndProfile(task.todo, usersMap, profilesMap);
     });
 
-    // Extract from subtasks (nested in tasks)
     data["subtasks"]?.forEach((subtask: any) => {
-      if (subtask.task?.todo?.user) {
-        usersMap.set(subtask.task.todo.user.id, subtask.task.todo.user);
-        if (subtask.task.todo.user.profile) {
-          profilesMap.set(subtask.task.todo.user.profile.id, subtask.task.todo.user.profile);
-        }
-      }
-      if (subtask.task?.user) {
-        usersMap.set(subtask.task.user.id, subtask.task.user);
-        if (subtask.task.user.profile) {
-          profilesMap.set(subtask.task.user.profile.id, subtask.task.user.profile);
-        }
-      }
+      if (subtask.task?.todo) this.extractUserAndProfile(subtask.task.todo, usersMap, profilesMap);
+      if (subtask.task) this.extractUserAndProfile(subtask.task, usersMap, profilesMap);
     });
 
-    // Extract from categories
-    data["categories"]?.forEach((category: any) => {
-      if (category.user) {
-        usersMap.set(category.user.id, category.user);
-        if (category.user.profile) {
-          profilesMap.set(category.user.profile.id, category.user.profile);
-        }
-      }
-    });
+    data["categories"]?.forEach((category: any) =>
+      this.extractUserAndProfile(category, usersMap, profilesMap)
+    );
 
-    // Extract from comments
-    data["comments"]?.forEach((comment: any) => {
-      if (comment.user) {
-        usersMap.set(comment.user.id, comment.user);
-        if (comment.user.profile) {
-          profilesMap.set(comment.user.profile.id, comment.user.profile);
-        }
-      }
-    });
+    data["comments"]?.forEach((comment: any) =>
+      this.extractUserAndProfile(comment, usersMap, profilesMap)
+    );
 
-    // Extract from chats
-    data["chats"]?.forEach((chat: any) => {
-      if (chat.user) {
-        usersMap.set(chat.user.id, chat.user);
-        if (chat.user.profile) {
-          profilesMap.set(chat.user.profile.id, chat.user.profile);
-        }
-      }
-    });
+    data["chats"]?.forEach((chat: any) => this.extractUserAndProfile(chat, usersMap, profilesMap));
 
     this.usersSignal.set(Array.from(usersMap.values()));
     this.profilesSignal.set(Array.from(profilesMap.values()));
+  }
+
+  private extractUserAndProfile(
+    entity: any,
+    usersMap: Map<string, User>,
+    profilesMap: Map<string, Profile>
+  ): void {
+    if (!entity?.user) return;
+    usersMap.set(entity.user.id, entity.user);
+    if (entity.user.profile) {
+      profilesMap.set(entity.user.profile.id, entity.user.profile);
+    }
   }
 
   /**
@@ -229,27 +203,31 @@ export class AdminStorageService extends BaseStorageService {
     const todo = this.todosSignal().find((t) => t.id === todoId);
     if (!todo) return;
 
-    // Get all related IDs
+    // Get all related IDs for deep cleanup
     const taskIds = todo.tasks?.map((t) => t.id) || [];
     const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
 
-    // Remove related data
-    this.tasksSignal.set(this.tasksSignal().filter((t) => t.todoId !== todoId));
-    this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
-    // Remove all comments related to this todo (todo-level, task-level, subtask-level)
-    this.commentsSignal.set(
-      this.commentsSignal().filter((c) => {
-        // Keep comment if it's NOT related to this todo
+    // 1. Remove subtasks first
+    this.subtasksSignal.update((items) => items.filter((s) => !subtaskIds.includes(s.id)));
+
+    // 2. Remove tasks
+    this.tasksSignal.update((items) => items.filter((t) => t.todoId !== todoId));
+
+    // 3. Remove all comments related to this todo
+    this.commentsSignal.update((items) =>
+      items.filter((c) => {
         const isTodoComment = (c as any).todoId === todoId;
         const isTaskComment = c.taskId && taskIds.includes(c.taskId);
         const isSubtaskComment = c.subtaskId && subtaskIds.includes(c.subtaskId);
         return !isTodoComment && !isTaskComment && !isSubtaskComment;
       })
     );
-    this.chatsSignal.set(this.chatsSignal().filter((c) => c.todoId !== todoId));
 
-    // Remove todo
-    this.todosSignal.set(this.todosSignal().filter((t) => t.id !== todoId));
+    // 4. Remove chats
+    this.chatsSignal.update((items) => items.filter((c) => c.todoId !== todoId));
+
+    // 5. Finally remove todo
+    this.todosSignal.update((items) => items.filter((t) => t.id !== todoId));
   }
 
   /**
@@ -301,43 +279,9 @@ export class AdminStorageService extends BaseStorageService {
    * Update a record in the store
    */
   updateRecord(table: string, id: string, updates: any): void {
-    switch (table) {
-      case "todos":
-        this.todosSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "tasks":
-        this.tasksSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "subtasks":
-        this.subtasksSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "comments":
-        this.commentsSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "chats":
-        this.chatsSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "categories":
-        this.categoriesSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-      case "daily_activities":
-        this.dailyActivitiesSignal.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-        );
-        break;
-    }
+    const sig = this.signalMap[table];
+    if (!sig) return;
+    sig.update((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   }
 
   /**
@@ -363,34 +307,14 @@ export class AdminStorageService extends BaseStorageService {
    * Remove a record from the store
    */
   removeRecord(table: string, id: string): void {
-    switch (table) {
-      case "todos":
-        this.todosSignal.update((items) => items.filter((item) => item.id !== id));
-        // Remove all related tasks
-        this.tasksSignal.update((tasks) => tasks.filter((task) => task.todoId !== id));
-        break;
-      case "tasks":
-        this.tasksSignal.update((items) => items.filter((item) => item.id !== id));
-        // Remove all related subtasks
-        this.subtasksSignal.update((subtasks) =>
-          subtasks.filter((subtask) => subtask.taskId !== id)
-        );
-        break;
-      case "subtasks":
-        this.subtasksSignal.update((items) => items.filter((item) => item.id !== id));
-        break;
-      case "comments":
-        this.commentsSignal.update((items) => items.filter((item) => item.id !== id));
-        break;
-      case "chats":
-        this.chatsSignal.update((items) => items.filter((item) => item.id !== id));
-        break;
-      case "categories":
-        this.categoriesSignal.update((items) => items.filter((item) => item.id !== id));
-        break;
-      case "daily_activities":
-        this.dailyActivitiesSignal.update((items) => items.filter((item) => item.id !== id));
-        break;
+    const sig = this.signalMap[table];
+    if (!sig) return;
+    sig.update((items) => items.filter((item) => item.id !== id));
+    // Cascade: remove children when parent is deleted
+    if (table === "todos") {
+      this.tasksSignal.update((tasks) => tasks.filter((task) => task.todoId !== id));
+    } else if (table === "tasks") {
+      this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.taskId !== id));
     }
   }
 
