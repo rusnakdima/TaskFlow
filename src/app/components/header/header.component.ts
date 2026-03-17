@@ -11,13 +11,7 @@ import {
   ChangeDetectorRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
-import {
-  ActivatedRoute,
-  ActivatedRouteSnapshot,
-  NavigationEnd,
-  Router,
-  RouterModule,
-} from "@angular/router";
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { distinctUntilChanged, filter, map } from "rxjs";
 
 /* materials */
@@ -40,11 +34,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
-import { RelationsHelper } from "@helpers/relations.helper";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-
-/* components */
-import { SyncStatusComponent } from "@components/sync-status/sync-status.component";
 
 interface Breadcrumb {
   label: string;
@@ -55,14 +45,7 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatIconModule,
-    MatMenuModule,
-    MatButtonModule,
-    SyncStatusComponent,
-  ],
+  imports: [CommonModule, RouterModule, MatIconModule, MatMenuModule, MatButtonModule],
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
@@ -295,17 +278,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
           highlightComment: notif.commentId,
           openComments: true,
         };
-        // If we know the subtask, navigate to subtasks view
-        if (notif.subtaskId) {
-          this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
-            queryParams,
-          });
-        } else {
-          // Otherwise navigate to tasks view (comment could be on task level)
-          this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
-            queryParams,
-          });
-        }
+        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
+          queryParams,
+        });
       } else if (notif.todoId) {
         // Comment on todo level (if applicable)
         this.router.navigate(["/todos", notif.todoId, "tasks"], {
@@ -351,9 +326,20 @@ export class HeaderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Load profile from server
+    // Load profile from server with user relation
+    // Use MongoDB (isPrivate: false, isOwner: false) for complete data with relations
     this.dataSyncProvider
-      .crud<Profile[]>("getAll", "profiles", { filter: { userId: this.userId() } }, true)
+      .crud<Profile[]>(
+        "getAll",
+        "profiles",
+        {
+          filter: { userId: this.userId() },
+          load: ["user"], // Load user relation for profile
+          isPrivate: false,
+          isOwner: false,
+        },
+        true
+      )
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
