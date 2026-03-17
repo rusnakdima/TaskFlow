@@ -466,32 +466,32 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
   @apply w-full!;
 }
 
+/* ===== CDK Drag & Drop ===== */
+
+/* The floating card while dragging */
 .cdk-drag-preview {
   box-sizing: border-box;
   border-radius: 0.75rem;
   box-shadow:
-    0 5px 5px -3px rgba(0, 0, 0, 0.2),
-    0 8px 10px 1px rgba(0, 0, 0, 0.14),
-    0 3px 14px 2px rgba(0, 0, 0, 0.12);
-  @apply bg-white dark:bg-zinc-800 border-2 border-blue-500 opacity-90;
+    0 10px 30px -5px rgba(0, 0, 0, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0.9;
   cursor: grabbing !important;
 }
 
+/* The slot left behind — styled by each component's *cdkDragPlaceholder */
 .cdk-drag-placeholder {
-  @apply bg-blue-500/20 border-2 border-dashed border-blue-500 rounded-xl;
   opacity: 1 !important;
 }
 
+/* Snap-back animation when dropping */
 .cdk-drag-animating {
-  transition: none !important;
+  transition: transform 180ms ease;
 }
 
+/* Sibling items shift to make room */
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: none !important;
-}
-
-.cdk-drop-list-dragging .cdk-drag {
-  transition: none !important;
+  transition: transform 180ms ease;
 }
 
 /* Drag handle */
@@ -499,23 +499,51 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
   @apply w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity;
 }
 
-/* Fix height during drag and drop to avoid layout shifts */
-.grid[cdkDropList] {
-  display: grid !important;
+/* Responsive grid drop lists — flex-wrap so CDK can track positions */
+.todos-drop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 }
 
-.grid[cdkDropList] .cdk-drag {
-  height: 100%;
+.todos-drop-list > * {
+  flex: 1 1 calc(25% - 1.5rem);
+  min-width: 240px;
 }
 
-.grid[cdkDropList] .cdk-drag-placeholder {
-  height: 100%;
-  min-height: 200px;
+@media (max-width: 1279px) {
+  .todos-drop-list > * {
+    flex: 1 1 calc(33.333% - 1.5rem);
+  }
 }
 
-/* For subtasks list */
-.flex[cdkDropList] .cdk-drag-placeholder {
-  min-height: 80px;
+@media (max-width: 1023px) {
+  .todos-drop-list > * {
+    flex: 1 1 calc(50% - 1.5rem);
+  }
+}
+
+@media (max-width: 767px) {
+  .todos-drop-list > * {
+    flex: 1 1 100%;
+  }
+}
+
+.tasks-drop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.tasks-drop-list > * {
+  flex: 1 1 calc(50% - 1.5rem);
+  min-width: 280px;
+}
+
+@media (max-width: 1023px) {
+  .tasks-drop-list > * {
+    flex: 1 1 100%;
+  }
 }
 
 .fc-theme-standard .fc-popover,
@@ -582,43 +610,3 @@ td[role="presentation"] {
   background-color: rgba(239, 68, 68, 0.3) !important;
   border: 2px dashed #f87171 !important;
 }
-
-/* .cdk-drag-preview {
-  box-sizing: border-box;
-  border-radius: 12px;
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  background: #fff;
-  overflow: hidden;
-  pointer-events: none;
-}
-.dark .cdk-drag-preview {
-  background: rgb(39, 39, 46);
-}
-.cdk-drag-placeholder {
-  background: rgba(59, 130, 246, 0.08);
-  border: 2px dashed rgba(59, 130, 246, 0.5);
-  border-radius: 12px;
-  opacity: 1;
-  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
-  display: block;
-  visibility: visible;
-  z-index: 10;
-}
-app-todo .cdk-drag-placeholder {
-  min-height: 200px;
-}
-app-task .cdk-drag-placeholder {
-  min-height: 200px;
-}
-app-subtask .cdk-drag-placeholder {
-  min-height: 80px;
-}
-.cdk-drop-list-dragging .cdk-drag {
-  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
-}
-.cdk-drag-animating {
-  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
-} */

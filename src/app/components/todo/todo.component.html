@@ -12,7 +12,6 @@
 @if (todo) {
   <div
     cdkDrag
-    cdkDragPreviewContainer="global"
     class="h-full flex flex-col"
     (cdkDragStarted)="onDragStarted()"
     (cdkDragEnded)="onDragEnded()"
@@ -222,7 +221,7 @@
       </div>
       <div
         *cdkDragPlaceholder
-        class="cdk-drag-placeholder rounded-xl min-h-[200px] max-h-[200px] w-full bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-2 border-dashed border-blue-300 dark:border-blue-600 animate-pulse shadow-lg"
+        class="rounded-xl border-2 border-dashed border-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 min-h-[200px] w-full"
       ></div>
     </div>
   </div>

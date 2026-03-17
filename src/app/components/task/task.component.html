@@ -1,10 +1,5 @@
 @if (task) {
-  <div
-    cdkDrag
-    cdkDragPreviewContainer="global"
-    class="h-full flex flex-col"
-    [class.expanded]="isExpanded"
-  >
+  <div cdkDrag class="h-full flex flex-col" [class.expanded]="isExpanded">
     <div
       class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl group cursor-pointer"
       [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
@@ -331,7 +326,10 @@
           </button>
         </div>
       </div>
-      <div *cdkDragPlaceholder class="cdk-drag-placeholder rounded-xl min-h-[200px] w-full"></div>
+      <div
+        *cdkDragPlaceholder
+        class="rounded-xl border-2 border-dashed border-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 min-h-[200px] w-full"
+      ></div>
     </div>
   </div>
 }
