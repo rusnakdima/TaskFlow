@@ -19,21 +19,19 @@ export interface ProgressBarSegment {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressBarComponent {
-  private baseHelper = new BaseItemHelper();
-
   @Input() items: Array<{ status: string }> = [];
   @Input() size: "sm" | "md" | "lg" = "md";
   @Input() showLabel = true;
   @Input() showPercentage = true;
   @Input() showLegend = false;
 
-  segments = computed(() => this.baseHelper.getProgressSegments(this.items ?? []));
+  segments = computed(() => BaseItemHelper.getProgressSegments(this.items ?? []));
 
   totalProgress = computed(() => {
     const items = this.items ?? [];
     const total = items.length;
     if (total === 0) return 0;
-    const completed = this.baseHelper.countCompleted(items);
+    const completed = BaseItemHelper.countCompleted(items);
     return Math.round((completed / total) * 100);
   });
 

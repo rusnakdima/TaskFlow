@@ -19,9 +19,6 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
-/* helpers */
-import { BaseItemHelper } from "@helpers/base-item.helper";
-
 @Component({
   selector: "app-task-information",
   standalone: true,
@@ -33,7 +30,6 @@ export class TaskInformationComponent {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private dataSyncProvider = inject(DataSyncProvider);
-  private baseHelper = new BaseItemHelper();
 
   public showActions = signal(false);
 

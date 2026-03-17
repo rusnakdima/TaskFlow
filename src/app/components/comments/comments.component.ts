@@ -34,7 +34,6 @@ import { AuthService } from "@services/auth/auth.service";
   templateUrl: "./comments.component.html",
 })
 export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked {
-  private baseHelper = new BaseItemHelper();
   private authService = inject(AuthService);
 
   @Input() comments: Comment[] = [];
@@ -172,7 +171,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   }
 
   formatDate(date: string) {
-    return this.baseHelper.formatDate(date);
+    return BaseItemHelper.formatDate(date);
   }
 
   get currentUserId() {

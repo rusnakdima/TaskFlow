@@ -1,8 +1,6 @@
 <div
   class="rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-600 hover:shadow-md"
   [class.expanded]="isExpanded"
-  cdkDrag
-  [cdkDragData]="task"
 >
   <div class="p-4 cursor-pointer" (click)="toggleExpandTask()">
     <div class="flex items-start justify-between mb-3">
