@@ -23,26 +23,43 @@
   <div
     class="bg-white dark:bg-zinc-800 rounded-xl p-3 shadow-lg border border-gray-200 dark:border-zinc-700"
   >
-    <div class="flex-1 max-w-md mb-4">
+    <div class="flex items-center gap-2 mb-4">
+      <button
+        class="h-min px-3 py-1 border border-gray-300 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 shrink-0"
+        (click)="toggleSelectAll()"
+      >
+        <app-checkbox
+          class="pointer-events-none"
+          [checked]="isAllSelected()"
+          [indeterminate]="selectedCategories().size > 0 && !isAllSelected()"
+          [highlight]="selectedCategories().size > 0 && !isAllSelected()"
+        />
+        <span
+          class="text-sm font-medium"
+          [ngClass]="
+            selectedCategories().size > 0 && !isAllSelected()
+              ? 'text-yellow-700 dark:text-yellow-400'
+              : 'textNormal'
+          "
+        >
+          {{
+            isAllSelected()
+              ? "Deselect All"
+              : selectedCategories().size > 0
+                ? "Clear Selection"
+                : "Select All"
+          }}
+        </span>
+      </button>
+
       <app-search
+        class="flex-1"
         [isShowSearchField]="true"
         [tempArray]="tempListCategories()"
         [searchByFields]="['title']"
         (array)="searchFunc($event)"
       />
     </div>
-
-    <!-- Bulk Actions Bar -->
-    @if (showBulkActions()) {
-      <app-bulk-actions
-        [selectedCount]="selectedCategories().size"
-        [isAllSelected]="isAllSelected()"
-        mode="todos"
-        (selectAllEvent)="toggleSelectAll()"
-        (softDeleteEvent)="bulkDelete()"
-        (cancelEvent)="clearSelection()"
-      />
-    }
 
     @if (listCategories().length === 0) {
       <div class="text-center py-5">
@@ -51,19 +68,8 @@
         <p class="textMuted mb-6">Get started by creating your first category</p>
       </div>
     } @else {
-      <div class="flex items-center justify-between mb-4">
-        <app-checkbox
-          label="Select All"
-          [checked]="isAllSelected()"
-          [indeterminate]="selectedCategories().size > 0 && !isAllSelected()"
-          (checkedChange)="toggleSelectAll()"
-        />
-        <span class="text-sm textMuted">
-          {{ selectedCategories().size > 0 ? selectedCategories().size + " selected" : "" }}
-        </span>
-      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @for (category of listCategories(); track $index) {
+        @for (category of listCategories(); track category.id) {
           <app-category-card
             [category]="category"
             [isSelected]="selectedCategories().has(category.id)"
@@ -76,3 +82,12 @@
     }
   </div>
 </div>
+
+<app-bulk-actions
+  [selectedCount]="selectedCategories().size"
+  [isAllSelected]="isAllSelected()"
+  mode="categories"
+  (selectAllEvent)="toggleSelectAll()"
+  (hardDeleteEvent)="bulkDelete()"
+  (cancelEvent)="clearSelection()"
+/>

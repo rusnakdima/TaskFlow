@@ -33,8 +33,7 @@ export class CategoryCardComponent {
     this.delete.emit(this.category.id);
   }
 
-  toggleSelection(event: any) {
-    event.stopPropagation();
+  toggleSelection(_checked: boolean) {
     this.selectionChangeEvent.emit(this.category.id);
   }
 }
