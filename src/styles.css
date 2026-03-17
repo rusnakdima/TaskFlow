@@ -478,32 +478,20 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 }
 
 .cdk-drag-placeholder {
-  @apply bg-blue-500/20 border-2 border-dashed border-blue-500 rounded-xl transition-all duration-200;
+  @apply bg-blue-500/20 border-2 border-dashed border-blue-500 rounded-xl;
   opacity: 1 !important;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    background-color: rgb(59 130 246 / 0.15);
-  }
-  50% {
-    background-color: rgb(59 130 246 / 0.25);
-  }
 }
 
 .cdk-drag-animating {
-  @apply transition-transform duration-200 ease-out;
+  transition: none !important;
 }
 
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  @apply transition-transform duration-200 ease-out;
+  transition: none !important;
 }
 
-/* Make room for dragged item - items smoothly move aside */
 .cdk-drop-list-dragging .cdk-drag {
-  @apply transition-transform duration-200 ease-out;
+  transition: none !important;
 }
 
 /* Drag handle */
@@ -595,7 +583,6 @@ td[role="presentation"] {
   border: 2px dashed #f87171 !important;
 }
 
-/* CDK Drag Drop - placeholder pushes elements */
 /* .cdk-drag-preview {
   box-sizing: border-box;
   border-radius: 12px;

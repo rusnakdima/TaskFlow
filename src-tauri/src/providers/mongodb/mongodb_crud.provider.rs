@@ -162,8 +162,16 @@ impl CrudProvider for MongodbCrudProvider {
     doc.remove("_id"); // Never update _id
 
     let update = doc! { "$set": doc };
-    tableData.update_one(filter, update).await?;
-    Ok(data)
+    tableData.update_one(filter.clone(), update).await?;
+
+    // Return the full updated document so the frontend gets all fields (including id, todoId, etc.)
+    let updated_doc = tableData
+      .find_one(filter)
+      .await?
+      .ok_or_else(|| format!("Document with id {} not found after update", id))?;
+
+    let val = from_bson(mongodb::bson::Bson::Document(updated_doc))?;
+    Ok(val)
   }
 
   async fn delete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
