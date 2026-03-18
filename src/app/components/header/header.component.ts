@@ -9,6 +9,7 @@ import {
   signal,
   inject,
   ChangeDetectorRef,
+  computed,
 } from "@angular/core";
 import { Subscription } from "rxjs";
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
@@ -72,7 +73,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   userId = signal("");
   role = signal("");
 
-  profile = signal<Profile | null>(null);
+  profile = computed(() => this.storageService.profile());
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
 
@@ -93,34 +94,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
     );
-
-    // Subscribe to profile signal changes - update when profile is loaded
-    const profileSignal = this.storageService.profile;
-
-    // Set initial profile value
-    this.profile.set(profileSignal());
-
-    const startTime = Date.now();
-
-    // Watch for profile changes using effect-like pattern
-    let lastProfile = profileSignal();
-    const checkProfileInterval = setInterval(() => {
-      const currentProfile = profileSignal();
-      if (currentProfile !== lastProfile) {
-        this.profile.set(currentProfile);
-        lastProfile = currentProfile;
-        this.cdr.detectChanges();
-      }
-      // Clear interval after data is loaded or 5 seconds timeout
-      if (this.storageService.loaded() || Date.now() - startTime > 5000) {
-        clearInterval(checkProfileInterval);
-
-        // If still no profile after timeout, try to load it directly
-        if (!this.profile() && this.userId()) {
-          this.loadProfile();
-        }
-      }
-    }, 100);
 
     this.router.events
       .pipe(
@@ -313,45 +286,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"]);
       }
     }
-  }
-
-  loadProfile() {
-    if (!this.userId()) return;
-
-    // Check if profile already exists in storage
-    const existingProfile = this.storageService.profile();
-    if (existingProfile) {
-      this.profile.set(existingProfile);
-      this.cdr.detectChanges();
-      return;
-    }
-
-    // Load profile from server with user relation
-    // Use MongoDB (isPrivate: false, isOwner: false) for complete data with relations
-    this.dataSyncProvider
-      .crud<Profile[]>(
-        "getAll",
-        "profiles",
-        {
-          filter: { userId: this.userId() },
-          load: ["user"], // Load user relation for profile
-          isPrivate: false,
-          isOwner: false,
-        },
-        true
-      )
-      .subscribe({
-        next: (profiles) => {
-          if (profiles && profiles.length > 0) {
-            this.profile.set(profiles[0]);
-            this.storageService.setCollection("profiles", profiles[0]);
-            this.cdr.detectChanges();
-          }
-        },
-        error: (error) => {
-          // Error silently ignored
-        },
-      });
   }
 
   async syncAll(silent: boolean = false) {
