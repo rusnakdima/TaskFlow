@@ -3,16 +3,23 @@ import { CommonModule } from "@angular/common";
 import {
   Component,
   OnInit,
+  AfterViewInit,
+  ViewChild,
   signal,
   effect,
   inject,
   computed,
-  OnDestroy,
   HostListener,
 } from "@angular/core";
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
+import {
+  CdkDragDrop,
+  CdkDragEnter,
+  CdkDropList,
+  DragDropModule,
+  DragRef,
+} from "@angular/cdk/drag-drop";
 import { Subscription, firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
 import { toSignal } from "@angular/core/rxjs-interop";
@@ -78,7 +85,15 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./tasks.view.html",
 })
-export class TasksView extends BaseListView implements OnInit {
+export class TasksView extends BaseListView implements OnInit, AfterViewInit {
+  @ViewChild("taskPlaceholder", { read: CdkDropList }) private taskPlaceholder!: CdkDropList;
+
+  private dragTarget: CdkDropList | null = null;
+  private dragTargetIndex = 0;
+  private dragSource: CdkDropList | null = null;
+  private dragSourceIndex = 0;
+  private dragRef: DragRef | null = null;
+
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
@@ -472,6 +487,93 @@ export class TasksView extends BaseListView implements OnInit {
         this.notifyService.showSuccess("Task deleted successfully");
       },
     });
+  }
+
+  ngAfterViewInit(): void {
+    if (!this.taskPlaceholder?.element?.nativeElement) return;
+    const el = this.taskPlaceholder.element.nativeElement as HTMLElement;
+    el.style.display = "none";
+    el.parentNode?.removeChild(el);
+  }
+
+  onTaskListEntered(event: CdkDragEnter): void {
+    const { item, container } = event;
+    if (container === this.taskPlaceholder) return;
+    if (!this.taskPlaceholder?.element?.nativeElement) return;
+
+    const placeholderEl = this.taskPlaceholder.element.nativeElement as HTMLElement;
+    const sourceEl = item.dropContainer.element.nativeElement as HTMLElement;
+    const dropEl = container.element.nativeElement as HTMLElement;
+    const parent = dropEl.parentElement;
+    if (!parent) return;
+
+    const dragIndex = Array.prototype.indexOf.call(
+      parent.children,
+      this.dragSource ? placeholderEl : sourceEl
+    );
+    const dropIndex = Array.prototype.indexOf.call(parent.children, dropEl);
+
+    if (!this.dragSource) {
+      this.dragSourceIndex = dragIndex;
+      this.dragSource = item.dropContainer;
+      placeholderEl.style.width = sourceEl.offsetWidth + "px";
+      placeholderEl.style.minHeight = sourceEl.offsetHeight + "px";
+      sourceEl.parentElement?.removeChild(sourceEl);
+    }
+
+    this.dragTargetIndex = dropIndex;
+    this.dragTarget = container;
+    this.dragRef = item._dragRef;
+
+    placeholderEl.style.display = "";
+    parent.insertBefore(placeholderEl, dropIndex > dragIndex ? dropEl.nextSibling : dropEl);
+
+    this.taskPlaceholder._dropListRef.enter(
+      item._dragRef,
+      item.element.nativeElement.offsetLeft,
+      item.element.nativeElement.offsetTop
+    );
+  }
+
+  onTaskListDropped(): void {
+    if (!this.dragTarget || !this.taskPlaceholder?.element?.nativeElement) return;
+
+    const placeholderEl = this.taskPlaceholder.element.nativeElement as HTMLElement;
+    const parent = placeholderEl.parentElement;
+    if (parent) {
+      placeholderEl.style.display = "none";
+      parent.removeChild(placeholderEl);
+      parent.appendChild(placeholderEl);
+      const sourceEl = this.dragSource?.element.nativeElement as HTMLElement;
+      if (sourceEl) {
+        parent.insertBefore(sourceEl, parent.children[this.dragSourceIndex]);
+      }
+    }
+
+    if (this.taskPlaceholder._dropListRef.isDragging() && this.dragRef) {
+      this.taskPlaceholder._dropListRef.exit(this.dragRef);
+    }
+
+    const prev = this.dragSourceIndex;
+    const curr = this.dragTargetIndex;
+    this.dragTarget = null;
+    this.dragSource = null;
+    this.dragRef = null;
+
+    if (prev !== curr) {
+      const todoId = this.todo()?.id;
+      if (!todoId) return;
+      const syntheticEvent = {
+        previousIndex: prev,
+        currentIndex: curr,
+      } as CdkDragDrop<Task[]>;
+      this.dragDropService
+        .handleDrop(syntheticEvent, this.listTasks(), "tasks", "tasks", todoId, {
+          isOwner: this.isOwner(),
+          isPrivate: this.isPrivate(),
+        })
+        .subscribe();
+    }
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {

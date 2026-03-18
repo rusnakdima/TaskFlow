@@ -122,28 +122,29 @@
       </p>
     </div>
   } @else {
-    <div
-      class="todos-drop-list"
-      cdkDropList
-      [cdkDropListData]="listTodos()"
-      cdkDropListOrientation="mixed"
-      (cdkDropListDropped)="onTodoDrop($event)"
-      [cdkDropListAutoScrollDisabled]="false"
-    >
+    <div class="todos-drop-list" cdkDropListGroup>
+      <div #todoPlaceholder cdkDropList class="todos-drop-list-placeholder"></div>
       @for (todo of listTodos(); track todo.id) {
-        <app-todo
-          [todo]="todo"
-          [index]="$index"
-          [isOwner]="true"
-          [isPrivate]="true"
-          [highlight]="highlightTodoId() === todo.id"
-          [isSelected]="selectedTodos().has(todo.id)"
-          [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-          (deleteTodoEvent)="deleteTodoById($any($event))"
-          (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
-          (selectionChangeEvent)="toggleTodoSelection($event)"
+        <div
+          class="todos-drop-list-item"
+          cdkDropList
+          (cdkDropListEntered)="onTodoListEntered($event)"
+          (cdkDropListDropped)="onTodoListDropped()"
         >
-        </app-todo>
+          <app-todo
+            [todo]="todo"
+            [index]="$index"
+            [isOwner]="true"
+            [isPrivate]="true"
+            [highlight]="highlightTodoId() === todo.id"
+            [isSelected]="selectedTodos().has(todo.id)"
+            [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+            (deleteTodoEvent)="deleteTodoById($any($event))"
+            (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
+            (selectionChangeEvent)="toggleTodoSelection($event)"
+          >
+          </app-todo>
+        </div>
       }
     </div>
   }

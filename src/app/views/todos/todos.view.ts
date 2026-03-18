@@ -3,6 +3,8 @@ import { CommonModule } from "@angular/common";
 import {
   Component,
   OnInit,
+  AfterViewInit,
+  ViewChild,
   signal,
   inject,
   computed,
@@ -11,7 +13,13 @@ import {
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
+import {
+  CdkDragDrop,
+  CdkDragEnter,
+  CdkDropList,
+  DragDropModule,
+  DragRef,
+} from "@angular/cdk/drag-drop";
 import { Subscription, forkJoin } from "rxjs";
 import { filter } from "rxjs/operators";
 
@@ -67,7 +75,14 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./todos.view.html",
 })
-export class TodosView extends BaseListView implements OnInit {
+export class TodosView extends BaseListView implements OnInit, AfterViewInit {
+  @ViewChild("todoPlaceholder", { read: CdkDropList }) private todoPlaceholder!: CdkDropList;
+
+  private dragTarget: CdkDropList | null = null;
+  private dragTargetIndex = 0;
+  private dragSource: CdkDropList | null = null;
+  private dragSourceIndex = 0;
+  private dragRef: DragRef | null = null;
   // Services
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
@@ -278,6 +293,91 @@ export class TodosView extends BaseListView implements OnInit {
             this.notifyService.showError(err.message || "Failed to delete todo");
           },
         });
+    }
+  }
+
+  ngAfterViewInit(): void {
+    if (!this.todoPlaceholder?.element?.nativeElement) return;
+    const el = this.todoPlaceholder.element.nativeElement as HTMLElement;
+    el.style.display = "none";
+    el.parentNode?.removeChild(el);
+  }
+
+  onTodoListEntered(event: CdkDragEnter): void {
+    const { item, container } = event;
+    if (container === this.todoPlaceholder) return;
+    if (!this.todoPlaceholder?.element?.nativeElement) return;
+
+    const placeholderEl = this.todoPlaceholder.element.nativeElement as HTMLElement;
+    const sourceEl = item.dropContainer.element.nativeElement as HTMLElement;
+    const dropEl = container.element.nativeElement as HTMLElement;
+    const parent = dropEl.parentElement;
+    if (!parent) return;
+
+    const dragIndex = Array.prototype.indexOf.call(
+      parent.children,
+      this.dragSource ? placeholderEl : sourceEl
+    );
+    const dropIndex = Array.prototype.indexOf.call(parent.children, dropEl);
+
+    if (!this.dragSource) {
+      this.dragSourceIndex = dragIndex;
+      this.dragSource = item.dropContainer;
+      placeholderEl.style.width = sourceEl.offsetWidth + "px";
+      placeholderEl.style.minHeight = sourceEl.offsetHeight + "px";
+      sourceEl.parentElement?.removeChild(sourceEl);
+    }
+
+    this.dragTargetIndex = dropIndex;
+    this.dragTarget = container;
+    this.dragRef = item._dragRef;
+
+    placeholderEl.style.display = "";
+    parent.insertBefore(placeholderEl, dropIndex > dragIndex ? dropEl.nextSibling : dropEl);
+
+    this.todoPlaceholder._dropListRef.enter(
+      item._dragRef,
+      item.element.nativeElement.offsetLeft,
+      item.element.nativeElement.offsetTop
+    );
+  }
+
+  onTodoListDropped(): void {
+    if (!this.dragTarget || !this.todoPlaceholder?.element?.nativeElement) return;
+
+    const placeholderEl = this.todoPlaceholder.element.nativeElement as HTMLElement;
+    const parent = placeholderEl.parentElement;
+    if (parent) {
+      placeholderEl.style.display = "none";
+      parent.removeChild(placeholderEl);
+      parent.appendChild(placeholderEl);
+      const sourceEl = this.dragSource?.element.nativeElement as HTMLElement;
+      if (sourceEl) {
+        parent.insertBefore(sourceEl, parent.children[this.dragSourceIndex]);
+      }
+    }
+
+    if (this.todoPlaceholder._dropListRef.isDragging() && this.dragRef) {
+      this.todoPlaceholder._dropListRef.exit(this.dragRef);
+    }
+
+    const prev = this.dragSourceIndex;
+    const curr = this.dragTargetIndex;
+    this.dragTarget = null;
+    this.dragSource = null;
+    this.dragRef = null;
+
+    if (prev !== curr) {
+      const syntheticEvent = {
+        previousIndex: prev,
+        currentIndex: curr,
+      } as CdkDragDrop<Todo[]>;
+      this.dragDropService
+        .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, {
+          isOwner: true,
+          isPrivate: true,
+        })
+        .subscribe();
     }
   }
 
