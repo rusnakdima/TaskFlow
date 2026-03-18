@@ -1,26 +1,27 @@
 /* sys lib */
 use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 /* models */
 use crate::models::websocket_model::WsBroadcast;
 
 /// WebSocket broadcast helper - sends events to all connected clients
+///
+/// Uses `tokio::sync::Mutex` (async-aware) instead of `std::sync::Mutex`
+/// to avoid blocking the Tokio runtime and to prevent poison panics (H-12).
 pub struct BroadcastHelper {
-  clients: std::sync::Arc<std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
+  clients: Arc<Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
 }
 
 impl BroadcastHelper {
-  pub fn new(
-    clients: std::sync::Arc<
-      std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>,
-    >,
-  ) -> Self {
+  pub fn new(clients: Arc<Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>) -> Self {
     Self { clients }
   }
 
   /// Broadcast an event to all connected clients
-  pub fn broadcast(&self, event: &str, entity: &str, data: Value) {
+  pub async fn broadcast(&self, event: &str, entity: &str, data: Value) {
     let broadcast = WsBroadcast {
       event: event.to_string(),
       entity: entity.to_string(),
@@ -29,7 +30,7 @@ impl BroadcastHelper {
     let json = serde_json::to_string(&broadcast).unwrap_or_default();
     let msg = Message::Text(json.into());
 
-    let mut clients = self.clients.lock().unwrap();
+    let mut clients = self.clients.lock().await;
     clients.retain(|client| client.unbounded_send(msg.clone()).is_ok());
   }
 
@@ -46,41 +47,61 @@ impl BroadcastHelper {
   }
 
   /// Broadcast entity created event
-  pub fn broadcast_created(&self, entity: &str, data: Value) {
+  pub async fn broadcast_created(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(
-      &format!("{}-created", broadcast_entity),
-      &broadcast_entity,
-      data,
-    );
+    self
+      .broadcast(
+        &format!("{}-created", broadcast_entity),
+        &broadcast_entity,
+        data,
+      )
+      .await;
   }
 
   /// Broadcast entity updated event
-  pub fn broadcast_updated(&self, entity: &str, data: Value) {
+  pub async fn broadcast_updated(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(
-      &format!("{}-updated", broadcast_entity),
-      &broadcast_entity,
-      data,
-    );
+    self
+      .broadcast(
+        &format!("{}-updated", broadcast_entity),
+        &broadcast_entity,
+        data,
+      )
+      .await;
   }
 
   /// Broadcast entity deleted event
-  pub fn broadcast_deleted(&self, entity: &str, data: Value) {
+  pub async fn broadcast_deleted(&self, entity: &str, data: Value) {
     let broadcast_entity = Self::get_broadcast_name(entity);
-    self.broadcast(
-      &format!("{}-deleted", broadcast_entity),
-      &broadcast_entity,
-      data,
-    );
+    self
+      .broadcast(
+        &format!("{}-deleted", broadcast_entity),
+        &broadcast_entity,
+        data,
+      )
+      .await;
+  }
+
+  /// Broadcast entity restored event (M-8)
+  pub async fn broadcast_restored(&self, entity: &str, data: Value) {
+    let broadcast_entity = Self::get_broadcast_name(entity);
+    self
+      .broadcast(
+        &format!("{}-restored", broadcast_entity),
+        &broadcast_entity,
+        data,
+      )
+      .await;
   }
 
   /// Broadcast chat cleared event (special case)
-  pub fn broadcast_chat_cleared(&self, todo_id: &str) {
-    self.broadcast(
-      "chat-cleared",
-      "chat",
-      serde_json::json!({ "todoId": todo_id }),
-    );
+  pub async fn broadcast_chat_cleared(&self, todo_id: &str) {
+    self
+      .broadcast(
+        "chat-cleared",
+        "chat",
+        serde_json::json!({ "todoId": todo_id }),
+      )
+      .await;
   }
 }

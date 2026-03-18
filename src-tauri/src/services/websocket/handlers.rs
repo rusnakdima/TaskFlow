@@ -95,7 +95,8 @@ impl CrudHandlers {
         if let DataValue::Object(ref obj) = res.data {
           self
             .broadcast
-            .broadcast_created(&request.entity, obj.clone());
+            .broadcast_created(&request.entity, obj.clone())
+            .await;
         }
       }
       res
@@ -130,7 +131,8 @@ impl CrudHandlers {
         if let DataValue::Object(ref obj) = res.data {
           self
             .broadcast
-            .broadcast_updated(&request.entity, obj.clone());
+            .broadcast_updated(&request.entity, obj.clone())
+            .await;
         }
       }
       res
@@ -163,7 +165,19 @@ impl CrudHandlers {
 
       if res.status == ResponseStatus::Success {
         if request.entity == "chats" {
-          self.handle_chat_update_broadcast(&data);
+          self.handle_chat_update_broadcast(&data).await;
+        } else {
+          // Broadcast bulk-update for all other entities (M-7)
+          if let Some(arr) = data.as_array() {
+            for item in arr {
+              if let Some(obj) = item.as_object() {
+                self
+                  .broadcast
+                  .broadcast_updated(&request.entity, serde_json::Value::Object(obj.clone()))
+                  .await;
+              }
+            }
+          }
         }
       }
       res
@@ -173,7 +187,7 @@ impl CrudHandlers {
   }
 
   /// Handle chat update special case (chat cleared)
-  fn handle_chat_update_broadcast(&self, data: &Value) {
+  async fn handle_chat_update_broadcast(&self, data: &Value) {
     let is_clear = data
       .as_array()
       .and_then(|arr| arr.get(0))
@@ -190,7 +204,7 @@ impl CrudHandlers {
         .unwrap_or_default();
 
       if !todo_id.is_empty() {
-        self.broadcast.broadcast_chat_cleared(todo_id);
+        self.broadcast.broadcast_chat_cleared(todo_id).await;
       }
     }
   }
@@ -245,11 +259,71 @@ impl CrudHandlers {
 
         self
           .broadcast
-          .broadcast_deleted(&request.entity, broadcast_data);
+          .broadcast_deleted(&request.entity, broadcast_data)
+          .await;
       }
       res
     } else {
       ResponseModel::from("Missing id for delete action".to_string())
+    }
+  }
+
+  /// Handle restore action with broadcast (M-8)
+  pub async fn handle_restore(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
+    if let Some(id) = request.id {
+      let res = self
+        .crud_service
+        .execute(
+          "restore".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          None,
+          None,
+          None,
+          None,
+          Some(sync_metadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        // Fetch the restored record to include in the broadcast
+        let restored = self
+          .crud_service
+          .execute(
+            "get".to_string(),
+            request.entity.clone(),
+            Some(id.clone()),
+            None,
+            None,
+            None,
+            None,
+            Some(sync_metadata),
+          )
+          .await
+          .ok();
+
+        let broadcast_data = if let Some(r) = restored {
+          match r.data {
+            DataValue::Object(obj) => obj,
+            _ => json!({ "id": id }),
+          }
+        } else {
+          json!({ "id": id })
+        };
+
+        self
+          .broadcast
+          .broadcast_restored(&request.entity, broadcast_data)
+          .await;
+      }
+      res
+    } else {
+      ResponseModel::from("Missing id for restore action".to_string())
     }
   }
 }
