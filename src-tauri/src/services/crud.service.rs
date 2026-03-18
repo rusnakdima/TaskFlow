@@ -100,13 +100,13 @@ impl CrudService {
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     // Determine which provider to use
-    let provider_type = if let Some(ref metadata) = syncMetadata {
+    let providerType = if let Some(ref metadata) = syncMetadata {
       getProviderType(metadata).unwrap_or(ProviderType::Json)
     } else {
       ProviderType::Json
     };
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let repo = self.routedRepository.forTable(table.clone());
 
     let mut docs = repo
       .getAll(filter, syncMetadata.as_ref())
@@ -114,10 +114,10 @@ impl CrudService {
       .map_err(|e| errResponseFormatted("Get all failed", &e))?;
 
     // Use NEW batch loading with RelationLoader if load parameter is provided
-    if let Some(load_paths) = load {
-      if !load_paths.is_empty() {
+    if let Some(loadPaths) = load {
+      if !loadPaths.is_empty() {
         // Reset stats before batch loading
-        match provider_type {
+        match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               let _ = mongo.relationLoader.resetStats().await;
@@ -129,12 +129,12 @@ impl CrudService {
         }
 
         // Use batch loading for efficiency - loads all relations for all entities at once
-        let batch_result = match provider_type {
+        let batchResult = match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               mongo
                 .relationLoader
-                .loadRelationsBatch(&mut docs, &table, &load_paths)
+                .loadRelationsBatch(&mut docs, &table, &loadPaths)
                 .await
             } else {
               Err("MongoDB provider not available".into())
@@ -144,15 +144,21 @@ impl CrudService {
             self
               .jsonProvider
               .relationLoader
-              .loadRelationsBatch(&mut docs, &table, &load_paths)
+              .loadRelationsBatch(&mut docs, &table, &loadPaths)
               .await
           }
         };
 
-        let _ = batch_result;
+        // Propagate relation-loading errors so the caller knows data is incomplete (M-11)
+        if let Err(e) = batchResult {
+          return Err(errResponseFormatted(
+            "Failed to load relations",
+            &e.to_string(),
+          ));
+        }
 
         // Clear cache after request is complete
-        match provider_type {
+        match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               let _ = mongo.relationLoader.clearCache().await;
@@ -188,26 +194,26 @@ impl CrudService {
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     // Determine which provider to use
-    let provider_type = if let Some(ref metadata) = syncMetadata {
+    let providerType = if let Some(ref metadata) = syncMetadata {
       getProviderType(metadata).unwrap_or(ProviderType::Json)
     } else {
       ProviderType::Json
     };
 
-    let id_str = id.ok_or_else(|| errResponse("ID required for get"))?;
+    let idStr = id.ok_or_else(|| errResponse("ID required for get"))?;
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let repo = self.routedRepository.forTable(table.clone());
 
     let mut doc = repo
-      .get(&id_str, syncMetadata.as_ref())
+      .get(&idStr, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Get failed", &e))?;
 
     // Use new load parameter with RelationLoader if provided
-    if let Some(load_paths) = load {
-      if !load_paths.is_empty() {
+    if let Some(loadPaths) = load {
+      if !loadPaths.is_empty() {
         // Reset stats before loading
-        match provider_type {
+        match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               let _ = mongo.relationLoader.resetStats().await;
@@ -218,12 +224,12 @@ impl CrudService {
           }
         }
 
-        let result = match provider_type {
+        let result = match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               mongo
                 .relationLoader
-                .loadRelations(&mut doc, &table, &load_paths)
+                .loadRelations(&mut doc, &table, &loadPaths)
                 .await
             } else {
               Err("MongoDB provider not available".into())
@@ -233,15 +239,21 @@ impl CrudService {
             self
               .jsonProvider
               .relationLoader
-              .loadRelations(&mut doc, &table, &load_paths)
+              .loadRelations(&mut doc, &table, &loadPaths)
               .await
           }
         };
 
-        let _ = result;
+        // Propagate relation-loading errors so the caller knows data is incomplete (M-11)
+        if let Err(e) = result {
+          return Err(errResponseFormatted(
+            "Failed to load relations",
+            &e.to_string(),
+          ));
+        }
 
         // Clear cache after request is complete
-        match provider_type {
+        match providerType {
           ProviderType::Mongo => {
             if let Some(ref mongo) = self.mongodbProvider {
               let _ = mongo.relationLoader.clearCache().await;
@@ -270,27 +282,27 @@ impl CrudService {
     data: Option<Value>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data_val = data.ok_or_else(|| errResponse("Data required for create"))?;
+    let dataVal = data.ok_or_else(|| errResponse("Data required for create"))?;
 
     if table == "profiles" {
-      return self.createProfileWithUserUpdate(data_val).await;
+      return self.createProfileWithUserUpdate(dataVal).await;
     }
 
-    let validated_data = validateModel(&table, &data_val, true)
+    let validatedData = validateModel(&table, &dataVal, true)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let repo = self.routedRepository.forTable(table.clone());
 
-    let created_record = repo
-      .create(validated_data.clone(), syncMetadata.as_ref())
+    let createdRecord = repo
+      .create(validatedData.clone(), syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Create failed", &e))?;
 
     self
       .activityMonitor
-      .logAction(&table, "create", &created_record, None)
+      .logAction(&table, "create", &createdRecord, None)
       .await;
-    Ok(successResponse(DataValue::Object(created_record)))
+    Ok(successResponse(DataValue::Object(createdRecord)))
   }
 
   async fn handleUpdate(
@@ -300,29 +312,29 @@ impl CrudService {
     data: Option<Value>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let id_str = id.ok_or_else(|| errResponse("ID required for update"))?;
-    let data_val = data.ok_or_else(|| errResponse("Data required for update"))?;
+    let idStr = id.ok_or_else(|| errResponse("ID required for update"))?;
+    let dataVal = data.ok_or_else(|| errResponse("Data required for update"))?;
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let repo = self.routedRepository.forTable(table.clone());
 
     let original = repo
-      .get(&id_str, syncMetadata.as_ref())
+      .get(&idStr, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Fetch original failed", &e))?;
 
-    let validated_data = validateModel(&table, &data_val, false)
+    let validatedData = validateModel(&table, &dataVal, false)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let updated_record = repo
-      .update(&id_str, validated_data.clone(), syncMetadata.as_ref())
+    let updatedRecord = repo
+      .update(&idStr, validatedData.clone(), syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Update failed", &e))?;
 
     self
       .activityMonitor
-      .logAction(&table, "update", &updated_record, Some(&original))
+      .logAction(&table, "update", &updatedRecord, Some(&original))
       .await;
-    Ok(successResponse(DataValue::Object(updated_record)))
+    Ok(successResponse(DataValue::Object(updatedRecord)))
   }
 
   async fn handleUpdateAll(
@@ -331,23 +343,31 @@ impl CrudService {
     data: Option<Value>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data_val = data.ok_or_else(|| errResponse("Data required for updateAll"))?;
+    let dataVal = data.ok_or_else(|| errResponse("Data required for updateAll"))?;
 
-    // data_val should be an array for updateAll
-    let records = data_val
+    // dataVal should be an array for updateAll
+    let rawRecords = dataVal
       .as_array()
       .ok_or_else(|| errResponse("Data must be an array for updateAll"))?
       .clone();
 
-    let repo = self.routedRepository.for_table(table.clone());
+    // Validate each record before writing (M-6)
+    let mut validatedRecords: Vec<Value> = Vec::with_capacity(rawRecords.len());
+    for record in rawRecords {
+      let validated = validateModel(&table, &record, false)
+        .map_err(|e| errResponseFormatted("Validation failed in updateAll", &e))?;
+      validatedRecords.push(validated);
+    }
+
+    let repo = self.routedRepository.forTable(table.clone());
 
     repo
-      .updateAll(records.clone(), syncMetadata.as_ref())
+      .updateAll(validatedRecords.clone(), syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Update all failed", &e))?;
 
     // Return the updated records so frontend can update storage
-    Ok(successResponse(DataValue::Array(records)))
+    Ok(successResponse(DataValue::Array(validatedRecords)))
   }
 
   async fn handleDelete(
@@ -356,38 +376,44 @@ impl CrudService {
     id: Option<String>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let id_str = id.ok_or_else(|| errResponse("ID required for delete"))?;
+    let idStr = id.ok_or_else(|| errResponse("ID required for delete"))?;
 
-    let provider_type = if let Some(ref metadata) = syncMetadata {
+    let providerType = if let Some(ref metadata) = syncMetadata {
       getProviderType(metadata).unwrap_or(ProviderType::Json)
     } else {
       ProviderType::Json
     };
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let repo = self.routedRepository.forTable(table.clone());
 
     let original = repo
-      .get(&id_str, syncMetadata.as_ref())
+      .get(&idStr, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Fetch original failed", &e))?;
 
     repo
-      .delete(&id_str, syncMetadata.as_ref())
+      .delete(&idStr, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Delete failed", &e))?;
 
-    // Handle cascade delete, routing by provider type
-    match provider_type {
+    // Handle cascade delete.
+    // For Mongo mode, cascade both providers so the local JSON cache stays consistent (H-9).
+    match providerType {
       ProviderType::Mongo => {
         self
           .cascadeService
-          .handleMongoCascade(&table, &id_str, false)
+          .handleMongoCascade(&table, &idStr, false)
           .await?;
+        // Best-effort JSON cascade — keep local cache in sync; ignore errors
+        let _ = self
+          .cascadeService
+          .handleJsonCascade(&table, &idStr, false)
+          .await;
       }
       _ => {
         self
           .cascadeService
-          .handleJsonCascade(&table, &id_str, false)
+          .handleJsonCascade(&table, &idStr, false)
           .await?;
       }
     }
@@ -396,7 +422,7 @@ impl CrudService {
       .activityMonitor
       .logAction(&table, "delete", &original, None)
       .await;
-    Ok(successResponse(DataValue::String(id_str)))
+    Ok(successResponse(DataValue::String(idStr)))
   }
 
   async fn handleRestore(
@@ -405,23 +431,41 @@ impl CrudService {
     id: Option<String>,
     syncMetadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let id_str = id.ok_or_else(|| errResponse("ID required for restore"))?;
-    let update_data = json!({ "isDeleted": false });
+    let idStr = id.ok_or_else(|| errResponse("ID required for restore"))?;
 
-    let repo = self.routedRepository.for_table(table.clone());
+    let providerType = if let Some(ref metadata) = syncMetadata {
+      getProviderType(metadata).unwrap_or(ProviderType::Json)
+    } else {
+      ProviderType::Json
+    };
+
+    let timestamp = crate::helpers::timestamp_helper::getCurrentTimestamp();
+    let updateData = json!({ "isDeleted": false, "updatedAt": timestamp });
+
+    let repo = self.routedRepository.forTable(table.clone());
 
     repo
-      .update(&id_str, update_data, syncMetadata.as_ref())
+      .update(&idStr, updateData, syncMetadata.as_ref())
       .await
       .map_err(|e| errResponseFormatted("Restore failed", &e))?;
 
-    // Handle cascade restore
-    self
-      .cascadeService
-      .handleJsonCascade(&table, &id_str, true)
-      .await?;
+    // Handle cascade restore, routing by provider type (mirrors handleDelete)
+    match providerType {
+      ProviderType::Mongo => {
+        self
+          .cascadeService
+          .handleMongoCascade(&table, &idStr, true)
+          .await?;
+      }
+      _ => {
+        self
+          .cascadeService
+          .handleJsonCascade(&table, &idStr, true)
+          .await?;
+      }
+    }
 
-    Ok(successResponse(DataValue::String(id_str)))
+    Ok(successResponse(DataValue::String(idStr)))
   }
 
   async fn createProfileWithUserUpdate(
@@ -431,40 +475,65 @@ impl CrudService {
     let validatedProfile = validateModel("profiles", &profileData, true)
       .map_err(|e| errResponseFormatted("Profile validation failed", &e))?;
 
-    self
-      .jsonProvider
-      .jsonCrud
-      .create("profiles", validatedProfile.clone())
-      .await
-      .map_err(|e| errResponseFormatted("Error creating profile", &e.to_string()))?;
-
     let userId = validatedProfile
       .get("userId")
       .and_then(|v| v.as_str())
-      .unwrap_or_default();
+      .unwrap_or_default()
+      .to_string();
     let profileId = validatedProfile
       .get("id")
       .and_then(|v| v.as_str())
-      .unwrap_or_default();
+      .unwrap_or_default()
+      .to_string();
 
     if userId.is_empty() || profileId.is_empty() {
       return Err(errResponse("Invalid profile data"));
     }
 
+    // Local-first: save to JSON so profile works offline / when MongoDB is unavailable
+    self
+      .jsonProvider
+      .jsonCrud
+      .create("profiles", validatedProfile.clone())
+      .await
+      .map_err(|e| errResponseFormatted("Error creating profile in local store", &e.to_string()))?;
+
+    // Update current user's profileId in local JSON (required for app to see profile)
     user_sync_helper::updateUserProfileId(
       &self.jsonProvider,
       &self.mongodbProvider,
-      userId,
-      profileId,
+      &userId,
+      &profileId,
     )
     .await?;
 
+    // Best-effort sync to cloud: only this user's profile + user record. Safe for other users.
     if let Some(ref mongodb) = self.mongodbProvider {
-      mongodb
-        .mongodbCrud
-        .create("profiles", validatedProfile.clone())
-        .await
-        .map_err(|e| errResponseFormatted("Mongo create failed", &e.to_string()))?;
+      // IMPORTANT: When MongoDB is down, `create()` may block for a long driver timeout.
+      // Keep profile creation fast by enforcing a short timeout here.
+      let create_result = tokio::time::timeout(
+        std::time::Duration::from_millis(800),
+        mongodb
+          .mongodbCrud
+          .create("profiles", validatedProfile.clone()),
+      )
+      .await;
+
+      match create_result {
+        Ok(Ok(_created)) => {
+          // ok
+        }
+        Ok(Err(e)) => {
+          tracing::warn!(
+            "Profile sync to cloud skipped (will sync when online): {}",
+            e
+          );
+        }
+        Err(_elapsed) => {
+          tracing::warn!("Profile sync to cloud skipped (will sync when online): MongoDB timeout");
+        }
+      }
+      // updateUserProfileId above already tried to update user in Mongo (best-effort)
     }
 
     self

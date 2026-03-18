@@ -8,7 +8,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::response_helper::require_mongo;
+use crate::helpers::response_helper::requireMongo;
 
 /* services */
 use crate::services::{
@@ -48,7 +48,7 @@ impl ManageDbService {
 
   /// Import data from cloud MongoDB to local JSON
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = require_mongo(&self.mongodbProvider)?;
+    let mongodbProvider = requireMongo(&self.mongodbProvider)?;
 
     match mongodbProvider
       .mongodbSync
@@ -70,7 +70,7 @@ impl ManageDbService {
 
   /// Export data from local JSON to cloud MongoDB
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = require_mongo(&self.mongodbProvider)?;
+    let mongodbProvider = requireMongo(&self.mongodbProvider)?;
 
     match mongodbProvider
       .mongodbSync

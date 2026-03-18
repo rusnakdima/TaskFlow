@@ -23,6 +23,7 @@ impl LiveSyncService {
       "comments",
       "categories",
       "chats",
+      "daily_activities",
     ];
 
     for collectionName in collections {
@@ -36,10 +37,6 @@ impl LiveSyncService {
   }
 
   async fn watchCollection(&self, collectionName: String) {
-    let collection = self
-      .db
-      .collection::<mongodb::bson::Document>(&collectionName);
-
     let pipeline = vec![doc! {
       "$match": {
         "operationType": {
@@ -48,33 +45,45 @@ impl LiveSyncService {
       }
     }];
 
-    let streamResult = collection
-      .watch()
-      .pipeline(pipeline)
-      .full_document(mongodb::options::FullDocumentType::UpdateLookup)
-      .await;
+    // Reconnect loop: re-opens the change stream after any error or cursor close (H-7)
+    loop {
+      let collection = self
+        .db
+        .collection::<mongodb::bson::Document>(&collectionName);
 
-    match streamResult {
-      Ok(mut stream) => {
-        while let Some(changeResult) = stream.next().await {
-          match changeResult {
-            Ok(change) => {
-              let eventName = format!("db-change-{}", collectionName);
+      let streamResult = collection
+        .watch()
+        .pipeline(pipeline.clone())
+        .full_document(mongodb::options::FullDocumentType::UpdateLookup)
+        .await;
 
-              if let Ok(changeJson) = to_value(&change) {
-                let _ = self.appHandle.emit(&eventName, changeJson);
+      match streamResult {
+        Ok(mut stream) => {
+          while let Some(changeResult) = stream.next().await {
+            match changeResult {
+              Ok(change) => {
+                let eventName = format!("db-change-{}", collectionName);
+                if let Ok(changeJson) = to_value(&change) {
+                  let _ = self.appHandle.emit(&eventName, changeJson);
+                }
+              }
+              Err(_) => {
+                // Stream error — break inner loop to trigger reconnect
+                break;
               }
             }
-            Err(_) => {
-              tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            }
           }
+          // Stream ended (cursor closed or error) — wait before reconnecting
+          tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         }
-      }
-      Err(e) => {
-        let errorMessage = e.to_string();
-        if errorMessage.contains("40573") || errorMessage.contains("replica sets") {
-          // MongoDB must be a Replica Set to use Change Streams
+        Err(e) => {
+          let errorMessage = e.to_string();
+          if errorMessage.contains("40573") || errorMessage.contains("replica sets") {
+            // MongoDB is not a Replica Set — Change Streams unavailable, stop trying
+            return;
+          }
+          // Transient connection error — wait and retry
+          tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         }
       }
     }
