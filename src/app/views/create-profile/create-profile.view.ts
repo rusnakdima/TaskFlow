@@ -24,6 +24,8 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
+import { StorageService } from "@services/core/storage.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
   selector: "app-create-profile",
@@ -44,7 +46,9 @@ export class CreateProfileView implements OnInit {
     private router: Router,
     private authService: AuthService,
     private dataSyncProvider: DataSyncProvider,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private storageService: StorageService,
+    private profileRequiredService: ProfileRequiredService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -88,8 +92,19 @@ export class CreateProfileView implements OnInit {
 
   ngOnInit() {
     const userId = this.authService.getValueByKey("id");
-    if (userId && userId != "") {
+    if (userId && userId !== "") {
       this.form.controls["userId"].setValue(userId);
+
+      // Auto-fill from profile loaded from JSON (offline-friendly): use cached profile when available
+      const cachedProfile = this.storageService.profile();
+      if (cachedProfile && cachedProfile.userId === userId) {
+        this.form.patchValue({
+          name: cachedProfile.name ?? "",
+          lastName: cachedProfile.lastName ?? "",
+          bio: cachedProfile.bio ?? "",
+          imageUrl: cachedProfile.imageUrl ?? "",
+        });
+      }
     }
   }
 
@@ -104,6 +119,7 @@ export class CreateProfileView implements OnInit {
       const body = this.form.value;
       this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
         next: () => {
+          this.profileRequiredService.setProfileRequiredMode(false);
           this.notifyService.showSuccess("Profile created successfully");
           this.router.navigate([""]);
         },

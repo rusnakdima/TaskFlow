@@ -97,23 +97,28 @@ export class EditProfileView {
     if (userId && userId != "") {
       this.form.controls["userId"].setValue(userId);
 
-      // Check if profile is already cached in StorageService
+      // Use profile from storage first (loaded from JSON on init; works offline)
       const cachedProfile = this.storageService.profile();
-
-      if (cachedProfile) {
-        // Use cached profile - no API call needed
+      if (cachedProfile && cachedProfile.userId === userId) {
         this.form.patchValue(cachedProfile);
       } else {
-        // Profile not cached - fetch it via DataSyncService
+        // Not in cache - try to load (e.g. first visit); on failure (e.g. offline) try cache again
         this.dataSyncService.loadProfile().subscribe({
           next: (profile) => {
             if (profile) {
               this.form.patchValue(profile);
+            } else {
+              const fallback = this.storageService.profile();
+              if (fallback && fallback.userId === userId) this.form.patchValue(fallback);
             }
           },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to load profile");
-            this.router.navigate(["/login"]);
+          error: () => {
+            const fallback = this.storageService.profile();
+            if (fallback && fallback.userId === userId) {
+              this.form.patchValue(fallback);
+            } else {
+              this.notifyService.showError("Could not load profile. You may be offline.");
+            }
           },
         });
       }
