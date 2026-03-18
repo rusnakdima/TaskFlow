@@ -8,7 +8,7 @@ use serde_json::Value;
 
 /* providers */
 use crate::errors::ApiResult;
-use crate::helpers::common::supports_soft_delete;
+use crate::helpers::common::supportsSoftDelete;
 use crate::providers::base_crud::CrudProvider;
 
 /// MongodbCrudProvider - CRUD operations for MongoDB
@@ -112,7 +112,7 @@ impl CrudProvider for MongodbCrudProvider {
     };
 
     // Skip isDeleted filter for tables that don't support soft delete
-    if !effectiveFilter.contains_key("isDeleted") && supports_soft_delete(nameTable) {
+    if !effectiveFilter.contains_key("isDeleted") && supportsSoftDelete(nameTable) {
       effectiveFilter.insert("isDeleted", false);
     }
 

@@ -553,16 +553,20 @@ impl<P: CrudProvider> RelationLoader<P> {
       return Ok(Value::Null);
     }
 
-    // Check cache first
+    // Check cache first — always acquire locks in the same order: cache then stats (M-13)
     let cache_key = format!("{}:{}", config.targetTable, fkValue);
-    if let Some(cached) = self.cache.read().await.get(&cache_key) {
-      let mut stats = self.stats.write().await;
-      stats.cache_hits += 1;
-      return Ok(cached.clone());
-    }
+    {
+      let cache = self.cache.read().await;
+      if let Some(cached) = cache.get(&cache_key) {
+        let cloned = cached.clone();
+        drop(cache); // release cache before acquiring stats
+        self.stats.write().await.cache_hits += 1;
+        return Ok(cloned);
+      }
+    } // cache read lock dropped here
 
-    let mut stats = self.stats.write().await;
-    stats.total_queries += 1;
+    // Increment query counter before the async DB call
+    self.stats.write().await.total_queries += 1;
 
     match self.crudProvider.get(&config.targetTable, fkValue).await {
       Ok(data) => {

@@ -260,19 +260,15 @@ impl MongodbSyncProvider {
       self.syncRecordToCloud("profiles", localVal).await?;
     }
 
-    // Step 8: Export users (has userId) - exclude deleted
-    let userFilter = serde_json::json!({
-      "userId": &userId,
-      "isDeleted": false
-    });
-
-    let localUsers: Vec<Value> = jsonProvider
-      .jsonCrud
-      .getAll("users", Some(userFilter))
-      .await?;
-
-    for localVal in localUsers {
-      self.syncRecordToCloud("users", localVal).await?;
+    // Step 8: Export only this user's user record (id == userId). Never push other users from local.
+    if let Ok(localUser) = jsonProvider.get("users", &userId).await {
+      let isDeleted = localUser
+        .get("isDeleted")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+      if !isDeleted {
+        self.syncRecordToCloud("users", localUser).await?;
+      }
     }
 
     // Step 9: Export daily_activities (has userId) - exclude deleted
