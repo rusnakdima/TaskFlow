@@ -121,7 +121,8 @@ export class SubtasksView extends BaseListView implements OnInit {
   fromKanban = signal(false);
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
-  openComments = signal(false);
+  /** When set, only this subtask should auto-open its comment block */
+  openCommentsForSubtaskId = signal<string | null>(null);
   private routeSub?: Subscription;
 
   // Bulk selection state (like admin page)
@@ -228,9 +229,13 @@ export class SubtasksView extends BaseListView implements OnInit {
         this.fromKanban.set(queryParams.fromKanban === "true");
       }
       if (queryParams.highlightSubtask) {
-        this.highlightSubtask.set(queryParams.highlightSubtask);
+        const id = queryParams.highlightSubtask;
+        this.highlightSubtask.set(id);
+        if (queryParams.openComments) {
+          this.openCommentsForSubtaskId.set(id);
+        }
         setTimeout(() => {
-          const element = document.getElementById("subtask-" + queryParams.highlightSubtask);
+          const element = document.getElementById("subtask-" + id);
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
             element.classList.add("ring-4", "ring-purple-500", "animate-pulse");
@@ -243,10 +248,11 @@ export class SubtasksView extends BaseListView implements OnInit {
       }
       if (queryParams.highlightComment) {
         this.highlightComment.set(queryParams.highlightComment);
-        this.openComments.set(true);
+        // Best-effort: when deep-linking to a comment, open all comment blocks
+        this.openCommentsForSubtaskId.set("*");
       }
-      if (queryParams.openComments) {
-        this.openComments.set(true);
+      if (!queryParams.openComments && !queryParams.highlightSubtask && !queryParams.highlightComment) {
+        this.openCommentsForSubtaskId.set(null);
       }
     });
 

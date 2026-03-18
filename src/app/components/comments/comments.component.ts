@@ -36,6 +36,7 @@ import { AuthService } from "@services/auth/auth.service";
 export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked {
   private authService = inject(AuthService);
 
+  @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;

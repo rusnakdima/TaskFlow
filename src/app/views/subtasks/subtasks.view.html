@@ -121,7 +121,7 @@
             [isPrivate]="isPrivate()"
             [highlight]="highlightSubtask() === subtask.id"
             [highlightComment]="highlightComment()"
-            [openComments]="openComments()"
+            [openComments]="openCommentsForSubtaskId() === '*' || openCommentsForSubtaskId() === subtask.id"
             [isSelected]="selectedSubtasks().has(subtask.id)"
             (deleteSubtaskEvent)="deleteSubtask($event)"
             (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
