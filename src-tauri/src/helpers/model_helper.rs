@@ -6,16 +6,16 @@ use super::timestamp_helper::getCurrentTimestamp;
 
 /// Ensure all required fields are present in a record based on table name
 /// This prevents incomplete records from being saved to the database
-pub fn ensure_required_fields(table: &str, mut data: Value) -> Value {
+pub fn ensureRequiredFields(table: &str, mut data: Value) -> Value {
   if let Some(obj) = data.as_object_mut() {
     // Add _id (ObjectId) if missing
     if !obj.contains_key("_id") {
-      obj.insert("_id".to_string(), generate_object_id());
+      obj.insert("_id".to_string(), generateObjectId());
     }
 
     // Add id (UUID) if missing
     if !obj.contains_key("id") {
-      obj.insert("id".to_string(), json!(generate_uuid()));
+      obj.insert("id".to_string(), json!(generateUuid()));
     }
 
     // Add isDeleted if missing (for tables that support soft delete)
@@ -35,14 +35,14 @@ pub fn ensure_required_fields(table: &str, mut data: Value) -> Value {
     }
 
     // Add table-specific required fields with defaults
-    add_table_specific_defaults(table, obj);
+    addTableSpecificDefaults(table, obj);
   }
 
   data
 }
 
 /// Add table-specific default values for required fields
-fn add_table_specific_defaults(table: &str, obj: &mut serde_json::Map<String, Value>) {
+fn addTableSpecificDefaults(table: &str, obj: &mut serde_json::Map<String, Value>) {
   match table {
     // ==================== TODOS ====================
     "todos" => {
@@ -224,7 +224,7 @@ fn add_table_specific_defaults(table: &str, obj: &mut serde_json::Map<String, Va
 }
 
 /// Generate a MongoDB-style ObjectId (24 hex chars)
-fn generate_object_id() -> Value {
+fn generateObjectId() -> Value {
   let timestamp = format!(
     "{:08x}",
     std::time::SystemTime::now()
@@ -234,14 +234,14 @@ fn generate_object_id() -> Value {
   );
 
   // Use UUID v4 for the random 16-char portion
-  let uuid_hex = Uuid::new_v4().to_string().replace("-", "");
-  let random_part = &uuid_hex[..16];
+  let uuidHex = Uuid::new_v4().to_string().replace("-", "");
+  let randomPart = &uuidHex[..16];
 
-  json!({ "$oid": format!("{}{}", timestamp, random_part) })
+  json!({ "$oid": format!("{}{}", timestamp, randomPart) })
 }
 
 /// Generate a UUID v4
-fn generate_uuid() -> String {
+fn generateUuid() -> String {
   Uuid::new_v4().to_string()
 }
 
@@ -250,13 +250,13 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_ensure_required_fields_adds_missing_fields() {
+  fn testEnsureRequiredFieldsAddsMissingFields() {
     let data = json!({
       "userId": "test-user",
       "title": "Test Todo"
     });
 
-    let result = ensure_required_fields("todos", data);
+    let result = ensureRequiredFields("todos", data);
     let obj = result.as_object().unwrap();
 
     assert!(obj.contains_key("_id"));
@@ -269,14 +269,14 @@ mod tests {
   }
 
   #[test]
-  fn test_ensure_required_fields_preserves_existing() {
+  fn testEnsureRequiredFieldsPreservesExisting() {
     let data = json!({
       "_id": { "$oid": "existing-id" },
       "id": "existing-uuid",
       "title": "Test"
     });
 
-    let result = ensure_required_fields("todos", data);
+    let result = ensureRequiredFields("todos", data);
     let obj = result.as_object().unwrap();
 
     // Should preserve existing _id and id

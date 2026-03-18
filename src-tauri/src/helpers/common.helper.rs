@@ -3,7 +3,7 @@ use serde::Serialize;
 
 pub const TABLES_WITHOUT_SOFT_DELETE: &[&str] = &["users", "profiles", "comments"];
 
-pub fn supports_soft_delete(table: &str) -> bool {
+pub fn supportsSoftDelete(table: &str) -> bool {
   !TABLES_WITHOUT_SOFT_DELETE.contains(&table)
 }
 
@@ -16,12 +16,12 @@ use crate::models::{
 };
 
 pub fn convertDataToArray<T: Serialize>(data: &[T]) -> DataValue {
-  let serialized_array: Vec<serde_json::Value> = data
+  let serializedArray: Vec<serde_json::Value> = data
     .iter()
     .map(|item| serde_json::to_value(item).unwrap())
     .collect();
 
-  DataValue::Array(serialized_array)
+  DataValue::Array(serializedArray)
 }
 
 pub fn convertDataToObject<T: Serialize>(data: &T) -> DataValue {

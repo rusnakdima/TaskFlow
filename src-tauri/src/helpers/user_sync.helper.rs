@@ -1,6 +1,7 @@
 /* sys lin */
 use serde_json::Value;
 use std::sync::Arc;
+use std::time::Duration;
 
 /* helpers */
 use crate::helpers::timestamp_helper;
@@ -23,32 +24,39 @@ pub async fn updateUserProfileId(
 
   // Update in MongoDB
   if let Some(ref mongodb) = mongodbProvider {
-    match mongodb.get("users", userId).await {
-      Ok(user_val) => {
-        let mut updatedUser: UserModel = match serde_json::from_value(user_val) {
-          Ok(user) => user,
-          Err(e) => {
-            return Err(ResponseModel {
-              status: ResponseStatus::Error,
-              message: format!("Failed to parse user from MongoDB: {}", e),
-              data: DataValue::String("".to_string()),
-            });
-          }
-        };
-        updatedUser.profileId = profileId.to_string();
-        updatedUser.updatedAt = now.clone();
+    // Best-effort and fast: when MongoDB is down, driver timeouts can be long.
+    let user_val =
+      match tokio::time::timeout(Duration::from_millis(600), mongodb.get("users", userId)).await {
+        Ok(Ok(val)) => Some(val),
+        _ => None,
+      };
 
-        let user_json = serde_json::to_value(&updatedUser).map_err(|e| ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error serializing user: {}", e),
-          data: DataValue::String("".to_string()),
-        })?;
+    if let Some(user_val) = user_val {
+      let mut updatedUser: UserModel = match serde_json::from_value(user_val) {
+        Ok(user) => user,
+        Err(e) => {
+          return Err(ResponseModel {
+            status: ResponseStatus::Error,
+            message: format!("Failed to parse user from MongoDB: {}", e),
+            data: DataValue::String("".to_string()),
+          });
+        }
+      };
 
-        let _ = mongodb.update("users", userId, user_json).await;
-      }
-      Err(_e) => {
-        // Silently handle error
-      }
+      updatedUser.profileId = profileId.to_string();
+      updatedUser.updatedAt = now.clone();
+
+      let user_json = serde_json::to_value(&updatedUser).map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error serializing user: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
+
+      let _ = tokio::time::timeout(
+        Duration::from_millis(600),
+        mongodb.update("users", userId, user_json),
+      )
+      .await;
     }
   }
 
