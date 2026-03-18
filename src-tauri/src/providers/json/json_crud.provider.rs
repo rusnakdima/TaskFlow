@@ -1,51 +1,86 @@
 /* sys lib */
 use async_trait::async_trait;
 use serde_json::{from_str, json, to_string_pretty, Value};
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use tokio::fs;
+use tokio::sync::Mutex as AsyncMutex;
 
 /* providers */
 use crate::errors::ApiResult;
 use crate::providers::base_crud::CrudProvider;
 
 /* helpers */
-use crate::helpers::common::supports_soft_delete;
-use crate::helpers::model_helper::ensure_required_fields;
+use crate::helpers::common::supportsSoftDelete;
+use crate::helpers::model_helper::ensureRequiredFields;
 
 /// JsonCrudProvider - CRUD operations for JSON file storage
+///
+/// `tableLocks` serialises concurrent writes to the same JSON file.
+/// The outer `std::sync::Mutex` is only held for the brief, non-async
+/// lookup/insert of the per-table `tokio::sync::Mutex` — it is never
+/// held across an `.await` point.
 #[derive(Clone)]
 pub struct JsonCrudProvider {
   pub dbFilePath: PathBuf,
+  tableLocks: Arc<Mutex<HashMap<String, Arc<AsyncMutex<()>>>>>,
+}
+
+impl JsonCrudProvider {
+  fn getTableLock(&self, nameTable: &str) -> Arc<AsyncMutex<()>> {
+    let mut locks = self.tableLocks.lock().unwrap();
+    locks
+      .entry(nameTable.to_string())
+      .or_insert_with(|| Arc::new(AsyncMutex::new(())))
+      .clone()
+  }
 }
 
 impl JsonCrudProvider {
   pub fn new(dbFilePath: PathBuf) -> Self {
-    Self { dbFilePath }
+    Self {
+      dbFilePath,
+      tableLocks: Arc::new(Mutex::new(HashMap::new())),
+    }
   }
 
-  /// Strip nested relation fields from data before saving to prevent storing embedded relations
-  /// This ensures tasks/subtasks are stored in their own tables, not nested in parent records
-  /// Note: comments are stored inline in tasks/subtasks, not stripped
+  /// Strip nested relation fields from data before saving to prevent storing embedded relations.
+  /// Only scalar IDs (userId, assignees, categories as IDs) belong in JSON; no user/profile objects.
   fn stripNestedRelations(table: &str, mut data: Value) -> Value {
     if let Some(obj) = data.as_object_mut() {
       match table {
-        // Todo records should not contain nested tasks or subtasks
         "todos" => {
           obj.remove("tasks");
           obj.remove("subtasks");
+          obj.remove("user");
+          obj.remove("assigneesProfiles");
+          // categories: keep only if array of strings (IDs); strip if array of objects
+          if let Some(cats) = obj.get("categories").and_then(|c| c.as_array()) {
+            if cats.first().map_or(false, |c| c.is_object()) {
+              obj.remove("categories");
+            }
+          }
         }
-        // Task records - keep comments (stored inline), only strip subtasks
         "tasks" => {
           obj.remove("subtasks");
         }
-        // Subtask records - keep comments (stored inline)
-        "subtasks" => {
-          // Don't strip comments - they're stored inline
-        }
+        "subtasks" => {}
         _ => {}
       }
     }
     data
+  }
+
+  /// Relation keys that must not be written into JSON for a table (used in update path).
+  /// Comments are stored inline on tasks/subtasks so we do not skip them there.
+  fn relationKeysToSkip(table: &str) -> &'static [&'static str] {
+    match table {
+      "todos" => &["tasks", "subtasks", "comments", "user", "assigneesProfiles"],
+      "tasks" => &["subtasks"],
+      "subtasks" => &[],
+      _ => &[],
+    }
   }
 
   fn getTablePath(&self, nameTable: &str) -> PathBuf {
@@ -111,6 +146,7 @@ impl JsonCrudProvider {
   }
 
   pub async fn updateAll(&self, nameTable: &str, records: Vec<Value>) -> ApiResult<bool> {
+    let _lock = self.getTableLock(nameTable).lock_owned().await;
     let mut existingRecords = self.getDataTable(nameTable).await?;
 
     // Strip nested relations from all incoming records before processing
@@ -136,9 +172,9 @@ impl JsonCrudProvider {
           if let (Some(existingObj), Some(newObj)) =
             (existingRecord.as_object_mut(), newRecord.as_object())
           {
+            let skip_keys = Self::relationKeysToSkip(nameTable);
             for (key, value) in newObj {
-              // Skip _id and nested relation fields
-              if key != "_id" && key != "tasks" && key != "subtasks" && key != "comments" {
+              if key != "_id" && !skip_keys.contains(&key.as_str()) {
                 existingObj.insert(key.clone(), value.clone());
               }
             }
@@ -171,6 +207,7 @@ impl JsonCrudProvider {
   }
 
   pub async fn hardDelete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
+    let _lock = self.getTableLock(nameTable).lock_owned().await;
     let mut listRecords = self.getDataTable(nameTable).await?;
 
     let initialLen = listRecords.len();
@@ -187,6 +224,48 @@ impl JsonCrudProvider {
       Ok(true)
     } else {
       Err(format!("Record with id {} not found", id).into())
+    }
+  }
+
+  /// Hard-delete a comment that is stored inline inside a task or subtask record.
+  ///
+  /// Comments in JSON storage are embedded in the `comments` array of their parent
+  /// task or subtask — there is no top-level `comments.json`.  This method scans
+  /// both `tasks.json` and `subtasks.json` and removes the matching comment entry.
+  pub async fn hardDeleteInlineComment(&self, comment_id: &str) -> ApiResult<bool> {
+    let mut found = false;
+
+    for parent_table in &["tasks", "subtasks"] {
+      let _lock = self.getTableLock(parent_table).lock_owned().await;
+      let mut records = self.getDataTable(parent_table).await?;
+      let mut changed = false;
+
+      for record in records.iter_mut() {
+        if let Some(comments) = record.get_mut("comments").and_then(|v| v.as_array_mut()) {
+          let before = comments.len();
+          comments.retain(|c| {
+            c.get("id")
+              .and_then(|v| v.as_str())
+              .map(|s| s != comment_id)
+              .unwrap_or(true)
+          });
+          if comments.len() < before {
+            changed = true;
+            found = true;
+          }
+        }
+      }
+
+      if changed {
+        self.saveDataTable(parent_table, &records).await?;
+      }
+    }
+
+    if found {
+      Ok(true)
+    } else {
+      // Not an error — comment may already be gone (e.g. parent task was hard-deleted first)
+      Ok(false)
     }
   }
 
@@ -267,7 +346,7 @@ impl CrudProvider for JsonCrudProvider {
 
     // Prepend isDeleted: false for tables that support soft delete
     if let Some(filterObj) = effectiveFilter.as_object_mut() {
-      if !filterObj.contains_key("isDeleted") && supports_soft_delete(nameTable) {
+      if !filterObj.contains_key("isDeleted") && supportsSoftDelete(nameTable) {
         filterObj.insert("isDeleted".to_string(), json!(false));
       }
     }
@@ -292,9 +371,10 @@ impl CrudProvider for JsonCrudProvider {
   }
 
   async fn create(&self, nameTable: &str, data: Value) -> ApiResult<Value> {
+    let _lock = self.getTableLock(nameTable).lock_owned().await;
     let mut listRecords = self.getDataTable(nameTable).await?;
 
-    let data_with_defaults = ensure_required_fields(nameTable, data);
+    let data_with_defaults = ensureRequiredFields(nameTable, data);
 
     let cleanData = Self::stripNestedRelations(nameTable, data_with_defaults);
 
@@ -307,6 +387,7 @@ impl CrudProvider for JsonCrudProvider {
   }
 
   async fn update(&self, nameTable: &str, id: &str, updates: Value) -> ApiResult<Value> {
+    let _lock = self.getTableLock(nameTable).lock_owned().await;
     let mut listRecords = self.getDataTable(nameTable).await?;
 
     let record = listRecords.iter_mut().find(|record| {
@@ -319,11 +400,17 @@ impl CrudProvider for JsonCrudProvider {
 
     if let Some(record) = record {
       if let (Some(recordObj), Some(updatesObj)) = (record.as_object_mut(), updates.as_object()) {
+        let skip_keys = Self::relationKeysToSkip(nameTable);
         for (key, value) in updatesObj {
-          if key == "tasks" || key == "subtasks" || key == "comments" {
+          if skip_keys.contains(&key.as_str()) {
             continue;
           }
           recordObj.insert(key.clone(), value.clone());
+        }
+        // Always stamp updatedAt so change-detection and activity logs stay accurate
+        if !updatesObj.contains_key("updatedAt") {
+          let timestamp = crate::helpers::timestamp_helper::getCurrentTimestamp();
+          recordObj.insert("updatedAt".to_string(), Value::String(timestamp));
         }
       }
 
@@ -336,6 +423,7 @@ impl CrudProvider for JsonCrudProvider {
   }
 
   async fn delete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
+    let _lock = self.getTableLock(nameTable).lock_owned().await;
     let mut listRecords = self.getDataTable(nameTable).await?;
     let timestamp = crate::helpers::timestamp_helper::getCurrentTimestamp();
 

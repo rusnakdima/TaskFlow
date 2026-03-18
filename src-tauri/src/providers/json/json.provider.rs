@@ -67,6 +67,10 @@ impl JsonProvider {
     self.jsonCrud.hardDelete(nameTable, id).await
   }
 
+  pub async fn hardDeleteInlineComment(&self, comment_id: &str) -> ApiResult<bool> {
+    self.jsonCrud.hardDeleteInlineComment(comment_id).await
+  }
+
   pub async fn getAll(&self, nameTable: &str, filter: Option<Value>) -> ApiResult<Vec<Value>> {
     self.jsonCrud.getAll(nameTable, filter).await
   }
