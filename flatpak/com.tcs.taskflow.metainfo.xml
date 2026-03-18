@@ -73,6 +73,125 @@
   </provides>
 
   <releases>
+    <release version="0.12.0" date="2026-03-18">
+      <description>
+        <p>Major architectural overhaul with 203 commits bringing significant improvements across
+          the entire codebase:</p>
+
+        <p>
+          <strong>Backend Architecture:</strong>
+        </p>
+        <ul>
+          <li>Complete modularization of Rust backend into domain-based services (auth, admin,
+            statistics, activity, cascade)</li>
+          <li>Implemented base CRUD provider abstraction with RoutedRepository for dynamic provider
+            routing</li>
+          <li>Added RelationLoader provider with batch loading and caching for optimized data
+            fetching</li>
+          <li>Extracted providers into nested directory structure for better maintainability</li>
+          <li>Implemented Validatable trait across all models for consistent validation</li>
+          <li>Added centralized error handling module with improved error propagation</li>
+          <li>Enhanced WebSocket server with improved connection handling and live sync service</li>
+          <li>Integrated comment system with separate document storage and cascade relations</li>
+          <li>Added dual-sync support for users and profiles tables to MongoDB</li>
+          <li>Implemented soft/hard delete operations with Local archive methods</li>
+          <li>Added priority field to todo model and enhanced admin manager with full cascade
+            relations</li>
+        </ul>
+
+        <p>
+          <strong>Frontend Architecture:</strong>
+        </p>
+        <ul>
+          <li>Consolidated services into domain-based subdirectories with entity handlers pattern</li>
+          <li>Introduced base classes for views and components (FilterableViewBase, base storage
+            service)</li>
+          <li>Added FilterService, SortService, and BulkActionService for reusable functionality</li>
+          <li>Migrated to JwtTokenService with Observable pattern for authentication</li>
+          <li>Implemented offline-first authentication logic with local data caching</li>
+          <li>Enhanced DataSyncProvider with retry logic, caching, and optimistic updates</li>
+          <li>Consolidated WebSocket services and notification systems</li>
+          <li>Added InitialDataResolver for streamlined app initialization</li>
+          <li>Removed deprecated services and unused code for cleaner codebase</li>
+        </ul>
+
+        <p>
+          <strong>UI/UX Enhancements:</strong>
+        </p>
+        <ul>
+          <li>Implemented correct CDK mixed-orientation drag-drop for todos and tasks grids</li>
+          <li>Enhanced chat window component with real-time comments and notifications</li>
+          <li>Added chat/comment notifications with duplicate suppression</li>
+          <li>Improved progress bar UI with MatCard components in statistics view</li>
+          <li>Added loading states, fallbacks, and error handling across all views</li>
+          <li>Enhanced bulk actions component with improved UI and select-all functionality</li>
+          <li>Added task expansion and subtask toggle functionality</li>
+          <li>Improved Kanban board with better task card components</li>
+          <li>Consolidated admin records into single data table component</li>
+          <li>Added sync-status component for better synchronization feedback</li>
+        </ul>
+
+        <p>
+          <strong>Archive &amp; Data Management:</strong>
+        </p>
+        <ul>
+          <li>Implemented comprehensive archive view with soft delete and restore operations</li>
+          <li>Added cascade delete functionality for related records</li>
+          <li>Filtered deleted items from storage signals and MongoDB cloud sync</li>
+          <li>Added isDeleted field to User model and admin data table</li>
+          <li>Implemented bulk delete with proper select-all design</li>
+          <li>Enhanced admin-specific filter builder with custom filters</li>
+        </ul>
+
+        <p>
+          <strong>Performance &amp; Optimization:</strong>
+        </p>
+        <ul>
+          <li>Removed verbose console logs and debug statements throughout the application</li>
+          <li>Optimized drag-drop by removing animations and fixing layout issues</li>
+          <li>Fixed MongoDB update operations to return full documents correctly</li>
+          <li>Improved relation loading with error handling and WebSocket support</li>
+          <li>Enhanced data sync with increased timeouts and better error recovery</li>
+          <li>Standardized code formatting across entire codebase using Prettier and cargo fmt</li>
+        </ul>
+
+        <p>
+          <strong>Additional Features:</strong>
+        </p>
+        <ul>
+          <li>Added database management route for administrative operations</li>
+          <li>Implemented case-insensitive keyboard shortcuts</li>
+          <li>Enhanced notification services with sound handling and own-action filtering</li>
+          <li>Added new helper functions and constants for common operations</li>
+          <li>Improved auth views (login, signup, change-password) with better UX</li>
+          <li>Updated app configuration and routes for better navigation</li>
+        </ul>
+
+        <p>
+          <strong>Bug Fixes:</strong>
+        </p>
+        <ul>
+          <li>Fixed WebSocket binding to localhost instead of all interfaces for security</li>
+          <li>Fixed Kanban task/subtask status updates for team todos</li>
+          <li>Fixed category checkbox errors and bulk action animations</li>
+          <li>Fixed profile user relation loading and sync timeout issues</li>
+          <li>Removed sync status indicator from header to reduce clutter</li>
+          <li>Fixed unread comments counting and metadata resolution</li>
+        </ul>
+
+        <p>
+          <strong>Comments UX:</strong>
+        </p>
+        <ul>
+          <li>Task comment panel now shows task comments immediately and provides per-subtask
+            expand/collapse for subtask comment threads</li>
+          <li>Added subtask comment grouping with clear subtask titles and one-click navigation to the
+            Subtasks view</li>
+          <li>Deep-linking to a subtask now highlights the target subtask and auto-opens its comments
+            without opening comments for all subtasks</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.11.1" date="2026-03-08">
       <description>
         <p>Aligned status colors and labels in admin records with the main application for
