@@ -560,6 +560,9 @@ export class DataSyncProvider {
         this.storageService.updateItem("comments", comment.id, { isDeleted: true }, options);
       });
     });
+
+    // Archive chats for this todo (H-4)
+    this.storageService.clearChatsByTodo(todoId);
   }
 
   // ==================== Storage Updates ====================
@@ -591,13 +594,23 @@ export class DataSyncProvider {
     }
 
     if (table === "comments" && id) {
-      // Comments can be on tasks or subtasks - find parent todo
+      // Comments can be on tasks or subtasks - find parent todo (H-5)
       const comment = this.storageService.getById("comments", id);
       if (comment?.taskId) {
         const task = this.storageService.getById("tasks", comment.taskId);
         if (task?.todoId) {
           const todo = this.storageService.getById("todos", task.todoId);
           return todo?.visibility === "team";
+        }
+      }
+      if (comment?.subtaskId) {
+        const taskId = this.storageService.getById("subtasks", comment.subtaskId)?.taskId;
+        if (taskId) {
+          const task = this.storageService.getById("tasks", taskId);
+          if (task?.todoId) {
+            const todo = this.storageService.getById("todos", task.todoId);
+            return todo?.visibility === "team";
+          }
         }
       }
     }
