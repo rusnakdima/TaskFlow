@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, ViewChild, signal, inject } from "@angular/core";
+import { Component, OnInit, ViewChild, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 
@@ -21,6 +21,7 @@ import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { DataSyncService } from "@services/data/data-sync.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 
@@ -58,6 +59,7 @@ export class App implements OnInit {
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private storageService = inject(StorageService);
+  private profileRequiredService = inject(ProfileRequiredService);
   private dataSyncService = inject(DataSyncService);
   private dataSyncProvider = inject(DataSyncProvider);
   private localAuthService = inject(LocalAuthService);
@@ -67,6 +69,10 @@ export class App implements OnInit {
 
   url = signal<string>("");
   showComponents = signal<boolean>(true);
+  /** Show header and bottom nav only when not on auth page and not locked to create-profile */
+  showShell = computed(
+    () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
+  );
   private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];

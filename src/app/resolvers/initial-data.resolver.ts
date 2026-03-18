@@ -1,234 +1,203 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Resolve, Router } from "@angular/router";
-import { of, firstValueFrom, forkJoin, catchError, timeout } from "rxjs";
+import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
 
 /* services */
-import { DataSyncService } from "@services/data/data-sync.service";
 import { StorageService } from "@services/core/storage.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-
-/* helpers */
-import { NetworkErrorHelper } from "@helpers/network-error.helper";
+import { TodoRelations } from "@models/relations.config";
 
 /**
- * Resolver that ensures all application data is loaded before routes activate
- * OFFLINE-FIRST: App starts immediately with cached data, syncs in background
+ * Load all data from JSON DB in one batch (full relations), show it immediately,
+ * then check profile. Profile is independent; backend assembles data via relations.
  *
- * Loading Strategy:
- * 1. Check if storage already has data (from previous session) - use immediately
- * 2. Load from local JSON without relations (fast, works offline)
- * 3. Background sync loads full data with relations when network available
+ * Algorithm:
+ * 1. Get all data (todos with tasks/subtasks/assignees/user, categories, profiles with user) in one parallel batch.
+ * 2. Store in storage and show UI.
+ * 3. After load: if current user's profile is missing/incomplete → redirect to create-profile and hide header/nav.
  */
 @Injectable({
   providedIn: "root",
 })
-export class InitialDataResolver implements Resolve<any> {
-  private dataSyncService = inject(DataSyncService);
+export class InitialDataResolver implements Resolve<unknown> {
   private storageService = inject(StorageService);
+  private profileRequiredService = inject(ProfileRequiredService);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private router = inject(Router);
 
-  /**
-   * Check if we have sufficient data in storage from previous session
-   */
+  private static readonly LOAD_TIMEOUT_MS = 2000;
+
   private hasCachedData(): boolean {
-    const hasTodos = this.storageService.privateTodos().length > 0;
-    const hasCategories = this.storageService.categories().length > 0;
-    return hasTodos || hasCategories;
+    return (
+      this.storageService.privateTodos().length > 0 ||
+      this.storageService.sharedTodos().length > 0 ||
+      this.storageService.categories().length > 0
+    );
   }
 
-  /**
-   * Check profile synchronously from storage
-   * Profile is valid if it has name OR user.username
-   */
+  /** Profile is valid if it has name or user.username (for display). */
   private checkProfileSync(): boolean {
     const profile = this.storageService.profile();
     if (!profile) return false;
-
     const hasName = !!(profile.name || profile.lastName);
     const hasUsername = !!profile.user?.username;
     return hasName || hasUsername;
   }
 
-  async resolve(): Promise<any> {
-    const currentRoute = this.router.url;
+  /** Run after data is in storage: redirect to create-profile and lock shell if profile invalid. */
+  private runProfileCheckAfterLoad(): void {
+    if (this.checkProfileSync()) {
+      this.profileRequiredService.setProfileRequiredMode(false);
+      return;
+    }
+    this.profileRequiredService.setProfileRequiredMode(true);
+    this.router.navigate(["/profile/create-profile"]);
+  }
 
-    // Don't block profile routes - they don't need data loaded
-    if (currentRoute.startsWith("/profile")) {
+  async resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
+    // IMPORTANT: Use `state.url` (current navigation target), not `router.url` (can be stale
+    // during redirects). Otherwise we can get stuck in a redirect loop and appear "frozen".
+    const targetUrl = state.url || this.router.url;
+
+    if (targetUrl.startsWith("/profile")) {
+      // When user is on profile routes we must never block/redirect again from here.
+      // The create-profile page must always load even when profile is missing.
       return { loaded: true, isProfileRoute: true };
     }
 
-    // ✅ STEP 1: Check if user is authenticated (has valid token)
     const token = this.jwtTokenService.getToken();
-
     if (!token) {
-      // No token - redirect to login
       this.router.navigate(["/login"]);
       return { loaded: false, redirectToLogin: true };
     }
 
-    // ✅ STEP 2: Check if we already have data in storage (from previous session)
+    const userId = this.authService.getValueByKey("id") ?? "";
+
     if (this.hasCachedData()) {
       this.storageService.setLoaded(true);
-
-      // Trigger one background sync after delay to keep data fresh
-      this.triggerBackgroundSync();
-
+      this.runProfileCheckAfterLoad();
       return { loaded: true, hasProfile: this.checkProfileSync(), fromCache: true };
     }
 
-    // ✅ STEP 3: Load from local JSON and then sync
-    const userId = this.authService.getValueByKey("id");
-
-    // Load from local JSON first, then trigger sync
-    this.loadFromLocalJsonSimple(userId)
-      .then((hasData: boolean) => {
-        if (hasData) {
-          this.storageService.setLoaded(true);
-          this.storageService.setLastLoaded(new Date());
-        }
-
-        // ALWAYS trigger background sync after local load attempt
-        // This will load relations and sync from network
-        this.triggerBackgroundSync(2000); // Slightly longer delay if we just loaded from JSON
-      })
-      .catch((err: any) => {
-        console.warn("[InitialDataResolver] Local JSON load failed:", err);
-        this.triggerBackgroundSync(500); // Trigger sync quickly if local load failed
-      });
-
-    // ✅ CRITICAL: Always allow navigation immediately, even with empty storage
-    // User can work with empty state or create new data while background sync runs
+    const loaded = await this.loadAllDataOnce(userId);
     this.storageService.setLoaded(true);
+    if (loaded) {
+      this.storageService.setLastLoaded(new Date());
+    }
+    this.runProfileCheckAfterLoad();
 
     return {
       loaded: true,
       hasProfile: this.checkProfileSync(),
       fromCache: false,
-      isEmpty: true,
-      note: "Loading data in background...",
+      isEmpty: !loaded,
     };
   }
 
   /**
-   * Load data from local JSON WITHOUT relations (fast, offline-safe)
-   * This loads base entities only - relations are loaded on-demand by views
-   * Profile loads WITHOUT user relation to avoid MongoDB dependency
+   * One batch: load todos (full relations for assignees, tasks, subtasks), categories, profiles.
+   * Backend stores IDs and assembles full objects via relations.
    */
-  private async loadFromLocalJsonSimple(userId: string | null): Promise<boolean> {
-    if (!userId) {
-      return false;
-    }
+  private async loadAllDataOnce(userId: string): Promise<boolean> {
+    if (!userId) return false;
 
     try {
       const { invoke } = await import("@tauri-apps/api/core");
+      const t = InitialDataResolver.LOAD_TIMEOUT_MS;
 
-      // Helper to invoke with individual timeout
-      const invokeWithTimeout = async (args: any, timeoutMs: number = 1500): Promise<any> => {
-        return Promise.race([
-          invoke<any>("manageData", args),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs)),
+      const invokeWithTimeout = async (args: Record<string, unknown>, timeoutMs: number) =>
+        Promise.race([
+          invoke<{ data?: unknown }>("manageData", args),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error("Timeout")), timeoutMs)),
         ]);
-      };
 
-      // Load each entity independently with individual timeouts
-      // Include tasks/subtasks relations so the initial render shows task data immediately
-      const todoLoad = ["tasks", "tasks.subtasks", "tasks.comments", "tasks.subtasks.comments"];
+      const loadAll = TodoRelations.loadAll;
 
-      const [privateTodosRes, teamTodosRes, categoriesRes, profilesRes] = await Promise.all([
-        invokeWithTimeout(
-          {
-            operation: "getAll",
-            table: "todos",
-            filter: { userId, visibility: "private", isDeleted: false },
-            load: todoLoad,
-            syncMetadata: { isOwner: true, isPrivate: true },
-          },
-          3000
-        ),
-        invokeWithTimeout(
-          {
-            operation: "getAll",
-            table: "todos",
-            filter: { visibility: "team", isDeleted: false },
-            load: todoLoad,
-            syncMetadata: { isOwner: false, isPrivate: false },
-          },
-          3000
-        ),
-        invokeWithTimeout(
-          {
-            operation: "getAll",
-            table: "categories",
-            filter: { userId, isDeleted: false },
-            syncMetadata: { isOwner: true, isPrivate: true },
-          },
-          3000
-        ),
-        invokeWithTimeout(
-          {
-            operation: "getAll",
-            table: "profiles",
-            filter: { userId },
-            load: ["user"],
-            syncMetadata: { isOwner: true, isPrivate: true },
-          },
-          3000
-        ),
-      ]);
+      const [privateRes, teamOwnerRes, teamAssigneeRes, categoriesRes, profilesRes] =
+        await Promise.all([
+          invokeWithTimeout(
+            {
+              operation: "getAll",
+              table: "todos",
+              filter: { userId, visibility: "private", isDeleted: false },
+              load: loadAll,
+              syncMetadata: { isOwner: true, isPrivate: true },
+            },
+            t
+          ).catch(() => null),
+          invokeWithTimeout(
+            {
+              operation: "getAll",
+              table: "todos",
+              filter: { userId, visibility: "team", isDeleted: false },
+              load: loadAll,
+              syncMetadata: { isOwner: true, isPrivate: false },
+            },
+            t
+          ).catch(() => null),
+          invokeWithTimeout(
+            {
+              operation: "getAll",
+              table: "todos",
+              filter: { assignees: userId, visibility: "team", isDeleted: false },
+              load: loadAll,
+              syncMetadata: { isOwner: false, isPrivate: false },
+            },
+            t
+          ).catch(() => null),
+          invokeWithTimeout(
+            {
+              operation: "getAll",
+              table: "categories",
+              filter: { userId, isDeleted: false },
+              syncMetadata: { isOwner: true, isPrivate: true },
+            },
+            t
+          ).catch(() => null),
+          invokeWithTimeout(
+            {
+              operation: "getAll",
+              table: "profiles",
+              filter: { userId },
+              load: ["user"],
+              syncMetadata: { isOwner: true, isPrivate: true },
+            },
+            t
+          ).catch(() => null),
+        ]);
 
-      const privateTodos = privateTodosRes?.data || [];
-      const teamTodos = teamTodosRes?.data || [];
-      const categories = categoriesRes?.data || [];
-      const profiles = profilesRes?.data || [];
+      const privateTodos = (privateRes?.data as unknown[]) ?? [];
+      const teamOwner = (teamOwnerRes?.data as unknown[]) ?? [];
+      const teamAssignee = (teamAssigneeRes?.data as unknown[]) ?? [];
+      const categories = (categoriesRes?.data as unknown[]) ?? [];
+      const profiles = (profilesRes?.data as unknown[]) ?? [];
 
-      // Store in storage
-      if (privateTodos && privateTodos.length > 0) {
-        this.storageService.setCollection("privateTodos", privateTodos);
+      if (privateTodos.length > 0) {
+        this.storageService.setCollection("privateTodos", privateTodos as any);
       }
-      if (teamTodos && teamTodos.length > 0) {
-        this.storageService.setCollection("sharedTodos", teamTodos);
+      const sharedMap = new Map<string, unknown>();
+      [...teamOwner, ...teamAssignee].forEach((todo: any) => sharedMap.set(todo.id, todo));
+      const sharedTodos = Array.from(sharedMap.values());
+      if (sharedTodos.length > 0) {
+        this.storageService.setCollection("sharedTodos", sharedTodos as any);
       }
-      if (categories && categories.length > 0) {
-        this.storageService.setCollection("categories", categories);
+      if (categories.length > 0) {
+        this.storageService.setCollection("categories", categories as any);
       }
-      if (profiles && profiles.length > 0) {
-        this.storageService.setCollection("profiles", profiles[0] || profiles);
+      const profileOne = Array.isArray(profiles) ? profiles[0] : profiles;
+      if (profileOne) {
+        this.storageService.setCollection("profiles", profileOne as any);
       }
 
-      return privateTodos.length > 0 || categories.length > 0 || profiles.length > 0;
-    } catch (error) {
-      console.warn("Local JSON load failed or timed out:", error);
+      return (
+        privateTodos.length > 0 || sharedTodos.length > 0 || categories.length > 0 || !!profileOne
+      );
+    } catch (e) {
+      console.warn("[InitialDataResolver] loadAllDataOnce failed:", e);
       return false;
     }
-  }
-
-  /**
-   * Trigger ONE background synchronization to load full data with relations
-   */
-  private triggerBackgroundSync(delayMs: number = 1000): void {
-    setTimeout(() => {
-      // Load all data with relations from network/local
-      this.dataSyncService.loadAllData(true).subscribe({
-        next: () => {
-          this.storageService.setLoaded(true);
-          this.storageService.setLastLoaded(new Date());
-        },
-        error: (err) => {
-          console.warn("[InitialDataResolver] Background data sync failed:", err);
-        },
-      });
-
-      // Load profile with user data
-      this.dataSyncService.loadProfile().subscribe({
-        next: () => {},
-        error: (err) => {
-          console.warn("[InitialDataResolver] Background profile sync failed:", err);
-        },
-      });
-    }, delayMs);
   }
 }
