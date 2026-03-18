@@ -206,7 +206,8 @@
 
         @if (showComments()) {
           <app-comments
-            [comments]="getActiveComments(task.comments)"
+            title="Task comments"
+            [comments]="taskOnlyCommentsForPanel()"
             [taskId]="task.id"
             [isOwner]="isOwner"
             [isPrivate]="isPrivate"
@@ -217,6 +218,75 @@
             (markAsReadEvent)="onMarkAsRead($event)"
             (click)="$event.stopPropagation()"
           />
+
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700" (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold textNormal flex items-center gap-2">
+                <mat-icon class="w-4! h-4! text-xl!" fontIcon="subdirectory_arrow_right" />
+                Subtask comments
+              </h4>
+              <span class="text-[10px] textMuted">
+                {{ subtaskCommentGroups().length }} subtasks
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              @for (group of subtaskCommentGroups(); track group.subtaskId) {
+                <div
+                  class="rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/60 dark:bg-zinc-800/30"
+                  [ngClass]="{ 'ring-2 ring-purple-500 animate-pulse': shouldHighlightExpandedSubtask(group.subtaskId) }"
+                >
+                  <div class="flex items-center justify-between p-3">
+                    <button
+                      class="flex items-center gap-2 text-sm font-semibold textNormal hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                      (click)="$event.stopPropagation(); toggleInlineSubtaskComments(group.subtaskId)"
+                      title="Expand/collapse this subtask's comments"
+                    >
+                      <mat-icon
+                        class="w-4! h-4! text-lg!"
+                        [fontIcon]="isSubtaskExpanded(group.subtaskId) ? 'expand_less' : 'expand_more'"
+                      />
+                      <span class="truncate">{{ group.title }}</span>
+                      @if (group.comments.length > 0) {
+                        <span class="ml-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                          {{ group.comments.length }}
+                        </span>
+                      }
+                    </button>
+
+                    <button
+                      class="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 transition-colors"
+                      (click)="$event.stopPropagation(); navigateToSubtaskComments(group.subtaskId)"
+                      title="Open in Subtasks view"
+                    >
+                      <mat-icon class="w-4! h-4! text-lg!" fontIcon="open_in_new" />
+                    </button>
+                  </div>
+
+                  @if (isSubtaskExpanded(group.subtaskId)) {
+                    <div class="px-3 pb-3">
+                      <app-comments
+                        [title]="'Subtask: ' + group.title"
+                        [comments]="group.comments"
+                        [taskId]="task.id"
+                        [subtaskId]="group.subtaskId"
+                        [isOwner]="isOwner"
+                        [isPrivate]="isPrivate"
+                        (addCommentEvent)="onAddSubtaskComment(group.subtaskId, $event)"
+                        (deleteCommentEvent)="onDeleteComment($event)"
+                        (markAsReadEvent)="onMarkSubtaskCommentsAsRead(group.subtaskId, $event)"
+                        (click)="$event.stopPropagation()"
+                      />
+                    </div>
+                  }
+                </div>
+              } @empty {
+                <div class="flex items-center justify-center py-4 text-xs textMuted">
+                  No subtasks yet
+                </div>
+              }
+            </div>
+          </div>
         }
       </div>
 
@@ -299,12 +369,11 @@
                 ></div>
               }
               @if (
-                task.comments &&
-                getActiveComments(task.comments).length > 0 &&
+                totalCommentsForBadge() > 0 &&
                 unreadCommentsCount === 0
               ) {
                 <span class="text-[10px] font-bold">{{
-                  getActiveComments(task.comments).length
+                  totalCommentsForBadge()
                 }}</span>
               }
             </div>

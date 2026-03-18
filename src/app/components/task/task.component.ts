@@ -12,6 +12,7 @@ import {
   SimpleChanges,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  computed,
 } from "@angular/core";
 
 /* base */
@@ -37,6 +38,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { NotifyService } from "@services/notifications/notify.service";
+import { Router } from "@angular/router";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
@@ -65,6 +67,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(DataSyncProvider);
   private notifyService = inject(NotifyService);
+  private router = inject(Router);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -91,10 +94,49 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     new EventEmitter();
 
   showComments = signal(false);
+  /** Inline expanded subtask comment blocks (by subtaskId) */
+  expandedSubtaskCommentIds = signal<Set<string>>(new Set());
+  private highlightedExpandedSubtaskId = signal<string | null>(null);
+
+  /** Task as signal so computed can react to input changes */
+  private taskForComments = signal<Task | null>(null);
+
+  /** Task-only comments for the main comment panel */
+  taskOnlyCommentsForPanel = computed(() => {
+    const task = this.taskForComments();
+    if (!task) return [];
+
+    const taskComments = this.getActiveComments(task.comments);
+    return taskComments;
+  });
+
+  /** Subtask rows (always available for list + inline expand) */
+  subtaskCommentGroups = computed(() => {
+    const task = this.taskForComments();
+    if (!task) return [] as Array<{ subtaskId: string; title: string; comments: Comment[] }>;
+
+    return (task.subtasks || [])
+      .map((s: any) => ({
+        subtaskId: s.id,
+        title: s.title || "Untitled subtask",
+        comments: this.getActiveComments(s.comments),
+      }))
+      .map((g) => ({ ...g, comments: g.comments }));
+  });
+
+  /** Total active comments (task + subtasks) used for the small badge near the comment icon */
+  totalCommentsForBadge = computed(() => {
+    const taskCount = this.taskOnlyCommentsForPanel().length;
+    const subtaskCount = this.subtaskCommentGroups().reduce((sum, g) => sum + g.comments.length, 0);
+    return taskCount + subtaskCount;
+  });
 
   ngOnInit() {}
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes["task"]) {
+      this.taskForComments.set(this.task ?? null);
+    }
     if (changes["autoOpenComments"]?.currentValue === true) {
       this.showComments.set(true);
       this.cdr.markForCheck();
@@ -189,6 +231,41 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     this.cdr.markForCheck();
   }
 
+  toggleInlineSubtaskComments(subtaskId: string) {
+    this.expandedSubtaskCommentIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(subtaskId)) next.delete(subtaskId);
+      else next.add(subtaskId);
+      return next;
+    });
+    this.highlightedExpandedSubtaskId.set(subtaskId);
+    setTimeout(() => {
+      if (this.highlightedExpandedSubtaskId() === subtaskId) this.highlightedExpandedSubtaskId.set(null);
+    }, 1600);
+    this.cdr.markForCheck();
+  }
+
+  isSubtaskExpanded(subtaskId: string): boolean {
+    return this.expandedSubtaskCommentIds().has(subtaskId);
+  }
+
+  shouldHighlightExpandedSubtask(subtaskId: string): boolean {
+    return this.highlightedExpandedSubtaskId() === subtaskId;
+  }
+
+  navigateToSubtaskComments(subtaskId: string) {
+    if (!this.task) return;
+    const effectiveTodoId = this.todoId || this.task.todoId;
+    if (!effectiveTodoId) return;
+
+    this.router.navigate(["/todos", effectiveTodoId, "tasks", this.task.id, "subtasks"], {
+      queryParams: {
+        highlightSubtask: subtaskId,
+        openComments: true,
+      },
+    });
+  }
+
   onAddComment(content: string) {
     if (this.task) {
       const userId = this.authService.getValueByKey("id");
@@ -227,6 +304,43 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     }
   }
 
+  onAddSubtaskComment(subtaskId: string, content: string) {
+    if (!this.task) return;
+    const userId = this.authService.getValueByKey("id");
+    const username = this.authService.getValueByKey("username");
+    const effectiveTodoId = this.todoId || this.task.todoId;
+
+    if (!userId || !effectiveTodoId) {
+      this.notifyService.showError("Cannot add comment: User or Project not found");
+      return;
+    }
+
+    const commentForBackend: any = {
+      authorId: userId,
+      authorName: username || "Unknown",
+      content,
+      subtaskId,
+      readBy: [userId],
+      isDeleted: false,
+    };
+
+    this.dataSyncProvider
+      .crud<Comment>("create", "comments", {
+        data: commentForBackend,
+        parentTodoId: effectiveTodoId,
+      })
+      .subscribe({
+        next: () => {
+          this.showComments.set(true);
+          this.expandedSubtaskCommentIds.update((set) => new Set(set).add(subtaskId));
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add comment");
+        },
+      });
+  }
+
   onDeleteComment(commentId: string) {
     const effectiveTodoId = this.todoId || this.task?.todoId;
     if (effectiveTodoId) {
@@ -258,6 +372,47 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           value: updatedComments,
         });
       }
+    }
+  }
+
+  onMarkSubtaskCommentsAsRead(subtaskId: string, commentIds: string[]) {
+    const userId = this.authService.getValueByKey("id");
+    const effectiveTodoId = this.todoId || this.task?.todoId;
+    if (!this.task || !userId || !effectiveTodoId || commentIds.length === 0) return;
+
+    let changed = false;
+    const updatedSubtasks = (this.task.subtasks || []).map((s: any) => {
+      if (s.id !== subtaskId) return s;
+      const updatedComments = (s.comments || []).map((c: any) => {
+        if (!commentIds.includes(c.id)) return c;
+        const readBy = c.readBy || [];
+        if (!readBy.includes(userId)) {
+          changed = true;
+          return { ...c, readBy: [...readBy, userId] };
+        }
+        return c;
+      });
+      return { ...s, comments: updatedComments };
+    });
+
+    if (!changed) return;
+
+    this.storageService.updateItem("tasks", this.task.id, {
+      ...this.task,
+      subtasks: updatedSubtasks,
+    });
+
+    const commentsToUpdate = updatedSubtasks
+      .find((s: any) => s.id === subtaskId)
+      ?.comments?.filter((c: any) => commentIds.includes(c.id) && !c.isDeleted && c.authorId !== userId);
+
+    if (commentsToUpdate && commentsToUpdate.length > 0) {
+      this.dataSyncProvider
+        .crud("updateAll", "comments", {
+          data: commentsToUpdate.map((c: any) => ({ id: c.id, readBy: c.readBy })),
+          parentTodoId: effectiveTodoId,
+        })
+        .subscribe();
     }
   }
 

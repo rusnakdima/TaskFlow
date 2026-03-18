@@ -5,8 +5,9 @@
  * Relations to tasks/subtasks are maintained via foreign keys
  */
 
-import { Injectable, signal, computed, Signal, WritableSignal } from "@angular/core";
+import { Injectable, signal, computed, Signal, WritableSignal, inject } from "@angular/core";
 import { Comment } from "@models/comment.model";
+import { SubtaskStore } from "@stores/subtask.store";
 import {
   deduplicateAndFilterDeleted,
   addEntityToArray,
@@ -35,6 +36,7 @@ const initialState: CommentState = {
 })
 export class CommentStore {
   private readonly state: WritableSignal<CommentState> = signal(initialState);
+  private readonly subtaskStore = inject(SubtaskStore);
 
   // ==================== COMPUTED SIGNALS ====================
 
@@ -159,18 +161,14 @@ export class CommentStore {
   // ==================== HELPER METHODS ====================
 
   /**
-   * Check if a subtask belongs to a specific task.
-   * Uses comments that carry both subtaskId and taskId as a join table (M-3).
-   * Falls back to true when no such comment exists yet (permissive — avoids hiding comments).
+   * Check if a subtask belongs to a specific task using the subtask's taskId (fixes M-3).
+   * Falls back to true when subtask is not found (e.g. not loaded yet) to avoid hiding comments.
    */
   private isSubtaskOfTask(subtaskId: string, taskId: string): boolean {
-    const linking = this.state().comments.find(
-      (c) => c.subtaskId === subtaskId && c.taskId != null
-    );
-    if (linking) {
-      return linking.taskId === taskId;
+    const subtask = this.subtaskStore.subtaskById(subtaskId);
+    if (!subtask) {
+      return true; // permissive: don't hide comments when subtask not yet loaded
     }
-    // No linking comment found — include the comment to avoid false negatives
-    return true;
+    return subtask.taskId === taskId;
   }
 }
