@@ -75,15 +75,69 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         ? (updates as any).todoId || this.lookupTodoId(id)
         : (updates as any).taskId || this.lookupTaskId(id);
 
-    if (!entityId) return;
-
     // For subtasks, resolve taskId to todoId
     let todoId: string | null = entityId;
     if (this.entityType === "subtasks") {
-      todoId = this.lookupTodoId(entityId);
-      if (!todoId) {
-        return;
+      todoId = entityId ? this.lookupTodoId(entityId) : null;
+    }
+
+    // If we still can't locate the parent, scan all todos and apply the update wherever
+    // the entity is found (M-2: handles the case where the signal hasn't propagated yet)
+    if (!todoId) {
+      const todos = [...this.privateSignal(), ...this.sharedSignal()];
+      for (const todo of todos) {
+        if (this.entityType === "tasks" && todo.tasks?.some((t) => t.id === id)) {
+          this.updateSignal(this.privateSignal, todo.id, (t) => ({
+            ...t,
+            tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
+            updatedAt: new Date().toISOString(),
+          }));
+          this.updateSignal(this.sharedSignal, todo.id, (t) => ({
+            ...t,
+            tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
+            updatedAt: new Date().toISOString(),
+          }));
+          return;
+        }
+        if (this.entityType === "subtasks") {
+          for (const task of todo.tasks || []) {
+            if (task.subtasks?.some((s) => s.id === id)) {
+              this.updateSignal(this.privateSignal, todo.id, (t) => ({
+                ...t,
+                tasks:
+                  t.tasks?.map((tk) =>
+                    tk.id === task.id
+                      ? {
+                          ...tk,
+                          subtasks: tk.subtasks?.map((s) =>
+                            s.id === id ? { ...s, ...updates } : s
+                          ),
+                        }
+                      : tk
+                  ) ?? [],
+                updatedAt: new Date().toISOString(),
+              }));
+              this.updateSignal(this.sharedSignal, todo.id, (t) => ({
+                ...t,
+                tasks:
+                  t.tasks?.map((tk) =>
+                    tk.id === task.id
+                      ? {
+                          ...tk,
+                          subtasks: tk.subtasks?.map((s) =>
+                            s.id === id ? { ...s, ...updates } : s
+                          ),
+                        }
+                      : tk
+                  ) ?? [],
+                updatedAt: new Date().toISOString(),
+              }));
+              return;
+            }
+          }
+        }
       }
+      return;
     }
 
     this.updateTodo(todoId, (todo) => {

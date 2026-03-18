@@ -52,7 +52,18 @@ export class CommentHandler extends EntityHandler<Comment> {
   }
 
   update(id: string, updates: Partial<Comment>): void {
-    this.remove(id);
+    this.updateTodo(null, (todo) => ({
+      ...todo,
+      tasks: todo.tasks?.map((task) => ({
+        ...task,
+        comments: task.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        subtasks: task.subtasks?.map((subtask) => ({
+          ...subtask,
+          comments: subtask.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    }));
   }
 
   remove(id: string): void {
