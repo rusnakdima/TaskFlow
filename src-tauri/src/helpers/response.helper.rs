@@ -33,7 +33,7 @@ pub fn successResponse<T: Into<DataValue>>(data: T) -> ResponseModel {
 
 /// Check if MongoDB provider is available, return error if not
 /// This is a helper to avoid duplicating MongoDB availability checks
-pub fn require_mongo(
+pub fn requireMongo(
   mongodbProvider: &Option<Arc<MongodbProvider>>,
 ) -> Result<&Arc<MongodbProvider>, ResponseModel> {
   mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
