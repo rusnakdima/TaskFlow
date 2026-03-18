@@ -32,19 +32,19 @@ impl RoutedRepository {
     tableName: String,
   ) -> Self {
     // Initialize MongoDB health status
-    let mongo_healthy = mongodbProvider.is_some();
+    let mongoHealthy = mongodbProvider.is_some();
 
     Self {
       jsonProvider,
       mongodbProvider,
       tableName,
-      mongoHealthy: Arc::new(std::sync::atomic::AtomicBool::new(mongo_healthy)),
+      mongoHealthy: Arc::new(std::sync::atomic::AtomicBool::new(mongoHealthy)),
     }
   }
 
   /// Create a scoped repository for a specific table, sharing the same health-tracking AtomicBool.
   /// This preserves MongoDB health state across calls instead of resetting it each time.
-  pub fn for_table(&self, tableName: String) -> Self {
+  pub fn forTable(&self, tableName: String) -> Self {
     Self {
       jsonProvider: self.jsonProvider.clone(),
       mongodbProvider: self.mongodbProvider.clone(),
@@ -53,7 +53,7 @@ impl RoutedRepository {
     }
   }
 
-  fn get_mongo(&self) -> Result<&Arc<MongodbProvider>, String> {
+  fn getMongo(&self) -> Result<&Arc<MongodbProvider>, String> {
     self
       .mongodbProvider
       .as_ref()
@@ -118,7 +118,7 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self.get_mongo()?;
+      let mongoProvider = self.getMongo()?;
 
       match mongoProvider
         .mongodbCrud
@@ -152,7 +152,7 @@ impl RoutedRepository {
         .await
         .map_err(|e| e.to_string())
     } else {
-      let mongoProvider = self.get_mongo()?;
+      let mongoProvider = self.getMongo()?;
 
       match mongoProvider.mongodbCrud.get(&self.tableName, id).await {
         Ok(data) => {
@@ -186,7 +186,7 @@ impl RoutedRepository {
         .map_err(|e| e.to_string())
     } else {
       self
-        .get_mongo()?
+        .getMongo()?
         .mongodbCrud
         .create(&self.tableName, data)
         .await
@@ -209,7 +209,7 @@ impl RoutedRepository {
         .map_err(|e| e.to_string())
     } else {
       self
-        .get_mongo()?
+        .getMongo()?
         .mongodbCrud
         .update(&self.tableName, id, data)
         .await
@@ -231,7 +231,7 @@ impl RoutedRepository {
         .map_err(|e| e.to_string())
     } else {
       self
-        .get_mongo()?
+        .getMongo()?
         .mongodbCrud
         .delete(&self.tableName, id)
         .await
@@ -252,7 +252,7 @@ impl RoutedRepository {
         .map_err(|e| e.to_string())
     } else {
       self
-        .get_mongo()?
+        .getMongo()?
         .hardDelete(&self.tableName, id)
         .await
         .map_err(|e| e.to_string())
@@ -272,7 +272,7 @@ impl RoutedRepository {
         .map_err(|e| e.to_string())
     } else {
       self
-        .get_mongo()?
+        .getMongo()?
         .mongodbCrud
         .updateAll(&self.tableName, records)
         .await
