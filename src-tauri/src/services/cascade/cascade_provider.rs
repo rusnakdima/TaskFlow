@@ -15,21 +15,21 @@ pub trait CascadeProvider {
   ///
   /// # Returns
   /// * `Result<CascadeIds, ResponseModel>` - IDs of all cascaded entities on success
-  async fn delete_with_cascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel>;
+  async fn deleteWithCascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel>;
 
   /// Archive/Restore an entity and all its children with cascade
   ///
   /// # Arguments
   /// * `table` - The table/collection name (e.g., "todos", "tasks")
   /// * `id` - The ID of the entity to archive/restore
-  /// * `is_restore` - If true, restore the entity; if false, archive it
+  /// * `isRestore` - If true, restore the entity; if false, archive it
   ///
   /// # Returns
   /// * `Result<CascadeIds, ResponseModel>` - IDs of all cascaded entities on success
-  async fn archive_with_cascade(
+  async fn archiveWithCascade(
     &self,
     table: &str,
     id: &str,
-    is_restore: bool,
+    isRestore: bool,
   ) -> Result<CascadeIds, ResponseModel>;
 }

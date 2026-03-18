@@ -26,15 +26,15 @@ impl JsonCascadeHandler {
 
 /// Implement CascadeProvider trait for JsonCascadeHandler
 impl CascadeProvider for JsonCascadeHandler {
-  async fn delete_with_cascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
+  async fn deleteWithCascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
     self.collectCascadeIds(table, id).await
   }
 
-  async fn archive_with_cascade(
+  async fn archiveWithCascade(
     &self,
     table: &str,
     id: &str,
-    _is_restore: bool,
+    _isRestore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
     self.collectCascadeIds(table, id).await
   }
@@ -47,105 +47,79 @@ impl JsonCascadeHandler {
     table: &str,
     id: &str,
   ) -> Result<CascadeIds, ResponseModel> {
-    let mut cascade_ids = CascadeIds::default();
-    let mut visited_todos = HashSet::new();
-    let mut visited_tasks = HashSet::new();
-    let mut visited_subtasks = HashSet::new();
+    let mut cascadeIds = CascadeIds::default();
+    let mut visitedTodos = HashSet::new();
+    let mut visitedTasks = HashSet::new();
+    let mut visitedSubtasks = HashSet::new();
 
     // Queue for BFS: (table, id)
     let mut queue: VecDeque<(String, String)> = VecDeque::new();
     queue.push_back((table.to_string(), id.to_string()));
 
-    while let Some((current_table, current_id)) = queue.pop_front() {
+    while let Some((currentTable, currentId)) = queue.pop_front() {
       // Check visited BEFORE processing to prevent duplicates
-      let already_visited = match current_table.as_str() {
-        "todos" => !visited_todos.insert(current_id.clone()),
-        "tasks" => !visited_tasks.insert(current_id.clone()),
-        "subtasks" => !visited_subtasks.insert(current_id.clone()),
+      let alreadyVisited = match currentTable.as_str() {
+        "todos" => !visitedTodos.insert(currentId.clone()),
+        "tasks" => !visitedTasks.insert(currentId.clone()),
+        "subtasks" => !visitedSubtasks.insert(currentId.clone()),
         _ => false,
       };
 
-      if already_visited {
+      if alreadyVisited {
         continue;
       }
 
-      if current_table == "todos" {
+      if currentTable == "todos" {
         self
-          .collectTodoChildren(&current_id, &mut cascade_ids, &mut queue)
+          .collectTodoChildren(&currentId, &mut cascadeIds, &mut queue)
           .await?;
-      } else if current_table == "tasks" {
+      } else if currentTable == "tasks" {
         self
-          .collectTaskChildren(&current_id, &mut cascade_ids)
+          .collectTaskChildren(&currentId, &mut cascadeIds)
           .await?;
-      } else if current_table == "subtasks" {
+      } else if currentTable == "subtasks" {
         self
-          .collectSubtaskChildren(&current_id, &mut cascade_ids)
+          .collectSubtaskChildren(&currentId, &mut cascadeIds)
           .await?;
       }
     }
 
-    Ok(cascade_ids)
+    Ok(cascadeIds)
   }
 
   /// Collect children for a todo (tasks, comments, and chats)
   /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTodoChildren(
     &self,
-    todo_id: &str,
-    cascade_ids: &mut CascadeIds,
+    todoId: &str,
+    cascadeIds: &mut CascadeIds,
     queue: &mut VecDeque<(String, String)>,
   ) -> Result<(), ResponseModel> {
     // Fetch ALL tasks for this todo (including deleted ones for proper cascade)
     let tasks: Vec<serde_json::Value> = self
       .jsonProvider
-      .getAllWithDeleted("tasks", Some(json!({"todoId": todo_id})))
+      .getAllWithDeleted("tasks", Some(json!({"todoId": todoId})))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
     for task in tasks {
-      if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
-        let task_id_str = task_id.to_string();
-        cascade_ids.task_ids.push(task_id_str.clone());
-        queue.push_back(("tasks".to_string(), task_id_str));
-
-        // Collect ALL task comments (including deleted ones)
-        let task_comments: Vec<serde_json::Value> = self
-          .jsonProvider
-          .getAllWithDeleted("comments", Some(json!({"taskId": task_id})))
-          .await
-          .unwrap_or_default();
-
-        for comment in task_comments {
-          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-            cascade_ids.comment_ids.push(comment_id.to_string());
-          }
-        }
-      }
-    }
-
-    // Collect ALL todo-level comments (comments directly on todo, not on tasks)
-    let todo_comments: Vec<serde_json::Value> = self
-      .jsonProvider
-      .getAllWithDeleted("comments", Some(json!({"todoId": todo_id})))
-      .await
-      .unwrap_or_default();
-
-    for comment in todo_comments {
-      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.comment_ids.push(comment_id.to_string());
+      if let Some(taskId) = task.get("id").and_then(|v| v.as_str()) {
+        let taskIdStr = taskId.to_string();
+        cascadeIds.addTaskId(taskIdStr.clone());
+        queue.push_back(("tasks".to_string(), taskIdStr));
       }
     }
 
     // Fetch ALL chats for this todo (including deleted ones)
     let chats: Vec<serde_json::Value> = self
       .jsonProvider
-      .getAllWithDeleted("chats", Some(json!({ "todoId": todo_id })))
+      .getAllWithDeleted("chats", Some(json!({ "todoId": todoId })))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
     for chat in chats {
-      if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.chat_ids.push(chat_id.to_string());
+      if let Some(chatId) = chat.get("id").and_then(|v| v.as_str()) {
+        cascadeIds.addChatId(chatId.to_string());
       }
     }
 
@@ -156,46 +130,46 @@ impl JsonCascadeHandler {
   /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectTaskChildren(
     &self,
-    task_id: &str,
-    cascade_ids: &mut CascadeIds,
+    taskId: &str,
+    cascadeIds: &mut CascadeIds,
   ) -> Result<(), ResponseModel> {
     // Fetch ALL subtasks for this task (including deleted ones)
     let subtasks: Vec<serde_json::Value> = self
       .jsonProvider
-      .getAllWithDeleted("subtasks", Some(json!({"taskId": task_id})))
+      .getAllWithDeleted("subtasks", Some(json!({"taskId": taskId})))
       .await
       .map_err(|e| errResponseFormatted("Cascade failed", &e.to_string()))?;
 
     for subtask in subtasks {
-      if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
-        let subtask_id_str = subtask_id.to_string();
-        cascade_ids.subtask_ids.push(subtask_id_str.clone());
+      if let Some(subtaskId) = subtask.get("id").and_then(|v| v.as_str()) {
+        let subtaskIdStr = subtaskId.to_string();
+        cascadeIds.addSubtaskId(subtaskIdStr.clone());
 
         // Collect ALL subtask comments (including deleted ones)
-        let subtask_comments: Vec<serde_json::Value> = self
+        let subtaskComments: Vec<serde_json::Value> = self
           .jsonProvider
-          .getAllWithDeleted("comments", Some(json!({"subtaskId": subtask_id})))
+          .getAllWithDeleted("comments", Some(json!({"subtaskId": subtaskId})))
           .await
           .unwrap_or_default();
 
-        for comment in subtask_comments {
-          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-            cascade_ids.comment_ids.push(comment_id.to_string());
+        for comment in subtaskComments {
+          if let Some(commentId) = comment.get("id").and_then(|v| v.as_str()) {
+            cascadeIds.addCommentId(commentId.to_string());
           }
         }
       }
     }
 
     // Collect ALL task-level comments (comments directly on task, not on subtasks)
-    let task_comments: Vec<serde_json::Value> = self
+    let taskComments: Vec<serde_json::Value> = self
       .jsonProvider
-      .getAllWithDeleted("comments", Some(json!({"taskId": task_id})))
+      .getAllWithDeleted("comments", Some(json!({"taskId": taskId})))
       .await
       .unwrap_or_default();
 
-    for comment in task_comments {
-      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.comment_ids.push(comment_id.to_string());
+    for comment in taskComments {
+      if let Some(commentId) = comment.get("id").and_then(|v| v.as_str()) {
+        cascadeIds.addCommentId(commentId.to_string());
       }
     }
 
@@ -206,19 +180,19 @@ impl JsonCascadeHandler {
   /// Uses getAllWithDeleted to fetch ALL children regardless of isDeleted status
   async fn collectSubtaskChildren(
     &self,
-    subtask_id: &str,
-    cascade_ids: &mut CascadeIds,
+    subtaskId: &str,
+    cascadeIds: &mut CascadeIds,
   ) -> Result<(), ResponseModel> {
     // Collect ALL subtask comments (including deleted ones)
-    let subtask_comments: Vec<serde_json::Value> = self
+    let subtaskComments: Vec<serde_json::Value> = self
       .jsonProvider
-      .getAllWithDeleted("comments", Some(json!({"subtaskId": subtask_id})))
+      .getAllWithDeleted("comments", Some(json!({"subtaskId": subtaskId})))
       .await
       .unwrap_or_default();
 
-    for comment in subtask_comments {
-      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-        cascade_ids.comment_ids.push(comment_id.to_string());
+    for comment in subtaskComments {
+      if let Some(commentId) = comment.get("id").and_then(|v| v.as_str()) {
+        cascadeIds.addCommentId(commentId.to_string());
       }
     }
 
@@ -230,40 +204,40 @@ impl JsonCascadeHandler {
     &self,
     table: &str,
     id: &str,
-    is_restore: bool,
+    isRestore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
     // Collect all IDs to cascade
-    let cascade_ids = self.collectCascadeIds(table, id).await?;
+    let cascadeIds = self.collectCascadeIds(table, id).await?;
 
-    let update_data = json!({ "isDeleted": !is_restore });
+    let updateData = json!({ "isDeleted": !isRestore });
 
     // Batch update all tables using updateAll
-    if !cascade_ids.task_ids.is_empty() {
+    if !cascadeIds.taskIds.is_empty() {
       let _ = self
-        .batchUpdate("tasks", &cascade_ids.task_ids, &update_data)
+        .batchUpdate("tasks", &cascadeIds.taskIds, &updateData)
         .await?;
     }
 
-    if !cascade_ids.subtask_ids.is_empty() {
+    if !cascadeIds.subtaskIds.is_empty() {
       let _ = self
-        .batchUpdate("subtasks", &cascade_ids.subtask_ids, &update_data)
+        .batchUpdate("subtasks", &cascadeIds.subtaskIds, &updateData)
         .await?;
     }
 
     // Batch update comments
-    if !cascade_ids.comment_ids.is_empty() {
+    if !cascadeIds.commentIds.is_empty() {
       let _ = self
-        .batchUpdate("comments", &cascade_ids.comment_ids, &update_data)
+        .batchUpdate("comments", &cascadeIds.commentIds, &updateData)
         .await?;
     }
 
-    if !cascade_ids.chat_ids.is_empty() {
+    if !cascadeIds.chatIds.is_empty() {
       let _ = self
-        .batchUpdate("chats", &cascade_ids.chat_ids, &update_data)
+        .batchUpdate("chats", &cascadeIds.chatIds, &updateData)
         .await?;
     }
 
-    Ok(cascade_ids)
+    Ok(cascadeIds)
   }
 
   /// Batch update using updateAll - single disk write operation
@@ -278,13 +252,13 @@ impl JsonCascadeHandler {
     }
 
     // Prepare updated records
-    let updated_records = self.prepareUpdatedRecords(table, ids, update_data).await?;
-    let count = updated_records.len();
+    let updatedRecords = self.prepareUpdatedRecords(table, ids, update_data).await?;
+    let count = updatedRecords.len();
 
     if count > 0 {
       self
         .jsonProvider
-        .updateAll(table, updated_records)
+        .updateAll(table, updatedRecords)
         .await
         .map_err(|e| errResponseFormatted("Cascade batch update failed", &e.to_string()))?;
     }
@@ -297,28 +271,28 @@ impl JsonCascadeHandler {
     &self,
     table: &str,
     ids: &[String],
-    update_data: &serde_json::Value,
+    updateData: &serde_json::Value,
   ) -> Result<Vec<serde_json::Value>, ResponseModel> {
     if ids.is_empty() {
       return Ok(Vec::new());
     }
 
     let timestamp = crate::helpers::timestamp_helper::getCurrentTimestamp();
-    let mut updated_records: Vec<serde_json::Value> = Vec::with_capacity(ids.len());
+    let mut updatedRecords: Vec<serde_json::Value> = Vec::with_capacity(ids.len());
 
     for id in ids {
       if let Ok(mut record) = self.jsonProvider.get(table, id).await {
-        if let Some(record_obj) = record.as_object_mut() {
-          record_obj.insert("isDeleted".to_string(), update_data["isDeleted"].clone());
-          record_obj.insert(
+        if let Some(recordObj) = record.as_object_mut() {
+          recordObj.insert("isDeleted".to_string(), updateData["isDeleted"].clone());
+          recordObj.insert(
             "updatedAt".to_string(),
             serde_json::Value::String(timestamp.clone()),
           );
-          updated_records.push(record);
+          updatedRecords.push(record);
         }
       }
     }
 
-    Ok(updated_records)
+    Ok(updatedRecords)
   }
 }
