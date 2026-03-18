@@ -5,7 +5,6 @@ import {
   of,
   forkJoin,
   catchError,
-  BehaviorSubject,
   filter,
   take,
   defer,
@@ -43,7 +42,8 @@ export class DataSyncService {
   private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
   private readonly OFFLINE_TIMEOUT_MS = 8000; // Enough time for 4 parallel requests with relations
   private loadInProgress = false;
-  private loadSubject = new BehaviorSubject<any>(null);
+  // Fresh Subject per in-flight load — no stale replay on force-refresh (H-2)
+  private loadSubject: Subject<any> | null = null;
 
   /**
    * Load all application data (todos and categories)
@@ -69,15 +69,13 @@ export class DataSyncService {
       });
     }
 
-    // If already loading, return the existing observable
-    if (this.loadInProgress) {
-      return this.loadSubject.asObservable().pipe(
-        filter((data) => data !== null),
-        take(1)
-      );
+    // If already loading, subscribe to the in-flight subject (no stale replay)
+    if (this.loadInProgress && this.loadSubject) {
+      return this.loadSubject.asObservable().pipe(take(1));
     }
 
     this.loadInProgress = true;
+    this.loadSubject = new Subject<any>();
     this.storageService.setLoading(true);
 
     // Use new load parameter to load complete todo information
@@ -163,7 +161,8 @@ export class DataSyncService {
           };
 
           // Emit to all waiting subscribers
-          this.loadSubject.next(result);
+          this.loadSubject?.next(result);
+          this.loadSubject = null;
           resultSubject.next(result);
           resultSubject.complete();
         },
@@ -181,7 +180,8 @@ export class DataSyncService {
               todos: this.storageService.todos(),
               categories: this.storageService.categories(),
             };
-            this.loadSubject.next(cachedData);
+            this.loadSubject?.next(cachedData);
+            this.loadSubject = null;
             resultSubject.next(cachedData);
             resultSubject.complete();
           } else {
@@ -190,7 +190,8 @@ export class DataSyncService {
               todos: [],
               categories: [],
             };
-            this.loadSubject.next(emptyData);
+            this.loadSubject?.next(emptyData);
+            this.loadSubject = null;
             resultSubject.next(emptyData);
             resultSubject.complete();
           }
@@ -479,7 +480,7 @@ export class DataSyncService {
       return of(existingProfile);
     }
 
-    // Try local JSON first (fast, works offline), then fall back to MongoDB for user relation
+    // Load from local first (fast); cloud check happens in background, never blocks storage
     return this.dataSyncProvider
       .crud<Profile[]>(
         "getAll",
@@ -493,7 +494,7 @@ export class DataSyncService {
         true
       )
       .pipe(
-        timeout(5000),
+        timeout(3000),
         map((profiles) => (profiles && profiles.length > 0 ? profiles[0] : null)),
         tap((profile: Profile | null) => {
           this.storageService.setCollection("profiles", profile);
