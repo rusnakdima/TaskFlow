@@ -12,6 +12,7 @@ use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
 use crate::helpers::common::convertDataToObject;
+use crate::helpers::response_helper::errResponseFormatted;
 use crate::helpers::timestamp_helper;
 
 /* services */
@@ -206,7 +207,7 @@ impl AdminManager {
         data: DataValue::String("".to_string()),
       })?;
 
-    Self::hard_delete_cascade_ids_mongo(&self.mongodbProvider, &cascade_ids).await;
+    Self::hard_delete_cascade_ids_mongo(&self.mongodbProvider, &cascade_ids).await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -241,7 +242,7 @@ impl AdminManager {
         data: DataValue::String("".to_string()),
       })?;
 
-    Self::hard_delete_cascade_ids_json(&self.jsonProvider, &cascade_ids).await;
+    Self::hard_delete_cascade_ids_json(&self.jsonProvider, &cascade_ids).await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -270,11 +271,7 @@ impl AdminManager {
 
     let (newStatus, updateVal) = Self::build_toggle_update(&record);
 
-    self
-      .cascadeService
-      .handleMongoCascade(&table, &id, /* is_restore = */ !newStatus)
-      .await?;
-
+    // Update parent first (H-6): if cascade fails the parent is already consistent
     self
       .mongodbProvider
       .mongodbCrud
@@ -285,6 +282,11 @@ impl AdminManager {
         message: format!("Error updating MongoDB record: {}", e),
         data: DataValue::String("".to_string()),
       })?;
+
+    self
+      .cascadeService
+      .handleMongoCascade(&table, &id, /* is_restore = */ !newStatus)
+      .await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -311,11 +313,7 @@ impl AdminManager {
 
     let (newStatus, updateVal) = Self::build_toggle_update(&record);
 
-    self
-      .cascadeService
-      .handleJsonCascade(&table, &id, /* is_restore = */ !newStatus)
-      .await?;
-
+    // Update parent first (H-6): if cascade fails the parent is already consistent
     self
       .jsonProvider
       .update(&table, &id, updateVal)
@@ -325,6 +323,11 @@ impl AdminManager {
         message: format!("Error updating local record: {}", e),
         data: DataValue::String("".to_string()),
       })?;
+
+    self
+      .cascadeService
+      .handleJsonCascade(&table, &id, /* is_restore = */ !newStatus)
+      .await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -357,36 +360,72 @@ impl AdminManager {
   async fn hard_delete_cascade_ids_mongo(
     provider: &Arc<MongodbProvider>,
     cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
-  ) {
-    for id in &cascade_ids.task_ids {
-      let _ = provider.mongodbCrud.hardDelete("tasks", id).await;
+  ) -> Result<(), ResponseModel> {
+    for id in &cascade_ids.taskIds {
+      provider
+        .mongodbCrud
+        .hardDelete("tasks", id)
+        .await
+        .map_err(|e| errResponseFormatted("Hard-delete cascade failed for task", &e.to_string()))?;
     }
-    for id in &cascade_ids.subtask_ids {
-      let _ = provider.mongodbCrud.hardDelete("subtasks", id).await;
+    for id in &cascade_ids.subtaskIds {
+      provider
+        .mongodbCrud
+        .hardDelete("subtasks", id)
+        .await
+        .map_err(|e| {
+          errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
+        })?;
     }
-    for id in &cascade_ids.comment_ids {
-      let _ = provider.mongodbCrud.hardDelete("comments", id).await;
+    for id in &cascade_ids.commentIds {
+      provider
+        .mongodbCrud
+        .hardDelete("comments", id)
+        .await
+        .map_err(|e| {
+          errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
+        })?;
     }
-    for id in &cascade_ids.chat_ids {
-      let _ = provider.mongodbCrud.hardDelete("chats", id).await;
+    for id in &cascade_ids.chatIds {
+      provider
+        .mongodbCrud
+        .hardDelete("chats", id)
+        .await
+        .map_err(|e| errResponseFormatted("Hard-delete cascade failed for chat", &e.to_string()))?;
     }
+    Ok(())
   }
 
   async fn hard_delete_cascade_ids_json(
     provider: &JsonProvider,
     cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
-  ) {
-    for id in &cascade_ids.task_ids {
-      let _ = provider.hardDelete("tasks", id).await;
+  ) -> Result<(), ResponseModel> {
+    // Delete tasks first so that inline comments inside them are gone before we
+    // attempt to remove individual comment entries (avoids double-work).
+    for id in &cascade_ids.taskIds {
+      provider
+        .hardDelete("tasks", id)
+        .await
+        .map_err(|e| errResponseFormatted("Hard-delete cascade failed for task", &e.to_string()))?;
     }
-    for id in &cascade_ids.subtask_ids {
-      let _ = provider.hardDelete("subtasks", id).await;
+    for id in &cascade_ids.subtaskIds {
+      provider.hardDelete("subtasks", id).await.map_err(|e| {
+        errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
+      })?;
     }
-    for id in &cascade_ids.comment_ids {
-      let _ = provider.hardDelete("comments", id).await;
+    // Comments are stored inline inside tasks/subtasks in JSON — use the dedicated helper.
+    // Any comments whose parent task/subtask was already deleted above are silently skipped.
+    for id in &cascade_ids.commentIds {
+      provider.hardDeleteInlineComment(id).await.map_err(|e| {
+        errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
+      })?;
     }
-    for id in &cascade_ids.chat_ids {
-      let _ = provider.hardDelete("chats", id).await;
+    for id in &cascade_ids.chatIds {
+      provider
+        .hardDelete("chats", id)
+        .await
+        .map_err(|e| errResponseFormatted("Hard-delete cascade failed for chat", &e.to_string()))?;
     }
+    Ok(())
   }
 }
