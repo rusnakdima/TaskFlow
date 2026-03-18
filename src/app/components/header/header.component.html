@@ -82,7 +82,9 @@
     <p class="font-medium textNormal">
       {{ profile()?.name || "User" }} {{ profile()?.lastName || "" }}
     </p>
-    <p class="text-sm textMuted">{{ profile()?.user?.email || "" }}</p>
+    @if (profile()?.user?.email) {
+      <p class="text-sm textMuted">{{ profile()?.user?.email }}</p>
+    }
   </div>
 
   <div class="py-2">
