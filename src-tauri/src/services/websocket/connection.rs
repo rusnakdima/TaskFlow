@@ -18,13 +18,13 @@ use super::handlers::CrudHandlers;
 /// WebSocket connection manager - handles individual client connections
 pub struct ConnectionManager {
   crud_handlers: Arc<CrudHandlers>,
-  clients: Arc<std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
+  clients: Arc<tokio::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
 }
 
 impl ConnectionManager {
   pub fn new(
     crud_handlers: Arc<CrudHandlers>,
-    clients: Arc<std::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
+    clients: Arc<tokio::sync::Mutex<Vec<futures::channel::mpsc::UnboundedSender<Message>>>>,
   ) -> Self {
     Self {
       crud_handlers,
@@ -40,7 +40,7 @@ impl ConnectionManager {
     };
 
     let (tx, mut rx) = futures::channel::mpsc::unbounded();
-    self.clients.lock().unwrap().push(tx.clone());
+    self.clients.lock().await.push(tx.clone());
 
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
@@ -75,7 +75,7 @@ impl ConnectionManager {
     self
       .clients
       .lock()
-      .unwrap()
+      .await
       .retain(|client| !client.is_closed());
   }
 
@@ -127,6 +127,12 @@ impl ConnectionManager {
         self
           .crud_handlers
           .handle_delete(request, sync_metadata)
+          .await
+      }
+      "restore" => {
+        self
+          .crud_handlers
+          .handle_restore(request, sync_metadata)
           .await
       }
       _ => ResponseModel::from(format!(

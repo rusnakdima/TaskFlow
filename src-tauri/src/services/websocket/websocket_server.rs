@@ -14,7 +14,7 @@ use super::handlers::CrudHandlers;
 pub struct WebSocketServerService {
   crud_service: Arc<CrudService>,
   clients: Arc<
-    std::sync::Mutex<
+    tokio::sync::Mutex<
       Vec<
         futures::channel::mpsc::UnboundedSender<tokio_tungstenite::tungstenite::protocol::Message>,
       >,
@@ -26,7 +26,7 @@ impl WebSocketServerService {
   pub fn new(crud_service: Arc<CrudService>) -> Self {
     Self {
       crud_service,
-      clients: Arc::new(std::sync::Mutex::new(Vec::new())),
+      clients: Arc::new(tokio::sync::Mutex::new(Vec::new())),
     }
   }
 
