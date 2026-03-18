@@ -221,16 +221,78 @@ export class ArchiveView extends BaseAdminView implements OnInit {
       return;
     }
 
+    const table = this.selectedType();
     const currentData = this.getCurrentData();
     const selectedItems = currentData.filter((item) => this.isSelected(item.id));
 
     this.bulkActionService
-      .bulkUpdateField(selectedItems, "isDeleted", false, (id: string, data: any) =>
-        from(this.adminService.toggleDeleteStatus(this.selectedType(), id))
+      .bulkDelete(selectedItems, (id: string) =>
+        from(this.adminService.toggleDeleteStatusLocal(table, id))
       )
       .subscribe((result) => {
         this.clearSelection();
         if (result.successCount > 0) {
+          selectedItems.forEach((item) => {
+            const newIsDeleted = !item.isDeleted;
+
+            this.adminStorageService.updateRecordDeleteStatusWithCascade(
+              table,
+              item.id,
+              newIsDeleted
+            );
+
+            if (table === "todos") {
+              if (newIsDeleted) {
+                this.storageService.removeTodoWithCascade(item.id);
+              } else {
+                this.adminService.getAllDataForArchive().subscribe({
+                  next: (archiveResponse) => {
+                    const data = archiveResponse.data as any;
+                    const restoredTodo = data["todos"]?.find((t: any) => t.id === item.id);
+                    if (restoredTodo) {
+                      const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
+                      const subtaskIds =
+                        restoredTodo.tasks?.flatMap(
+                          (t: any) => t.subtasks?.map((s: any) => s.id) || []
+                        ) || [];
+
+                      const relatedTasks =
+                        data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
+                      const relatedSubtasks =
+                        data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
+                      const relatedComments =
+                        data["comments"]?.filter(
+                          (c: any) =>
+                            c.taskId === item.id ||
+                            taskIds.includes(c.taskId) ||
+                            subtaskIds.includes(c.subtaskId)
+                        ) || [];
+                      const relatedChats =
+                        data["chats"]?.filter((c: any) => c.todoId === item.id) || [];
+
+                      this.adminStorageService.restoreTodoWithCascade({
+                        todo: restoredTodo,
+                        tasks: relatedTasks,
+                        subtasks: relatedSubtasks,
+                        comments: relatedComments,
+                        chats: relatedChats,
+                      });
+
+                      this.storageService.restoreTodoWithCascade({
+                        todo: restoredTodo,
+                        tasks: relatedTasks,
+                        subtasks: relatedSubtasks,
+                        comments: relatedComments,
+                      });
+                    }
+                  },
+                });
+              }
+            } else {
+              this.storageService.updateItem(table as any, item.id, { isDeleted: newIsDeleted });
+            }
+          });
+
           this.notifyService.showSuccess(
             `${result.successCount} ${result.successCount === 1 ? "record" : "records"} status toggled`
           );

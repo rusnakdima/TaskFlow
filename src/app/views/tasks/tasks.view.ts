@@ -14,7 +14,8 @@ import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/ro
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { Subscription, firstValueFrom } from "rxjs";
-import { filter } from "rxjs/operators";
+import { filter, map } from "rxjs/operators";
+import { toSignal } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -37,6 +38,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
+import { TodoRelations } from "@models/relations.config";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -101,6 +103,12 @@ export class TasksView extends BaseListView implements OnInit {
   // Bulk selection state (like admin page)
   selectedTasks = signal<Set<string>>(new Set());
 
+  // Reactive route param — updates when navigating between todos without component destroy (H-11)
+  private readonly routeTodoId = toSignal(
+    this.route.paramMap.pipe(map((params) => params.get("todoId") ?? null)),
+    { initialValue: this.route.snapshot.paramMap.get("todoId") ?? null }
+  );
+
   private chatEffect = effect(() => {
     const tid = this.todo()?.id;
     if (tid) {
@@ -110,7 +118,7 @@ export class TasksView extends BaseListView implements OnInit {
   });
 
   todo = computed(() => {
-    const tid = this.route.snapshot.paramMap.get("todoId") || this.route.snapshot.data["todo"]?.id;
+    const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
     if (!tid) return null;
     return this.storageService.getTodoReactive(tid)() || null;
   });
@@ -262,7 +270,37 @@ export class TasksView extends BaseListView implements OnInit {
     if (!routeData?.["todo"] && !this.route.snapshot.paramMap.get("todoId")) {
       this.notifyService.showError("Invalid todo ID.");
     }
+
+    const todoId = routeData?.["todo"]?.id || this.route.snapshot.paramMap.get("todoId");
+    if (todoId) {
+      this.ensureTaskTreeLoaded(todoId);
+    }
     this.loading.set(false);
+  }
+
+  private ensureTaskTreeLoaded(todoId: string): void {
+    const todo = this.storageService.getById("todos", todoId);
+    const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
+
+    if (hasSubtasks) return;
+
+    this.dataSyncProvider
+      .crud<Todo>("get", "todos", {
+        id: todoId,
+        load: TodoRelations.loadAll,
+        isOwner: this.isOwner(),
+        isPrivate: this.isPrivate(),
+      })
+      .subscribe({
+        next: (loadedTodo) => {
+          if (loadedTodo) {
+            this.storageService.updateItem("todos", todoId, loadedTodo);
+          }
+        },
+        error: (err: any) => {
+          this.notifyService.showError(err.message || "Failed to load subtasks");
+        },
+      });
   }
 
   ngOnDestroy(): void {

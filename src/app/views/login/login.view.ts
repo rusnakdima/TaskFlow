@@ -166,12 +166,10 @@ export class LoginView implements OnDestroy {
           sessionStorage.setItem("token", token);
         }
 
-        setTimeout(() => {
-          this.router.navigate(["/"]).then(() => {
-            window.location.reload();
-          });
-        }, 500);
-        this.submitted.set(false);
+        // Navigate to home (dashboard); no reload so guard/resolver run with token already in storage
+        this.router.navigate(["/dashboard"]).then(() => {
+          this.submitted.set(false);
+        });
       } catch (err: any) {
         console.error("Login error:", err);
 

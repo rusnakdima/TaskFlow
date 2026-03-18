@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, OnDestroy, signal, computed, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
@@ -30,7 +30,7 @@ import { TodoComponent } from "@components/todo/todo.component";
   imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, TodoComponent],
   templateUrl: "./shared-tasks.view.html",
 })
-export class SharedTasksView implements OnInit {
+export class SharedTasksView implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(DataSyncProvider);
@@ -40,6 +40,9 @@ export class SharedTasksView implements OnInit {
   private dragDropService = inject(DragDropOrderService);
 
   userId = signal("");
+  isOffline = signal(false);
+  private onOnline = () => this.isOffline.set(false);
+  private onOffline = () => this.isOffline.set(true);
 
   myProjects = computed(() => {
     const userId = this.userId();
@@ -66,7 +69,24 @@ export class SharedTasksView implements OnInit {
   ngOnInit(): void {
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
+    this.bindOfflineListeners();
     this.loadSharedProjects();
+  }
+
+  ngOnDestroy(): void {
+    this.unbindOfflineListeners();
+  }
+
+  private bindOfflineListeners(): void {
+    if (typeof navigator === "undefined") return;
+    window.addEventListener("online", this.onOnline);
+    window.addEventListener("offline", this.onOffline);
+    this.isOffline.set(!navigator.onLine);
+  }
+
+  private unbindOfflineListeners(): void {
+    window.removeEventListener("online", this.onOnline);
+    window.removeEventListener("offline", this.onOffline);
   }
 
   loadSharedProjects() {

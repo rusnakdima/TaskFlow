@@ -12,7 +12,7 @@ import {
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
-import { Subscription } from "rxjs";
+import { Subscription, forkJoin } from "rxjs";
 import { filter } from "rxjs/operators";
 
 /* materials */
@@ -131,10 +131,7 @@ export class TodosView extends BaseListView implements OnInit {
     }
 
     if (query) {
-      filtered = filtered.filter(
-        (todo) =>
-          todo.title.toLowerCase().includes(query) || todo.description.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter((todo) => todo.title.toLowerCase().includes(query));
     }
 
     const result = SortHelper.sortByOrder(filtered, "desc");
@@ -400,19 +397,23 @@ export class TodosView extends BaseListView implements OnInit {
     if (selected.size === 0) return;
 
     if (confirm(`Are you sure you want to archive ${selected.size} project(s)?`)) {
-      const archiveRequests = Array.from(selected).map((todoId) =>
-        this.dataSyncProvider.crud("delete", "todos", { id: todoId })
+      const requests = Array.from(selected).map((todoId) =>
+        this.dataSyncProvider.crud("delete", "todos", {
+          id: todoId,
+          isOwner: true,
+          isPrivate: true,
+        })
       );
 
-      Promise.all(archiveRequests)
-        .then(() => {
+      forkJoin(requests).subscribe({
+        next: () => {
           this.notifyService.showSuccess(`${selected.size} project(s) archived successfully`);
           this.clearSelection();
-          this.dataSyncService.loadAllData(true).subscribe();
-        })
-        .catch((err) => {
+        },
+        error: (err) => {
           this.notifyService.showError(err.message || "Failed to archive projects");
-        });
+        },
+      });
     }
   }
 
@@ -424,20 +425,23 @@ export class TodosView extends BaseListView implements OnInit {
     if (selected.size === 0) return;
 
     if (confirm(`Are you sure you want to delete ${selected.size} project(s)?`)) {
-      const deleteRequests = Array.from(selected).map((todoId) =>
-        this.dataSyncProvider.crud("delete", "todos", { id: todoId })
+      const requests = Array.from(selected).map((todoId) =>
+        this.dataSyncProvider.crud("delete", "todos", {
+          id: todoId,
+          isOwner: true,
+          isPrivate: true,
+        })
       );
 
-      Promise.all(deleteRequests)
-        .then(() => {
+      forkJoin(requests).subscribe({
+        next: () => {
           this.notifyService.showSuccess(`${selected.size} project(s) deleted successfully`);
-          this.selectedTodos.set(new Set());
-          this.bulkService.setSelectionState(0, false);
-          this.dataSyncService.loadAllData(true).subscribe();
-        })
-        .catch((err) => {
+          this.clearSelection();
+        },
+        error: (err) => {
           this.notifyService.showError(err.message || "Failed to delete projects");
-        });
+        },
+      });
     }
   }
 }
