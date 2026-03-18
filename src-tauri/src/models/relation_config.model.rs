@@ -138,7 +138,7 @@ pub fn getRelationRegistry() -> HashMap<String, HashMap<String, RelationConfig>>
     "subtasks".to_string(),
     RelationConfig {
       relationType: RelationType::OneToMany,
-      targetTable: "tasks".to_string(),
+      targetTable: "subtasks".to_string(),
       joinColumn: "id".to_string(),
       targetColumn: None,
       inverseColumn: Some("taskId".to_string()),
