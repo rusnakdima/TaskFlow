@@ -44,9 +44,23 @@ impl Validatable for CommentCreateModel {
     if self.content.is_empty() {
       return Err("content cannot be empty".to_string());
     }
-    // Must belong to either a task or subtask
-    if self.taskId.is_none() && self.subtaskId.is_none() {
-      return Err("Comment must belong to either a task or subtask".to_string());
+    // Must belong to exactly one of task or subtask (so task comments and subtask comments stay separate).
+    // Treat null/empty as unset.
+    let has_task = self
+      .taskId
+      .as_deref()
+      .map(|s| !s.is_empty())
+      .unwrap_or(false);
+    let has_subtask = self
+      .subtaskId
+      .as_deref()
+      .map(|s| !s.is_empty())
+      .unwrap_or(false);
+    if !has_task && !has_subtask {
+      return Err("Comment must belong to either a task or a subtask".to_string());
+    }
+    if has_task && has_subtask {
+      return Err("Comment must belong to exactly one of task or subtask, not both".to_string());
     }
     Ok(())
   }
