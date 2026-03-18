@@ -504,51 +504,77 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
   @apply w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity;
 }
 
-/* ── Todos grid drop list ── */
+/* ── Todos grid drop list (mixed orientation: one drop list per item) ── */
 .todos-drop-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem; /* gap-6 */
 }
 
-/* Each todo card: fixed column widths matching old grid-cols-1/2/3/4 */
-.todos-drop-list > app-todo {
+.todos-drop-list-placeholder {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Each todo wrapper and placeholder: same column widths as before */
+.todos-drop-list > .todos-drop-list-item,
+.todos-drop-list > .todos-drop-list-placeholder {
   box-sizing: border-box;
   width: calc(25% - 1.125rem); /* 4 cols: gap*(3/4) = 1.5*0.75 */
 }
 
+.todos-drop-list > .todos-drop-list-item > app-todo {
+  width: 100%;
+}
+
 @media (max-width: 1279px) {
-  .todos-drop-list > app-todo {
+  .todos-drop-list > .todos-drop-list-item,
+  .todos-drop-list > .todos-drop-list-placeholder {
     width: calc(33.333% - 1rem);
   }
 }
 
 @media (max-width: 1023px) {
-  .todos-drop-list > app-todo {
+  .todos-drop-list > .todos-drop-list-item,
+  .todos-drop-list > .todos-drop-list-placeholder {
     width: calc(50% - 0.75rem);
   }
 }
 
 @media (max-width: 767px) {
-  .todos-drop-list > app-todo {
+  .todos-drop-list > .todos-drop-list-item,
+  .todos-drop-list > .todos-drop-list-placeholder {
     width: 100%;
   }
 }
 
-/* ── Tasks grid drop list ── */
+/* ── Tasks grid drop list (mixed orientation: one drop list per item) ── */
 .tasks-drop-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
 }
 
-.tasks-drop-list > app-task {
+.tasks-drop-list-placeholder {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.tasks-drop-list > .tasks-drop-list-item,
+.tasks-drop-list > .tasks-drop-list-placeholder {
   box-sizing: border-box;
   width: calc(50% - 0.75rem); /* 2 cols */
 }
 
+.tasks-drop-list > .tasks-drop-list-item > app-task {
+  width: 100%;
+}
+
 @media (max-width: 1023px) {
-  .tasks-drop-list > app-task {
+  .tasks-drop-list > .tasks-drop-list-item,
+  .tasks-drop-list > .tasks-drop-list-placeholder {
     width: 100%;
   }
 }

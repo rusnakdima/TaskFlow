@@ -88,36 +88,38 @@
         </p>
       </div>
     } @else {
-      <div
-        class="tasks-drop-list"
-        cdkDropList
-        [cdkDropListData]="listTasks()"
-        cdkDropListOrientation="mixed"
-        (cdkDropListDropped)="onTaskDrop($event)"
-      >
+      <div class="tasks-drop-list" cdkDropListGroup>
+        <div #taskPlaceholder cdkDropList class="tasks-drop-list-placeholder"></div>
         @for (task of listTasks(); track task.id) {
-          <app-task
-            [id]="'task-' + task.id"
-            [task]="task"
-            [todoId]="todo()?.id || null"
-            [index]="$index"
-            [isOwner]="isOwner()"
-            [isPrivate]="isPrivate()"
-            [highlight]="highlightTaskId() === task.id"
-            [isSelected]="selectedTasks().has(task.id)"
-            [allTasks]="todo()?.tasks || []"
-            [isExpanded]="isTaskExpanded(task.id)"
-            [showExpandButton]="task.subtasks && task.subtasks.length > 0"
-            [highlightCommentId]="highlightCommentId()"
-            [autoOpenComments]="openComments()"
-            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
-            (deleteTaskEvent)="deleteTask($event)"
-            (toggleCompletionEvent)="toggleTaskCompletion($event)"
-            (updateTaskEvent)="updateTaskInline($event)"
-            (toggleSubtasksEvent)="toggleExpandTask($event)"
-            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
-            (selectionChangeEvent)="toggleTaskSelection($event)"
-          />
+          <div
+            class="tasks-drop-list-item"
+            cdkDropList
+            (cdkDropListEntered)="onTaskListEntered($event)"
+            (cdkDropListDropped)="onTaskListDropped()"
+          >
+            <app-task
+              [id]="'task-' + task.id"
+              [task]="task"
+              [todoId]="todo()?.id || null"
+              [index]="$index"
+              [isOwner]="isOwner()"
+              [isPrivate]="isPrivate()"
+              [highlight]="highlightTaskId() === task.id"
+              [isSelected]="selectedTasks().has(task.id)"
+              [allTasks]="todo()?.tasks || []"
+              [isExpanded]="isTaskExpanded(task.id)"
+              [showExpandButton]="task.subtasks && task.subtasks.length > 0"
+              [highlightCommentId]="highlightCommentId()"
+              [autoOpenComments]="openComments()"
+              [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
+              (deleteTaskEvent)="deleteTask($event)"
+              (toggleCompletionEvent)="toggleTaskCompletion($event)"
+              (updateTaskEvent)="updateTaskInline($event)"
+              (toggleSubtasksEvent)="toggleExpandTask($event)"
+              (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+              (selectionChangeEvent)="toggleTaskSelection($event)"
+            />
+          </div>
         }
       </div>
     }
