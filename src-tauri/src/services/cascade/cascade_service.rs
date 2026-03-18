@@ -44,10 +44,10 @@ impl CascadeService {
     &self,
     table: &str,
     id: &str,
-    is_restore: bool,
+    isRestore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
     if let Some(ref handler) = self.jsonHandler {
-      return handler.handleCascade(table, id, is_restore).await;
+      return handler.handleCascade(table, id, isRestore).await;
     }
     Err(errResponseFormatted("JSON handler not available", ""))
   }
@@ -57,10 +57,10 @@ impl CascadeService {
     &self,
     table: &str,
     id: &str,
-    is_restore: bool,
+    isRestore: bool,
   ) -> Result<CascadeIds, ResponseModel> {
     if let Some(ref handler) = self.mongoHandler {
-      return handler.handleCascade(table, id, is_restore).await;
+      return handler.handleCascade(table, id, isRestore).await;
     }
     Err(errResponseFormatted("MongoDB not available", ""))
   }
