@@ -43,6 +43,9 @@ export class WebSocketService implements OnDestroy {
   private messageSubject = new Subject<any>();
   private eventSubject = new Subject<{ event: string; data: any }>();
   private unlistenFns: UnlistenFn[] = [];
+  // True once Tauri Change Stream listeners are registered.
+  // When active, the WS onmessage path skips storage updates to prevent double-processing (H-3).
+  private tauriListenersActive = false;
 
   // Event handlers map for automatic storage updates
   private eventHandlers: Record<string, (data: any) => void> = {
@@ -126,6 +129,15 @@ export class WebSocketService implements OnDestroy {
             const eventName = `ws-${data.event}`;
             window.dispatchEvent(new CustomEvent(eventName, { detail: data.data }));
             this.eventSubject.next({ event: data.event, data: data.data });
+
+            // Only apply storage updates from WS when the Tauri Change Stream is NOT active.
+            // When both paths are live, the Change Stream is the authoritative source (H-3).
+            if (!this.tauriListenersActive) {
+              const handler = this.eventHandlers[data.event];
+              if (handler) {
+                handler(data.data);
+              }
+            }
           } else {
             this.messageSubject.next(data);
           }
@@ -145,6 +157,7 @@ export class WebSocketService implements OnDestroy {
     }
     this.unlistenFns.forEach((fn) => fn());
     this.unlistenFns = [];
+    this.tauriListenersActive = false;
   }
 
   isConnected(): boolean {
@@ -175,6 +188,9 @@ export class WebSocketService implements OnDestroy {
       });
       this.unlistenFns.push(unlisten);
     }
+
+    // Mark Tauri listeners as active so WS onmessage stops applying storage updates (H-3)
+    this.tauriListenersActive = true;
   }
 
   private handleDbChange(collection: string, change: any) {
