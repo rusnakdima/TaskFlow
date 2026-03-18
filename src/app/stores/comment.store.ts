@@ -159,14 +159,18 @@ export class CommentStore {
   // ==================== HELPER METHODS ====================
 
   /**
-   * Check if a subtask belongs to a specific task
-   * Note: This requires access to SubtaskStore for full implementation
-   * For now, returns true - should be injected if needed
+   * Check if a subtask belongs to a specific task.
+   * Uses comments that carry both subtaskId and taskId as a join table (M-3).
+   * Falls back to true when no such comment exists yet (permissive — avoids hiding comments).
    */
   private isSubtaskOfTask(subtaskId: string, taskId: string): boolean {
-    // This would need SubtaskStore injection for proper implementation
-    // For now, we'll use a simplified approach
-    const comment = this.comments().find((c) => c.subtaskId === subtaskId);
-    return comment?.taskId === taskId;
+    const linking = this.state().comments.find(
+      (c) => c.subtaskId === subtaskId && c.taskId != null
+    );
+    if (linking) {
+      return linking.taskId === taskId;
+    }
+    // No linking comment found — include the comment to avoid false negatives
+    return true;
   }
 }
