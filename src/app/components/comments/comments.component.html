@@ -1,78 +1,81 @@
 <div
-  class="flex flex-col gap-4 mt-4 border-t border-gray-200 dark:border-zinc-700 pt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+  class="animate-in fade-in slide-in-from-top-2 mt-4 flex flex-col gap-4 border-t border-gray-200 pt-4 duration-300 dark:border-zinc-700"
 >
   <div class="flex items-center justify-between">
-    <h4 class="text-sm font-semibold textNormal flex items-center gap-2">
-      <mat-icon class="w-4! h-4! text-xl!" fontIcon="forum" />
+    <h4 class="textNormal flex items-center gap-2 text-sm font-semibold">
+      <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="forum" />
       {{ title }} ({{ comments.length }})
     </h4>
   </div>
 
   <!-- Comments List -->
-  <div #commentsList class="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
+  <div #commentsList class="flex max-h-60 flex-col gap-3 overflow-y-auto pr-1">
     @for (comment of comments; track comment.id) {
       <div
         [attr.data-comment-id]="comment.id"
         [id]="'comment-' + comment.id"
-        class="flex flex-col gap-1 p-3 rounded-lg bg-gray-50 dark:bg-zinc-900/50 border border-gray-100 dark:border-zinc-700/50 transition-colors"
+        class="flex flex-col gap-1 rounded-lg border border-gray-100 bg-gray-50 p-3 transition-colors dark:border-zinc-700/50 dark:bg-zinc-900/50"
         [class.unread-comment]="isUnread(comment)"
         [class.border-blue-200]="isUnread(comment)"
         [class.dark:border-blue-900/30]="isUnread(comment)"
-        [ngClass]="{ 'ring-2 ring-purple-500 animate-pulse': highlightCommentId === comment.id }"
+        [ngClass]="{ 'animate-pulse ring-2 ring-purple-500': highlightCommentId === comment.id }"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             @if (isUnread(comment)) {
-              <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <div class="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
             }
             <span class="text-xs font-bold text-purple-600 dark:text-purple-400">
               {{ comment.authorName }}
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] textMuted">
+            <span class="textMuted text-[10px]">
               {{ formatDate(comment.createdAt) }}
             </span>
             @if (isOwner || comment.authorId === currentUserId) {
               <button
-                class="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors"
+                class="rounded-md p-1 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
                 (click)="deleteComment(comment.id)"
                 title="Delete comment"
               >
-                <mat-icon class="w-4! h-4! text-lg!" fontIcon="delete" />
+                <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="delete" />
               </button>
             }
           </div>
         </div>
-        <p class="text-sm textNormal whitespace-pre-wrap">{{ comment.content }}</p>
+        <p class="textNormal text-sm whitespace-pre-wrap">{{ comment.content }}</p>
       </div>
     } @empty {
       <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
-        <mat-icon class="w-8! h-8! text-4xl! mb-2 opacity-20" fontIcon="chat_bubble_outline" />
+        <mat-icon
+          class="mb-2 h-8! w-8! min-w-8 text-4xl! opacity-20"
+          fontIcon="chat_bubble_outline"
+        />
         <p class="text-xs italic">No comments yet</p>
       </div>
     }
   </div>
 
   <!-- Add Comment -->
-  <div class="flex flex-col gap-2 mt-2">
+  <div class="mt-2 flex flex-col gap-2">
     <div class="relative flex flex-row items-center">
       <textarea
         [ngModel]="newCommentContent()"
         (ngModelChange)="newCommentContent.set($event)"
         (keydown.control.enter)="addComment(); $event.preventDefault()"
         placeholder="Add a comment..."
-        class="w-full px-3 pr-11 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none textNormal resize-none transition-all duration-200"
+        class="textNormal w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-11 text-sm transition-all duration-200 outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 dark:border-zinc-600 dark:bg-zinc-800"
         rows="2"
       ></textarea>
       <div class="absolute right-2 flex items-center">
         <button
           [disabled]="!newCommentContent().trim()"
           (click)="addComment()"
-          class="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 dark:disabled:bg-zinc-700 text-white shadow-sm transition-all duration-200"
+          class="rounded-lg bg-purple-600 p-1.5 text-white shadow-sm transition-all duration-200 hover:bg-purple-700 disabled:bg-gray-400 dark:disabled:bg-zinc-700"
           title="Post comment"
         >
-          <mat-icon class="w-4! h-4! text-lg!" fontIcon="send" />
+          <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="send" />
         </button>
       </div>
     </div>

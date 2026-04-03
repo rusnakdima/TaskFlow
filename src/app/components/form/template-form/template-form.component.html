@@ -5,7 +5,7 @@
   @for (field of formFields; track field) {
     @if (field.isShow(parentForm, index)) {
       @if (field.type == "menu") {
-        <div class="flex flex-col w-full" [formGroup]="form">
+        <div class="flex w-full flex-col" [formGroup]="form">
           <label>{{ field.label }}</label>
           <input
             type="text"
@@ -16,7 +16,7 @@
             [readonly]="true"
           />
           <mat-menu #menu="matMenu">
-            <div class="flex flex-col p-2 max-w-max!" (click)="$event.stopPropagation()">
+            <div class="flex max-w-max! flex-col p-2" (click)="$event.stopPropagation()">
               <app-template-form
                 [parentForm]="parentForm"
                 [form]="formGroup(field.name)"
@@ -28,7 +28,7 @@
           </mat-menu>
         </div>
       } @else if (field.type == "subgroup") {
-        <div class="flex flex-col gap-y-2 p-3 styleBorderSolidLite border" [formGroup]="form">
+        <div class="styleBorderSolidLite flex flex-col gap-y-2 border p-3" [formGroup]="form">
           <span>{{ field.label }}</span>
           <app-template-form
             [parentForm]="parentForm"
@@ -39,27 +39,27 @@
           />
         </div>
       } @else if (field.type == "sublist") {
-        <div class="flex flex-col gap-y-2 p-3 styleBorderSolidLite border">
-          <div class="flex flex-row justify-between items-center">
+        <div class="styleBorderSolidLite flex flex-col gap-y-2 border p-3">
+          <div class="flex flex-row items-center justify-between">
             <span>{{ field.label }}</span>
-            <button class="flex flcol items-center justify-center" (click)="onAddRecord()">
-              <mat-icon class="w-5! h-5! text-xl!" fontIcon="add" />
+            <button class="flcol flex items-center justify-center" (click)="onAddRecord()">
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
             </button>
           </div>
           @for (fg of formArray(field.name).controls; track fg; let i = $index) {
             <div class="group relative">
               <details class="styleDetails" #detail (toggle)="openStates[i] = detail.open">
                 <summary class="list-none">
-                  <div class="flex flex-row justify-between items-center w-full">
+                  <div class="flex w-full flex-row items-center justify-between">
                     <div class="flex flex-row gap-x-1">
                       <mat-icon
-                        class="w-5! h-5! text-xl!"
+                        class="h-5! w-5! min-w-5 text-xl!"
                         [fontIcon]="openStates[i] ? 'keyboard_arrow_down' : 'chevron_right'"
                       />
                       <span>Record {{ i + 1 }}</span>
                     </div>
                     <button (click)="onRemoveRecord(i)">
-                      <mat-icon class="w-5! h-5! text-xl!" fontIcon="remove" />
+                      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="remove" />
                     </button>
                   </div>
                 </summary>
@@ -71,10 +71,10 @@
                 />
               </details>
               <div
-                class="absolute flex flex-col items-end right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                class="absolute top-0 right-10 flex flex-col items-end opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <button (click)="onInsertRecord(i + 1)">
-                  <mat-icon class="w-5! h-5! text-xl!" fontIcon="add" />
+                  <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
                 </button>
               </div>
             </div>

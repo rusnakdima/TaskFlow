@@ -1,26 +1,26 @@
 <div
-  class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-2 border border-gray-200 dark:border-zinc-600 hover:shadow-md transition-shadow"
-  [ngClass]="{ 'bg-blue-50 dark:bg-blue-900/20 border-blue-500': isSelected }"
+  class="rounded-lg border border-gray-200 bg-gray-50 p-2 transition-shadow hover:shadow-md dark:border-zinc-600 dark:bg-zinc-700"
+  [ngClass]="{ 'border-blue-500 bg-blue-50 dark:bg-blue-900/20': isSelected }"
 >
   <div class="flex items-center gap-2">
     <app-checkbox [checked]="isSelected" (checkedChange)="toggleSelection($event)" />
 
-    <h4 class="font-medium textNormal flex-1 truncate">{{ category.title }}</h4>
+    <h4 class="textNormal flex-1 truncate font-medium">{{ category.title }}</h4>
 
-    <div class="flex gap-1 shrink-0">
+    <div class="flex shrink-0 gap-1">
       <button
-        class="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+        class="p-1 text-gray-500 transition-colors hover:text-blue-500"
         (click)="onEdit()"
         title="Edit category"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
       </button>
       <button
-        class="p-1 text-gray-500 hover:text-red-500 transition-colors"
+        class="p-1 text-gray-500 transition-colors hover:text-red-500"
         (click)="onDelete()"
         title="Delete category"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
       </button>
     </div>
   </div>
