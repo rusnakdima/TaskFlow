@@ -1,33 +1,48 @@
 <div
-  class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
+  class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
 >
   <div
-    class="relative bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white"
+    class="relative bg-linear-to-r from-blue-500 to-blue-600 p-6 text-white dark:from-blue-600 dark:to-blue-700"
   >
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-      <div class="flex flex-col sm:flex-1 w-full">
-        <div class="flex items-center gap-3 mb-2">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="assignment" />
+    <div class="flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div class="flex w-full flex-col sm:flex-1">
+        <div class="mb-2 flex items-center gap-3">
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="assignment" />
           <h1 class="text-2xl font-bold">{{ todo.title || "Untitled Project" }}</h1>
         </div>
-        <p class="text-blue-100 mb-4 truncate max-w-lg">{{ todo.description }}</p>
+        <p class="mb-4 break-words text-blue-100">{{ todo.description }}</p>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-between text-center w-full">
+        <div class="mb-4 flex flex-wrap gap-4 text-sm">
+          @if (todo.startDate) {
+            <div class="flex items-center gap-1 text-blue-100">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="event" />
+              <span>Start: {{ formatDate(todo.startDate) }}</span>
+            </div>
+          }
+          @if (todo.endDate) {
+            <div class="flex items-center gap-1 text-blue-100">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
+              <span>End: {{ formatDate(todo.endDate) }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="grid w-full grid-cols-2 justify-between gap-2 text-center sm:grid-cols-4">
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getCompletedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Completed</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Completed</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getSkippedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Skipped</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Skipped</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getFailedTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Failed</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Failed</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getInProgressTasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
+            <div class="text-xs text-gray-200 sm:text-sm">In Progress</div>
           </div>
         </div>
 
@@ -44,9 +59,9 @@
           <div class="mt-4 flex flex-wrap gap-2">
             @for (category of getCategories(); track category.id) {
               <span
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
+                class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm"
               >
-                <mat-icon class="w-4! h-4! mr-1 text-base!" fontIcon="category" />
+                <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!" fontIcon="category" />
                 {{ category.title }}
               </span>
             }
@@ -60,10 +75,10 @@
         <a
           [routerLink]="['/todos', todo.id, 'edit_todo']"
           [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
-          class="flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 w-10 h-10 transition-colors"
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
           title="Edit Project"
         >
-          <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
         </a>
       }
     </div>
