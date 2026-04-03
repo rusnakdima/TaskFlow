@@ -1,12 +1,15 @@
-<div class="flex flex-col left-0 top-0 m-0 w-full h-screen overflow-x-auto">
+<div class="top-0 left-0 m-0 flex h-screen w-full flex-col overflow-x-auto">
   <div
-    class="flex flex-col p-5 m-auto rounded-xl! styleBorderSolidLite border-4! bg-transparent backdrop-blur w-full min-[400px]:w-10/12 sm:w-[400px] text-center"
+    class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
   >
     <!-- Offline-First Login Info -->
     @if (hasLocalUsers() === false) {
-      <div class="mb-4 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
-        <mat-icon class="w-5! h-5! text-orange-500 align-middle mr-2 text-xl!" fontIcon="info" />
-        <span class="text-orange-500 text-sm"
+      <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/20 p-3">
+        <mat-icon
+          class="mr-2 h-5! w-5! min-w-5 align-middle text-xl! text-orange-500"
+          fontIcon="info"
+        />
+        <span class="text-sm text-orange-500"
           >No local users found. Please login online to sync your account.</span
         >
       </div>
@@ -31,13 +34,13 @@
 
         <div class="relative flex flex-row items-center">
           <input
-            class="styleField bg-transparent! w-full"
+            class="styleField w-full bg-transparent!"
             [type]="isShowPassword() ? 'text' : 'password'"
             formControlName="password"
           />
           <button class="absolute right-1.5 h-7.5!" (click)="isShowPassword.set(!isShowPassword())">
             <mat-icon
-              class="w-7.5! h-full! text-3xl! text-red-500!"
+              class="h-full! w-7.5! text-3xl! text-red-500!"
               [fontIcon]="isShowPassword() ? 'visibility_off' : 'visibility'"
             />
           </button>
@@ -52,7 +55,7 @@
         }
       </div>
 
-      <div class="flex flex-row justify-between items-center">
+      <div class="flex flex-row items-center justify-between">
         <app-checkbox label="Remember me" [form]="loginForm" [field]="rememberField" />
 
         <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>

@@ -26,7 +26,6 @@ import {
   getTaskEventTitle,
   generateCalendarDays,
   generateWeekDays,
-  generateDayView,
   getWeeksForMobile,
 } from "@helpers/calendar.helper";
 
@@ -61,11 +60,10 @@ export class CalendarView implements OnInit {
   events = signal<CalendarEvent[]>([]);
   filteredEvents = signal<CalendarEvent[]>([]);
 
-  viewMode = signal<"month" | "week" | "day">("month");
+  viewMode = signal<"month" | "week">("month");
 
   calendarDays = signal<CalendarDay[]>([]);
   weekDays = signal<CalendarDay[]>([]);
-  dayEvents = signal<CalendarEvent[]>([]);
 
   ngOnInit(): void {
     this.generateCalendarDays();
@@ -145,8 +143,6 @@ export class CalendarView implements OnInit {
       this.generateCalendarDays();
     } else if (this.viewMode() === "week") {
       this.generateWeekDays();
-    } else if (this.viewMode() === "day") {
-      this.generateDayView();
     }
   }
 
@@ -158,10 +154,6 @@ export class CalendarView implements OnInit {
   generateWeekDays(): void {
     const days = generateWeekDays(this.selectedDate(), this.currentMonth(), this.events());
     this.weekDays.set(days);
-  }
-
-  generateDayView(): void {
-    this.dayEvents.set(generateDayView(this.selectedDate(), this.events()));
   }
 
   selectDate(date: Date): void {
@@ -192,12 +184,6 @@ export class CalendarView implements OnInit {
         return date;
       });
       this.generateWeekDays();
-    } else if (this.viewMode() === "day") {
-      this.selectedDate.update((date) => {
-        date.setDate(date.getDate() - 1);
-        return date;
-      });
-      this.generateDayView();
     }
     this.filterEventsForSelectedDate();
   }
@@ -214,12 +200,6 @@ export class CalendarView implements OnInit {
         return date;
       });
       this.generateWeekDays();
-    } else if (this.viewMode() === "day") {
-      this.selectedDate.update((date) => {
-        date.setDate(date.getDate() + 1);
-        return date;
-      });
-      this.generateDayView();
     }
     this.filterEventsForSelectedDate();
   }
@@ -240,7 +220,12 @@ export class CalendarView implements OnInit {
   }
 
   formatSelectedDate(): string {
-    return getCurrentTitle("day", this.currentMonth(), this.selectedDate());
+    return this.selectedDate().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   }
 
   getCurrentTitle(): string {
@@ -251,7 +236,7 @@ export class CalendarView implements OnInit {
     return getEventColor(event);
   }
 
-  changeViewMode(mode: "month" | "week" | "day"): void {
+  changeViewMode(mode: "month" | "week"): void {
     this.viewMode.set(mode);
     this.regenerateView();
   }

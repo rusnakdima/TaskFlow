@@ -1,44 +1,44 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Kanban Board</h1>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">Kanban Board</h1>
       <p class="textMuted mt-1">Visualize and manage your tasks with drag-and-drop simplicity.</p>
     </div>
 
     <div class="flex flex-row items-center gap-3">
-      <div class="hidden sm:flex flex-col items-end mr-2">
-        <span class="text-[10px] uppercase tracking-wider textMuted font-bold">Active Project</span>
-        <span class="text-sm font-medium textNormal">{{ selectedProjectTitle() }}</span>
+      <div class="mr-2 hidden flex-col items-end sm:flex">
+        <span class="textMuted text-[10px] font-bold tracking-wider uppercase">Active Project</span>
+        <span class="textNormal text-sm font-medium">{{ selectedProjectTitle() }}</span>
       </div>
 
       <button
         [matMenuTriggerFor]="projectMenu"
-        class="rounded-xl h-12 px-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-inherit"
+        class="h-12 rounded-xl border border-zinc-200 bg-zinc-100 px-4 text-inherit dark:border-zinc-700 dark:bg-zinc-800"
       >
         <div class="flex items-center gap-2">
-          <mat-icon class="size-5! text-xl! text-blue-500" fontIcon="folder_open" />
+          <mat-icon class="size-5! min-w-5 text-xl! text-blue-500" fontIcon="folder_open" />
           <span class="font-semibold">Switch Project</span>
-          <mat-icon class="size-4! text-base!" fontIcon="expand_more" />
+          <mat-icon class="size-4! min-w-4 text-base!" fontIcon="expand_more" />
         </div>
       </button>
 
       <mat-menu
         #projectMenu="matMenu"
-        class="rounded-xl mt-2 overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-700"
+        class="mt-2 overflow-hidden rounded-xl border border-zinc-200 shadow-2xl dark:border-zinc-700"
       >
         <div
-          class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest textMuted border-b border-zinc-100 dark:border-zinc-700/50 mb-1"
+          class="textMuted mb-1 border-b border-zinc-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
         >
           Your Projects
         </div>
         @for (todo of todos(); track todo.id) {
           <button
             (click)="onTodoChange(todo.id)"
-            class="flex items-center gap-3 p-3 w-full"
+            class="flex w-full items-center gap-3 p-3"
             [ngClass]="selectedTodoId() === todo.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
           >
             <mat-icon
-              class="size-5! text-xl!"
+              class="size-5! min-w-5 text-xl!"
               [ngClass]="selectedTodoId() === todo.id ? 'text-blue-500!' : 'text-gray-400!'"
               [fontIcon]="selectedTodoId() === todo.id ? 'check_circle' : 'circle'"
             />
@@ -46,26 +46,26 @@
           </button>
         }
         @if (todos().length === 0) {
-          <div class="px-4 py-3 text-sm textMuted italic">No projects found</div>
+          <div class="textMuted px-4 py-3 text-sm italic">No projects found</div>
         }
       </mat-menu>
     </div>
   </div>
 
   @if (selectedTodoId()) {
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
       @for (column of columns; track column.id) {
         <div
-          class="rounded-xl p-6 text-white shadow-lg cursor-pointer"
+          class="cursor-pointer rounded-xl p-6 text-white shadow-lg"
           [ngClass]="getColumnColorClass(column.id)"
         >
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-white/80 text-sm">{{ column.label }}</p>
+              <p class="text-sm text-white/80">{{ column.label }}</p>
               <p class="text-2xl font-bold">{{ getTasksByStatus(column.id).length }}</p>
             </div>
-            <div class="bg-white/20 rounded-lg p-3">
-              <mat-icon class="size-6! text-2xl!" [fontIcon]="column.icon" />
+            <div class="rounded-lg bg-white/20 p-3">
+              <mat-icon class="size-6! min-w-6 text-2xl!" [fontIcon]="column.icon" />
             </div>
           </div>
         </div>
@@ -73,15 +73,15 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold textNormal">Task Board</h3>
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-lg font-semibold">Task Board</h3>
         <div class="flex items-center gap-4">
           @if (searchQuery()) {
             <button
               (click)="clearSearch()"
-              class="text-sm text-blue-500 hover:text-blue-600 font-medium"
+              class="text-sm font-medium text-blue-500 hover:text-blue-600"
             >
               Clear
             </button>
@@ -92,10 +92,10 @@
               [ngModel]="searchQuery()"
               (ngModelChange)="onSearchChange($event)"
               placeholder="Search tasks..."
-              class="w-64 pl-10 pr-4 py-2 text-base border border-gray-200 dark:border-zinc-600 rounded-lg bg-gray-50 dark:bg-zinc-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-64 rounded-lg border border-gray-200 bg-gray-50 py-2 pr-4 pl-10 text-base focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700/50"
             />
             <mat-icon
-              class="absolute left-3 top-1/2 w-5! h-5! text-xl! -translate-y-1/2 text-gray-400"
+              class="absolute top-1/2 left-3 h-5! w-5! min-w-5 -translate-y-1/2 text-xl! text-gray-400"
               fontIcon="search"
             />
           </div>
@@ -103,23 +103,23 @@
       </div>
 
       <div class="overflow-x-auto pb-4">
-        <div class="flex flex-row gap-x-3 min-w-max">
+        <div class="flex min-w-max flex-row gap-x-3">
           @for (column of columns; track column.id) {
-            <div class="flex flex-col w-80">
+            <div class="flex w-80 flex-col">
               <div class="rounded-t-xl p-4 text-white" [ngClass]="getColumnColorClass(column.id)">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <mat-icon class="size-5! text-xl!" [fontIcon]="column.icon" />
+                    <mat-icon class="size-5! min-w-5 text-xl!" [fontIcon]="column.icon" />
                     <h3 class="font-semibold">{{ column.label }}</h3>
                   </div>
-                  <span class="bg-white/20 px-2 py-1 rounded-full text-sm">
+                  <span class="rounded-full bg-white/20 px-2 py-1 text-sm">
                     {{ getTasksByStatus(column.id).length }}
                   </span>
                 </div>
               </div>
 
               <div
-                class="flex flex-col gap-y-3 p-3 rounded-b-xl bg-gray-50 dark:bg-zinc-700/50 min-h-[200px] max-h-[600px] overflow-y-auto custom-scrollbar"
+                class="custom-scrollbar flex max-h-[600px] min-h-[200px] flex-col gap-y-3 overflow-y-auto rounded-b-xl bg-gray-50 p-3 dark:bg-zinc-700/50"
                 cdkDropList
                 [cdkDropListData]="getTasksByStatus(column.id)"
                 [cdkDropListConnectedTo]="getConnectedDropLists(column.id)"
@@ -142,15 +142,15 @@
                   </div>
                   <div
                     *cdkDragPlaceholder
-                    class="rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/20 min-h-[140px]"
+                    class="min-h-[140px] rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/20"
                   ></div>
                 }
 
                 @if (getTasksByStatus(column.id).length === 0) {
                   <div
-                    class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 dark:border-zinc-600 rounded-lg text-gray-400"
+                    class="flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-gray-400 dark:border-zinc-600"
                   >
-                    <mat-icon class="size-8! text-4xl! mb-2 opacity-50" fontIcon="inbox" />
+                    <mat-icon class="mb-2 size-8! min-w-8 text-4xl! opacity-50" fontIcon="inbox" />
                     <span class="text-xs">No tasks</span>
                   </div>
                 }
@@ -162,13 +162,13 @@
     </div>
   } @else {
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="bg-gray-100 dark:bg-zinc-700/50 p-8 rounded-full mb-4 inline-flex">
-        <mat-icon class="size-16! text-6xl! textMuted" fontIcon="view_kanban" />
+      <div class="mb-4 inline-flex rounded-full bg-gray-100 p-8 dark:bg-zinc-700/50">
+        <mat-icon class="textMuted size-16! min-w-16 text-6xl!" fontIcon="view_kanban" />
       </div>
-      <h2 class="text-xl font-medium textNormal mb-2">Select a Project</h2>
-      <p class="text-sm textMuted max-w-md mx-auto">
+      <h2 class="textNormal mb-2 text-xl font-medium">Select a Project</h2>
+      <p class="textMuted mx-auto max-w-md text-sm">
         Choose a project from the dropdown above to view and manage its tasks in the kanban board.
       </p>
     </div>
@@ -176,15 +176,15 @@
 
   @if (loading()) {
     <div
-      class="fixed inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-50 backdrop-blur-[2px]"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[2px] dark:bg-black/50"
     >
       <div
-        class="flex flex-col items-center space-y-2 bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-lg"
+        class="flex flex-col items-center space-y-2 rounded-xl bg-white p-6 shadow-lg dark:bg-zinc-800"
       >
         <div
-          class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+          class="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"
         ></div>
-        <span class="text-sm font-medium textNormal">Loading tasks...</span>
+        <span class="textNormal text-sm font-medium">Loading tasks...</span>
       </div>
     </div>
   }
