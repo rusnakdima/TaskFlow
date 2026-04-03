@@ -18,7 +18,7 @@ export class ChatHandler extends EntityHandler<Chat> {
     });
   }
 
-  update(id: string, updates: Partial<Chat>): void {
+  update(id: string, updates: Partial<Chat>, _resolvers?: Record<string, any>): void {
     this.signal.update((map) => {
       const newMap = new Map(map);
       for (const [todoId, chats] of newMap.entries()) {

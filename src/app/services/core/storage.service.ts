@@ -136,7 +136,15 @@ export class StorageService extends BaseStorageService {
       const existing: any = this.getById(type, id);
       if (existing?.["isDeleted"] === true) return;
     }
-    this.handlers[type]?.update(id, updates);
+
+    if (type === "todos") {
+      const categoriesSignal = this.categoriesSignal;
+      this.handlers[type]?.update(id, updates, {
+        getCategoryById: (catId: string) => categoriesSignal().find((c) => c.id === catId),
+      });
+    } else {
+      this.handlers[type]?.update(id, updates);
+    }
     // Note: Local JSON persistence is now handled by DataSyncProvider
     // isPrivate option kept for backward compatibility but not used here
   }

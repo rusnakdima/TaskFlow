@@ -88,13 +88,6 @@ export function generateWeekDays(
 }
 
 /**
- * Generate day view events
- */
-export function generateDayView(selectedDate: Date, events: CalendarEvent[]): CalendarEvent[] {
-  return events.filter((event) => isSameDay(event.date, selectedDate));
-}
-
-/**
  * Get weeks for mobile view
  */
 export function getWeeksForMobile(calendarDays: CalendarDay[]): CalendarDay[][] {
@@ -169,7 +162,7 @@ export function formatSelectedDate(date: Date): string {
  * Get current title based on view mode
  */
 export function getCurrentTitle(
-  viewMode: "month" | "week" | "day",
+  viewMode: "month" | "week",
   currentMonth: Date,
   selectedDate: Date
 ): string {
@@ -177,8 +170,6 @@ export function getCurrentTitle(
     return formatMonthYear(currentMonth);
   } else if (viewMode === "week") {
     return formatWeekRange(selectedDate);
-  } else if (viewMode === "day") {
-    return formatSelectedDate(selectedDate);
   }
   return "";
 }

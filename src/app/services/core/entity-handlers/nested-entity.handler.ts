@@ -69,7 +69,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
     });
   }
 
-  update(id: string, updates: Partial<T>): void {
+  update(id: string, updates: Partial<T>, _resolvers?: Record<string, any>): void {
     let entityId: string | null =
       this.entityType === "tasks"
         ? (updates as any).todoId || this.lookupTodoId(id)

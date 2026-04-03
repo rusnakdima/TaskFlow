@@ -26,32 +26,32 @@
   }
 
   .theme {
-    @apply text-black dark:text-white bg-white dark:bg-zinc-900;
+    @apply bg-white text-black dark:bg-zinc-900 dark:text-white;
   }
 
   .styleBody {
-    @apply block top-0 left-0 m-0 w-full text-base text-black dark:text-white bg-white dark:bg-zinc-900;
+    @apply top-0 left-0 m-0 block w-full bg-white text-base text-black dark:bg-zinc-900 dark:text-white;
     font-family: "Roboto", "Inter", sans-serif;
   }
 
   .styleHeader {
-    @apply sticky flex flex-row justify-between items-center top-0 mx-auto px-3 z-40 w-full h-11 text-black dark:text-white bg-white dark:bg-zinc-900;
+    @apply sticky top-0 z-40 mx-auto flex h-11 w-full flex-row items-center justify-between bg-white px-3 text-black dark:bg-zinc-900 dark:text-white;
   }
 
   .styleBottomNav {
-    @apply fixed grid grid-cols-6 left-0 right-0 bottom-0 m-0 w-full text-black dark:text-white bg-white dark:bg-zinc-900;
+    @apply sticky right-0 bottom-0 left-0 m-0 grid h-15 w-full grid-cols-6 bg-white text-black dark:bg-zinc-900 dark:text-white;
   }
 
   .styleBackWind {
-    @apply fixed flex flex-col items-center justify-center left-0 top-0 m-0 z-999 bg-white/40 dark:bg-black/30 w-full h-screen overflow-y-auto;
+    @apply fixed top-0 left-0 z-999 m-0 flex h-screen w-full flex-col items-center justify-center overflow-y-auto bg-white/40 dark:bg-black/30;
   }
 
   .styleWind {
-    @apply absolute p-4 rounded-xl border border-solid border-black dark:border-white bg-white dark:bg-zinc-900 w-10/12 sm:w-5/6 md:w-2/3 lg:w-1/2;
+    @apply absolute w-10/12 rounded-xl border border-solid border-black bg-white p-4 sm:w-5/6 md:w-2/3 lg:w-1/2 dark:border-white dark:bg-zinc-900;
   }
 
   .styleWindNotify {
-    @apply fixed flex flex-col top-1 right-1 z-999 rounded-lg border border-solid border-white text-white;
+    @apply fixed top-1 right-1 z-999 flex flex-col rounded-lg border border-solid border-white text-white;
   }
 
   .styleBorderSolid {
@@ -63,51 +63,51 @@
   }
 
   .styleLinkAside {
-    @apply flex flex-row gap-x-2 items-center px-2 py-1 w-full font-semibold text-left text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
+    @apply flex w-full cursor-pointer flex-row items-center gap-x-2 px-2 py-1 text-left text-xl font-semibold hover:text-blue-700 dark:hover:text-lime-600;
   }
 
   .styleLinkNav {
-    @apply font-semibold text-center text-xl hover:text-blue-700 dark:hover:text-lime-600 cursor-pointer;
+    @apply cursor-pointer text-center text-xl font-semibold hover:text-blue-700 dark:hover:text-lime-600;
   }
 
   .styleLinkMenuUser {
-    @apply block px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-900 dark:text-white text-xl text-black cursor-pointer;
+    @apply block cursor-pointer px-4 py-2 text-xl text-black hover:bg-gray-300 dark:text-white dark:hover:bg-gray-900;
   }
 
   .styleLinkMenu {
-    @apply flex flex-row gap-x-4 items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white;
+    @apply flex flex-row items-center gap-x-4 rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700;
   }
 
   .styleLinkRedir {
-    @apply text-blue-600! dark:text-lime-500! decoration-blue-600! dark:decoration-lime-500! underline decoration-dashed decoration-1 underline-offset-4 cursor-pointer;
+    @apply cursor-pointer text-blue-600! underline decoration-blue-600! decoration-dashed decoration-1 underline-offset-4 dark:text-lime-500! dark:decoration-lime-500!;
   }
 
   .styleBottomNavItems {
-    @apply flex flex-col items-center text-center cursor-pointer;
+    @apply flex cursor-pointer flex-col items-center text-center;
   }
 
   .styleBut {
-    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center;
+    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
   }
 
   .styleButInfo {
-    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-blue-900 bg-blue-600;
+    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-blue-900 bg-blue-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
   }
 
   .styleButWarn {
-    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-yellow-900 bg-yellow-500;
+    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-yellow-900 bg-yellow-500 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
   }
 
   .styleButDanger {
-    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-red-900 bg-red-600;
+    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-red-900 bg-red-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
   }
 
   .styleButSuccess {
-    @apply flex flex-row justify-center items-center py-2 px-4 active:mt-1 rounded-lg border-b-4 active:border-0 border-solid text-white dark:text-white text-center border-green-900 bg-green-600;
+    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-green-900 bg-green-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
   }
 
   .styleFloatBut {
-    @apply flex flex-row justify-center items-center gap-x-1 p-2 rounded-xl border border-solid border-zinc-600 dark:border-zinc-500 hover:bg-gray-400 dark:hover:bg-gray-700 cursor-pointer;
+    @apply flex cursor-pointer flex-row items-center justify-center gap-x-1 rounded-xl border border-solid border-zinc-600 p-2 hover:bg-gray-400 dark:border-zinc-500 dark:hover:bg-gray-700;
   }
 
   .styleTR {
@@ -115,35 +115,35 @@
   }
 
   .styleTD {
-    @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
+    @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
   }
 
   .styleLI {
-    @apply inline-flex p-4 rounded-t-lg border-b-2 hover:border-gray-300 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer;
+    @apply inline-flex cursor-pointer rounded-t-lg border-b-2 p-4 hover:border-gray-300 hover:text-gray-600 dark:hover:text-gray-300;
   }
 
   .styleUL {
-    @apply flex flex-wrap -mb-px border-b border-gray-200 dark:border-gray-700 font-medium text-center text-sm text-gray-500 dark:text-gray-400;
+    @apply -mb-px flex flex-wrap border-b border-gray-200 text-center text-sm font-medium text-gray-500 dark:border-gray-700 dark:text-gray-400;
   }
 
   .styleLabel {
-    @apply block mt-2 text-gray-900 dark:text-white font-medium;
+    @apply mt-2 block font-medium text-gray-900 dark:text-white;
   }
 
   .styleElem {
-    @apply rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+    @apply rounded-lg border border-gray-400 bg-slate-300 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
   }
 
   .styleField {
-    @apply p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
   }
 
   .styleTextarea {
-    @apply block p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg w-full;
+    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
   }
 
   .styleFileInput {
-    @apply p-2.5 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg;
+    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
   }
 
   .styleCheckbox {
@@ -151,21 +151,21 @@
   }
 
   .styleCheckbox + .checkmark {
-    @apply relative inline-flex items-center cursor-pointer select-none w-5 h-5;
+    @apply relative inline-flex h-5 w-5 cursor-pointer items-center select-none;
   }
 
   .styleCheckbox + .checkmark::before {
     content: "";
-    @apply w-5 h-5 border border-zinc-300 dark:border-zinc-700 rounded bg-transparent transition-all duration-200 box-border flex items-center justify-center shrink-0;
+    @apply box-border flex h-5 w-5 shrink-0 items-center justify-center rounded border border-zinc-300 bg-transparent transition-all duration-200 dark:border-zinc-700;
   }
 
   .styleCheckbox:checked + .checkmark::before {
-    @apply bg-blue-600 border-blue-500;
+    @apply border-blue-500 bg-blue-600;
   }
 
   .styleCheckbox:checked + .checkmark::after {
     content: "";
-    @apply absolute w-2.5 h-2.5 bg-white rounded-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+    @apply absolute top-1/2 left-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 transform rounded-sm bg-white;
   }
 
   .styleCheckbox:focus + .checkmark::before {
@@ -173,19 +173,19 @@
   }
 
   .styleToggle {
-    @apply relative after:absolute after:top-[2px] rounded-full after:rounded-full after:border after:border-gray-300 dark:border-gray-600 peer-checked:after:border-white bg-gray-200 dark:bg-gray-700 after:bg-white peer-checked:bg-blue-600 w-11 h-6 after:w-5 after:h-5 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-focus:outline-none after:content-[''] after:start-[2px] after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full;
+    @apply relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800;
   }
 
   .styleRadio {
-    @apply w-6 h-6 text-blue-600 dark:text-green-500 bg-gray-300 dark:bg-gray-700 border-gray-500 dark:border-gray-600 focus:ring-blue-600 dark:focus:ring-green-500 dark:ring-offset-gray-800 focus:ring-2;
+    @apply h-6 w-6 border-gray-500 bg-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-700 dark:text-green-500 dark:ring-offset-gray-800 dark:focus:ring-green-500;
   }
 
   .styleRadio:disabled {
-    @apply bg-red-700! border-red-700! focus:ring-red-700!;
+    @apply border-red-700! bg-red-700! focus:ring-red-700!;
   }
 
   .styleSelect {
-    @apply block px-3 py-2 rounded-lg border border-gray-400 dark:border-gray-600 bg-slate-300 dark:bg-neutral-800 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 text-gray-900 dark:text-white dark:placeholder:text-gray-400 placeholder:text-lg w-full;
+    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 px-3 py-2 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
   }
 
   .styleDetails {
@@ -194,7 +194,7 @@
 }
 
 button:disabled {
-  @apply hover:bg-red-500! dark:hover:bg-red-500! cursor-not-allowed;
+  @apply cursor-not-allowed hover:bg-red-500! dark:hover:bg-red-500!;
 }
 
 @layer components {
@@ -251,7 +251,7 @@ button:disabled {
 }
 
 mat-icon {
-  @apply w-7.5! h-7.5! text-3xl!;
+  @apply h-7.5! w-7.5! text-3xl!;
   line-height: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -264,7 +264,7 @@ mat-icon {
 }
 
 pre {
-  @apply p-5 rounded-lg border border-solid border-zinc-600 dark:border-zinc-500 bg-transparent w-full;
+  @apply w-full rounded-lg border border-solid border-zinc-600 bg-transparent p-5 dark:border-zinc-500;
 }
 
 .dividerIcon > div {
@@ -275,7 +275,7 @@ pre {
 }
 
 ::-webkit-scrollbar {
-  @apply bg-transparent w-2 h-2;
+  @apply h-2 w-2 bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -292,7 +292,7 @@ pre {
 }
 
 .ngx-pagination {
-  @apply inline-flex items-center -space-x-px mb-0!;
+  @apply mb-0! inline-flex items-center -space-x-px;
 }
 
 .ngx-pagination .pagination-previous,
@@ -314,21 +314,21 @@ pre {
 
 .ngx-pagination .pagination-previous.disabled:before,
 .ngx-pagination .pagination-previous a:before {
-  @apply content-['<']! mr-0!;
+  @apply mr-0! content-['<']!;
 }
 
 .ngx-pagination .pagination-next.disabled:after,
 .ngx-pagination .pagination-next a:after {
-  @apply content-['>']! ml-0!;
+  @apply ml-0! content-['>']!;
 }
 
 .ngx-pagination a,
 .ngx-pagination .disabled {
-  @apply px-4! py-2! text-xl text-gray-500! dark:text-zinc-400! hover:text-gray-700! dark:hover:text-white! bg-white! dark:bg-zinc-800! hover:bg-gray-100! dark:hover:bg-zinc-700! border border-gray-300! dark:border-zinc-600!;
+  @apply border border-gray-300! bg-white! px-4! py-2! text-xl text-gray-500! hover:bg-gray-100! hover:text-gray-700! dark:border-zinc-600! dark:bg-zinc-800! dark:text-zinc-400! dark:hover:bg-zinc-700! dark:hover:text-white!;
 }
 
 .ngx-pagination .current {
-  @apply px-4! py-2! z-0 text-xl text-blue-600! dark:text-white! hover:text-blue-700! bg-blue-50! dark:bg-zinc-600! hover:bg-blue-100! border border-blue-300 dark:border-zinc-400! dark:hover:bg-zinc-700!;
+  @apply z-0 border border-blue-300 bg-blue-50! px-4! py-2! text-xl text-blue-600! hover:bg-blue-100! hover:text-blue-700! dark:border-zinc-400! dark:bg-zinc-600! dark:text-white! dark:hover:bg-zinc-700!;
 }
 
 .mat-calendar,
@@ -378,15 +378,19 @@ pre {
 }
 
 .mat-calendar-body-today:not(.mat-calendar-body-selected) {
-  @apply bg-red-500! dark:bg-red-600! text-white!;
+  @apply bg-red-500! text-white! dark:bg-red-600!;
+}
+
+.today-marker:not(.mat-calendar-body-selected) {
+  @apply bg-red-500! text-white! dark:bg-red-600!;
 }
 
 .mat-calendar-body-selected {
-  @apply bg-green-700! dark:bg-green-600! text-white!;
+  @apply bg-green-700! text-white! dark:bg-green-600!;
 }
 
 .mat-calendar-body-active > span:not(.mat-calendar-body-selected):nth-child(1) {
-  @apply bg-blue-600! dark:bg-blue-500! text-white;
+  @apply bg-blue-600! text-white dark:bg-blue-500!;
 }
 
 .mat-mdc-form-field-required-marker {
@@ -415,7 +419,7 @@ pre {
 }
 
 .mat-expansion-panel-header {
-  @apply px-3! h-[40px]!;
+  @apply h-[40px]! px-3!;
 }
 
 .mat-expansion-panel-header-title {
@@ -447,7 +451,7 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 }
 
 .mat-mdc-text-field-wrapper {
-  @apply rounded-lg! border border-gray-400! dark:border-gray-600! focus:ring-blue-500! dark:focus:ring-blue-500! focus:border-blue-500! dark:focus:border-blue-500! bg-slate-300! dark:bg-neutral-800! placeholder:text-lg! text-gray-900! dark:text-white! dark:placeholder:text-gray-100!;
+  @apply rounded-lg! border border-gray-400! bg-slate-300! text-gray-900! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-gray-600! dark:bg-neutral-800! dark:text-white! dark:placeholder:text-gray-100! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
 }
 
 .mdc-line-ripple {
@@ -501,7 +505,7 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 
 /* Drag handle */
 .drag-handle {
-  @apply w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity;
+  @apply flex h-6 w-6 cursor-grab items-center justify-center text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-zinc-600 active:cursor-grabbing dark:text-zinc-500 dark:hover:text-zinc-400;
 }
 
 /* ── Todos grid drop list (mixed orientation: one drop list per item) ── */
@@ -581,20 +585,20 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 
 .fc-theme-standard .fc-popover,
 .fc-multimonth-header {
-  @apply text-black dark:text-white bg-white dark:bg-zinc-900;
+  @apply bg-white text-black dark:bg-zinc-900 dark:text-white;
 }
 
 .fc .fc-multimonth {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
+  @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
 }
 
 .fc-theme-standard .fc-scrollgrid {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600 rounded-xl;
+  @apply rounded-xl border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th {
-  @apply p-1 border-2 border-solid border-gray-500 dark:border-gray-600;
+  @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
 }
 
 .fc-day-disabled,
@@ -605,19 +609,19 @@ mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox
 
 th[role="presentation"],
 td[role="presentation"] {
-  @apply border-b-0! border-r-0!;
+  @apply border-r-0! border-b-0!;
 }
 
 .fc-prev-button {
-  @apply rounded-r-none! border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-lg rounded-r-none! border border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-next-button {
-  @apply rounded-l-none! border rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-lg rounded-l-none! border border-solid border-zinc-600 dark:border-zinc-500;
 }
 
 .fc-button {
-  @apply flex flex-col justify-center px-4 border-zinc-600! dark:border-zinc-500! text-black! dark:text-white! cursor-pointer;
+  @apply flex cursor-pointer flex-col justify-center border-zinc-600! px-4 text-black! dark:border-zinc-500! dark:text-white!;
 }
 
 .fc-button:not(.fc-button-active) {

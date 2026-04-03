@@ -11,7 +11,7 @@ export class ProfileHandler extends EntityHandler<Profile> {
     this.signal.set(data);
   }
 
-  update(id: string, updates: Partial<Profile>): void {
+  update(id: string, updates: Partial<Profile>, _resolvers?: Record<string, any>): void {
     this.signal.update((profile) => (profile ? { ...profile, ...updates } : null));
   }
 
