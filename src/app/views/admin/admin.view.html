@@ -1,33 +1,36 @@
 <ng-template #dataTypesTemplate let-isDesktop="isDesktop">
-  <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
-    <h2 class="text-lg font-semibold textNormal">Data Types</h2>
+  <div class="border-b border-gray-200 p-4 dark:border-zinc-700">
+    <h2 class="textNormal text-lg font-semibold">Data Types</h2>
   </div>
   <div
     [class]="
       isDesktop
         ? 'flex flex-col gap-y-1 p-3'
-        : 'flex flex-col gap-y-1 p-3 divide-y divide-gray-100 dark:divide-zinc-700 max-h-[calc(100vh-200px)] lg:max-h-none overflow-y-auto'
+        : 'flex max-h-[calc(100vh-200px)] flex-col gap-y-1 divide-y divide-gray-100 overflow-y-auto p-3 lg:max-h-none dark:divide-zinc-700'
     "
   >
     @for (type of dataTypes; track type.id) {
       <button
-        class="flex flex-row gap-x-2 styleFloatBut w-full"
+        class="styleFloatBut flex w-full flex-row gap-x-2"
         [ngClass]="isDesktop && selectedType() === type.id ? 'bg-gray-300 dark:bg-zinc-700' : ''"
         (click)="selectDataType(type.id)"
       >
-        <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
-        <div [class]="isDesktop ? 'flex flex-col flex-1 items-start' : 'flex-1'">
-          <div class="text-sm font-medium textNormal">{{ type.label }}</div>
-          <div class="flex items-center justify-between mt-1">
-            <span class="text-xs textMuted">{{ type.count }} items</span>
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="type.icon" />
+        <div [class]="isDesktop ? 'flex flex-1 flex-col items-start' : 'flex-1'">
+          <div class="textNormal text-sm font-medium">{{ type.label }}</div>
+          <div class="mt-1 flex items-center justify-between">
+            <span class="textMuted text-xs">{{ type.count }} items</span>
           </div>
         </div>
         <div class="flex flex-row gap-x-1">
           @if (loading()) {
-            <mat-icon class="w-5! h-5! text-xl! text-blue-500 animate-spin" fontIcon="sync" />
+            <mat-icon
+              class="h-5! w-5! min-w-5 animate-spin text-xl! text-blue-500"
+              fontIcon="sync"
+            />
           }
           <mat-icon
-            class="w-5! h-5! text-xl! textMuted"
+            class="textMuted h-5! w-5! min-w-5 text-xl!"
             [ngClass]="!isDesktop && selectedType() === type.id ? 'rotate-90' : ''"
             fontIcon="chevron_right"
           />
@@ -40,16 +43,16 @@
 <ng-template #filtersTemplate let-isMobile="isMobile">
   @if (isMobile) {
     <div
-      class="flex flex-row items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-700"
+      class="flex flex-row items-center justify-between border-b border-gray-200 p-4 dark:border-zinc-700"
     >
-      <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
-      <button mat-button class="min-w-0! w-9! h-9! p-0!" (click)="closeFilters()">
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="close" />
+      <h2 class="textNormal text-lg font-semibold">Advanced Filters</h2>
+      <button mat-button class="h-9! w-9! min-w-0! p-0!" (click)="closeFilters()">
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="close" />
       </button>
     </div>
   } @else {
-    <div class="p-4 border-b border-gray-200 dark:border-zinc-700">
-      <h2 class="text-lg font-semibold textNormal">Advanced Filters</h2>
+    <div class="border-b border-gray-200 p-4 dark:border-zinc-700">
+      <h2 class="textNormal text-lg font-semibold">Advanced Filters</h2>
     </div>
   }
   <div class="flex flex-col gap-y-1 p-3">
@@ -107,24 +110,24 @@
     }
     @if (selectedType() === "tasks") {
       <mat-form-field class="w-full">
-        <mat-label>Todo ID</mat-label>
-        <input
-          matInput
-          [ngModel]="todoIdFilter()"
-          (ngModelChange)="todoIdFilter.set($event)"
-          placeholder="Search by todo ID..."
-        />
+        <mat-label>Project (Todo)</mat-label>
+        <mat-select [ngModel]="todoIdFilter()" (ngModelChange)="todoIdFilter.set($event)">
+          <mat-option value="">All</mat-option>
+          @for (todo of adminData()["todos"] || []; track todo.id) {
+            <mat-option [value]="todo.id">{{ todo.title || "Untitled" }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
     }
     @if (selectedType() === "subtasks") {
       <mat-form-field class="w-full">
-        <mat-label>Task ID</mat-label>
-        <input
-          matInput
-          [ngModel]="taskIdFilter()"
-          (ngModelChange)="taskIdFilter.set($event)"
-          placeholder="Search by task ID..."
-        />
+        <mat-label>Task</mat-label>
+        <mat-select [ngModel]="taskIdFilter()" (ngModelChange)="taskIdFilter.set($event)">
+          <mat-option value="">All</mat-option>
+          @for (task of adminData()["tasks"] || []; track task.id) {
+            <mat-option [value]="task.id">{{ task.title || "Untitled" }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
     }
 
@@ -176,38 +179,38 @@
   <div class="flex flex-wrap gap-2">
     @for (type of dataTypes; track type.id) {
       <button
-        class="px-4 py-2 rounded-lg transition-colors font-medium"
+        class="rounded-lg px-4 py-2 font-medium transition-colors"
         [ngClass]="
           selectedType() === type.id
             ? 'bg-blue-500 text-white'
-            : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600'
         "
         (click)="selectDataType(type.id)"
       >
         <div class="flex items-center gap-2">
-          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="type.icon" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="type.icon" />
           <span>{{ type.label }} ({{ type.count }})</span>
         </div>
       </button>
     }
   </div>
 
-  <div class="h-[calc(100vh-220px)] overflow-y-auto">
+  <div class="overflow-y-auto">
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="p-4 lg:p-6 border-b border-gray-200 dark:border-zinc-700">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="border-b border-gray-200 p-4 lg:p-6 dark:border-zinc-700">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 class="text-xl font-bold textNormal">{{ getSelectedTypeLabel() }}</h2>
-            <p class="text-sm textMuted">{{ getCurrentData().length }} total records</p>
+            <h2 class="textNormal text-xl font-bold">{{ getSelectedTypeLabel() }}</h2>
+            <p class="textMuted text-sm">{{ getCurrentData().length }} total records</p>
           </div>
-          <div class="flex flex-row gap-2 items-center flex-wrap">
+          <div class="flex flex-row flex-wrap items-center gap-2">
             <button
-              class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
               (click)="toggleSelectAll()"
               [ngClass]="{
-                'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-300':
+                'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300':
                   isAllSelected(),
               }"
             >
@@ -258,20 +261,20 @@
               (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc')"
             >
               <mat-icon
-                class="w-5! h-5! text-xl!"
+                class="h-5! w-5! min-w-5 text-xl!"
                 [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
               />
             </button>
             <button class="styleButInfo" (click)="loadAdminData()" [disabled]="loading()">
               <mat-icon
-                class="w-5! h-5! text-xl! mr-2"
+                class="mr-2 h-5! w-5! min-w-5 text-xl!"
                 [ngClass]="loading() ? 'animate-spin' : ''"
                 fontIcon="sync"
               />
               Refresh
             </button>
             <button class="styleButInfo" (click)="showFilters.set(!showFilters())">
-              <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="filter_alt" />
+              <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="filter_alt" />
               Filters
             </button>
           </div>
@@ -280,14 +283,17 @@
 
       @if (loading()) {
         <div class="flex items-center justify-center py-16">
-          <mat-icon class="w-7.5! h-7.5! text-3xl! text-blue-500 animate-spin" fontIcon="sync" />
-          <span class="ml-3 textNormal">Loading data...</span>
+          <mat-icon
+            class="h-7.5! w-7.5! min-w-[30px] animate-spin text-3xl! text-blue-500"
+            fontIcon="sync"
+          />
+          <span class="textNormal ml-3">Loading data...</span>
         </div>
       } @else if (getCurrentData().length === 0) {
-        <div class="text-center py-16">
-          <mat-icon class="w-16! h-16! text-4xl! text-gray-300" fontIcon="inbox" />
+        <div class="py-16 text-center">
+          <mat-icon class="h-16! w-16! min-w-16 text-4xl! text-gray-300" fontIcon="inbox" />
           <h3 class="text-lg font-medium text-gray-500">No records found</h3>
-          <p class="mt-2 text-sm textMuted">
+          <p class="textMuted mt-2 text-sm">
             No {{ getSelectedTypeLabel().toLowerCase() }} data available
           </p>
         </div>
@@ -313,7 +319,7 @@
   </div>
 
   <div
-    class="fixed flex-col top-0 right-0 z-40 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-y-auto max-w-sm h-full lg:max-w-none"
+    class="fixed top-0 right-0 z-40 h-full max-w-sm flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg lg:max-w-none dark:border-zinc-700 dark:bg-zinc-800"
     [ngClass]="showFilters() ? 'flex' : 'hidden'"
   >
     <ng-container *ngTemplateOutlet="filtersTemplate; context: { isMobile: false }" />
