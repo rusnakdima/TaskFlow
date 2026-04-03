@@ -1,35 +1,35 @@
 <div
-  class="sticky top-0 z-40 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 shadow-sm"
+  class="sticky top-0 z-40 overflow-hidden border-b border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
 >
-  <div class="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
-    <div class="flex items-center gap-3">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+    <div class="flex min-w-0 items-center gap-3">
       @if (isBack()) {
         <button
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
+          class="h-9! flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
           (click)="goBack()"
         >
-          <mat-icon class="size-5! text-xl! textNormal" fontIcon="arrow_back" />
+          <mat-icon class="textNormal size-5! min-w-5 text-xl!" fontIcon="arrow_back" />
         </button>
       }
 
-      <div class="flex flex-col">
-        <h1 class="text-lg font-semibold textNormal">{{ title() }}</h1>
+      <div class="flex min-w-0 flex-1 flex-col">
+        <h1 class="textNormal truncate text-lg font-semibold">{{ title() }}</h1>
         @if (description()) {
-          <p class="text-sm textMuted">{{ description() }}</p>
+          <p class="textMuted truncate text-sm">{{ description() }}</p>
         }
       </div>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-shrink-0 items-center gap-2">
       <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors h-9! relative"
+        class="relative h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
         title="Notifications"
         [matMenuTriggerFor]="notificationMenu"
       >
-        <mat-icon class="w-6! h-6! text-2xl! textMuted" fontIcon="notifications_none" />
+        <mat-icon class="textMuted h-6! w-6! min-w-6 text-2xl!" fontIcon="notifications_none" />
         @if (unreadCount() > 0) {
           <div
-            class="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold"
+            class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
           >
             {{ unreadCount() > 9 ? "9+" : unreadCount() }}
           </div>
@@ -37,36 +37,36 @@
       </button>
 
       <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
+        class="h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
         (click)="syncAll()"
         [disabled]="isSyncing()"
         [title]="isSyncing() ? 'Synchronizing...' : 'Sync data with cloud'"
       >
         <mat-icon
-          class="w-6! h-6! text-2xl! textMuted"
+          class="textMuted h-6! w-6! min-w-6 text-2xl!"
           [ngClass]="isSyncing() ? 'animate-spin' : ''"
           fontIcon="sync"
         />
       </button>
 
       <button
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 h-9! transition-colors"
+        class="h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
         (click)="toggleTheme()"
         [title]="themeVal() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
       >
         <mat-icon
-          class="w-6! h-6! text-2xl! textMuted"
+          class="textMuted h-6! w-6! min-w-6 text-2xl!"
           [fontIcon]="themeVal() === 'dark' ? 'light_mode' : 'dark_mode'"
         />
       </button>
 
       <button
-        class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        class="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
         [matMenuTriggerFor]="userMenu"
       >
         <img
           [src]="profile()?.imageUrl ? profile()!.imageUrl : 'assets/images/user.png'"
-          class="w-8 min-w-8 h-8 rounded-full"
+          class="h-8 w-8 min-w-8 rounded-full"
           alt=""
         />
       </button>
@@ -74,16 +74,16 @@
   </div>
 </div>
 
-<mat-menu #userMenu="matMenu" xPosition="before" class="min-w-[200px]! max-w-[300px]!">
+<mat-menu #userMenu="matMenu" xPosition="before" class="max-w-[300px]! min-w-[200px]!">
   <div
-    class="p-3 border-b border-gray-200 dark:border-zinc-700 outline-none"
+    class="border-b border-gray-200 p-3 outline-none dark:border-zinc-700"
     (click)="$event.stopPropagation()"
   >
-    <p class="font-medium textNormal">
+    <p class="textNormal font-medium">
       {{ profile()?.name || "User" }} {{ profile()?.lastName || "" }}
     </p>
     @if (profile()?.user?.email) {
-      <p class="text-sm textMuted">{{ profile()?.user?.email }}</p>
+      <p class="textMuted text-sm">{{ profile()?.user?.email }}</p>
     }
   </div>
 
@@ -92,27 +92,27 @@
       mat-menu-item
       routerLink="/profile"
       [queryParams]="{ id: userId() }"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="person" />
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="person" />
       <span class="textNormal">Profile</span>
     </button>
 
     <button
       mat-menu-item
       routerLink="/categories"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="category" />
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="category" />
       <span class="textNormal">Categories</span>
     </button>
 
     <button
       mat-menu-item
       routerLink="/sync"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="sync" />
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="sync" />
       <span class="textNormal">Sync Data</span>
     </button>
 
@@ -120,9 +120,9 @@
       <button
         mat-menu-item
         routerLink="/admin"
-        class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+        class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
       >
-        <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="manage_accounts" />
+        <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="manage_accounts" />
         <span class="textNormal">Admin</span>
       </button>
     }
@@ -130,27 +130,30 @@
     <button
       mat-menu-item
       routerLink="/archive"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="archive" />
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="archive" />
       <span class="textNormal">Archive</span>
     </button>
 
     <button
       mat-menu-item
       routerLink="/settings"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! text-xl! textMuted mr-3" fontIcon="settings" />
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="settings" />
       <span class="textNormal">Settings</span>
     </button>
 
     <button
       mat-menu-item
       routerLink="/about"
-      class="hover:bg-gray-300! dark:hover:bg-zinc-700! transition-colors"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
     >
-      <mat-icon class="size-5! before:w-5! text-xl! textMuted mr-3" fontIcon="info_outlined" />
+      <mat-icon
+        class="textMuted mr-3 size-5! min-w-5 text-xl! before:w-5!"
+        fontIcon="info_outlined"
+      />
       <span class="textNormal">About</span>
     </button>
 
@@ -158,32 +161,35 @@
 
     <button
       mat-menu-item
-      class="text-red-600 dark:text-red-400 hover:bg-red-50! dark:hover:bg-red-900/30! transition-colors"
+      class="text-red-600 transition-colors hover:bg-red-50! dark:text-red-400 dark:hover:bg-red-900/30!"
       (click)="logout()"
     >
-      <mat-icon class="size-5! text-xl! mr-3 text-red-600 dark:text-red-400" fontIcon="logout" />
+      <mat-icon
+        class="mr-3 size-5! min-w-5 text-xl! text-red-600 dark:text-red-400"
+        fontIcon="logout"
+      />
       <span>Sign out</span>
     </button>
   </div>
 </mat-menu>
 
-<mat-menu #notificationMenu="matMenu" xPosition="before" class="min-w-[320px]! max-w-[320px]!">
-  <div class="w-80 max-h-[400px] flex flex-col outline-none" (click)="$event.stopPropagation()">
+<mat-menu #notificationMenu="matMenu" xPosition="before" class="max-w-[320px]! min-w-[320px]!">
+  <div class="flex max-h-[400px] w-80 flex-col outline-none" (click)="$event.stopPropagation()">
     <div
-      class="p-3 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-800 z-10"
+      class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <h3 class="font-semibold textNormal">Notifications</h3>
+      <h3 class="textNormal font-semibold">Notifications</h3>
       <div class="flex gap-2">
         @if (unreadCount() > 0) {
           <button
-            class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            class="text-xs text-blue-600 hover:underline dark:text-blue-400"
             (click)="markAllAsRead()"
           >
             Mark all read
           </button>
         }
         <button
-          class="text-xs text-red-600 dark:text-red-400 hover:underline"
+          class="text-xs text-red-600 hover:underline dark:text-red-400"
           (click)="clearNotifications()"
         >
           Clear
@@ -191,23 +197,26 @@
       </div>
     </div>
 
-    <div class="overflow-y-auto flex-1 max-h-[350px]">
+    <div class="max-h-[350px] flex-1 overflow-y-auto">
       @if (notifications().length === 0) {
         <div class="p-8 text-center">
-          <mat-icon class="size-12! text-4xl! textMuted mb-2" fontIcon="notifications_off" />
+          <mat-icon
+            class="textMuted mb-2 size-12! min-w-12 text-4xl!"
+            fontIcon="notifications_off"
+          />
           <p class="textMuted text-sm">No notifications yet</p>
         </div>
       } @else {
         <div class="flex flex-col">
           @for (notif of notifications(); track notif.id) {
             <div
-              class="p-3 border-b border-gray-100 dark:border-zinc-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors relative group cursor-pointer"
+              class="group relative cursor-pointer border-b border-gray-100 p-3 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-700/50 dark:hover:bg-zinc-700/30"
               [ngClass]="!notif.read ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''"
               (click)="onNotificationClick(notif)"
             >
               <div class="flex gap-3">
                 <div
-                  class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                   [ngClass]="{
                     'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400':
                       notif.type === 'todo' || notif.type === 'chat',
@@ -218,7 +227,7 @@
                   }"
                 >
                   <mat-icon
-                    class="size-5! text-xl!"
+                    class="size-5! min-w-5 text-xl!"
                     [fontIcon]="
                       notif.type === 'todo'
                         ? 'assignment'
@@ -232,20 +241,23 @@
                     "
                   />
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium textNormal truncate">{{ notif.title }}</p>
-                  <p class="text-xs textMuted line-clamp-2">{{ notif.message }}</p>
-                  <p class="text-[10px] textMuted mt-1">
+                <div class="min-w-0 flex-1">
+                  <p class="textNormal truncate text-sm font-medium">{{ notif.title }}</p>
+                  <p class="textMuted line-clamp-2 text-xs">{{ notif.message }}</p>
+                  <p class="textMuted mt-1 text-[10px]">
                     {{ notif.timestamp | date: "shortTime" }}
                   </p>
                 </div>
                 @if (!notif.read) {
                   <button
-                    class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                    class="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100"
                     (click)="markAsRead(notif.id); $event.stopPropagation()"
                     title="Mark as read"
                   >
-                    <mat-icon class="size-5! text-xl! text-blue-500!" fontIcon="check_circle" />
+                    <mat-icon
+                      class="size-5! min-w-5 text-xl! text-blue-500!"
+                      fontIcon="check_circle"
+                    />
                   </button>
                 }
               </div>
