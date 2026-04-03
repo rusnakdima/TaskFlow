@@ -1,38 +1,53 @@
 <div
-  class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700 overflow-hidden"
+  class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
 >
   <div
-    class="relative bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 p-6 text-white"
+    class="relative bg-linear-to-r from-green-500 to-green-600 p-6 text-white dark:from-green-600 dark:to-green-700"
   >
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-      <div class="flex flex-col sm:flex-1 w-full">
-        <div class="flex items-center gap-2 mb-2 text-green-100">
-          <mat-icon class="w-4! h-4! text-base!" fontIcon="folder" />
+    <div class="flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div class="flex w-full flex-col sm:flex-1">
+        <div class="mb-2 flex items-center gap-2 text-green-100">
+          <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="folder" />
           <span class="text-sm">{{ projectTitle }}</span>
         </div>
 
-        <div class="flex items-center gap-3 mb-2">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="task" />
+        <div class="mb-2 flex items-center gap-3">
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="task" />
           <h1 class="text-2xl font-bold">{{ task.title || "Untitled Task" }}</h1>
         </div>
-        <p class="text-green-100 mb-4">{{ task.description }}</p>
+        <p class="mb-4 text-green-100">{{ task.description }}</p>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-between text-center w-full">
+        <div class="mb-4 flex flex-wrap gap-4 text-sm">
+          @if (task.startDate) {
+            <div class="flex items-center gap-1 text-green-100">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="event" />
+              <span>Start: {{ formatDate(task.startDate) }}</span>
+            </div>
+          }
+          @if (task.endDate) {
+            <div class="flex items-center gap-1 text-green-100">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
+              <span>End: {{ formatDate(task.endDate) }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="grid w-full grid-cols-2 justify-between gap-2 text-center sm:grid-cols-4">
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getCompletedSubtasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Completed</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Completed</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getSkippedSubtasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Skipped</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Skipped</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getFailedSubtasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">Failed</div>
+            <div class="text-xs text-gray-200 sm:text-sm">Failed</div>
           </div>
           <div class="flex flex-col">
             <div class="text-xl font-bold">{{ getInProgressSubtasksCount() }}</div>
-            <div class="text-gray-200 text-xs sm:text-sm">In Progress</div>
+            <div class="text-xs text-gray-200 sm:text-sm">In Progress</div>
           </div>
         </div>
 
@@ -44,21 +59,21 @@
 
     <button
       (click)="toggleActions()"
-      class="absolute flex items-center justify-center top-4 right-4 rounded-full bg-black/20 hover:bg-black/30 w-10 h-10 transition-colors"
+      class="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 transition-colors hover:bg-black/30"
     >
-      <mat-icon class="w-5! h-5! text-xl!" fontIcon="more_vert" />
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
     </button>
   </div>
 
   @if (showActions()) {
-    <div class="p-4 bg-gray-50 dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
           [routerLink]="'/todos/' + todoId + '/tasks/' + task.id + '/edit_task'"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-200 sm:flex-col dark:border-zinc-600 dark:bg-zinc-700/50 dark:hover:bg-zinc-700"
         >
           <mat-icon
-            class="w-6! h-6! text-2xl! text-green-600 dark:text-green-400"
+            class="h-6! w-6! min-w-6 text-2xl! text-green-600 dark:text-green-400"
             fontIcon="edit"
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Edit Task</span>
@@ -66,10 +81,10 @@
 
         <button
           (click)="markTaskComplete()"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-200 sm:flex-col dark:border-zinc-600 dark:bg-zinc-700/50 dark:hover:bg-zinc-700"
         >
           <mat-icon
-            class="w-6! h-6! text-2xl! text-blue-600 dark:text-blue-400"
+            class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
             fontIcon="task_alt"
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -79,9 +94,12 @@
 
         <button
           (click)="confirmDeleteTask()"
-          class="flex flex-row sm:flex-col items-center justify-center gap-2 p-3 rounded-lg transition-colors bg-white dark:bg-zinc-700/50 hover:bg-red-100 dark:hover:bg-red-900/50 shadow-sm border border-gray-200 dark:border-zinc-600"
+          class="flex flex-row items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-red-100 sm:flex-col dark:border-zinc-600 dark:bg-zinc-700/50 dark:hover:bg-red-900/50"
         >
-          <mat-icon class="w-6! h-6! text-2xl! text-red-600 dark:text-red-400" fontIcon="delete" />
+          <mat-icon
+            class="h-6! w-6! min-w-6 text-2xl! text-red-600 dark:text-red-400"
+            fontIcon="delete"
+          />
           <span class="text-sm font-medium text-red-700 dark:text-red-300">Delete Task</span>
         </button>
       </div>

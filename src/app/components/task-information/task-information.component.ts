@@ -19,6 +19,9 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
+/* helpers */
+import { DateHelper } from "@helpers/date-helpers";
+
 @Component({
   selector: "app-task-information",
   standalone: true,
@@ -32,6 +35,8 @@ export class TaskInformationComponent {
   private dataSyncProvider = inject(DataSyncProvider);
 
   public showActions = signal(false);
+
+  protected formatDate = DateHelper.formatDateShort;
 
   @Input() task!: Task;
   @Input() todoId!: string;

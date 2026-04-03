@@ -16,6 +16,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date-helpers";
 
 @Component({
   selector: "app-todo-information",
@@ -27,6 +28,8 @@ export class TodoInformationComponent {
   @Input() todo!: Todo;
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
+
+  protected formatDate = DateHelper.formatDateShort;
 
   getCompletedTasksCount(): number {
     return BaseItemHelper.countCompleted(this.todo.tasks || []);
