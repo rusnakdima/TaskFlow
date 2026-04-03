@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "taskflow",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "identifier": "com.tcs.taskflow",
   "build": {
     "beforeDevCommand": "bun run start",
-    "devUrl": "http://localhost:1490",
+    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run build:prod",
     "frontendDist": "../dist/taskflow/browser"
   },

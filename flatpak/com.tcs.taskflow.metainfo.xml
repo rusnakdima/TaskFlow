@@ -73,6 +73,45 @@
   </provides>
 
   <releases>
+    <release version="0.13.0" date="2026-04-04">
+      <description>
+        <p>Enhanced UI consistency, improved filtering, and polished the user experience.</p>
+
+        <p>
+          <strong>UI/UX Enhancements:</strong>
+        </p>
+        <ul>
+          <li>Truncate header title and description to single line with horizontal scroll prevention
+          </li>
+          <li>Display full description text in Todo and Task information panels without truncation
+          </li>
+          <li>Add start and end date display with icons to Todo and Task detail panels</li>
+          <li>Standardize icon sizing across all components with fixed min-width to prevent layout
+            shifts</li>
+        </ul>
+
+        <p>
+          <strong>Filter Improvements:</strong>
+        </p>
+        <ul>
+          <li>Replace Todo ID text input with dropdown listing all projects in Admin and Archive
+            views</li>
+          <li>Replace Task ID text input with dropdown listing all tasks in Admin and Archive views
+          </li>
+          <li>Switch from substring search to exact match for parent entity filtering</li>
+        </ul>
+
+        <p>
+          <strong>Developer Experience:</strong>
+        </p>
+        <ul>
+          <li>Add prettier-plugin-tailwindcss for automatic Tailwind CSS class sorting</li>
+          <li>Format all HTML, TypeScript, and CSS files with Prettier for consistent code style
+          </li>
+          <li>Standardize Tailwind class ordering across all components, views, and templates</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.0" date="2026-03-18">
       <description>
         <p>Major architectural overhaul with 203 commits bringing significant improvements across
@@ -185,9 +224,11 @@
         <ul>
           <li>Task comment panel now shows task comments immediately and provides per-subtask
             expand/collapse for subtask comment threads</li>
-          <li>Added subtask comment grouping with clear subtask titles and one-click navigation to the
+          <li>Added subtask comment grouping with clear subtask titles and one-click navigation to
+            the
             Subtasks view</li>
-          <li>Deep-linking to a subtask now highlights the target subtask and auto-opens its comments
+          <li>Deep-linking to a subtask now highlights the target subtask and auto-opens its
+            comments
             without opening comments for all subtasks</li>
         </ul>
       </description>
