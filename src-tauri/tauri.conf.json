@@ -5,7 +5,7 @@
   "identifier": "com.tcs.taskflow",
   "build": {
     "beforeDevCommand": "bun run start",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:1490",
     "beforeBuildCommand": "bun run build:prod",
     "frontendDist": "../dist/taskflow/browser"
   },
