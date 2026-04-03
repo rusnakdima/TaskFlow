@@ -1,13 +1,13 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">My Projects</h1>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">My Projects</h1>
       <p class="textMuted mt-1">Organize and track your personal and work projects.</p>
     </div>
 
     <div class="flex flex-wrap gap-2">
       <button
-        class="h-min px-3 py-1 border border-gray-300 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 px-3 py-1 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-800"
         (click)="toggleSelectAll()"
       >
         <app-checkbox
@@ -33,86 +33,86 @@
         </span>
       </button>
       <button
-        class="h-min p-3 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2"
+        class="flex h-min items-center gap-2 rounded-lg border border-purple-300 p-3 text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900/20"
         (click)="blueprintService.showBlueprintDialog.set(true)"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="account_tree" />
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="account_tree" />
         Blueprints
       </button>
       <button
-        class="h-min p-3 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
         (click)="toggleFilter()"
       >
         <mat-icon
-          class="w-5! h-5! text-xl!"
+          class="h-5! w-5! min-w-5 text-xl!"
           [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
         />
         Filter
       </button>
-      <button class="styleButSuccess text-sm h-min p-3" routerLink="/todos/create_todo">
-        <mat-icon class="w-5! h-5! text-xl! mr-2" fontIcon="add" />
+      <button class="styleButSuccess h-min p-3 text-sm" routerLink="/todos/create_todo">
+        <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
         New Project
       </button>
     </div>
   </div>
 
   <!-- Stats Cards -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
     <div
-      class="bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-4 text-white shadow-sm"
+      class="rounded-xl bg-linear-to-r from-blue-500 to-blue-600 p-4 text-white shadow-sm dark:from-blue-600 dark:to-blue-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-blue-100 text-xs font-medium uppercase tracking-wide">Total Projects</p>
-          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("all") }}</p>
+          <p class="text-xs font-medium tracking-wide text-blue-100 uppercase">Total Projects</p>
+          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("all") }}</p>
         </div>
-        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="assignment" />
+        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="assignment" />
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-4 text-white shadow-sm"
+      class="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 p-4 text-white shadow-sm dark:from-orange-600 dark:to-orange-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-orange-100 text-xs font-medium uppercase tracking-wide">Active</p>
-          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("active") }}</p>
+          <p class="text-xs font-medium tracking-wide text-orange-100 uppercase">Active</p>
+          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("active") }}</p>
         </div>
-        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="play_circle" />
+        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="play_circle" />
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-4 text-white shadow-sm"
+      class="rounded-xl bg-linear-to-r from-green-500 to-green-600 p-4 text-white shadow-sm dark:from-green-600 dark:to-green-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-green-100 text-xs font-medium uppercase tracking-wide">Completed</p>
-          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("completed") }}</p>
+          <p class="text-xs font-medium tracking-wide text-green-100 uppercase">Completed</p>
+          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("completed") }}</p>
         </div>
-        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="check_circle" />
+        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="check_circle" />
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-4 text-white shadow-sm"
+      class="rounded-xl bg-linear-to-r from-purple-500 to-purple-600 p-4 text-white shadow-sm dark:from-purple-600 dark:to-purple-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-purple-100 text-xs font-medium uppercase tracking-wide">This Week</p>
-          <p class="text-2xl font-bold mt-1">{{ getFilteredCount("week") }}</p>
+          <p class="text-xs font-medium tracking-wide text-purple-100 uppercase">This Week</p>
+          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("week") }}</p>
         </div>
-        <mat-icon class="w-8! h-8! text-3xl! opacity-80" fontIcon="calendar_today" />
+        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="calendar_today" />
       </div>
     </div>
   </div>
 
   @if (listTodos().length === 0) {
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-12 shadow-lg border border-gray-200 dark:border-zinc-700 text-center"
+      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <mat-icon class="w-12! h-12! text-5xl! textMuted mb-4" fontIcon="folder_open" />
-      <h3 class="text-xl font-semibold textNormal mb-2">No projects found</h3>
+      <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
+      <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
       <p class="textMuted">
         @if (activeFilter() !== "all") {
           No projects match the current filter
@@ -151,30 +151,30 @@
 
   <!-- Create Blueprint Dialog -->
   @if (blueprintService.showCreateBlueprintDialog()) {
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4">Save as Blueprint</h3>
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
+        <h3 class="mb-4 text-xl font-bold">Save as Blueprint</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Blueprint Name</label>
+            <label class="mb-1 block text-sm font-medium">Blueprint Name</label>
             <input
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
               [ngModel]="blueprintService.newBlueprintName()"
               (ngModelChange)="blueprintService.newBlueprintName.set($event)"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
+            <label class="mb-1 block text-sm font-medium">Description</label>
             <textarea
-              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
               rows="3"
               [ngModel]="blueprintService.newBlueprintDescription()"
               (ngModelChange)="blueprintService.newBlueprintDescription.set($event)"
             ></textarea>
           </div>
         </div>
-        <div class="flex gap-2 mt-6 justify-end">
+        <div class="mt-6 flex justify-end gap-2">
           <button
             class="px-4 py-2 text-gray-600 dark:text-gray-300"
             (click)="closeCreateBlueprintDialog()"
@@ -191,32 +191,32 @@
 
   <!-- Blueprint Selection Dialog -->
   @if (blueprintService.showBlueprintDialog()) {
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
-        class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+        class="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 dark:bg-zinc-800"
       >
-        <div class="flex justify-between items-center mb-4">
+        <div class="mb-4 flex items-center justify-between">
           <div>
             <h3 class="text-xl font-bold">Project Blueprints</h3>
-            <p class="text-sm textMuted mt-1">Manage your saved project templates</p>
+            <p class="textMuted mt-1 text-sm">Manage your saved project templates</p>
           </div>
           <button
-            class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg"
+            class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-zinc-700"
             (click)="blueprintService.showBlueprintDialog.set(false)"
           >
             <mat-icon>close</mat-icon>
           </button>
         </div>
         <p class="textMuted mb-4">Select a blueprint to create a new project from</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           @for (template of templateService.getTemplates(); track template.id) {
             <div
-              class="relative border border-gray-200 dark:border-zinc-700 rounded-lg p-4 hover:border-blue-500 transition-colors group"
+              class="group relative rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-zinc-700"
             >
               <div class="cursor-pointer" (click)="openApplyBlueprint(template)">
                 <h4 class="font-semibold">{{ template.name }}</h4>
-                <p class="text-sm textMuted mt-1">{{ template.description }}</p>
-                <div class="flex gap-4 mt-3 text-xs text-gray-500">
+                <p class="textMuted mt-1 text-sm">{{ template.description }}</p>
+                <div class="mt-3 flex gap-4 text-xs text-gray-500">
                   <span>{{ template.tasks.length }} tasks</span>
                   <span>{{ getSubtasksCount(template) }} subtasks</span>
                 </div>
@@ -226,16 +226,16 @@
                 mat-icon-button
                 color="warn"
                 (click)="removeBlueprint(template.id); $event.stopPropagation()"
-                class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                class="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100"
                 title="Remove blueprint"
               >
-                <mat-icon class="w-5! h-5! text-base! text-red-500">delete</mat-icon>
+                <mat-icon class="h-5! w-5! min-w-5 text-base! text-red-500">delete</mat-icon>
               </button>
             </div>
           } @empty {
-            <div class="col-span-full text-center py-8 textMuted">
+            <div class="textMuted col-span-full py-8 text-center">
               <mat-icon
-                class="w-12! h-12! text-4xl! mx-auto mb-2 opacity-50"
+                class="mx-auto mb-2 h-12! w-12! text-4xl! opacity-50"
                 fontIcon="account_tree"
               ></mat-icon>
               <p>No blueprints saved yet</p>
@@ -251,21 +251,21 @@
 
   <!-- Apply Blueprint Dialog -->
   @if (blueprintService.showApplyBlueprintDialog()) {
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4">Create Project from Blueprint</h3>
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
+        <h3 class="mb-4 text-xl font-bold">Create Project from Blueprint</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Project Name</label>
+            <label class="mb-1 block text-sm font-medium">Project Name</label>
             <input
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
               [ngModel]="blueprintService.applyBlueprintTitle()"
               (ngModelChange)="blueprintService.applyBlueprintTitle.set($event)"
             />
           </div>
         </div>
-        <div class="flex gap-2 mt-6 justify-end">
+        <div class="mt-6 flex justify-end gap-2">
           <button
             class="px-4 py-2 text-gray-600 dark:text-gray-300"
             (click)="blueprintService.showApplyBlueprintDialog.set(false)"

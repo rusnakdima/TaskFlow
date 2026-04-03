@@ -1,7 +1,7 @@
-<div class="flex flex-col gap-6 max-w-3xl mx-auto">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="mx-auto flex max-w-3xl flex-col gap-6">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
         {{ isEdit() ? "Edit Subtask" : "Create New Subtask" }}
       </h1>
       <p class="textMuted mt-1">
@@ -10,23 +10,23 @@
         }}
       </p>
 
-      <div class="flex items-center gap-2 mt-2 text-sm">
+      <div class="mt-2 flex items-center gap-2 text-sm">
         @if (projectInfo()) {
           <mat-icon
-            class="w-4! h-4! text-base! text-blue-600 dark:text-blue-400"
+            class="h-4! w-4! min-w-4 text-base! text-blue-600 dark:text-blue-400"
             fontIcon="folder"
           />
-          <span class="text-blue-600 dark:text-blue-400 font-medium">{{
+          <span class="font-medium text-blue-600 dark:text-blue-400">{{
             projectInfo()?.title
           }}</span>
-          <mat-icon class="w-4! h-4! text-base! textMuted" fontIcon="chevron_right" />
+          <mat-icon class="textMuted h-4! w-4! min-w-4 text-base!" fontIcon="chevron_right" />
         }
         @if (taskInfo()) {
           <mat-icon
-            class="w-4! h-4! text-base! text-green-600 dark:text-green-400"
+            class="h-4! w-4! min-w-4 text-base! text-green-600 dark:text-green-400"
             fontIcon="task"
           />
-          <span class="text-green-600 dark:text-green-400 font-medium">{{
+          <span class="font-medium text-green-600 dark:text-green-400">{{
             taskInfo()?.title
           }}</span>
         }
@@ -36,20 +36,20 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
         >
           <mat-icon
-            class="w-5! h-5! text-xl! text-purple-600 dark:text-purple-400"
+            class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
             fontIcon="check_box"
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold textNormal">Subtask Details</h3>
-          <p class="text-sm textMuted">Define the specific action or deliverable</p>
+          <h3 class="textNormal text-lg font-semibold">Subtask Details</h3>
+          <p class="textMuted text-sm">Define the specific action or deliverable</p>
         </div>
       </div>
 
@@ -82,38 +82,38 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"
         >
           <mat-icon
-            class="w-5! h-5! text-xl! text-orange-600 dark:text-orange-400"
+            class="h-5! w-5! min-w-5 text-xl! text-orange-600 dark:text-orange-400"
             fontIcon="settings"
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold textNormal">Settings & Status</h3>
-          <p class="text-sm textMuted">Configure priority and completion status</p>
+          <h3 class="textNormal text-lg font-semibold">Settings & Status</h3>
+          <p class="textMuted text-sm">Configure priority and completion status</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="space-y-3">
-          <label class="block text-sm font-medium textNormal">
+          <label class="textNormal block text-sm font-medium">
             Priority Level
-            <span class="text-red-500 ml-1">*</span>
+            <span class="ml-1 text-red-500">*</span>
           </label>
           <mat-radio-group formControlName="priority" class="space-y-3">
             @for (priority of priorityOptions; track priority.value) {
               <mat-radio-button
                 [value]="priority.value"
-                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
               >
-                <div class="flex items-center gap-2 flex-1">
-                  <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
-                  <span class="font-medium textNormal">{{ priority.label }}</span>
+                <div class="flex flex-1 items-center gap-2">
+                  <div class="h-3 w-3 rounded-full" [ngClass]="priority.colorClass"></div>
+                  <span class="textNormal font-medium">{{ priority.label }}</span>
                 </div>
               </mat-radio-button>
             }
@@ -124,12 +124,12 @@
         </div>
 
         <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <label class="block text-sm font-medium textNormal">Time periods</label>
+          <div class="flex items-center justify-between">
+            <label class="textNormal block text-sm font-medium">Time periods</label>
             @if (form.get("startDate")?.value || form.get("endDate")?.value) {
               <button
                 type="button"
-                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 py-1 rounded-md"
+                class="rounded-md px-2 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                 (click)="clearDates()"
               >
                 Clear dates
@@ -175,31 +175,31 @@
 
     @if (isEdit()) {
       <div
-        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+        class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
-        <div class="flex items-center gap-3 mb-4">
+        <div class="mb-4 flex items-center gap-3">
           <div
-            class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+            class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
           >
             <mat-icon
-              class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400"
+              class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
               fontIcon="speed"
             />
           </div>
           <div>
-            <h3 class="text-lg font-semibold textNormal">Quick Actions</h3>
-            <p class="text-sm textMuted">Common actions for this subtask</p>
+            <h3 class="textNormal text-lg font-semibold">Quick Actions</h3>
+            <p class="textMuted text-sm">Common actions for this subtask</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
-            class="flex items-center gap-2 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors textNormal"
+            class="textNormal flex items-center gap-2 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
             (click)="duplicateSubtask()"
           >
             <mat-icon
-              class="w-4! h-4! text-base! text-blue-600 dark:text-blue-400"
+              class="h-4! w-4! min-w-4 text-base! text-blue-600 dark:text-blue-400"
               fontIcon="content_copy"
             />
             <span class="text-sm">Duplicate Subtask</span>
@@ -207,11 +207,11 @@
 
           <button
             type="button"
-            class="flex items-center gap-2 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors textNormal"
+            class="textNormal flex items-center gap-2 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
             (click)="viewTaskDetails()"
           >
             <mat-icon
-              class="w-4! h-4! text-base! text-green-600 dark:text-green-400"
+              class="h-4! w-4! min-w-4 text-base! text-green-600 dark:text-green-400"
               fontIcon="open_in_new"
             />
             <span class="text-sm">View Parent Task</span>
@@ -225,15 +225,15 @@
       <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
         @if (isSubmitting()) {
           <div
-            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
           ></div>
         } @else {
-          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
         <span class="flex items-center gap-2">
           {{ isEdit() ? "Update" : "Create" }}
           <kbd
-            class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 bg-blue-700 border border-blue-800 rounded-md opacity-80"
+            class="hidden rounded-md border border-blue-800 bg-blue-700 px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 opacity-80 sm:inline-block"
           >
             Ctrl+S
           </kbd>

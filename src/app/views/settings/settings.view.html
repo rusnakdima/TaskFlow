@@ -1,32 +1,32 @@
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div class="mx-auto max-w-3xl px-4 py-8">
   <div class="mb-8">
-    <h1 class="text-2xl font-bold textNormal mb-2">Settings</h1>
+    <h1 class="textNormal mb-2 text-2xl font-bold">Settings</h1>
     <p class="textMuted">Manage your application preferences</p>
   </div>
 
   <!-- Notification Sounds Section -->
   <div
-    class="bg-white dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700 shadow-sm mb-6"
+    class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
   >
-    <div class="p-6 border-b border-gray-200 dark:border-zinc-700">
-      <div class="flex items-center gap-3 mb-2">
+    <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+      <div class="mb-2 flex items-center gap-3">
         <mat-icon
-          class="w-6! h-6! text-2xl! text-blue-600 dark:text-blue-400"
+          class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
           fontIcon="notifications_active"
         />
-        <h2 class="text-xl font-semibold textNormal">Notification Sounds</h2>
+        <h2 class="textNormal text-xl font-semibold">Notification Sounds</h2>
       </div>
-      <p class="text-sm textMuted">Customize sound settings for different types of notifications</p>
+      <p class="textMuted text-sm">Customize sound settings for different types of notifications</p>
     </div>
 
-    <div class="p-6 space-y-6">
+    <div class="space-y-6 p-6">
       <!-- Enable/Disable Sounds -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <mat-icon class="w-6! h-6! text-xl! textMuted" fontIcon="volume_up" />
+          <mat-icon class="textMuted h-6! w-6! min-w-6 text-xl!" fontIcon="volume_up" />
           <div>
-            <p class="font-medium textNormal">Enable Notification Sounds</p>
-            <p class="text-xs textMuted">Play sounds when notifications arrive</p>
+            <p class="textNormal font-medium">Enable Notification Sounds</p>
+            <p class="textMuted text-xs">Play sounds when notifications arrive</p>
           </div>
         </div>
         <app-checkbox
@@ -41,31 +41,31 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/30"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30"
             >
               <mat-icon
-                class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400"
+                class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
                 fontIcon="chat"
               />
             </div>
             <div>
-              <p class="font-medium textNormal">Chat Messages</p>
-              <p class="text-xs textMuted">Volume for chat message notifications</p>
+              <p class="textNormal font-medium">Chat Messages</p>
+              <p class="textMuted text-xs">Volume for chat message notifications</p>
             </div>
           </div>
           <button
             (click)="testSound('chat')"
-            class="px-3 py-1.5 text-sm rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2"
+            class="flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1.5 text-sm text-blue-700 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
           >
-            <mat-icon class="w-4! h-4! text-lg!" fontIcon="play_arrow" />
+            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
             Test
           </button>
         </div>
         <div class="flex items-center gap-4">
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_mute" />
-          <div class="relative flex-1 h-6 flex items-center">
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+          <div class="relative flex h-6 flex-1 items-center">
             <div
-              class="absolute w-full h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden"
+              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
             >
               <div
                 class="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-150"
@@ -78,11 +78,11 @@
               max="100"
               [ngModel]="chatNotificationVolume()"
               (ngModelChange)="chatNotificationVolume.set($event)"
-              class="relative w-full h-2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:hover:bg-blue-700"
+              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
             />
           </div>
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_up" />
-          <span class="text-sm font-medium textNormal w-12 text-right"
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+          <span class="textNormal w-12 text-right text-sm font-medium"
             >{{ chatNotificationVolume() }}%</span
           >
         </div>
@@ -93,31 +93,31 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 dark:bg-purple-900/30"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30"
             >
               <mat-icon
-                class="w-5! h-5! text-xl! text-purple-600 dark:text-purple-400"
+                class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
                 fontIcon="forum"
               />
             </div>
             <div>
-              <p class="font-medium textNormal">Comments</p>
-              <p class="text-xs textMuted">Volume for comment notifications</p>
+              <p class="textNormal font-medium">Comments</p>
+              <p class="textMuted text-xs">Volume for comment notifications</p>
             </div>
           </div>
           <button
             (click)="testSound('comment')"
-            class="px-3 py-1.5 text-sm rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors flex items-center gap-2"
+            class="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-1.5 text-sm text-purple-700 transition-colors hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
           >
-            <mat-icon class="w-4! h-4! text-lg!" fontIcon="play_arrow" />
+            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
             Test
           </button>
         </div>
         <div class="flex items-center gap-4">
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_mute" />
-          <div class="relative flex-1 h-6 flex items-center">
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+          <div class="relative flex h-6 flex-1 items-center">
             <div
-              class="absolute w-full h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden"
+              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
             >
               <div
                 class="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-150"
@@ -130,11 +130,11 @@
               max="100"
               [ngModel]="commentNotificationVolume()"
               (ngModelChange)="commentNotificationVolume.set($event)"
-              class="relative w-full h-2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:hover:bg-purple-700 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-600 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:hover:bg-purple-700"
+              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-purple-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-purple-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-purple-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
             />
           </div>
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_up" />
-          <span class="text-sm font-medium textNormal w-12 text-right"
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+          <span class="textNormal w-12 text-right text-sm font-medium"
             >{{ commentNotificationVolume() }}%</span
           >
         </div>
@@ -145,31 +145,31 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center bg-green-100 dark:bg-green-900/30"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
             >
               <mat-icon
-                class="w-5! h-5! text-xl! text-green-600 dark:text-green-400"
+                class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
                 fontIcon="notifications"
               />
             </div>
             <div>
-              <p class="font-medium textNormal">General Notifications</p>
-              <p class="text-xs textMuted">Volume for todo, task, and subtask notifications</p>
+              <p class="textNormal font-medium">General Notifications</p>
+              <p class="textMuted text-xs">Volume for todo, task, and subtask notifications</p>
             </div>
           </div>
           <button
             (click)="testSound('general')"
-            class="px-3 py-1.5 text-sm rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors flex items-center gap-2"
+            class="flex items-center gap-2 rounded-lg bg-green-100 px-3 py-1.5 text-sm text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
           >
-            <mat-icon class="w-4! h-4! text-lg!" fontIcon="play_arrow" />
+            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
             Test
           </button>
         </div>
         <div class="flex items-center gap-4">
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_mute" />
-          <div class="relative flex-1 h-6 flex items-center">
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+          <div class="relative flex h-6 flex-1 items-center">
             <div
-              class="absolute w-full h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden"
+              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
             >
               <div
                 class="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-150"
@@ -182,11 +182,11 @@
               max="100"
               [ngModel]="generalNotificationVolume()"
               (ngModelChange)="generalNotificationVolume.set($event)"
-              class="relative w-full h-2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:hover:bg-green-700 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-green-600 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:hover:bg-green-700"
+              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-green-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-green-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-green-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-green-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
             />
           </div>
-          <mat-icon class="w-5! h-5! text-lg! textMuted" fontIcon="volume_up" />
-          <span class="text-sm font-medium textNormal w-12 text-right"
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+          <span class="textNormal w-12 text-right text-sm font-medium"
             >{{ generalNotificationVolume() }}%</span
           >
         </div>
@@ -194,19 +194,19 @@
     </div>
 
     <!-- Action Buttons -->
-    <div class="p-6 border-t border-gray-200 dark:border-zinc-700 flex gap-4">
+    <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
       <button
         (click)="saveSettings()"
-        class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors flex items-center gap-2"
+        class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="save" />
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
         Save Settings
       </button>
       <button
         (click)="resetToDefaults()"
-        class="px-6 py-2.5 rounded-lg bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 textNormal font-medium transition-colors flex items-center gap-2"
+        class="textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
       >
-        <mat-icon class="w-5! h-5! text-xl!" fontIcon="refresh" />
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
         Reset to Defaults
       </button>
     </div>
