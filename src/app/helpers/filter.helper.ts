@@ -244,16 +244,14 @@ export class FilterHelper {
     }
 
     if (filters.todoIdFilter && selectedType === "tasks") {
-      const filter = filters.todoIdFilter.toLowerCase();
       data = data.filter((item) => {
-        return item.todoId && item.todoId.toLowerCase().includes(filter);
+        return item.todoId === filters.todoIdFilter;
       });
     }
 
     if (filters.taskIdFilter && selectedType === "subtasks") {
-      const filter = filters.taskIdFilter.toLowerCase();
       data = data.filter((item) => {
-        return item.taskId && item.taskId.toLowerCase().includes(filter);
+        return item.taskId === filters.taskIdFilter;
       });
     }
 
