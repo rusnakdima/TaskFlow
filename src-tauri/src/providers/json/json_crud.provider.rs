@@ -83,6 +83,42 @@ impl JsonCrudProvider {
     }
   }
 
+  /// Resolve category IDs in a todo record to full Category objects.
+  /// Reads categories.json and replaces string IDs with full category objects.
+  async fn resolveTodoCategories(&self, mut record: Value) -> Value {
+    if let Some(todo_obj) = record.as_object_mut() {
+      if let Some(cat_ids) = todo_obj.get("categories").and_then(|c| c.as_array()) {
+        let id_strings: Vec<String> = cat_ids
+          .iter()
+          .filter_map(|v| v.as_str().map(|s| s.to_string()))
+          .collect();
+
+        if !id_strings.is_empty() {
+          let categories_path = self.getTablePath("categories");
+          if let Ok(content) = fs::read_to_string(&categories_path).await {
+            if let Ok(all_categories) =
+              from_str::<Vec<Value>>(&content)
+            {
+              let resolved: Vec<Value> = id_strings
+                .iter()
+                .filter_map(|id| {
+                  all_categories.iter().find(|c| {
+                    c.get("id").and_then(|v| v.as_str()) == Some(id)
+                  }).cloned()
+                })
+                .collect();
+
+              if !resolved.is_empty() {
+                todo_obj.insert("categories".to_string(), Value::Array(resolved));
+              }
+            }
+          }
+        }
+      }
+    }
+    record
+  }
+
   fn getTablePath(&self, nameTable: &str) -> PathBuf {
     let mut path = self.dbFilePath.clone();
     path.push(format!("{}.json", nameTable));
@@ -383,7 +419,13 @@ impl CrudProvider for JsonCrudProvider {
     listRecords.push(cleanData);
     self.saveDataTable(nameTable, &listRecords).await?;
 
-    Ok(created_record)
+    // For todos, resolve category IDs to full Category objects before returning
+    if nameTable == "todos" {
+      let resolved = self.resolveTodoCategories(created_record).await;
+      Ok(resolved)
+    } else {
+      Ok(created_record)
+    }
   }
 
   async fn update(&self, nameTable: &str, id: &str, updates: Value) -> ApiResult<Value> {
@@ -416,7 +458,14 @@ impl CrudProvider for JsonCrudProvider {
 
       let updated_record = record.clone();
       self.saveDataTable(nameTable, &listRecords).await?;
-      Ok(updated_record)
+
+      // For todos, resolve category IDs to full Category objects before returning
+      if nameTable == "todos" {
+        let resolved = self.resolveTodoCategories(updated_record).await;
+        Ok(resolved)
+      } else {
+        Ok(updated_record)
+      }
     } else {
       Err(format!("Record with id {} not found", id).into())
     }
