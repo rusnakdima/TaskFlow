@@ -1,6 +1,6 @@
 <div class="w-full">
   @if (showLabel || showPercentage) {
-    <div class="flex justify-between items-center mb-1 text-xs">
+    <div class="mb-1 flex items-center justify-between text-xs">
       @if (showLabel) {
         <span class="textMuted">Progress</span>
       }
@@ -11,10 +11,10 @@
   }
 
   <div
-    class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden"
+    class="w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
     [ngClass]="heightClass"
   >
-    <div class="flex h-full rounded-full overflow-hidden">
+    <div class="flex h-full overflow-hidden rounded-full">
       @for (segment of segments(); track segment.status) {
         <div
           class="h-full transition-all duration-300"
@@ -27,10 +27,10 @@
   </div>
 
   @if (showLegend) {
-    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-1.5 textMuted">
+    <div class="textMuted mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
       @for (segment of segments(); track segment.status) {
         <span class="flex items-center gap-1">
-          <div class="w-1.5 h-1.5 rounded-full" [ngClass]="segment.color"></div>
+          <div class="h-1.5 w-1.5 rounded-full" [ngClass]="segment.color"></div>
           {{ segment.status }}: {{ segment.percentage }}%
         </span>
       }

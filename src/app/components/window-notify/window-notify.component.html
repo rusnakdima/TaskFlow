@@ -1,11 +1,11 @@
 <div
-  class="fixed flex flex-col gap-3 top-4 right-4 z-9999 w-[320px] max-w-md group"
+  class="group fixed top-4 right-4 z-9999 flex w-[320px] max-w-md flex-col gap-3"
   (mouseenter)="isHover = true"
   (mouseleave)="isHover = false"
 >
   @for (notification of notifications; track $index) {
     <div
-      class="flex flex-col rounded-xl styleBorderSolidLite border-4 bg-gray-200/70 dark:bg-zinc-800/70 backdrop-blur w-full animate-slideInRight shadow-lg overflow-hidden notification-item"
+      class="styleBorderSolidLite animate-slideInRight notification-item flex w-full flex-col overflow-hidden rounded-xl border-4 bg-gray-200/70 shadow-lg backdrop-blur dark:bg-zinc-800/70"
       [ngClass]="[getColorForStatus(notification.status, 'border')]"
       [style.margin-top.px]="[isHover ? 0 : $index * 15]"
       [style.position]="isHover ? 'relative' : 'absolute'"
@@ -15,7 +15,7 @@
         <div class="flex flex-col gap-x-1">
           <div class="flex flex-row gap-x-3">
             <mat-icon
-              class="size-7.5! before:w-7.5! text-3xl!"
+              class="size-7.5! text-3xl! before:w-7.5!"
               [ngClass]="getColorForStatus(notification.status, 'color')"
               [fontIcon]="notification.icon"
             />
@@ -32,10 +32,10 @@
           </div>
         </div>
 
-        <div class="flex flex-col justify-start items-center">
+        <div class="flex flex-col items-center justify-start">
           <mat-icon
             (click)="closeNotification(notification.id)"
-            class="w-5! h-5! font-bold text-xl! text-gray-600 dark:text-gray-300 cursor-pointer"
+            class="h-5! w-5! cursor-pointer text-xl! font-bold text-gray-600 dark:text-gray-300"
             fontIcon="close"
           />
         </div>

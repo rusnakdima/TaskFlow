@@ -6,32 +6,32 @@
     tabindex="-1"
   >
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 w-full max-w-md mx-4 transform transition-all duration-300 scale-100 opacity-100"
+      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border border-gray-200 bg-white opacity-100 shadow-xl transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-800"
       (click)="$event.stopPropagation()"
     >
       <div
-        class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-700"
+        class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-zinc-700"
       >
-        <h3 class="text-lg font-semibold textNormal">
+        <h3 class="textNormal text-lg font-semibold">
           {{ editingCategory ? "Edit Category" : "Create New Category" }}
         </h3>
         <button
-          class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+          class="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-700"
           (click)="closeModal()"
         >
-          <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="close" />
+          <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="close" />
         </button>
       </div>
 
       <div class="p-6">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium textNormal mb-2"> Category Title </label>
+            <label class="textNormal mb-2 block text-sm font-medium"> Category Title </label>
             <input
               type="text"
               [(ngModel)]="categoryTitle"
               placeholder="Enter category title"
-              class="w-full px-4 py-3 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 textNormal focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              class="textNormal w-full rounded-lg border border-gray-300 bg-white px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
               [disabled]="isLoading"
               autofocus
             />
@@ -40,10 +40,10 @@
       </div>
 
       <div
-        class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-zinc-700"
+        class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-zinc-700"
       >
         <button
-          class="px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+          class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-700"
           (click)="closeModal()"
           [disabled]="isLoading"
         >
@@ -55,7 +55,7 @@
           [disabled]="!categoryTitle.trim() || isLoading"
         >
           @if (isLoading) {
-            <mat-icon class="w-4! h-4! text-sm! mr-2 animate-spin" fontIcon="refresh" />
+            <mat-icon class="mr-2 h-4! w-4! min-w-4 animate-spin text-sm!" fontIcon="refresh" />
             Saving...
           } @else {
             {{ editingCategory ? "Update" : "Create" }}

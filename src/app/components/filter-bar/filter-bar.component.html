@@ -7,8 +7,8 @@
     <div class="filter-sidebar-content">
       <!-- Header -->
       <div class="filter-sidebar-header">
-        <h3 class="text-lg font-semibold textNormal flex items-center gap-2">
-          <mat-icon class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400"
+        <h3 class="textNormal flex items-center gap-2 text-lg font-semibold">
+          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
             >filter_list</mat-icon
           >
           Filters
@@ -19,17 +19,18 @@
           class="textMuted hover:textNormal"
           aria-label="Close filters"
         >
-          <mat-icon class="w-5! h-5! text-xl!">close</mat-icon>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
         </button>
       </div>
 
       <!-- Search -->
       <div class="filter-sidebar-section">
-        <label class="text-xs font-medium textMuted uppercase tracking-wide mb-2 block">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">
           Search
         </label>
         <div class="relative">
-          <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 w-4! h-4! text-base! textMuted"
+          <mat-icon
+            class="textMuted absolute top-1/2 left-3 h-4! w-4! min-w-4 -translate-y-1/2 text-base!"
             >search</mat-icon
           >
           <input
@@ -37,25 +38,25 @@
             [ngModel]="searchQuery"
             (ngModelChange)="onSearchInputChange($event)"
             placeholder="Search..."
-            class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 textNormal placeholder:textMuted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="textNormal placeholder:textMuted w-full rounded-lg border border-gray-300 bg-white py-2 pr-4 pl-10 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
           />
         </div>
         @if (searchQuery) {
           <button mat-button color="warn" (click)="clearSearch()" class="mt-2 text-xs">
-            <mat-icon class="w-3! h-3! text-xs! mr-1">close</mat-icon>
+            <mat-icon class="mr-1 h-3! w-3! min-w-3 text-xs!">close</mat-icon>
             Clear Search
           </button>
         }
       </div>
 
       <div class="filter-sidebar-section">
-        <label class="text-xs font-medium textMuted uppercase tracking-wide mb-2 block">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">
           {{ filterLabel || "Filter by" }}
         </label>
         <div class="flex flex-col gap-1">
           @for (option of filterOptions; track option.key) {
             <label
-              class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+              class="flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors"
               [class.bg-blue-50]="activeFilter === option.key"
               [class.dark:bg-blue-900/20]="activeFilter === option.key"
               [class.hover:bg-gray-50]="activeFilter !== option.key"
@@ -67,18 +68,20 @@
                 [value]="option.key"
                 [checked]="activeFilter === option.key"
                 (change)="onFilterChange(option.key)"
-                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <div class="flex-1 flex items-center justify-between">
+              <div class="flex flex-1 items-center justify-between">
                 <div class="flex items-center gap-2">
                   @if (option.icon) {
-                    <mat-icon class="w-4! h-4! text-base! textMuted">{{ option.icon }}</mat-icon>
+                    <mat-icon class="textMuted h-4! w-4! min-w-4 text-base!">{{
+                      option.icon
+                    }}</mat-icon>
                   }
-                  <span class="text-sm font-medium textNormal">{{ option.label }}</span>
+                  <span class="textNormal text-sm font-medium">{{ option.label }}</span>
                 </div>
                 @if (option.count !== undefined) {
                   <span
-                    class="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-zinc-600 textNormal font-medium"
+                    class="textNormal rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-600"
                   >
                     {{ option.count }}
                   </span>
@@ -97,15 +100,15 @@
             mat-button
             color="primary"
             (click)="onOpenBlueprints()"
-            class="w-full mt-2 flex items-center justify-center gap-2"
+            class="mt-2 flex w-full items-center justify-center gap-2"
           >
-            <mat-icon class="w-4! h-4! text-base!">account_tree</mat-icon>
+            <mat-icon class="h-4! w-4! min-w-4 text-base!">account_tree</mat-icon>
             Blueprints
           </button>
         }
         @if (activeFilter !== "all" || searchQuery) {
-          <button mat-button color="warn" (click)="clearAllFilters()" class="w-full mt-2">
-            <mat-icon class="w-4! h-4! text-base! mr-1">clear_all</mat-icon>
+          <button mat-button color="warn" (click)="clearAllFilters()" class="mt-2 w-full">
+            <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
             Clear All Filters
           </button>
         }
