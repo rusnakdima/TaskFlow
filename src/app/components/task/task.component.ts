@@ -240,7 +240,8 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     });
     this.highlightedExpandedSubtaskId.set(subtaskId);
     setTimeout(() => {
-      if (this.highlightedExpandedSubtaskId() === subtaskId) this.highlightedExpandedSubtaskId.set(null);
+      if (this.highlightedExpandedSubtaskId() === subtaskId)
+        this.highlightedExpandedSubtaskId.set(null);
     }, 1600);
     this.cdr.markForCheck();
   }
@@ -404,7 +405,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
     const commentsToUpdate = updatedSubtasks
       .find((s: any) => s.id === subtaskId)
-      ?.comments?.filter((c: any) => commentIds.includes(c.id) && !c.isDeleted && c.authorId !== userId);
+      ?.comments?.filter(
+        (c: any) => commentIds.includes(c.id) && !c.isDeleted && c.authorId !== userId
+      );
 
     if (commentsToUpdate && commentsToUpdate.length > 0) {
       this.dataSyncProvider

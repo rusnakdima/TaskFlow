@@ -1,24 +1,66 @@
 @if (task) {
-  <div cdkDrag class="flex flex-col h-full" [class.expanded]="isExpanded">
+  <div cdkDrag class="flex h-full flex-col" [class.expanded]="isExpanded">
     <div
-      class="flex flex-col grow p-6 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 min-h-full box-border shadow-lg hover:shadow-xl group cursor-pointer"
-      [ngClass]="{ 'ring-4 ring-green-500 animate-pulse': highlight }"
+      class="group box-border flex min-h-full grow cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-lg hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+      [ngClass]="{ 'animate-pulse ring-4 ring-green-500': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
       (click)="$event.stopPropagation()"
     >
-      <div class="flex flex-col grow">
-        <div class="flex flex-row items-start justify-between mb-4">
-          <div class="flex flex-row flex-1 items-start gap-3">
+      <div class="flex grow flex-col">
+        <div class="mb-2 flex flex-row items-center justify-between transition-all duration-200">
+          <div class="flex min-w-0 flex-1 items-center gap-2">
             <label
-              class="inline-flex items-center cursor-pointer select-none"
+              class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
               (click)="$event.stopPropagation()"
             >
               <app-checkbox [checked]="isSelected" (checkedChange)="onSelectionChange($event)" />
-              <span class="checkmark ml-2"></span>
             </label>
+            <div class="min-w-0 flex-1">
+              <div class="mb-1 flex items-center gap-3">
+                <h3
+                  class="textNormal truncate text-lg font-semibold transition-colors group-hover:text-green-600 dark:group-hover:text-green-400"
+                  [ngClass]="
+                    task.status === 'completed' ||
+                    task.status === 'skipped' ||
+                    task.status === 'failed'
+                      ? 'text-gray-500 line-through dark:text-gray-400'
+                      : ''
+                  "
+                >
+                  {{ task.title }}
+                </h3>
+                @if (unreadCommentsCount > 0) {
+                  <div
+                    class="flex shrink-0 animate-pulse items-center gap-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                    title="{{ unreadCommentsCount }} unread comments"
+                  >
+                    <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="forum" />
+                    {{ unreadCommentsCount }}
+                  </div>
+                }
+                @if (isBlocked) {
+                  <div
+                    class="flex shrink-0 items-center gap-1 rounded bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                    title="Waiting for dependencies to complete"
+                  >
+                    <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="lock" />
+                    Blocked
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="ml-2 flex items-center gap-2">
+            <span
+              class="rounded-full px-2 py-1 text-xs font-medium"
+              [ngClass]="getPriorityColor(task.priority || 'medium')"
+            >
+              {{ (task.priority || "medium").toUpperCase() }}
+            </span>
             <button
-              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+              class="flex h-8 w-8 items-center justify-center rounded transition-colors"
               (click)="toggleCompletion($event)"
               [title]="
                 task.status === 'completed'
@@ -29,125 +71,65 @@
                       ? 'Mark as pending'
                       : 'Mark as completed'
               "
+              [ngClass]="
+                task.status === 'completed'
+                  ? 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900/60'
+                  : task.status === 'skipped'
+                    ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60'
+                    : task.status === 'failed'
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60'
+                      : 'bg-blue-100 text-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60'
+              "
             >
               @if (task.status === "completed") {
-                <mat-icon class="w-5! h-5! text-xl! text-green-600!" fontIcon="check_circle" />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="check_circle" />
               } @else if (task.status === "skipped") {
-                <mat-icon
-                  class="w-5! h-5! text-xl! text-orange-600! dark:text-orange-400!"
-                  fontIcon="cancel"
-                />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="cancel" />
               } @else if (task.status === "failed") {
-                <mat-icon
-                  class="w-5! h-5! text-xl! text-red-600! dark:text-red-400!"
-                  fontIcon="dangerous"
-                />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="dangerous" />
               } @else {
-                <mat-icon
-                  class="w-5! h-5! text-xl! text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                  fontIcon="radio_button_unchecked"
-                />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="radio_button_unchecked" />
               }
             </button>
-
-            <div class="flex-1 min-w-0 cursor-pointer">
-              @if (editingField() === "title") {
-                <input
-                  type="text"
-                  [ngModel]="editingValue()"
-                  (ngModelChange)="editingValue.set($event)"
-                  (blur)="saveInlineEdit()"
-                  (keyup.enter)="saveInlineEdit()"
-                  (keyup.escape)="cancelInlineEdit()"
-                  class="w-full px-2 py-1 text-lg font-semibold bg-transparent border-b-2 border-green-500 focus:outline-none textNormal"
-                  (click)="$event.stopPropagation()"
-                />
-              } @else {
-                <div class="flex items-center gap-2">
-                  <h3
-                    class="text-lg font-semibold textNormal"
-                    [ngClass]="
-                      task.status === 'completed' ||
-                      task.status === 'skipped' ||
-                      task.status === 'failed'
-                        ? 'line-through text-gray-500 dark:text-gray-400'
-                        : 'group-hover:text-green-600 dark:group-hover:text-green-400'
-                    "
-                    (dblclick)="startInlineEdit('title', task.title || '')"
-                    title="Double-click to edit title"
-                    (click)="$event.stopPropagation()"
-                  >
-                    {{ task.title }}
-                  </h3>
-                  @if (unreadCommentsCount > 0) {
-                    <div
-                      class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold animate-pulse shadow-sm"
-                      title="{{ unreadCommentsCount }} unread comments"
-                    >
-                      <mat-icon class="w-3! h-3! text-xs!" fontIcon="forum" />
-                      {{ unreadCommentsCount }}
-                    </div>
-                  }
-                  @if (isBlocked) {
-                    <div
-                      class="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-bold"
-                      title="Waiting for dependencies to complete"
-                    >
-                      <mat-icon class="w-3! h-3! text-xs!" fontIcon="lock" />
-                      Blocked
-                    </div>
-                  }
-                </div>
-              }
-
-              @if (editingField() === "description") {
-                <textarea
-                  [ngModel]="editingValue()"
-                  (ngModelChange)="editingValue.set($event)"
-                  (blur)="saveInlineEdit()"
-                  (keyup.enter)="saveInlineEdit()"
-                  (keyup.escape)="cancelInlineEdit()"
-                  class="w-full px-2 py-1 text-sm bg-transparent border border-green-500 rounded focus:outline-none textNormal resize-none"
-                  rows="2"
-                  (click)="$event.stopPropagation()"
-                ></textarea>
-              } @else if (task.description && task.description != "") {
-                <p
-                  class="text-sm textMuted line-clamp-2"
-                  (dblclick)="startInlineEdit('description', task.description)"
-                  title="Double-click to edit description"
-                  (click)="$event.stopPropagation()"
-                >
-                  {{ truncateString(task.description, 100) }}
-                </p>
-              }
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 ml-2">
-            <span
-              class="px-2 py-1 rounded-full text-xs font-medium"
-              [ngClass]="getPriorityColor(task.priority || 'medium')"
-            >
-              {{ (task.priority || "medium").toUpperCase() }}
-            </span>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 mb-4 text-sm textMuted">
+        @if (editingField() === "description") {
+          <textarea
+            [ngModel]="editingValue()"
+            (ngModelChange)="editingValue.set($event)"
+            (blur)="saveInlineEdit()"
+            (keyup.enter)="saveInlineEdit()"
+            (keyup.escape)="cancelInlineEdit()"
+            class="textNormal mb-2 w-full resize-none rounded border border-green-500 bg-transparent px-2 py-1 text-sm focus:outline-none"
+            rows="2"
+            (click)="$event.stopPropagation()"
+          ></textarea>
+        } @else if (task.description && task.description != "") {
+          <p
+            class="textMuted mb-2 line-clamp-2 text-sm transition-colors"
+            (dblclick)="startInlineEdit('description', task.description)"
+            title="Double-click to edit description"
+            (click)="$event.stopPropagation()"
+          >
+            {{ truncateString(task.description, 100) }}
+          </p>
+        }
+
+        <div class="textMuted mb-4 flex items-center gap-4 text-sm">
           @if (task.endDate) {
             <div class="flex items-center gap-1">
-              <mat-icon class="w-5! h-5! text-xl!" fontIcon="schedule" />
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="schedule" />
               <span>Due {{ formatDate(task.endDate) }}</span>
             </div>
           }
           <div class="flex items-center gap-1">
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="list" />
             <span>{{ totalSubtasks }} subtasks</span>
           </div>
           @if (totalSubtasks > 0) {
             <div class="flex items-center gap-1">
-              <mat-icon class="w-5! h-5! text-xl!" fontIcon="check_circle" />
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="check_circle" />
               <span>{{ countCompletedSubtasks }}/{{ totalSubtasks }}</span>
             </div>
           }
@@ -158,34 +140,34 @@
         </div>
 
         @if (isExpanded && task.subtasks.length > 0) {
-          <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 mt-2">
-            <h4 class="text-sm font-medium textMuted mb-3 flex items-center gap-2">
-              <mat-icon class="w-4! h-4! text-xl!" fontIcon="list" />
+          <div class="mt-2 border-t border-gray-200 pt-4 dark:border-zinc-700">
+            <h4 class="textMuted mb-3 flex items-center gap-2 text-sm font-medium">
+              <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="list" />
               Subtasks
             </h4>
-            <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+            <div class="flex max-h-64 flex-col gap-2 overflow-y-auto">
               @for (subtask of task.subtasks; track subtask.id) {
                 <div
-                  class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
+                  class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
                 >
                   <button
-                    class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                    class="rounded p-0.5 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700"
                     (click)="onSubtaskToggleCompletion(subtask)"
                   >
                     <mat-icon
-                      class="w-5! h-5! text-xl!"
+                      class="h-5! w-5! min-w-5 text-xl!"
                       [fontIcon]="getSubtaskStatusIcon(subtask.status)"
                       [ngClass]="getSubtaskStatusColor(subtask.status)"
                     />
                   </button>
-                  <div class="flex-1 min-w-0">
+                  <div class="min-w-0 flex-1">
                     <p
-                      class="text-sm font-medium truncate"
+                      class="truncate text-sm font-medium"
                       [ngClass]="
                         subtask.status === 'completed' ||
                         subtask.status === 'skipped' ||
                         subtask.status === 'failed'
-                          ? 'line-through text-gray-500 dark:text-gray-400'
+                          ? 'text-gray-500 line-through dark:text-gray-400'
                           : 'textNormal'
                       "
                     >
@@ -193,7 +175,7 @@
                     </p>
                   </div>
                   <span
-                    class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    class="rounded-full px-2 py-0.5 text-xs font-medium"
                     [ngClass]="getSubtaskPriorityColor(subtask.priority || 'medium')"
                   >
                     {{ (subtask.priority || "medium").toUpperCase() }}
@@ -219,13 +201,16 @@
             (click)="$event.stopPropagation()"
           />
 
-          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-sm font-semibold textNormal flex items-center gap-2">
-                <mat-icon class="w-4! h-4! text-xl!" fontIcon="subdirectory_arrow_right" />
+          <div
+            class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="mb-2 flex items-center justify-between">
+              <h4 class="textNormal flex items-center gap-2 text-sm font-semibold">
+                <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="subdirectory_arrow_right" />
                 Subtask comments
               </h4>
-              <span class="text-[10px] textMuted">
+              <span class="textMuted text-[10px]">
                 {{ subtaskCommentGroups().length }} subtasks
               </span>
             </div>
@@ -233,33 +218,43 @@
             <div class="flex flex-col gap-2">
               @for (group of subtaskCommentGroups(); track group.subtaskId) {
                 <div
-                  class="rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/60 dark:bg-zinc-800/30"
-                  [ngClass]="{ 'ring-2 ring-purple-500 animate-pulse': shouldHighlightExpandedSubtask(group.subtaskId) }"
+                  class="rounded-xl border border-gray-200 bg-white/60 dark:border-zinc-700 dark:bg-zinc-800/30"
+                  [ngClass]="{
+                    'animate-pulse ring-2 ring-purple-500': shouldHighlightExpandedSubtask(
+                      group.subtaskId
+                    ),
+                  }"
                 >
                   <div class="flex items-center justify-between p-3">
                     <button
-                      class="flex items-center gap-2 text-sm font-semibold textNormal hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                      (click)="$event.stopPropagation(); toggleInlineSubtaskComments(group.subtaskId)"
+                      class="textNormal flex items-center gap-2 text-sm font-semibold transition-colors hover:text-purple-600 dark:hover:text-purple-400"
+                      (click)="
+                        $event.stopPropagation(); toggleInlineSubtaskComments(group.subtaskId)
+                      "
                       title="Expand/collapse this subtask's comments"
                     >
                       <mat-icon
-                        class="w-4! h-4! text-lg!"
-                        [fontIcon]="isSubtaskExpanded(group.subtaskId) ? 'expand_less' : 'expand_more'"
+                        class="h-4! w-4! min-w-4 text-lg!"
+                        [fontIcon]="
+                          isSubtaskExpanded(group.subtaskId) ? 'expand_less' : 'expand_more'
+                        "
                       />
                       <span class="truncate">{{ group.title }}</span>
                       @if (group.comments.length > 0) {
-                        <span class="ml-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                        <span
+                          class="ml-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white"
+                        >
                           {{ group.comments.length }}
                         </span>
                       }
                     </button>
 
                     <button
-                      class="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 transition-colors"
+                      class="rounded-lg p-1.5 text-purple-600 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
                       (click)="$event.stopPropagation(); navigateToSubtaskComments(group.subtaskId)"
                       title="Open in Subtasks view"
                     >
-                      <mat-icon class="w-4! h-4! text-lg!" fontIcon="open_in_new" />
+                      <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="open_in_new" />
                     </button>
                   </div>
 
@@ -281,7 +276,7 @@
                   }
                 </div>
               } @empty {
-                <div class="flex items-center justify-center py-4 text-xs textMuted">
+                <div class="textMuted flex items-center justify-center py-4 text-xs">
                   No subtasks yet
                 </div>
               }
@@ -290,18 +285,18 @@
         }
       </div>
 
-      <div class="flex items-center justify-between mt-auto pt-4">
+      <div class="mt-auto flex items-center justify-between pt-4">
         <div class="flex gap-2">
           <button
-            class="px-3 py-1 text-xs font-medium rounded-full transition-colors"
+            class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
             [ngClass]="
               task.status === 'completed'
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                 : task.status === 'skipped'
-                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
                   : task.status === 'failed'
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
             "
           >
             {{
@@ -318,80 +313,75 @@
 
         <div class="flex flex-row gap-2" (click)="$event.stopPropagation()">
           <button
-            class="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 transition-colors cursor-move"
+            class="cursor-move rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
             cdkDragHandle
             title="Drag to reorder"
           >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="drag_indicator" />
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
           </button>
 
           @if (showExpandButton) {
             <button
-              class="p-2 rounded-lg transition-colors"
+              class="rounded-lg p-2 transition-colors"
               [ngClass]="
                 isExpanded
-                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400'
+                  ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30'
               "
               (click)="toggleExpand()"
               [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
             >
               <mat-icon
-                class="w-5! h-5! text-xl!"
+                class="h-5! w-5! min-w-5 text-xl!"
                 [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
               />
             </button>
           }
 
           <button
-            class="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
+            class="rounded-lg p-2 text-green-600 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30"
             [routerLink]="task.id + '/subtasks'"
             [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
             title="View subtasks"
           >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="list" />
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="list" />
           </button>
           <button
-            class="p-2 rounded-lg transition-colors"
+            class="rounded-lg p-2 transition-colors"
             [ngClass]="
               showComments()
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                : 'hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
             "
             (click)="toggleComments(); $event.stopPropagation()"
             [title]="showComments() ? 'Hide comments' : 'Show comments'"
           >
-            <div class="flex items-center gap-1 relative">
-              <mat-icon class="w-5! h-5! text-xl!" fontIcon="forum" />
+            <div class="relative flex items-center gap-1">
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="forum" />
               @if (unreadCommentsCount > 0) {
                 <div
-                  class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-800 animate-pulse"
+                  class="absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-white bg-blue-500 dark:border-zinc-800"
                 ></div>
               }
-              @if (
-                totalCommentsForBadge() > 0 &&
-                unreadCommentsCount === 0
-              ) {
-                <span class="text-[10px] font-bold">{{
-                  totalCommentsForBadge()
-                }}</span>
+              @if (totalCommentsForBadge() > 0 && unreadCommentsCount === 0) {
+                <span class="text-[10px] font-bold">{{ totalCommentsForBadge() }}</span>
               }
             </div>
           </button>
           <button
-            class="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+            class="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
             [routerLink]="task.id + '/edit_task'"
             [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
             title="Edit task"
           >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="edit" />
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
           </button>
           <button
-            class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+            class="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
             (click)="deleteTask(); $event.stopPropagation()"
             title="Delete task"
           >
-            <mat-icon class="w-5! h-5! text-xl!" fontIcon="delete" />
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
           </button>
         </div>
       </div>
