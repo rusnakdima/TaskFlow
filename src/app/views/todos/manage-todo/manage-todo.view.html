@@ -1,7 +1,7 @@
-<div class="flex flex-col gap-6 max-w-4xl mx-auto">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="mx-auto flex max-w-4xl flex-col gap-6">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
         {{ isEdit() ? "Edit Project" : "Create New Project" }}
       </h1>
       <p class="textMuted mt-1">
@@ -16,17 +16,20 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
         >
-          <mat-icon class="w-5! h-5! text-xl! text-blue-600 dark:text-blue-400" fontIcon="info" />
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+            fontIcon="info"
+          />
         </div>
         <div>
-          <h3 class="text-lg font-semibold textNormal">Basic Information</h3>
-          <p class="text-sm textMuted">Essential details about your project</p>
+          <h3 class="textNormal text-lg font-semibold">Basic Information</h3>
+          <p class="textMuted text-sm">Essential details about your project</p>
         </div>
       </div>
 
@@ -55,40 +58,40 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
         >
           <mat-icon
-            class="w-5! h-5! text-xl! text-purple-600 dark:text-purple-400"
+            class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
             fontIcon="settings"
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold textNormal">Project Settings</h3>
-          <p class="text-sm textMuted">Configure timeline and project preferences</p>
+          <h3 class="textNormal text-lg font-semibold">Project Settings</h3>
+          <p class="textMuted text-sm">Configure timeline and project preferences</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="space-y-2">
-          <label class="block text-sm font-medium textNormal">
+          <label class="textNormal block text-sm font-medium">
             Priority Level
-            <span class="text-red-500 ml-1">*</span>
+            <span class="ml-1 text-red-500">*</span>
           </label>
           <mat-radio-group formControlName="priority" class="space-y-3">
             @for (priority of priorityOptions; track priority.value) {
               <mat-radio-button
                 [value]="priority.value"
-                class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-600 cursor-pointer transition-colors w-full"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
               >
-                <div class="flex items-center gap-2 flex-1">
-                  <div class="w-3 h-3 rounded-full" [ngClass]="priority.colorClass"></div>
+                <div class="flex flex-1 items-center gap-2">
+                  <div class="h-3 w-3 rounded-full" [ngClass]="priority.colorClass"></div>
                   <div>
-                    <div class="font-medium textNormal">{{ priority.label }}</div>
-                    <div class="text-xs textMuted">{{ priority.description }}</div>
+                    <div class="textNormal font-medium">{{ priority.label }}</div>
+                    <div class="textMuted text-xs">{{ priority.description }}</div>
                   </div>
                 </div>
               </mat-radio-button>
@@ -100,7 +103,7 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-medium textNormal">Time periods</label>
+          <label class="textNormal block text-sm font-medium">Time periods</label>
 
           <mat-form-field class="w-full">
             <mat-label>Start Date</mat-label>
@@ -108,28 +111,30 @@
             <mat-datepicker-toggle matSuffix [for]="startPicker" />
             <mat-datepicker #startPicker [startAt]="today" [dateClass]="dateClass"></mat-datepicker>
           </mat-form-field>
-          <mat-form-field class="w-full">
-            <mat-label>End Date</mat-label>
-            <input
-              matInput
-              [matDatepicker]="endPicker"
-              formControlName="endDate"
-              [matDatepickerFilter]="endDateFilter"
-            />
-            <mat-datepicker-toggle matSuffix [for]="endPicker" />
-            <mat-datepicker #endPicker [startAt]="form.get('startDate')?.value"></mat-datepicker>
-          </mat-form-field>
+          @if (form.get("startDate")?.value) {
+            <mat-form-field class="w-full">
+              <mat-label>End Date</mat-label>
+              <input
+                matInput
+                [matDatepicker]="endPicker"
+                formControlName="endDate"
+                [matDatepickerFilter]="endDateFilter"
+              />
+              <mat-datepicker-toggle matSuffix [for]="endPicker" />
+              <mat-datepicker #endPicker [startAt]="form.get('startDate')?.value"></mat-datepicker>
+            </mat-form-field>
+          }
 
           <div class="space-y-4">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-medium textNormal">Categories</label>
+              <label class="textNormal block text-sm font-medium">Categories</label>
               @if (isCategoryListExpanded()) {
                 <button
                   type="button"
                   (click)="isCategoryListExpanded.set(false)"
-                  class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline flex items-center gap-1 cursor-pointer"
+                  class="flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
                 >
-                  <mat-icon class="w-4! h-4! text-base!" fontIcon="check_circle" />
+                  <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="check_circle" />
                   Done Selecting
                 </button>
               }
@@ -145,11 +150,11 @@
                   placeholder="Click to select categories"
                   class="cursor-pointer"
                 />
-                <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" matSuffix fontIcon="expand_more" />
               </mat-form-field>
             } @else {
               <div
-                class="space-y-4 p-4 border border-blue-500/30 rounded-xl bg-blue-50/30 dark:bg-blue-900/10"
+                class="space-y-4 rounded-xl border border-blue-500/30 bg-blue-50/30 p-4 dark:bg-blue-900/10"
               >
                 <mat-form-field class="w-full">
                   <mat-label>Search or Add Category</mat-label>
@@ -167,27 +172,27 @@
                     (click)="addCategory()"
                     [disabled]="!newCategoryTitle().trim()"
                   >
-                    <mat-icon class="w-6! h-6! text-2xl!" fontIcon="add" />
+                    <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="add" />
                   </button>
                 </mat-form-field>
 
                 <div
-                  class="flex flex-row flex-wrap items-center align-top content-start gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar"
+                  class="custom-scrollbar flex max-h-40 flex-row flex-wrap content-start items-center gap-2 overflow-y-auto pr-2 align-top"
                 >
                   @for (category of getFilteredAvailableCategories(); track category.id) {
                     <button
                       type="button"
                       (click)="toggleCategory(category)"
-                      class="px-3 py-1.5 rounded-lg text-sm transition-all border flex items-center gap-2 cursor-pointer"
+                      class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-all"
                       [ngClass]="{
-                        'bg-blue-100 dark:bg-blue-900/40 border-blue-500 text-blue-700 dark:text-blue-300':
+                        'border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300':
                           isCategorySelected(category),
-                        'bg-gray-100 dark:bg-zinc-700 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-600':
+                        'border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600':
                           !isCategorySelected(category),
                       }"
                     >
                       @if (isCategorySelected(category)) {
-                        <mat-icon class="w-4! h-4! text-base!" fontIcon="check" />
+                        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="check" />
                       }
                       {{ category.title }}
                     </button>
@@ -201,49 +206,49 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
         >
           <mat-icon
-            class="w-5! h-5! text-xl! text-green-600 dark:text-green-400"
+            class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
             fontIcon="group"
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold textNormal">Team & Collaboration</h3>
-          <p class="text-sm textMuted">Manage project access and team members</p>
+          <h3 class="textNormal text-lg font-semibold">Team & Collaboration</h3>
+          <p class="textMuted text-sm">Manage project access and team members</p>
         </div>
       </div>
 
       <div class="space-y-6">
         <div class="space-y-3">
-          <label class="block text-sm font-medium textNormal">Project Visibility</label>
+          <label class="textNormal block text-sm font-medium">Project Visibility</label>
           <mat-radio-group formControlName="visibility" class="space-y-3">
             <mat-radio-button
               value="private"
-              class="flex flex-row items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 w-full cursor-pointer transition-colors"
+              class="flex w-full cursor-pointer flex-row items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
             >
               <div class="flex-1">
                 <div class="flex flex-row gap-x-3">
-                  <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="lock" />
-                  <div class="font-medium textNormal">Private</div>
+                  <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="lock" />
+                  <div class="textNormal font-medium">Private</div>
                 </div>
-                <div class="text-sm textMuted">Only you can access this project</div>
+                <div class="textMuted text-sm">Only you can access this project</div>
               </div>
             </mat-radio-button>
             <mat-radio-button
               value="team"
-              class="flex items-center gap-3 p-3 border border-gray-200 dark:border-zinc-600 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors w-full"
+              class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
             >
               <div class="flex-1">
                 <div class="flex flex-row gap-x-3">
-                  <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="group" />
-                  <div class="font-medium textNormal">Team</div>
+                  <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="group" />
+                  <div class="textNormal font-medium">Team</div>
                 </div>
-                <div class="text-sm textMuted">Share with specific team members</div>
+                <div class="textMuted text-sm">Share with specific team members</div>
               </div>
             </mat-radio-button>
           </mat-radio-group>
@@ -251,7 +256,7 @@
 
         @if (form.get("visibility")?.value === "team") {
           <div class="space-y-3">
-            <label class="block text-sm font-medium textNormal">Team Members</label>
+            <label class="textNormal block text-sm font-medium">Team Members</label>
             <div class="flex gap-2">
               <mat-form-field class="flex-1">
                 <mat-label>Select Team Members</mat-label>
@@ -262,7 +267,7 @@
                   readonly
                   placeholder="Click to select team members"
                 />
-                <mat-icon class="w-5! h-5! text-xl!" matSuffix fontIcon="expand_more" />
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" matSuffix fontIcon="expand_more" />
               </mat-form-field>
             </div>
 
@@ -270,23 +275,23 @@
               <div class="space-y-2">
                 @for (member of form.get("assignees")?.value; track member.id) {
                   <div
-                    class="flex flex-row items-center justify-between p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg"
+                    class="flex flex-row items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-zinc-700"
                   >
                     <div class="flex items-center gap-3">
                       <div
-                        class="flex items-center justify-center rounded-full bg-blue-500 w-8 h-8 text-white text-sm font-medium"
+                        class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white"
                       >
                         <img
                           [src]="member?.imageUrl ? member?.imageUrl : 'assets/images/user.png'"
-                          class="w-8 h-8 rounded-full"
+                          class="h-8 w-8 rounded-full"
                           alt=""
                         />
                       </div>
                       <div>
-                        <h4 class="text-sm font-medium textNormal">
+                        <h4 class="textNormal text-sm font-medium">
                           {{ member.name }} {{ member.lastName }}
                         </h4>
-                        <p class="text-xs textMuted">{{ member.user?.email }}</p>
+                        <p class="textMuted text-xs">{{ member.user?.email }}</p>
                       </div>
                     </div>
                     <button
@@ -295,7 +300,10 @@
                       type="button"
                       (click)="removeProfile(member)"
                     >
-                      <mat-icon class="w-5! h-5! text-xl! cursor-pointer" fontIcon="remove" />
+                      <mat-icon
+                        class="h-5! w-5! min-w-5 cursor-pointer text-xl!"
+                        fontIcon="remove"
+                      />
                     </button>
                   </div>
                 }
@@ -311,15 +319,15 @@
       <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
         @if (isSubmitting()) {
           <div
-            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
           ></div>
         } @else {
-          <mat-icon class="w-5! h-5! text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         }
         <span class="flex items-center gap-2">
           {{ isEdit() ? "Update" : "Create" }}
           <kbd
-            class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 bg-blue-700 border border-blue-800 rounded-md opacity-80"
+            class="hidden rounded-md border border-blue-800 bg-blue-700 px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 opacity-80 sm:inline-block"
           >
             Ctrl+S
           </kbd>
@@ -342,20 +350,20 @@
         </mat-form-field>
       </div>
       <mat-divider />
-      <div class="flex flex-col gap-y-1 p-2 w-full max-h-50 overflow-y-auto">
+      <div class="flex max-h-50 w-full flex-col gap-y-1 overflow-y-auto p-2">
         @for (profile of getFilteredUsers(); track profile.id) {
           <div
-            class="flex flex-col p-2 styleBorderSolidLite border hover:bg-gray-300 dark:hover:bg-zinc-700 cursor-pointer"
+            class="styleBorderSolidLite flex cursor-pointer flex-col border p-2 hover:bg-gray-300 dark:hover:bg-zinc-700"
           >
-            <div class="flex flex-row justify-between items-center" (click)="addProfile(profile)">
+            <div class="flex flex-row items-center justify-between" (click)="addProfile(profile)">
               <div>
                 <div class="font-medium">{{ profile.name }} {{ profile.lastName }}</div>
-                <div class="text-sm textMuted">
+                <div class="textMuted text-sm">
                   {{ (profile.user && profile.user.email) || "" }}
                 </div>
               </div>
               <button (click)="addProfile(profile)">
-                <mat-icon class="w-6! h-6! text-2xl! cursor-pointer" fontIcon="add" />
+                <mat-icon class="h-6! w-6! min-w-6 cursor-pointer text-2xl!" fontIcon="add" />
               </button>
             </div>
           </div>

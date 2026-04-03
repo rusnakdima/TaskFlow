@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-y-3">
   <div class="flex flex-col gap-y-3">
-    <h1 class="text-3xl font-bold textNormal mb-2">Data Synchronization</h1>
+    <h1 class="textNormal mb-2 text-3xl font-bold">Data Synchronization</h1>
     <p class="textMuted">
       Synchronize your data between local storage and cloud database. Users and profiles are always
       stored in the cloud.
@@ -8,9 +8,9 @@
   </div>
 
   <div
-    class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6"
+    class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
   >
-    <h2 class="text-xl font-semibold textNormal mb-4">Quick Sync</h2>
+    <h2 class="textNormal mb-4 text-xl font-semibold">Quick Sync</h2>
     <p class="textMuted mb-4">
       Automatically sync all data: first upload local changes to cloud, then download cloud changes
       to local.
@@ -21,7 +21,7 @@
         <span>Synchronizing...</span>
       } @else {
         <div class="flex flex-row items-center gap-x-3">
-          <mat-icon class="w-5! h-5! text-xl! text-white" fontIcon="sync" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-white" fontIcon="sync" />
           <span>Sync All Data</span>
         </div>
       }
@@ -29,23 +29,23 @@
   </div>
 
   <div
-    class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6"
+    class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
   >
-    <h2 class="text-xl font-semibold textNormal mb-4">Manual Sync Operations</h2>
+    <h2 class="textNormal mb-4 text-xl font-semibold">Manual Sync Operations</h2>
     <p class="textMuted mb-6">
       Perform individual synchronization operations. Use these for specific data management needs.
     </p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div
-        class="flex flex-col justify-between border border-gray-200 dark:border-zinc-600 rounded-lg p-4"
+        class="flex flex-col justify-between rounded-lg border border-gray-200 p-4 dark:border-zinc-600"
       >
         <div class="flex flex-col">
-          <div class="flex items-center gap-3 mb-3">
-            <mat-icon class="w-6! h-6! text-2xl!" fontIcon="cloud_download" />
-            <h3 class="font-medium textNormal">Import to Local</h3>
+          <div class="mb-3 flex items-center gap-3">
+            <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="cloud_download" />
+            <h3 class="textNormal font-medium">Import to Local</h3>
           </div>
-          <p class="text-sm textMuted mb-4">Download data from cloud database to local storage.</p>
+          <p class="textMuted mb-4 text-sm">Download data from cloud database to local storage.</p>
         </div>
         <button (click)="importToLocal()" [disabled]="isSyncingImport()" class="styleButInfo">
           @if (isSyncingImport()) {
@@ -53,7 +53,7 @@
             <span>Importing...</span>
           } @else {
             <div class="flex flex-row gap-x-3">
-              <mat-icon class="w-6! h-6! text-2xl!" fontIcon="download" />
+              <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="download" />
               <span>Import from Cloud</span>
             </div>
           }
@@ -61,14 +61,14 @@
       </div>
 
       <div
-        class="flex flex-col justify-between border border-gray-200 dark:border-zinc-600 rounded-lg p-4"
+        class="flex flex-col justify-between rounded-lg border border-gray-200 p-4 dark:border-zinc-600"
       >
         <div class="flex flex-col">
-          <div class="flex items-center gap-3 mb-3">
-            <mat-icon class="w-6! h-6! text-2xl! text-green-500" fontIcon="cloud_upload" />
-            <h3 class="font-medium textNormal">Export from Local</h3>
+          <div class="mb-3 flex items-center gap-3">
+            <mat-icon class="h-6! w-6! min-w-6 text-2xl! text-green-500" fontIcon="cloud_upload" />
+            <h3 class="textNormal font-medium">Export from Local</h3>
           </div>
-          <p class="text-sm textMuted mb-4">Upload local data to cloud database.</p>
+          <p class="textMuted mb-4 text-sm">Upload local data to cloud database.</p>
         </div>
         <button (click)="exportToCloud()" [disabled]="isSyncingExport()" class="styleButInfo">
           @if (isSyncingExport()) {
@@ -76,7 +76,7 @@
             <span>Exporting...</span>
           } @else {
             <div class="flex flex-row gap-x-3">
-              <mat-icon class="w-6! h-6! text-2xl!" fontIcon="upload" />
+              <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="upload" />
               <span>Export to Cloud</span>
             </div>
           }
@@ -86,14 +86,14 @@
   </div>
 
   <div
-    class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800"
+    class="rounded-xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
   >
     <div class="flex flex-col">
       <div class="flex flex-row items-center gap-x-2">
-        <mat-icon class="w-5! h-6! text-xl! text-blue-500" fontIcon="info" />
-        <h3 class="font-medium text-blue-900 dark:text-blue-100 mb-2">Important Notes</h3>
+        <mat-icon class="h-6! w-5! min-w-5 text-xl! text-blue-500" fontIcon="info" />
+        <h3 class="mb-2 font-medium text-blue-900 dark:text-blue-100">Important Notes</h3>
       </div>
-      <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+      <ul class="space-y-1 text-sm text-blue-800 dark:text-blue-200">
         <li>• Users and profiles are always stored in the cloud and cannot be manually synced</li>
         <li>• Quick sync performs export first (upload), then import (download)</li>
         <li>• Manual operations allow fine-grained control over data flow</li>

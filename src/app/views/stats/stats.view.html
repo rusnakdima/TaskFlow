@@ -1,18 +1,18 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Statistics</h1>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">Statistics</h1>
       <p class="textMuted mt-1">Analyze your productivity and task completion patterns.</p>
     </div>
 
-    <div class="flex flex-row gap-2 max-w-full overflow-x-auto">
+    <div class="flex max-w-full flex-row gap-2 overflow-x-auto">
       @for (range of timeRanges; track $index) {
         <button
-          class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+          class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           [ngClass]="
             selectedTimeRange() === range.key
               ? 'bg-blue-500 text-white'
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
           "
           (click)="changeTimeRange(range.key)"
         >
@@ -22,71 +22,71 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <div
-      class="bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-6 text-white shadow-lg"
+      class="rounded-xl bg-linear-to-r from-blue-500 to-blue-600 p-6 text-white shadow-lg dark:from-blue-600 dark:to-blue-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-blue-100 text-sm">Total Tasks</p>
+          <p class="text-sm text-blue-100">Total Tasks</p>
           <p class="text-2xl font-bold">{{ statistics().totalTasks }}</p>
-          <p class="text-blue-200 text-xs mt-1">
+          <p class="mt-1 text-xs text-blue-200">
             {{ getPercentageChange(statistics().totalTasks, statistics().previousTotalTasks) }}%
             from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="assignment" />
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="assignment" />
         </div>
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-6 text-white shadow-lg"
+      class="rounded-xl bg-linear-to-r from-green-500 to-green-600 p-6 text-white shadow-lg dark:from-green-600 dark:to-green-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-green-100 text-sm">Completion Rate</p>
+          <p class="text-sm text-green-100">Completion Rate</p>
           <p class="text-2xl font-bold">{{ statistics().completionRate }}%</p>
-          <p class="text-blue-200 text-xs mt-1">
+          <p class="mt-1 text-xs text-blue-200">
             {{
               getPercentageChange(statistics().completionRate, statistics().previousCompletionRate)
             }}% from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="trending_up" />
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="trending_up" />
         </div>
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-6 text-white shadow-lg"
+      class="rounded-xl bg-linear-to-r from-purple-500 to-purple-600 p-6 text-white shadow-lg dark:from-purple-600 dark:to-purple-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-purple-100 text-sm">Avg. Task Time</p>
+          <p class="text-sm text-purple-100">Avg. Task Time</p>
           <p class="text-2xl font-bold">{{ statistics().averageTaskTime }}h</p>
-          <p class="text-purple-200 text-xs mt-1">
+          <p class="mt-1 text-xs text-purple-200">
             {{
               getPercentageChange(statistics().averageTaskTime, statistics().previousAverageTime)
             }}% from last period
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="schedule" />
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="schedule" />
         </div>
       </div>
     </div>
 
     <div
-      class="bg-linear-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl p-6 text-white shadow-lg"
+      class="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 p-6 text-white shadow-lg dark:from-orange-600 dark:to-orange-700"
     >
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-orange-100 text-sm">Productivity Score</p>
+          <p class="text-sm text-orange-100">Productivity Score</p>
           <p class="text-2xl font-bold">{{ statistics().productivityScore }}</p>
-          <p class="text-orange-200 text-xs mt-1">
+          <p class="mt-1 text-xs text-orange-200">
             {{
               getPercentageChange(
                 statistics().productivityScore,
@@ -96,33 +96,33 @@
           </p>
         </div>
         <div class="bg-opacity-20 rounded-lg p-3">
-          <mat-icon class="w-6! h-6! text-2xl!" fontIcon="emoji_events" />
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="emoji_events" />
         </div>
       </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold textNormal">Task Completion Trend</h3>
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="show_chart" />
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-lg font-semibold">Task Completion Trend</h3>
+        <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="show_chart" />
       </div>
 
       <div class="space-y-4">
         @for (data of chartData().completionTrend; track $index) {
           <div class="flex items-center justify-between">
-            <span class="text-sm textMuted">{{ data.label }}</span>
-            <div class="flex items-center gap-2 flex-1 max-w-xs">
-              <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+            <span class="textMuted text-sm">{{ data.label }}</span>
+            <div class="flex max-w-xs flex-1 items-center gap-2">
+              <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
                 <div
-                  class="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  class="h-2 rounded-full bg-green-500 transition-all duration-300"
                   [style.width.%]="data.value"
                 ></div>
               </div>
-              <span class="text-sm textNormal">{{ data.value }}%</span>
+              <span class="textNormal text-sm">{{ data.value }}%</span>
             </div>
           </div>
         }
@@ -130,23 +130,23 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold textNormal">Task Categories</h3>
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="pie_chart" />
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-lg font-semibold">Task Categories</h3>
+        <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="pie_chart" />
       </div>
 
-      <div class="space-y-4 max-h-[300px] overflow-y-auto">
+      <div class="max-h-[300px] space-y-4 overflow-y-auto">
         @for (category of chartData().categories; track $index) {
           <div class="flex items-center gap-4">
-            <div class="w-4 h-4 rounded-full" [style.background-color]="category.color"></div>
+            <div class="h-4 w-4 rounded-full" [style.background-color]="category.color"></div>
             <div class="flex-1">
               <div class="flex justify-between text-sm">
                 <span class="textNormal">{{ category.name }}</span>
                 <span class="textMuted">{{ category.count }} tasks</span>
               </div>
-              <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
+              <div class="mt-1 h-2 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
                 <div
                   class="h-2 rounded-full transition-all duration-300"
                   [style.width.%]="category.percentage"
@@ -164,26 +164,26 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold textNormal">Daily Activity</h3>
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="calendar_view_week" />
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-lg font-semibold">Daily Activity</h3>
+        <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="calendar_view_week" />
       </div>
 
       <div class="grid grid-cols-7 gap-1">
         @for (day of chartData().dailyActivity; track $index) {
           <div class="text-center">
-            <div class="text-xs textMuted mb-2">{{ day.dayName }}</div>
+            <div class="textMuted mb-2 text-xs">{{ day.dayName }}</div>
             <div
-              class="w-full h-16 rounded-lg flex items-center justify-center text-sm font-medium"
+              class="flex h-16 w-full items-center justify-center rounded-lg text-sm font-medium"
               [ngClass]="{
-                'bg-gray-100 dark:bg-zinc-700 text-gray-400 dark:text-gray-500': day.activity === 0,
-                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300':
+                'bg-gray-100 text-gray-400 dark:bg-zinc-700 dark:text-gray-500': day.activity === 0,
+                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300':
                   day.activity > 0 && day.activity <= 3,
-                'bg-blue-300 dark:bg-blue-700 text-blue-800 dark:text-blue-100':
+                'bg-blue-300 text-blue-800 dark:bg-blue-700 dark:text-blue-100':
                   day.activity > 3 && day.activity <= 6,
-                'bg-blue-500 dark:bg-blue-500 text-white': day.activity > 6,
+                'bg-blue-500 text-white dark:bg-blue-500': day.activity > 6,
               }"
             >
               {{ day.activity }}
@@ -194,27 +194,30 @@
     </div>
 
     <div
-      class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold textNormal">Recent Achievements</h3>
-        <mat-icon class="w-5! h-5! text-xl! textMuted" fontIcon="military_tech" />
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-lg font-semibold">Recent Achievements</h3>
+        <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="military_tech" />
       </div>
 
       <div class="space-y-4">
         @for (achievement of achievements(); track $index) {
-          <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
+          <div class="flex items-center gap-4 rounded-lg bg-gray-50 p-3 dark:bg-zinc-700">
             <div
-              class="w-10 h-10 rounded-full flex items-center justify-center"
+              class="flex h-10 w-10 items-center justify-center rounded-full"
               [style.background-color]="achievement.color"
             >
-              <mat-icon class="w-5! h-5! text-xl! text-white" [fontIcon]="achievement.icon" />
+              <mat-icon
+                class="h-5! w-5! min-w-5 text-xl! text-white"
+                [fontIcon]="achievement.icon"
+              />
             </div>
             <div class="flex-1">
-              <h4 class="text-sm font-medium textNormal">{{ achievement.title }}</h4>
-              <p class="text-xs textMuted">{{ achievement.description }}</p>
+              <h4 class="textNormal text-sm font-medium">{{ achievement.title }}</h4>
+              <p class="textMuted text-xs">{{ achievement.description }}</p>
             </div>
-            <span class="text-xs textMuted">{{ achievement.date }}</span>
+            <span class="textMuted text-xs">{{ achievement.date }}</span>
           </div>
         } @empty {
           <div class="flex flex-col items-center justify-center">
@@ -226,11 +229,11 @@
   </div>
 
   <div
-    class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+    class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
   >
-    <div class="flex items-center justify-between mb-6">
-      <h3 class="text-lg font-semibold textNormal">Detailed Analytics</h3>
-      <button class="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+    <div class="mb-6 flex items-center justify-between">
+      <h3 class="textNormal text-lg font-semibold">Detailed Analytics</h3>
+      <button class="text-sm text-blue-600 hover:underline dark:text-blue-400">
         Export Report
       </button>
     </div>
@@ -239,34 +242,34 @@
       <table class="w-full">
         <thead>
           <tr class="border-b border-gray-200 dark:border-zinc-600">
-            <th class="text-left py-3 px-4 font-medium textNormal">Metric</th>
-            <th class="text-left py-3 px-4 font-medium textNormal">Current Period</th>
-            <th class="text-left py-3 px-4 font-medium textNormal">Previous Period</th>
-            <th class="text-left py-3 px-4 font-medium textNormal">Change</th>
+            <th class="textNormal px-4 py-3 text-left font-medium">Metric</th>
+            <th class="textNormal px-4 py-3 text-left font-medium">Current Period</th>
+            <th class="textNormal px-4 py-3 text-left font-medium">Previous Period</th>
+            <th class="textNormal px-4 py-3 text-left font-medium">Change</th>
           </tr>
         </thead>
         <tbody>
           @for (metric of detailedMetrics(); track $index) {
             <tr class="border-b border-gray-100 dark:border-zinc-700">
-              <td class="py-3 px-4 textNormal">{{ metric.name }}</td>
-              <td class="py-3 px-4 textNormal">{{ metric.current }}</td>
-              <td class="py-3 px-4 textMuted">{{ metric.previous }}</td>
-              <td class="py-3 px-4">
+              <td class="textNormal px-4 py-3">{{ metric.name }}</td>
+              <td class="textNormal px-4 py-3">{{ metric.current }}</td>
+              <td class="textMuted px-4 py-3">{{ metric.previous }}</td>
+              <td class="px-4 py-3">
                 <span
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                  class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
                   [ngClass]="{
-                    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300':
+                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300':
                       metric.change > 0,
-                    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300':
+                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300':
                       metric.change < 0,
-                    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300':
+                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300':
                       metric.change === 0,
                   }"
                 >
                   @if (metric.change > 0) {
-                    <mat-icon class="w-3! h-3! text-xs! mr-1" fontIcon="trending_up" />
+                    <mat-icon class="mr-1 h-3! w-3! min-w-3 text-xs!" fontIcon="trending_up" />
                   } @else if (metric.change < 0) {
-                    <mat-icon class="w-3! h-3! text-xs! mr-1" fontIcon="trending_down" />
+                    <mat-icon class="mr-1 h-3! w-3! min-w-3 text-xs!" fontIcon="trending_down" />
                   }
                   {{ metric.change > 0 ? "+" : "" }}{{ metric.change }}%
                 </span>

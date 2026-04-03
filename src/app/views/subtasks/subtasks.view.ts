@@ -251,7 +251,11 @@ export class SubtasksView extends BaseListView implements OnInit {
         // Best-effort: when deep-linking to a comment, open all comment blocks
         this.openCommentsForSubtaskId.set("*");
       }
-      if (!queryParams.openComments && !queryParams.highlightSubtask && !queryParams.highlightComment) {
+      if (
+        !queryParams.openComments &&
+        !queryParams.highlightSubtask &&
+        !queryParams.highlightComment
+      ) {
         this.openCommentsForSubtaskId.set(null);
       }
     });
