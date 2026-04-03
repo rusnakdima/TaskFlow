@@ -29,20 +29,41 @@ export class TodoHandler extends EntityHandler<Todo> {
     });
   }
 
-  update(id: string, updates: Partial<Todo>): void {
+  update(
+    id: string,
+    updates: Partial<Todo>,
+    resolvers?: {
+      getCategoryById?: (id: string) => import("@models/category.model").Category | undefined;
+    }
+  ): void {
     // Find which signal contains this todo
     const existsInPrivate = this.privateSignal().some((t) => t.id === id);
     const existsInShared = this.sharedSignal().some((t) => t.id === id);
 
+    // Resolve string category IDs to full objects before merging
+    const resolvedUpdates: Partial<Todo> = { ...updates };
+
+    if (updates.categories && Array.isArray(updates.categories)) {
+      const first = updates.categories[0];
+      if (first !== undefined && typeof first === "string") {
+        const resolve = resolvers?.getCategoryById;
+        if (resolve) {
+          resolvedUpdates.categories = (updates.categories as unknown as string[])
+            .map((cid) => resolve(cid))
+            .filter((c): c is import("@models/category.model").Category => !!c);
+        }
+      }
+    }
+
     // Update only the signal where the todo exists
     if (existsInPrivate) {
       this.privateSignal.update((todos) =>
-        todos.map((todo) => (todo.id === id ? { ...todo, ...updates } : todo))
+        todos.map((todo) => (todo.id === id ? { ...todo, ...resolvedUpdates } : todo))
       );
     }
     if (existsInShared) {
       this.sharedSignal.update((todos) =>
-        todos.map((todo) => (todo.id === id ? { ...todo, ...updates } : todo))
+        todos.map((todo) => (todo.id === id ? { ...todo, ...resolvedUpdates } : todo))
       );
     }
 

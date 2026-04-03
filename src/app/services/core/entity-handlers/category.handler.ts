@@ -14,7 +14,7 @@ export class CategoryHandler extends EntityHandler<Category> {
     });
   }
 
-  update(id: string, updates: Partial<Category>): void {
+  update(id: string, updates: Partial<Category>, _resolvers?: Record<string, any>): void {
     this.signal.update((items) =>
       items.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );

@@ -51,7 +51,7 @@ export class CommentHandler extends EntityHandler<Comment> {
     }
   }
 
-  update(id: string, updates: Partial<Comment>): void {
+  update(id: string, updates: Partial<Comment>, _resolvers?: Record<string, any>): void {
     this.updateTodo(null, (todo) => ({
       ...todo,
       tasks: todo.tasks?.map((task) => ({

@@ -26,6 +26,20 @@ export class DateHelper {
   }
 
   /**
+   * Create a date class function that highlights today's date
+   */
+  static createTodayDateClass(): (date: Date) => MatCalendarCellCssClasses {
+    return (date: Date): MatCalendarCellCssClasses => {
+      const today = new Date();
+      return date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear()
+        ? "today-marker"
+        : "";
+    };
+  }
+
+  /**
    * Stores date in UTC+0 with hour set to 00:00:00
    * @param date Date object or ISO string
    * @returns UTC string in RFC3339 format (e.g., "2026-02-10T00:00:00Z") or empty string

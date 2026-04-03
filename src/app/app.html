@@ -1,12 +1,10 @@
-<div class="min-h-screen theme">
+<div class="theme sticky min-h-screen">
   @if (showShell()) {
     <app-header />
   }
 
-  <main class="pb-36 w-full">
-    <div class="max-w-7xl mx-auto p-3 lg:px-6 w-full">
-      <router-outlet />
-    </div>
+  <main class="mx-auto w-full max-w-7xl p-3 lg:px-6" style="min-height: calc(100vh - 72px - 62px)">
+    <router-outlet />
   </main>
 
   @if (showShell()) {
