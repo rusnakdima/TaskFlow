@@ -1,6 +1,6 @@
 @if (form && field) {
-  <div class="flex flex-col w-full" [formGroup]="form">
-    <mat-checkbox class="flex flex-col no-check-icon" [formControlName]="field.name">
+  <div class="flex w-full flex-col" [formGroup]="form">
+    <mat-checkbox class="no-check-icon flex flex-col" [formControlName]="field.name">
       <mat-label>{{ label }}</mat-label>
     </mat-checkbox>
     @if (isInvalid(field.name)) {
@@ -20,7 +20,7 @@
     />
     @if (label) {
       <label
-        class="text-sm font-medium textNormal cursor-pointer select-none"
+        class="textNormal cursor-pointer text-sm font-medium select-none"
         (click)="onToggle($event)"
       >
         {{ label }}

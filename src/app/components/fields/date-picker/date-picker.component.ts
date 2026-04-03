@@ -1,7 +1,8 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input } from "@angular/core";
+import { Component, Input, OnInit } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { MatCalendarCellCssClasses } from "@angular/material/datepicker";
 
 /* materials */
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -11,6 +12,9 @@ import { provideNativeDateAdapter } from "@angular/material/core";
 
 /* models */
 import { DatePickerField } from "@models/form-field.model";
+
+/* helpers */
+import { DateHelper } from "@helpers/date-helpers";
 
 @Component({
   selector: "app-date-picker",
@@ -26,10 +30,16 @@ import { DatePickerField } from "@models/form-field.model";
   ],
   templateUrl: "./date-picker.component.html",
 })
-export class DatePickerComponent {
+export class DatePickerComponent implements OnInit {
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: DatePickerField;
+
+  dateClass!: (date: Date) => MatCalendarCellCssClasses;
+
+  ngOnInit(): void {
+    this.dateClass = DateHelper.createTodayDateClass();
+  }
 
   isInvalid(attr: string): boolean {
     const control = this.form.get(attr);
