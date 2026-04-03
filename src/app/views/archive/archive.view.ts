@@ -126,7 +126,46 @@ export class ArchiveView extends BaseAdminView implements OnInit {
         this.notifyService.showSuccess("Record permanently deleted from local database");
         this.adminStorageService.removeRecordWithCascade(table, record.id);
         this.storageService.removeRecordWithCascade(table, record.id);
-        this.loadArchiveData();
+
+        // In-place update without full reload
+        this.archiveData.update((data) => {
+          const updated = { ...data };
+          const tableData = updated[table] || [];
+          updated[table] = tableData.filter((r: any) => r.id !== record.id);
+
+          // Cascade remove children
+          if (table === "todos") {
+            const todoTasks = tableData.filter((t: any) => t.todoId === record.id);
+            const todoTaskIds = todoTasks.map((t: any) => t.id);
+            updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todoId !== record.id);
+            updated["subtasks"] = (updated["subtasks"] || []).filter(
+              (s: any) => !todoTaskIds.includes(s.taskId)
+            );
+            updated["comments"] = (updated["comments"] || []).filter(
+              (c: any) => c.todoId !== record.id && !todoTaskIds.includes(c.taskId)
+            );
+            updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todoId !== record.id);
+          } else if (table === "tasks") {
+            updated["subtasks"] = (updated["subtasks"] || []).filter(
+              (s: any) => s.taskId !== record.id
+            );
+            updated["comments"] = (updated["comments"] || []).filter(
+              (c: any) => c.taskId !== record.id
+            );
+          } else if (table === "subtasks") {
+            updated["comments"] = (updated["comments"] || []).filter(
+              (c: any) => c.subtaskId !== record.id
+            );
+          }
+
+          return updated;
+        });
+
+        // Update counts
+        this.dataTypes.forEach((type) => {
+          const tableData = this.archiveData()[type.id];
+          type.count = tableData ? tableData.length : 0;
+        });
       } else {
         this.notifyService.showError(response.message || "Failed to delete record");
       }
@@ -149,6 +188,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
           if (isDeleted) {
             this.storageService.removeTodoWithCascade(record.id);
           } else {
+            // Restore: re-fetch from backend and restore in-place
             this.adminService.getAllDataForArchive().subscribe({
               next: (archiveResponse) => {
                 const data = archiveResponse.data as any;
@@ -195,7 +235,6 @@ export class ArchiveView extends BaseAdminView implements OnInit {
         } else {
           this.storageService.updateItem(this.selectedType() as any, record.id, { isDeleted });
         }
-        this.loadArchiveData();
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
       }
@@ -245,6 +284,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
               if (newIsDeleted) {
                 this.storageService.removeTodoWithCascade(item.id);
               } else {
+                // Restore: re-fetch from backend and restore in-place
                 this.adminService.getAllDataForArchive().subscribe({
                   next: (archiveResponse) => {
                     const data = archiveResponse.data as any;
@@ -296,7 +336,6 @@ export class ArchiveView extends BaseAdminView implements OnInit {
           this.notifyService.showSuccess(
             `${result.successCount} ${result.successCount === 1 ? "record" : "records"} status toggled`
           );
-          this.loadArchiveData();
         }
 
         if (result.errorCount > 0) {

@@ -1,28 +1,28 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-bold textNormal">Calendar</h1>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">Calendar</h1>
       <p class="textMuted mt-1">View and manage your scheduled tasks.</p>
     </div>
 
     <div class="flex gap-2">
       <button
-        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+        class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         [ngClass]="
           viewMode() === 'month'
             ? 'bg-blue-500 text-white'
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
         "
         (click)="changeViewMode('month')"
       >
         Month
       </button>
       <button
-        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+        class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         [ngClass]="
           viewMode() === 'week'
             ? 'bg-blue-500 text-white'
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
+            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
         "
         (click)="changeViewMode('week')"
       >
@@ -31,42 +31,42 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
     <div
-      class="lg:col-span-3 bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700 h-max"
+      class="h-max rounded-xl border border-gray-200 bg-white p-6 shadow-lg lg:col-span-3 dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-semibold textNormal">{{ getCurrentTitle() }}</h3>
+      <div class="mb-6 flex items-center justify-between">
+        <h3 class="textNormal text-xl font-semibold">{{ getCurrentTitle() }}</h3>
         <div class="flex items-center gap-2">
           <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-700"
             (click)="previous()"
           >
-            <mat-icon class="w-5! h-5! text-xl! textNormal" fontIcon="chevron_left" />
+            <mat-icon class="textNormal h-5! w-5! min-w-5 text-xl!" fontIcon="chevron_left" />
           </button>
           <button
-            class="px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors textNormal"
+            class="textNormal rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-zinc-700"
             (click)="goToToday()"
           >
             Today
           </button>
           <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+            class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-700"
             (click)="next()"
           >
-            <mat-icon class="w-5! h-5! text-xl! textNormal" fontIcon="chevron_right" />
+            <mat-icon class="textNormal h-5! w-5! min-w-5 text-xl!" fontIcon="chevron_right" />
           </button>
         </div>
       </div>
 
       @if (viewMode() === "month") {
         <!-- Mobile layout for screens < 500px -->
-        <div class="block sm:hidden space-y-2">
+        <div class="block space-y-2 sm:hidden">
           @for (week of getWeeksForMobile(); track $index) {
             <div class="grid grid-cols-7 gap-1">
               @for (day of week; track day.date.getTime()) {
                 <div
-                  class="aspect-square p-1 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700 text-center"
+                  class="aspect-square cursor-pointer border border-gray-200 p-1 text-center transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
                   [ngClass]="{
                     'bg-gray-100 dark:bg-zinc-700': day.isSelected,
                     'bg-blue-50 dark:bg-blue-900/30': day.isToday,
@@ -75,7 +75,7 @@
                   (click)="selectDate(day.date)"
                 >
                   <div
-                    class="text-xs font-medium mb-1"
+                    class="mb-1 text-xs font-medium"
                     [ngClass]="{
                       'text-blue-600 dark:text-blue-400': day.isToday,
                       textNormal: day.isCurrentMonth && !day.isToday,
@@ -86,7 +86,7 @@
                   </div>
                   @if (day.events.length > 0) {
                     <div class="flex justify-center">
-                      <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                      <div class="h-2 w-2 rounded-full bg-red-500"></div>
                     </div>
                   }
                 </div>
@@ -98,17 +98,17 @@
         <!-- Desktop layout for screens >= 640px -->
         <div class="hidden sm:block">
           <div class="grid grid-cols-7 gap-1">
-            <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Sun</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Mon</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Tue</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Wed</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Thu</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Fri</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Sat</div>
 
             @for (day of calendarDays(); track day.date.getTime()) {
               <div
-                class="min-h-[80px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+                class="min-h-[80px] cursor-pointer border border-gray-200 p-2 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
                 [ngClass]="{
                   'bg-gray-100 dark:bg-zinc-700': day.isSelected,
                   'bg-blue-50 dark:bg-blue-900/30': day.isToday,
@@ -116,7 +116,7 @@
                 }"
                 (click)="selectDate(day.date)"
               >
-                <div class="flex justify-between items-start mb-1">
+                <div class="mb-1 flex items-start justify-between">
                   <span
                     class="text-sm font-medium"
                     [ngClass]="{
@@ -132,7 +132,7 @@
                 <div class="space-y-1">
                   @for (event of day.events.slice(0, 2); track event.id + "_" + $index) {
                     <div
-                      class="text-xs p-1 rounded text-white truncate cursor-pointer"
+                      class="cursor-pointer truncate rounded p-1 text-xs text-white"
                       [ngClass]="getEventColor(event)"
                       [title]="event.title"
                       (click)="navigateToTasks(event)"
@@ -154,19 +154,19 @@
 
       @if (viewMode() === "week") {
         <!-- Mobile layout for screens < 500px -->
-        <div class="block sm:hidden space-y-3">
+        <div class="block space-y-3 sm:hidden">
           @for (day of weekDays(); track day.date.getTime()) {
             <div
-              class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-zinc-600"
+              class="cursor-pointer rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-zinc-700 dark:hover:bg-zinc-600"
               [ngClass]="{
                 'bg-gray-100 dark:bg-zinc-600': day.isSelected,
                 'bg-blue-50 dark:bg-blue-900/30': day.isToday,
               }"
               (click)="selectDate(day.date)"
             >
-              <div class="flex justify-between items-center mb-2">
+              <div class="mb-2 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium textMuted">{{ getDayName(day.date) }}</span>
+                  <span class="textMuted text-sm font-medium">{{ getDayName(day.date) }}</span>
                   <span
                     class="text-sm font-semibold"
                     [ngClass]="{
@@ -176,12 +176,12 @@
                   >
                     {{ day.date.getDate() }}
                   </span>
-                  <span class="text-xs textMuted">{{
+                  <span class="textMuted text-xs">{{
                     day.date.toLocaleDateString("en-US", { month: "short" })
                   }}</span>
                 </div>
                 @if (day.events.length > 0) {
-                  <span class="text-xs bg-red-500 text-white px-2 py-1 rounded-full">{{
+                  <span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">{{
                     day.events.length
                   }}</span>
                 }
@@ -190,7 +190,7 @@
               <div class="space-y-1">
                 @for (event of day.events.slice(0, 3); track event.id + "_" + $index) {
                   <div
-                    class="text-xs p-2 rounded text-white truncate"
+                    class="truncate rounded p-2 text-xs text-white"
                     [ngClass]="getEventColor(event)"
                     [title]="event.title"
                     (click)="navigateToTasks(event)"
@@ -211,24 +211,24 @@
         <!-- Desktop layout for screens >= 640px -->
         <div class="hidden sm:block">
           <div class="grid grid-cols-7 gap-1">
-            <div class="text-center py-2 text-sm font-semibold textMuted">Sun</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Mon</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Tue</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Wed</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Thu</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Fri</div>
-            <div class="text-center py-2 text-sm font-semibold textMuted">Sat</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Sun</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Mon</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Tue</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Wed</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Thu</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Fri</div>
+            <div class="textMuted py-2 text-center text-sm font-semibold">Sat</div>
 
             @for (day of weekDays(); track day.date.getTime()) {
               <div
-                class="min-h-[120px] p-2 border border-gray-200 dark:border-zinc-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700"
+                class="min-h-[120px] cursor-pointer border border-gray-200 p-2 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
                 [ngClass]="{
                   'bg-gray-100 dark:bg-zinc-700': day.isSelected,
                   'bg-blue-50 dark:bg-blue-900/30': day.isToday,
                 }"
                 (click)="selectDate(day.date)"
               >
-                <div class="flex justify-between items-start mb-2">
+                <div class="mb-2 flex items-start justify-between">
                   <span
                     class="text-sm font-medium"
                     [ngClass]="{
@@ -238,7 +238,7 @@
                   >
                     {{ day.date.getDate() }}
                   </span>
-                  <span class="text-xs textMuted">{{
+                  <span class="textMuted text-xs">{{
                     day.date.toLocaleDateString("en-US", { month: "short" })
                   }}</span>
                 </div>
@@ -246,7 +246,7 @@
                 <div class="space-y-1">
                   @for (event of day.events; track event.id + "_" + $index) {
                     <div
-                      class="text-xs p-1 rounded text-white truncate cursor-pointer"
+                      class="cursor-pointer truncate rounded p-1 text-xs text-white"
                       [ngClass]="getEventColor(event)"
                       [title]="event.title"
                       (click)="navigateToTasks(event)"
@@ -260,78 +260,35 @@
           </div>
         </div>
       }
-
-      @if (viewMode() === "day") {
-        <div class="bg-gray-50 dark:bg-zinc-700 rounded-lg p-6">
-          <h4 class="text-lg font-semibold textNormal mb-4">{{ formatSelectedDate() }}</h4>
-
-          <div class="space-y-4">
-            @if (dayEvents.length === 0) {
-              <div class="text-center py-8">
-                <mat-icon class="w-7.5! h-7.5! text-3xl! textMuted" fontIcon="event" />
-                <p class="text-sm textMuted mt-4">No events scheduled for this day</p>
-              </div>
-            } @else {
-              @for (event of dayEvents(); track event.id) {
-                <div
-                  class="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
-                  (click)="navigateToTasks(event)"
-                >
-                  <div class="flex items-start gap-4">
-                    <div class="w-4 h-4 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
-                    <div class="flex-1">
-                      <h5 class="text-base font-medium textNormal">{{ event.title }}</h5>
-                      @if (event.description) {
-                        <p class="text-sm textMuted mt-2">{{ event.description }}</p>
-                      }
-                      <div class="flex items-center gap-2 mt-2">
-                        <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{
-                          event.status
-                        }}</span>
-                        <span class="text-xs textMuted">{{
-                          event.date.toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              }
-            }
-          </div>
-        </div>
-      }
     </div>
 
-    <div class="space-y-6">
+    <div class="space-y-6 overflow-y-auto">
       <div
-        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+        class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
-        <h3 class="text-lg font-semibold textNormal mb-4">Selected Date</h3>
-        <p class="text-sm textMuted mb-4">{{ formatSelectedDate() }}</p>
+        <h3 class="textNormal mb-4 text-lg font-semibold">Selected Date</h3>
+        <p class="textMuted mb-4 text-sm">{{ formatSelectedDate() }}</p>
 
-        <div class="space-y-3">
+        <div class="h-80 space-y-3 overflow-y-auto">
           @if (filteredEvents().length === 0) {
-            <div class="text-center py-4">
-              <mat-icon class="w-8! h-8! text-2xl! textMuted" fontIcon="event" />
-              <p class="text-sm textMuted mt-2">No events today</p>
+            <div class="py-4 text-center">
+              <mat-icon class="textMuted h-8! w-8! min-w-8 text-2xl!" fontIcon="event" />
+              <p class="textMuted mt-2 text-sm">No events today</p>
             </div>
           } @else {
             @for (event of filteredEvents(); track event.id) {
               <div
-                class="p-3 rounded-lg border border-gray-200 dark:border-zinc-600 cursor-pointer"
+                class="cursor-pointer rounded-lg border border-gray-200 p-3 dark:border-zinc-600"
                 (click)="navigateToTasks(event)"
               >
                 <div class="flex items-start gap-3">
-                  <div class="w-3 h-3 rounded-full mt-1" [ngClass]="getEventColor(event)"></div>
-                  <div class="flex-1 min-w-0">
-                    <h4 class="text-sm font-medium textNormal truncate">{{ event.title }}</h4>
+                  <div class="mt-1 h-3 w-3 rounded-full" [ngClass]="getEventColor(event)"></div>
+                  <div class="min-w-0 flex-1">
+                    <h4 class="textNormal truncate text-sm font-medium">{{ event.title }}</h4>
                     @if (event.description) {
-                      <p class="text-xs textMuted mt-1">{{ event.description }}</p>
+                      <p class="textMuted mt-1 text-xs">{{ event.description }}</p>
                     }
-                    <span class="text-xs text-blue-600 dark:text-blue-400 capitalize">{{
+                    <span class="text-xs text-blue-600 capitalize dark:text-blue-400">{{
                       event.status
                     }}</span>
                   </div>
@@ -343,22 +300,22 @@
       </div>
 
       <div
-        class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-zinc-700"
+        class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
-        <h3 class="text-lg font-semibold textNormal mb-4">Legend</h3>
+        <h3 class="textNormal mb-4 text-lg font-semibold">Legend</h3>
 
         <div class="space-y-3">
           <div class="flex items-center gap-3">
-            <div class="w-3 h-3 rounded-full bg-red-500"></div>
-            <span class="text-sm textNormal">Task Due</span>
+            <div class="h-3 w-3 rounded-full bg-red-500"></div>
+            <span class="textNormal text-sm">Task Due</span>
           </div>
           <div class="flex items-center gap-3">
-            <div class="w-3 h-3 rounded-full bg-green-500"></div>
-            <span class="text-sm textNormal">Completed</span>
+            <div class="h-3 w-3 rounded-full bg-green-500"></div>
+            <span class="textNormal text-sm">Completed</span>
           </div>
           <div class="flex items-center gap-3">
-            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span class="text-sm textNormal">Other Events</span>
+            <div class="h-3 w-3 rounded-full bg-blue-500"></div>
+            <span class="textNormal text-sm">Other Events</span>
           </div>
         </div>
       </div>
