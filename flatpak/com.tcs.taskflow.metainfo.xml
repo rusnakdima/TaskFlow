@@ -73,6 +73,11 @@
   </provides>
 
   <releases>
+    <release version="0.13.1" date="2026-04-07">
+      <description>
+        <p>Fixed running application on Linux with NVIDIA Wayland WebkitGTK bugs</p>
+      </description>
+    </release>
     <release version="0.13.0" date="2026-04-04">
       <description>
         <p>Enhanced UI consistency, improved filtering, and polished the user experience.</p>
