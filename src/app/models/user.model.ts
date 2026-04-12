@@ -13,4 +13,14 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean;
+
+  // Security features
+  totpEnabled?: boolean;
+  totpSecret?: string;
+  passkeyEnabled?: boolean;
+  passkeyCredentialId?: string;
+  passkeyPublicKey?: string;
+  passkeyDevice?: string;
+  biometricEnabled?: boolean;
+  recoveryCodes?: string[];
 }

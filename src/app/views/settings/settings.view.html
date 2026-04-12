@@ -4,211 +4,462 @@
     <p class="textMuted">Manage your application preferences</p>
   </div>
 
-  <!-- Notification Sounds Section -->
-  <div
-    class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
-  >
-    <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
-      <div class="mb-2 flex items-center gap-3">
-        <mat-icon
-          class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
-          fontIcon="notifications_active"
-        />
-        <h2 class="textNormal text-xl font-semibold">Notification Sounds</h2>
-      </div>
-      <p class="textMuted text-sm">Customize sound settings for different types of notifications</p>
-    </div>
-
-    <div class="space-y-6 p-6">
-      <!-- Enable/Disable Sounds -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <mat-icon class="textMuted h-6! w-6! min-w-6 text-xl!" fontIcon="volume_up" />
-          <div>
-            <p class="textNormal font-medium">Enable Notification Sounds</p>
-            <p class="textMuted text-xs">Play sounds when notifications arrive</p>
-          </div>
-        </div>
-        <app-checkbox
-          label="Enable Notification Sounds"
-          [checked]="enableNotificationSounds()"
-          (checkedChange)="enableNotificationSounds.set($event)"
-        />
-      </div>
-
-      <!-- Chat Notification Volume -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30"
-            >
-              <mat-icon
-                class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
-                fontIcon="chat"
-              />
-            </div>
-            <div>
-              <p class="textNormal font-medium">Chat Messages</p>
-              <p class="textMuted text-xs">Volume for chat message notifications</p>
-            </div>
-          </div>
-          <button
-            (click)="testSound('chat')"
-            class="flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1.5 text-sm text-blue-700 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-          >
-            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
-            Test
-          </button>
-        </div>
-        <div class="flex items-center gap-4">
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
-          <div class="relative flex h-6 flex-1 items-center">
-            <div
-              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
-            >
-              <div
-                class="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-150"
-                [style.width.%]="chatNotificationVolume()"
-              ></div>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              [ngModel]="chatNotificationVolume()"
-              (ngModelChange)="chatNotificationVolume.set($event)"
-              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
-            />
-          </div>
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
-          <span class="textNormal w-12 text-right text-sm font-medium"
-            >{{ chatNotificationVolume() }}%</span
-          >
-        </div>
-      </div>
-
-      <!-- Comment Notification Volume -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30"
-            >
-              <mat-icon
-                class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
-                fontIcon="forum"
-              />
-            </div>
-            <div>
-              <p class="textNormal font-medium">Comments</p>
-              <p class="textMuted text-xs">Volume for comment notifications</p>
-            </div>
-          </div>
-          <button
-            (click)="testSound('comment')"
-            class="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-1.5 text-sm text-purple-700 transition-colors hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
-          >
-            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
-            Test
-          </button>
-        </div>
-        <div class="flex items-center gap-4">
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
-          <div class="relative flex h-6 flex-1 items-center">
-            <div
-              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
-            >
-              <div
-                class="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-150"
-                [style.width.%]="commentNotificationVolume()"
-              ></div>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              [ngModel]="commentNotificationVolume()"
-              (ngModelChange)="commentNotificationVolume.set($event)"
-              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-purple-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-purple-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-purple-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
-            />
-          </div>
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
-          <span class="textNormal w-12 text-right text-sm font-medium"
-            >{{ commentNotificationVolume() }}%</span
-          >
-        </div>
-      </div>
-
-      <!-- General Notification Volume -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
-            >
-              <mat-icon
-                class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
-                fontIcon="notifications"
-              />
-            </div>
-            <div>
-              <p class="textNormal font-medium">General Notifications</p>
-              <p class="textMuted text-xs">Volume for todo, task, and subtask notifications</p>
-            </div>
-          </div>
-          <button
-            (click)="testSound('general')"
-            class="flex items-center gap-2 rounded-lg bg-green-100 px-3 py-1.5 text-sm text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
-          >
-            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
-            Test
-          </button>
-        </div>
-        <div class="flex items-center gap-4">
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
-          <div class="relative flex h-6 flex-1 items-center">
-            <div
-              class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
-            >
-              <div
-                class="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-150"
-                [style.width.%]="generalNotificationVolume()"
-              ></div>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              [ngModel]="generalNotificationVolume()"
-              (ngModelChange)="generalNotificationVolume.set($event)"
-              class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-green-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-green-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-green-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-green-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
-            />
-          </div>
-          <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
-          <span class="textNormal w-12 text-right text-sm font-medium"
-            >{{ generalNotificationVolume() }}%</span
-          >
-        </div>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
-      <button
-        (click)="saveSettings()"
-        class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
-        Save Settings
-      </button>
-      <button
-        (click)="resetToDefaults()"
-        class="textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
-        Reset to Defaults
-      </button>
-    </div>
+  <!-- Tab Navigation -->
+  <div class="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-700">
+    <button
+      (click)="setActiveTab('notifications')"
+      [class]="
+        activeTab() === 'notifications'
+          ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+      "
+      class="px-4 py-2 text-sm font-medium transition-colors"
+    >
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="notifications"></mat-icon>
+      Notifications
+    </button>
+    <button
+      (click)="setActiveTab('security')"
+      [class]="
+        activeTab() === 'security'
+          ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+      "
+      class="px-4 py-2 text-sm font-medium transition-colors"
+    >
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="security"></mat-icon>
+      Security
+    </button>
   </div>
+
+  <!-- Notifications Tab Content -->
+  @if (activeTab() === "notifications") {
+    <div
+      class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+        <div class="mb-2 flex items-center gap-3">
+          <mat-icon
+            class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
+            fontIcon="notifications_active"
+          />
+          <h2 class="textNormal text-xl font-semibold">Notification Sounds</h2>
+        </div>
+        <p class="textMuted text-sm">
+          Customize sound settings for different types of notifications
+        </p>
+      </div>
+
+      <div class="space-y-6 p-6">
+        <!-- Enable/Disable Sounds -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <mat-icon class="textMuted h-6! w-6! min-w-6 text-xl!" fontIcon="volume_up" />
+            <div>
+              <p class="textNormal font-medium">Enable Notification Sounds</p>
+              <p class="textMuted text-xs">Play sounds when notifications arrive</p>
+            </div>
+          </div>
+          <app-checkbox
+            label="Enable Notification Sounds"
+            [checked]="enableNotificationSounds()"
+            (checkedChange)="enableNotificationSounds.set($event)"
+          />
+        </div>
+
+        <!-- Chat Notification Volume -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30"
+              >
+                <mat-icon
+                  class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+                  fontIcon="chat"
+                />
+              </div>
+              <div>
+                <p class="textNormal font-medium">Chat Messages</p>
+                <p class="textMuted text-xs">Volume for chat message notifications</p>
+              </div>
+            </div>
+            <button
+              (click)="testSound('chat')"
+              class="flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1.5 text-sm text-blue-700 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+            >
+              <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
+              Test
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+            <div class="relative flex h-6 flex-1 items-center">
+              <div
+                class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-150"
+                  [style.width.%]="chatNotificationVolume()"
+                ></div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                [ngModel]="chatNotificationVolume()"
+                (ngModelChange)="chatNotificationVolume.set($event)"
+                class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
+              />
+            </div>
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+            <span class="textNormal w-12 text-right text-sm font-medium"
+              >{{ chatNotificationVolume() }}%</span
+            >
+          </div>
+        </div>
+
+        <!-- Comment Notification Volume -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30"
+              >
+                <mat-icon
+                  class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
+                  fontIcon="forum"
+                />
+              </div>
+              <div>
+                <p class="textNormal font-medium">Comments</p>
+                <p class="textMuted text-xs">Volume for comment notifications</p>
+              </div>
+            </div>
+            <button
+              (click)="testSound('comment')"
+              class="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-1.5 text-sm text-purple-700 transition-colors hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
+            >
+              <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
+              Test
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+            <div class="relative flex h-6 flex-1 items-center">
+              <div
+                class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-150"
+                  [style.width.%]="commentNotificationVolume()"
+                ></div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                [ngModel]="commentNotificationVolume()"
+                (ngModelChange)="commentNotificationVolume.set($event)"
+                class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-purple-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-purple-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-purple-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
+              />
+            </div>
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+            <span class="textNormal w-12 text-right text-sm font-medium"
+              >{{ commentNotificationVolume() }}%</span
+            >
+          </div>
+        </div>
+
+        <!-- General Notification Volume -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+              >
+                <mat-icon
+                  class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
+                  fontIcon="notifications"
+                />
+              </div>
+              <div>
+                <p class="textNormal font-medium">General Notifications</p>
+                <p class="textMuted text-xs">Volume for todo, task, and subtask notifications</p>
+              </div>
+            </div>
+            <button
+              (click)="testSound('general')"
+              class="flex items-center gap-2 rounded-lg bg-green-100 px-3 py-1.5 text-sm text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+            >
+              <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="play_arrow" />
+              Test
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_mute" />
+            <div class="relative flex h-6 flex-1 items-center">
+              <div
+                class="absolute h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-150"
+                  [style.width.%]="generalNotificationVolume()"
+                ></div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                [ngModel]="generalNotificationVolume()"
+                (ngModelChange)="generalNotificationVolume.set($event)"
+                class="relative h-2 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-green-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:bg-green-700 [&::-moz-range-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-green-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:bg-green-700 [&::-webkit-slider-thumb]:active:cursor-grabbing"
+              />
+            </div>
+            <mat-icon class="textMuted h-5! w-5! min-w-5 text-lg!" fontIcon="volume_up" />
+            <span class="textNormal w-12 text-right text-sm font-medium"
+              >{{ generalNotificationVolume() }}%</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
+        <button
+          (click)="saveSettings()"
+          class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
+          Save Settings
+        </button>
+        <button
+          (click)="resetToDefaults()"
+          class="textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
+          Reset to Defaults
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Security Tab Content -->
+  @if (activeTab() === "security") {
+    <div class="space-y-6">
+      <!-- Google Authenticator Card -->
+      <div
+        class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      >
+        <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+          <div class="mb-2 flex items-center gap-3">
+            <mat-icon class="h-6! w-6! min-w-6 text-2xl! text-green-600 dark:text-green-400"
+              >lock</mat-icon
+            >
+            <h2 class="textNormal text-xl font-semibold">Google Authenticator</h2>
+            @if (totpEnabled()) {
+              <span
+                class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                >Enabled</span
+              >
+            }
+          </div>
+          <p class="textMuted text-sm">
+            Add an extra layer of security with TOTP codes from Google Authenticator
+          </p>
+        </div>
+
+        <div class="p-6">
+          @if (!totpEnabled() && !totpSetupInProgress()) {
+            <button
+              (click)="setupTotp()"
+              class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+            >
+              <mat-icon class="h-5! w-5! text-xl!" fontIcon="add"></mat-icon>
+              Enable Google Authenticator
+            </button>
+          }
+
+          @if (totpQrCode()) {
+            <div class="space-y-4">
+              <p class="textMuted text-sm">Scan this QR code with your Google Authenticator app:</p>
+              <img
+                [src]="totpQrCode()"
+                alt="TOTP QR Code"
+                class="mx-auto max-w-[200px] rounded-lg border border-gray-200 dark:border-zinc-700"
+              />
+              <div class="rounded-lg bg-gray-100 p-4 dark:bg-zinc-700">
+                <p class="textMuted mb-1 text-xs">Manual entry key:</p>
+                <p class="font-mono text-lg font-bold">{{ totpSecret() }}</p>
+              </div>
+              <div class="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  maxlength="6"
+                  [ngModel]="totpVerifyCode()"
+                  (ngModelChange)="totpVerifyCode.set($event)"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                />
+                <div class="flex gap-2">
+                  <button
+                    (click)="verifyAndEnableTotp()"
+                    class="flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+                  >
+                    Verify & Enable
+                  </button>
+                  <button
+                    (click)="closeQrModal()"
+                    class="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (totpEnabled()) {
+            <div class="space-y-4">
+              @if (showRecoveryCodes() && totpRecoveryCodes().length > 0) {
+                <div class="rounded-lg bg-yellow-100 p-4 dark:bg-yellow-900/30">
+                  <p class="mb-2 font-medium text-yellow-800 dark:text-yellow-200">
+                    Recovery Codes
+                  </p>
+                  <p class="textMuted mb-2 text-xs">
+                    Save these codes in a safe place. You can use them if you lose access to your
+                    authenticator:
+                  </p>
+                  <div class="grid grid-cols-4 gap-2">
+                    @for (code of totpRecoveryCodes(); track code) {
+                      <span
+                        class="rounded bg-yellow-200 px-2 py-1 font-mono text-sm dark:bg-yellow-800/50 dark:text-yellow-200"
+                        >{{ code }}</span
+                      >
+                    }
+                  </div>
+                  <button
+                    (click)="showRecoveryCodes.set(false)"
+                    class="textMuted mt-2 text-xs underline hover:no-underline"
+                  >
+                    Hide codes
+                  </button>
+                </div>
+              }
+              <div class="flex gap-2">
+                <button
+                  (click)="showRecoveryCodes.set(true)"
+                  class="flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                >
+                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="key"></mat-icon>
+                  View Recovery Codes
+                </button>
+                <button
+                  (click)="disableTotp()"
+                  class="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+                >
+                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="delete"></mat-icon>
+                  Disable
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Passkey Card -->
+      <div
+        class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      >
+        <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+          <div class="mb-2 flex items-center gap-3">
+            <mat-icon class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
+              >qr_code</mat-icon
+            >
+            <h2 class="textNormal text-xl font-semibold">Passkey</h2>
+            @if (passkeyEnabled()) {
+              <span
+                class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                >Enabled</span
+              >
+            }
+          </div>
+          <p class="textMuted text-sm">Sign in by scanning a QR code with your phone</p>
+        </div>
+
+        <div class="p-6">
+          @if (!passkeyEnabled()) {
+            <button
+              (click)="setupPasskey()"
+              [disabled]="passkeySetupInProgress()"
+              class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              @if (passkeySetupInProgress()) {
+                <mat-icon class="h-5! w-5! animate-spin text-xl!">sync</mat-icon>
+                Setting up...
+              } @else {
+                <mat-icon class="h-5! w-5! text-xl!" fontIcon="add"></mat-icon>
+                Set Up Passkey
+              }
+            </button>
+          } @else {
+            <button
+              (click)="disablePasskey()"
+              class="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+            >
+              <mat-icon class="h-5! w-5! text-xl!" fontIcon="delete"></mat-icon>
+              Disable Passkey
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Biometric Card (Desktop Only) -->
+      <div
+        class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      >
+        <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+          <div class="mb-2 flex items-center gap-3">
+            <mat-icon class="h-6! w-6! min-w-6 text-2xl! text-purple-600 dark:text-purple-400"
+              >fingerprint</mat-icon
+            >
+            <h2 class="textNormal text-xl font-semibold">{{ platformName() }}</h2>
+            @if (biometricEnabled()) {
+              <span
+                class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                >Enabled</span
+              >
+            }
+          </div>
+          <p class="textMuted text-sm">Sign in quickly using {{ platformName() }} on this device</p>
+        </div>
+
+        <div class="p-6">
+          @if (!biometricEnabled()) {
+            <button
+              (click)="setupBiometric()"
+              [disabled]="biometricSetupInProgress()"
+              class="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+            >
+              @if (biometricSetupInProgress()) {
+                <mat-icon class="h-5! w-5! animate-spin text-xl!">sync</mat-icon>
+                Setting up...
+              } @else {
+                <mat-icon class="h-5! w-5! text-xl!" fontIcon="add"></mat-icon>
+                Enable {{ platformName() }}
+              }
+            </button>
+          } @else {
+            <button
+              (click)="disableBiometric()"
+              class="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+            >
+              <mat-icon class="h-5! w-5! text-xl!" fontIcon="delete"></mat-icon>
+              Disable {{ platformName() }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
 </div>
