@@ -19,6 +19,22 @@ pub struct UserModel {
   pub profileId: String,
   pub createdAt: String,
   pub updatedAt: String,
+  #[serde(default)]
+  pub totpEnabled: bool,
+  #[serde(default)]
+  pub totpSecret: String,
+  #[serde(default)]
+  pub passkeyCredentialId: String,
+  #[serde(default)]
+  pub passkeyPublicKey: String,
+  #[serde(default)]
+  pub passkeyDevice: String,
+  #[serde(default)]
+  pub passkeyEnabled: bool,
+  #[serde(default)]
+  pub biometricEnabled: bool,
+  #[serde(default)]
+  pub recoveryCodes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +48,22 @@ pub struct UserCreateModel {
   #[serde(default)]
   pub codeExpiresAt: String,
   pub profileId: String,
+  #[serde(default)]
+  pub totpEnabled: bool,
+  #[serde(default)]
+  pub totpSecret: String,
+  #[serde(default)]
+  pub passkeyCredentialId: String,
+  #[serde(default)]
+  pub passkeyPublicKey: String,
+  #[serde(default)]
+  pub passkeyDevice: String,
+  #[serde(default)]
+  pub passkeyEnabled: bool,
+  #[serde(default)]
+  pub biometricEnabled: bool,
+  #[serde(default)]
+  pub recoveryCodes: Vec<String>,
 }
 
 impl Validatable for UserCreateModel {
@@ -66,6 +98,14 @@ impl From<UserCreateModel> for UserModel {
       profileId: value.profileId,
       createdAt: formatted.clone(),
       updatedAt: formatted.clone(),
+      totpEnabled: value.totpEnabled,
+      totpSecret: value.totpSecret,
+      passkeyCredentialId: value.passkeyCredentialId,
+      passkeyPublicKey: value.passkeyPublicKey,
+      passkeyDevice: value.passkeyDevice,
+      passkeyEnabled: value.passkeyEnabled,
+      biometricEnabled: value.biometricEnabled,
+      recoveryCodes: value.recoveryCodes,
     }
   }
 }
@@ -94,6 +134,22 @@ pub struct UserUpdateModel {
   pub createdAt: Option<String>,
   #[serde(default)]
   pub updatedAt: Option<String>,
+  #[serde(default)]
+  pub totpEnabled: Option<bool>,
+  #[serde(default)]
+  pub totpSecret: Option<String>,
+  #[serde(default)]
+  pub passkeyCredentialId: Option<String>,
+  #[serde(default)]
+  pub passkeyPublicKey: Option<String>,
+  #[serde(default)]
+  pub passkeyDevice: Option<String>,
+  #[serde(default)]
+  pub passkeyEnabled: Option<bool>,
+  #[serde(default)]
+  pub biometricEnabled: Option<bool>,
+  #[serde(default)]
+  pub recoveryCodes: Option<Vec<String>>,
 }
 
 impl Validatable for UserUpdateModel {
@@ -129,6 +185,14 @@ impl From<UserUpdateModel> for UserModel {
       profileId: value.profileId.unwrap_or_default(),
       createdAt: value.createdAt.unwrap_or_default(),
       updatedAt: formatted,
+      totpEnabled: value.totpEnabled.unwrap_or_default(),
+      totpSecret: value.totpSecret.unwrap_or_default(),
+      passkeyCredentialId: value.passkeyCredentialId.unwrap_or_default(),
+      passkeyPublicKey: value.passkeyPublicKey.unwrap_or_default(),
+      passkeyDevice: value.passkeyDevice.unwrap_or_default(),
+      passkeyEnabled: value.passkeyEnabled.unwrap_or_default(),
+      biometricEnabled: value.biometricEnabled.unwrap_or_default(),
+      recoveryCodes: value.recoveryCodes.unwrap_or_default(),
     }
   }
 }

@@ -41,3 +41,6 @@ pub mod statistics;
 
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
+
+#[path = "crypto.service.rs"]
+pub mod crypto_service;

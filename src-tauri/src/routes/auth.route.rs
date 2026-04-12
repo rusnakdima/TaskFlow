@@ -59,3 +59,199 @@ pub async fn resetPassword(
 ) -> Result<ResponseModel, ResponseModel> {
   state.authService.resetPassword(resetData).await
 }
+
+#[tauri::command]
+pub async fn setupTotp(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.setupTotp(username).await
+}
+
+#[tauri::command]
+pub async fn enableTotp(
+  state: State<'_, AppState>,
+  username: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.enableTotp(username, code).await
+}
+
+#[tauri::command]
+pub async fn verifyLoginTotp(
+  state: State<'_, AppState>,
+  username: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.verifyLoginTotp(username, code).await
+}
+
+#[tauri::command]
+pub async fn disableTotp(
+  state: State<'_, AppState>,
+  username: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.disableTotp(username, code).await
+}
+
+#[tauri::command]
+pub async fn useRecoveryCode(
+  state: State<'_, AppState>,
+  username: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.useRecoveryCode(username, code).await
+}
+
+#[tauri::command]
+pub async fn initPasskeyRegistration(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.initPasskeyRegistration(username).await
+}
+
+#[tauri::command]
+pub async fn completePasskeyRegistration(
+  state: State<'_, AppState>,
+  username: String,
+  credentialId: String,
+  attestationObject: String,
+  device: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .authService
+    .completePasskeyRegistration(username, credentialId, attestationObject, device)
+    .await
+}
+
+#[tauri::command]
+pub async fn initPasskeyAuthentication(
+  state: State<'_, AppState>,
+  username: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.initPasskeyAuthentication(username.as_ref().map(|s| s.as_str())).await
+}
+
+#[tauri::command]
+pub async fn completePasskeyAuthentication(
+  state: State<'_, AppState>,
+  username: Option<String>,
+  signature: String,
+  authenticatorData: String,
+  clientData: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .authService
+    .completePasskeyAuthentication(username, signature, authenticatorData, clientData)
+    .await
+}
+
+#[tauri::command]
+pub async fn disablePasskey(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.disablePasskey(username).await
+}
+
+#[tauri::command]
+pub async fn enableBiometric(
+  state: State<'_, AppState>,
+  username: String,
+  credentialId: String,
+  publicKey: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .authService
+    .enableBiometric(username, credentialId, publicKey)
+    .await
+}
+
+#[tauri::command]
+pub async fn initBiometricAuth(
+  state: State<'_, AppState>,
+  username: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.initBiometricAuth(username.as_ref().map(|s| s.as_str())).await
+}
+
+#[tauri::command]
+pub async fn completeBiometricAuth(
+  state: State<'_, AppState>,
+  username: String,
+  signature: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.completeBiometricAuth(username, signature).await
+}
+
+#[tauri::command]
+pub async fn disableBiometric(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.disableBiometric(username).await
+}
+
+#[tauri::command]
+pub async fn initTotpQrLogin(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.initTotpQrLogin(username).await
+}
+
+#[tauri::command]
+pub async fn getUserSecurityStatus(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  use crate::models::response_model::{DataValue, ResponseStatus, ResponseModel};
+  use crate::models::user_model::UserModel;
+  use crate::helpers::response_helper::errResponse;
+  use serde_json::json;
+
+  let filter = json!({ "username": username });
+
+  // Try JSON provider first
+  let user_result: Option<UserModel> = match state.authService.passkeyService.jsonProvider.getAll("users", Some(filter.clone())).await {
+    Ok(users) => {
+      if let Some(user_val) = users.first() {
+        serde_json::from_value(user_val.clone()).ok()
+      } else {
+        None
+      }
+    }
+    Err(_) => None,
+  };
+
+  // Fall back to MongoDB
+  let user = if let Some(user) = user_result {
+    user
+  } else if let Some(mongo) = &state.mongodbProvider {
+    match mongo.getAll("users", Some(filter)).await {
+      Ok(users) => {
+        if let Some(user_val) = users.first() {
+          serde_json::from_value(user_val.clone())
+            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?
+        } else {
+          return Err(errResponse("User not found"));
+        }
+      }
+      Err(e) => return Err(errResponse(&format!("Database error: {}", e))),
+    }
+  } else {
+    return Err(errResponse("User not found"));
+  };
+
+  Ok(ResponseModel {
+    status: ResponseStatus::Success,
+    message: "Security status retrieved".to_string(),
+    data: DataValue::Object(json!({
+      "totpEnabled": user.totpEnabled,
+      "passkeyEnabled": user.passkeyEnabled,
+      "biometricEnabled": user.biometricEnabled,
+    })),
+  })
+}
