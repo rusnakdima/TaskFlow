@@ -22,7 +22,13 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* routes */
 use routes::{
   about_route::{downloadUpdate, getBinaryNameFile, openFile},
-  auth_route::{checkToken, login, register, requestPasswordReset, resetPassword, verifyCode},
+  auth_route::{
+    checkToken, completeBiometricAuth, completePasskeyAuthentication,
+    completePasskeyRegistration, disableBiometric, disablePasskey, disableTotp,
+    enableBiometric, enableTotp, getUserSecurityStatus, initBiometricAuth, initPasskeyAuthentication,
+    initPasskeyRegistration, initTotpQrLogin, login, register, requestPasswordReset, resetPassword,
+    setupTotp, useRecoveryCode, verifyCode, verifyLoginTotp,
+  },
   manage_db_route::{
     exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
     permanentlyDeleteRecord, permanentlyDeleteRecordLocal, toggleDeleteStatus,
@@ -61,6 +67,7 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+  std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
@@ -171,6 +178,22 @@ pub fn run() {
       requestPasswordReset,
       resetPassword,
       verifyCode,
+      setupTotp,
+      enableTotp,
+      verifyLoginTotp,
+      disableTotp,
+      useRecoveryCode,
+      initPasskeyRegistration,
+      completePasskeyRegistration,
+      initPasskeyAuthentication,
+      completePasskeyAuthentication,
+      disablePasskey,
+      enableBiometric,
+      initBiometricAuth,
+      completeBiometricAuth,
+      disableBiometric,
+      getUserSecurityStatus,
+      initTotpQrLogin,
       exportToCloud,
       getAllDataForAdmin,
       getAllDataForArchive,

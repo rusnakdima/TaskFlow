@@ -55,3 +55,15 @@ impl From<String> for ResponseModel {
     }
   }
 }
+
+impl From<&str> for DataValue {
+  fn from(s: &str) -> DataValue {
+    DataValue::String(s.to_string())
+  }
+}
+
+impl From<String> for DataValue {
+  fn from(s: String) -> DataValue {
+    DataValue::String(s)
+  }
+}

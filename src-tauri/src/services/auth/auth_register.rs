@@ -78,6 +78,14 @@ impl AuthRegisterService {
           profileId: "".to_string(),
           createdAt: now.clone(),
           updatedAt: now,
+          totpEnabled: false,
+          totpSecret: String::new(),
+          passkeyCredentialId: String::new(),
+          passkeyPublicKey: String::new(),
+          passkeyDevice: String::new(),
+          passkeyEnabled: false,
+          biometricEnabled: false,
+          recoveryCodes: Vec::new(),
         };
 
         let userVal = serde_json::to_value(&newUser).unwrap();
