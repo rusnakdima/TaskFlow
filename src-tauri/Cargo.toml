@@ -7,12 +7,7 @@ name = "taskflow"
 repository = "https://github.com/rusnakdima/TaskFlow"
 version = "0.13.1"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 crate-type = ["staticlib", "cdylib", "rlib"]
 name = "taskflow_lib"
 
@@ -46,3 +41,17 @@ open = "5"
 uuid = { version = "1.0", features = ["v4"] }
 rand = "0.8"
 tracing = "0.1"
+webauthn-rs = "0.4"
+totp-rs = { version = "1", default-features = false, features = ["otpauth"] }
+base32 = "0.5"
+base64 = "0.13"
+qrcode = "0.14"
+image = { version = "0.25", default-features = false, features = ["png"] }
+data-encoding = "2"
+# Use vendored OpenSSL for all platforms including Android
+openssl-sys = { version = "0.9", features = ["vendored"] }
+keyring = "3"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
