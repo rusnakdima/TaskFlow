@@ -4,7 +4,7 @@ use rand::Rng;
 use std::sync::Arc;
 
 /* tokio */
-use tokio::time::{Duration, timeout};
+use tokio::time::{timeout, Duration};
 
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
@@ -47,7 +47,10 @@ impl AuthTotpService {
   }
 
   pub fn generateQrCode(&self, secret: &str, email: &str) -> String {
-    let otpauth = format!("otpauth://totp/TaskFlow:{}?secret={}&issuer=TaskFlow", email, secret);
+    let otpauth = format!(
+      "otpauth://totp/TaskFlow:{}?secret={}&issuer=TaskFlow",
+      email, secret
+    );
     let qr = qrcode::QrCode::new(otpauth.as_bytes()).unwrap();
     let image = qr.render::<image::Luma<u8>>().build();
     let mut png_data: Vec<u8> = Vec::new();
@@ -55,7 +58,10 @@ impl AuthTotpService {
     image::DynamicImage::ImageLuma8(image)
       .write_to(&mut cursor, image::ImageFormat::Png)
       .unwrap();
-    format!("data:image/png;base64,{}", data_encoding::BASE64.encode(&png_data))
+    format!(
+      "data:image/png;base64,{}",
+      data_encoding::BASE64.encode(&png_data)
+    )
   }
 
   fn decode_base32_secret(secret: &str) -> Option<Vec<u8>> {
@@ -77,10 +83,14 @@ impl AuthTotpService {
     codes
   }
 
- pub async fn verifyTotpCode(&self, secret: &str, code: &str) -> bool {
+  pub async fn verifyTotpCode(&self, secret: &str, code: &str) -> bool {
     let code = code.trim();
-    eprintln!("[TOTP] Code received (after trim): '{}', length: {}", code, code.len());
-    
+    eprintln!(
+      "[TOTP] Code received (after trim): '{}', length: {}",
+      code,
+      code.len()
+    );
+
     if code.len() != 6 {
       eprintln!("[TOTP] Code length invalid: {}", code.len());
       return false;
@@ -92,7 +102,11 @@ impl AuthTotpService {
     }
 
     let secret_lower = secret.to_ascii_lowercase();
-    eprintln!("[TOTP] Secret length: {}, first 4 chars: {}", secret_lower.len(), &secret_lower[..4.min(secret_lower.len())]);
+    eprintln!(
+      "[TOTP] Secret length: {}, first 4 chars: {}",
+      secret_lower.len(),
+      &secret_lower[..4.min(secret_lower.len())]
+    );
 
     let secret_bytes = match Self::decode_base32_secret(&secret_lower) {
       Some(bytes) => {
@@ -105,18 +119,12 @@ impl AuthTotpService {
       }
     };
 
-    let totp = totp_rs::TOTP::new(
-      totp_rs::Algorithm::SHA1,
-      6,
-      1,
-      30,
-      secret_bytes,
-    );
+    let totp = totp_rs::TOTP::new(totp_rs::Algorithm::SHA1, 6, 1, 30, secret_bytes);
 
     let current_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_secs();
+      .duration_since(std::time::UNIX_EPOCH)
+      .expect("Time went backwards")
+      .as_secs();
     eprintln!("[TOTP] Current timestamp: {}", current_time);
 
     let generated = totp.generate(current_time);
@@ -137,7 +145,7 @@ impl AuthTotpService {
 
   pub async fn setupTotp(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
-    
+
     let secret = self.generateSecret();
     let secret_lower = secret.to_ascii_lowercase();
     let recoveryCodes = self.generateRecoveryCodes();
@@ -161,7 +169,11 @@ impl AuthTotpService {
     })
   }
 
-  pub async fn enableTotp(&self, username: &str, code: &str) -> Result<ResponseModel, ResponseModel> {
+  pub async fn enableTotp(
+    &self,
+    username: &str,
+    code: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
     if user.totpSecret.is_empty() {
@@ -181,7 +193,11 @@ impl AuthTotpService {
     Ok(successResponse("TOTP enabled successfully"))
   }
 
-  pub async fn verifyLoginTotp(&self, username: &str, code: &str) -> Result<ResponseModel, ResponseModel> {
+  pub async fn verifyLoginTotp(
+    &self,
+    username: &str,
+    code: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
     if !user.totpEnabled {
@@ -210,7 +226,11 @@ impl AuthTotpService {
     Ok(successResponse("TOTP verified"))
   }
 
-  pub async fn disableTotp(&self, username: &str, code: &str) -> Result<ResponseModel, ResponseModel> {
+  pub async fn disableTotp(
+    &self,
+    username: &str,
+    code: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
     if !user.totpEnabled && user.totpSecret.is_empty() {
@@ -232,7 +252,11 @@ impl AuthTotpService {
     Ok(successResponse("TOTP disabled successfully"))
   }
 
-  pub async fn useRecoveryCode(&self, username: &str, code: &str) -> Result<ResponseModel, ResponseModel> {
+  pub async fn useRecoveryCode(
+    &self,
+    username: &str,
+    code: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
     if !user.totpEnabled {
@@ -254,11 +278,15 @@ impl AuthTotpService {
     let user = self.findUser(username).await?;
 
     if !user.totpEnabled {
-      return Err(errResponse("TOTP is not enabled for this user. Please enable TOTP in settings first."));
+      return Err(errResponse(
+        "TOTP is not enabled for this user. Please enable TOTP in settings first.",
+      ));
     }
 
     if user.totpSecret.is_empty() {
-      return Err(errResponse("TOTP secret not found. Please setup TOTP first."));
+      return Err(errResponse(
+        "TOTP secret not found. Please setup TOTP first.",
+      ));
     }
 
     let qrCode = self.generateQrCode(&user.totpSecret, &user.email);
@@ -276,7 +304,12 @@ impl AuthTotpService {
   async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
     let filter = serde_json::json!({ "username": username });
 
-    match timeout(Duration::from_secs(3), self.jsonProvider.getAll("users", Some(filter.clone()))).await {
+    match timeout(
+      Duration::from_secs(3),
+      self.jsonProvider.getAll("users", Some(filter.clone())),
+    )
+    .await
+    {
       Ok(Ok(users)) => {
         if let Some(userVal) = users.first() {
           return serde_json::from_value(userVal.clone())
@@ -291,14 +324,19 @@ impl AuthTotpService {
       }
     }
 
-    let mongoProvider = self.mongodbProvider
+    let mongoProvider = self
+      .mongodbProvider
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
-    match timeout(Duration::from_secs(5), mongoProvider.getAll("users", Some(filter))).await {
+    match timeout(
+      Duration::from_secs(5),
+      mongoProvider.getAll("users", Some(filter)),
+    )
+    .await
+    {
       Ok(Ok(users)) => {
-        let userVal = users.first()
-          .ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
         serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
       }
@@ -313,7 +351,12 @@ impl AuthTotpService {
 
     let userId = &user.id;
 
-    match timeout(Duration::from_secs(3), self.jsonProvider.update("users", userId, userVal.clone())).await {
+    match timeout(
+      Duration::from_secs(3),
+      self.jsonProvider.update("users", userId, userVal.clone()),
+    )
+    .await
+    {
       Ok(Ok(_)) => {}
       Ok(Err(e)) => {
         tracing::warn!("Failed to update local user: {}", e);
@@ -324,10 +367,18 @@ impl AuthTotpService {
     }
 
     if let Some(mongoProvider) = &self.mongodbProvider {
-      match timeout(Duration::from_secs(5), mongoProvider.update("users", userId, userVal)).await {
+      match timeout(
+        Duration::from_secs(5),
+        mongoProvider.update("users", userId, userVal),
+      )
+      .await
+      {
         Ok(Ok(_)) => {}
         Ok(Err(e)) => {
-          return Err(errResponse(&format!("Failed to update MongoDB user: {}", e)));
+          return Err(errResponse(&format!(
+            "Failed to update MongoDB user: {}",
+            e
+          )));
         }
         Err(_) => {
           tracing::warn!("MongoDB update timed out, skipping");
