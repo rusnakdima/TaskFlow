@@ -9,6 +9,7 @@ use super::auth::auth_biometric::AuthBiometricService;
 use super::auth::auth_login::AuthLoginService;
 use super::auth::auth_password::AuthPasswordService;
 use super::auth::auth_passkey::AuthPasskeyService;
+use super::auth::auth_qr::QrAuthService;
 use super::auth::auth_register::AuthRegisterService;
 use super::auth::auth_token::AuthTokenService;
 use super::auth::auth_totp::AuthTotpService;
@@ -31,6 +32,7 @@ pub struct AuthService {
   pub totpService: AuthTotpService,
   pub passkeyService: AuthPasskeyService,
   pub biometricService: AuthBiometricService,
+  pub qrAuthService: QrAuthService,
 }
 
 impl AuthService {
@@ -60,6 +62,7 @@ impl AuthService {
     let totpService = AuthTotpService::new(jsonProvider.clone(), Some(mongoProvider.clone()), Some(Arc::clone(&tokenService)));
     let passkeyService = AuthPasskeyService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
     let biometricService = AuthBiometricService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
+    let qrAuthService = QrAuthService::new(jsonProvider.clone(), Some(mongoProvider.clone()), Arc::clone(&tokenService));
 
     Self {
       tokenService,
@@ -69,6 +72,7 @@ impl AuthService {
       totpService,
       passkeyService,
       biometricService,
+      qrAuthService,
     }
   }
 
@@ -168,5 +172,25 @@ impl AuthService {
 
   pub async fn initTotpQrLogin(&self, username: String) -> Result<ResponseModel, ResponseModel> {
     self.totpService.initTotpQrLogin(&username).await
+  }
+
+  pub async fn qrGenerate(&self, username: Option<String>) -> Result<ResponseModel, ResponseModel> {
+    self.qrAuthService.generateQrToken(username.as_deref()).await
+  }
+
+  pub async fn qrApprove(&self, token: String, username: String) -> Result<ResponseModel, ResponseModel> {
+    self.qrAuthService.approveQrToken(&token, &username).await
+  }
+
+  pub async fn qrStatus(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    self.qrAuthService.getQrStatus(&token).await
+  }
+
+  pub async fn qrToggle(&self, username: String, enabled: bool) -> Result<ResponseModel, ResponseModel> {
+    self.qrAuthService.toggleQrLogin(&username, enabled).await
+  }
+
+  pub async fn qrLoginComplete(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    self.qrAuthService.completeQrLogin(&token).await
   }
 }
