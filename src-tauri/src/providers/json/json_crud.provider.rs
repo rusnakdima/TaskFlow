@@ -96,15 +96,14 @@ impl JsonCrudProvider {
         if !id_strings.is_empty() {
           let categories_path = self.getTablePath("categories");
           if let Ok(content) = fs::read_to_string(&categories_path).await {
-            if let Ok(all_categories) =
-              from_str::<Vec<Value>>(&content)
-            {
+            if let Ok(all_categories) = from_str::<Vec<Value>>(&content) {
               let resolved: Vec<Value> = id_strings
                 .iter()
                 .filter_map(|id| {
-                  all_categories.iter().find(|c| {
-                    c.get("id").and_then(|v| v.as_str()) == Some(id)
-                  }).cloned()
+                  all_categories
+                    .iter()
+                    .find(|c| c.get("id").and_then(|v| v.as_str()) == Some(id))
+                    .cloned()
                 })
                 .collect();
 

@@ -131,7 +131,10 @@ pub async fn initPasskeyAuthentication(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.initPasskeyAuthentication(username.as_ref().map(|s| s.as_str())).await
+  state
+    .authService
+    .initPasskeyAuthentication(username.as_ref().map(|s| s.as_str()))
+    .await
 }
 
 #[tauri::command]
@@ -174,7 +177,10 @@ pub async fn initBiometricAuth(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.initBiometricAuth(username.as_ref().map(|s| s.as_str())).await
+  state
+    .authService
+    .initBiometricAuth(username.as_ref().map(|s| s.as_str()))
+    .await
 }
 
 #[tauri::command]
@@ -183,7 +189,10 @@ pub async fn completeBiometricAuth(
   username: String,
   signature: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.completeBiometricAuth(username, signature).await
+  state
+    .authService
+    .completeBiometricAuth(username, signature)
+    .await
 }
 
 #[tauri::command]
@@ -207,15 +216,21 @@ pub async fn getUserSecurityStatus(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  use crate::models::response_model::{DataValue, ResponseStatus, ResponseModel};
-  use crate::models::user_model::UserModel;
   use crate::helpers::response_helper::errResponse;
+  use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+  use crate::models::user_model::UserModel;
   use serde_json::json;
 
   let filter = json!({ "username": username });
 
   // Try JSON provider first
-  let user_result: Option<UserModel> = match state.authService.passkeyService.jsonProvider.getAll("users", Some(filter.clone())).await {
+  let user_result: Option<UserModel> = match state
+    .authService
+    .passkeyService
+    .jsonProvider
+    .getAll("users", Some(filter.clone()))
+    .await
+  {
     Ok(users) => {
       if let Some(user_val) = users.first() {
         serde_json::from_value(user_val.clone()).ok()
@@ -305,7 +320,12 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
   match crate::services::auth::android_biometric::check_biometric_available() {
     Ok(available) => Ok(ResponseModel {
       status: crate::models::response_model::ResponseStatus::Success,
-      message: if available { "Biometric available" } else { "Biometric not available" }.to_string(),
+      message: if available {
+        "Biometric available"
+      } else {
+        "Biometric not available"
+      }
+      .to_string(),
       data: crate::models::response_model::DataValue::Bool(available),
     }),
     Err(e) => Err(ResponseModel {
@@ -318,11 +338,19 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-pub fn authenticateAndroidBiometric(title: String, subtitle: String) -> Result<ResponseModel, ResponseModel> {
+pub fn authenticateAndroidBiometric(
+  title: String,
+  subtitle: String,
+) -> Result<ResponseModel, ResponseModel> {
   match crate::services::auth::android_biometric::authenticate_biometric(&title, &subtitle) {
     Ok(success) => Ok(ResponseModel {
       status: crate::models::response_model::ResponseStatus::Success,
-      message: if success { "Authentication successful" } else { "Authentication failed" }.to_string(),
+      message: if success {
+        "Authentication successful"
+      } else {
+        "Authentication failed"
+      }
+      .to_string(),
       data: crate::models::response_model::DataValue::Bool(success),
     }),
     Err(e) => Err(ResponseModel {
@@ -345,7 +373,10 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
 
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
-pub fn authenticateAndroidBiometric(title: String, subtitle: String) -> Result<ResponseModel, ResponseModel> {
+pub fn authenticateAndroidBiometric(
+  title: String,
+  subtitle: String,
+) -> Result<ResponseModel, ResponseModel> {
   Ok(ResponseModel {
     status: crate::models::response_model::ResponseStatus::Error,
     message: "Not Android".to_string(),

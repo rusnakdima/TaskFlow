@@ -36,10 +36,7 @@ impl Clone for AuthPasskeyService {
 }
 
 impl AuthPasskeyService {
-  pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
-  ) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -56,15 +53,17 @@ impl AuthPasskeyService {
     let user = self.findUser(username).await?;
 
     if !user.passkeyCredentialId.is_empty() {
-      return Err(errResponse("Passkey already registered. Please disable it first."));
+      return Err(errResponse(
+        "Passkey already registered. Please disable it first.",
+      ));
     }
 
     let challenge = self.generateChallenge();
-    
+
     // Encode user.id as base64url for WebAuthn (WebAuthn requires bytes, not string)
     let userIdBytes = user.id.as_bytes();
     let userIdBase64 = BASE64URL.encode(userIdBytes);
-    
+
     let registrationOptions = json!({
       "challenge": challenge,
       "rp": {
@@ -102,7 +101,7 @@ impl AuthPasskeyService {
     })
   }
 
-pub async fn completeRegistration(
+  pub async fn completeRegistration(
     &self,
     username: &str,
     credentialId: &str,
@@ -113,8 +112,8 @@ pub async fn completeRegistration(
       let mut challenge_store = self.challenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, _storedChallenge) = storedData
-      .ok_or_else(|| errResponse("No pending registration"))?;
+    let (storedUser, _storedChallenge) =
+      storedData.ok_or_else(|| errResponse("No pending registration"))?;
 
     if storedUser != username {
       return Err(errResponse("Username mismatch"));
@@ -135,15 +134,21 @@ pub async fn completeRegistration(
     Ok(successResponse("Passkey registered successfully"))
   }
 
-  pub async fn initAuthentication(&self, username: Option<&str>) -> Result<ResponseModel, ResponseModel> {
-    eprintln!("[Passkey] initAuthentication called with username: {:?}", username);
-    
+  pub async fn initAuthentication(
+    &self,
+    username: Option<&str>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    eprintln!(
+      "[Passkey] initAuthentication called with username: {:?}",
+      username
+    );
+
     let filter = if let Some(un) = username {
       serde_json::json!({ "username": un, "passkeyEnabled": true })
     } else {
       serde_json::json!({ "passkeyEnabled": true })
     };
-    
+
     eprintln!("[Passkey] Filter: {}", filter);
 
     let user = self.findUsers(filter).await?;
@@ -217,8 +222,8 @@ pub async fn completeRegistration(
       let mut challenge_store = self.challenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, storedChallenge) = storedData
-      .ok_or_else(|| errResponse("No pending authentication"))?;
+    let (storedUser, storedChallenge) =
+      storedData.ok_or_else(|| errResponse("No pending authentication"))?;
 
     // If username provided, verify it matches; otherwise use stored user
     let username_to_use = match username {
@@ -237,7 +242,8 @@ pub async fn completeRegistration(
       return Err(errResponse("Passkey not enabled for this user"));
     }
 
-    let decodedChallenge = BASE64URL.decode(&storedChallenge.as_bytes())
+    let decodedChallenge = BASE64URL
+      .decode(&storedChallenge.as_bytes())
       .map_err(|_| errResponse("Invalid challenge"))?;
 
     if decodedChallenge.len() != 32 {
@@ -288,13 +294,20 @@ pub async fn completeRegistration(
     image::DynamicImage::ImageLuma8(image)
       .write_to(&mut cursor, image::ImageFormat::Png)
       .unwrap();
-    format!("data:image/png;base64,{}", data_encoding::BASE64.encode(&png_data))
+    format!(
+      "data:image/png;base64,{}",
+      data_encoding::BASE64.encode(&png_data)
+    )
   }
 
   async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
     let filter = json!({ "username": username });
 
-    match self.jsonProvider.getAll("users", Some(filter.clone())).await {
+    match self
+      .jsonProvider
+      .getAll("users", Some(filter.clone()))
+      .await
+    {
       Ok(users) => {
         if let Some(userVal) = users.first() {
           return serde_json::from_value(userVal.clone())
@@ -304,14 +317,14 @@ pub async fn completeRegistration(
       Err(_) => {}
     }
 
-    let mongoProvider = self.mongodbProvider
+    let mongoProvider = self
+      .mongodbProvider
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        let userVal = users.first()
-          .ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
         serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
       }
@@ -321,15 +334,23 @@ pub async fn completeRegistration(
 
   async fn findUsers(&self, filter: serde_json::Value) -> Result<UserModel, ResponseModel> {
     eprintln!("[Passkey] findUsers with filter: {}", filter);
-    
+
     // First, let's see ALL users in the database to debug
     match self.jsonProvider.getAll("users", None).await {
       Ok(allUsers) => {
         eprintln!("[Passkey] Total users in JSON: {}", allUsers.len());
         for (i, userVal) in allUsers.iter().enumerate() {
-          if let Ok(username) = serde_json::from_value::<UserModel>(userVal.clone()).map(|u| u.username.clone()) {
-            let passkeyEnabled = userVal.get("passkeyEnabled").and_then(|v| v.as_bool()).unwrap_or(false);
-            eprintln!("[Passkey]   User {}: username={}, passkeyEnabled={}", i, username, passkeyEnabled);
+          if let Ok(username) =
+            serde_json::from_value::<UserModel>(userVal.clone()).map(|u| u.username.clone())
+          {
+            let passkeyEnabled = userVal
+              .get("passkeyEnabled")
+              .and_then(|v| v.as_bool())
+              .unwrap_or(false);
+            eprintln!(
+              "[Passkey]   User {}: username={}, passkeyEnabled={}",
+              i, username, passkeyEnabled
+            );
           }
         }
       }
@@ -337,10 +358,17 @@ pub async fn completeRegistration(
         eprintln!("[Passkey] JSON provider error: {:?}", e);
       }
     }
-    
-    match self.jsonProvider.getAll("users", Some(filter.clone())).await {
+
+    match self
+      .jsonProvider
+      .getAll("users", Some(filter.clone()))
+      .await
+    {
       Ok(users) => {
-        eprintln!("[Passkey] JSON provider returned {} users matching filter", users.len());
+        eprintln!(
+          "[Passkey] JSON provider returned {} users matching filter",
+          users.len()
+        );
         if let Some(userVal) = users.first() {
           return serde_json::from_value(userVal.clone())
             .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
@@ -351,15 +379,18 @@ pub async fn completeRegistration(
       }
     }
 
-    let mongoProvider = self.mongodbProvider
+    let mongoProvider = self
+      .mongodbProvider
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        eprintln!("[Passkey] MongoDB returned {} users matching filter", users.len());
-        let userVal = users.first()
-          .ok_or_else(|| errResponse("User not found"))?;
+        eprintln!(
+          "[Passkey] MongoDB returned {} users matching filter",
+          users.len()
+        );
+        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
         serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
       }
@@ -373,12 +404,18 @@ pub async fn completeRegistration(
 
     let userId = &user.id;
 
-    if let Err(e) = self.jsonProvider.update("users", userId, userVal.clone()).await {
+    if let Err(e) = self
+      .jsonProvider
+      .update("users", userId, userVal.clone())
+      .await
+    {
       tracing::warn!("Failed to update local user: {}", e);
     }
 
     if let Some(mongoProvider) = &self.mongodbProvider {
-      mongoProvider.update("users", userId, userVal).await
+      mongoProvider
+        .update("users", userId, userVal)
+        .await
         .map_err(|e| errResponse(&format!("Failed to update MongoDB user: {}", e)))?;
     }
 
