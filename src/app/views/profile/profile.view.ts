@@ -18,6 +18,9 @@ import { StorageService } from "@services/core/storage.service";
 import { DataSyncService } from "@services/data/data-sync.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 
+/* QR Decoder */
+import jsQR from "jsqr";
+
 @Component({
   selector: "app-profile",
   standalone: true,
@@ -47,6 +50,13 @@ export class ProfileView implements OnInit, OnDestroy {
   importError = signal<string | null>(null);
   showImportExport = signal(false);
 
+  // QR Scanner
+  isScanningQr = signal(false);
+  qrVideoElement: HTMLVideoElement | null = null;
+  qrStream: MediaStream | null = null;
+  qrCanvasElement: HTMLCanvasElement | null = null;
+  qrAnimationFrameId: number | null = null;
+
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
 
@@ -68,6 +78,7 @@ export class ProfileView implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+    this.stopQrScanning();
   }
 
   isMyProfile(): boolean {
@@ -159,5 +170,234 @@ export class ProfileView implements OnInit, OnDestroy {
     if (confirm("This will remove all offline login data. Are you sure?")) {
       this.authService.logoutAll();
     }
+  }
+
+  /**
+   * Start QR code scanning for desktop login approval using native getUserMedia
+   */
+  async startQrScanning(): Promise<void> {
+    if (this.isScanningQr()) return;
+
+    try {
+      this.isScanningQr.set(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      this.qrStream = stream;
+
+      const videoElement = document.createElement("video");
+      videoElement.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:black;object-fit:cover;";
+      videoElement.id = "qr-scanner-video";
+      videoElement.setAttribute("playsinline", "true");
+      document.body.appendChild(videoElement);
+      this.qrVideoElement = videoElement;
+
+      videoElement.srcObject = stream;
+      await videoElement.play();
+
+      const canvas = document.createElement("canvas");
+      canvas.style.cssText = "display:none";
+      document.body.appendChild(canvas);
+      this.qrCanvasElement = canvas;
+
+      this.notifyService.showInfo("Point camera at QR code");
+
+      this.scanQrFrame();
+    } catch (error: any) {
+      console.error("Failed to start QR scanner:", error);
+      let errorMsg = "Failed to start camera";
+      if (error.name === "NotAllowedError") {
+        errorMsg = "Camera permission denied";
+      } else if (error.name === "NotFoundError") {
+        errorMsg = "No camera found on this device";
+      }
+      this.notifyService.showError(errorMsg + ": " + (error.message || error));
+      this.stopQrScanning();
+    }
+  }
+
+  /**
+   * Scan QR code from video frame using jsQR library
+   */
+  private scanQrFrame(): void {
+    if (!this.qrVideoElement || !this.qrCanvasElement || !this.isScanningQr()) return;
+
+    const video = this.qrVideoElement;
+    const canvas = this.qrCanvasElement;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      this.stopQrScanning();
+      return;
+    }
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Use jsQR to decode QR code
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data) {
+        this.handleQrCodeResult(code.data);
+        return;
+      }
+    }
+
+    this.qrAnimationFrameId = requestAnimationFrame(() => this.scanQrFrame());
+  }
+
+  /**
+   * Handle QR code result from scanning
+   */
+  private async handleQrCodeResult(qrData: string): Promise<void> {
+    if (!qrData) return;
+
+    this.stopQrScanning();
+
+    let token: string | null = null;
+
+    try {
+      if (qrData.startsWith("taskflow://qrlogin?data=")) {
+        const dataPart = qrData.replace("taskflow://qrlogin?data=", "");
+        const parsed = JSON.parse(decodeURIComponent(dataPart));
+        token = parsed.t;
+      } else if (qrData.includes("t=")) {
+        const params = new URLSearchParams(qrData.replace("taskflow://qrlogin?", ""));
+        token = params.get("t");
+      } else {
+        const parsed = JSON.parse(qrData);
+        token = parsed.t || parsed.token;
+      }
+    } catch {
+      try {
+        const params = new URLSearchParams(qrData.split("?")[1] || "");
+        token = params.get("t");
+      } catch {
+        token = null;
+      }
+    }
+
+    if (!token) {
+      this.notifyService.showError("Invalid QR code");
+      return;
+    }
+
+    this.approveQrLogin(token);
+  }
+
+  /**
+   * Approve desktop login via QR code
+   */
+  private approveQrLogin(token: string): void {
+    const username = this.authService.getValueByKey("username");
+    if (!username) {
+      this.notifyService.showError("You must be logged in to approve QR login");
+      return;
+    }
+
+    this.dataSyncProvider
+      .invokeCommand<{ success: boolean }>("qrApprove", {
+        token,
+        username,
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Login approved! Desktop can now continue.");
+        },
+        error: (err: any) => {
+          this.notifyService.showError("Failed to approve: " + (err.message || err));
+        },
+      });
+  }
+
+  /**
+   * Stop QR code scanning
+   */
+  stopQrScanning(): void {
+    if (this.qrAnimationFrameId) {
+      cancelAnimationFrame(this.qrAnimationFrameId);
+      this.qrAnimationFrameId = null;
+    }
+
+    if (this.qrStream) {
+      this.qrStream.getTracks().forEach((track) => track.stop());
+      this.qrStream = null;
+    }
+
+    if (this.qrVideoElement) {
+      this.qrVideoElement.srcObject = null;
+      this.qrVideoElement.remove();
+      this.qrVideoElement = null;
+    }
+
+    if (this.qrCanvasElement) {
+      this.qrCanvasElement.remove();
+      this.qrCanvasElement = null;
+    }
+
+    this.isScanningQr.set(false);
+  }
+
+  /**
+   * Handle QR code image upload from file input
+   */
+  async onQrImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    if (!file.type.startsWith("image/")) {
+      this.notifyService.showError("Please select an image file");
+      return;
+    }
+
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          this.notifyService.showError("Failed to process image");
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+
+        if (code && code.data) {
+          this.handleQrCodeResult(code.data);
+        } else {
+          this.notifyService.showError("No QR code found in image");
+        }
+      };
+
+      img.onerror = () => {
+        this.notifyService.showError("Failed to load image");
+      };
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      this.notifyService.showError("Failed to process image: " + (error.message || error));
+    }
+
+    input.value = "";
   }
 }

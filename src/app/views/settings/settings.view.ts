@@ -1,44 +1,48 @@
-/* sys lib */
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  ChangeDetectionStrategy,
+  computed,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 
-/* materials */
 import { MatIconModule } from "@angular/material/icon";
 
-/* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
-/* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
+import { AuthCapabilityService } from "@services/auth/auth-capability.service";
+import { WebAuthnService } from "@services/auth/webauthn.service";
 
-/* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
 @Component({
   selector: "app-settings",
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent],
   templateUrl: "./settings.view.html",
 })
 export class SettingsView implements OnInit {
   private notifyService = inject(NotifyService);
   private securityService = inject(SecurityService);
+  private authCapabilityService = inject(AuthCapabilityService);
+  private webAuthnService = inject(WebAuthnService);
   private sanitizer = inject(DomSanitizer);
   private dataSyncProvider = inject(DataSyncProvider);
 
-  // Notification sound settings
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);
   generalNotificationVolume = signal(50);
   enableNotificationSounds = signal(true);
 
-  // Security settings
   activeTab = signal<"notifications" | "security">("notifications");
 
-  // TOTP state
   totpEnabled = signal(false);
   totpSetupInProgress = signal(false);
   totpQrCode = signal<SafeResourceUrl | null>(null);
@@ -47,15 +51,24 @@ export class SettingsView implements OnInit {
   totpVerifyCode = signal("");
   showRecoveryCodes = signal(false);
 
-  // Passkey state
   passkeyEnabled = signal(false);
   passkeySetupInProgress = signal(false);
-  passkeyQrCode = signal<SafeResourceUrl | null>(null);
+  passkeyRegistered = signal(false);
 
-  // Biometric state
   biometricEnabled = signal(false);
   biometricSetupInProgress = signal(false);
+  biometricRegistered = signal(false);
+
+  qrLoginEnabled = signal(false);
+  qrLoginSetupInProgress = signal(false);
+
   platformName = signal("");
+
+  readonly capabilities = this.authCapabilityService.capabilities;
+
+  readonly showPasskeySection = computed(() => this.capabilities().passkeyAvailable);
+  readonly showBiometricSection = computed(() => this.capabilities().biometricAvailable);
+  readonly showQrLoginSection = computed(() => this.capabilities().qrLoginAvailable);
 
   ngOnInit(): void {
     const settings = this.notifyService.getSettings();
@@ -64,15 +77,11 @@ export class SettingsView implements OnInit {
     this.generalNotificationVolume.set(settings.generalVolume);
     this.enableNotificationSounds.set(settings.enableSounds);
 
-    this.platformName.set(this.securityService.getPlatformName());
+    this.platformName.set(this.capabilities().platformName);
 
-    // Load current security feature status
     this.loadSecurityStatus();
   }
 
-  /**
-   * Load current security feature status from backend
-   */
   private loadSecurityStatus(): void {
     const username = this.securityService.getUsername();
     if (!username) {
@@ -84,10 +93,10 @@ export class SettingsView implements OnInit {
         this.totpEnabled.set(status.totpEnabled);
         this.passkeyEnabled.set(status.passkeyEnabled);
         this.biometricEnabled.set(status.biometricEnabled);
+        this.qrLoginEnabled.set(status.qrLoginEnabled ?? false);
       },
       error: (err) => {
         console.error("Failed to load security status:", err);
-        // Keep defaults (all false)
       },
     });
   }
@@ -190,72 +199,149 @@ export class SettingsView implements OnInit {
     });
   }
 
-  async setupPasskey(): Promise<void> {
+  async registerPasskey(): Promise<void> {
     if (this.passkeySetupInProgress()) return;
     this.passkeySetupInProgress.set(true);
 
     try {
-      const isWebAuthN = await this.securityService.isWebAuthNSupported();
+      const isWebAuthN = await this.webAuthnService.isWebAuthnSupported();
 
       if (!isWebAuthN) {
-        this.notifyService.showError(
-          "Passkey requires WebAuthN support. On desktop Tauri, please use TOTP (Google Authenticator) instead."
-        );
+        this.notifyService.showError("Passkey registration requires WebAuthn support.");
         this.passkeySetupInProgress.set(false);
         return;
       }
 
-      const result = await this.securityService.registerPasskey();
-      if (result.success) {
-        this.notifyService.showSuccess("Passkey registered successfully!");
-        this.passkeyEnabled.set(true);
-      } else {
-        this.notifyService.showError(result.error || "Failed to setup passkey");
-      }
+      this.webAuthnService.initPasskeyRegistration().subscribe({
+        next: async (regOptions) => {
+          try {
+            const credential = await this.webAuthnService.createCredential(regOptions.options);
+            if (!credential) {
+              throw new Error("Failed to create credential");
+            }
+
+            const credentialId = this.webAuthnService.arrayBufferToBase64(credential.rawId);
+            const attestationObject = this.webAuthnService.arrayBufferToBase64(
+              credential.response.attestationObject
+            );
+
+            this.webAuthnService
+              .completePasskeyRegistration(credentialId, attestationObject, "cross-platform")
+              .subscribe({
+                next: () => {
+                  this.notifyService.showSuccess("Passkey registered successfully!");
+                  this.passkeyEnabled.set(true);
+                  this.passkeyRegistered.set(true);
+                  this.passkeySetupInProgress.set(false);
+                },
+                error: (err) => {
+                  this.notifyService.showError(
+                    "Failed to complete registration: " + (err.message || err)
+                  );
+                  this.passkeySetupInProgress.set(false);
+                },
+              });
+          } catch (err: any) {
+            this.notifyService.showError("Failed to create passkey: " + (err.message || err));
+            this.passkeySetupInProgress.set(false);
+          }
+        },
+        error: (err) => {
+          this.notifyService.showError(
+            "Failed to start passkey registration: " + (err.message || err)
+          );
+          this.passkeySetupInProgress.set(false);
+        },
+      });
     } catch (err: any) {
       this.notifyService.showError("Failed to setup passkey: " + (err.message || err));
-    } finally {
       this.passkeySetupInProgress.set(false);
     }
   }
 
-  async disablePasskey(): Promise<void> {
+  async removePasskey(): Promise<void> {
     this.securityService.disablePasskey().subscribe({
       next: () => {
-        this.notifyService.showSuccess("Passkey disabled");
+        this.notifyService.showSuccess("Passkey removed");
         this.passkeyEnabled.set(false);
+        this.passkeyRegistered.set(false);
       },
       error: (err) => {
-        this.notifyService.showError("Failed to disable passkey: " + (err.message || err));
+        this.notifyService.showError("Failed to remove passkey: " + (err.message || err));
       },
     });
   }
 
-  async setupBiometric(): Promise<void> {
+  async enableBiometric(): Promise<void> {
     if (this.biometricSetupInProgress()) return;
     this.biometricSetupInProgress.set(true);
 
     try {
-      const isWebAuthN = await this.securityService.isWebAuthNSupported();
+      const isAndroidBiometric = await this.webAuthnService.isAndroidBiometricAvailable();
+
+      if (isAndroidBiometric) {
+        const success = await this.webAuthnService.authenticateAndroidBiometric(
+          "Enable Biometric",
+          "Authenticate to enable biometric login"
+        );
+
+        if (success) {
+          this.securityService
+            .registerBiometric()
+            .then((result) => {
+              if (result.success) {
+                this.notifyService.showSuccess(this.platformName() + " enabled successfully!");
+                this.biometricEnabled.set(true);
+                this.biometricRegistered.set(true);
+              } else {
+                this.notifyService.showError(result.error || "Failed to setup biometric");
+              }
+              this.biometricSetupInProgress.set(false);
+            })
+            .catch((err: any) => {
+              this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
+              this.biometricSetupInProgress.set(false);
+            });
+        } else {
+          this.notifyService.showError("Biometric authentication failed");
+          this.biometricSetupInProgress.set(false);
+        }
+        return;
+      }
+
+      const isWebAuthN = await this.webAuthnService.isWebAuthnSupported();
+      const isUVPAA = await this.webAuthnService.isUserVerifyingPlatformAuthenticatorAvailable();
 
       if (!isWebAuthN) {
-        this.notifyService.showError(
-          "Biometric requires WebAuthN support. On desktop Tauri, please use TOTP (Google Authenticator) instead."
-        );
+        this.notifyService.showError("Biometric authentication requires WebAuthn support.");
         this.biometricSetupInProgress.set(false);
         return;
       }
 
-      const result = await this.securityService.registerBiometric();
-      if (result.success) {
-        this.notifyService.showSuccess(this.platformName() + " enabled successfully!");
-        this.biometricEnabled.set(true);
-      } else {
-        this.notifyService.showError(result.error || "Failed to setup biometric");
+      if (!isUVPAA) {
+        this.notifyService.showWarning(
+          "No user-verifying platform authenticator found. Biometric may not work properly."
+        );
       }
+
+      this.securityService
+        .registerBiometric()
+        .then((result) => {
+          if (result.success) {
+            this.notifyService.showSuccess(this.platformName() + " enabled successfully!");
+            this.biometricEnabled.set(true);
+            this.biometricRegistered.set(true);
+          } else {
+            this.notifyService.showError(result.error || "Failed to setup biometric");
+          }
+          this.biometricSetupInProgress.set(false);
+        })
+        .catch((err: any) => {
+          this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
+          this.biometricSetupInProgress.set(false);
+        });
     } catch (err: any) {
       this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
-    } finally {
       this.biometricSetupInProgress.set(false);
     }
   }
@@ -265,11 +351,37 @@ export class SettingsView implements OnInit {
       next: () => {
         this.notifyService.showSuccess(this.platformName() + " disabled");
         this.biometricEnabled.set(false);
+        this.biometricRegistered.set(false);
       },
       error: (err) => {
         this.notifyService.showError("Failed to disable biometric: " + (err.message || err));
       },
     });
+  }
+
+  async toggleQrLogin(): Promise<void> {
+    if (this.qrLoginSetupInProgress()) return;
+    this.qrLoginSetupInProgress.set(true);
+
+    const newState = !this.qrLoginEnabled();
+    const username = this.securityService.getUsername();
+
+    this.dataSyncProvider
+      .invokeCommand<{ success: boolean }>("qrToggle", {
+        username,
+        enabled: newState,
+      })
+      .subscribe({
+        next: () => {
+          this.qrLoginEnabled.set(newState);
+          this.notifyService.showSuccess(newState ? "QR login enabled" : "QR login disabled");
+          this.qrLoginSetupInProgress.set(false);
+        },
+        error: (err) => {
+          this.notifyService.showError("Failed to toggle QR login: " + (err.message || err));
+          this.qrLoginSetupInProgress.set(false);
+        },
+      });
   }
 
   closeQrModal(): void {

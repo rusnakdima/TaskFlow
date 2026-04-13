@@ -36,6 +36,7 @@ export interface UserSecurityStatus {
   totpEnabled: boolean;
   passkeyEnabled: boolean;
   biometricEnabled: boolean;
+  qrLoginEnabled?: boolean;
 }
 
 @Injectable({
