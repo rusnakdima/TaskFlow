@@ -2,7 +2,6 @@
   <div
     class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
   >
-    <!-- Offline-First Login Info -->
     @if (hasLocalUsers() === false) {
       <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/20 p-3">
         <mat-icon
@@ -15,55 +14,7 @@
       </div>
     }
 
-    <!-- Login Method Tabs -->
-    <div class="mb-4 flex gap-2 border-b border-gray-200 dark:border-zinc-700">
-      <button
-        (click)="selectLoginMethod('password')"
-        [class]="
-          selectedLoginMethod() === 'password'
-            ? 'border-b-2 border-blue-600 text-blue-600'
-            : 'text-gray-500 hover:text-gray-700'
-        "
-        class="flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors"
-      >
-        <mat-icon class="text-lg!" fontIcon="lock"></mat-icon>
-        Password
-      </button>
-
-      <!-- Passkey tab - only show if enabled for this user -->
-      @if (showPasskeyOption()) {
-        <button
-          (click)="selectLoginMethod('passkey')"
-          class="flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors"
-          [class]="
-            selectedLoginMethod() === 'passkey'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          "
-        >
-          <mat-icon class="text-lg!" fontIcon="qr_code"></mat-icon>
-          Passkey
-        </button>
-      }
-
-      <!-- Biometric tab - only show if enabled for this user -->
-      @if (showBiometricOption()) {
-        <button
-          (click)="selectLoginMethod('biometric')"
-          class="flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors"
-          [class]="
-            selectedLoginMethod() === 'biometric'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          "
-        >
-          <mat-icon class="text-lg!" fontIcon="fingerprint"></mat-icon>
-          {{ securityService.getPlatformName() }}
-        </button>
-      }
-    </div>
-
-    <!-- TOTP Input Modal - shown after passwordless auth if TOTP enabled -->
+    <!-- TOTP Input Modal -->
     @if (showTotpInput()) {
       <div
         class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
@@ -98,10 +49,54 @@
       </div>
     }
 
+    <!-- QR Login Modal -->
+    @if (isQrLoginActive() && passkeyQrCode()) {
+      <div
+        class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20"
+      >
+        <div class="mb-3 text-center">
+          <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
+            >qr_code</mat-icon
+          >
+          <p class="font-medium text-green-800 dark:text-green-200">Scan QR Code with Mobile</p>
+        </div>
+
+        <div class="flex flex-col items-center gap-3">
+          <img
+            [src]="passkeyQrCode()"
+            alt="QR Code"
+            class="mx-auto h-48 w-48 rounded-lg border-2 border-green-200 dark:border-green-700"
+          />
+
+          @if (qrLoginStatus() === "pending") {
+            <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
+              Waiting for approval...
+            </div>
+          }
+
+          @if (qrLoginStatus() === "approved") {
+            <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <mat-icon class="h-4! w-4! text-lg!">check_circle</mat-icon>
+              Approved! Redirecting...
+            </div>
+          }
+
+          @if (qrLoginStatus() === "expired") {
+            <div class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+              <mat-icon class="h-4! w-4! text-lg!">error</mat-icon>
+              QR code expired
+            </div>
+          }
+
+          <button class="styleButDanger flex-1" (click)="cancelQrLogin()">Cancel</button>
+        </div>
+      </div>
+    }
+
     <!-- Main Login Form -->
-    @if (!showTotpInput()) {
+    @if (!showTotpInput() && !isQrLoginActive()) {
       <div class="flex flex-col gap-y-3 text-left!" [formGroup]="loginForm">
-        <!-- Username - always required -->
         <div class="flex flex-col gap-y-1">
           <label class="styleLabel">Username</label>
           <input
@@ -109,9 +104,6 @@
             type="text"
             formControlName="username"
             required
-            [disabled]="
-              selectedLoginMethod() !== 'password' && !userSecurityStatus()?.passkeyEnabled
-            "
           />
 
           @if (isInvalid("username")) {
@@ -121,102 +113,36 @@
               <span class="text-red-500">Field 'Username' must contain only Latin characters.</span>
             }
           }
-
-          <!-- Help text for passwordless login -->
-          @if (
-            selectedLoginMethod() !== "password" &&
-            !userSecurityStatus()?.passkeyEnabled &&
-            !userSecurityStatus()?.biometricEnabled
-          ) {
-            <span class="text-xs text-gray-500">
-              Enter your username to check if
-              {{ selectedLoginMethod() === "passkey" ? "passkey" : "biometric" }} is enabled
-            </span>
-          }
         </div>
 
-        <!-- Password - only for password login -->
-        @if (selectedLoginMethod() === "password") {
-          <div class="flex flex-col gap-y-1">
-            <label class="styleLabel">Password</label>
+        <div class="flex flex-col gap-y-1">
+          <label class="styleLabel">Password</label>
 
-            <div class="relative flex flex-row items-center">
-              <input
-                class="styleField w-full bg-transparent!"
-                [type]="isShowPassword() ? 'text' : 'password'"
-                formControlName="password"
-              />
-              <button
-                class="absolute right-1.5 h-7.5!"
-                (click)="isShowPassword.set(!isShowPassword())"
-              >
-                <mat-icon
-                  class="h-full! w-7.5! text-3xl! text-red-500!"
-                  [fontIcon]="isShowPassword() ? 'visibility_off' : 'visibility'"
-                />
-              </button>
-            </div>
-
-            @if (isInvalid("password")) {
-              @if (f["password"].errors?.["required"]) {
-                <span class="text-red-500">Field 'Password' should not be empty</span>
-              } @else if (f["password"].errors?.["minlength"]) {
-                <span class="text-red-500"
-                  >Field 'Password' must be at least 6 characters long</span
-                >
-              }
-            }
-          </div>
-        }
-
-        <!-- Passkey QR Code Display -->
-        @if (selectedLoginMethod() === "passkey") {
-          <div
-            class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center dark:border-blue-800 dark:bg-blue-900/20"
-          >
-            @if (passkeyQrCode()) {
-              <p class="mb-2 text-sm text-blue-700 dark:text-blue-300">
-                Scan this QR code with your phone
-              </p>
-              <img
-                [src]="passkeyQrCode()"
-                alt="Passkey QR Code"
-                class="mx-auto h-48 w-48 rounded-lg border-2 border-blue-200 dark:border-blue-700"
-              />
-              <p class="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                Or use your device's passkey if available
-              </p>
-            } @else {
-              <mat-icon class="mb-2 h-12! w-12! text-4xl! text-blue-600 dark:text-blue-400"
-                >qr_code_scanner</mat-icon
-              >
-              <p class="textMuted text-sm">Click the button below to generate a QR code.</p>
-            }
-          </div>
-        }
-
-        <!-- Biometric Prompt -->
-        @if (selectedLoginMethod() === "biometric") {
-          <div
-            class="rounded-lg border border-purple-200 bg-purple-50 p-4 text-center dark:border-purple-800 dark:bg-purple-900/20"
-          >
-            <mat-icon class="mb-2 h-12! w-12! text-4xl! text-purple-600 dark:text-purple-400"
-              >fingerprint</mat-icon
+          <div class="relative flex flex-row items-center">
+            <input
+              class="styleField w-full bg-transparent!"
+              [type]="isShowPassword() ? 'text' : 'password'"
+              formControlName="password"
+            />
+            <button
+              class="absolute right-1.5 h-7.5!"
+              (click)="isShowPassword.set(!isShowPassword())"
             >
-            <p class="textMuted text-sm">
-              Click the button below to authenticate with {{ securityService.getPlatformName() }}.
-            </p>
-
-            @if (!userSecurityStatus()?.biometricEnabled) {
-              <div
-                class="mt-2 rounded border border-orange-300 bg-orange-50 p-2 text-xs text-orange-700 dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-300"
-              >
-                <mat-icon class="mr-1 inline text-sm">warning</mat-icon>
-                {{ securityService.getPlatformName() }} is not enabled for this account
-              </div>
-            }
+              <mat-icon
+                class="h-full! w-7.5! text-3xl! text-red-500!"
+                [fontIcon]="isShowPassword() ? 'visibility_off' : 'visibility'"
+              />
+            </button>
           </div>
-        }
+
+          @if (isInvalid("password")) {
+            @if (f["password"].errors?.["required"]) {
+              <span class="text-red-500">Field 'Password' should not be empty</span>
+            } @else if (f["password"].errors?.["minlength"]) {
+              <span class="text-red-500">Field 'Password' must be at least 6 characters long</span>
+            }
+          }
+        </div>
 
         <div class="flex flex-row items-center justify-between">
           <app-checkbox label="Remember me" [form]="loginForm" [field]="rememberField" />
@@ -224,46 +150,53 @@
           <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>
         </div>
 
-        @if (selectedLoginMethod() === "password") {
-          <button class="styleButInfo" (click)="submitted() == false && send()">
-            @if (submitted()) {
-              <span>...Loading</span>
-            } @else {
-              <span>Login</span>
-            }
-          </button>
-        }
-
-        @if (selectedLoginMethod() === "passkey") {
-          <button
-            class="styleButInfo"
-            (click)="submitted() == false && loginWithPasskey()"
-            [disabled]="submitted() || !f['username'].value"
-          >
-            @if (submitted()) {
-              <span>...Loading</span>
-            } @else {
-              <span>Scan QR Code</span>
-            }
-          </button>
-
-          @if (!f["username"].value) {
-            <span class="text-center text-xs text-gray-500">Please enter your username first</span>
+        <button class="styleButInfo" (click)="submitted() == false && send()">
+          @if (submitted()) {
+            <span>...Loading</span>
+          } @else {
+            <span>Login</span>
           }
-        }
+        </button>
 
-        @if (selectedLoginMethod() === "biometric") {
-          <button
-            class="styleButInfo"
-            (click)="submitted() == false && loginWithBiometric()"
-            [disabled]="submitted() || !userSecurityStatus()?.biometricEnabled"
-          >
-            @if (submitted()) {
-              <span>...Loading</span>
-            } @else {
-              <span>Authenticate with {{ securityService.getPlatformName() }}</span>
-            }
-          </button>
+        @if (hasAlternativeLoginMethods()) {
+          <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+            <p class="textMuted mb-3 text-center text-sm">Or sign in with</p>
+            <div class="flex justify-center gap-3">
+              @if (showPasskeyButton()) {
+                <button
+                  class="flex h-12 w-12 flex-col items-center justify-center rounded-full border-2 border-blue-200 bg-blue-50 transition-colors hover:border-blue-400 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:hover:border-blue-600"
+                  (click)="loginWithPasskey()"
+                  [disabled]="submitted()"
+                  [title]="'Sign in with Passkey'"
+                >
+                  <mat-icon class="text-xl! text-blue-600 dark:text-blue-400">key</mat-icon>
+                </button>
+              }
+
+              @if (showBiometricButton()) {
+                <button
+                  class="flex h-12 w-12 flex-col items-center justify-center rounded-full border-2 border-purple-200 bg-purple-50 transition-colors hover:border-purple-400 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:hover:border-purple-600"
+                  (click)="loginWithBiometric()"
+                  [disabled]="submitted()"
+                  [title]="'Sign in with ' + platformName()"
+                >
+                  <mat-icon class="text-xl! text-purple-600 dark:text-purple-400"
+                    >fingerprint</mat-icon
+                  >
+                </button>
+              }
+
+              @if (showQrLoginButton()) {
+                <button
+                  class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-green-50 px-6 transition-colors hover:border-green-400 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:hover:border-green-600"
+                  (click)="loginWithQrCode()"
+                  [disabled]="submitted()"
+                >
+                  <span class="text-sm font-medium text-green-600 dark:text-green-400">Login via QR</span>
+                </button>
+              }
+            </div>
+          </div>
         }
 
         <div class="flex flex-row gap-x-2">
