@@ -85,6 +85,7 @@ impl AuthRegisterService {
           passkeyDevice: String::new(),
           passkeyEnabled: false,
           biometricEnabled: false,
+          qrLoginEnabled: false,
           recoveryCodes: Vec::new(),
         };
 

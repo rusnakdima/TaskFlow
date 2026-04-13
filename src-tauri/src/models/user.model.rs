@@ -34,6 +34,8 @@ pub struct UserModel {
   #[serde(default)]
   pub biometricEnabled: bool,
   #[serde(default)]
+  pub qrLoginEnabled: bool,
+  #[serde(default)]
   pub recoveryCodes: Vec<String>,
 }
 
@@ -62,6 +64,8 @@ pub struct UserCreateModel {
   pub passkeyEnabled: bool,
   #[serde(default)]
   pub biometricEnabled: bool,
+  #[serde(default)]
+  pub qrLoginEnabled: bool,
   #[serde(default)]
   pub recoveryCodes: Vec<String>,
 }
@@ -105,6 +109,7 @@ impl From<UserCreateModel> for UserModel {
       passkeyDevice: value.passkeyDevice,
       passkeyEnabled: value.passkeyEnabled,
       biometricEnabled: value.biometricEnabled,
+      qrLoginEnabled: value.qrLoginEnabled,
       recoveryCodes: value.recoveryCodes,
     }
   }
@@ -149,6 +154,8 @@ pub struct UserUpdateModel {
   #[serde(default)]
   pub biometricEnabled: Option<bool>,
   #[serde(default)]
+  pub qrLoginEnabled: Option<bool>,
+  #[serde(default)]
   pub recoveryCodes: Option<Vec<String>>,
 }
 
@@ -192,6 +199,7 @@ impl From<UserUpdateModel> for UserModel {
       passkeyDevice: value.passkeyDevice.unwrap_or_default(),
       passkeyEnabled: value.passkeyEnabled.unwrap_or_default(),
       biometricEnabled: value.biometricEnabled.unwrap_or_default(),
+      qrLoginEnabled: value.qrLoginEnabled.unwrap_or_default(),
       recoveryCodes: value.recoveryCodes.unwrap_or_default(),
     }
   }
