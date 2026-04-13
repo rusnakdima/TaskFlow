@@ -23,11 +23,13 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 use routes::{
   about_route::{downloadUpdate, getBinaryNameFile, openFile},
   auth_route::{
-    checkToken, completeBiometricAuth, completePasskeyAuthentication,
+    checkAndroidBiometric, checkToken, completeBiometricAuth, completePasskeyAuthentication,
     completePasskeyRegistration, disableBiometric, disablePasskey, disableTotp,
-    enableBiometric, enableTotp, getUserSecurityStatus, initBiometricAuth, initPasskeyAuthentication,
-    initPasskeyRegistration, initTotpQrLogin, login, register, requestPasswordReset, resetPassword,
-    setupTotp, useRecoveryCode, verifyCode, verifyLoginTotp,
+    enableBiometric, enableTotp, authenticateAndroidBiometric, getUserSecurityStatus, initBiometricAuth, initPasskeyAuthentication,
+    initPasskeyRegistration, initTotpQrLogin, login, qrApprove, qrGenerate, qrStatus, qrToggle,
+    qrLoginComplete,
+    register, requestPasswordReset, resetPassword, setupTotp, useRecoveryCode, verifyCode,
+    verifyLoginTotp,
   },
   manage_db_route::{
     exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
@@ -69,9 +71,16 @@ pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
-  tauri::Builder::default()
+  let mut builder = tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
-    .plugin(tauri_plugin_http::init())
+    .plugin(tauri_plugin_http::init());
+
+#[cfg(debug_assertions)]
+{
+    builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+}
+
+builder
     .setup(|app| {
       let configHelper = Arc::new(ConfigHelper::new());
 
@@ -194,6 +203,13 @@ pub fn run() {
       disableBiometric,
       getUserSecurityStatus,
       initTotpQrLogin,
+      qrGenerate,
+      qrApprove,
+      qrStatus,
+      qrToggle,
+      qrLoginComplete,
+      checkAndroidBiometric,
+      authenticateAndroidBiometric,
       exportToCloud,
       getAllDataForAdmin,
       getAllDataForArchive,

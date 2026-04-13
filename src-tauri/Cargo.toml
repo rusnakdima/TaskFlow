@@ -32,6 +32,7 @@ tokio-tungstenite = "0.26"
 tauri = { version = "~2.10", features = [] }
 tauri-plugin-http = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-mcp-bridge = "0.11"
 lettre = { version = "0.11", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
@@ -51,6 +52,7 @@ data-encoding = "2"
 # Use vendored OpenSSL for all platforms including Android
 openssl-sys = { version = "0.9", features = ["vendored"] }
 keyring = "3"
+dashmap = "5"
 
 [features]
 default = ["custom-protocol"]
