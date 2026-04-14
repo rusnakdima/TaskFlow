@@ -5,7 +5,7 @@ import { map, tap } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 /* models */
-import { Response } from "@models/response.model";
+
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
