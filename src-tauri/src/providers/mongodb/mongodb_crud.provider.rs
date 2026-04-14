@@ -96,6 +96,28 @@ impl MongodbCrudProvider {
     tableData.delete_one(filter).await?;
     Ok(true)
   }
+
+  pub async fn updateUserTotp(
+    &self,
+    username: &str,
+    totpEnabled: bool,
+    totpSecret: &str,
+    recoveryCodes: &[String],
+  ) -> ApiResult<()> {
+    let tableData = self.getDataTable("users").await?;
+    let filter = doc! { "username": username };
+    let timestamp = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let update = doc! {
+      "$set": {
+        "totpEnabled": totpEnabled,
+        "totpSecret": totpSecret,
+        "recoveryCodes": recoveryCodes,
+        "updatedAt": timestamp
+      }
+    };
+    tableData.update_one(filter, update).await?;
+    Ok(())
+  }
 }
 
 #[async_trait]
