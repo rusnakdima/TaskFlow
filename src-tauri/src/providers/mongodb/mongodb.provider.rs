@@ -78,4 +78,17 @@ impl MongodbProvider {
   pub async fn hardDelete(&self, nameTable: &str, id: &str) -> ApiResult<bool> {
     self.mongodbCrud.hardDelete(nameTable, id).await
   }
+
+  pub async fn updateUserTotp(
+    &self,
+    username: &str,
+    totpEnabled: bool,
+    totpSecret: &str,
+    recoveryCodes: &[String],
+  ) -> ApiResult<()> {
+    self
+      .mongodbCrud
+      .updateUserTotp(username, totpEnabled, totpSecret, recoveryCodes)
+      .await
+  }
 }
