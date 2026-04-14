@@ -47,4 +47,6 @@ export interface PasskeyResult {
   success: boolean;
   token?: string;
   error?: string;
+  username?: string;
+  verified?: boolean;
 }
