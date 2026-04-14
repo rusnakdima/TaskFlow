@@ -1,6 +1,4 @@
 /* sys lib */
-use data_encoding::{Encoding, BASE64URL};
-use rand::Rng;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -14,7 +12,10 @@ use crate::models::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{errResponse, successResponse};
+use crate::helpers::{
+  crypto_helper,
+  response_helper::{errResponse, successResponse},
+};
 
 pub struct AuthBiometricService {
   pub jsonProvider: JsonProvider,
@@ -39,11 +40,6 @@ impl AuthBiometricService {
       mongodbProvider,
       challenge: std::sync::Mutex::new(None),
     }
-  }
-
-  pub fn generateChallenge(&self) -> String {
-    let bytes: [u8; 32] = rand::thread_rng().gen();
-    BASE64URL.encode(&bytes)
   }
 
   pub fn getPlatformName() -> &'static str {
@@ -83,7 +79,7 @@ impl AuthBiometricService {
       return Err(errResponse("Biometric not enabled for this user"));
     }
 
-    let challenge = self.generateChallenge();
+    let challenge = crypto_helper::generate_challenge();
     let authOptions = json!({
       "challenge": challenge,
       "timeout": 60000,
@@ -143,13 +139,13 @@ impl AuthBiometricService {
   pub async fn completeBiometricAuth(
     &self,
     username: &str,
-    signature: &str,
+    _signature: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let storedData = {
       let mut challenge_store = self.challenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, _storedChallenge) =
+    let (storedUser, _) =
       storedData.ok_or_else(|| errResponse("No pending biometric authentication"))?;
 
     if storedUser != username {

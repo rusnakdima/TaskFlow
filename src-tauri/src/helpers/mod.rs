@@ -7,10 +7,12 @@ pub mod common;
 pub mod comparison_helper;
 #[path = "config.helper.rs"]
 pub mod config;
+pub mod crypto_helper;
 #[path = "db.helper.rs"]
 pub mod db_helper;
 #[path = "model_helper.rs"]
 pub mod model_helper;
+pub mod qr_helper;
 #[path = "response.helper.rs"]
 pub mod response_helper;
 #[path = "timestamp.helper.rs"]

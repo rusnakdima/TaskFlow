@@ -370,8 +370,8 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub fn authenticateAndroidBiometric(
-  title: String,
-  subtitle: String,
+  _title: String,
+  _subtitle: String,
 ) -> Result<ResponseModel, ResponseModel> {
   Ok(ResponseModel {
     status: crate::models::response_model::ResponseStatus::Error,

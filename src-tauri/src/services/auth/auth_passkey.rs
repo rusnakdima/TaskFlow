@@ -1,6 +1,5 @@
 /* sys lib */
 use data_encoding::BASE64URL;
-use rand::Rng;
 use serde_json::json;
 use std::sync::Arc;
 use webauthn_rs::prelude::*;
@@ -15,13 +14,16 @@ use crate::models::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{errResponse, successResponse};
+use crate::helpers::{
+  qr_helper,
+  response_helper::{errResponse, successResponse},
+};
 
 /* services */
 use crate::services::auth::webauthn_state::WebAuthnState;
 
-type PasskeyRegistrationState = (String, RegisterState);
-type PasskeyAuthenticationState = (String, AuthenticationState);
+type PasskeyRegistrationState = (String, PasskeyRegistration);
+type PasskeyAuthenticationState = (String, PasskeyAuthentication);
 
 pub struct AuthPasskeyService {
   pub jsonProvider: JsonProvider,
@@ -58,11 +60,6 @@ impl AuthPasskeyService {
     }
   }
 
-  pub fn generateChallenge(&self) -> String {
-    let bytes: [u8; 32] = rand::thread_rng().gen();
-    BASE64URL.encode(&bytes)
-  }
-
   pub async fn initRegistration(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
@@ -88,7 +85,7 @@ impl AuthPasskeyService {
       message: "Registration initiated".to_string(),
       data: DataValue::Object(json!({
         "options": creation_challenge,
-        "challenge": creation_challenge.challenge.clone()
+        "challenge": creation_challenge.public_key.challenge.clone()
       })),
     })
   }
@@ -152,22 +149,19 @@ impl AuthPasskeyService {
       return Err(errResponse("Passkey not enabled for this user"));
     }
 
-    let stored_key: PublicKeyCredential = if user.passkeyPublicKey.is_empty() {
+    let stored_passkey: Passkey = if user.passkeyPublicKey.is_empty() {
       return Err(errResponse("Passkey credential not properly stored"));
     } else {
       serde_json::from_str(&user.passkeyPublicKey)
         .map_err(|e| errResponse(&format!("Invalid stored credential: {}", e)))?
     };
 
-    let allowed_credential = Passkey {
-      cred: stored_key,
-      counter: 0,
-    };
+    let allowed_credential = stored_passkey;
 
     let (auth_challenge, auth_state) = self
       .webauthnState
       .webauthn
-      .start_passkey_authentication(&[&allowed_credential])
+      .start_passkey_authentication(&[allowed_credential])
       .map_err(|e| errResponse(&format!("Auth start failed: {}", e)))?;
 
     let mut challenge_store = self.authChallenge.lock().unwrap();
@@ -176,7 +170,7 @@ impl AuthPasskeyService {
     let qrPayload = format!(
       "{{\"u\":\"{}\",\"c\":\"{}\",\"t\":{}}}",
       BASE64URL.encode(username_str.as_bytes()),
-      auth_challenge.challenge.clone(),
+      auth_challenge.public_key.challenge.clone(),
       chrono::Utc::now().timestamp()
     );
 
@@ -184,7 +178,7 @@ impl AuthPasskeyService {
       .unwrap_or_else(|_| qrPayload.clone());
     let qr_data = format!("taskflow://auth?data={}", encrypted_payload);
 
-    let qr_code = self.generateQrCode(&qr_data);
+    let qr_code = qr_helper::generate_qr_code_data_url(&qr_data);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -192,7 +186,7 @@ impl AuthPasskeyService {
       data: DataValue::Object(json!({
         "options": auth_challenge,
         "qrCode": qr_code,
-        "challenge": auth_challenge.challenge.clone(),
+        "challenge": auth_challenge.public_key.challenge.clone(),
         "username": username_str
       })),
     })
@@ -217,7 +211,7 @@ impl AuthPasskeyService {
     let parsed: PublicKeyCredential = serde_json::from_str(responseJson)
       .map_err(|e| errResponse(&format!("Invalid credential format: {}", e)))?;
 
-    let auth_result = self
+    let _auth_result = self
       .webauthnState
       .webauthn
       .finish_passkey_authentication(&parsed, &auth_state)
@@ -258,20 +252,6 @@ impl AuthPasskeyService {
     self.saveUser(&updatedUser).await?;
 
     Ok(successResponse("Passkey disabled successfully"))
-  }
-
-  fn generateQrCode(&self, data: &str) -> String {
-    let qr = qrcode::QrCode::new(data.as_bytes()).unwrap();
-    let image = qr.render::<image::Luma<u8>>().build();
-    let mut png_data: Vec<u8> = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut png_data);
-    image::DynamicImage::ImageLuma8(image)
-      .write_to(&mut cursor, image::ImageFormat::Png)
-      .unwrap();
-    format!(
-      "data:image/png;base64,{}",
-      data_encoding::BASE64.encode(&png_data)
-    )
   }
 
   async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
