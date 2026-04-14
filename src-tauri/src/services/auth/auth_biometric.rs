@@ -145,8 +145,9 @@ impl AuthBiometricService {
       let mut challenge_store = self.challenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, _) =
-      storedData.ok_or_else(|| errResponse("No pending biometric authentication"))?;
+    let storedUser = storedData
+      .ok_or_else(|| errResponse("No pending biometric authentication"))?
+      .0;
 
     if storedUser != username {
       return Err(errResponse("Username mismatch"));
