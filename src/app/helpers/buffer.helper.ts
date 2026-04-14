@@ -1,7 +1,7 @@
 export class BufferHelper {
   static arrayBufferToBase64(buffer: ArrayBuffer): string {
     const bytes = new Uint8Array(buffer);
-    let binary = "";
+    let binary = '';
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
@@ -9,7 +9,7 @@ export class BufferHelper {
   }
 
   static base64ToArrayBuffer(base64url: string): ArrayBuffer {
-    let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+    let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
