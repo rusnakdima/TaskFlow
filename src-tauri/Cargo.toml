@@ -42,7 +42,7 @@ open = "5"
 uuid = { version = "1.0", features = ["v4"] }
 rand = "0.8"
 tracing = "0.1"
-webauthn-rs = "0.4"
+webauthn-rs = { version = "0.4", features = ["danger-allow-state-serialisation"] }
 totp-rs = { version = "1", default-features = false, features = ["otpauth"] }
 base32 = "0.5"
 base64 = "0.13"

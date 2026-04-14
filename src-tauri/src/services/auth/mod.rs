@@ -6,6 +6,7 @@ pub mod auth_qr;
 pub mod auth_register;
 pub mod auth_token;
 pub mod auth_totp;
+pub mod webauthn_state;
 
 #[cfg(target_os = "android")]
 pub mod android_biometric;

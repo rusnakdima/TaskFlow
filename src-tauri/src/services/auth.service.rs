@@ -13,6 +13,7 @@ use super::auth::auth_qr::QrAuthService;
 use super::auth::auth_register::AuthRegisterService;
 use super::auth::auth_token::AuthTokenService;
 use super::auth::auth_totp::AuthTotpService;
+use super::auth::webauthn_state::WebAuthnState;
 
 /* models */
 use crate::models::{
@@ -22,6 +23,7 @@ use crate::models::{
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
+use webauthn_rs::prelude::Url;
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -33,6 +35,7 @@ pub struct AuthService {
   pub passkeyService: AuthPasskeyService,
   pub biometricService: AuthBiometricService,
   pub qrAuthService: QrAuthService,
+  pub webauthnState: Arc<WebAuthnState>,
 }
 
 impl AuthService {
@@ -40,6 +43,7 @@ impl AuthService {
     jsonProvider: JsonProvider,
     mongodbProvider: Option<Arc<MongodbProvider>>,
     jwtSecret: String,
+    rpDomain: String,
   ) -> Self {
     let mongoProvider = mongodbProvider.expect("MongoDB provider required for auth initialization");
 
@@ -65,7 +69,15 @@ impl AuthService {
       Some(mongoProvider.clone()),
       Some(Arc::clone(&tokenService)),
     );
-    let passkeyService = AuthPasskeyService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
+
+    let rp_origin = Url::parse(&format!("https://{}", rpDomain)).expect("Invalid RP origin URL");
+    let webauthnState = Arc::new(WebAuthnState::new(&rpDomain, &rp_origin));
+
+    let passkeyService = AuthPasskeyService::new(
+      jsonProvider.clone(),
+      Some(mongoProvider.clone()),
+      Arc::clone(&webauthnState),
+    );
     let biometricService =
       AuthBiometricService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
     let qrAuthService = QrAuthService::new(
@@ -83,6 +95,7 @@ impl AuthService {
       passkeyService,
       biometricService,
       qrAuthService,
+      webauthnState,
     }
   }
 
@@ -170,13 +183,11 @@ impl AuthService {
   pub async fn completePasskeyRegistration(
     &self,
     username: String,
-    credentialId: String,
-    attestationObject: String,
-    device: String,
+    responseJson: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
       .passkeyService
-      .completeRegistration(&username, &credentialId, &attestationObject, &device)
+      .completeRegistration(&username, &responseJson)
       .await
   }
 
@@ -189,19 +200,12 @@ impl AuthService {
 
   pub async fn completePasskeyAuthentication(
     &self,
-    username: Option<String>,
-    signature: String,
-    authenticatorData: String,
-    clientData: String,
+    username: String,
+    responseJson: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
       .passkeyService
-      .completeAuthentication(
-        username.as_deref(),
-        &signature,
-        &authenticatorData,
-        &clientData,
-      )
+      .completeAuthentication(&username, &responseJson)
       .await
   }
 
