@@ -12,6 +12,9 @@ import { OfflineAuthResult } from "@models/local-user.model";
 /* providers */
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
+/* helpers */
+import { isNetworkError } from "@helpers/network-error.helper";
+
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
@@ -70,16 +73,7 @@ export class AuthService {
         },
         error: (err: any) => {
           // ❌ Online login failed - check why
-          const isNetworkError =
-            err.message?.includes("NetworkError") ||
-            err.message?.includes("network") ||
-            err.message?.includes("offline") ||
-            err.message?.includes("Failed to fetch") ||
-            err.message?.includes("Server selection timeout") ||
-            err.message?.includes("Connection refused") ||
-            err.message?.includes("Database error");
-
-          if (isNetworkError) {
+          if (isNetworkError(err)) {
             // Network error - check if we have local user data
             if (offlineResult.user && offlineResult.user.availableForOffline) {
               // ✅ User exists locally with valid credentials - allow offline login
