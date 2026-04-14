@@ -8,6 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { BufferHelper } from "@helpers/buffer.helper";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -327,15 +328,15 @@ export class SecurityService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = this.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = this.arrayBufferToBase64(pkCredential.response.authenticatorData);
+      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
+      const authenticatorData = BufferHelper.arrayBufferToBase64(pkCredential.response.authenticatorData);
       // clientDataJSON is already a DOMString (text), not an ArrayBuffer
       const clientData = btoa(pkCredential.response.clientDataJSON);
 
       return new Promise((resolve, reject) => {
         this.completePasskeyRegistration(
-          this.arrayBufferToBase64(pkCredential.credentialId),
-          this.arrayBufferToBase64(pkCredential.response.attestationObject),
+          BufferHelper.arrayBufferToBase64(pkCredential.credentialId),
+          BufferHelper.arrayBufferToBase64(pkCredential.response.attestationObject),
           "cross-platform"
         ).subscribe({
           next: () => resolve({ success: true }),
@@ -351,10 +352,10 @@ export class SecurityService {
     try {
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge: this.base64ToArrayBuffer(options.challenge),
+          challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
           rp: options.rp,
           user: {
-            id: this.base64ToArrayBuffer(options.user.id),
+            id: BufferHelper.base64ToArrayBuffer(options.user.id),
             name: options.user.name,
             displayName: options.user.displayName,
           },
@@ -396,9 +397,9 @@ export class SecurityService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = this.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = this.arrayBufferToBase64(pkCredential.response.authenticatorData);
-      const clientData = this.arrayBufferToBase64(pkCredential.response.clientJSON);
+      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
+      const authenticatorData = BufferHelper.arrayBufferToBase64(pkCredential.response.authenticatorData);
+      const clientData = BufferHelper.arrayBufferToBase64(pkCredential.response.clientJSON);
 
       return new Promise((resolve, reject) => {
         this.completePasskeyAuthentication(
@@ -426,12 +427,12 @@ export class SecurityService {
     try {
       const credential = await navigator.credentials.get({
         publicKey: {
-          challenge: this.base64ToArrayBuffer(options.challenge),
+          challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
           timeout: options.timeout,
           rpId: options.rpId,
           allowCredentials: options.allowCredentials.map((cred: any) => ({
             type: cred.type,
-            id: this.base64ToArrayBuffer(cred.id),
+            id: BufferHelper.base64ToArrayBuffer(cred.id),
             transports: cred.transports,
           })),
           userVerification: options.userVerification,
@@ -465,12 +466,12 @@ export class SecurityService {
 
       const publicKeyCredential = await navigator.credentials.get({
         publicKey: {
-          challenge: this.base64ToArrayBuffer(result.options.challenge),
+          challenge: BufferHelper.base64ToArrayBuffer(result.options.challenge),
           timeout: result.options.timeout,
           rpId: result.options.rpId,
           allowCredentials: result.options.allowCredentials.map((cred: any) => ({
             type: cred.type,
-            id: this.base64ToArrayBuffer(cred.id),
+            id: BufferHelper.base64ToArrayBuffer(cred.id),
             transports: cred.transports,
           })),
           userVerification: result.options.userVerification,
@@ -482,7 +483,7 @@ export class SecurityService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = this.arrayBufferToBase64(pkCredential.response.signature);
+      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
 
       return new Promise((resolve, reject) => {
         this.completeBiometricAuth(signature).subscribe({
@@ -497,24 +498,5 @@ export class SecurityService {
 
   async registerBiometric(): Promise<{ success: boolean; error?: string }> {
     return this.registerPasskey();
-  }
-
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
-
-  private base64ToArrayBuffer(base64url: string): ArrayBuffer {
-    let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
   }
 }

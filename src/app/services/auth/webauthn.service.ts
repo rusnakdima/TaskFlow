@@ -8,6 +8,7 @@ import {
   WebAuthnAuthOptions,
   PasskeyResult,
 } from "@models/webauthn.model";
+import { BufferHelper } from "@helpers/buffer.helper";
 
 @Injectable({
   providedIn: "root",
@@ -114,10 +115,10 @@ export class WebAuthnService {
   async createCredential(options: WebAuthnRegistrationOptions): Promise<PasskeyCredential | null> {
     try {
       const publicKey = {
-        challenge: this.base64ToArrayBuffer(options.challenge),
+        challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
         rp: options.rp,
         user: {
-          id: this.base64ToArrayBuffer(options.user.id),
+          id: BufferHelper.base64ToArrayBuffer(options.user.id),
           name: options.user.name,
           displayName: options.displayName,
         },
@@ -140,12 +141,12 @@ export class WebAuthnService {
   async getAssertion(options: WebAuthnAuthOptions): Promise<PasskeyCredential | null> {
     try {
       const publicKey = {
-        challenge: this.base64ToArrayBuffer(options.challenge),
+        challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
         timeout: options.timeout,
         rpId: options.rpId,
         allowCredentials: options.allowCredentials.map((cred) => ({
           type: cred.type,
-          id: this.base64ToArrayBuffer(cred.id),
+          id: BufferHelper.base64ToArrayBuffer(cred.id),
           transports: cred.transports as any,
         })),
         userVerification: options.userVerification as any,
@@ -159,25 +160,6 @@ export class WebAuthnService {
       console.error("WebAuthn get assertion error:", error?.message || error);
       return null;
     }
-  }
-
-  arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
-
-  base64ToArrayBuffer(base64url: string): ArrayBuffer {
-    let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
   }
 
   initPasskeyRegistration(): Observable<{
