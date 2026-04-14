@@ -16,7 +16,6 @@ class MainActivity : TauriActivity() {
     private var biometricCallback: ((Boolean, String?) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        registerPlugin(PasskeyPlugin::class.java)
         super.onCreate(savedInstanceState)
         instance = this
         
