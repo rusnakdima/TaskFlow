@@ -18,6 +18,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
+import { BufferHelper } from "@helpers/buffer.helper";
 
 import { DataSyncProvider } from "@providers/data-sync.provider";
 
@@ -220,27 +221,30 @@ export class SettingsView implements OnInit {
               throw new Error("Failed to create credential");
             }
 
-            const credentialId = this.webAuthnService.arrayBufferToBase64(credential.rawId);
-            const attestationObject = this.webAuthnService.arrayBufferToBase64(
-              credential.response.attestationObject
-            );
+            const responseJson = JSON.stringify({
+              id: credential.credentialId,
+              rawId: credential.rawId,
+              response: {
+                attestationObject: credential.response.attestationObject,
+                clientDataJSON: credential.response.clientDataJSON,
+              },
+              type: credential.type,
+            });
 
-            this.webAuthnService
-              .completePasskeyRegistration(credentialId, attestationObject, "cross-platform")
-              .subscribe({
-                next: () => {
-                  this.notifyService.showSuccess("Passkey registered successfully!");
-                  this.passkeyEnabled.set(true);
-                  this.passkeyRegistered.set(true);
-                  this.passkeySetupInProgress.set(false);
-                },
-                error: (err) => {
-                  this.notifyService.showError(
-                    "Failed to complete registration: " + (err.message || err)
-                  );
-                  this.passkeySetupInProgress.set(false);
-                },
-              });
+            this.webAuthnService.completePasskeyRegistration(responseJson).subscribe({
+              next: () => {
+                this.notifyService.showSuccess("Passkey registered successfully!");
+                this.passkeyEnabled.set(true);
+                this.passkeyRegistered.set(true);
+                this.passkeySetupInProgress.set(false);
+              },
+              error: (err) => {
+                this.notifyService.showError(
+                  "Failed to complete registration: " + (err.message || err)
+                );
+                this.passkeySetupInProgress.set(false);
+              },
+            });
           } catch (err: any) {
             this.notifyService.showError("Failed to create passkey: " + (err.message || err));
             this.passkeySetupInProgress.set(false);
