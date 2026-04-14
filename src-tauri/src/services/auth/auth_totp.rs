@@ -85,36 +85,28 @@ impl AuthTotpService {
 
   pub async fn verifyTotpCode(&self, secret: &str, code: &str) -> bool {
     let code = code.trim();
-    eprintln!(
-      "[TOTP] Code received (after trim): '{}', length: {}",
-      code,
-      code.len()
-    );
+    tracing::debug!("TOTP code received: length={}", code.len());
 
     if code.len() != 6 {
-      eprintln!("[TOTP] Code length invalid: {}", code.len());
+      tracing::debug!("TOTP code length invalid: {}", code.len());
       return false;
     }
 
     if !code.chars().all(|c| c.is_ascii_digit()) {
-      eprintln!("[TOTP] Code contains non-digit characters");
+      tracing::debug!("TOTP code contains non-digit characters");
       return false;
     }
 
     let secret_lower = secret.to_ascii_lowercase();
-    eprintln!(
-      "[TOTP] Secret length: {}, first 4 chars: {}",
-      secret_lower.len(),
-      &secret_lower[..4.min(secret_lower.len())]
-    );
+    tracing::debug!("TOTP secret length: {}", secret_lower.len());
 
     let secret_bytes = match Self::decode_base32_secret(&secret_lower) {
       Some(bytes) => {
-        eprintln!("[TOTP] Decoded secret bytes length: {}", bytes.len());
+        tracing::debug!("TOTP decoded secret bytes length: {}", bytes.len());
         bytes
       }
       None => {
-        eprintln!("[TOTP] Failed to decode base32 secret");
+        tracing::debug!("TOTP failed to decode base32 secret");
         return false;
       }
     };
@@ -125,19 +117,22 @@ impl AuthTotpService {
       .duration_since(std::time::UNIX_EPOCH)
       .expect("Time went backwards")
       .as_secs();
-    eprintln!("[TOTP] Current timestamp: {}", current_time);
+    tracing::debug!("TOTP current timestamp: {}", current_time);
 
     let generated = totp.generate(current_time);
-    eprintln!("[TOTP] Generated code: {} | User code: {}", generated, code);
-    eprintln!("[TOTP] Codes match: {}", generated == code);
+    tracing::debug!(
+      "TOTP generated code vs user code: {} vs {}",
+      generated,
+      code
+    );
 
     match totp.check_current(code) {
       Ok(result) => {
-        eprintln!("[TOTP] Check result: {}", result);
+        tracing::debug!("TOTP check result: {}", result);
         result
       }
       Err(e) => {
-        eprintln!("[TOTP] Check error: {:?}", e);
+        tracing::debug!("TOTP check error: {:?}", e);
         false
       }
     }
