@@ -18,12 +18,9 @@ export class ValidationHelper {
       Object.values(form.controls).forEach((control) => {
         control.markAsTouched();
       });
-
       if (form.invalid) {
         notifyService.showError("Please fill in all required fields");
-        return false;
       }
-
       return false;
     }
 
