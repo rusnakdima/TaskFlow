@@ -15,6 +15,7 @@ pub struct ConfigHelper {
   pub smtpServer: String,
   pub smtpPort: u16,
   pub resetTokenExpiryHours: u64,
+  pub rpDomain: String,
 }
 
 impl ConfigHelper {
@@ -70,6 +71,10 @@ impl ConfigHelper {
             .expect("RESET_TOKEN_EXPIRY_HOURS must be a valid number")
         })
         .unwrap_or(1),
+      rpDomain: envVars
+        .get("RP_DOMAIN")
+        .cloned()
+        .unwrap_or_else(|| "taskflow.tcs.com".to_string()),
     }
   }
 

@@ -1,52 +1,13 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, firstValueFrom } from "rxjs";
 import { DataSyncProvider } from "@providers/data-sync.provider";
 import { invoke } from "@tauri-apps/api/core";
-
-export interface PasskeyCredential {
-  credentialId: string;
-  rawId: ArrayBuffer;
-  response: {
-    attestationObject: ArrayBuffer;
-    clientDataJSON: ArrayBuffer;
-    signature?: ArrayBuffer;
-    authenticatorData?: ArrayBuffer;
-  };
-  type: string;
-}
-
-export interface WebAuthnRegistrationOptions {
-  challenge: string;
-  rp: {
-    name: string;
-    id: string;
-  };
-  user: {
-    id: string;
-    name: string;
-    displayName: string;
-  };
-  pubKeyCredParams: Array<{ type: string; alg: number }>;
-  timeout: number;
-  attestation: string;
-  authenticatorSelection: {
-    authenticatorAttachment?: string;
-    requireResidentKey: boolean;
-    userVerification: string;
-  };
-}
-
-export interface WebAuthnAuthOptions {
-  challenge: string;
-  timeout: number;
-  rpId: string;
-  allowCredentials: Array<{
-    type: string;
-    id: string;
-    transports?: string[];
-  }>;
-  userVerification: string;
-}
+import {
+  PasskeyCredential,
+  WebAuthnRegistrationOptions,
+  WebAuthnAuthOptions,
+  PasskeyResult,
+} from "@models/webauthn.model";
 
 @Injectable({
   providedIn: "root",
@@ -132,6 +93,24 @@ export class WebAuthnService {
     }
   }
 
+  private isAndroidDevice(): boolean {
+    if (typeof navigator === "undefined") return false;
+    const userAgent = navigator.userAgent.toLowerCase();
+    return /android/.test(userAgent);
+  }
+
+  async createPasskeyAndroid(requestJson: string): Promise<{ responseJson: string }> {
+    return invoke<{ responseJson: string }>("plugin:passkey|createPasskey", {
+      requestJson,
+    });
+  }
+
+  async getPasskeyAndroid(requestJson: string): Promise<{ responseJson: string }> {
+    return invoke<{ responseJson: string }>("plugin:passkey|getPasskey", {
+      requestJson,
+    });
+  }
+
   async createCredential(options: WebAuthnRegistrationOptions): Promise<PasskeyCredential | null> {
     try {
       const publicKey = {
@@ -140,7 +119,7 @@ export class WebAuthnService {
         user: {
           id: this.base64ToArrayBuffer(options.user.id),
           name: options.user.name,
-          displayName: options.user.displayName,
+          displayName: options.displayName,
         },
         pubKeyCredParams: options.pubKeyCredParams,
         timeout: options.timeout,
@@ -211,17 +190,11 @@ export class WebAuthnService {
     }>("initPasskeyRegistration", {});
   }
 
-  completePasskeyRegistration(
-    credentialId: string,
-    attestationObject: string,
-    device: string
-  ): Observable<{ success: boolean }> {
+  completePasskeyRegistration(responseJson: string): Observable<{ success: boolean }> {
     return this.dataSyncProvider.invokeCommand<{ success: boolean }>(
       "completePasskeyRegistration",
       {
-        credentialId,
-        attestationObject,
-        device,
+        responseJson,
       }
     );
   }
@@ -241,20 +214,69 @@ export class WebAuthnService {
   }
 
   completePasskeyAuthentication(
-    signature: string,
-    authenticatorData: string,
-    clientData: string,
-    username?: string
+    username: string,
+    responseJson: string
   ): Observable<{ verified: boolean; username: string; method: string }> {
     return this.dataSyncProvider.invokeCommand<{
       verified: boolean;
       username: string;
       method: string;
     }>("completePasskeyAuthentication", {
-      username: username || null,
-      signature,
-      authenticatorData,
-      clientData,
+      username,
+      responseJson,
     });
+  }
+
+  async registerPasskey(username: string): Promise<PasskeyResult> {
+    try {
+      const options = await firstValueFrom(this.initPasskeyRegistration());
+
+      const isAndroid = this.isAndroidDevice();
+      let responseJson: string;
+
+      if (isAndroid) {
+        const result = await this.createPasskeyAndroid(JSON.stringify(options.options));
+        responseJson = result.responseJson;
+      } else {
+        const credential = await this.createCredential(options.options);
+        if (!credential) {
+          return { success: false, error: "Failed to create credential" };
+        }
+        responseJson = JSON.stringify(credential);
+      }
+
+      const result = await firstValueFrom(this.completePasskeyRegistration(responseJson));
+      return { success: result.success };
+    } catch (err: unknown) {
+      return { success: false, error: String(err) };
+    }
+  }
+
+  async authenticateWithPasskey(username?: string): Promise<PasskeyResult> {
+    try {
+      const options = await firstValueFrom(this.initPasskeyAuthentication(username));
+
+      const isAndroid = this.isAndroidDevice();
+      let responseJson: string;
+
+      if (isAndroid) {
+        const result = await this.getPasskeyAndroid(JSON.stringify(options.options));
+        responseJson = result.responseJson;
+      } else {
+        const credential = await this.getAssertion(options.options);
+        if (!credential) {
+          return { success: false, error: "Failed to get credential" };
+        }
+        responseJson = JSON.stringify(credential);
+      }
+
+      const result = await firstValueFrom(
+        this.completePasskeyAuthentication(options.username, responseJson)
+      );
+
+      return { success: result.verified, username: result.username };
+    } catch (err: unknown) {
+      return { success: false, error: String(err) };
+    }
   }
 }

@@ -116,13 +116,11 @@ pub async fn initPasskeyRegistration(
 pub async fn completePasskeyRegistration(
   state: State<'_, AppState>,
   username: String,
-  credentialId: String,
-  attestationObject: String,
-  device: String,
+  responseJson: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .authService
-    .completePasskeyRegistration(username, credentialId, attestationObject, device)
+    .completePasskeyRegistration(username, responseJson)
     .await
 }
 
@@ -140,14 +138,12 @@ pub async fn initPasskeyAuthentication(
 #[tauri::command]
 pub async fn completePasskeyAuthentication(
   state: State<'_, AppState>,
-  username: Option<String>,
-  signature: String,
-  authenticatorData: String,
-  clientData: String,
+  username: String,
+  responseJson: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .authService
-    .completePasskeyAuthentication(username, signature, authenticatorData, clientData)
+    .completePasskeyAuthentication(username, responseJson)
     .await
 }
 

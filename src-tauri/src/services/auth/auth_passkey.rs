@@ -3,6 +3,7 @@ use data_encoding::BASE64URL;
 use rand::Rng;
 use serde_json::json;
 use std::sync::Arc;
+use webauthn_rs::prelude::*;
 
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
@@ -17,12 +18,17 @@ use crate::models::{
 use crate::helpers::response_helper::{errResponse, successResponse};
 
 /* services */
-use crate::services::crypto_service::CryptoService;
+use crate::services::auth::webauthn_state::WebAuthnState;
+
+type PasskeyRegistrationState = (String, RegisterState);
+type PasskeyAuthenticationState = (String, AuthenticationState);
 
 pub struct AuthPasskeyService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongodbProvider>>,
-  challenge: std::sync::Mutex<Option<(String, String)>>,
+  pub webauthnState: Arc<WebAuthnState>,
+  challenge: std::sync::Mutex<Option<PasskeyRegistrationState>>,
+  authChallenge: std::sync::Mutex<Option<PasskeyAuthenticationState>>,
 }
 
 impl Clone for AuthPasskeyService {
@@ -30,17 +36,25 @@ impl Clone for AuthPasskeyService {
     Self {
       jsonProvider: self.jsonProvider.clone(),
       mongodbProvider: self.mongodbProvider.clone(),
+      webauthnState: Arc::clone(&self.webauthnState),
       challenge: std::sync::Mutex::new(None),
+      authChallenge: std::sync::Mutex::new(None),
     }
   }
 }
 
 impl AuthPasskeyService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(
+    jsonProvider: JsonProvider,
+    mongodbProvider: Option<Arc<MongodbProvider>>,
+    webauthnState: Arc<WebAuthnState>,
+  ) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
+      webauthnState,
       challenge: std::sync::Mutex::new(None),
+      authChallenge: std::sync::Mutex::new(None),
     }
   }
 
@@ -52,51 +66,29 @@ impl AuthPasskeyService {
   pub async fn initRegistration(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.passkeyCredentialId.is_empty() {
+    if !user.passkeyCredentialId.is_empty() && user.passkeyEnabled {
       return Err(errResponse(
         "Passkey already registered. Please disable it first.",
       ));
     }
 
-    let challenge = self.generateChallenge();
+    let user_id = Uuid::parse_str(&user.id).map_err(|_| errResponse("Invalid user ID format"))?;
 
-    // Encode user.id as base64url for WebAuthn (WebAuthn requires bytes, not string)
-    let userIdBytes = user.id.as_bytes();
-    let userIdBase64 = BASE64URL.encode(userIdBytes);
-
-    let registrationOptions = json!({
-      "challenge": challenge,
-      "rp": {
-        "name": "TaskFlow",
-        "id": "taskflow.local"
-      },
-      "user": {
-        "id": userIdBase64,
-        "name": user.username,
-        "displayName": user.email
-      },
-      "pubKeyCredParams": [
-        { "type": "public-key", "alg": -7 },
-        { "type": "public-key", "alg": -257 }
-      ],
-      "timeout": 60000,
-      "attestation": "none",
-      "authenticatorSelection": {
-        "authenticatorAttachment": "cross-platform",
-        "requireResidentKey": false,
-        "userVerification": "preferred"
-      }
-    });
+    let (creation_challenge, reg_state) = self
+      .webauthnState
+      .webauthn
+      .start_passkey_registration(user_id, &user.username, &user.email, None)
+      .map_err(|e| errResponse(&format!("WebAuthn registration error: {}", e)))?;
 
     let mut challenge_store = self.challenge.lock().unwrap();
-    *challenge_store = Some((username.to_string(), challenge.clone()));
+    *challenge_store = Some((username.to_string(), reg_state));
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Registration initiated".to_string(),
       data: DataValue::Object(json!({
-        "options": registrationOptions,
-        "challenge": challenge
+        "options": creation_challenge,
+        "challenge": creation_challenge.challenge.clone()
       })),
     })
   }
@@ -104,28 +96,35 @@ impl AuthPasskeyService {
   pub async fn completeRegistration(
     &self,
     username: &str,
-    credentialId: &str,
-    attestationObject: &str,
-    device: &str,
+    responseJson: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let storedData = {
       let mut challenge_store = self.challenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, _storedChallenge) =
+    let (stored_user, reg_state) =
       storedData.ok_or_else(|| errResponse("No pending registration"))?;
 
-    if storedUser != username {
+    if stored_user != username {
       return Err(errResponse("Username mismatch"));
     }
+
+    let parsed: RegisterPublicKeyCredential = serde_json::from_str(responseJson)
+      .map_err(|e| errResponse(&format!("Invalid credential format: {}", e)))?;
+
+    let passkey = self
+      .webauthnState
+      .webauthn
+      .finish_passkey_registration(&parsed, &reg_state)
+      .map_err(|e| errResponse(&format!("Passkey verification failed: {}", e)))?;
 
     let user = self.findUser(username).await?;
 
     let mut updatedUser = user.clone();
-    // Store credentialId in base64url format (as received from authenticator)
-    updatedUser.passkeyCredentialId = credentialId.to_string();
-    // Store device type
-    updatedUser.passkeyDevice = device.to_string();
+    updatedUser.passkeyCredentialId = passkey.cred_id().to_string();
+    updatedUser.passkeyPublicKey = serde_json::to_string(&passkey)
+      .map_err(|e| errResponse(&format!("Failed to serialize credential: {}", e)))?;
+    updatedUser.passkeyDevice = "cross-platform".to_string();
     updatedUser.passkeyEnabled = true;
     updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
@@ -138,130 +137,105 @@ impl AuthPasskeyService {
     &self,
     username: Option<&str>,
   ) -> Result<ResponseModel, ResponseModel> {
-    eprintln!(
-      "[Passkey] initAuthentication called with username: {:?}",
-      username
-    );
-
-    let filter = if let Some(un) = username {
-      serde_json::json!({ "username": un, "passkeyEnabled": true })
-    } else {
-      serde_json::json!({ "passkeyEnabled": true })
+    let username_str = match username {
+      Some(u) => u.to_string(),
+      None => {
+        return Err(errResponse(
+          "Username is required for passkey authentication",
+        ))
+      }
     };
 
-    eprintln!("[Passkey] Filter: {}", filter);
-
-    let user = self.findUsers(filter).await?;
-    eprintln!("[Passkey] Found user: {}", user.username);
+    let user = self.findUser(&username_str).await?;
 
     if user.passkeyCredentialId.is_empty() || !user.passkeyEnabled {
       return Err(errResponse("Passkey not enabled for this user"));
     }
 
-    let challenge = self.generateChallenge();
-    let authOptions = json!({
-      "challenge": challenge,
-      "timeout": 60000,
-      "rpId": "taskflow.local",
-      "allowCredentials": [{
-        "type": "public-key",
-        "id": user.passkeyCredentialId,
-        "transports": ["hybrid"]
-      }],
-      "userVerification": "preferred"
-    });
+    let stored_key: PublicKeyCredential = if user.passkeyPublicKey.is_empty() {
+      return Err(errResponse("Passkey credential not properly stored"));
+    } else {
+      serde_json::from_str(&user.passkeyPublicKey)
+        .map_err(|e| errResponse(&format!("Invalid stored credential: {}", e)))?
+    };
 
-    let mut challenge_store = self.challenge.lock().unwrap();
-    let usernameStr = username.unwrap_or(user.username.as_str());
-    *challenge_store = Some((usernameStr.to_string(), challenge.clone()));
+    let allowed_credential = Passkey {
+      cred: stored_key,
+      counter: 0,
+    };
 
-    // Create encrypted QR data containing user identity
+    let (auth_challenge, auth_state) = self
+      .webauthnState
+      .webauthn
+      .start_passkey_authentication(&[&allowed_credential])
+      .map_err(|e| errResponse(&format!("Auth start failed: {}", e)))?;
+
+    let mut challenge_store = self.authChallenge.lock().unwrap();
+    *challenge_store = Some((username_str.clone(), auth_state));
+
     let qrPayload = format!(
       "{{\"u\":\"{}\",\"c\":\"{}\",\"t\":{}}}",
-      BASE64URL.encode(usernameStr.as_bytes()),
-      challenge,
+      BASE64URL.encode(username_str.as_bytes()),
+      auth_challenge.challenge.clone(),
       chrono::Utc::now().timestamp()
     );
 
-    // Encrypt the QR payload
-    let qrData = match CryptoService::encrypt(&qrPayload) {
-      Ok(encrypted) => format!("taskflow://auth?data={}", encrypted),
-      Err(e) => {
-        eprintln!("[Passkey] Encryption error: {}", e);
-        // Fallback to unencrypted for debugging
-        format!(
-          "taskflow://auth?user={}&challenge={}",
-          BASE64URL.encode(usernameStr.as_bytes()),
-          challenge
-        )
-      }
-    };
+    let encrypted_payload = crate::services::crypto_service::CryptoService::encrypt(&qrPayload)
+      .unwrap_or_else(|_| qrPayload.clone());
+    let qr_data = format!("taskflow://auth?data={}", encrypted_payload);
 
-    let qrCode = self.generateQrCode(&qrData);
+    let qr_code = self.generateQrCode(&qr_data);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Authentication initiated".to_string(),
       data: DataValue::Object(json!({
-        "options": authOptions,
-        "qrCode": qrCode,
-        "challenge": challenge,
-        "username": usernameStr
+        "options": auth_challenge,
+        "qrCode": qr_code,
+        "challenge": auth_challenge.challenge.clone(),
+        "username": username_str
       })),
     })
   }
 
   pub async fn completeAuthentication(
     &self,
-    username: Option<&str>,
-    _signature: &str,
-    _authenticatorData: &str,
-    _clientData: &str,
+    username: &str,
+    responseJson: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let storedData = {
-      let mut challenge_store = self.challenge.lock().unwrap();
+      let mut challenge_store = self.authChallenge.lock().unwrap();
       challenge_store.take()
     };
-    let (storedUser, storedChallenge) =
+    let (stored_user, auth_state) =
       storedData.ok_or_else(|| errResponse("No pending authentication"))?;
 
-    // If username provided, verify it matches; otherwise use stored user
-    let username_to_use = match username {
-      Some(u) => {
-        if u != storedUser {
-          return Err(errResponse("Username mismatch"));
-        }
-        u.to_string()
-      }
-      None => storedUser.clone(),
-    };
-
-    let user = self.findUser(&username_to_use).await?;
-
-    if user.passkeyCredentialId.is_empty() || !user.passkeyEnabled {
-      return Err(errResponse("Passkey not enabled for this user"));
+    if stored_user != username {
+      return Err(errResponse("Username mismatch"));
     }
 
-    let decodedChallenge = BASE64URL
-      .decode(&storedChallenge.as_bytes())
-      .map_err(|_| errResponse("Invalid challenge"))?;
+    let parsed: PublicKeyCredential = serde_json::from_str(responseJson)
+      .map_err(|e| errResponse(&format!("Invalid credential format: {}", e)))?;
 
-    if decodedChallenge.len() != 32 {
-      return Err(errResponse("Invalid challenge length"));
-    }
+    let auth_result = self
+      .webauthnState
+      .webauthn
+      .finish_passkey_authentication(&parsed, &auth_state)
+      .map_err(|e| errResponse(&format!("Authentication verification failed: {}", e)))?;
+
+    let user = self.findUser(username).await?;
 
     let mut updatedUser = user.clone();
     updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     self.saveUser(&updatedUser).await?;
 
-    // Return the username so frontend can get JWT token
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Authentication successful".to_string(),
       data: DataValue::Object(json!({
         "verified": true,
-        "username": username_to_use,
+        "username": username.to_string(),
         "method": "passkey"
       })),
     })
@@ -324,72 +298,6 @@ impl AuthPasskeyService {
 
     match mongoProvider.getAll("users", Some(filter)).await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
-        serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
-      }
-      Err(e) => Err(errResponse(&format!("Database error: {}", e))),
-    }
-  }
-
-  async fn findUsers(&self, filter: serde_json::Value) -> Result<UserModel, ResponseModel> {
-    eprintln!("[Passkey] findUsers with filter: {}", filter);
-
-    // First, let's see ALL users in the database to debug
-    match self.jsonProvider.getAll("users", None).await {
-      Ok(allUsers) => {
-        eprintln!("[Passkey] Total users in JSON: {}", allUsers.len());
-        for (i, userVal) in allUsers.iter().enumerate() {
-          if let Ok(username) =
-            serde_json::from_value::<UserModel>(userVal.clone()).map(|u| u.username.clone())
-          {
-            let passkeyEnabled = userVal
-              .get("passkeyEnabled")
-              .and_then(|v| v.as_bool())
-              .unwrap_or(false);
-            eprintln!(
-              "[Passkey]   User {}: username={}, passkeyEnabled={}",
-              i, username, passkeyEnabled
-            );
-          }
-        }
-      }
-      Err(e) => {
-        eprintln!("[Passkey] JSON provider error: {:?}", e);
-      }
-    }
-
-    match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
-      Ok(users) => {
-        eprintln!(
-          "[Passkey] JSON provider returned {} users matching filter",
-          users.len()
-        );
-        if let Some(userVal) = users.first() {
-          return serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
-        }
-      }
-      Err(e) => {
-        eprintln!("[Passkey] JSON provider error: {:?}", e);
-      }
-    }
-
-    let mongoProvider = self
-      .mongodbProvider
-      .as_ref()
-      .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
-
-    match mongoProvider.getAll("users", Some(filter)).await {
-      Ok(users) => {
-        eprintln!(
-          "[Passkey] MongoDB returned {} users matching filter",
-          users.len()
-        );
         let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
         serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))

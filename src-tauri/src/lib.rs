@@ -135,6 +135,7 @@ pub fn run() {
         jsonProvider.clone(),
         mongodbProvider.clone(),
         configHelper.jwtSecret.clone(),
+        configHelper.rpDomain.clone(),
       ));
 
       let statisticsService = Arc::new(StatisticsService::new(
