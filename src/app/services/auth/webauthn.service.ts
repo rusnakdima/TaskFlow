@@ -114,6 +114,18 @@ export class WebAuthnService {
 
   async createCredential(options: WebAuthnRegistrationOptions): Promise<PasskeyCredential | null> {
     try {
+      if (!options.challenge) {
+        console.error("createCredential: options.challenge is missing or undefined");
+        return null;
+      }
+      if (!options.rp || !options.user) {
+        console.error("createCredential: options.rp or options.user is missing", {
+          rp: options.rp,
+          user: options.user,
+        });
+        return null;
+      }
+
       const publicKey = {
         challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
         rp: options.rp,
@@ -216,16 +228,11 @@ export class WebAuthnService {
       const isAndroid = this.isAndroidDevice();
       let responseJson: string;
 
-      if (isAndroid) {
-        const result = await this.createPasskeyAndroid(JSON.stringify(options.options));
-        responseJson = result.responseJson;
-      } else {
-        const credential = await this.createCredential(options.options);
-        if (!credential) {
-          return { success: false, error: "Failed to create credential" };
-        }
-        responseJson = JSON.stringify(credential);
+      const credential = await this.createCredential(options.options);
+      if (!credential) {
+        return { success: false, error: "Failed to create credential" };
       }
+      responseJson = JSON.stringify(credential);
 
       const result = await firstValueFrom(this.completePasskeyRegistration(responseJson));
       return { success: result.success };

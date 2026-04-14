@@ -467,6 +467,16 @@
                   </button>
                 </div>
               }
+              <div class="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code to disable"
+                  maxlength="6"
+                  [ngModel]="totpVerifyCode()"
+                  (ngModelChange)="totpVerifyCode.set($event)"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                />
+              </div>
               <div class="flex gap-2">
                 <button
                   (click)="showRecoveryCodes.set(true)"

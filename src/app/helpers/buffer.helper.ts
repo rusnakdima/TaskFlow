@@ -9,6 +9,9 @@ export class BufferHelper {
   }
 
   static base64ToArrayBuffer(base64url: string): ArrayBuffer {
+    if (!base64url) {
+      throw new Error("base64url is undefined or empty");
+    }
     let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);

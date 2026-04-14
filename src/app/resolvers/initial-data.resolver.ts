@@ -163,7 +163,7 @@ export class InitialDataResolver implements Resolve<unknown> {
               table: "profiles",
               filter: { userId },
               load: ["user"],
-              syncMetadata: { isOwner: true, isPrivate: true },
+              syncMetadata: { isOwner: true, isPrivate: false },
             },
             t
           ).catch(() => null),
