@@ -36,6 +36,7 @@ import { QrLoginService } from "@services/auth/qr-login.service";
 import { AuthStore } from "@stores/auth.store";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
+import { BufferHelper } from "@helpers/buffer.helper";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
@@ -325,34 +326,33 @@ export class LoginView implements OnDestroy {
               throw new Error("No credential received");
             }
 
-            const signature = this.webAuthnService.arrayBufferToBase64(
-              credential.response.signature!
-            );
-            const authenticatorData = this.webAuthnService.arrayBufferToBase64(
-              credential.response.authenticatorData!
-            );
-            const clientData = this.webAuthnService.arrayBufferToBase64(
-              credential.response.clientDataJSON
-            );
+            const responseJson = JSON.stringify({
+              id: credential.credentialId,
+              rawId: credential.rawId,
+              response: {
+                authenticatorData: credential.response.authenticatorData,
+                clientDataJSON: credential.response.clientDataJSON,
+                signature: credential.response.signature,
+              },
+              type: credential.type,
+            });
 
-            this.webAuthnService
-              .completePasskeyAuthentication(signature, authenticatorData, clientData, username)
-              .subscribe({
-                next: (result) => {
-                  if (result.verified) {
-                    this.completePasswordlessLogin(result.username, false);
-                  } else {
-                    this.notifyService.showError("Passkey verification failed");
-                    this.submitted.set(false);
-                  }
-                },
-                error: (err) => {
-                  this.notifyService.showError(
-                    "Passkey authentication failed: " + (err.message || err)
-                  );
+            this.webAuthnService.completePasskeyAuthentication(username, responseJson).subscribe({
+              next: (result) => {
+                if (result.verified) {
+                  this.completePasswordlessLogin(result.username, false);
+                } else {
+                  this.notifyService.showError("Passkey verification failed");
                   this.submitted.set(false);
-                },
-              });
+                }
+              },
+              error: (err) => {
+                this.notifyService.showError(
+                  "Passkey authentication failed: " + (err.message || err)
+                );
+                this.submitted.set(false);
+              },
+            });
           } catch (err: any) {
             this.notifyService.showError("Passkey authentication failed: " + (err.message || err));
             this.submitted.set(false);
@@ -478,34 +478,33 @@ export class LoginView implements OnDestroy {
                 throw new Error("No credential received");
               }
 
-              const signature = this.webAuthnService.arrayBufferToBase64(
-                credential.response.signature!
-              );
-              const authenticatorData = this.webAuthnService.arrayBufferToBase64(
-                credential.response.authenticatorData!
-              );
-              const clientData = this.webAuthnService.arrayBufferToBase64(
-                credential.response.clientDataJSON
-              );
+              const responseJson = JSON.stringify({
+                id: credential.credentialId,
+                rawId: credential.rawId,
+                response: {
+                  authenticatorData: credential.response.authenticatorData,
+                  clientDataJSON: credential.response.clientDataJSON,
+                  signature: credential.response.signature,
+                },
+                type: credential.type,
+              });
 
-              this.webAuthnService
-                .completePasskeyAuthentication(signature, authenticatorData, clientData, username)
-                .subscribe({
-                  next: (result) => {
-                    if (result.verified) {
-                      this.completePasswordlessLogin(result.username, false);
-                    } else {
-                      this.notifyService.showError("Biometric verification failed");
-                      this.submitted.set(false);
-                    }
-                  },
-                  error: (err) => {
-                    this.notifyService.showError(
-                      "Biometric authentication failed: " + (err.message || err)
-                    );
+              this.webAuthnService.completePasskeyAuthentication(username, responseJson).subscribe({
+                next: (result) => {
+                  if (result.verified) {
+                    this.completePasswordlessLogin(result.username, false);
+                  } else {
+                    this.notifyService.showError("Biometric verification failed");
                     this.submitted.set(false);
-                  },
-                });
+                  }
+                },
+                error: (err) => {
+                  this.notifyService.showError(
+                    "Biometric authentication failed: " + (err.message || err)
+                  );
+                  this.submitted.set(false);
+                },
+              });
             } catch (err: any) {
               this.notifyService.showError(
                 "Biometric authentication failed: " + (err.message || err)
