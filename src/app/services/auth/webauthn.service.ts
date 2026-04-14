@@ -120,7 +120,7 @@ export class WebAuthnService {
         user: {
           id: BufferHelper.base64ToArrayBuffer(options.user.id),
           name: options.user.name,
-          displayName: options.displayName,
+          displayName: options.user.displayName,
         },
         pubKeyCredParams: options.pubKeyCredParams,
         timeout: options.timeout,

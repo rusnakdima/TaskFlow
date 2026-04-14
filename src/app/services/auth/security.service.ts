@@ -329,7 +329,9 @@ export class SecurityService {
 
       const pkCredential = publicKeyCredential as any;
       const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = BufferHelper.arrayBufferToBase64(pkCredential.response.authenticatorData);
+      const authenticatorData = BufferHelper.arrayBufferToBase64(
+        pkCredential.response.authenticatorData
+      );
       // clientDataJSON is already a DOMString (text), not an ArrayBuffer
       const clientData = btoa(pkCredential.response.clientDataJSON);
 
@@ -398,7 +400,9 @@ export class SecurityService {
 
       const pkCredential = publicKeyCredential as any;
       const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = BufferHelper.arrayBufferToBase64(pkCredential.response.authenticatorData);
+      const authenticatorData = BufferHelper.arrayBufferToBase64(
+        pkCredential.response.authenticatorData
+      );
       const clientData = BufferHelper.arrayBufferToBase64(pkCredential.response.clientJSON);
 
       return new Promise((resolve, reject) => {
