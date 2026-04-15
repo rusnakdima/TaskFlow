@@ -122,7 +122,7 @@ export class InitialDataResolver implements Resolve<unknown> {
             {
               operation: "getAll",
               table: "todos",
-              filter: { userId, visibility: "private", isDeleted: false },
+              filter: { userId, visibility: "private", deleted_at: null },
               load: loadAll,
               syncMetadata: { isOwner: true, isPrivate: true },
             },
@@ -132,7 +132,7 @@ export class InitialDataResolver implements Resolve<unknown> {
             {
               operation: "getAll",
               table: "todos",
-              filter: { userId, visibility: "team", isDeleted: false },
+              filter: { userId, visibility: "team", deleted_at: null },
               load: loadAll,
               syncMetadata: { isOwner: true, isPrivate: false },
             },
@@ -142,7 +142,7 @@ export class InitialDataResolver implements Resolve<unknown> {
             {
               operation: "getAll",
               table: "todos",
-              filter: { assignees: userId, visibility: "team", isDeleted: false },
+              filter: { assignees: userId, visibility: "team", deleted_at: null },
               load: loadAll,
               syncMetadata: { isOwner: false, isPrivate: false },
             },
@@ -152,7 +152,7 @@ export class InitialDataResolver implements Resolve<unknown> {
             {
               operation: "getAll",
               table: "categories",
-              filter: { userId, isDeleted: false },
+              filter: { userId, deleted_at: null },
               syncMetadata: { isOwner: true, isPrivate: true },
             },
             t

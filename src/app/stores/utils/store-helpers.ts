@@ -9,7 +9,7 @@ import { computed, Signal } from "@angular/core";
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
  */
-export function deduplicateById<T extends { id: string; updatedAt?: string }>(entities: T[]): T[] {
+export function deduplicateById<T extends { id: string; updated_at?: string }>(entities: T[]): T[] {
   const entityMap = new Map<string, T>();
 
   for (const entity of entities) {
@@ -17,9 +17,9 @@ export function deduplicateById<T extends { id: string; updatedAt?: string }>(en
       entityMap.set(entity.id, entity);
     } else {
       const existing = entityMap.get(entity.id)!;
-      // Keep the one with the latest updatedAt timestamp
-      if (entity.updatedAt && existing.updatedAt) {
-        if (new Date(entity.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
+      // Keep the one with the latest updated_at timestamp
+      if (entity.updated_at && existing.updated_at) {
+        if (new Date(entity.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
           entityMap.set(entity.id, entity);
         }
       }
@@ -32,8 +32,8 @@ export function deduplicateById<T extends { id: string; updatedAt?: string }>(en
 /**
  * Filter out deleted entities
  */
-export function filterDeleted<T extends { isDeleted?: boolean }>(entities: T[]): T[] {
-  return entities.filter((entity) => !entity.isDeleted);
+export function filterDeleted<T extends { deleted_at?: string | null }>(entities: T[]): T[] {
+  return entities.filter((entity) => !entity.deleted_at);
 }
 
 /**
@@ -42,8 +42,8 @@ export function filterDeleted<T extends { isDeleted?: boolean }>(entities: T[]):
 export function deduplicateAndFilterDeleted<
   T extends {
     id: string;
-    isDeleted?: boolean;
-    updatedAt?: string;
+    deleted_at?: string | null;
+    updated_at?: string;
   },
 >(entities: T[]): T[] {
   return filterDeleted(deduplicateById(entities));
@@ -97,10 +97,10 @@ export function removeEntityFromArray<T extends { id: string }>(entities: T[], i
 /**
  * Sort entities by creation date (newest first)
  */
-export function sortByNewest<T extends { createdAt?: string }>(entities: T[]): T[] {
+export function sortByNewest<T extends { created_at?: string }>(entities: T[]): T[] {
   return [...entities].sort((a, b) => {
-    const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
     return bDate - aDate;
   });
 }

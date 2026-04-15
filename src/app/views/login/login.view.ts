@@ -160,7 +160,7 @@ export class LoginView implements OnDestroy {
   checkDatabaseConnection() {
     this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
       next: (users) => {
-        const activeUsers = (users || []).filter((u) => !u.isDeleted);
+        const activeUsers = (users || []).filter((u) => !u.deleted_at);
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {

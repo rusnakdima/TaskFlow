@@ -150,7 +150,7 @@ export class RelationResolverService {
           description: "",
           status: "pending",
           order: 0,
-          isDeleted: false,
+          deleted_at: null,
           subtasks: [],
           comments: [],
         } as any as TaskWithRelations;
@@ -209,7 +209,7 @@ export class RelationResolverService {
           taskId: "",
           title: "",
           description: "",
-          isDeleted: false,
+          deleted_at: null,
           order: 0,
           comments: [],
         } as any as SubtaskWithRelations;

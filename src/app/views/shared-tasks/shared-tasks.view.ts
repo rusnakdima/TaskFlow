@@ -49,7 +49,7 @@ export class SharedTasksView implements OnInit, OnDestroy {
     // Only show team projects where user is the owner
     return this.storageService
       .sharedTodos()
-      .filter((todo) => todo.userId === userId && !todo.isDeleted);
+      .filter((todo) => todo.userId === userId && !todo.deleted_at);
   });
 
   sharedWithMe = computed(() => {
@@ -62,7 +62,7 @@ export class SharedTasksView implements OnInit, OnDestroy {
         todo.assignees?.includes(userId) ||
         todo.assigneesProfiles?.some((profile) => profile.userId === userId);
 
-      return isNotOwner && isAssignee && !todo.isDeleted;
+      return isNotOwner && isAssignee && !todo.deleted_at;
     });
   });
 

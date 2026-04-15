@@ -539,25 +539,25 @@ export class DataSyncProvider {
     const options = { isPrivate: !isTeam };
 
     // Archive todo
-    this.storageService.updateItem("todos", todoId, { isDeleted: true }, options);
+    this.storageService.updateItem("todos", todoId, { deleted_at !== null }, options);
 
     // Archive all tasks and their subtasks/comments
     todo.tasks?.forEach((task) => {
-      this.storageService.updateItem("tasks", task.id, { isDeleted: true }, options);
+      this.storageService.updateItem("tasks", task.id, { deleted_at !== null }, options);
 
       // Archive all subtasks and their comments
       task.subtasks?.forEach((subtask) => {
-        this.storageService.updateItem("subtasks", subtask.id, { isDeleted: true }, options);
+        this.storageService.updateItem("subtasks", subtask.id, { deleted_at !== null }, options);
 
         // Archive subtask comments
         subtask.comments?.forEach((comment: Comment) => {
-          this.storageService.updateItem("comments", comment.id, { isDeleted: true }, options);
+          this.storageService.updateItem("comments", comment.id, { deleted_at !== null }, options);
         });
       });
 
       // Archive task comments
       task.comments?.forEach((comment: Comment) => {
-        this.storageService.updateItem("comments", comment.id, { isDeleted: true }, options);
+        this.storageService.updateItem("comments", comment.id, { deleted_at !== null }, options);
       });
     });
 
@@ -642,9 +642,9 @@ export class DataSyncProvider {
           this.handleUpdateOperation(table, result, isTeam);
           break;
         case "delete":
-          // For soft delete (archive), update isDeleted field instead of removing
+          // For soft delete (archive), update deleted_at field instead of removing
           if (table === "todos") {
-            // Archive todo with cascade (set isDeleted: true for todo and all related entities)
+            // Archive todo with cascade (set deleted_at !== null for todo and all related entities)
             this.archiveTodoWithCascade(id!, isTeam);
           } else {
             // For tasks/subtasks, lookup parent ID before deletion

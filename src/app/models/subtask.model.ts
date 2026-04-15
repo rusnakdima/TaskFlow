@@ -1,9 +1,7 @@
-/* models */
 import { PriorityTask, Task, TaskStatus } from "@models/task.model";
 import { Comment } from "@models/comment.model";
 
 export interface Subtask {
-  _id?: {} | undefined;
   id: string;
   task: Task;
   taskId: string;
@@ -11,11 +9,11 @@ export interface Subtask {
   description: string;
   status: TaskStatus;
   priority: PriorityTask;
-  startDate?: string;
-  endDate?: string;
+  startDate: string | null;
+  endDate: string | null;
   order: number;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
   comments: Array<Comment>;
 }

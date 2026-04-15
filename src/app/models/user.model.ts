@@ -1,4 +1,3 @@
-/* models */
 import { Profile } from "@models/profile.model";
 
 export interface User {
@@ -10,9 +9,8 @@ export interface User {
   resetToken: string;
   profile: Profile;
   profileId: string;
-  createdAt: string;
-  updatedAt: string;
-  isDeleted?: boolean;
+  created_at: string;
+  updated_at: string;
 
   // Security features
   totpEnabled?: boolean;

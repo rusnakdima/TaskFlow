@@ -162,7 +162,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
     if (!comments || comments.length === 0) return [];
-    return comments.filter((c) => !c.isDeleted);
+    return comments.filter((c) => !c.deleted_at);
   }
 
   toggleComments() {
@@ -181,7 +181,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
           const updatedComments = subtask.comments.map((c: any) => {
             // Skip deleted comments and task comments (only subtask comments)
-            if (c.isDeleted || !c.subtaskId) return c;
+            if (c.deleted_at || !c.subtaskId) return c;
             // Skip if user is author (already read)
             if (c.authorId === userId) return c;
 
@@ -211,7 +211,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           if (effectiveTodoId) {
             const allSubtaskComments = updatedSubtasks.flatMap((s: any) =>
               (s.comments || []).filter(
-                (c: any) => !c.isDeleted && c.subtaskId && c.authorId !== userId
+                (c: any) => !c.deleted_at && c.subtaskId && c.authorId !== userId
               )
             );
 
@@ -283,8 +283,8 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         authorName: username || "Unknown",
         content: content,
         taskId: this.task.id,
-        readBy: [userId], // Creator has already read it
-        isDeleted: false,
+        readBy: [userId],
+        deleted_at: null,
       };
 
       this.dataSyncProvider
@@ -322,7 +322,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       content,
       subtaskId,
       readBy: [userId],
-      isDeleted: false,
+      deleted_at: null,
     };
 
     this.dataSyncProvider
@@ -406,7 +406,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const commentsToUpdate = updatedSubtasks
       .find((s: any) => s.id === subtaskId)
       ?.comments?.filter(
-        (c: any) => commentIds.includes(c.id) && !c.isDeleted && c.authorId !== userId
+        (c: any) => commentIds.includes(c.id) && !c.deleted_at && c.authorId !== userId
       );
 
     if (commentsToUpdate && commentsToUpdate.length > 0) {

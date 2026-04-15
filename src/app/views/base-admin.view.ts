@@ -43,7 +43,7 @@ export abstract class BaseAdminView {
     { key: "tasks", label: "Tasks", type: "array-count" },
     { key: "assignees", label: "Assignees", type: "array-count" },
     { key: "user", label: "Owner", type: "user" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   taskFields: AdminFieldConfig[] = [
@@ -54,7 +54,7 @@ export abstract class BaseAdminView {
     { key: "endDate", label: "End Date", type: "date" },
     { key: "todoId", label: "Todo ID", type: "text" },
     { key: "subtasks", label: "Subtasks", type: "array-count" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   subtaskFields: AdminFieldConfig[] = [
@@ -62,18 +62,18 @@ export abstract class BaseAdminView {
     { key: "priority", label: "Priority", type: "priority" },
     { key: "status", label: "Status", type: "text" },
     { key: "taskId", label: "Task ID", type: "text" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   categoryFields: AdminFieldConfig[] = [
     { key: "user", label: "Owner", type: "user" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   dailyActivityFields: AdminFieldConfig[] = [
     { key: "userId", label: "User ID", type: "text" },
     { key: "date", label: "Date", type: "date" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   commentFields: AdminFieldConfig[] = [
@@ -81,14 +81,14 @@ export abstract class BaseAdminView {
     { key: "authorName", label: "Author", type: "text" },
     { key: "taskId", label: "Task ID", type: "text" },
     { key: "subtaskId", label: "Subtask ID", type: "text" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
+    { key: "updated_at", label: "Last Updated", type: "date" },
   ];
 
   chatFields: AdminFieldConfig[] = [
     { key: "content", label: "Message", type: "text" },
     { key: "authorName", label: "Author", type: "text" },
     { key: "todoId", label: "Todo ID", type: "text" },
-    { key: "createdAt", label: "Created", type: "date" },
+    { key: "created_at", label: "Created", type: "date" },
   ];
 
   getFieldConfig(): AdminFieldConfig[] {
@@ -124,7 +124,7 @@ export abstract class BaseAdminView {
   categoriesFilter = signal<string>("");
   todoIdFilter = signal<string>("");
   taskIdFilter = signal<string>("");
-  sortBy = signal<string>("createdAt");
+  sortBy = signal<string>("created_at");
   sortOrder = signal<"asc" | "desc">("desc");
 
   dataTypes = [

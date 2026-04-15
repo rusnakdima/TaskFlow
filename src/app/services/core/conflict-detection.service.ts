@@ -59,7 +59,7 @@ export class ConflictDetectionService {
    * Check for conflicts when receiving remote update
    * Returns true if conflict detected, false otherwise
    */
-  checkConflict<T extends { id: string; version?: number; updatedAt?: string }>(
+  checkConflict<T extends { id: string; version?: number; updated_at?: string }>(
     entityType: "todos" | "tasks" | "subtasks" | "categories" | "comments",
     remoteData: T
   ): boolean {
@@ -118,8 +118,8 @@ export class ConflictDetectionService {
     }
 
     // Same version - check timestamp for concurrent edits
-    const localTime = localData.updatedAt ? new Date(localData.updatedAt).getTime() : 0;
-    const remoteTime = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
+    const localTime = localData.updated_at ? new Date(localData.updated_at).getTime() : 0;
+    const remoteTime = remoteData.updated_at ? new Date(remoteData.updated_at).getTime() : 0;
 
     // If both updated within 2 seconds, potential conflict
     if (Math.abs(localTime - remoteTime) < 2000 && localTime !== remoteTime) {
@@ -173,7 +173,7 @@ export class ConflictDetectionService {
           // Default: prefer local but update timestamp
           this.storageService.updateItem(entityType as any, entityId, {
             ...conflict.localData,
-            updatedAt: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           });
         }
         break;

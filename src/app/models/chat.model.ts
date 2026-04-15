@@ -4,9 +4,9 @@ export interface Chat {
   userId: string;
   authorName: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
-  isDeleted: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
   readBy: string[];
 }
 

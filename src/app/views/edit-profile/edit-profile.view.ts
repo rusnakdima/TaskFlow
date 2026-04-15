@@ -58,8 +58,8 @@ export class EditProfileView {
       bio: [""],
       imageUrl: [""],
       userId: ["", Validators.required],
-      createdAt: [""],
-      updatedAt: [""],
+      created_at: [""],
+      updated_at: [""],
     });
   }
 

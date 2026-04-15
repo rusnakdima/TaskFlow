@@ -66,11 +66,11 @@ export class StorageService extends BaseStorageService {
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
       // Filter out deleted todos
-      if (todo.isDeleted) return;
+      if (todo.deleted_at) return;
 
       if (
         !uniqueTodoMap.has(todo.id) ||
-        (todo.updatedAt && uniqueTodoMap.get(todo.id)!.updatedAt! < todo.updatedAt)
+        (todo.updated_at && uniqueTodoMap.get(todo.id)!.updated_at! < todo.updated_at)
       ) {
         uniqueTodoMap.set(todo.id, todo);
       }
@@ -79,11 +79,11 @@ export class StorageService extends BaseStorageService {
   });
 
   private readonly privateTodosComputed = computed(() => {
-    return this.privateTodosSignal().filter((todo) => !todo.isDeleted);
+    return this.privateTodosSignal().filter((todo) => !todo.deleted_at);
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter((todo) => !todo.isDeleted);
+    return this.sharedTodosSignal().filter((todo) => !todo.deleted_at);
   });
 
   // ==================== PUBLIC SIGNALS ====================
@@ -91,10 +91,10 @@ export class StorageService extends BaseStorageService {
   readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
   readonly tasks = computed(() =>
-    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.isDeleted))
+    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deleted_at))
   );
   readonly subtasks = computed(() =>
-    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.isDeleted))
+    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deleted_at))
   );
   readonly comments = computed(() => {
     const todos = this.todos();
@@ -132,9 +132,9 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    if (updates["isDeleted"] === true) {
+    if (updates["deleted_at"] === true) {
       const existing: any = this.getById(type, id);
-      if (existing?.["isDeleted"] === true) return;
+      if (existing?.["deleted_at"] === true) return;
     }
 
     if (type === "todos") {

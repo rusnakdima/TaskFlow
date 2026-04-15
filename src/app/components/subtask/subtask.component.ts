@@ -107,7 +107,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
     if (!comments || comments.length === 0) return [];
-    return comments.filter((c) => !c.isDeleted);
+    return comments.filter((c) => !c.deleted_at);
   }
 
   toggleComments() {
@@ -121,7 +121,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         // Check if there are any unread comments (excluding own comments)
         const hasUnread = this.subtask.comments.some(
           (c: any) =>
-            !c.isDeleted &&
+            !c.deleted_at &&
             c.subtaskId &&
             c.authorId !== userId &&
             (!c.readBy || !c.readBy.includes(userId))
@@ -131,7 +131,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
           // Update storage directly - mark comments as read
           const updatedComments = this.subtask.comments.map((c: any) => {
             // Skip deleted comments and task comments (only subtask comments)
-            if (c.isDeleted || !c.subtaskId) return c;
+            if (c.deleted_at || !c.subtaskId) return c;
             // Skip if user is author (already read)
             if (c.authorId === userId) return c;
 
@@ -155,7 +155,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
             this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
           if (effectiveTodoId) {
             const commentsToUpdate = updatedComments.filter(
-              (c: any) => !c.isDeleted && c.subtaskId === this.subtask?.id && c.authorId !== userId
+              (c: any) => !c.deleted_at && c.subtaskId === this.subtask?.id && c.authorId !== userId
             );
 
             if (commentsToUpdate.length > 0) {
@@ -192,7 +192,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         content: content,
         subtaskId: this.subtask.id,
         readBy: [userId],
-        isDeleted: false,
+        deleted_at: null,
       };
 
       this.dataSyncProvider
