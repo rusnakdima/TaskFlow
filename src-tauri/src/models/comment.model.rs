@@ -1,27 +1,42 @@
-use mongodb::bson::oid::ObjectId;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommentModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
-  #[serde(default)]
+pub struct CommentEntity {
   pub id: Option<String>,
   pub authorId: String,
   pub authorName: String,
   pub content: String,
-  pub createdAt: String,
-  pub updatedAt: String,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub taskId: Option<String>,
   #[serde(default)]
   pub subtaskId: Option<String>,
   #[serde(default)]
   pub readBy: Vec<String>,
-  #[serde(default)]
-  pub isDeleted: bool,
+  pub deleted_at: Option<DateTime<Utc>>,
+}
+
+impl Entity for CommentEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("comments")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,8 +59,6 @@ impl Validatable for CommentCreateModel {
     if self.content.is_empty() {
       return Err("content cannot be empty".to_string());
     }
-    // Must belong to exactly one of task or subtask (so task comments and subtask comments stay separate).
-    // Treat null/empty as unset.
     let has_task = self
       .taskId
       .as_deref()
@@ -66,23 +79,21 @@ impl Validatable for CommentCreateModel {
   }
 }
 
-impl From<CommentCreateModel> for CommentModel {
+impl From<CommentCreateModel> for CommentEntity {
   fn from(value: CommentCreateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let now = Utc::now();
 
-    CommentModel {
-      _id: Some(ObjectId::new()),
-      id: Some(uuid::Uuid::new_v4().to_string()),
+    CommentEntity {
+      id: None,
       authorId: value.authorId,
       authorName: value.authorName,
       content: value.content,
-      createdAt: formatted.clone(),
-      updatedAt: formatted.clone(),
+      created_at: now,
+      updated_at: now,
       taskId: value.taskId,
       subtaskId: value.subtaskId,
       readBy: vec![],
-      isDeleted: false,
+      deleted_at: None,
     }
   }
 }
@@ -94,7 +105,7 @@ pub struct CommentUpdateModel {
   #[serde(default)]
   pub readBy: Option<Vec<String>>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
 }
 
 impl Validatable for CommentUpdateModel {

@@ -1,9 +1,11 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
+use crate::models::comment_model::CommentEntity;
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
@@ -29,24 +31,43 @@ impl Display for TaskStatus {
   }
 }
 
-use crate::models::comment_model::CommentModel;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskModel {
-  pub _id: ObjectId,
-  pub id: String,
+pub struct TaskEntity {
+  pub id: Option<String>,
   pub todoId: String,
   pub title: String,
   pub description: String,
   pub status: TaskStatus,
   pub priority: String,
-  pub startDate: String,
-  pub endDate: String,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
   pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
-  pub updatedAt: String,
-  pub comments: Vec<CommentModel>,
+  pub deleted_at: Option<DateTime<Utc>>,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+  pub assignees: Vec<String>,
+  pub dependsOn: Vec<String>,
+  pub subtasks: Vec<crate::models::subtask_model::SubtaskEntity>,
+  pub todo: Option<crate::models::todo_model::TodoEntity>,
+  pub comments: Vec<CommentEntity>,
+}
+
+impl Entity for TaskEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("tasks")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,7 +79,7 @@ pub struct TaskCreateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
-  pub comments: Option<Vec<CommentModel>>,
+  pub comments: Option<Vec<crate::models::comment_model::CommentEntity>>,
 }
 
 impl Validatable for TaskCreateModel {
@@ -76,52 +97,56 @@ impl Validatable for TaskCreateModel {
   }
 }
 
-impl From<TaskCreateModel> for TaskModel {
+impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    let mut formattedStartDate = String::new();
-    let mut formattedEndDate = String::new();
-    if value.startDate != "" {
-      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
-        formattedStartDate = dt
-          .with_timezone(&chrono::Utc)
+    let now = Utc::now();
+    let formattedStartDate = if value.startDate.is_empty() {
+      None
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
+      Some(
+        dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
-          .to_string();
-      }
-    }
-    if value.endDate != "" {
-      if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
-        formattedEndDate = dt
-          .with_timezone(&chrono::Utc)
+          .to_string(),
+      )
+    } else {
+      None
+    };
+    let formattedEndDate = if value.endDate.is_empty() {
+      None
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
+      Some(
+        dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
-          .to_string();
-      }
-    }
+          .to_string(),
+      )
+    } else {
+      None
+    };
 
-    TaskModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
+    TaskEntity {
+      id: None,
       todoId: value.todoId,
       title: value.title,
-      description: value.description.unwrap_or("".to_string()),
+      description: value.description.unwrap_or_default(),
       status: TaskStatus::Pending,
       priority: value.priority,
       startDate: formattedStartDate,
       endDate: formattedEndDate,
       order: value.order,
-      isDeleted: false,
-      createdAt: formatted.clone(),
-      updatedAt: formatted.clone(),
+      deleted_at: None,
+      created_at: now,
+      updated_at: now,
       comments: value.comments.unwrap_or_default(),
+      assignees: vec![],
+      dependsOn: vec![],
+      subtasks: vec![],
+      todo: None,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskUpdateModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
@@ -141,11 +166,11 @@ pub struct TaskUpdateModel {
   #[serde(default)]
   pub order: Option<i32>,
   #[serde(default)]
-  pub isDeleted: Option<bool>,
+  pub deleted_at: Option<bool>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
   #[serde(default)]
-  pub comments: Option<Vec<CommentModel>>,
+  pub comments: Option<Vec<crate::models::comment_model::CommentEntity>>,
 }
 
 impl Validatable for TaskUpdateModel {

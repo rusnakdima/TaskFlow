@@ -54,6 +54,8 @@ openssl-sys = { version = "0.9", features = ["vendored"] }
 keyring = "3"
 dashmap = "5"
 
+nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm.git", features = ["json", "mongo"] }
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

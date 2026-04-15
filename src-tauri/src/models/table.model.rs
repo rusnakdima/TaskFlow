@@ -3,16 +3,16 @@ use serde_json::Value;
 
 // Import all model types
 use crate::models::{
-  category_model::{CategoryCreateModel, CategoryModel, CategoryUpdateModel},
-  chat_model::{ChatCreateModel, ChatModel, ChatUpdateModel},
-  comment_model::{CommentCreateModel, CommentModel, CommentUpdateModel},
+  category_model::{CategoryCreateModel, CategoryEntity, CategoryUpdateModel},
+  chat_model::{ChatCreateModel, ChatEntity, ChatUpdateModel},
+  comment_model::{CommentCreateModel, CommentEntity, CommentUpdateModel},
   daily_activity_model::{DailyActivityCreateModel, DailyActivityModel},
-  profile_model::{ProfileCreateModel, ProfileModel, ProfileUpdateModel},
-  subtask_model::{SubtaskCreateModel, SubtaskModel, SubtaskUpdateModel},
-  task_model::{TaskCreateModel, TaskModel, TaskUpdateModel},
-  todo_model::{TodoCreateModel, TodoModel, TodoUpdateModel},
+  profile_model::{ProfileCreateModel, ProfileEntity, ProfileUpdateModel},
+  subtask_model::{SubtaskCreateModel, SubtaskEntity, SubtaskUpdateModel},
+  task_model::{TaskCreateModel, TaskEntity, TaskUpdateModel},
+  todo_model::{TodoCreateModel, TodoEntity, TodoUpdateModel},
   traits::Validatable,
-  user_model::{UserCreateModel, UserModel, UserUpdateModel},
+  user_model::{UserCreateModel, UserEntity, UserUpdateModel},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -61,7 +61,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: ChatCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
         createModel.validate()?;
-        let model: ChatModel = createModel.into();
+        let model: ChatEntity = createModel.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize chat model: {}", e))
       } else {
         let updateModel: ChatUpdateModel = serde_json::from_value(data.clone())
@@ -75,7 +75,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: TodoCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid todo data: {}", e))?;
         createModel.validate()?;
-        let model: TodoModel = createModel.into();
+        let model: TodoEntity = createModel.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize todo model: {}", e))
       } else {
         let updateModel: TodoUpdateModel = serde_json::from_value(data.clone())
@@ -89,7 +89,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: TaskCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid task data: {}", e))?;
         createModel.validate()?;
-        let model: TaskModel = createModel.into();
+        let model: TaskEntity = createModel.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize task model: {}", e))
       } else {
         let updateModel: TaskUpdateModel = serde_json::from_value(data.clone())
@@ -103,7 +103,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: SubtaskCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid subtask data: {}", e))?;
         createModel.validate()?;
-        let model: SubtaskModel = createModel.into();
+        let model: SubtaskEntity = createModel.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize subtask model: {}", e))
       } else {
@@ -118,7 +118,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: CategoryCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category data: {}", e))?;
         createModel.validate()?;
-        let model: CategoryModel = createModel.into();
+        let model: CategoryEntity = createModel.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize category model: {}", e))
       } else {
@@ -133,7 +133,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: UserCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid user data: {}", e))?;
         createModel.validate()?;
-        let model: UserModel = createModel.into();
+        let model: UserEntity = createModel.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize user model: {}", e))
       } else {
         let updateModel: UserUpdateModel = serde_json::from_value(data.clone())
@@ -147,7 +147,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: ProfileCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid profile data: {}", e))?;
         createModel.validate()?;
-        let model: ProfileModel = createModel.into();
+        let model: ProfileEntity = createModel.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize profile model: {}", e))
       } else {
@@ -175,7 +175,7 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         let createModel: CommentCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid comment data: {}", e))?;
         createModel.validate()?;
-        let model: CommentModel = createModel.into();
+        let model: CommentEntity = createModel.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize comment model: {}", e))
       } else {

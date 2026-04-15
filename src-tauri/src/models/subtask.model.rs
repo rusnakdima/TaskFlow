@@ -1,28 +1,45 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::models::comment_model::CommentEntity;
 use crate::models::traits::Validatable;
-
-/* models */
-use crate::models::{
-  comment_model::CommentModel, sync_metadata_model::SyncMetadata, task_model::TaskStatus,
-};
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubtaskModel {
-  pub _id: ObjectId,
-  pub id: String,
+pub struct SubtaskEntity {
+  pub id: Option<String>,
   pub taskId: String,
   pub title: String,
   pub description: String,
-  pub status: TaskStatus,
+  pub status: crate::models::task_model::TaskStatus,
   pub priority: String,
   pub order: i32,
-  pub isDeleted: bool,
-  pub createdAt: String,
-  pub updatedAt: String,
-  pub comments: Vec<CommentModel>,
+  pub deleted_at: Option<DateTime<Utc>>,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
+  pub task: Option<crate::models::task_model::TaskEntity>,
+  pub comments: Vec<CommentEntity>,
+}
+
+impl Entity for SubtaskEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("subtasks")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,8 +50,8 @@ pub struct SubtaskCreateModel {
   pub priority: String,
   pub order: i32,
   #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
-  pub comments: Option<Vec<CommentModel>>,
+  pub sync_metadata: Option<crate::models::sync_metadata_model::SyncMetadata>,
+  pub comments: Option<Vec<crate::models::comment_model::CommentEntity>>,
 }
 
 impl Validatable for SubtaskCreateModel {
@@ -52,32 +69,31 @@ impl Validatable for SubtaskCreateModel {
   }
 }
 
-impl From<SubtaskCreateModel> for SubtaskModel {
+impl From<SubtaskCreateModel> for SubtaskEntity {
   fn from(value: SubtaskCreateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let now = Utc::now();
 
-    SubtaskModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
+    SubtaskEntity {
+      id: None,
       taskId: value.taskId,
       title: value.title,
       description: value.description.unwrap_or_default(),
-      status: TaskStatus::Pending,
-      priority: value.priority.to_string(),
+      status: crate::models::task_model::TaskStatus::Pending,
+      priority: value.priority,
       order: value.order,
-      isDeleted: false,
-      createdAt: formatted.clone(),
-      updatedAt: formatted.clone(),
+      deleted_at: None,
+      created_at: now,
+      updated_at: now,
       comments: value.comments.unwrap_or_default(),
+      startDate: None,
+      endDate: None,
+      task: None,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskUpdateModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
@@ -87,22 +103,22 @@ pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub description: Option<String>,
   #[serde(default)]
-  pub status: Option<TaskStatus>,
+  pub status: Option<crate::models::task_model::TaskStatus>,
   #[serde(default)]
   pub priority: Option<String>,
   #[serde(default)]
   pub order: Option<i32>,
   #[serde(default)]
-  pub isDeleted: Option<bool>,
+  pub deleted_at: Option<bool>,
   #[serde(default)]
-  pub createdAt: Option<String>,
+  pub created_at: Option<String>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
   #[serde(default)]
-  pub comments: Option<Vec<CommentModel>>,
+  pub comments: Option<Vec<crate::models::comment_model::CommentEntity>>,
   #[serde(default)]
   #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<SyncMetadata>,
+  pub sync_metadata: Option<crate::models::sync_metadata_model::SyncMetadata>,
 }
 
 impl Validatable for SubtaskUpdateModel {

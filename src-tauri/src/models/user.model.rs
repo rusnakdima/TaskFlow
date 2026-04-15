@@ -1,13 +1,13 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserModel {
-  pub _id: ObjectId,
-  pub id: String,
+pub struct UserEntity {
+  pub id: Option<String>,
   pub email: String,
   pub username: String,
   pub password: String,
@@ -17,8 +17,11 @@ pub struct UserModel {
   #[serde(default)]
   pub codeExpiresAt: String,
   pub profileId: String,
-  pub createdAt: String,
-  pub updatedAt: String,
+  #[serde(skip)]
+  pub profile: Option<crate::models::profile_model::ProfileEntity>,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+  pub deleted_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub totpEnabled: bool,
   #[serde(default)]
@@ -37,6 +40,20 @@ pub struct UserModel {
   pub qrLoginEnabled: bool,
   #[serde(default)]
   pub recoveryCodes: Vec<String>,
+}
+
+impl Entity for UserEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("users")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,14 +102,12 @@ impl Validatable for UserCreateModel {
   }
 }
 
-impl From<UserCreateModel> for UserModel {
+impl From<UserCreateModel> for UserEntity {
   fn from(value: UserCreateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let now = Utc::now();
 
-    UserModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
+    UserEntity {
+      id: None,
       email: value.email,
       username: value.username,
       password: value.password,
@@ -100,8 +115,10 @@ impl From<UserCreateModel> for UserModel {
       temporaryCode: value.temporaryCode,
       codeExpiresAt: value.codeExpiresAt,
       profileId: value.profileId,
-      createdAt: formatted.clone(),
-      updatedAt: formatted.clone(),
+      created_at: now,
+      updated_at: now,
+      deleted_at: None,
+      profile: None,
       totpEnabled: value.totpEnabled,
       totpSecret: value.totpSecret,
       passkeyCredentialId: value.passkeyCredentialId,
@@ -117,8 +134,6 @@ impl From<UserCreateModel> for UserModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserUpdateModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
@@ -136,9 +151,9 @@ pub struct UserUpdateModel {
   #[serde(default)]
   pub profileId: Option<String>,
   #[serde(default)]
-  pub createdAt: Option<String>,
+  pub created_at: Option<String>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
   #[serde(default)]
   pub totpEnabled: Option<bool>,
   #[serde(default)]
@@ -175,32 +190,8 @@ impl Validatable for UserUpdateModel {
   }
 }
 
-impl From<UserUpdateModel> for UserModel {
-  fn from(value: UserUpdateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    UserModel {
-      _id: value._id.unwrap_or_else(ObjectId::new),
-      id: value.id.unwrap_or_default(),
-      email: value.email.unwrap_or_default(),
-      username: value.username.unwrap_or_default(),
-      password: value.password.unwrap_or_default(),
-      role: value.role.unwrap_or_default(),
-      temporaryCode: value.temporaryCode.unwrap_or_default(),
-      codeExpiresAt: value.codeExpiresAt.unwrap_or_default(),
-      profileId: value.profileId.unwrap_or_default(),
-      createdAt: value.createdAt.unwrap_or_default(),
-      updatedAt: formatted,
-      totpEnabled: value.totpEnabled.unwrap_or_default(),
-      totpSecret: value.totpSecret.unwrap_or_default(),
-      passkeyCredentialId: value.passkeyCredentialId.unwrap_or_default(),
-      passkeyPublicKey: value.passkeyPublicKey.unwrap_or_default(),
-      passkeyDevice: value.passkeyDevice.unwrap_or_default(),
-      passkeyEnabled: value.passkeyEnabled.unwrap_or_default(),
-      biometricEnabled: value.biometricEnabled.unwrap_or_default(),
-      qrLoginEnabled: value.qrLoginEnabled.unwrap_or_default(),
-      recoveryCodes: value.recoveryCodes.unwrap_or_default(),
-    }
+impl UserEntity {
+  pub fn get_id(&self) -> &str {
+    self.id.as_deref().unwrap_or("")
   }
 }

@@ -1,11 +1,39 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryEntity {
+  pub id: Option<String>,
+  pub title: String,
+  pub userId: String,
+  pub deleted_at: Option<DateTime<Utc>>,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+}
 
+impl Entity for CategoryEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("categories")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryCreateModel {
   pub title: String,
   pub userId: String,
@@ -23,21 +51,25 @@ impl Validatable for CategoryCreateModel {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-pub struct CategoryModel {
-  pub _id: ObjectId,
-  pub id: String,
-  pub title: String,
-  pub userId: String,
-  pub isDeleted: bool,
+impl From<CategoryCreateModel> for CategoryEntity {
+  fn from(value: CategoryCreateModel) -> Self {
+    let now = Utc::now();
+    CategoryEntity {
+      id: None,
+      title: value.title,
+      userId: value.userId,
+      deleted_at: None,
+      created_at: now,
+      updated_at: now,
+    }
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryUpdateModel {
   pub title: Option<String>,
   pub userId: Option<String>,
-  pub isDeleted: Option<bool>,
+  pub deleted_at: Option<bool>,
 }
 
 impl Validatable for CategoryUpdateModel {
@@ -48,17 +80,5 @@ impl Validatable for CategoryUpdateModel {
       }
     }
     Ok(())
-  }
-}
-
-impl From<CategoryCreateModel> for CategoryModel {
-  fn from(value: CategoryCreateModel) -> Self {
-    CategoryModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
-      title: value.title,
-      userId: value.userId,
-      isDeleted: false,
-    }
   }
 }

@@ -1,24 +1,39 @@
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChatModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
-  #[serde(default)]
+pub struct ChatEntity {
   pub id: Option<String>,
   pub todoId: String,
   pub userId: String,
   pub authorName: String,
   pub content: String,
-  pub createdAt: String,
-  pub updatedAt: String,
-  #[serde(default)]
-  pub isDeleted: bool,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+  pub deleted_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub readBy: Vec<String>,
+}
+
+impl Entity for ChatEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("chats")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,19 +59,18 @@ impl Validatable for ChatCreateModel {
   }
 }
 
-impl From<ChatCreateModel> for ChatModel {
+impl From<ChatCreateModel> for ChatEntity {
   fn from(create: ChatCreateModel) -> Self {
-    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    Self {
-      _id: Some(ObjectId::new()),
-      id: Some(Uuid::new().to_string()),
+    let now = Utc::now();
+    ChatEntity {
+      id: None,
       todoId: create.todoId,
       userId: create.userId.clone(),
       authorName: create.authorName,
       content: create.content,
-      createdAt: now.clone(),
-      updatedAt: now,
-      isDeleted: false,
+      created_at: now,
+      updated_at: now,
+      deleted_at: None,
       readBy: vec![create.userId],
     }
   }

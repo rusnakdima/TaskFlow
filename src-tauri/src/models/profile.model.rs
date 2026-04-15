@@ -1,20 +1,34 @@
 /* sys lib */
-use mongodb::bson::{oid::ObjectId, Uuid};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::models::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProfileModel {
-  pub _id: ObjectId,
-  pub id: String,
+pub struct ProfileEntity {
+  pub id: Option<String>,
   pub name: String,
   pub lastName: String,
   pub bio: String,
   pub imageUrl: String,
   pub userId: String,
-  pub createdAt: String,
-  pub updatedAt: String,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+}
+
+impl Entity for ProfileEntity {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("profiles")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = Some(id);
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,29 +52,25 @@ impl Validatable for ProfileCreateModel {
   }
 }
 
-impl From<ProfileCreateModel> for ProfileModel {
+impl From<ProfileCreateModel> for ProfileEntity {
   fn from(value: ProfileCreateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let now = Utc::now();
 
-    ProfileModel {
-      _id: ObjectId::new(),
-      id: Uuid::new().to_string(),
+    ProfileEntity {
+      id: None,
       name: value.name,
       lastName: value.lastName,
       bio: value.bio,
       imageUrl: value.imageUrl,
       userId: value.userId,
-      createdAt: formatted.clone(),
-      updatedAt: formatted.clone(),
+      created_at: now,
+      updated_at: now,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileUpdateModel {
-  #[serde(default)]
-  pub _id: Option<ObjectId>,
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
@@ -74,9 +84,9 @@ pub struct ProfileUpdateModel {
   #[serde(default)]
   pub userId: Option<String>,
   #[serde(default)]
-  pub createdAt: Option<String>,
+  pub created_at: Option<String>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
 }
 
 impl Validatable for ProfileUpdateModel {
@@ -87,24 +97,5 @@ impl Validatable for ProfileUpdateModel {
       }
     }
     Ok(())
-  }
-}
-
-impl From<ProfileUpdateModel> for ProfileModel {
-  fn from(value: ProfileUpdateModel) -> Self {
-    let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-    ProfileModel {
-      _id: value._id.unwrap_or_else(ObjectId::new),
-      id: value.id.unwrap_or_default(),
-      name: value.name.unwrap_or_default(),
-      lastName: value.lastName.unwrap_or_default(),
-      bio: value.bio.unwrap_or_default(),
-      imageUrl: value.imageUrl.unwrap_or_default(),
-      userId: value.userId.unwrap_or_default(),
-      createdAt: value.createdAt.unwrap_or_default(),
-      updatedAt: formatted,
-    }
   }
 }
