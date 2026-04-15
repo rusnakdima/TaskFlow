@@ -1,13 +1,12 @@
 export interface Comment {
-  _id?: any;
   id: string;
   authorId: string;
   authorName: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   taskId?: string;
   subtaskId?: string;
   readBy: string[];
-  isDeleted?: boolean;
+  deleted_at: string | null;
 }

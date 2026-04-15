@@ -183,9 +183,9 @@ export class ArchiveView extends BaseAdminView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-        const isDeleted = response.data === true;
+        const deleted_at = response.data === true;
         if (this.selectedType() === "todos") {
-          if (isDeleted) {
+          if (deleted_at) {
             this.storageService.removeTodoWithCascade(record.id);
           } else {
             // Restore: re-fetch from backend and restore in-place
@@ -233,7 +233,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
             });
           }
         } else {
-          this.storageService.updateItem(this.selectedType() as any, record.id, { isDeleted });
+          this.storageService.updateItem(this.selectedType() as any, record.id, { deleted_at });
         }
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
@@ -272,16 +272,16 @@ export class ArchiveView extends BaseAdminView implements OnInit {
         this.clearSelection();
         if (result.successCount > 0) {
           selectedItems.forEach((item) => {
-            const newIsDeleted = !item.isDeleted;
+            const newdeleted_at = !item.deleted_at;
 
             this.adminStorageService.updateRecordDeleteStatusWithCascade(
               table,
               item.id,
-              newIsDeleted
+              newdeleted_at
             );
 
             if (table === "todos") {
-              if (newIsDeleted) {
+              if (newdeleted_at) {
                 this.storageService.removeTodoWithCascade(item.id);
               } else {
                 // Restore: re-fetch from backend and restore in-place
@@ -329,7 +329,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
                 });
               }
             } else {
-              this.storageService.updateItem(table as any, item.id, { isDeleted: newIsDeleted });
+              this.storageService.updateItem(table as any, item.id, { deleted_at: newdeleted_at });
             }
           });
 

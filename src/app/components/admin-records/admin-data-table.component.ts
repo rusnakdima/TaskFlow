@@ -98,14 +98,14 @@ export class AdminDataTableComponent {
     }
   }
 
-  getDeletedStatusColor(isDeleted: boolean): string {
-    return isDeleted
+  getDeletedStatusColor(deleted_at: boolean): string {
+    return deleted_at
       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
       : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
   }
 
-  getDeletedStatusText(isDeleted: boolean): string {
-    return isDeleted ? "Deleted" : "Active";
+  getDeletedStatusText(deleted_at: boolean): string {
+    return deleted_at ? "Deleted" : "Active";
   }
 
   getValue(item: any, field: AdminFieldConfig): any {

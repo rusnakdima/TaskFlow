@@ -102,7 +102,7 @@ export class SortHelper {
    * Check if field is a date field
    */
   private static isDateField(field: string): boolean {
-    const dateFields = ["createdAt", "updatedAt", "startDate", "endDate"];
+    const dateFields = ["created_at", "updated_at", "startDate", "endDate"];
     return dateFields.includes(field);
   }
 }

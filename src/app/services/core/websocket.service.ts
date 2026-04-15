@@ -53,7 +53,7 @@ export class WebSocketService implements OnDestroy {
     "todo-created": (data) => this.storageService.addItem("todos", data),
     "todo-updated": (data) => this.storageService.updateItem("todos", data.id, data),
     "todo-deleted": (data) => {
-      if (data.isDeleted === true) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("todos", data.id, data);
       } else {
         this.storageService.removeItem("todos", data.id);
@@ -64,7 +64,7 @@ export class WebSocketService implements OnDestroy {
     "task-created": (data) => this.storageService.addItem("tasks", data),
     "task-updated": (data) => this.storageService.updateItem("tasks", data.id, data),
     "task-deleted": (data) => {
-      if (data.isDeleted === true) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("tasks", data.id, data);
       } else {
         this.storageService.removeItem("tasks", data.id);
@@ -75,7 +75,7 @@ export class WebSocketService implements OnDestroy {
     "subtask-created": (data) => this.storageService.addItem("subtasks", data),
     "subtask-updated": (data) => this.storageService.updateItem("subtasks", data.id, data),
     "subtask-deleted": (data) => {
-      if (data.isDeleted === true) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("subtasks", data.id, data);
       } else {
         this.storageService.removeItem("subtasks", data.id);
@@ -418,7 +418,7 @@ export class WebSocketService implements OnDestroy {
       );
       window.addEventListener(`ws-${entity}-deleted`, (event: any) => {
         const data = event.detail;
-        if (data.isDeleted === true) {
+        if (data.deleted_at !== null) {
           this.storageService.updateItem(entity, data.id, data);
         } else {
           this.storageService.removeItem(entity, data.id);

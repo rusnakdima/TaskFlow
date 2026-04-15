@@ -173,9 +173,9 @@ export class FilterHelper {
 
     // Status filter (active/deleted)
     if (filters.statusFilter === "active") {
-      filterConfigs.push({ field: "isDeleted", value: false, operator: "equals" });
+      filterConfigs.push({ field: "deleted_at", value: false, operator: "equals" });
     } else if (filters.statusFilter === "deleted") {
-      filterConfigs.push({ field: "isDeleted", value: true, operator: "equals" });
+      filterConfigs.push({ field: "deleted_at", value: true, operator: "equals" });
     }
 
     // Task/Subtask status filters
@@ -230,7 +230,7 @@ export class FilterHelper {
     if (filters.startDateFilter) {
       const filterDate = new Date(filters.startDateFilter);
       data = data.filter((item) => {
-        const itemDate = new Date(item.startDate || item.createdAt);
+        const itemDate = new Date(item.startDate || item.created_at);
         return itemDate >= filterDate;
       });
     }
@@ -238,7 +238,7 @@ export class FilterHelper {
     if (filters.endDateFilter) {
       const filterDate = new Date(filters.endDateFilter);
       data = data.filter((item) => {
-        const itemDate = new Date(item.endDate || item.createdAt);
+        const itemDate = new Date(item.endDate || item.created_at);
         return itemDate <= filterDate;
       });
     }
@@ -295,7 +295,7 @@ export class FilterHelper {
       categoriesFilter: "",
       todoIdFilter: "",
       taskIdFilter: "",
-      sortBy: "createdAt",
+      sortBy: "created_at",
       sortOrder: "desc",
     };
   }

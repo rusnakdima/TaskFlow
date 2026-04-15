@@ -218,7 +218,7 @@ export class BaseItemHelper {
     if (entity.comments && entity.comments.length > 0) {
       count += entity.comments.filter((c: any) => {
         // Skip deleted comments
-        if (c.isDeleted) return false;
+        if (c.deleted_at) return false;
         // Skip if user has read the comment
         if (c.readBy && c.readBy.includes(userId)) return false;
         // For tasks, only count task comments (not subtask comments)
@@ -245,7 +245,7 @@ export class BaseItemHelper {
 
     return entity.comments.map((comment: any) => {
       // Skip deleted comments
-      if (comment.isDeleted) return comment;
+      if (comment.deleted_at) return comment;
 
       // For tasks, only mark task comments (not subtask comments)
       if (entityType === "task" && comment.subtaskId) return comment;

@@ -93,7 +93,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { userId, visibility: "private", isDeleted: false },
+            filter: { userId, visibility: "private", deleted_at: null },
             isOwner: true,
             isPrivate: true,
             load: todoLoad,
@@ -106,7 +106,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { userId, visibility: "team", isDeleted: false },
+            filter: { userId, visibility: "team", deleted_at: null },
             isOwner: true,
             isPrivate: false,
             load: todoLoad,
@@ -119,7 +119,7 @@ export class DataSyncService {
           "getAll",
           "todos",
           {
-            filter: { assignees: userId, visibility: "team", isDeleted: false },
+            filter: { assignees: userId, visibility: "team", deleted_at: null },
             isOwner: false,
             isPrivate: false,
             load: todoLoad,
@@ -131,7 +131,7 @@ export class DataSyncService {
         return this.dataSyncProvider.crud<Category[]>(
           "getAll",
           "categories",
-          { filter: { userId, isDeleted: false } },
+          { filter: { userId, deleted_at: null } },
           true
         );
       }),
@@ -218,7 +218,7 @@ export class DataSyncService {
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "team", isDeleted: false },
+          filter: { userId, visibility: "team", deleted_at: null },
           isOwner: true,
           isPrivate: false,
           load: todoLoad,
@@ -229,7 +229,7 @@ export class DataSyncService {
         "getAll",
         "todos",
         {
-          filter: { assignees: userId, visibility: "team", isDeleted: false },
+          filter: { assignees: userId, visibility: "team", deleted_at: null },
           isOwner: false,
           isPrivate: false,
           load: todoLoad,
@@ -239,7 +239,7 @@ export class DataSyncService {
       categories: this.dataSyncProvider.crud<Category[]>(
         "getAll",
         "categories",
-        { filter: { userId, isDeleted: false } },
+        { filter: { userId, deleted_at: null } },
         true
       ),
     }).pipe(

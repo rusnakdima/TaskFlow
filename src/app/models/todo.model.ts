@@ -1,26 +1,24 @@
-/* models */
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 import { Task } from "@models/task.model";
 import { User } from "@models/user.model";
 
 export interface Todo {
-  _id?: {} | undefined;
   id: string;
   user: User;
   userId: string;
   title: string;
   description: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
   categories: Array<Category>;
   tasks: Array<Task>;
-  assignees: Array<string>; // List of user IDs
-  assigneesProfiles: Array<Profile>; // Full profile data for each assignee
+  assignees: Array<string>;
+  assigneesProfiles: Array<Profile>;
   visibility: "private" | "team";
   priority: string;
   order: number;
-  isDeleted: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

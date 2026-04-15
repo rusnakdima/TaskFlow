@@ -81,9 +81,9 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       startDate: [""],
       endDate: [""],
       order: [0],
-      isDeleted: [false],
-      createdAt: [""],
-      updatedAt: [""],
+      deleted_at: [false],
+      created_at: [""],
+      updated_at: [""],
     });
 
     this.form.get("startDate")?.valueChanges.subscribe((startDate) => {

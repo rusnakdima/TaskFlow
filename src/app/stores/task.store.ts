@@ -136,7 +136,7 @@ export class TaskStore {
   }
 
   restoreTask(id: string): void {
-    this.updateTask(id, { isDeleted: false });
+    this.updateTask(id, { deleted_at: null });
   }
 
   clear(): void {

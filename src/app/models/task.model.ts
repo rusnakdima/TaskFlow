@@ -1,4 +1,3 @@
-/* models */
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
 import { Comment } from "@models/comment.model";
@@ -24,7 +23,6 @@ export enum RepeatInterval {
 }
 
 export interface Task {
-  _id?: {} | undefined;
   id: string;
   todo: Todo;
   todoId: string;
@@ -33,13 +31,13 @@ export interface Task {
   subtasks: Array<Subtask>;
   status: TaskStatus;
   priority: PriorityTask;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
   repeat?: RepeatInterval;
   order: number;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
   assignees?: string[];
   dependsOn?: string[];
   comments: Array<Comment>;

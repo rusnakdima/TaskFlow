@@ -1,4 +1,3 @@
-/* models */
 import { User } from "@models/user.model";
 
 export interface Profile {
@@ -9,4 +8,6 @@ export interface Profile {
   imageUrl: string;
   user: User;
   userId: string;
+  created_at: string;
+  updated_at: string;
 }

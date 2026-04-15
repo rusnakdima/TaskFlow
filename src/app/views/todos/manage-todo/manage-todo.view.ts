@@ -91,9 +91,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
       categories: [[]],
       assignees: [[]],
       order: [0],
-      isDeleted: [false],
-      createdAt: [""],
-      updatedAt: [""],
+      deleted_at: [false],
+      created_at: [""],
+      updated_at: [""],
     });
 
     this.dateClass = DateHelper.createDateClass(this.form);
@@ -381,7 +381,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     } else {
       // If no categories in storage, fetch from backend
       this.dataSyncProvider
-        .crud<Category[]>("getAll", "categories", { filter: { isDeleted: false } }, true)
+        .crud<Category[]>("getAll", "categories", { filter: { deleted_at: null } }, true)
         .subscribe({
           next: (cats) => {
             if (cats && cats.length > 0) {
@@ -470,8 +470,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
       const assignees = formValue.assignees ?? [];
 
       // Only send fields that TodoCreateModel expects
-      // Backend will generate: _id, id, createdAt, updatedAt
-      // Backend will set default: isDeleted = false
       const body = {
         userId: convertedDates.userId,
         title: convertedDates.title,
