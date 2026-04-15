@@ -8,7 +8,7 @@ export interface Subtask {
   title: string;
   description: string;
   status: TaskStatus;
-  priority: PriorityTask;
+  priority: string;
   startDate: string | null;
   endDate: string | null;
   order: number;

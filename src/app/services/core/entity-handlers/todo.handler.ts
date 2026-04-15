@@ -118,11 +118,14 @@ export class TodoHandler extends EntityHandler<Todo> {
     );
   }
 
-  private handleVisibilityChange(todoId: string, newVisibility: "private" | "team"): void {
-    const [from, to] =
-      newVisibility === "private"
-        ? [this.sharedSignal, this.privateSignal]
-        : [this.privateSignal, this.sharedSignal];
+  private handleVisibilityChange(todoId: string, newVisibility: string): void {
+    const isPrivate = newVisibility === "private";
+    const isTeam = newVisibility === "team";
+    if (!isPrivate && !isTeam) return;
+
+    const [from, to] = isPrivate
+      ? [this.sharedSignal, this.privateSignal]
+      : [this.privateSignal, this.sharedSignal];
 
     // Get the todo from either signal
     const todo =

@@ -13,7 +13,7 @@ use super::auth_token::AuthTokenService;
 use crate::models::{
   login_form_model::LoginForm,
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -55,7 +55,7 @@ impl AuthLoginService {
     {
       Ok(users) => {
         if let Some(userVal) = users.first() {
-          let user: UserModel = serde_json::from_value(userVal.clone())
+          let user: UserEntity = serde_json::from_value(userVal.clone())
             .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
           match verify(password, &user.password) {
@@ -64,7 +64,7 @@ impl AuthLoginService {
                 let token =
                   self
                     .tokenService
-                    .generateToken(&user.id, &user.username, &user.role)?;
+                    .generateToken(&user.get_id(), &user.username, &user.role)?;
 
                 return Ok(ResponseModel {
                   status: ResponseStatus::Success,
@@ -104,16 +104,17 @@ impl AuthLoginService {
           errResponse("User not found. Please register first or check your username.")
         })?;
 
-        let user: UserModel = serde_json::from_value(userVal.clone())
+        let user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         match verify(password, &user.password) {
           Ok(valid) => {
             if valid {
               let _ = self.jsonProvider.create("users", userVal.clone()).await;
-              let token = self
-                .tokenService
-                .generateToken(&user.id, &user.username, &user.role)?;
+              let token =
+                self
+                  .tokenService
+                  .generateToken(&user.get_id(), &user.username, &user.role)?;
 
               Ok(ResponseModel {
                 status: ResponseStatus::Success,

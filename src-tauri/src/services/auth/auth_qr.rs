@@ -8,7 +8,7 @@ use super::auth_token::AuthTokenService;
 use crate::helpers::response_helper::{errResponse, successResponse};
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
@@ -363,13 +363,13 @@ impl QrAuthService {
       return Err(errResponse("User not found and MongoDB unavailable"));
     };
 
-    let user: UserModel = serde_json::from_value(user_val)
+    let user: UserEntity = serde_json::from_value(user_val)
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
     // Generate JWT token
     let token = self
       .tokenService
-      .generateToken(&user.id, &user.username, &user.role)?;
+      .generateToken(&user.get_id(), &user.username, &user.role)?;
 
     // Cache user locally if from MongoDB
     if self.mongodbProvider.is_some() {

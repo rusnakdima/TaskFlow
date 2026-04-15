@@ -8,7 +8,7 @@ use crate::helpers::timestamp_helper;
 
 /* models */
 use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
-use crate::models::user_model::UserModel;
+use crate::models::user_model::UserEntity;
 
 /* providers */
 use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
@@ -32,7 +32,7 @@ pub async fn updateUserProfileId(
       };
 
     if let Some(user_val) = user_val {
-      let mut updatedUser: UserModel = match serde_json::from_value(user_val) {
+      let mut updatedUser: UserEntity = match serde_json::from_value(user_val) {
         Ok(user) => user,
         Err(e) => {
           return Err(ResponseModel {
@@ -44,7 +44,7 @@ pub async fn updateUserProfileId(
       };
 
       updatedUser.profileId = profileId.to_string();
-      updatedUser.updatedAt = now.clone();
+      updatedUser.updated_at = chrono::Utc::now();
 
       let user_json = serde_json::to_value(&updatedUser).map_err(|e| ResponseModel {
         status: ResponseStatus::Error,

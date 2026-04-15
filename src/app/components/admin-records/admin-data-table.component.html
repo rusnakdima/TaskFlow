@@ -15,19 +15,19 @@
                 @if (titleKey === "content") {
                   {{ item[titleKey] || "No content" }}
                 } @else if (titleKey === "date") {
-                  {{ item[titleKey] || formatDate(item.createdAt) }}
+                  {{ item[titleKey] || formatDate(item.created_at) }}
                 } @else {
                   {{ item[titleKey] || "No Title" }}
                 }
               </h4>
               <div class="textMuted flex items-center gap-4 text-sm">
                 <span class="truncate">ID: {{ item.id }}</span>
-                <span>{{ formatDate(item.createdAt) }}</span>
+                <span>{{ formatDate(item.created_at) }}</span>
               </div>
             </div>
             <div class="ml-4 flex shrink-0 items-center gap-2">
-              <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.isDeleted)">
-                {{ getDeletedStatusText(item.isDeleted) }}
+              <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deleted_at)">
+                {{ getDeletedStatusText(item.deleted_at) }}
               </mat-chip>
               <button mat-icon-button class="h-8 w-8" (click)="toggleExpanded(item.id)">
                 <mat-icon class="h-5 w-5 min-w-5">
@@ -39,11 +39,11 @@
                   mat-icon-button
                   class="h-8 w-8 text-blue-600"
                   (click)="toggleDelete.emit(item)"
-                  [title]="item.isDeleted ? 'Restore record' : 'Soft delete record'"
+                  [title]="item.deleted_at ? 'Restore record' : 'Soft delete record'"
                 >
                   <mat-icon
                     class="h-5! w-5! min-w-5 text-xl!"
-                    [fontIcon]="item.isDeleted ? 'restore_from_trash' : 'delete'"
+                    [fontIcon]="item.deleted_at ? 'restore_from_trash' : 'delete'"
                   />
                 </button>
                 <button

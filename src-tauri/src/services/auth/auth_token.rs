@@ -9,7 +9,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -83,7 +83,7 @@ impl AuthTokenService {
     // STEP 1: Check local JSON database FIRST (works offline)
     match self.jsonProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel = serde_json::from_value(userVal.clone())
+        let user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Try to sync with MongoDB in background (non-blocking)
@@ -114,7 +114,7 @@ impl AuthTokenService {
 
     match mongoProvider.get("users", &userId).await {
       Ok(userVal) => {
-        let user: UserModel = serde_json::from_value(userVal.clone())
+        let user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Sync user to local database for future offline use

@@ -113,7 +113,9 @@ export class FilterHelper {
   /**
    * Filter this week
    */
-  static filterThisWeek<T extends { startDate?: string; endDate?: string }>(data: T[]): T[] {
+  static filterThisWeek<T extends { startDate?: string | null; endDate?: string | null }>(
+    data: T[]
+  ): T[] {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const startOfWeek = new Date(today);

@@ -12,7 +12,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -98,9 +98,14 @@ impl AuthTotpService {
     }
 
     let secret_lower = secret.to_ascii_lowercase();
-    tracing::debug!("TOTP secret length: {}, first 4 chars: {}", 
-        secret_lower.len(), 
-        if secret_lower.len() >= 4 { &secret_lower[..4] } else { &secret_lower }
+    tracing::debug!(
+      "TOTP secret length: {}, first 4 chars: {}",
+      secret_lower.len(),
+      if secret_lower.len() >= 4 {
+        &secret_lower[..4]
+      } else {
+        &secret_lower
+      }
     );
 
     let secret_bytes = match Self::decode_base32_secret(&secret_lower) {
@@ -109,7 +114,10 @@ impl AuthTotpService {
         bytes
       }
       None => {
-        tracing::warn!("TOTP failed to decode base32 secret, secret was: {}...", secret_lower.chars().take(4).collect::<String>());
+        tracing::warn!(
+          "TOTP failed to decode base32 secret, secret was: {}...",
+          secret_lower.chars().take(4).collect::<String>()
+        );
         return false;
       }
     };
@@ -131,17 +139,22 @@ impl AuthTotpService {
 
     let time_step = current_time / 30;
     tracing::debug!("TOTP time step: {}", time_step);
-    
+
     for offset in [-1i32, 0, 1].iter() {
       let check_time = ((time_step as i64) + (*offset as i64)) * 30;
       let generated = totp.generate(check_time as u64);
-      tracing::debug!("TOTP generated code at offset {}: {} vs user code: {}", offset, generated, code);
+      tracing::debug!(
+        "TOTP generated code at offset {}: {} vs user code: {}",
+        offset,
+        generated,
+        code
+      );
       if generated == code {
         tracing::info!("TOTP verified successfully with offset {}", offset);
         return true;
       }
     }
-    
+
     tracing::warn!("TOTP code did not match any time step");
     false
   }
@@ -154,8 +167,9 @@ impl AuthTotpService {
     let recoveryCodes = self.generateRecoveryCodes();
     let qrCode = self.generateQrCode(&secret_lower, &user.email);
 
-    self.updateTotpSettings(username, false, &secret_lower, recoveryCodes.clone())
-        .await?;
+    self
+      .updateTotpSettings(username, false, &secret_lower, recoveryCodes.clone())
+      .await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -183,7 +197,9 @@ impl AuthTotpService {
       return Err(errResponse("Invalid TOTP code"));
     }
 
-    self.updateTotpSettings(username, true, &user.totpSecret, user.recoveryCodes.clone()).await?;
+    self
+      .updateTotpSettings(username, true, &user.totpSecret, user.recoveryCodes.clone())
+      .await?;
 
     Ok(successResponse("TOTP enabled successfully"))
   }
@@ -195,11 +211,16 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    tracing::info!("verifyLoginTotp: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}", 
-        username,
-        user.totpEnabled, 
-        user.totpSecret.len(),
-        if user.totpSecret.len() >= 4 { &user.totpSecret[..4] } else { &user.totpSecret }
+    tracing::info!(
+      "verifyLoginTotp: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}",
+      username,
+      user.totpEnabled,
+      user.totpSecret.len(),
+      if user.totpSecret.len() >= 4 {
+        &user.totpSecret[..4]
+      } else {
+        &user.totpSecret
+      }
     );
 
     if !user.totpEnabled {
@@ -208,20 +229,25 @@ impl AuthTotpService {
 
     if user.totpSecret.is_empty() {
       tracing::warn!("verifyLoginTotp: totpSecret is empty for user {}", username);
-      return Err(errResponse("TOTP secret not found. Please setup TOTP again."));
+      return Err(errResponse(
+        "TOTP secret not found. Please setup TOTP again.",
+      ));
     }
 
-    tracing::info!("verifyLoginTotp: calling verifyTotpCode with secret.len={}", user.totpSecret.len());
+    tracing::info!(
+      "verifyLoginTotp: calling verifyTotpCode with secret.len={}",
+      user.totpSecret.len()
+    );
     let verified = self.verifyTotpCode(&user.totpSecret, code).await;
     tracing::info!("verifyLoginTotp: verifyTotpCode returned {}", verified);
-    
+
     if !verified {
       return Err(errResponse("Invalid TOTP code"));
     }
 
     // Generate JWT token after successful TOTP verification
     if let Some(ref ts) = self.tokenService {
-      match ts.generateToken(&user.id, &user.username, &user.role) {
+      match ts.generateToken(&user.get_id(), &user.username, &user.role) {
         Ok(token) => {
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
@@ -252,7 +278,9 @@ impl AuthTotpService {
       return Err(errResponse("Invalid TOTP code"));
     }
 
-    self.updateTotpSettings(username, false, "", Vec::new()).await?;
+    self
+      .updateTotpSettings(username, false, "", Vec::new())
+      .await?;
 
     Ok(successResponse("TOTP disabled successfully"))
   }
@@ -271,7 +299,7 @@ impl AuthTotpService {
     let mut updatedUser = user.clone();
     if let Some(pos) = updatedUser.recoveryCodes.iter().position(|c| c == code) {
       updatedUser.recoveryCodes.remove(pos);
-      updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+      updatedUser.updated_at = chrono::Utc::now();
       self.saveUser(&updatedUser).await?;
       Ok(successResponse("Recovery code accepted"))
     } else {
@@ -306,7 +334,7 @@ impl AuthTotpService {
     })
   }
 
-  async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
+  async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
     let filter = serde_json::json!({ "username": username });
 
     match timeout(
@@ -350,11 +378,11 @@ impl AuthTotpService {
     }
   }
 
-  async fn saveUser(&self, user: &UserModel) -> Result<(), ResponseModel> {
+  async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
     let userVal = serde_json::to_value(user)
       .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
-    let userId = &user.id;
+    let userId = user.get_id();
 
     match timeout(
       Duration::from_secs(3),
@@ -401,11 +429,16 @@ impl AuthTotpService {
     totpSecret: &str,
     recoveryCodes: Vec<String>,
   ) -> Result<(), ResponseModel> {
-    tracing::info!("updateTotpSettings: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}", 
-        username,
-        totpEnabled,
-        totpSecret.len(),
-        if totpSecret.len() >= 4 { &totpSecret[..4] } else { totpSecret }
+    tracing::info!(
+      "updateTotpSettings: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}",
+      username,
+      totpEnabled,
+      totpSecret.len(),
+      if totpSecret.len() >= 4 {
+        &totpSecret[..4]
+      } else {
+        totpSecret
+      }
     );
 
     if let Some(mongoProvider) = &self.mongodbProvider {
@@ -419,17 +452,21 @@ impl AuthTotpService {
     }
 
     let user = self.findUser(username).await?;
-    tracing::info!("updateTotpSettings: found user with id={}", user.id);
-    
+    tracing::info!("updateTotpSettings: found user with id={}", user.get_id());
+
     let mut updatedUser = user.clone();
     updatedUser.totpEnabled = totpEnabled;
     updatedUser.totpSecret = totpSecret.to_string();
     updatedUser.recoveryCodes = recoveryCodes;
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.update("users", &user.id, serde_json::to_value(&updatedUser).unwrap()),
+      self.jsonProvider.update(
+        "users",
+        user.get_id(),
+        serde_json::to_value(&updatedUser).unwrap(),
+      ),
     )
     .await
     {

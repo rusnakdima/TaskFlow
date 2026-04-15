@@ -4,6 +4,7 @@
 mod errors;
 mod helpers;
 mod models;
+mod orm_adapters;
 mod providers;
 mod repositories;
 mod routes;
