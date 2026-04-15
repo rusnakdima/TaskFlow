@@ -8,7 +8,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -129,7 +129,7 @@ impl AuthBiometricService {
     updatedUser.passkeyPublicKey = publicKey.to_string();
     updatedUser.passkeyDevice = "platform".to_string();
     updatedUser.biometricEnabled = true;
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
 
@@ -175,14 +175,14 @@ impl AuthBiometricService {
 
     let mut updatedUser = user.clone();
     updatedUser.biometricEnabled = false;
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
 
     Ok(successResponse("Biometric disabled successfully"))
   }
 
-  async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
+  async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
     let filter = json!({ "username": username });
 
     match self
@@ -214,7 +214,7 @@ impl AuthBiometricService {
     }
   }
 
-  async fn findUsers(&self, filter: serde_json::Value) -> Result<UserModel, ResponseModel> {
+  async fn findUsers(&self, filter: serde_json::Value) -> Result<UserEntity, ResponseModel> {
     match self
       .jsonProvider
       .getAll("users", Some(filter.clone()))
@@ -244,11 +244,11 @@ impl AuthBiometricService {
     }
   }
 
-  async fn saveUser(&self, user: &UserModel) -> Result<(), ResponseModel> {
+  async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
     let userVal = serde_json::to_value(user)
       .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
-    let userId = &user.id;
+    let userId = user.get_id();
 
     if let Err(e) = self
       .jsonProvider

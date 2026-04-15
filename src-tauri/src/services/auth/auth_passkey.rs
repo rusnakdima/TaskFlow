@@ -10,7 +10,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbPro
 /* models */
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -69,7 +69,8 @@ impl AuthPasskeyService {
       ));
     }
 
-    let user_id = Uuid::parse_str(&user.id).map_err(|_| errResponse("Invalid user ID format"))?;
+    let user_id =
+      Uuid::parse_str(&user.get_id()).map_err(|_| errResponse("Invalid user ID format"))?;
 
     let (creation_challenge, reg_state) = self
       .webauthnState
@@ -123,7 +124,7 @@ impl AuthPasskeyService {
       .map_err(|e| errResponse(&format!("Failed to serialize credential: {}", e)))?;
     updatedUser.passkeyDevice = "cross-platform".to_string();
     updatedUser.passkeyEnabled = true;
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
 
@@ -220,7 +221,7 @@ impl AuthPasskeyService {
     let user = self.findUser(username).await?;
 
     let mut updatedUser = user.clone();
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
 
@@ -247,14 +248,14 @@ impl AuthPasskeyService {
     updatedUser.passkeyPublicKey = String::new();
     updatedUser.passkeyDevice = String::new();
     updatedUser.passkeyEnabled = false;
-    updatedUser.updatedAt = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
 
     Ok(successResponse("Passkey disabled successfully"))
   }
 
-  async fn findUser(&self, username: &str) -> Result<UserModel, ResponseModel> {
+  async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
     let filter = json!({ "username": username });
 
     match self
@@ -286,11 +287,11 @@ impl AuthPasskeyService {
     }
   }
 
-  async fn saveUser(&self, user: &UserModel) -> Result<(), ResponseModel> {
+  async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
     let userVal = serde_json::to_value(user)
       .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
-    let userId = &user.id;
+    let userId = user.get_id();
 
     if let Err(e) = self
       .jsonProvider

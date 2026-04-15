@@ -214,13 +214,13 @@ pub async fn getUserSecurityStatus(
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::helpers::response_helper::errResponse;
   use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
-  use crate::models::user_model::UserModel;
+  use crate::models::user_model::UserEntity;
   use serde_json::json;
 
   let filter = json!({ "username": username });
 
   // Try JSON provider first
-  let user_result: Option<UserModel> = match state
+  let user_result: Option<UserEntity> = match state
     .authService
     .passkeyService
     .jsonProvider

@@ -539,25 +539,50 @@ export class DataSyncProvider {
     const options = { isPrivate: !isTeam };
 
     // Archive todo
-    this.storageService.updateItem("todos", todoId, { deleted_at !== null }, options);
+    this.storageService.updateItem(
+      "todos",
+      todoId,
+      { deleted_at: new Date().toISOString() },
+      options
+    );
 
     // Archive all tasks and their subtasks/comments
     todo.tasks?.forEach((task) => {
-      this.storageService.updateItem("tasks", task.id, { deleted_at !== null }, options);
+      this.storageService.updateItem(
+        "tasks",
+        task.id,
+        { deleted_at: new Date().toISOString() },
+        options
+      );
 
       // Archive all subtasks and their comments
       task.subtasks?.forEach((subtask) => {
-        this.storageService.updateItem("subtasks", subtask.id, { deleted_at !== null }, options);
+        this.storageService.updateItem(
+          "subtasks",
+          subtask.id,
+          { deleted_at: new Date().toISOString() },
+          options
+        );
 
         // Archive subtask comments
         subtask.comments?.forEach((comment: Comment) => {
-          this.storageService.updateItem("comments", comment.id, { deleted_at !== null }, options);
+          this.storageService.updateItem(
+            "comments",
+            comment.id,
+            { deleted_at: new Date().toISOString() },
+            options
+          );
         });
       });
 
       // Archive task comments
       task.comments?.forEach((comment: Comment) => {
-        this.storageService.updateItem("comments", comment.id, { deleted_at !== null }, options);
+        this.storageService.updateItem(
+          "comments",
+          comment.id,
+          { deleted_at: new Date().toISOString() },
+          options
+        );
       });
     });
 

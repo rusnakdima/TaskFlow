@@ -12,7 +12,7 @@ use crate::providers::{
 use crate::models::{
   password_reset::PasswordReset,
   response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -52,7 +52,7 @@ impl AuthPasswordService {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserModel = serde_json::from_value(userVal.clone())
+        let mut user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Generate random 6-digit code
@@ -64,9 +64,9 @@ impl AuthPasswordService {
 
         user.temporaryCode = code.clone();
         user.codeExpiresAt = expiration;
-        user.updatedAt = timestamp_helper::getCurrentTimestamp();
+        user.updated_at = chrono::Utc::now();
 
-        let userId = user.id.clone();
+        let userId = user.id.as_ref().cloned().unwrap_or_default();
         let userJson = serde_json::to_value(&user).unwrap();
 
         // Send email with reset code
@@ -114,7 +114,7 @@ impl AuthPasswordService {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let user: UserModel = serde_json::from_value(userVal.clone())
+        let user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         if user.temporaryCode == code && !user.temporaryCode.is_empty() {
@@ -158,7 +158,7 @@ impl AuthPasswordService {
       Ok(users) => {
         let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserModel = serde_json::from_value(userVal.clone())
+        let mut user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         let hashedPassword = hash(password, DEFAULT_COST)
@@ -167,9 +167,9 @@ impl AuthPasswordService {
         user.password = hashedPassword;
         user.temporaryCode = "".to_string();
         user.codeExpiresAt = "".to_string();
-        user.updatedAt = timestamp_helper::getCurrentTimestamp();
+        user.updated_at = chrono::Utc::now();
 
-        let userId = user.id.clone();
+        let userId = user.id.as_ref().cloned().unwrap_or_default();
         let userJson = serde_json::to_value(&user).unwrap();
 
         match mongoProvider

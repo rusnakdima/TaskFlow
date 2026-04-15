@@ -240,7 +240,7 @@
             <mat-form-field class="w-32">
               <mat-label>Sort By</mat-label>
               <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
-                <mat-option value="createdAt">Created Date</mat-option>
+                <mat-option value="created_at">Created Date</mat-option>
                 <mat-option value="updatedAt">Updated Date</mat-option>
                 <mat-option value="title">Title</mat-option>
                 @if (

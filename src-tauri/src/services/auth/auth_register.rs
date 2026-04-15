@@ -14,7 +14,7 @@ use super::auth_token::AuthTokenService;
 use crate::models::{
   response_model::{DataValue, ResponseModel, ResponseStatus},
   signup_form_model::SignupForm,
-  user_model::UserModel,
+  user_model::UserEntity,
 };
 
 /* helpers */
@@ -64,11 +64,10 @@ impl AuthRegisterService {
         let hashedPassword = hash(password, DEFAULT_COST)
           .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
 
-        let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        let now = chrono::Utc::now();
 
-        let newUser = UserModel {
-          _id: mongodb::bson::oid::ObjectId::new(),
-          id: Uuid::new_v4().to_string(),
+        let newUser = UserEntity {
+          id: Some(Uuid::new_v4().to_string()),
           email,
           username,
           password: hashedPassword,
@@ -76,8 +75,10 @@ impl AuthRegisterService {
           temporaryCode: "".to_string(),
           codeExpiresAt: "".to_string(),
           profileId: "".to_string(),
-          createdAt: now.clone(),
-          updatedAt: now,
+          created_at: now,
+          updated_at: now,
+          deleted_at: None,
+          profile: None,
           totpEnabled: false,
           totpSecret: String::new(),
           passkeyCredentialId: String::new(),
@@ -96,10 +97,11 @@ impl AuthRegisterService {
             let _ = self.jsonProvider.create("users", userVal).await;
 
             // Generate JWT token with user info (same as login)
-            let token =
-              self
-                .tokenService
-                .generateToken(&newUser.id, &newUser.username, &newUser.role)?;
+            let token = self.tokenService.generateToken(
+              newUser.get_id(),
+              &newUser.username,
+              &newUser.role,
+            )?;
 
             Ok(ResponseModel {
               status: ResponseStatus::Success,

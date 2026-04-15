@@ -30,7 +30,7 @@ export interface Task {
   description: string;
   subtasks: Array<Subtask>;
   status: TaskStatus;
-  priority: PriorityTask;
+  priority: string;
   startDate: string | null;
   endDate: string | null;
   repeat?: RepeatInterval;
@@ -38,7 +38,7 @@ export interface Task {
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
-  assignees?: string[];
-  dependsOn?: string[];
+  assignees: string[];
+  dependsOn: string[];
   comments: Array<Comment>;
 }

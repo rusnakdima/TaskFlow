@@ -323,7 +323,10 @@ export class AdminStorageService extends BaseStorageService {
    */
   updateRecordDeleteStatus(table: string, id: string, deleted_at: boolean): void {
     const timestamp = new Date().toISOString();
-    this.updateRecord(table, id, { deleted_at, updated_at: timestamp });
+    this.updateRecord(table, id, {
+      deleted_at: deleted_at ? timestamp : null,
+      updated_at: timestamp,
+    });
   }
 
   /**
@@ -344,7 +347,9 @@ export class AdminStorageService extends BaseStorageService {
         // Update tasks
         this.tasksSignal.update((tasks) =>
           tasks.map((task) =>
-            task.todoId === id ? { ...task, deleted_at, updated_at: timestamp } : task
+            task.todoId === id
+              ? { ...task, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              : task
           )
         );
 
@@ -353,7 +358,7 @@ export class AdminStorageService extends BaseStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at, updated_at: timestamp }
+              ? { ...subtask, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
               : subtask
           )
         );
@@ -364,14 +369,18 @@ export class AdminStorageService extends BaseStorageService {
             const isRelated =
               (comment.taskId && taskIds.includes(comment.taskId)) ||
               (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
-            return isRelated ? { ...comment, deleted_at, updated_at: timestamp } : comment;
+            return isRelated
+              ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              : comment;
           })
         );
 
         // Update chats
         this.chatsSignal.update((chats) =>
           chats.map((chat) =>
-            chat.todoId === id ? { ...chat, deleted_at, updated_at: timestamp } : chat
+            chat.todoId === id
+              ? { ...chat, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              : chat
           )
         );
       }
@@ -388,7 +397,7 @@ export class AdminStorageService extends BaseStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at, updated_at: timestamp }
+              ? { ...subtask, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
               : subtask
           )
         );
@@ -399,7 +408,9 @@ export class AdminStorageService extends BaseStorageService {
             const isRelated =
               comment.taskId === id ||
               (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
-            return isRelated ? { ...comment, deleted_at, updated_at: timestamp } : comment;
+            return isRelated
+              ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              : comment;
           })
         );
       }
@@ -410,7 +421,9 @@ export class AdminStorageService extends BaseStorageService {
       // Update subtask comments
       this.commentsSignal.update((comments) =>
         comments.map((comment) =>
-          comment.subtaskId === id ? { ...comment, deleted_at, updated_at: timestamp } : comment
+          comment.subtaskId === id
+            ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+            : comment
         )
       );
     } else {

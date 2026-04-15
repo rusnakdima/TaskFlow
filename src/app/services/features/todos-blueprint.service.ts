@@ -1,7 +1,8 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
 import { StorageService } from "@services/core/storage.service";
 import { Todo } from "@models/todo.model";
+import { Observable } from "rxjs";
 
 @Injectable({
   providedIn: "root",
@@ -9,6 +10,13 @@ import { Todo } from "@models/todo.model";
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
+
+  showBlueprintDialog = signal(false);
+  showCreateBlueprintDialog = signal(false);
+  newBlueprintName = signal("");
+  newBlueprintDescription = signal("");
+  showApplyBlueprintDialog = signal(false);
+  applyBlueprintTitle = signal("");
 
   getTodosFromBlueprint(template: ProjectTemplate, userId: string): Todo[] {
     const todos: Todo[] = [];
@@ -22,6 +30,42 @@ export class TodosBlueprintService {
     }
 
     return todos;
+  }
+
+  saveAsBlueprint(todo: Todo): void {
+    console.log("Save as blueprint", todo);
+  }
+
+  confirmSaveAsBlueprint(): void {
+    this.showCreateBlueprintDialog.set(false);
+    this.newBlueprintName.set("");
+    this.newBlueprintDescription.set("");
+  }
+
+  closeCreateBlueprintDialog(): void {
+    this.showCreateBlueprintDialog.set(false);
+    this.newBlueprintName.set("");
+    this.newBlueprintDescription.set("");
+  }
+
+  confirmCreateFromBlueprint(userId: string): Observable<Todo[]> {
+    return new Observable((subscriber) => {
+      subscriber.next([]);
+      subscriber.complete();
+    });
+  }
+
+  openApplyBlueprint(template: ProjectTemplate): void {
+    this.showApplyBlueprintDialog.set(true);
+    this.applyBlueprintTitle.set(template.name || "");
+  }
+
+  removeBlueprint(templateId: string): void {
+    console.log("Remove blueprint", templateId);
+  }
+
+  getSubtasksCount(template: ProjectTemplate): number {
+    return template.tasks?.length || 0;
   }
 
   private createTodoFromTemplate(template: any, userId: string): Todo {
