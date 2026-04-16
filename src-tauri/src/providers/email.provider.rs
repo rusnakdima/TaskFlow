@@ -6,9 +6,9 @@ use lettre::{
 };
 
 /* models */
-use crate::models::{
+use crate::entities::{
   email_config::EmailConfig,
-  response_model::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
 };
 
 /* helpers */
