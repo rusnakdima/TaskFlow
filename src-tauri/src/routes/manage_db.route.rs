@@ -4,9 +4,9 @@ use serde_json::Value;
 use tauri::State;
 
 /* models */
-use crate::models::relation_obj::RelationObj;
-use crate::models::response_model::ResponseModel;
-use crate::models::sync_metadata_model::SyncMetadata;
+use crate::entities::relation_obj::RelationObj;
+use crate::entities::response_entity::ResponseModel;
+use crate::entities::sync_metadata_entity::SyncMetadata;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
 
@@ -23,7 +23,7 @@ pub async fn manageData(
   syncMetadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .crudService
+    .repositoryService
     .execute(
       operation,
       table,

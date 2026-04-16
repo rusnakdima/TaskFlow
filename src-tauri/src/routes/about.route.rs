@@ -3,7 +3,7 @@ use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::entities::response_entity::ResponseModel;
 
 #[tauri::command]
 pub async fn downloadUpdate(

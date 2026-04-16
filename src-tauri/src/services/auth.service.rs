@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider; use nosql_orm::providers::MongoProvider;
 
 /* services */
 use super::auth::auth_biometric::AuthBiometricService;
@@ -16,9 +16,9 @@ use super::auth::auth_totp::AuthTotpService;
 use super::auth::webauthn_state::WebAuthnState;
 
 /* models */
-use crate::models::{
-  login_form_model::LoginForm, password_reset::PasswordReset, response_model::ResponseModel,
-  signup_form_model::SignupForm,
+use crate::entities::{
+  login_form_entity::LoginForm, password_reset::PasswordReset, response_entity::ResponseModel,
+  signup_form_entity::SignupForm,
 };
 
 /* helpers */
@@ -41,7 +41,7 @@ pub struct AuthService {
 impl AuthService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     jwtSecret: String,
     rpDomain: String,
   ) -> Self {

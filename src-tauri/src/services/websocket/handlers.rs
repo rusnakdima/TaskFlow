@@ -3,26 +3,26 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* services */
-use super::super::crud_service::CrudService;
+use super::super::repository_service::RepositoryService;
 use super::broadcast::BroadcastHelper;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  sync_metadata_model::SyncMetadata,
-  websocket_model::WsRequest,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  sync_metadata_entity::SyncMetadata,
+  websocket_entity::WsRequest,
 };
 
 /// WebSocket CRUD handlers - handles individual CRUD operations
 pub struct CrudHandlers {
-  crud_service: Arc<CrudService>,
+  repository_service: Arc<RepositoryService>,
   broadcast: BroadcastHelper,
 }
 
 impl CrudHandlers {
-  pub fn new(crud_service: Arc<CrudService>, broadcast: BroadcastHelper) -> Self {
+  pub fn new(repository_service: Arc<RepositoryService>, broadcast: BroadcastHelper) -> Self {
     Self {
-      crud_service,
+      repository_service,
       broadcast,
     }
   }
@@ -35,7 +35,7 @@ impl CrudHandlers {
   ) -> ResponseModel {
     let filter = request.filter.unwrap_or(json!({}));
     self
-      .crud_service
+      .repository_service
       .execute(
         "getAll".to_string(),
         request.entity,
@@ -54,7 +54,7 @@ impl CrudHandlers {
   pub async fn handle_get(&self, request: WsRequest, sync_metadata: SyncMetadata) -> ResponseModel {
     let filter = request.filter.unwrap_or(json!({}));
     self
-      .crud_service
+      .repository_service
       .execute(
         "get".to_string(),
         request.entity,
@@ -77,7 +77,7 @@ impl CrudHandlers {
   ) -> ResponseModel {
     if let Some(data) = request.data {
       let res = self
-        .crud_service
+        .repository_service
         .execute(
           "create".to_string(),
           request.entity.clone(),
@@ -113,7 +113,7 @@ impl CrudHandlers {
   ) -> ResponseModel {
     if let (Some(id), Some(data)) = (request.id, request.data) {
       let res = self
-        .crud_service
+        .repository_service
         .execute(
           "update".to_string(),
           request.entity.clone(),
@@ -149,7 +149,7 @@ impl CrudHandlers {
   ) -> ResponseModel {
     if let Some(data) = request.data {
       let res = self
-        .crud_service
+        .repository_service
         .execute(
           "updateAll".to_string(),
           request.entity.clone(),
@@ -218,7 +218,7 @@ impl CrudHandlers {
     if let Some(id) = request.id {
       // Get original record for broadcast data
       let original = self
-        .crud_service
+        .repository_service
         .execute(
           "get".to_string(),
           request.entity.clone(),
@@ -233,7 +233,7 @@ impl CrudHandlers {
         .ok();
 
       let res = self
-        .crud_service
+        .repository_service
         .execute(
           "delete".to_string(),
           request.entity.clone(),
@@ -276,7 +276,7 @@ impl CrudHandlers {
   ) -> ResponseModel {
     if let Some(id) = request.id {
       let res = self
-        .crud_service
+        .repository_service
         .execute(
           "restore".to_string(),
           request.entity.clone(),
@@ -293,7 +293,7 @@ impl CrudHandlers {
       if res.status == ResponseStatus::Success {
         // Fetch the restored record to include in the broadcast
         let restored = self
-          .crud_service
+          .repository_service
           .execute(
             "get".to_string(),
             request.entity.clone(),

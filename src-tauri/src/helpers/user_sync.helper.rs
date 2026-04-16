@@ -1,68 +1,26 @@
 /* sys lin */
+use nosql_orm::provider::DatabaseProvider;
 use serde_json::Value;
-use std::sync::Arc;
-use std::time::Duration;
 
 /* helpers */
 use crate::helpers::timestamp_helper;
 
-/* models */
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
-use crate::models::user_model::UserEntity;
+/* entities */
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
 
-/// Helper method to update user's profileId in both MongoDB and local JSON storage
-pub async fn updateUserProfileId(
+/// Helper method to update user's profileId in JSON storage only
+pub async fn updateUserProfileIdJson(
   jsonProvider: &JsonProvider,
-  mongodbProvider: &Option<Arc<MongodbProvider>>,
   userId: &str,
   profileId: &str,
 ) -> Result<(), ResponseModel> {
   let now = timestamp_helper::getCurrentTimestamp();
 
-  // Update in MongoDB
-  if let Some(ref mongodb) = mongodbProvider {
-    // Best-effort and fast: when MongoDB is down, driver timeouts can be long.
-    let user_val =
-      match tokio::time::timeout(Duration::from_millis(600), mongodb.get("users", userId)).await {
-        Ok(Ok(val)) => Some(val),
-        _ => None,
-      };
-
-    if let Some(user_val) = user_val {
-      let mut updatedUser: UserEntity = match serde_json::from_value(user_val) {
-        Ok(user) => user,
-        Err(e) => {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Failed to parse user from MongoDB: {}", e),
-            data: DataValue::String("".to_string()),
-          });
-        }
-      };
-
-      updatedUser.profileId = profileId.to_string();
-      updatedUser.updated_at = chrono::Utc::now();
-
-      let user_json = serde_json::to_value(&updatedUser).map_err(|e| ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error serializing user: {}", e),
-        data: DataValue::String("".to_string()),
-      })?;
-
-      let _ = tokio::time::timeout(
-        Duration::from_millis(600),
-        mongodb.update("users", userId, user_json),
-      )
-      .await;
-    }
-  }
-
-  // Update in local JSON storage
-  match jsonProvider.get("users", userId).await {
-    Ok(user_value) => {
+  match jsonProvider.find_by_id("users", userId).await {
+    Ok(Some(user_value)) => {
       let mut updatedUser = user_value.clone();
       if let Some(obj) = updatedUser.as_object_mut() {
         obj.insert(
@@ -73,11 +31,17 @@ pub async fn updateUserProfileId(
       }
 
       let _ = jsonProvider.update("users", userId, updatedUser).await;
+      Ok(())
     }
-    Err(_e) => {
-      // Silently handle error
-    }
+    Ok(None) => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: format!("User {} not found", userId),
+      data: DataValue::String("".to_string()),
+    }),
+    Err(e) => Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: format!("Failed to get user: {}", e),
+      data: DataValue::String("".to_string()),
+    }),
   }
-
-  Ok(())
 }

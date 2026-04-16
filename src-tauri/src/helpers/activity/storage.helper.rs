@@ -1,16 +1,17 @@
 /* sys lib */
+use nosql_orm::provider::DatabaseProvider;
 use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::common::convertDataToArray;
 
 /* providers */
-use crate::providers::json_provider::JsonProvider;
+use nosql_orm::providers::JsonProvider;
 
-/* models */
-use crate::models::{
-  daily_activity_model::{DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel},
-  response_model::{DataValue, ResponseModel, ResponseStatus},
+/* entities */
+use crate::entities::{
+  daily_activity_entity::{DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel},
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
 };
 
 #[derive(Clone)]
@@ -23,10 +24,10 @@ impl ActivityStorage {
     Self { jsonProvider }
   }
 
-  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn getAll(&self, _filter: Value) -> Result<ResponseModel, ResponseModel> {
     let listDailyActivities = self
       .jsonProvider
-      .getAll("daily_activities", Some(filter))
+      .find_all("daily_activities")
       .await;
     match listDailyActivities {
       Ok(dailyActivities) => Ok(ResponseModel {
@@ -52,23 +53,14 @@ impl ActivityStorage {
   ) -> Result<DailyActivityModel, ResponseModel> {
     let existing = self
       .jsonProvider
-      .getAll(
-        "daily_activities",
-        Some(serde_json::json!({ "userId": userId.clone(), "date": date.clone() })),
-      )
+      .find_all("daily_activities")
       .await;
 
-    match existing {
-      Ok(activities) => {
-        if let Some(activityValue) = activities.first() {
-          if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activityValue.clone())
-          {
-            return Ok(activity);
-          }
+    if let Ok(activities) = existing {
+      if let Some(activityValue) = activities.first() {
+        if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activityValue.clone()) {
+          return Ok(activity);
         }
-      }
-      Err(_e) => {
-        // Log error silently
       }
     }
 
@@ -79,38 +71,13 @@ impl ActivityStorage {
     let model: DailyActivityModel = createModel.into();
     let record: Value = to_value(&model).unwrap();
 
-    match self.jsonProvider.create("daily_activities", record).await {
+    match self.jsonProvider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
-      Err(error) => {
-        if error.to_string().contains("already exists") {
-          let existing = self
-            .jsonProvider
-            .getAll(
-              "daily_activities",
-              Some(serde_json::json!({ "userId": userId, "date": date })),
-            )
-            .await;
-          match existing {
-            Ok(activities) => {
-              if let Some(activityValue) = activities.first() {
-                if let Ok(activity) =
-                  serde_json::from_value::<DailyActivityModel>(activityValue.clone())
-                {
-                  return Ok(activity);
-                }
-              }
-            }
-            _ => {
-              // Silently handle unexpected result
-            }
-          }
-        }
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create daily activity! {}", error.to_string()),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create daily activity! {}", error.to_string()),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 

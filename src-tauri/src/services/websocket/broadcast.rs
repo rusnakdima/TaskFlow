@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 /* models */
-use crate::models::websocket_model::WsBroadcast;
+use crate::entities::websocket_entity::WsBroadcast;
 
 /// WebSocket broadcast helper - sends events to all connected clients
 ///

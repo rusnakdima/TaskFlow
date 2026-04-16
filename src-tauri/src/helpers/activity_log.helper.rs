@@ -6,10 +6,10 @@ use crate::helpers::activity::formatter::ActivityFormatter;
 use crate::helpers::activity::storage::ActivityStorage;
 
 /* providers */
-use crate::providers::json_provider::JsonProvider;
+use nosql_orm::providers::JsonProvider;
 
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::entities::response_entity::ResponseModel;
 
 #[derive(Clone)]
 pub struct ActivityLogHelper {

@@ -1,1 +1,1 @@
-pub mod routed_repository;
+pub mod nosql_repository;

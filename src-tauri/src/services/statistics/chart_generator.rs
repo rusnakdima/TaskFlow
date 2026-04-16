@@ -1,4 +1,4 @@
-use crate::models::statistics_model::{
+use crate::entities::statistics_entity::{
   CategoryItem, ChartDataModel, CompletionTrendItem, DailyActivityItem,
 };
 use chrono::{DateTime, Datelike, NaiveDate, Weekday};

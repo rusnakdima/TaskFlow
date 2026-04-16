@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 
 /* services */
-use crate::services::crud_service::CrudService;
+use crate::services::repository_service::RepositoryService;
 
 /* websocket sub-modules */
 use super::broadcast::BroadcastHelper;
@@ -12,7 +12,7 @@ use super::handlers::CrudHandlers;
 
 /// WebSocketServerService - Manages WebSocket server and client connections
 pub struct WebSocketServerService {
-  crud_service: Arc<CrudService>,
+  repository_service: Arc<RepositoryService>,
   clients: Arc<
     tokio::sync::Mutex<
       Vec<
@@ -23,9 +23,9 @@ pub struct WebSocketServerService {
 }
 
 impl WebSocketServerService {
-  pub fn new(crud_service: Arc<CrudService>) -> Self {
+  pub fn new(repository_service: Arc<RepositoryService>) -> Self {
     Self {
-      crud_service,
+      repository_service,
       clients: Arc::new(tokio::sync::Mutex::new(Vec::new())),
     }
   }
@@ -38,7 +38,7 @@ impl WebSocketServerService {
       .expect("Failed to bind to address");
 
     let broadcast = BroadcastHelper::new(self.clients.clone());
-    let crud_handlers = Arc::new(CrudHandlers::new(self.crud_service.clone(), broadcast));
+    let crud_handlers = Arc::new(CrudHandlers::new(self.repository_service.clone(), broadcast));
     let connection_manager = Arc::new(ConnectionManager::new(crud_handlers, self.clients.clone()));
 
     while let Ok((stream, _)) = listener.accept().await {
