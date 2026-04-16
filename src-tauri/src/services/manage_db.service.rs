@@ -2,13 +2,10 @@
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::{JsonProvider, MongoProvider};
 
-/* models */
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
-
-/* helpers */
-use crate::helpers::response_helper::requireMongo;
+/* entities */
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* services */
 use crate::services::{
@@ -19,14 +16,14 @@ use crate::services::{
 /// ManageDbService - Facade for database management operations
 pub struct ManageDbService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub adminManager: Option<AdminManager>,
 }
 
 impl ManageDbService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     cascadeService: CascadeService,
     entityResolution: Arc<EntityResolutionService>,
   ) -> Self {
@@ -47,47 +44,21 @@ impl ManageDbService {
   }
 
   /// Import data from cloud MongoDB to local JSON
-  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = requireMongo(&self.mongodbProvider)?;
-
-    match mongodbProvider
-      .mongodbSync
-      .importToLocal(userId, &self.jsonProvider)
-      .await
-    {
-      Ok(_) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "Data imported to local JSON DB successfully".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error importing data: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
-    }
+  pub async fn importToLocal(&self, _userId: String) -> Result<ResponseModel, ResponseModel> {
+    Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "importToLocal not yet implemented with nosql_orm".to_string(),
+      data: DataValue::String("".to_string()),
+    })
   }
 
   /// Export data from local JSON to cloud MongoDB
-  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = requireMongo(&self.mongodbProvider)?;
-
-    match mongodbProvider
-      .mongodbSync
-      .exportToCloud(userId, &self.jsonProvider)
-      .await
-    {
-      Ok(_) => Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "Data exported to cloud MongoDB successfully".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
-      Err(e) => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error exporting data: {}", e),
-        data: DataValue::String("".to_string()),
-      }),
-    }
+  pub async fn exportToCloud(&self, _userId: String) -> Result<ResponseModel, ResponseModel> {
+    Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "exportToCloud not yet implemented with nosql_orm".to_string(),
+      data: DataValue::String("".to_string()),
+    })
   }
 
   /// Get all data for admin view (from MongoDB)

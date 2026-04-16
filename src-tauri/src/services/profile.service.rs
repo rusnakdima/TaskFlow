@@ -3,23 +3,24 @@ use serde_json::Value;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::base_crud::CrudProvider;
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /// ProfileService - Handles profile-specific sync operations
-/// Note: CRUD operations are handled by CrudService via manageData endpoint
+/// Note: CRUD operations are handled by RepositoryService via manageData endpoint
 /// This service only handles profile-specific cloud sync operations
 #[derive(Clone)]
 pub struct ProfileService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
 }
 
 impl ProfileService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -40,25 +41,25 @@ impl ProfileService {
 
     let profileData = self
       .jsonProvider
-      .get("profiles", &profileId)
+      .find_by_id("profiles", &profileId)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Profile not found: {}", e),
         data: DataValue::String("".to_string()),
+      })?
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Profile not found".to_string(),
+        data: DataValue::String("".to_string()),
       })?;
 
     // Check if profile exists in MongoDB
-    match mongodbProvider
-      .mongodbCrud
-      .get("profiles", &profileId)
-      .await
-    {
-      Ok(existingVal) => {
+    match mongodbProvider.find_by_id("profiles", &profileId).await {
+      Ok(Some(existingVal)) => {
         // Update if cloud profile is older
         if shouldUpdateCloud(&profileData, &existingVal) {
           mongodbProvider
-            .mongodbCrud
             .update("profiles", &profileId, profileData)
             .await
             .map_err(|e| ResponseModel {
@@ -80,11 +81,10 @@ impl ProfileService {
           })
         }
       }
-      Err(_) => {
+      Ok(None) => {
         // Create new in cloud
         mongodbProvider
-          .mongodbCrud
-          .create("profiles", profileData)
+          .insert("profiles", profileData)
           .await
           .map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
@@ -98,6 +98,11 @@ impl ProfileService {
           data: DataValue::String("".to_string()),
         })
       }
+      Err(e) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error checking profile in cloud: {}", e),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -114,7 +119,7 @@ impl ProfileService {
 
     let profiles = self
       .jsonProvider
-      .getAll("profiles", Some(serde_json::json!({ "userId": userId })))
+      .find_all("profiles")
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -123,10 +128,13 @@ impl ProfileService {
       })?;
 
     for profileData in profiles {
-      let _ = mongodbProvider
-        .mongodbCrud
-        .create("profiles", profileData.clone())
-        .await;
+      if let Some(userIdField) = profileData.get("userId").and_then(|v| v.as_str()) {
+        if userIdField == userId {
+          let _ = mongodbProvider
+            .insert("profiles", profileData.clone())
+            .await;
+        }
+      }
     }
 
     Ok(ResponseModel {
