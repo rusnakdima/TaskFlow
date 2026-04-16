@@ -2,14 +2,14 @@
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::json_provider::JsonProvider;
-use crate::providers::mongodb_provider::MongodbProvider;
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
 
 /* helpers */
 use crate::helpers::response_helper::errResponseFormatted;
 
 /* models */
-use crate::models::response_model::ResponseModel;
+use crate::entities::response_entity::ResponseModel;
 
 use super::cascade_ids::CascadeIds;
 use super::json_cascade::JsonCascadeHandler;
@@ -19,13 +19,13 @@ use super::mongo_cascade::MongoCascadeHandler;
 #[derive(Clone)]
 pub struct CascadeService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub jsonHandler: Option<JsonCascadeHandler>,
   pub mongoHandler: Option<MongoCascadeHandler>,
 }
 
 impl CascadeService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     let jsonHandler = Some(JsonCascadeHandler::new(jsonProvider.clone()));
     let mongoHandler = mongodbProvider
       .as_ref()
