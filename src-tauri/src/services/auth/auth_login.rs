@@ -4,16 +4,18 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* services */
 use super::auth_token::AuthTokenService;
 
 /* models */
-use crate::models::{
-  login_form_model::LoginForm,
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+use crate::entities::{
+  login_form_entity::LoginForm,
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -22,14 +24,14 @@ use crate::helpers::response_helper::errResponse;
 #[derive(Clone)]
 pub struct AuthLoginService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub tokenService: Arc<AuthTokenService>,
 }
 
 impl AuthLoginService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     tokenService: Arc<AuthTokenService>,
   ) -> Self {
     Self {
@@ -43,40 +45,35 @@ impl AuthLoginService {
     let username = loginData.username;
     let password = loginData.password;
 
-    let filter = json!({ "username": username });
-
     // ═════════════════════════════════════════════════════════════
     // STEP 1: Try local JSON database FIRST (works offline)
     // ═════════════════════════════════════════════════════════════
-    match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
+    match self.jsonProvider.find_all("users").await {
       Ok(users) => {
-        if let Some(userVal) = users.first() {
-          let user: UserEntity = serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              match verify(password, &user.password) {
+                Ok(valid) => {
+                  if valid {
+                    let token =
+                      self
+                        .tokenService
+                        .generateToken(&user.get_id(), &user.username, &user.role)?;
 
-          match verify(password, &user.password) {
-            Ok(valid) => {
-              if valid {
-                let token =
-                  self
-                    .tokenService
-                    .generateToken(&user.get_id(), &user.username, &user.role)?;
-
-                return Ok(ResponseModel {
-                  status: ResponseStatus::Success,
-                  message: "Login successful (local)".to_string(),
-                  data: DataValue::String(token),
-                });
-              } else {
-                return Err(errResponse("Invalid password"));
+                    return Ok(ResponseModel {
+                      status: ResponseStatus::Success,
+                      message: "Login successful (local)".to_string(),
+                      data: DataValue::String(token),
+                    });
+                  } else {
+                    return Err(errResponse("Invalid password"));
+                  }
+                }
+                Err(e) => {
+                  return Err(errResponse(&format!("Error verifying password: {}", e)));
+                }
               }
-            }
-            Err(e) => {
-              return Err(errResponse(&format!("Error verifying password: {}", e)));
             }
           }
         }
@@ -98,19 +95,19 @@ impl AuthLoginService {
       }
     };
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| {
-          errResponse("User not found. Please register first or check your username.")
-        })?;
+        let userVal = users.into_iter().find_map(|u| {
+          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
+        }).ok_or_else(|| errResponse("User not found. Please register first or check your username."))?;
 
-        let user: UserEntity = serde_json::from_value(userVal.clone())
+        let user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         match verify(password, &user.password) {
           Ok(valid) => {
             if valid {
-              let _ = self.jsonProvider.create("users", userVal.clone()).await;
+              let _ = self.jsonProvider.insert("users", userVal.clone()).await;
               let token =
                 self
                   .tokenService

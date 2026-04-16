@@ -5,29 +5,31 @@ use std::sync::Arc;
 
 /* providers */
 use crate::providers::{
-  email_provider::EmailProvider, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+  email_provider::EmailProvider,
+  json_provider::JsonProvider,
+  mongodb_provider::MongoProvider,
 };
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::{
+use crate::entities::{
   password_reset::PasswordReset,
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
 use crate::helpers::response_helper::errResponse;
-use crate::helpers::timestamp_helper;
 
 #[derive(Clone)]
 pub struct AuthPasswordService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
 }
 
 impl AuthPasswordService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -39,8 +41,6 @@ impl AuthPasswordService {
     email: String,
     config: &ConfigHelper,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = json!({ "email": email });
-
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
@@ -48,11 +48,13 @@ impl AuthPasswordService {
       }
     };
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users.into_iter().find_map(|u| {
+          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
+        }).ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserEntity = serde_json::from_value(userVal.clone())
+        let mut user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Generate random 6-digit code
@@ -101,8 +103,6 @@ impl AuthPasswordService {
     email: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let filter = json!({ "email": email });
-
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
@@ -110,11 +110,13 @@ impl AuthPasswordService {
       }
     };
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users.into_iter().find_map(|u| {
+          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
+        }).ok_or_else(|| errResponse("User not found"))?;
 
-        let user: UserEntity = serde_json::from_value(userVal.clone())
+        let user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         if user.temporaryCode == code && !user.temporaryCode.is_empty() {
@@ -145,8 +147,6 @@ impl AuthPasswordService {
     let email = resetData.email;
     let password = resetData.newPassword;
 
-    let filter = json!({ "email": email });
-
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
       None => {
@@ -154,11 +154,13 @@ impl AuthPasswordService {
       }
     };
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users.into_iter().find_map(|u| {
+          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
+        }).ok_or_else(|| errResponse("User not found"))?;
 
-        let mut user: UserEntity = serde_json::from_value(userVal.clone())
+        let mut user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         let hashedPassword = hash(password, DEFAULT_COST)

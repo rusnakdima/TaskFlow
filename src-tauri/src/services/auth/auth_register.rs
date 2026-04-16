@@ -5,16 +5,18 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* services */
 use super::auth_token::AuthTokenService;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  signup_form_model::SignupForm,
-  user_model::UserEntity,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  signup_form_entity::SignupForm,
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -23,14 +25,14 @@ use crate::helpers::response_helper::errResponse;
 #[derive(Clone)]
 pub struct AuthRegisterService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub tokenService: Arc<AuthTokenService>,
 }
 
 impl AuthRegisterService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     tokenService: Arc<AuthTokenService>,
   ) -> Self {
     Self {
@@ -45,8 +47,6 @@ impl AuthRegisterService {
     let username = signupData.username;
     let password = signupData.password;
 
-    let filter = json!({ "email": email });
-
     // Check if MongoDB is available
     let mongoProvider = match &self.mongodbProvider {
       Some(provider) => provider,
@@ -55,10 +55,14 @@ impl AuthRegisterService {
       }
     };
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        if !users.is_empty() {
-          return Err(errResponse("User already exists"));
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal) {
+            if user.email == email || user.username == username {
+              return Err(errResponse("User already exists"));
+            }
+          }
         }
 
         let hashedPassword = hash(password, DEFAULT_COST)
@@ -92,9 +96,9 @@ impl AuthRegisterService {
 
         let userVal = serde_json::to_value(&newUser).unwrap();
 
-        match mongoProvider.create("users", userVal.clone()).await {
+        match mongoProvider.insert("users", userVal.clone()).await {
           Ok(_) => {
-            let _ = self.jsonProvider.create("users", userVal).await;
+            let _ = self.jsonProvider.insert("users", userVal).await;
 
             // Generate JWT token with user info (same as login)
             let token = self.tokenService.generateToken(
