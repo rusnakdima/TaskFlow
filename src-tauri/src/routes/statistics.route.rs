@@ -3,7 +3,7 @@ use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::models::sync_metadata_model::SyncMetadata;
+use crate::entities::sync_metadata_entity::SyncMetadata;
 
 #[tauri::command]
 pub async fn statisticsGet(

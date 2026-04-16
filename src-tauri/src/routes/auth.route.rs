@@ -1,11 +1,12 @@
 /* sys lib */
 use crate::AppState;
+use serde_json::json;
 use tauri::State;
 
 /* models */
-use crate::models::{
-  login_form_model::LoginForm, password_reset::PasswordReset, response_model::ResponseModel,
-  signup_form_model::SignupForm,
+use crate::entities::{
+  login_form_entity::LoginForm, password_reset::PasswordReset, response_entity::ResponseModel,
+  signup_form_entity::SignupForm,
 };
 
 #[tauri::command]
@@ -213,18 +214,17 @@ pub async fn getUserSecurityStatus(
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::helpers::response_helper::errResponse;
-  use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
-  use crate::models::user_model::UserEntity;
-  use serde_json::json;
+  use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+  use crate::entities::user_entity::UserEntity;
+  use nosql_orm::provider::DatabaseProvider;
 
   let filter = json!({ "username": username });
 
   // Try JSON provider first
   let user_result: Option<UserEntity> = match state
-    .authService
-    .passkeyService
+    .repositoryService
     .jsonProvider
-    .getAll("users", Some(filter.clone()))
+    .find_all("users")
     .await
   {
     Ok(users) => {
@@ -240,8 +240,8 @@ pub async fn getUserSecurityStatus(
   // Fall back to MongoDB
   let user = if let Some(user) = user_result {
     user
-  } else if let Some(mongo) = &state.mongodbProvider {
-    match mongo.getAll("users", Some(filter)).await {
+  } else if let Some(ref mongo) = state.repositoryService.mongodbProvider {
+    match mongo.find_all("users").await {
       Ok(users) => {
         if let Some(user_val) = users.first() {
           serde_json::from_value(user_val.clone())
@@ -315,19 +315,19 @@ pub async fn qrLoginComplete(
 pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
   match crate::services::auth::android_biometric::check_biometric_available() {
     Ok(available) => Ok(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Success,
+      status: crate::entities::response_entity::ResponseStatus::Success,
       message: if available {
         "Biometric available"
       } else {
         "Biometric not available"
       }
       .to_string(),
-      data: crate::models::response_model::DataValue::Bool(available),
+      data: crate::entities::response_entity::DataValue::Bool(available),
     }),
     Err(e) => Err(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Error,
+      status: crate::entities::response_entity::ResponseStatus::Error,
       message: e,
-      data: crate::models::response_model::DataValue::Bool(false),
+      data: crate::entities::response_entity::DataValue::Bool(false),
     }),
   }
 }
@@ -340,19 +340,19 @@ pub fn authenticateAndroidBiometric(
 ) -> Result<ResponseModel, ResponseModel> {
   match crate::services::auth::android_biometric::authenticate_biometric(&title, &subtitle) {
     Ok(success) => Ok(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Success,
+      status: crate::entities::response_entity::ResponseStatus::Success,
       message: if success {
         "Authentication successful"
       } else {
         "Authentication failed"
       }
       .to_string(),
-      data: crate::models::response_model::DataValue::Bool(success),
+      data: crate::entities::response_entity::DataValue::Bool(success),
     }),
     Err(e) => Err(ResponseModel {
-      status: crate::models::response_model::ResponseStatus::Error,
+      status: crate::entities::response_entity::ResponseStatus::Error,
       message: e,
-      data: crate::models::response_model::DataValue::Bool(false),
+      data: crate::entities::response_entity::DataValue::Bool(false),
     }),
   }
 }
@@ -361,9 +361,9 @@ pub fn authenticateAndroidBiometric(
 #[tauri::command]
 pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
   Ok(ResponseModel {
-    status: crate::models::response_model::ResponseStatus::Success,
+    status: crate::entities::response_entity::ResponseStatus::Success,
     message: "Not Android".to_string(),
-    data: crate::models::response_model::DataValue::Bool(false),
+    data: crate::entities::response_entity::DataValue::Bool(false),
   })
 }
 
@@ -374,8 +374,8 @@ pub fn authenticateAndroidBiometric(
   _subtitle: String,
 ) -> Result<ResponseModel, ResponseModel> {
   Ok(ResponseModel {
-    status: crate::models::response_model::ResponseStatus::Error,
+    status: crate::entities::response_entity::ResponseStatus::Error,
     message: "Not Android".to_string(),
-    data: crate::models::response_model::DataValue::Bool(false),
+    data: crate::entities::response_entity::DataValue::Bool(false),
   })
 }

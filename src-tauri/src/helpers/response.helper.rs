@@ -1,8 +1,8 @@
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::mongodb_provider::MongodbProvider;
+use nosql_orm::providers::MongoProvider;
 
 /// Creates an error response with the given message
 pub fn errResponse(message: &str) -> ResponseModel {
@@ -34,8 +34,8 @@ pub fn successResponse<T: Into<DataValue>>(data: T) -> ResponseModel {
 /// Check if MongoDB provider is available, return error if not
 /// This is a helper to avoid duplicating MongoDB availability checks
 pub fn requireMongo(
-  mongodbProvider: &Option<Arc<MongodbProvider>>,
-) -> Result<&Arc<MongodbProvider>, ResponseModel> {
+  mongodbProvider: &Option<Arc<MongoProvider>>,
+) -> Result<&Arc<MongoProvider>, ResponseModel> {
   mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
     status: ResponseStatus::Error,
     message: "MongoDB not available".to_string(),

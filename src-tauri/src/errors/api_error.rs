@@ -1,4 +1,4 @@
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

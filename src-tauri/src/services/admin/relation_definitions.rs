@@ -1,4 +1,4 @@
-use crate::models::relation_obj::{RelationObj, TypesField};
+use crate::entities::relation_obj::{RelationObj, TypesField};
 
 pub fn getUserRelations() -> Vec<RelationObj> {
   vec![RelationObj {

@@ -8,11 +8,11 @@ pub fn supportsSoftDelete(table: &str) -> bool {
 }
 
 /* models */
-use crate::models::{
-  provider_type_model::ProviderType,
-  response_model::DataValue,
-  response_model::{ResponseModel, ResponseStatus},
-  sync_metadata_model::SyncMetadata,
+use crate::entities::{
+  provider_type_entity::ProviderType,
+  response_entity::DataValue,
+  response_entity::{ResponseModel, ResponseStatus},
+  sync_metadata_entity::SyncMetadata,
 };
 
 pub fn convertDataToArray<T: Serialize>(data: &[T]) -> DataValue {

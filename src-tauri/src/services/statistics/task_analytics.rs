@@ -1,4 +1,4 @@
-use crate::models::statistics_model::{DetailedMetricModel, StatisticsModel};
+use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
 use chrono::DateTime;
 use serde_json::Value;
 

@@ -1,4 +1,4 @@
-use crate::models::daily_activity_model::DailyActivityModel;
+use crate::entities::daily_activity_entity::DailyActivityModel;
 
 pub struct ActivityFormatter;
 

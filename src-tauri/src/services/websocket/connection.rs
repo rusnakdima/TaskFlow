@@ -6,10 +6,10 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 /* models */
-use crate::models::{
-  response_model::ResponseModel,
-  sync_metadata_model::SyncMetadata,
-  websocket_model::{WsRequest, WsResponse},
+use crate::entities::{
+  response_entity::ResponseModel,
+  sync_metadata_entity::SyncMetadata,
+  websocket_entity::{WsRequest, WsResponse},
 };
 
 /* websocket sub-modules */

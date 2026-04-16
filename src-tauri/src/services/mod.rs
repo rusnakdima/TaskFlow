@@ -1,5 +1,5 @@
-#[path = "crud.service.rs"]
-pub mod crud_service;
+#[path = "repository.service.rs"]
+pub mod repository_service;
 
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
