@@ -1,18 +1,19 @@
 /* sys lib */
-use serde_json::Value;
 use std::sync::Arc;
+use nosql_orm::provider::DatabaseProvider;
+use serde_json::Value;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 #[derive(Clone)]
 pub struct EntityResolutionService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
 }
 
 impl EntityResolutionService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -27,14 +28,14 @@ impl EntityResolutionService {
 
     if table == "tasks" {
       if let Some(todoId) = data.get("todoId").and_then(|v| v.as_str()) {
-        if let Ok(todo) = self.jsonProvider.get("todos", todoId).await {
+        if let Ok(Some(todo)) = self.jsonProvider.find_by_id("todos", todoId).await {
           return todo
             .get("userId")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
         }
-        if let Some(mongodb) = &self.mongodbProvider {
-          if let Ok(todo) = mongodb.get("todos", todoId).await {
+        if let Some(ref mongodb) = self.mongodbProvider {
+          if let Ok(Some(todo)) = mongodb.find_by_id("todos", todoId).await {
             return todo
               .get("userId")
               .and_then(|v| v.as_str())
@@ -46,9 +47,9 @@ impl EntityResolutionService {
 
     if table == "subtasks" {
       if let Some(taskId) = data.get("taskId").and_then(|v| v.as_str()) {
-        if let Ok(task) = self.jsonProvider.get("tasks", taskId).await {
+        if let Ok(Some(task)) = self.jsonProvider.find_by_id("tasks", taskId).await {
           if let Some(todoId) = task.get("todoId").and_then(|v| v.as_str()) {
-            if let Ok(todo) = self.jsonProvider.get("todos", todoId).await {
+            if let Ok(Some(todo)) = self.jsonProvider.find_by_id("todos", todoId).await {
               return todo
                 .get("userId")
                 .and_then(|v| v.as_str())
@@ -56,10 +57,10 @@ impl EntityResolutionService {
             }
           }
         }
-        if let Some(mongodb) = &self.mongodbProvider {
-          if let Ok(task) = mongodb.get("tasks", taskId).await {
+        if let Some(ref mongodb) = self.mongodbProvider {
+          if let Ok(Some(task)) = mongodb.find_by_id("tasks", taskId).await {
             if let Some(todoId) = task.get("todoId").and_then(|v| v.as_str()) {
-              if let Ok(todo) = mongodb.get("todos", todoId).await {
+              if let Ok(Some(todo)) = mongodb.find_by_id("todos", todoId).await {
                 return todo
                   .get("userId")
                   .and_then(|v| v.as_str())

@@ -4,17 +4,17 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::base_crud::CrudProvider;
-use crate::providers::json_provider::JsonProvider;
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* helpers */
 use crate::helpers::activity_log::ActivityLogHelper;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  statistics_model::StatisticsResponseModel,
-  sync_metadata_model::SyncMetadata,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  statistics_entity::StatisticsResponseModel,
+  sync_metadata_entity::SyncMetadata,
 };
 
 /* statistics modules */
@@ -60,30 +60,24 @@ impl StatisticsService {
       .getDailyActivitiesFiltered(&userId, &prevStartNaive, &prevEndNaive)
       .await;
 
-    let tasks = self
-      .jsonProvider
-      .jsonCrud
-      .getAll("tasks", Some(json!({"userId": userId})))
-      .await
-      .unwrap_or_default();
+    let allTasks = self.jsonProvider.find_all("tasks").await.unwrap_or_default();
+    let tasks: Vec<Value> = allTasks.into_iter().filter(|t| {
+      t.get("userId").and_then(|v| v.as_str()) == Some(&userId)
+    }).collect();
 
     let currentTasks = DateCalculator::filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
     let previousTasks =
       DateCalculator::filterByDateRange(&tasks, &previousStartDate, &previousEndDate, "createdAt");
 
-    let categories = self
-      .jsonProvider
-      .jsonCrud
-      .getAll("categories", Some(json!({"userId": userId})))
-      .await
-      .unwrap_or_default();
+    let allCategories = self.jsonProvider.find_all("categories").await.unwrap_or_default();
+    let categories: Vec<Value> = allCategories.into_iter().filter(|c| {
+      c.get("userId").and_then(|v| v.as_str()) == Some(&userId)
+    }).collect();
 
-    let todos = self
-      .jsonProvider
-      .jsonCrud
-      .getAll("todos", Some(json!({"userId": userId})))
-      .await
-      .unwrap_or_default();
+    let allTodos = self.jsonProvider.find_all("todos").await.unwrap_or_default();
+    let todos: Vec<Value> = allTodos.into_iter().filter(|t| {
+      t.get("userId").and_then(|v| v.as_str()) == Some(&userId)
+    }).collect();
 
     // Compute metrics
     let statistics = TaskAnalytics::computeStatistics(

@@ -4,11 +4,13 @@ use std::sync::Arc;
 
 /* providers */
 use crate::providers::{
-  base_crud::CrudProvider, json_provider::JsonProvider, mongodb_provider::MongodbProvider,
+  json_provider::JsonProvider,
+  mongodb_provider::MongoProvider,
 };
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::response_model::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
 use crate::helpers::common::convertDataToObject;
@@ -16,14 +18,13 @@ use crate::helpers::response_helper::errResponseFormatted;
 use crate::helpers::timestamp_helper;
 
 /* services */
-use crate::services::admin::relation_definitions;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */
 pub struct AdminManager {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Arc<MongodbProvider>,
+  pub mongodbProvider: Arc<MongoProvider>,
   pub cascadeService: CascadeService,
   pub entityResolution: Arc<EntityResolutionService>,
 }
@@ -31,7 +32,7 @@ pub struct AdminManager {
 impl AdminManager {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Arc<MongodbProvider>,
+    mongodbProvider: Arc<MongoProvider>,
     cascadeService: CascadeService,
     entityResolution: Arc<EntityResolutionService>,
   ) -> Self {
@@ -59,8 +60,8 @@ impl AdminManager {
 
     let mut allData = std::collections::HashMap::new();
 
-    // Get ALL users from local JSON (including deleted)
-    let users = match self.jsonProvider.getAllWithDeleted("users", None).await {
+    // Get ALL users from local JSON
+    let users = match self.jsonProvider.find_all("users").await {
       Ok(u) => u,
       Err(e) => {
         return Err(ResponseModel {
@@ -73,7 +74,7 @@ impl AdminManager {
     allData.insert("users".to_string(), users);
 
     // Get ALL profiles from local JSON
-    let profiles = match self.jsonProvider.getAllWithDeleted("profiles", None).await {
+    let profiles = match self.jsonProvider.find_all("profiles").await {
       Ok(p) => p,
       Err(e) => {
         return Err(ResponseModel {
@@ -85,9 +86,9 @@ impl AdminManager {
     };
     allData.insert("profiles".to_string(), profiles);
 
-    // Get ALL data for each table (including deleted)
+    // Get ALL data for each table
     for table in tables {
-      let docs = match self.jsonProvider.getAllWithDeleted(table, None).await {
+      let docs = match self.jsonProvider.find_all(table).await {
         Ok(d) => d,
         Err(e) => {
           return Err(ResponseModel {
@@ -107,7 +108,7 @@ impl AdminManager {
     })
   }
 
-  /// Get all data for admin view with relations (includes deleted and non-deleted records)
+  /// Get all data for admin view (includes deleted and non-deleted records)
   /// Only accessible by admin users - fetches from MongoDB
   pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
@@ -122,8 +123,8 @@ impl AdminManager {
 
     let mut allData = std::collections::HashMap::new();
 
-    // Get all users with profiles from MongoDB
-    let mut users = match self.mongodbProvider.getAllWithDeleted("users", None).await {
+    // Get all users from MongoDB
+    let users = match self.mongodbProvider.find_all("users").await {
       Ok(u) => u,
       Err(e) => {
         return Err(ResponseModel {
@@ -133,22 +134,10 @@ impl AdminManager {
         });
       }
     };
-
-    let userRels = relation_definitions::getUserRelations();
-    for user in &mut users {
-      let _ = self
-        .mongodbProvider
-        .mongodbRelations
-        .handleRelations(user, &userRels)
-        .await;
-    }
-
     allData.insert("users".to_string(), users);
 
     for table in tables {
-      let relations = relation_definitions::getTableRelations(table);
-
-      let mut docs = match self.mongodbProvider.getAllWithDeleted(table, None).await {
+      let docs = match self.mongodbProvider.find_all(table).await {
         Ok(d) => d,
         Err(e) => {
           return Err(ResponseModel {
@@ -158,17 +147,6 @@ impl AdminManager {
           });
         }
       };
-
-      if let Some(rels) = relations {
-        for doc in &mut docs {
-          let _ = self
-            .mongodbProvider
-            .mongodbRelations
-            .handleRelations(doc, &rels)
-            .await;
-        }
-      }
-
       allData.insert(table.to_string(), docs);
     }
 
@@ -198,8 +176,7 @@ impl AdminManager {
 
     self
       .mongodbProvider
-      .mongodbCrud
-      .hardDelete(&table, &id)
+      .delete(&table, &id)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -234,7 +211,7 @@ impl AdminManager {
 
     self
       .jsonProvider
-      .hardDelete(&table, &id)
+      .delete(&table, &id)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -260,12 +237,16 @@ impl AdminManager {
   ) -> Result<ResponseModel, ResponseModel> {
     let record = self
       .mongodbProvider
-      .mongodbCrud
-      .get(&table, &id)
+      .find_by_id(&table, &id)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Record not found in MongoDB: {}", e),
+        data: DataValue::String("".to_string()),
+      })?
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Record not found".to_string(),
         data: DataValue::String("".to_string()),
       })?;
 
@@ -274,7 +255,6 @@ impl AdminManager {
     // Update parent first (H-6): if cascade fails the parent is already consistent
     self
       .mongodbProvider
-      .mongodbCrud
       .update(&table, &id, updateVal)
       .await
       .map_err(|e| ResponseModel {
@@ -303,11 +283,16 @@ impl AdminManager {
   ) -> Result<ResponseModel, ResponseModel> {
     let record = self
       .jsonProvider
-      .get(&table, &id)
+      .find_by_id(&table, &id)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Record not found in local database: {}", e),
+        data: DataValue::String("".to_string()),
+      })?
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Record not found".to_string(),
         data: DataValue::String("".to_string()),
       })?;
 
@@ -358,20 +343,18 @@ impl AdminManager {
   }
 
   async fn hard_delete_cascade_ids_mongo(
-    provider: &Arc<MongodbProvider>,
+    provider: &Arc<MongoProvider>,
     cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
   ) -> Result<(), ResponseModel> {
     for id in &cascade_ids.taskIds {
       provider
-        .mongodbCrud
-        .hardDelete("tasks", id)
+        .delete("tasks", id)
         .await
         .map_err(|e| errResponseFormatted("Hard-delete cascade failed for task", &e.to_string()))?;
     }
     for id in &cascade_ids.subtaskIds {
       provider
-        .mongodbCrud
-        .hardDelete("subtasks", id)
+        .delete("subtasks", id)
         .await
         .map_err(|e| {
           errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
@@ -379,8 +362,7 @@ impl AdminManager {
     }
     for id in &cascade_ids.commentIds {
       provider
-        .mongodbCrud
-        .hardDelete("comments", id)
+        .delete("comments", id)
         .await
         .map_err(|e| {
           errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
@@ -388,8 +370,7 @@ impl AdminManager {
     }
     for id in &cascade_ids.chatIds {
       provider
-        .mongodbCrud
-        .hardDelete("chats", id)
+        .delete("chats", id)
         .await
         .map_err(|e| errResponseFormatted("Hard-delete cascade failed for chat", &e.to_string()))?;
     }
@@ -400,29 +381,25 @@ impl AdminManager {
     provider: &JsonProvider,
     cascade_ids: &crate::services::cascade::cascade_ids::CascadeIds,
   ) -> Result<(), ResponseModel> {
-    // Delete tasks first so that inline comments inside them are gone before we
-    // attempt to remove individual comment entries (avoids double-work).
     for id in &cascade_ids.taskIds {
       provider
-        .hardDelete("tasks", id)
+        .delete("tasks", id)
         .await
         .map_err(|e| errResponseFormatted("Hard-delete cascade failed for task", &e.to_string()))?;
     }
     for id in &cascade_ids.subtaskIds {
-      provider.hardDelete("subtasks", id).await.map_err(|e| {
+      provider.delete("subtasks", id).await.map_err(|e| {
         errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
       })?;
     }
-    // Comments are stored inline inside tasks/subtasks in JSON — use the dedicated helper.
-    // Any comments whose parent task/subtask was already deleted above are silently skipped.
     for id in &cascade_ids.commentIds {
-      provider.hardDeleteInlineComment(id).await.map_err(|e| {
+      provider.delete("comments", id).await.map_err(|e| {
         errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
       })?;
     }
     for id in &cascade_ids.chatIds {
       provider
-        .hardDelete("chats", id)
+        .delete("chats", id)
         .await
         .map_err(|e| errResponseFormatted("Hard-delete cascade failed for chat", &e.to_string()))?;
     }
