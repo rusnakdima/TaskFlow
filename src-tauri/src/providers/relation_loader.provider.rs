@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /* models */
-use crate::models::relation_config::{getRelationRegistry, RelationConfig, RelationType};
+use crate::entities::relation_config::{getRelationRegistry, RelationConfig, RelationType};
 
 /* providers */
 use crate::providers::base_crud::CrudProvider;

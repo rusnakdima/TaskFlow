@@ -1,18 +1,20 @@
-// Nested provider modules (source of truth)
-pub mod json;
-pub mod mongodb;
+/* providers - nosql_orm providers */
+pub use nosql_orm::providers::JsonProvider;
+pub use nosql_orm::providers::MongoProvider;
 
-// Re-export nested modules' contents for backward compatibility
-// This allows imports like `crate::providers::json_provider::JsonProvider` to work
-pub use json::json_provider;
-pub use mongodb::mongodb_provider;
+pub mod json_provider {
+  pub use nosql_orm::providers::JsonProvider;
+}
 
-// Base providers (not nested)
+pub mod mongodb_provider {
+  pub use nosql_orm::providers::MongoProvider;
+}
+
 #[path = "base_crud.provider.rs"]
 pub mod base_crud;
 
-#[path = "relation_loader.provider.rs"]
-pub mod relation_loader;
-
 #[path = "email.provider.rs"]
 pub mod email_provider;
+
+#[path = "relation_loader.provider.rs"]
+pub mod relation_loader;

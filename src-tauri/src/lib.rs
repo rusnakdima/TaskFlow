@@ -3,8 +3,7 @@
 /* imports */
 mod errors;
 mod helpers;
-mod models;
-mod orm_adapters;
+mod entities;
 mod providers;
 mod repositories;
 mod routes;
@@ -16,9 +15,6 @@ use tauri::Manager;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
-
-/* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
 
 /* routes */
 use routes::{
@@ -43,22 +39,20 @@ use routes::{
 /* services */
 use services::{
   about_service::AboutService, activity_monitor_service::ActivityMonitorService,
-  auth_service::AuthService, cascade::CascadeService, crud_service::CrudService,
+  auth_service::AuthService, cascade::CascadeService, repository_service::RepositoryService,
   entity_resolution_service::EntityResolutionService, live_sync_service::LiveSyncService,
   manage_db_service::ManageDbService, profile_service::ProfileService,
   statistics_service::StatisticsService, websocket::WebSocketServerService,
 };
 
-/* repositories */
-use repositories::routed_repository::RoutedRepository;
+/* nosql_orm */
+use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 pub struct AppState {
   pub configHelper: Arc<ConfigHelper>,
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub repositoryService: Arc<RepositoryService>,
   pub aboutService: Arc<AboutService>,
   pub authService: Arc<AuthService>,
-  pub crudService: Arc<CrudService>,
   pub liveSyncService: Option<Arc<LiveSyncService>>,
   pub manageDbService: Arc<ManageDbService>,
   pub profileService: Arc<ProfileService>,
@@ -84,22 +78,21 @@ pub fn run() {
     .setup(|app| {
       let configHelper = Arc::new(ConfigHelper::new());
 
-      // Initialize MongoDB connection (optional - app works without it)
+      let documentDir = app.path().document_dir().unwrap();
+      let jsonDbPath = documentDir.join(&configHelper.appHomeFolder).join(&configHelper.jsonDbName);
+      std::fs::create_dir_all(&jsonDbPath).ok();
+
+      let jsonProvider = tauri::async_runtime::block_on(JsonProvider::new(&jsonDbPath))
+        .expect("Failed to create JSON provider");
+
       let mongodbProvider = {
         let uri = configHelper.mongoDbUri.clone();
         let dbName = configHelper.mongoDbName.clone();
-        match tauri::async_runtime::block_on(MongodbProvider::new(uri.clone(), dbName.clone())) {
+        match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &dbName)) {
           Ok(p) => Some(Arc::new(p)),
           Err(_e) => None,
         }
       };
-
-      let jsonProvider = JsonProvider::new(
-        app.handle().clone(),
-        configHelper.appHomeFolder.clone(),
-        configHelper.jsonDbName.clone(),
-        mongodbProvider.clone(),
-      );
 
       let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
 
@@ -117,19 +110,12 @@ pub fn run() {
       let activityMonitor =
         ActivityMonitorService::new(activityLogHelper.clone(), entityResolution.clone());
 
-      let routedRepository = Arc::new(RoutedRepository::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
-        String::new(), // Table is set per operation
-      ));
-
-      let crudService = Arc::new(CrudService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
-        cascadeService.clone(),
-        entityResolution.clone(),
+      let repositoryService = Arc::new(RepositoryService::new(
+        jsonProvider,
+        mongodbProvider,
+        cascadeService,
+        entityResolution,
         activityMonitor,
-        routedRepository,
       ));
 
       let authService = Arc::new(AuthService::new(
@@ -150,13 +136,8 @@ pub fn run() {
         entityResolution,
       ));
 
-      let liveSyncService = mongodbProvider
-        .as_ref()
-        .map(|p| Arc::new(LiveSyncService::new(p.db.clone(), app.handle().clone())));
+      let websocketServerService = Arc::new(WebSocketServerService::new(repositoryService.clone()));
 
-      let websocketServerService = Arc::new(WebSocketServerService::new(crudService.clone()));
-
-      // Start WebSocket server
       let wsServiceClone = websocketServerService.clone();
       tauri::async_runtime::spawn(async move {
         wsServiceClone.start(8766).await;
@@ -164,12 +145,10 @@ pub fn run() {
 
       app.manage(AppState {
         configHelper,
-        jsonProvider,
-        mongodbProvider,
+        repositoryService,
         aboutService,
         authService,
-        crudService,
-        liveSyncService,
+        liveSyncService: None,
         manageDbService,
         profileService,
         statisticsService,
