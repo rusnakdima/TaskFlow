@@ -25,10 +25,7 @@ impl ActivityStorage {
   }
 
   pub async fn getAll(&self, _filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let listDailyActivities = self
-      .jsonProvider
-      .find_all("daily_activities")
-      .await;
+    let listDailyActivities = self.jsonProvider.find_all("daily_activities").await;
     match listDailyActivities {
       Ok(dailyActivities) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -51,10 +48,7 @@ impl ActivityStorage {
     userId: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
-    let existing = self
-      .jsonProvider
-      .find_all("daily_activities")
-      .await;
+    let existing = self.jsonProvider.find_all("daily_activities").await;
 
     if let Ok(activities) = existing {
       if let Some(activityValue) = activities.first() {

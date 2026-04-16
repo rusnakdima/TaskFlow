@@ -396,8 +396,7 @@ impl RepositoryService {
       .await
       .map_err(|e| errResponseFormatted("Error creating profile in local store", &e.to_string()))?;
 
-    user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &userId, &profileId)
-      .await?;
+    user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &userId, &profileId).await?;
 
     self
       .activityMonitor

@@ -213,29 +213,25 @@ pub async fn getUserSecurityStatus(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  use crate::helpers::response_helper::errResponse;
   use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
   use crate::entities::user_entity::UserEntity;
+  use crate::helpers::response_helper::errResponse;
   use nosql_orm::provider::DatabaseProvider;
 
   let filter = json!({ "username": username });
 
   // Try JSON provider first
-  let user_result: Option<UserEntity> = match state
-    .repositoryService
-    .jsonProvider
-    .find_all("users")
-    .await
-  {
-    Ok(users) => {
-      if let Some(user_val) = users.first() {
-        serde_json::from_value(user_val.clone()).ok()
-      } else {
-        None
+  let user_result: Option<UserEntity> =
+    match state.repositoryService.jsonProvider.find_all("users").await {
+      Ok(users) => {
+        if let Some(user_val) = users.first() {
+          serde_json::from_value(user_val.clone()).ok()
+        } else {
+          None
+        }
       }
-    }
-    Err(_) => None,
-  };
+      Err(_) => None,
+    };
 
   // Fall back to MongoDB
   let user = if let Some(user) = user_result {

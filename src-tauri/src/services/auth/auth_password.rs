@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 /* providers */
 use crate::providers::{
-  email_provider::EmailProvider,
-  json_provider::JsonProvider,
-  mongodb_provider::MongoProvider,
+  email_provider::EmailProvider, json_provider::JsonProvider, mongodb_provider::MongoProvider,
 };
 use nosql_orm::provider::DatabaseProvider;
 
@@ -50,9 +48,15 @@ impl AuthPasswordService {
 
     match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.into_iter().find_map(|u| {
-          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
-        }).ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users
+          .into_iter()
+          .find_map(|u| {
+            serde_json::from_value::<UserEntity>(u.clone())
+              .ok()
+              .filter(|user| user.email == email)
+              .map(|_| u)
+          })
+          .ok_or_else(|| errResponse("User not found"))?;
 
         let mut user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
@@ -112,9 +116,15 @@ impl AuthPasswordService {
 
     match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.into_iter().find_map(|u| {
-          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
-        }).ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users
+          .into_iter()
+          .find_map(|u| {
+            serde_json::from_value::<UserEntity>(u.clone())
+              .ok()
+              .filter(|user| user.email == email)
+              .map(|_| u)
+          })
+          .ok_or_else(|| errResponse("User not found"))?;
 
         let user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
@@ -156,9 +166,15 @@ impl AuthPasswordService {
 
     match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.into_iter().find_map(|u| {
-          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.email == email).map(|_| u)
-        }).ok_or_else(|| errResponse("User not found"))?;
+        let userVal = users
+          .into_iter()
+          .find_map(|u| {
+            serde_json::from_value::<UserEntity>(u.clone())
+              .ok()
+              .filter(|user| user.email == email)
+              .map(|_| u)
+          })
+          .ok_or_else(|| errResponse("User not found"))?;
 
         let mut user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;

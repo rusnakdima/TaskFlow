@@ -7,9 +7,9 @@ use std::sync::Arc;
 use tokio::time::{timeout, Duration};
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* models */
 use crate::entities::{
@@ -337,12 +337,7 @@ impl AuthTotpService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    match timeout(
-      Duration::from_secs(3),
-      self.jsonProvider.find_all("users"),
-    )
-    .await
-    {
+    match timeout(Duration::from_secs(3), self.jsonProvider.find_all("users")).await {
       Ok(Ok(users)) => {
         for userVal in users {
           if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
@@ -365,12 +360,7 @@ impl AuthTotpService {
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
-    match timeout(
-      Duration::from_secs(5),
-      mongoProvider.find_all("users"),
-    )
-    .await
-    {
+    match timeout(Duration::from_secs(5), mongoProvider.find_all("users")).await {
       Ok(Ok(users)) => {
         for userVal in users {
           if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
@@ -463,7 +453,11 @@ impl AuthTotpService {
     if let Some(mongoProvider) = &self.mongodbProvider {
       match timeout(
         Duration::from_secs(5),
-        mongoProvider.update("users", &updatedUser.get_id(), serde_json::to_value(&updatedUser).unwrap()),
+        mongoProvider.update(
+          "users",
+          &updatedUser.get_id(),
+          serde_json::to_value(&updatedUser).unwrap(),
+        ),
       )
       .await
       {

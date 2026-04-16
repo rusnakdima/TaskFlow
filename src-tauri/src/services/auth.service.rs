@@ -2,7 +2,8 @@
 use std::sync::Arc;
 
 /* providers */
-use nosql_orm::providers::JsonProvider; use nosql_orm::providers::MongoProvider;
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
 
 /* services */
 use super::auth::auth_biometric::AuthBiometricService;

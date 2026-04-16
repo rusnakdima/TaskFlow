@@ -5,9 +5,9 @@ use std::sync::Arc;
 use webauthn_rs::prelude::*;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* models */
 use crate::entities::{

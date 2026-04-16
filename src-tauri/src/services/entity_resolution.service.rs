@@ -1,7 +1,7 @@
 /* sys lib */
-use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::Value;
+use std::sync::Arc;
 
 /* providers */
 use nosql_orm::providers::{JsonProvider, MongoProvider};
