@@ -27,7 +27,7 @@ import { PriorityTask, Task, TaskStatus, RepeatInterval } from "@models/task.mod
 import { Todo } from "@models/todo.model";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -49,7 +49,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-task",
   standalone: true,
-  providers: [AuthService, DataSyncProvider],
+  providers: [AuthService, ApiProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -70,7 +70,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     private location: Location,
     private notifyService: NotifyService,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private storageService: StorageService,
     private shortcutService: ShortcutService
   ) {
@@ -333,7 +333,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         id: formValue.id, // Include id field for backend validation
       };
 
-      // Update task via DataSyncProvider - pass isPrivate flag to control storage behavior
+      // Update task via ApiProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
         .crud<Task>("update", "tasks", {
           id: body.id,

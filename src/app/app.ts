@@ -22,11 +22,11 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* components */
 import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
@@ -60,8 +60,8 @@ export class App implements OnInit {
   private shortcutService = inject(ShortcutService);
   private storageService = inject(StorageService);
   private profileRequiredService = inject(ProfileRequiredService);
-  private dataSyncService = inject(DataSyncService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncService = inject(DataLoaderService);
+  private dataSyncProvider = inject(ApiProvider);
   private localAuthService = inject(LocalAuthService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;

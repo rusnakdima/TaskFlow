@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { interval, Subscription, Observable } from "rxjs";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 export type QrStatus = "pending" | "approved" | "expired";
 
@@ -27,7 +27,7 @@ export interface QrStatusResult {
   providedIn: "root",
 })
 export class QrLoginService {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   private pollSubscription: Subscription | null = null;
 

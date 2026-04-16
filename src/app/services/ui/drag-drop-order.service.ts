@@ -1,8 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 import { StorageService, StorageEntity } from "@services/core/storage.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { moveItemInArray, CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
@@ -25,9 +25,9 @@ export interface ReorderResult<T extends Orderable> {
 })
 export class DragDropOrderService {
   private storageService = inject(StorageService);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   private updatingOrders = new Set<string>();
 

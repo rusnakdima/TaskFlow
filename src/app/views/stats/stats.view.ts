@@ -20,7 +20,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 @Component({
   selector: "app-stats",
@@ -29,7 +29,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   constructor(
     private authService: AuthService,

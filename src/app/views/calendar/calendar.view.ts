@@ -30,7 +30,7 @@ import {
 } from "@helpers/calendar.helper";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 @Component({
   selector: "app-calendar",
@@ -42,7 +42,7 @@ export class CalendarView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
 
   constructor() {

@@ -27,7 +27,7 @@ import { CheckboxField, TypeField } from "@models/form-field.model";
 import { AuthService } from "@services/auth/auth.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
@@ -118,7 +118,7 @@ export class LoginView implements OnDestroy {
     public securityService: SecurityService,
     private router: Router,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private sanitizer: DomSanitizer
   ) {
     this.loginForm = this.fb.group({

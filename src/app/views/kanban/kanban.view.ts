@@ -30,7 +30,7 @@ import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
@@ -43,7 +43,7 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 @Component({
   selector: "app-kanban",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [ApiProvider],
   imports: [
     CommonModule,
     FormsModule,
@@ -62,7 +62,7 @@ export class KanbanView implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);

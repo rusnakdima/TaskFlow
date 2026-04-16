@@ -23,7 +23,7 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
@@ -45,7 +45,7 @@ export class CreateProfileView implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService,
     private profileRequiredService: ProfileRequiredService

@@ -21,7 +21,7 @@ import { Category } from "@models/category.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 @Component({
   selector: "app-category-form",
@@ -32,7 +32,7 @@ import { DataSyncProvider } from "@providers/data-sync.provider";
 export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService
   ) {}
 

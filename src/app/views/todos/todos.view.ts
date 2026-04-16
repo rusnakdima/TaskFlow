@@ -38,12 +38,12 @@ import { AdminStorageService } from "@services/core/admin-storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -61,7 +61,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [ApiProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -95,8 +95,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(DataSyncProvider);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncProvider = inject(ApiProvider);
+  private dataSyncService = inject(DataLoaderService);
   constructor() {
     super();
   }

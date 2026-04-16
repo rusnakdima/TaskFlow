@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom } from "rxjs";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { invoke } from "@tauri-apps/api/core";
 import {
   PasskeyCredential,
@@ -14,7 +14,7 @@ import { BufferHelper } from "@helpers/buffer.helper";
   providedIn: "root",
 })
 export class WebAuthnService {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   async isWebAuthnSupported(): Promise<boolean> {
     const androidBiometricAvailable = await this.isAndroidBiometricAvailable();

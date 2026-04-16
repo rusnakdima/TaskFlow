@@ -6,7 +6,7 @@ import { catchError, tap } from "rxjs/operators";
 import { ViewContext, getRelationsForView } from "@models/relations.config";
 
 /* services */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /**
  * Relation loading statistics
@@ -81,7 +81,7 @@ export class RelationLoadingService {
   /**
    * Load entity with relations optimized for a specific view context
    *
-   * @param provider - DataSyncProvider instance
+   * @param provider - ApiProvider instance
    * @param table - Table name (e.g., "todos", "tasks")
    * @param id - Entity ID
    * @param context - View context ("list", "detail", "kanban", etc.)
@@ -98,7 +98,7 @@ export class RelationLoadingService {
    * ```
    */
   loadWithViewContext<T>(
-    provider: DataSyncProvider,
+    provider: ApiProvider,
     table: string,
     id: string,
     context: ViewContext = "list"
@@ -110,7 +110,7 @@ export class RelationLoadingService {
   /**
    * Load entity with specified relations
    *
-   * @param provider - DataSyncProvider instance
+   * @param provider - ApiProvider instance
    * @param table - Table name
    * @param id - Entity ID
    * @param load - Array of relation paths (dot notation)
@@ -126,7 +126,7 @@ export class RelationLoadingService {
    * );
    * ```
    */
-  load<T>(provider: DataSyncProvider, table: string, id: string, load: string[]): Observable<T> {
+  load<T>(provider: ApiProvider, table: string, id: string, load: string[]): Observable<T> {
     const startTime = Date.now();
 
     // Use MongoDB provider (isOwner: false, isPrivate: false) for complete relation data
@@ -154,14 +154,14 @@ export class RelationLoadingService {
   /**
    * Load entity with relations and client-side caching
    *
-   * @param provider - DataSyncProvider instance
+   * @param provider - ApiProvider instance
    * @param table - Table name
    * @param id - Entity ID
    * @param load - Array of relation paths
    * @returns Observable with the cached or fetched entity
    */
   async loadWithCache<T>(
-    provider: DataSyncProvider,
+    provider: ApiProvider,
     table: string,
     id: string,
     load: string[]
@@ -197,7 +197,7 @@ export class RelationLoadingService {
   /**
    * Load multiple entities with batch-optimized relations
    *
-   * @param provider - DataSyncProvider instance
+   * @param provider - ApiProvider instance
    * @param table - Table name
    * @param filter - Filter object
    * @param load - Array of relation paths
@@ -214,7 +214,7 @@ export class RelationLoadingService {
    * ```
    */
   loadMany<T>(
-    provider: DataSyncProvider,
+    provider: ApiProvider,
     table: string,
     filter: { [key: string]: any },
     load: string[]
@@ -246,14 +246,14 @@ export class RelationLoadingService {
   /**
    * Load multiple entities with view-optimized relations
    *
-   * @param provider - DataSyncProvider instance
+   * @param provider - ApiProvider instance
    * @param table - Table name
    * @param filter - Filter object
    * @param context - View context
    * @returns Observable with array of entities
    */
   loadManyWithViewContext<T>(
-    provider: DataSyncProvider,
+    provider: ApiProvider,
     table: string,
     filter: { [key: string]: any },
     context: ViewContext = "list"

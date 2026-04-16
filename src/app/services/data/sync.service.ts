@@ -9,7 +9,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 export interface SyncProgress {
@@ -35,7 +35,7 @@ export class SyncService {
   constructor(
     private jwtTokenService: JwtTokenService,
     private storageService: StorageService,
-    private dataSyncService: DataSyncService,
+    private dataSyncService: DataLoaderService,
     private notifyService: NotifyService
   ) {}
 

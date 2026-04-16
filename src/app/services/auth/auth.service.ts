@@ -10,7 +10,7 @@ import { PasswordReset } from "@models/password-reset.model";
 import { OfflineAuthResult } from "@models/local-user.model";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { isNetworkError } from "@helpers/network-error.helper";
@@ -18,7 +18,7 @@ import { isNetworkError } from "@helpers/network-error.helper";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 
@@ -26,10 +26,10 @@ import { Router } from "@angular/router";
   providedIn: "root",
 })
 export class AuthService {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
   private localAuthService = inject(LocalAuthService);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
 

@@ -31,7 +31,7 @@ import { NotificationAction } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncService } from "@services/data/sync.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
@@ -56,7 +56,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private syncService: SyncService,
     private cdr: ChangeDetectorRef,

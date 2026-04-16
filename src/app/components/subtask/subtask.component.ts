@@ -33,7 +33,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
@@ -59,7 +59,7 @@ import { Task } from "@models/task.model";
 export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
 
   @Input() isOwner: boolean = true;
@@ -202,7 +202,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         })
         .subscribe({
           next: () => {
-            // DataSyncProvider auto-updates storage, just refresh UI
+            // ApiProvider auto-updates storage, just refresh UI
             this.showComments.set(true);
             this.cdr.markForCheck();
           },
