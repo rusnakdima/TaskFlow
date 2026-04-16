@@ -17,7 +17,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* base */
@@ -56,7 +56,7 @@ import { from } from "rxjs";
   templateUrl: "./archive.view.html",
 })
 export class ArchiveView extends BaseAdminView implements OnInit {
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
   private storageService = inject(StorageService);
 
   archiveData = signal<AdminDataMap>({});

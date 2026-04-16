@@ -36,7 +36,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 
@@ -65,7 +65,7 @@ import { Comment } from "@models/comment.model";
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
 
@@ -294,7 +294,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         })
         .subscribe({
           next: () => {
-            // DataSyncProvider auto-updates storage, just refresh UI
+            // ApiProvider auto-updates storage, just refresh UI
             this.showComments.set(true);
             this.cdr.markForCheck();
           },

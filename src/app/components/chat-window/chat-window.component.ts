@@ -29,7 +29,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 @Component({
   selector: "app-chat-window",
@@ -43,7 +43,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   @ViewChild("scrollContainer") private scrollContainer!: ElementRef;
   @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
 
-  dataSync = inject(DataSyncProvider);
+  dataSync = inject(ApiProvider);
   authService = inject(AuthService);
   storageService = inject(StorageService);
 

@@ -9,14 +9,14 @@ import { Task } from "@models/task.model";
 import { TodoRelations } from "@models/relations.config";
 
 /* services */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class MainResolver implements Resolve<any> {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private storageService = inject(StorageService);
 
   async resolve(

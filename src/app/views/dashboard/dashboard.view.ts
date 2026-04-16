@@ -15,7 +15,7 @@ import { Profile } from "@models/profile.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 interface DisplayTask {
@@ -59,7 +59,7 @@ export class DashboardView implements OnInit {
     private authService: AuthService,
     private notifyService: NotifyService,
     private storageService: StorageService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private router: Router
   ) {
     // Watch for todos data changes and process when data is loaded
@@ -74,7 +74,7 @@ export class DashboardView implements OnInit {
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
 
-    // ✅ FIX: NO API CALL NEEDED - profile already loaded in StorageService by DataSyncService
+    // ✅ FIX: NO API CALL NEEDED - profile already loaded in StorageService by DataLoaderService
     // Just use the computed signal - it will update automatically when data is loaded
   }
 

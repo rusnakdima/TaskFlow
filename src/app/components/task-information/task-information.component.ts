@@ -14,7 +14,7 @@ import { Subtask } from "@models/subtask.model";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
@@ -25,14 +25,14 @@ import { DateHelper } from "@helpers/date-helpers";
 @Component({
   selector: "app-task-information",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [ApiProvider],
   imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./task-information.component.html",
 })
 export class TaskInformationComponent {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   public showActions = signal(false);
 

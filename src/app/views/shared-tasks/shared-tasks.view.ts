@@ -15,11 +15,11 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
@@ -33,10 +33,10 @@ import { TodoComponent } from "@components/todo/todo.component";
 export class SharedTasksView implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
   private dragDropService = inject(DragDropOrderService);
 
   userId = signal("");

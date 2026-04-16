@@ -30,7 +30,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { DateHelper } from "@helpers/date-helpers";
@@ -45,7 +45,7 @@ interface PriorityOption {
 @Component({
   selector: "app-manage-subtask",
   standalone: true,
-  providers: [AuthService, DataSyncProvider],
+  providers: [AuthService, ApiProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -66,7 +66,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     private location: Location,
     private notifyService: NotifyService,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private storageService: StorageService,
     private shortcutService: ShortcutService
   ) {
@@ -351,7 +351,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         id: formValue.id, // Include id field for backend validation
       };
 
-      // Update subtask via DataSyncProvider - pass isPrivate flag to control storage behavior
+      // Update subtask via ApiProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
         .crud<Subtask>("update", "subtasks", {
           id: body.id,

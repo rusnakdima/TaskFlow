@@ -16,7 +16,7 @@ import { CommentHandler } from "./entity-handlers/comment.handler";
 import { CategoryHandler } from "./entity-handlers/category.handler";
 import { ProfileHandler } from "./entity-handlers/profile.handler";
 import { ChatHandler } from "./entity-handlers/chat.handler";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 export type StorageEntity = keyof EntityMap;
 
@@ -34,8 +34,8 @@ interface EntityMap {
 export class StorageService extends BaseStorageService {
   private injector = inject(Injector);
 
-  private get dataSyncProvider(): DataSyncProvider {
-    return this.injector.get(DataSyncProvider);
+  private get dataSyncProvider(): ApiProvider {
+    return this.injector.get(ApiProvider);
   }
 
   // ==================== SIGNALS ====================
@@ -122,7 +122,7 @@ export class StorageService extends BaseStorageService {
   // ==================== GENERIC CRUD ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
     this.handlers[type]?.add(data);
-    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // Note: Local JSON persistence is now handled by ApiProvider
     // isPrivate option kept for backward compatibility but not used here
   }
 
@@ -145,13 +145,13 @@ export class StorageService extends BaseStorageService {
     } else {
       this.handlers[type]?.update(id, updates);
     }
-    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // Note: Local JSON persistence is now handled by ApiProvider
     // isPrivate option kept for backward compatibility but not used here
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
     this.handlers[type]?.remove(id, parentId);
-    // Note: Local JSON persistence is now handled by DataSyncProvider
+    // Note: Local JSON persistence is now handled by ApiProvider
     // isTeam parameter kept for backward compatibility but not used here
   }
 

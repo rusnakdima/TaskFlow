@@ -17,7 +17,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* base */
 import { BaseAdminView, AdminDataMap } from "@views/base-admin.view";
@@ -54,7 +54,7 @@ import { ResponseStatus } from "@models/response.model";
   templateUrl: "./admin.view.html",
 })
 export class AdminView extends BaseAdminView implements OnInit {
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
 
   adminData = signal<AdminDataMap>({});
 

@@ -14,7 +14,7 @@ import { Category } from "@models/category.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -44,7 +44,7 @@ export class CategoriesView implements OnInit {
   constructor(
     private authService: AuthService,
     private storageService: StorageService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService
   ) {
     // Watch for categories data changes and load when data is available

@@ -20,7 +20,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { BufferHelper } from "@helpers/buffer.helper";
 
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 @Component({
   selector: "app-settings",
@@ -35,7 +35,7 @@ export class SettingsView implements OnInit {
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private sanitizer = inject(DomSanitizer);
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
 
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);

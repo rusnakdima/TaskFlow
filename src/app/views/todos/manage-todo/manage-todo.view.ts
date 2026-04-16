@@ -34,11 +34,11 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { DateHelper } from "@helpers/date-helpers";
@@ -47,7 +47,7 @@ import { ValidationHelper } from "@helpers/validation.helper";
 @Component({
   selector: "app-manage-todo",
   standalone: true,
-  providers: [AuthService, DataSyncProvider],
+  providers: [AuthService, ApiProvider],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -72,9 +72,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private authService: AuthService,
     private storageService: StorageService,
     private notifyService: NotifyService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private shortcutService: ShortcutService,
-    private dataSyncService: DataSyncService,
+    private dataSyncService: DataLoaderService,
     private cdr: ChangeDetectorRef,
     private relationLoader: RelationLoadingService
   ) {

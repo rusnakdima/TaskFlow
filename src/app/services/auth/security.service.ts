@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 /* models */
 
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { BufferHelper } from "@helpers/buffer.helper";
 
@@ -44,7 +44,7 @@ export interface UserSecurityStatus {
   providedIn: "root",
 })
 export class SecurityService {
-  private dataSyncProvider = inject(DataSyncProvider);
+  private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
 
   getUsername(): string {

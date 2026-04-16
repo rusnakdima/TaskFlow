@@ -40,11 +40,11 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { TodoRelations } from "@models/relations.config";
 
 /* helpers */
@@ -67,7 +67,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 @Component({
   selector: "app-tasks",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [ApiProvider],
   imports: [
     CommonModule,
     FormsModule,
@@ -97,8 +97,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(DataSyncProvider);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncProvider = inject(ApiProvider);
+  private dataSyncService = inject(DataLoaderService);
   private shortcutService = inject(ShortcutService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -336,7 +336,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(task.status);
 
-    // Update task status via DataSyncProvider (storage updated automatically)
+    // Update task status via ApiProvider (storage updated automatically)
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
         id: task.id,
@@ -382,7 +382,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         break;
     }
 
-    // Update subtask status via DataSyncProvider (storage updated automatically)
+    // Update subtask status via ApiProvider (storage updated automatically)
     this.dataSyncProvider
       .crud<Subtask>("update", "subtasks", {
         id: subtask.id,
@@ -440,7 +440,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .crud<Task>("create", "tasks", { data: nextTask, parentTodoId: todoId })
       .subscribe({
         next: (result: Task) => {
-          // Storage updated automatically by DataSyncProvider
+          // Storage updated automatically by ApiProvider
           this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
         },
         error: () => {
@@ -465,7 +465,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    // Update task via DataSyncProvider (storage updated automatically)
+    // Update task via ApiProvider (storage updated automatically)
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
         id: event.task.id,
@@ -481,7 +481,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     if (!confirm("Are you sure?")) return;
 
-    // Delete task via DataSyncProvider (storage updated automatically)
+    // Delete task via ApiProvider (storage updated automatically)
     this.dataSyncProvider.crud("delete", "tasks", { id: taskId, parentTodoId: todoId }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
@@ -649,7 +649,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (result: BulkOperationResult) => {
-          // Storage updated automatically by DataSyncProvider for each successful update
+          // Storage updated automatically by ApiProvider for each successful update
           this.clearSelection();
           if (result.errorCount > 0) {
             this.notifyService.showWarning(
@@ -708,7 +708,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (result) => {
-          // Storage updated automatically by DataSyncProvider for each successful delete
+          // Storage updated automatically by ApiProvider for each successful delete
           this.clearSelection();
           if (result.errorCount > 0) {
             this.notifyService.showWarning(

@@ -328,7 +328,7 @@ export class NotifyService implements OnDestroy {
   }
 
   /**
-   * Handle local user actions (from DataSyncProvider)
+   * Handle local user actions (from ApiProvider)
    */
   handleLocalAction(table: string, operation: string, data: any): void {
     const typeMapping: Record<string, NotificationAction["type"]> = {

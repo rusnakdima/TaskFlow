@@ -13,9 +13,9 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 
 /* QR Decoder */
@@ -30,12 +30,12 @@ import jsQR from "jsqr";
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private localAuthService = inject(LocalAuthService);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncService = inject(DataLoaderService);
 
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
-    private dataSyncProvider: DataSyncProvider,
+    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService
   ) {}
@@ -65,7 +65,7 @@ export class ProfileView implements OnInit, OnDestroy {
         // Profile is loaded centrally in app.ts - just use cached signal
         const cachedProfile = this.storageService.profile();
         if (!cachedProfile) {
-          // If somehow not cached, trigger a reload via DataSyncService
+          // If somehow not cached, trigger a reload via DataLoaderService
           this.getProfile(params.id);
         }
       }
@@ -87,7 +87,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   getProfile(userId: string) {
-    // Only called when profile not in cache - use DataSyncService
+    // Only called when profile not in cache - use DataLoaderService
     this.dataSyncService.loadProfile().subscribe();
   }
 

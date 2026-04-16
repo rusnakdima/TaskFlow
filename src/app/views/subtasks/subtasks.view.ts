@@ -32,11 +32,11 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
-import { DataSyncProvider } from "@providers/data-sync.provider";
+import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -57,7 +57,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 @Component({
   selector: "app-subtasks",
   standalone: true,
-  providers: [DataSyncProvider],
+  providers: [ApiProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -78,8 +78,8 @@ export class SubtasksView extends BaseListView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(DataSyncProvider);
-  private dataSyncService = inject(DataSyncService);
+  private dataSyncProvider = inject(ApiProvider);
+  private dataSyncService = inject(DataLoaderService);
   private shortcutService = inject(ShortcutService);
   private cdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
@@ -322,7 +322,7 @@ export class SubtasksView extends BaseListView implements OnInit {
       })
       .subscribe({
         next: () => {
-          // Storage updated automatically by DataSyncProvider
+          // Storage updated automatically by ApiProvider
         },
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update subtask");
@@ -341,7 +341,7 @@ export class SubtasksView extends BaseListView implements OnInit {
       })
       .subscribe({
         next: () => {
-          // Storage updated automatically by DataSyncProvider
+          // Storage updated automatically by ApiProvider
         },
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to update subtask");
