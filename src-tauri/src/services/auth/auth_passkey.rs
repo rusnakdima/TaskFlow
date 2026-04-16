@@ -5,12 +5,14 @@ use std::sync::Arc;
 use webauthn_rs::prelude::*;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -27,7 +29,7 @@ type PasskeyAuthenticationState = (String, PasskeyAuthentication);
 
 pub struct AuthPasskeyService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub webauthnState: Arc<WebAuthnState>,
   challenge: std::sync::Mutex<Option<PasskeyRegistrationState>>,
   authChallenge: std::sync::Mutex<Option<PasskeyAuthenticationState>>,
@@ -48,7 +50,7 @@ impl Clone for AuthPasskeyService {
 impl AuthPasskeyService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     webauthnState: Arc<WebAuthnState>,
   ) -> Self {
     Self {
@@ -256,17 +258,14 @@ impl AuthPasskeyService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    let filter = json!({ "username": username });
-
-    match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
+    match self.jsonProvider.find_all("users").await {
       Ok(users) => {
-        if let Some(userVal) = users.first() {
-          return serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
         }
       }
       Err(_) => {}
@@ -277,11 +276,16 @@ impl AuthPasskeyService {
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
-        serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
+        }
+        Err(errResponse("User not found"))
       }
       Err(e) => Err(errResponse(&format!("Database error: {}", e))),
     }
@@ -295,7 +299,7 @@ impl AuthPasskeyService {
 
     if let Err(e) = self
       .jsonProvider
-      .update("users", userId, userVal.clone())
+      .update("users", &userId, userVal.clone())
       .await
     {
       tracing::warn!("Failed to update local user: {}", e);
@@ -303,7 +307,7 @@ impl AuthPasskeyService {
 
     if let Some(mongoProvider) = &self.mongodbProvider {
       mongoProvider
-        .update("users", userId, userVal)
+        .update("users", &userId, userVal)
         .await
         .map_err(|e| errResponse(&format!("Failed to update MongoDB user: {}", e)))?;
     }

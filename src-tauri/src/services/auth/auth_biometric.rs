@@ -3,12 +3,14 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -19,7 +21,7 @@ use crate::helpers::{
 
 pub struct AuthBiometricService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   challenge: std::sync::Mutex<Option<(String, String)>>,
 }
 
@@ -34,7 +36,7 @@ impl Clone for AuthBiometricService {
 }
 
 impl AuthBiometricService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongodbProvider>>) -> Self {
+  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     Self {
       jsonProvider,
       mongodbProvider,
@@ -185,15 +187,14 @@ impl AuthBiometricService {
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
     let filter = json!({ "username": username });
 
-    match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
+    match self.jsonProvider.find_all("users").await {
       Ok(users) => {
-        if let Some(userVal) = users.first() {
-          return serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
         }
       }
       Err(_) => {}
@@ -204,26 +205,36 @@ impl AuthBiometricService {
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
-        serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
+        }
+        Err(errResponse("User not found"))
       }
       Err(e) => Err(errResponse(&format!("Database error: {}", e))),
     }
   }
 
   async fn findUsers(&self, filter: serde_json::Value) -> Result<UserEntity, ResponseModel> {
-    match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
+    match self.jsonProvider.find_all("users").await {
       Ok(users) => {
-        if let Some(userVal) = users.first() {
-          return serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.biometricEnabled == filter.get("biometricEnabled").and_then(|v| v.as_bool()).unwrap_or(user.biometricEnabled) {
+              if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
+                if user.username == username_filter {
+                  return Ok(user);
+                }
+              } else {
+                return Ok(user);
+              }
+            }
+          }
         }
       }
       Err(_) => {}
@@ -234,11 +245,22 @@ impl AuthBiometricService {
       .as_ref()
       .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
 
-    match mongoProvider.getAll("users", Some(filter)).await {
+    match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
-        serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.biometricEnabled == filter.get("biometricEnabled").and_then(|v| v.as_bool()).unwrap_or(user.biometricEnabled) {
+              if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
+                if user.username == username_filter {
+                  return Ok(user);
+                }
+              } else {
+                return Ok(user);
+              }
+            }
+          }
+        }
+        Err(errResponse("User not found"))
       }
       Err(e) => Err(errResponse(&format!("Database error: {}", e))),
     }
@@ -252,7 +274,7 @@ impl AuthBiometricService {
 
     if let Err(e) = self
       .jsonProvider
-      .update("users", userId, userVal.clone())
+      .update("users", &userId, userVal.clone())
       .await
     {
       tracing::warn!("Failed to update local user: {}", e);
@@ -260,7 +282,7 @@ impl AuthBiometricService {
 
     if let Some(mongoProvider) = &self.mongodbProvider {
       mongoProvider
-        .update("users", userId, userVal)
+        .update("users", &userId, userVal)
         .await
         .map_err(|e| errResponse(&format!("Failed to update MongoDB user: {}", e)))?;
     }

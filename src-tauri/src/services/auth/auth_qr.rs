@@ -6,11 +6,13 @@ use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
 use crate::helpers::response_helper::{errResponse, successResponse};
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 const QR_TOKEN_TTL_SECS: i64 = 90;
 
@@ -27,7 +29,7 @@ pub struct QrToken {
 
 pub struct QrAuthService {
   jsonProvider: JsonProvider,
-  mongodbProvider: Option<Arc<MongodbProvider>>,
+  mongodbProvider: Option<Arc<MongoProvider>>,
   tokenService: Arc<AuthTokenService>,
 }
 
@@ -44,7 +46,7 @@ impl Clone for QrAuthService {
 impl QrAuthService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     tokenService: Arc<AuthTokenService>,
   ) -> Self {
     Self {
@@ -78,7 +80,7 @@ impl QrAuthService {
     eprintln!("[QR] Attempting to store token in MongoDB first...");
     if let Some(ref mongoProvider) = self.mongodbProvider {
       match mongoProvider
-        .create("qr_tokens", qr_token_json.clone())
+        .insert("qr_tokens", qr_token_json.clone())
         .await
       {
         Ok(_) => {
@@ -96,7 +98,7 @@ impl QrAuthService {
     eprintln!("[QR] Attempting to store token in local DB...");
     match self
       .jsonProvider
-      .create("qr_tokens", qr_token_json.clone())
+      .insert("qr_tokens", qr_token_json.clone())
       .await
     {
       Ok(result) => {
@@ -243,23 +245,21 @@ impl QrAuthService {
   }
 
   async fn findQrToken(&self, token: &str) -> Result<QrToken, ResponseModel> {
-    let filter = json!({ "id": token });
-
     eprintln!("[QR] Searching for token: '{}'", token);
 
     // QR login is cross-device, so check MongoDB first (shared state)
     eprintln!("[QR] Searching in MongoDB first...");
     if let Some(ref mongoProvider) = self.mongodbProvider {
-      match mongoProvider
-        .getAll("qr_tokens", Some(filter.clone()))
-        .await
-      {
+      match mongoProvider.find_all("qr_tokens").await {
         Ok(results) => {
           eprintln!("[QR] MongoDB returned {} results", results.len());
-          if let Some(token_val) = results.first() {
-            eprintln!("[QR] Found token in MongoDB");
-            return serde_json::from_value(token_val.clone())
-              .map_err(|e| errResponse(&format!("Failed to parse token from MongoDB: {}", e)));
+          for token_val in results {
+            if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+              if t.id == token {
+                eprintln!("[QR] Found token in MongoDB");
+                return Ok(t);
+              }
+            }
           }
         }
         Err(e) => {
@@ -272,13 +272,16 @@ impl QrAuthService {
 
     // Fallback to local JSON DB
     eprintln!("[QR] Searching in local JSON DB...");
-    match self.jsonProvider.getAll("qr_tokens", Some(filter)).await {
+    match self.jsonProvider.find_all("qr_tokens").await {
       Ok(results) => {
         eprintln!("[QR] Local DB returned {} results", results.len());
-        if let Some(token_val) = results.first() {
-          eprintln!("[QR] Found token in local DB");
-          return serde_json::from_value(token_val.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse token: {}", e)));
+        for token_val in results {
+          if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+            if t.id == token {
+              eprintln!("[QR] Found token in local DB");
+              return Ok(t);
+            }
+          }
         }
       }
       Err(e) => {
@@ -335,16 +338,11 @@ impl QrAuthService {
       .username
       .ok_or_else(|| errResponse("QR token has no username"))?;
 
-    // Look up the user to get id and role
-    let filter = json!({ "username": username });
-
     // Try local JSON database first
-    let user_val = match self
-      .jsonProvider
-      .getAll("users", Some(filter.clone()))
-      .await
-    {
-      Ok(users) => users.first().cloned(),
+    let user_val = match self.jsonProvider.find_all("users").await {
+      Ok(users) => users.into_iter().find_map(|u| {
+        serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
+      }),
       Err(_) => None,
     };
 
@@ -352,10 +350,12 @@ impl QrAuthService {
     let user_val = if let Some(val) = user_val {
       val
     } else if let Some(ref mongoProvider) = self.mongodbProvider {
-      match mongoProvider.getAll("users", Some(filter)).await {
+      match mongoProvider.find_all("users").await {
         Ok(users) => users
-          .first()
-          .cloned()
+          .into_iter()
+          .find_map(|u| {
+            serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
+          })
           .ok_or_else(|| errResponse(&format!("User '{}' not found in database", username)))?,
         Err(e) => return Err(errResponse(&format!("Database error: {}", e))),
       }
@@ -363,7 +363,7 @@ impl QrAuthService {
       return Err(errResponse("User not found and MongoDB unavailable"));
     };
 
-    let user: UserEntity = serde_json::from_value(user_val)
+    let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
     // Generate JWT token
@@ -374,7 +374,7 @@ impl QrAuthService {
     // Cache user locally if from MongoDB
     if self.mongodbProvider.is_some() {
       if let Ok(user_val) = serde_json::to_value(&user) {
-        let _ = self.jsonProvider.create("users", user_val).await;
+        let _ = self.jsonProvider.insert("users", user_val).await;
       }
     }
 

@@ -7,12 +7,14 @@ use std::sync::Arc;
 use tokio::time::{timeout, Duration};
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongodbProvider};
+use nosql_orm::providers::JsonProvider;
+use nosql_orm::providers::MongoProvider;
+use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::models::{
-  response_model::{DataValue, ResponseModel, ResponseStatus},
-  user_model::UserEntity,
+use crate::entities::{
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -24,14 +26,14 @@ use super::auth_token::AuthTokenService;
 #[derive(Clone)]
 pub struct AuthTotpService {
   pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongodbProvider>>,
+  pub mongodbProvider: Option<Arc<MongoProvider>>,
   tokenService: Option<Arc<AuthTokenService>>,
 }
 
 impl AuthTotpService {
   pub fn new(
     jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongodbProvider>>,
+    mongodbProvider: Option<Arc<MongoProvider>>,
     tokenService: Option<Arc<AuthTokenService>>,
   ) -> Self {
     Self {
@@ -335,18 +337,19 @@ impl AuthTotpService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    let filter = serde_json::json!({ "username": username });
-
     match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.getAll("users", Some(filter.clone())),
+      self.jsonProvider.find_all("users"),
     )
     .await
     {
       Ok(Ok(users)) => {
-        if let Some(userVal) = users.first() {
-          return serde_json::from_value(userVal.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)));
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
         }
       }
       Ok(Err(e)) => {
@@ -364,14 +367,19 @@ impl AuthTotpService {
 
     match timeout(
       Duration::from_secs(5),
-      mongoProvider.getAll("users", Some(filter)),
+      mongoProvider.find_all("users"),
     )
     .await
     {
       Ok(Ok(users)) => {
-        let userVal = users.first().ok_or_else(|| errResponse("User not found"))?;
-        serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+        for userVal in users {
+          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
+            if user.username == username {
+              return Ok(user);
+            }
+          }
+        }
+        Err(errResponse("User not found"))
       }
       Ok(Err(e)) => Err(errResponse(&format!("Database error: {}", e))),
       Err(_) => Err(errResponse("Database timeout")),
@@ -386,7 +394,7 @@ impl AuthTotpService {
 
     match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.update("users", userId, userVal.clone()),
+      self.jsonProvider.update("users", &userId, userVal.clone()),
     )
     .await
     {
@@ -402,7 +410,7 @@ impl AuthTotpService {
     if let Some(mongoProvider) = &self.mongodbProvider {
       match timeout(
         Duration::from_secs(5),
-        mongoProvider.update("users", userId, userVal),
+        mongoProvider.update("users", &userId, userVal),
       )
       .await
       {
@@ -441,16 +449,6 @@ impl AuthTotpService {
       }
     );
 
-    if let Some(mongoProvider) = &self.mongodbProvider {
-      mongoProvider
-        .updateUserTotp(username, totpEnabled, totpSecret, &recoveryCodes)
-        .await
-        .map_err(|e| errResponse(&format!("Failed to update MongoDB TOTP: {}", e)))?;
-      tracing::info!("updateTotpSettings: MongoDB update completed");
-    } else {
-      tracing::warn!("updateTotpSettings: no MongoDB provider available");
-    }
-
     let user = self.findUser(username).await?;
     tracing::info!("updateTotpSettings: found user with id={}", user.get_id());
 
@@ -460,25 +458,27 @@ impl AuthTotpService {
     updatedUser.recoveryCodes = recoveryCodes;
     updatedUser.updated_at = chrono::Utc::now();
 
-    match timeout(
-      Duration::from_secs(3),
-      self.jsonProvider.update(
-        "users",
-        user.get_id(),
-        serde_json::to_value(&updatedUser).unwrap(),
-      ),
-    )
-    .await
-    {
-      Ok(Ok(_)) => {
-        tracing::info!("updateTotpSettings: local JSON update completed");
+    self.saveUser(&updatedUser).await?;
+
+    if let Some(mongoProvider) = &self.mongodbProvider {
+      match timeout(
+        Duration::from_secs(5),
+        mongoProvider.update("users", &updatedUser.get_id(), serde_json::to_value(&updatedUser).unwrap()),
+      )
+      .await
+      {
+        Ok(Ok(_)) => {
+          tracing::info!("updateTotpSettings: MongoDB update completed");
+        }
+        Ok(Err(e)) => {
+          tracing::warn!("Failed to update MongoDB TOTP settings: {}", e);
+        }
+        Err(_) => {
+          tracing::warn!("MongoDB TOTP update timed out, skipping");
+        }
       }
-      Ok(Err(e)) => {
-        tracing::warn!("Failed to update local TOTP settings: {}", e);
-      }
-      Err(_) => {
-        tracing::warn!("Local TOTP update timed out");
-      }
+    } else {
+      tracing::warn!("updateTotpSettings: no MongoDB provider available");
     }
 
     Ok(())
