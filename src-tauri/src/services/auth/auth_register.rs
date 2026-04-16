@@ -5,9 +5,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* services */
 use super::auth_token::AuthTokenService;

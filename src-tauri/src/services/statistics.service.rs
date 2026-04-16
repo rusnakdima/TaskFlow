@@ -4,8 +4,8 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* providers */
-use nosql_orm::providers::JsonProvider;
 use nosql_orm::provider::DatabaseProvider;
+use nosql_orm::providers::JsonProvider;
 
 /* helpers */
 use crate::helpers::activity_log::ActivityLogHelper;
@@ -60,24 +60,39 @@ impl StatisticsService {
       .getDailyActivitiesFiltered(&userId, &prevStartNaive, &prevEndNaive)
       .await;
 
-    let allTasks = self.jsonProvider.find_all("tasks").await.unwrap_or_default();
-    let tasks: Vec<Value> = allTasks.into_iter().filter(|t| {
-      t.get("userId").and_then(|v| v.as_str()) == Some(&userId)
-    }).collect();
+    let allTasks = self
+      .jsonProvider
+      .find_all("tasks")
+      .await
+      .unwrap_or_default();
+    let tasks: Vec<Value> = allTasks
+      .into_iter()
+      .filter(|t| t.get("userId").and_then(|v| v.as_str()) == Some(&userId))
+      .collect();
 
     let currentTasks = DateCalculator::filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
     let previousTasks =
       DateCalculator::filterByDateRange(&tasks, &previousStartDate, &previousEndDate, "createdAt");
 
-    let allCategories = self.jsonProvider.find_all("categories").await.unwrap_or_default();
-    let categories: Vec<Value> = allCategories.into_iter().filter(|c| {
-      c.get("userId").and_then(|v| v.as_str()) == Some(&userId)
-    }).collect();
+    let allCategories = self
+      .jsonProvider
+      .find_all("categories")
+      .await
+      .unwrap_or_default();
+    let categories: Vec<Value> = allCategories
+      .into_iter()
+      .filter(|c| c.get("userId").and_then(|v| v.as_str()) == Some(&userId))
+      .collect();
 
-    let allTodos = self.jsonProvider.find_all("todos").await.unwrap_or_default();
-    let todos: Vec<Value> = allTodos.into_iter().filter(|t| {
-      t.get("userId").and_then(|v| v.as_str()) == Some(&userId)
-    }).collect();
+    let allTodos = self
+      .jsonProvider
+      .find_all("todos")
+      .await
+      .unwrap_or_default();
+    let todos: Vec<Value> = allTodos
+      .into_iter()
+      .filter(|t| t.get("userId").and_then(|v| v.as_str()) == Some(&userId))
+      .collect();
 
     // Compute metrics
     let statistics = TaskAnalytics::computeStatistics(

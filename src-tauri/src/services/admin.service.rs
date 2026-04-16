@@ -3,10 +3,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{
-  json_provider::JsonProvider,
-  mongodb_provider::MongoProvider,
-};
+use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongoProvider};
 use nosql_orm::provider::DatabaseProvider;
 
 /* models */
@@ -353,20 +350,14 @@ impl AdminManager {
         .map_err(|e| errResponseFormatted("Hard-delete cascade failed for task", &e.to_string()))?;
     }
     for id in &cascade_ids.subtaskIds {
-      provider
-        .delete("subtasks", id)
-        .await
-        .map_err(|e| {
-          errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
-        })?;
+      provider.delete("subtasks", id).await.map_err(|e| {
+        errResponseFormatted("Hard-delete cascade failed for subtask", &e.to_string())
+      })?;
     }
     for id in &cascade_ids.commentIds {
-      provider
-        .delete("comments", id)
-        .await
-        .map_err(|e| {
-          errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
-        })?;
+      provider.delete("comments", id).await.map_err(|e| {
+        errResponseFormatted("Hard-delete cascade failed for comment", &e.to_string())
+      })?;
     }
     for id in &cascade_ids.chatIds {
       provider

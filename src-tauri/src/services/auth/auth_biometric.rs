@@ -3,9 +3,9 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* models */
 use crate::entities::{
@@ -225,7 +225,12 @@ impl AuthBiometricService {
       Ok(users) => {
         for userVal in users {
           if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.biometricEnabled == filter.get("biometricEnabled").and_then(|v| v.as_bool()).unwrap_or(user.biometricEnabled) {
+            if user.biometricEnabled
+              == filter
+                .get("biometricEnabled")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(user.biometricEnabled)
+            {
               if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
                 if user.username == username_filter {
                   return Ok(user);
@@ -249,7 +254,12 @@ impl AuthBiometricService {
       Ok(users) => {
         for userVal in users {
           if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.biometricEnabled == filter.get("biometricEnabled").and_then(|v| v.as_bool()).unwrap_or(user.biometricEnabled) {
+            if user.biometricEnabled
+              == filter
+                .get("biometricEnabled")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(user.biometricEnabled)
+            {
               if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
                 if user.username == username_filter {
                   return Ok(user);

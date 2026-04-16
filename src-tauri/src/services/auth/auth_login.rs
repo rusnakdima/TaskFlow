@@ -4,9 +4,9 @@ use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* services */
 use super::auth_token::AuthTokenService;
@@ -56,10 +56,11 @@ impl AuthLoginService {
               match verify(password, &user.password) {
                 Ok(valid) => {
                   if valid {
-                    let token =
-                      self
-                        .tokenService
-                        .generateToken(&user.get_id(), &user.username, &user.role)?;
+                    let token = self.tokenService.generateToken(
+                      &user.get_id(),
+                      &user.username,
+                      &user.role,
+                    )?;
 
                     return Ok(ResponseModel {
                       status: ResponseStatus::Success,
@@ -97,9 +98,17 @@ impl AuthLoginService {
 
     match mongoProvider.find_all("users").await {
       Ok(users) => {
-        let userVal = users.into_iter().find_map(|u| {
-          serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
-        }).ok_or_else(|| errResponse("User not found. Please register first or check your username."))?;
+        let userVal = users
+          .into_iter()
+          .find_map(|u| {
+            serde_json::from_value::<UserEntity>(u.clone())
+              .ok()
+              .filter(|user| user.username == username)
+              .map(|_| u)
+          })
+          .ok_or_else(|| {
+            errResponse("User not found. Please register first or check your username.")
+          })?;
 
         let user = serde_json::from_value::<UserEntity>(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;

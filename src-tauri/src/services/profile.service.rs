@@ -3,9 +3,9 @@ use serde_json::Value;
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 /* models */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};

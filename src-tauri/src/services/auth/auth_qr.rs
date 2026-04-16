@@ -5,14 +5,14 @@ use serde_json::json;
 use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
-use crate::helpers::response_helper::{errResponse, successResponse};
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   user_entity::UserEntity,
 };
+use crate::helpers::response_helper::{errResponse, successResponse};
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::provider::DatabaseProvider;
 
 const QR_TOKEN_TTL_SECS: i64 = 90;
 
@@ -341,7 +341,10 @@ impl QrAuthService {
     // Try local JSON database first
     let user_val = match self.jsonProvider.find_all("users").await {
       Ok(users) => users.into_iter().find_map(|u| {
-        serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
+        serde_json::from_value::<UserEntity>(u.clone())
+          .ok()
+          .filter(|user| user.username == username)
+          .map(|_| u)
       }),
       Err(_) => None,
     };
@@ -354,7 +357,10 @@ impl QrAuthService {
         Ok(users) => users
           .into_iter()
           .find_map(|u| {
-            serde_json::from_value::<UserEntity>(u.clone()).ok().filter(|user| user.username == username).map(|_| u)
+            serde_json::from_value::<UserEntity>(u.clone())
+              .ok()
+              .filter(|user| user.username == username)
+              .map(|_| u)
           })
           .ok_or_else(|| errResponse(&format!("User '{}' not found in database", username)))?,
         Err(e) => return Err(errResponse(&format!("Database error: {}", e))),
