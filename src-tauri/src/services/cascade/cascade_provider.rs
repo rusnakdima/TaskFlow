@@ -1,4 +1,4 @@
-use crate::models::response_model::ResponseModel;
+use crate::entities::response_entity::ResponseModel;
 
 use super::cascade_ids::CascadeIds;
 
