@@ -1,5 +1,5 @@
 /* sys lib */
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 // Import all model types
 use crate::entities::{
@@ -144,7 +144,8 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
     }
     TableModelType::Profile => {
       if isCreate {
-        let createModel: ProfileCreateModel = serde_json::from_value(data.clone())
+        let filteredData = filter_empty_fields(data.clone());
+        let createModel: ProfileCreateModel = serde_json::from_value(filteredData)
           .map_err(|e| format!("Invalid profile data: {}", e))?;
         createModel.validate()?;
         let model: ProfileEntity = createModel.into();
@@ -185,5 +186,21 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
         Ok(data.clone())
       }
     }
+  }
+}
+
+fn filter_empty_fields(data: Value) -> Value {
+  if let Value::Object(obj) = data {
+    let filtered: Map<String, Value> = obj
+      .into_iter()
+      .filter(|(_, v)| match v {
+        Value::String(s) => !s.is_empty(),
+        Value::Null => false,
+        _ => true,
+      })
+      .collect();
+    Value::Object(filtered)
+  } else {
+    data
   }
 }
