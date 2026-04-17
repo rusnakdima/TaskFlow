@@ -110,28 +110,39 @@ pub fn run() {
       let activityMonitor =
         ActivityMonitorService::new(activityLogHelper.clone(), entityResolution.clone());
 
+      let json_for_repo = jsonProvider.clone();
+      let json_for_auth = jsonProvider.clone();
+      let json_for_stats = jsonProvider.clone();
+      let json_for_mdb = jsonProvider.clone();
+      let mongo_for_repo = mongodbProvider.clone();
+      let mongo_for_auth = mongodbProvider.clone();
+      let mongo_for_mdb = mongodbProvider.clone();
+      let cas_for_repo = cascadeService.clone();
+      let ent_for_repo = entityResolution.clone();
+      let act_for_stats = activityLogHelper.clone();
+
       let repositoryService = Arc::new(RepositoryService::new(
-        jsonProvider,
-        mongodbProvider,
-        cascadeService,
-        entityResolution,
+        json_for_repo,
+        mongo_for_repo,
+        cas_for_repo,
+        ent_for_repo,
         activityMonitor,
       ));
 
       let authService = Arc::new(AuthService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
+        json_for_auth,
+        mongo_for_auth,
         configHelper.jwtSecret.clone(),
         configHelper.rpDomain.clone(),
       ));
 
       let statisticsService = Arc::new(StatisticsService::new(
-        jsonProvider.clone(),
-        activityLogHelper.clone(),
+        json_for_stats,
+        act_for_stats,
       ));
       let manageDbService = Arc::new(ManageDbService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
+        json_for_mdb,
+        mongo_for_mdb,
         cascadeService,
         entityResolution,
       ));
