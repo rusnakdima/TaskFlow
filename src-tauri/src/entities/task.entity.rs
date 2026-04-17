@@ -47,9 +47,6 @@ pub struct TaskEntity {
   pub updated_at: DateTime<Utc>,
   pub assignees: Vec<String>,
   pub dependsOn: Vec<String>,
-  pub subtasks: Vec<crate::entities::subtask_entity::SubtaskEntity>,
-  pub todo: Option<crate::entities::todo_entity::TodoEntity>,
-  pub comments: Vec<CommentEntity>,
 }
 
 impl Entity for TaskEntity {
@@ -79,7 +76,6 @@ pub struct TaskCreateModel {
   pub startDate: String,
   pub endDate: String,
   pub order: i32,
-  pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
 }
 
 impl Validatable for TaskCreateModel {
@@ -136,11 +132,8 @@ impl From<TaskCreateModel> for TaskEntity {
       deleted_at: None,
       created_at: now,
       updated_at: now,
-      comments: value.comments.unwrap_or_default(),
       assignees: vec![],
       dependsOn: vec![],
-      subtasks: vec![],
-      todo: None,
     }
   }
 }

@@ -13,16 +13,16 @@ pub struct TodoEntity {
   pub description: String,
   pub startDate: Option<String>,
   pub endDate: Option<String>,
-  pub categories: Vec<crate::entities::category_entity::CategoryEntity>,
+  pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
   pub priority: String,
   pub order: i32,
+  #[serde(skip_deserializing)]
+  pub tasks: Vec<crate::entities::task_entity::TaskEntity>,
   pub deleted_at: Option<DateTime<Utc>>,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
-  pub user: Option<crate::entities::user_entity::UserEntity>,
-  pub tasks: Vec<crate::entities::task_entity::TaskEntity>,
 }
 
 impl Entity for TodoEntity {
@@ -105,30 +105,15 @@ impl From<TodoCreateModel> for TodoEntity {
       description: value.description,
       startDate: formattedStartDate,
       endDate: formattedEndDate,
-      categories: value
-        .categories
-        .into_iter()
-        .map(|title| {
-          let now = Utc::now();
-          crate::entities::category_entity::CategoryEntity {
-            id: None,
-            title,
-            userId: value.userId.clone(),
-            deleted_at: None,
-            created_at: now,
-            updated_at: now,
-          }
-        })
-        .collect(),
+      categories: value.categories,
       assignees: value.assignees,
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,
+      tasks: vec![],
       deleted_at: None,
       created_at: now,
       updated_at: now,
-      tasks: vec![],
-      user: None,
     }
   }
 }
