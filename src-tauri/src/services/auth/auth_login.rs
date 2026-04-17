@@ -117,10 +117,10 @@ impl AuthLoginService {
           Ok(valid) => {
             if valid {
               let _ = self.jsonProvider.insert("users", userVal.clone()).await;
-              let token =
-                self
-                  .tokenService
-                  .generateToken(&user.get_id(), &user.username, &user.role)?;
+              
+              let user_id = user.get_id().to_string();
+              
+              let token = self.tokenService.generateToken(&user_id, &user.username, &user.role)?;
 
               Ok(ResponseModel {
                 status: ResponseStatus::Success,

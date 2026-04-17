@@ -369,13 +369,15 @@ impl QrAuthService {
       return Err(errResponse("User not found and MongoDB unavailable"));
     };
 
-    let user = serde_json::from_value::<UserEntity>(user_val.clone())
+let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+
+    let user_id = user.get_id().to_string();
 
     // Generate JWT token
     let token = self
       .tokenService
-      .generateToken(&user.get_id(), &user.username, &user.role)?;
+      .generateToken(&user_id, &user.username, &user.role)?;
 
     // Cache user locally if from MongoDB
     if self.mongodbProvider.is_some() {
