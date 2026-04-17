@@ -50,7 +50,7 @@ qrcode = "0.14"
 image = { version = "0.25", default-features = false, features = ["png"] }
 data-encoding = "2"
 # Use vendored OpenSSL for all platforms including Android
-openssl-sys = { version = "0.9", features = ["vendored"] }
+rustls = "0.21"
 keyring = "3"
 dashmap = "5"
 
