@@ -2,6 +2,7 @@
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 /* entities */
@@ -44,21 +45,75 @@ impl ManageDbService {
   }
 
   /// Import data from cloud MongoDB to local JSON
-  pub async fn importToLocal(&self, _userId: String) -> Result<ResponseModel, ResponseModel> {
-    Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: "importToLocal not yet implemented with nosql_orm".to_string(),
-      data: DataValue::String("".to_string()),
-    })
+  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    match self.mongodbProvider.as_ref() {
+      Some(mongo_provider) => {
+        let tables = vec!["users", "profiles", "todos", "tasks", "subtasks", "categories", "daily_activities"];
+        let mut imported_count = 0;
+
+        for table in tables {
+          let cloud_data = mongo_provider.find_all(table).await;
+          
+          if let Ok(items) = cloud_data {
+            for item in items {
+              if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
+                let insert_result = self.jsonProvider.insert(table, item.clone()).await;
+                if insert_result.is_ok() {
+                  imported_count += 1;
+                }
+              }
+            }
+          }
+        }
+
+        Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: format!("Imported {} records to local", imported_count),
+          data: DataValue::String(imported_count.to_string()),
+        })
+      }
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available for import".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
   /// Export data from local JSON to cloud MongoDB
-  pub async fn exportToCloud(&self, _userId: String) -> Result<ResponseModel, ResponseModel> {
-    Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: "exportToCloud not yet implemented with nosql_orm".to_string(),
-      data: DataValue::String("".to_string()),
-    })
+  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+    match self.mongodbProvider.as_ref() {
+      Some(mongo_provider) => {
+        let tables = vec!["users", "profiles", "todos", "tasks", "subtasks", "categories", "daily_activities"];
+        let mut exported_count = 0;
+
+        for table in tables {
+          let local_data = self.jsonProvider.find_all(table).await;
+          
+          if let Ok(items) = local_data {
+            for item in items {
+              if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
+                let insert_result = mongo_provider.insert(table, item.clone()).await;
+                if insert_result.is_ok() {
+                  exported_count += 1;
+                }
+              }
+            }
+          }
+        }
+
+        Ok(ResponseModel {
+          status: ResponseStatus::Success,
+          message: format!("Exported {} records to cloud", exported_count),
+          data: DataValue::String(exported_count.to_string()),
+        })
+      }
+      None => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available for export".to_string(),
+        data: DataValue::String("".to_string()),
+      }),
+    }
   }
 
   /// Get all data for admin view (from MongoDB)
