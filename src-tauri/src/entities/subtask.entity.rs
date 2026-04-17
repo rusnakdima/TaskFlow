@@ -20,8 +20,6 @@ pub struct SubtaskEntity {
   pub updated_at: DateTime<Utc>,
   pub startDate: Option<String>,
   pub endDate: Option<String>,
-  pub task: Option<crate::entities::task_entity::TaskEntity>,
-  pub comments: Vec<CommentEntity>,
 }
 
 impl Entity for SubtaskEntity {
@@ -49,9 +47,6 @@ pub struct SubtaskCreateModel {
   pub description: Option<String>,
   pub priority: String,
   pub order: i32,
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<crate::entities::sync_metadata_entity::SyncMetadata>,
-  pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
 }
 
 impl Validatable for SubtaskCreateModel {
@@ -84,10 +79,8 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       deleted_at: None,
       created_at: now,
       updated_at: now,
-      comments: value.comments.unwrap_or_default(),
       startDate: None,
       endDate: None,
-      task: None,
     }
   }
 }
