@@ -108,7 +108,16 @@ impl RepositoryService {
     _load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let docs = if self.use_json_provider(sync_metadata.as_ref()) {
+    // For profiles table with userId filter: check local first, then cloud import if not found
+    if table == "profiles" {
+      if let Some(ref f) = filter {
+        if let Some(user_id) = f.get("userId").and_then(|v| v.as_str()) {
+          return self.getOrImportProfile(user_id).await;
+        }
+      }
+    }
+
+    let mut docs = if self.use_json_provider(sync_metadata.as_ref()) {
       self
         .jsonProvider
         .find_all(&table)
@@ -123,7 +132,75 @@ impl RepositoryService {
       return Err(errResponse("No provider available"));
     };
 
+    // Auto-load relations for decentralized storage
+    if table == "todos" {
+      docs = match self.loadTodoRelations(docs).await {
+        Ok(loaded) => loaded,
+        Err(e) => return Err(e),
+      };
+    }
+
     Ok(successResponse(DataValue::Array(docs)))
+  }
+
+  async fn getOrImportProfile(
+    &self,
+    user_id: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    // Check local first
+    if let Ok(local_profiles) = self.jsonProvider.find_all("profiles").await {
+      for p in local_profiles {
+        if p.get("userId").and_then(|v| v.as_str()) == Some(user_id) {
+          return Ok(successResponse(DataValue::Object(p)));
+        }
+      }
+    }
+
+    // Not in local, check cloud and import
+    if let Some(ref mongo) = self.mongodbProvider {
+      if let Ok(cloud_profiles) = mongo.find_all("profiles").await {
+        for p in cloud_profiles {
+          if p.get("userId").and_then(|v| v.as_str()) == Some(user_id) {
+            let _ = self.jsonProvider.insert("profiles", p.clone()).await;
+            return Ok(successResponse(DataValue::Object(p)));
+          }
+        }
+      }
+    }
+
+    // Not found anywhere
+    Ok(successResponse(DataValue::Object(serde_json::json!({ "userId": user_id }))))
+  }
+
+  async fn loadTodoRelations(
+    &self,
+    mut todos: Vec<serde_json::Value>,
+  ) -> Result<Vec<serde_json::Value>, ResponseModel> {
+    // Get all tasks from db
+    let tasks = self.jsonProvider.find_all("tasks").await.unwrap_or_default();
+    
+    let tasks_by_todo: std::collections::HashMap<String, Vec<serde_json::Value>> = {
+      let mut map = std::collections::HashMap::new();
+      for task in &tasks {
+        if let Some(todo_id) = task.get("todoId").and_then(|v| v.as_str()) {
+          map.entry(todo_id.to_string())
+            .or_insert_with(Vec::new)
+            .push(task.clone());
+        }
+      }
+      map
+    };
+    
+    for todo in todos.iter_mut() {
+      let todo_id = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
+      let related_tasks = tasks_by_todo.get(todo_id).cloned().unwrap_or_default();
+      
+      if let Some(obj) = todo.as_object_mut() {
+        obj.insert("tasks".to_string(), serde_json::Value::Array(related_tasks));
+      }
+    }
+    
+    Ok(todos)
   }
 
   async fn handleGet(
@@ -380,14 +457,9 @@ impl RepositoryService {
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
-    let profileId = validatedProfile
-      .get("id")
-      .and_then(|v| v.as_str())
-      .unwrap_or_default()
-      .to_string();
 
-    if userId.is_empty() || profileId.is_empty() {
-      return Err(errResponse("Invalid profile data"));
+    if userId.is_empty() {
+      return Err(errResponse("Invalid profile data: userId is required"));
     }
 
     let createdProfile = self
@@ -396,6 +468,11 @@ impl RepositoryService {
       .await
       .map_err(|e| errResponseFormatted("Error creating profile in local store", &e.to_string()))?;
 
+    let profileId = createdProfile
+      .get("id")
+      .and_then(|v| v.as_str())
+      .unwrap_or_default()
+      .to_string();
     user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &userId, &profileId).await?;
 
     self
