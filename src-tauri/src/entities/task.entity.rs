@@ -3,9 +3,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
-use crate::entities::comment_entity::CommentEntity;
 use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
@@ -64,6 +63,26 @@ impl Entity for TaskEntity {
 
   fn is_soft_deletable() -> bool {
     true
+  }
+}
+
+impl SoftDeletable for TaskEntity {
+  fn deleted_at(&self) -> Option<DateTime<Utc>> {
+    self.deleted_at
+  }
+
+  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
+    self.deleted_at = deleted_at;
+  }
+}
+
+impl WithRelations for TaskEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![
+      RelationDef::one_to_many("subtasks", "subtasks", "taskId"),
+      RelationDef::one_to_many("comments", "comments", "taskId"),
+      RelationDef::many_to_one("todo", "todos", "todoId"),
+    ]
   }
 }
 

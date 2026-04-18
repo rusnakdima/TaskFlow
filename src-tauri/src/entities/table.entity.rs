@@ -28,6 +28,38 @@ pub enum TableModelType {
   Comment,
 }
 
+impl TableModelType {
+  pub const TABLE_TODOS: &'static str = "todos";
+  pub const TABLE_TASKS: &'static str = "tasks";
+  pub const TABLE_SUBTASKS: &'static str = "subtasks";
+  pub const TABLE_CATEGORIES: &'static str = "categories";
+  pub const TABLE_USERS: &'static str = "users";
+  pub const TABLE_PROFILES: &'static str = "profiles";
+  pub const TABLE_DAILY_ACTIVITIES: &'static str = "daily_activities";
+  pub const TABLE_CHATS: &'static str = "chats";
+  pub const TABLE_COMMENTS: &'static str = "comments";
+
+  pub fn table_name(&self) -> &'static str {
+    match self {
+      TableModelType::Todo => Self::TABLE_TODOS,
+      TableModelType::Task => Self::TABLE_TASKS,
+      TableModelType::Subtask => Self::TABLE_SUBTASKS,
+      TableModelType::Category => Self::TABLE_CATEGORIES,
+      TableModelType::User => Self::TABLE_USERS,
+      TableModelType::Profile => Self::TABLE_PROFILES,
+      TableModelType::DailyActivity => Self::TABLE_DAILY_ACTIVITIES,
+      TableModelType::Chat => Self::TABLE_CHATS,
+      TableModelType::Comment => Self::TABLE_COMMENTS,
+    }
+  }
+}
+
+impl Default for TableModelType {
+  fn default() -> Self {
+    TableModelType::Todo
+  }
+}
+
 pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
   match tableName {
     "todos" => Ok(TableModelType::Todo),

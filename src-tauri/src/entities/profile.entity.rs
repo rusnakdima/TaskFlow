@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileEntity {
@@ -28,6 +28,12 @@ impl Entity for ProfileEntity {
 
   fn set_id(&mut self, id: String) {
     self.id = Some(id);
+  }
+}
+
+impl WithRelations for ProfileEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![RelationDef::many_to_one("user", "users", "userId")]
   }
 }
 

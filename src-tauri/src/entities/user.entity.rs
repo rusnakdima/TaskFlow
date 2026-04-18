@@ -2,8 +2,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use crate::entities::traits::{Validatable, FrontendProjection, EntityRelations};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserEntity {
@@ -42,6 +42,30 @@ pub struct UserEntity {
   pub recoveryCodes: Vec<String>,
 }
 
+impl FrontendProjection for UserEntity {
+  fn excluded_fields() -> Vec<&'static str> {
+    vec![
+      "password",
+      "totpSecret",
+      "passkeyPublicKey",
+      "passkeyCredentialId",
+      "passkeyDevice",
+      "recoveryCodes",
+      "resetToken",
+    ]
+  }
+}
+
+impl EntityRelations for UserEntity {
+  fn relation_paths() -> Vec<&'static str> {
+    vec!["profile"]
+  }
+
+  fn nested_relation_map() -> Vec<(&'static str, Vec<&'static str>)> {
+    vec![]
+  }
+}
+
 impl Entity for UserEntity {
   fn meta() -> EntityMeta {
     EntityMeta::new("users")
@@ -53,6 +77,16 @@ impl Entity for UserEntity {
 
   fn set_id(&mut self, id: String) {
     self.id = Some(id);
+  }
+
+  fn is_soft_deletable() -> bool {
+    true
+  }
+}
+
+impl WithRelations for UserEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![RelationDef::many_to_one("profile", "profiles", "profileId")]
   }
 }
 

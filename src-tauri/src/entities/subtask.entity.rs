@@ -2,9 +2,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::comment_entity::CommentEntity;
 use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskEntity {
@@ -37,6 +36,25 @@ impl Entity for SubtaskEntity {
 
   fn is_soft_deletable() -> bool {
     true
+  }
+}
+
+impl SoftDeletable for SubtaskEntity {
+  fn deleted_at(&self) -> Option<DateTime<Utc>> {
+    self.deleted_at
+  }
+
+  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
+    self.deleted_at = deleted_at;
+  }
+}
+
+impl WithRelations for SubtaskEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![
+      RelationDef::many_to_one("task", "tasks", "taskId"),
+      RelationDef::one_to_many("comments", "comments", "subtaskId"),
+    ]
   }
 }
 
