@@ -23,7 +23,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* models */
-import { PriorityTask, Task, TaskStatus, RepeatInterval } from "@models/task.model";
+import { PriorityTask, Task, TaskStatus, RepeatInterval, PriorityOption } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 
 /* providers */
@@ -38,13 +38,6 @@ import { StorageService } from "@services/core/storage.service";
 /* helpers */
 import { DateHelper } from "@helpers/date-helpers";
 import { ValidationHelper } from "@helpers/validation.helper";
-
-interface PriorityOption {
-  value: PriorityTask;
-  label: string;
-  description: string;
-  colorClass: string;
-}
 
 @Component({
   selector: "app-manage-task",

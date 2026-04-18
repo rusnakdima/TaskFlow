@@ -19,7 +19,7 @@ import { MatDatepickerModule, MatCalendarCellCssClasses } from "@angular/materia
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { PriorityTask, Task, TaskStatus, PriorityOption } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
 
@@ -41,12 +41,6 @@ import { ApiProvider } from "@providers/api.provider";
 /* helpers */
 import { DateHelper } from "@helpers/date-helpers";
 import { ValidationHelper } from "@helpers/validation.helper";
-
-interface PriorityOption {
-  value: PriorityTask;
-  label: string;
-  colorClass: string;
-}
 
 @Component({
   selector: "app-manage-subtask",
