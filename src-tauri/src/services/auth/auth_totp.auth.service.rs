@@ -344,7 +344,9 @@ impl AuthTotpService {
 
     let user_val = match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.find_many(table_name, Some(&filter), None, None, None, true),
+      self
+        .jsonProvider
+        .find_many(table_name, Some(&filter), None, None, None, true),
     )
     .await
     {
@@ -365,9 +367,10 @@ impl AuthTotpService {
     let user_val = match user_val {
       Some(v) => v,
       None => {
-        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-          errResponse("User not found and MongoDB unavailable")
-        })?;
+        let mongo = self
+          .mongodbProvider
+          .as_ref()
+          .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
         let mut users = timeout(
           Duration::from_secs(5),
           mongo.find_many(table_name, Some(&filter), None, None, None, true),
@@ -375,9 +378,7 @@ impl AuthTotpService {
         .await
         .map_err(|_| errResponse("Database timeout"))?
         .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
-        users
-          .pop()
-          .ok_or_else(|| errResponse("User not found"))?
+        users.pop().ok_or_else(|| errResponse("User not found"))?
       }
     };
 
@@ -394,7 +395,9 @@ impl AuthTotpService {
 
     match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.update(table_name, &user_id, user_val.clone()),
+      self
+        .jsonProvider
+        .update(table_name, &user_id, user_val.clone()),
     )
     .await
     {

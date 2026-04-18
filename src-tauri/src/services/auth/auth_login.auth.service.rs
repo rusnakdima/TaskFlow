@@ -66,16 +66,17 @@ impl AuthLoginService {
     let user_val = match user_val {
       Some(v) => v,
       None => {
-        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-          errResponse("User not found in local database and MongoDB unavailable")
-        })?;
+        let mongo = self
+          .mongodbProvider
+          .as_ref()
+          .ok_or_else(|| errResponse("User not found in local database and MongoDB unavailable"))?;
         let mut users = mongo
           .find_many(table_name, Some(&filter), None, None, None, true)
           .await
           .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
-        users
-          .pop()
-          .ok_or_else(|| errResponse("User not found. Please register first or check your username."))?
+        users.pop().ok_or_else(|| {
+          errResponse("User not found. Please register first or check your username.")
+        })?
       }
     };
 

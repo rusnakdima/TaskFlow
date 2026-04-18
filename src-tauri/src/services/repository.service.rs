@@ -7,13 +7,13 @@ use std::sync::Arc;
 use nosql_orm::cache::QueryCache;
 use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use nosql_orm::relations::RelationLoader;
 use nosql_orm::query::{Filter, Projection};
+use nosql_orm::relations::RelationLoader;
 
 /* entities */
 use crate::entities::{
   provider_type_entity::ProviderType,
-  relation_config::{RelationConfig, user_projection},
+  relation_config::{user_projection, RelationConfig},
   relation_obj::RelationObj,
   response_entity::{DataValue, ResponseModel},
   sync_metadata_entity::SyncMetadata,
@@ -116,7 +116,10 @@ impl RepositoryService {
     if value.is_null() {
       Some(Filter::Eq(key.to_string(), Value::Null))
     } else if let Some(arr) = value.as_array() {
-      if arr.iter().any(|v| v.is_string() && v.as_str().unwrap().starts_with('$')) {
+      if arr
+        .iter()
+        .any(|v| v.is_string() && v.as_str().unwrap().starts_with('$'))
+      {
         return None;
       }
       let values: Vec<serde_json::Value> = arr.iter().cloned().collect();
@@ -143,13 +146,17 @@ impl RepositoryService {
       let parts: Vec<&str> = path.split('.').collect();
 
       if parts.len() >= 3 {
-        docs = self.load_deep_nested_relation(docs, table, &parts, &loader, &proj).await?;
+        docs = self
+          .load_deep_nested_relation(docs, table, &parts, &loader, &proj)
+          .await?;
         continue;
       }
 
       if RelationConfig::is_nested_path(path) {
         if let Some((base, nested)) = RelationConfig::split_nested_path(path) {
-          docs = self.load_nested_relation(docs, table, base, nested, &loader, &proj).await?;
+          docs = self
+            .load_nested_relation(docs, table, base, nested, &loader, &proj)
+            .await?;
         }
         continue;
       }
@@ -204,16 +211,32 @@ impl RepositoryService {
                 if let Some(nested1_arr) = obj.get_mut(nested1).and_then(|v| v.as_array_mut()) {
                   for subtask in nested1_arr.iter_mut() {
                     if let Some(subtask_obj) = subtask.as_object_mut() {
-                      let nested2_def = RelationConfig::get_nested_relation(nested1, nested1, nested2);
+                      let nested2_def =
+                        RelationConfig::get_nested_relation(nested1, nested1, nested2);
                       if let Some(def) = nested2_def {
-                        let subtask_id = subtask_obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                        let subtask_id =
+                          subtask_obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
                         if !subtask_id.is_empty() {
-                          let filter = nosql_orm::query::Filter::Eq("subtaskId".to_string(), serde_json::json!(subtask_id));
-                          let loaded: Vec<Value> = self.jsonProvider
-                            .find_many(&def.target_collection, Some(&filter), None, None, None, true)
+                          let filter = nosql_orm::query::Filter::Eq(
+                            "subtaskId".to_string(),
+                            serde_json::json!(subtask_id),
+                          );
+                          let loaded: Vec<Value> = self
+                            .jsonProvider
+                            .find_many(
+                              &def.target_collection,
+                              Some(&filter),
+                              None,
+                              None,
+                              None,
+                              true,
+                            )
                             .await
-                            .map_err(|e| errResponseFormatted("Nested2 load failed", &e.to_string()))?;
-                          let projected: Vec<Value> = loaded.into_iter().map(|v| proj.apply(&v)).collect();
+                            .map_err(|e| {
+                              errResponseFormatted("Nested2 load failed", &e.to_string())
+                            })?;
+                          let projected: Vec<Value> =
+                            loaded.into_iter().map(|v| proj.apply(&v)).collect();
                           subtask_obj.insert("comments".to_string(), Value::Array(projected));
                         }
                       }
@@ -232,7 +255,12 @@ impl RepositoryService {
     Ok(docs)
   }
 
-  fn apply_projection_to_relations(&self, mut docs: Vec<Value>, path: &str, proj: &Projection) -> Vec<Value> {
+  fn apply_projection_to_relations(
+    &self,
+    mut docs: Vec<Value>,
+    path: &str,
+    proj: &Projection,
+  ) -> Vec<Value> {
     for doc in docs.iter_mut() {
       if let Some(obj) = doc.as_object_mut() {
         if let Some(rel_doc) = obj.get(path) {
@@ -274,7 +302,12 @@ impl RepositoryService {
     Ok(docs)
   }
 
-  fn apply_projection_to_array(&self, mut items: Vec<Value>, nested_path: &str, proj: &Projection) -> Vec<Value> {
+  fn apply_projection_to_array(
+    &self,
+    mut items: Vec<Value>,
+    nested_path: &str,
+    proj: &Projection,
+  ) -> Vec<Value> {
     for item in items.iter_mut() {
       if let Some(obj) = item.as_object_mut() {
         match nested_path {
@@ -352,7 +385,9 @@ impl RepositoryService {
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
     let cache_key = self.queryCache.as_ref().map(|cache| {
-      let filter_json = filter.as_ref().map(|f| serde_json::to_string(f).unwrap_or_default());
+      let filter_json = filter
+        .as_ref()
+        .map(|f| serde_json::to_string(f).unwrap_or_default());
       cache.cache_key(&table, filter_json.as_deref(), None, None, None)
     });
 
@@ -463,7 +498,10 @@ impl RepositoryService {
 
     let validated_data = self.strip_relation_fields(&table, validated_data);
 
-    let is_team_entity = sync_metadata.as_ref().map(|m| !m.isPrivate && m.isOwner).unwrap_or(false);
+    let is_team_entity = sync_metadata
+      .as_ref()
+      .map(|m| !m.isPrivate && m.isOwner)
+      .unwrap_or(false);
 
     let created_record = if self.use_json_provider(sync_metadata.as_ref()) {
       self
@@ -481,7 +519,10 @@ impl RepositoryService {
     };
 
     if is_team_entity {
-      let _ = self.jsonProvider.insert(&table, created_record.clone()).await;
+      let _ = self
+        .jsonProvider
+        .insert(&table, created_record.clone())
+        .await;
     }
 
     if let Some(ref cache) = self.queryCache {
@@ -491,7 +532,10 @@ impl RepositoryService {
     if let Some(ref cdc) = self.cdcService {
       let change = nosql_orm::cdc::Change::insert(
         &table,
-        created_record.get("id").and_then(|v| v.as_str()).unwrap_or(""),
+        created_record
+          .get("id")
+          .and_then(|v| v.as_str())
+          .unwrap_or(""),
         created_record.clone(),
       );
       let _ = cdc.capture(change).await;
@@ -521,7 +565,10 @@ impl RepositoryService {
     let validated_data = validateModel(&table, &data_val, false)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let is_team_entity = sync_metadata.as_ref().map(|m| !m.isPrivate && m.isOwner).unwrap_or(false);
+    let is_team_entity = sync_metadata
+      .as_ref()
+      .map(|m| !m.isPrivate && m.isOwner)
+      .unwrap_or(false);
 
     let updated_record = if self.use_json_provider(sync_metadata.as_ref()) {
       self
@@ -539,7 +586,10 @@ impl RepositoryService {
     };
 
     if is_team_entity {
-      let _ = self.jsonProvider.update(&table, &id_str, updated_record.clone()).await;
+      let _ = self
+        .jsonProvider
+        .update(&table, &id_str, updated_record.clone())
+        .await;
     }
 
     if let Some(ref cache) = self.queryCache {
@@ -561,7 +611,7 @@ impl RepositoryService {
       .logAction(&table, "update", &updated_record, None)
       .await;
 
-    let mut response_doc = self.apply_frontend_projection(updated_record, &table);
+    let response_doc = self.apply_frontend_projection(updated_record, &table);
     Ok(successResponse(DataValue::Object(response_doc)))
   }
 
@@ -655,11 +705,8 @@ impl RepositoryService {
     }
 
     if let Some(ref cdc) = self.cdcService {
-      let change = nosql_orm::cdc::Change::delete(
-        &table,
-        &id_str,
-        serde_json::json!({"id": id_str.clone()}),
-      );
+      let change =
+        nosql_orm::cdc::Change::delete(&table, &id_str, serde_json::json!({"id": id_str.clone()}));
       let _ = cdc.capture(change).await;
     }
 

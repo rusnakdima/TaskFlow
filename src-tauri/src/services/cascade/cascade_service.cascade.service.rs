@@ -2,11 +2,11 @@
 use std::sync::Arc;
 
 /* nosql_orm */
+use nosql_orm::error::OrmResult;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 use nosql_orm::query::Filter;
-use nosql_orm::error::OrmResult;
 use serde_json::Value;
 
 /* helpers */
@@ -38,7 +38,11 @@ impl CascadeIds {
   }
 
   pub fn total_count(&self) -> usize {
-    self.todoIds.len() + self.taskIds.len() + self.subtaskIds.len() + self.commentIds.len() + self.chatIds.len()
+    self.todoIds.len()
+      + self.taskIds.len()
+      + self.subtaskIds.len()
+      + self.commentIds.len()
+      + self.chatIds.len()
   }
 
   pub fn add_id(&mut self, collection: &str, id: String) {
@@ -125,14 +129,19 @@ impl CascadeService {
     }
   }
 
-  async fn collect_cascade_ids_json(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
+  async fn collect_cascade_ids_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeIds, ResponseModel> {
     let mut cascade_ids = CascadeIds::default();
 
     match table {
       "todos" => {
         cascade_ids.add_todo_id(id.to_string());
         let filter = Filter::Eq("todoId".to_string(), serde_json::json!(id));
-        if let Ok(tasks) = self.json_provider
+        if let Ok(tasks) = self
+          .json_provider
           .find_many("tasks", Some(&filter), None, None, None, true)
           .await
         {
@@ -162,7 +171,8 @@ impl CascadeService {
 
   async fn collect_subtasks_json(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
     let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
-    let result: OrmResult<Vec<Value>> = self.json_provider
+    let result: OrmResult<Vec<Value>> = self
+      .json_provider
       .find_many("subtasks", Some(&filter), None, None, None, true)
       .await;
     if let Ok(subtasks) = result {
@@ -175,7 +185,11 @@ impl CascadeService {
     }
   }
 
-  async fn collect_cascade_ids_mongo(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
+  async fn collect_cascade_ids_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeIds, ResponseModel> {
     let mut cascade_ids = CascadeIds::default();
 
     if let Some(ref mongo) = self.mongodb_provider {
@@ -183,7 +197,10 @@ impl CascadeService {
         "todos" => {
           cascade_ids.add_todo_id(id.to_string());
           let filter = Filter::Eq("todoId".to_string(), serde_json::json!(id));
-          if let Ok(tasks) = mongo.find_many("tasks", Some(&filter), None, None, None, true).await {
+          if let Ok(tasks) = mongo
+            .find_many("tasks", Some(&filter), None, None, None, true)
+            .await
+          {
             for task in tasks {
               if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
                 cascade_ids.add_task_id(task_id.to_string());
@@ -212,7 +229,9 @@ impl CascadeService {
   async fn collect_subtasks_mongo(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
     if let Some(ref mongo) = self.mongodb_provider {
       let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
-      let result: OrmResult<Vec<Value>> = mongo.find_many("subtasks", Some(&filter), None, None, None, true).await;
+      let result: OrmResult<Vec<Value>> = mongo
+        .find_many("subtasks", Some(&filter), None, None, None, true)
+        .await;
       if let Ok(subtasks) = result {
         for subtask in subtasks {
           let sid = subtask.get("id").and_then(|v| v.as_str()).map(String::from);

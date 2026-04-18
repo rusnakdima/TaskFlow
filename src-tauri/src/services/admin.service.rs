@@ -15,7 +15,7 @@ use crate::helpers::response_helper::errResponseFormatted;
 use crate::helpers::timestamp_helper;
 
 /* services */
-use crate::services::cascade::{CascadeService, CascadeIds};
+use crate::services::cascade::{CascadeIds, CascadeService};
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */
@@ -163,7 +163,10 @@ impl AdminManager {
   ) -> Result<ResponseModel, ResponseModel> {
     let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
       if self.cascadeService.mongodb_provider.is_some() {
-        self.cascadeService.handleMongoCascade(&table, &id, false).await?
+        self
+          .cascadeService
+          .handleMongoCascade(&table, &id, false)
+          .await?
       } else {
         CascadeIds::default()
       }
@@ -197,7 +200,10 @@ impl AdminManager {
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let cascade_ids = if table == "todos" || table == "tasks" || table == "subtasks" {
-      self.cascadeService.handleJsonCascade(&table, &id, false).await?
+      self
+        .cascadeService
+        .handleJsonCascade(&table, &id, false)
+        .await?
     } else {
       CascadeIds::default()
     };
