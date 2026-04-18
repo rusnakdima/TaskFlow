@@ -8,7 +8,5 @@ pub mod mongodb_provider {
   pub use nosql_orm::providers::MongoProvider;
 }
 
-pub mod pool_provider;
-
 #[path = "email.provider.rs"]
 pub mod email_provider;
