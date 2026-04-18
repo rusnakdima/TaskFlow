@@ -17,6 +17,8 @@ import { Comment } from "@models/comment.model";
 import { RelationsHelper } from "@helpers/relations.helper";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { CacheHelper } from "@helpers/cache.helper";
+import { CrudParamsBuilder, CrudParams } from "@helpers/crud-params.helper";
+import { StorageUpdateHelper } from "@helpers/storage-update.helper";
 
 /* services */
 import { WebSocketService } from "@services/core/websocket.service";
@@ -27,29 +29,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
-interface CrudParams {
-  table: string;
-  filter?: { [key: string]: any };
-  data?: any;
-  id?: string;
-  parentTodoId?: string;
-  relations?: RelationObj[];
-  load?: string[]; // NEW: TypeORM-like dot notation for relations
-  syncMetadata?: SyncMetadata;
-}
-
 // Constants
-const ALLOWED_TABLES = [
-  "todos",
-  "tasks",
-  "subtasks",
-  "categories",
-  "chats",
-  "comments",
-  "profiles",
-  "users",
-];
-const CACHE_TTL_MS = 5000;
 const WS_RETRY_ATTEMPTS = 3;
 const WS_RETRY_DELAY_MS = 100;
 
@@ -64,6 +44,7 @@ export class ApiProvider {
 
   private inFlightRequests = new Map<string, Observable<any>>();
   private cacheHelper = new CacheHelper();
+  private storageUpdateHelper = new StorageUpdateHelper();
 
   constructor() {}
 
@@ -196,42 +177,12 @@ export class ApiProvider {
       id?: string;
       parentTodoId?: string;
       relations?: RelationObj[];
-      load?: string[]; // NEW: TypeORM-like dot notation
+      load?: string[];
       isOwner?: boolean;
       isPrivate?: boolean;
     }
   ): CrudParams {
-    if (!ALLOWED_TABLES.includes(table)) {
-      throw new Error(`Table '${table}' is not supported. Allowed: ${ALLOWED_TABLES.join(", ")}`);
-    }
-
-    const metadata =
-      options.isOwner !== undefined
-        ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
-        : this.resolveMetadata(
-            table,
-            options.parentTodoId || options.data?.todoId,
-            options.data,
-            options.id
-          );
-
-    // Use load parameter if provided, otherwise fall back to relations helper
-    const load = options.load;
-    const relations = !load
-      ? (options.relations ?? RelationsHelper.getRelationsForTable(table))
-      : undefined;
-
-    const result = {
-      table,
-      filter: options.filter,
-      data: options.data,
-      id: options.id,
-      parentTodoId: options.parentTodoId,
-      relations,
-      load, // NEW: Pass load parameter to backend
-      syncMetadata: metadata,
-    };
-    return result;
+    return CrudParamsBuilder.build(table, options, this.resolveMetadata.bind(this));
   }
 
   // ==================== Request Execution ====================
@@ -242,8 +193,7 @@ export class ApiProvider {
     id?: string,
     filter?: { [key: string]: any }
   ): string {
-    const filterKey = filter ? JSON.stringify(Object.entries(filter).sort()) : "no-filter";
-    return `${operation}:${table}:${id || "no-id"}:${filterKey}`;
+    return CrudParamsBuilder.buildRequestKey(operation, table, id, filter);
   }
 
   private executeWithFallback<T>(operation: Operation, params: CrudParams): Observable<T> {
