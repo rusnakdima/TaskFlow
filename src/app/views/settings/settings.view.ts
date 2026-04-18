@@ -151,8 +151,9 @@ export class SettingsView implements OnInit {
           this.totpSetupInProgress.set(false);
         },
       });
-    } catch (err: any) {
-      this.notifyService.showError("Failed to setup TOTP: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to setup TOTP";
+      this.notifyService.showError("Failed to setup TOTP: " + message);
       this.totpSetupInProgress.set(false);
     }
   }
@@ -245,8 +246,9 @@ export class SettingsView implements OnInit {
                 this.passkeySetupInProgress.set(false);
               },
             });
-          } catch (err: any) {
-            this.notifyService.showError("Failed to create passkey: " + (err.message || err));
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.notifyService.showError("Failed to create passkey: " + message);
             this.passkeySetupInProgress.set(false);
           }
         },
@@ -257,8 +259,9 @@ export class SettingsView implements OnInit {
           this.passkeySetupInProgress.set(false);
         },
       });
-    } catch (err: any) {
-      this.notifyService.showError("Failed to setup passkey: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.notifyService.showError("Failed to setup passkey: " + message);
       this.passkeySetupInProgress.set(false);
     }
   }
@@ -344,8 +347,9 @@ export class SettingsView implements OnInit {
           this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
           this.biometricSetupInProgress.set(false);
         });
-    } catch (err: any) {
-      this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.notifyService.showError("Failed to setup biometric: " + message);
       this.biometricSetupInProgress.set(false);
     }
   }
