@@ -160,13 +160,12 @@ impl QrAuthService {
     updated_token.approved = true;
     updated_token.approved_at = Some(now);
     updated_token.approved_by = Some(approving_username.to_string());
-    updated_token.username = Some(approving_username.to_string());
 
     self.saveQrToken(&updated_token).await?;
 
     eprintln!(
-      "[QR] Token approved by {} for user {}",
-      approving_username, approving_username
+      "[QR] Token approved by {} for user {:?}",
+      approving_username, qr_token.username
     );
 
     Ok(successResponse("QR code approved"))
@@ -212,6 +211,80 @@ impl QrAuthService {
         })),
       }),
     }
+  }
+
+  pub async fn generateQrTokenForDesktopLogin(
+    &self,
+    username: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let token = self.generateToken();
+    let now = chrono::Utc::now().timestamp();
+
+    let qr_token = QrToken {
+      id: token.clone(),
+      username: Some(username.to_string()),
+      created_at: now,
+      expires_at: now + QR_TOKEN_TTL_SECS,
+      approved: true,
+      approved_at: Some(now),
+      approved_by: Some(username.to_string()),
+    };
+
+    let qr_token_json = serde_json::to_value(&qr_token)
+      .map_err(|e| errResponse(&format!("Failed to serialize token: {}", e)))?;
+
+    eprintln!("[QR] Storing desktop login token in MongoDB first...");
+    if let Some(ref mongoProvider) = self.mongodbProvider {
+      match mongoProvider
+        .insert("qr_tokens", qr_token_json.clone())
+        .await
+      {
+        Ok(_) => {
+          eprintln!("[QR] Successfully stored desktop token in MongoDB");
+        }
+        Err(e) => {
+          eprintln!("[QR] Failed to store desktop token in MongoDB: {}", e);
+        }
+      }
+    }
+
+    eprintln!("[QR] Storing desktop login token in local DB...");
+    match self
+      .jsonProvider
+      .insert("qr_tokens", qr_token_json.clone())
+      .await
+    {
+      Ok(result) => {
+        eprintln!(
+          "[QR] Successfully stored desktop token in local DB, result: {}",
+          result
+        );
+      }
+      Err(e) => {
+        eprintln!("[QR] Failed to store desktop token in local DB: {}", e);
+      }
+    }
+
+    eprintln!(
+      "[QR] Generated desktop login token: '{}' for user: '{}'",
+      token, username
+    );
+
+    let qr_payload = format!("{{\"t\":\"{}\",\"ts\":{},\"d\":\"desktop\"}}", token, now);
+
+    let qr_data = format!("taskflow://qrlogin?data={}", qr_payload);
+
+    let qr_code = self.generateQrCodeImage(&qr_data);
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: "QR code generated for desktop login".to_string(),
+      data: DataValue::Object(json!({
+          "token": token,
+          "qrCode": qr_code,
+          "expiresAt": now + QR_TOKEN_TTL_SECS
+      })),
+    })
   }
 
   pub async fn toggleQrLogin(

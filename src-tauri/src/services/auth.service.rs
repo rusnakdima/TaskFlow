@@ -259,6 +259,16 @@ impl AuthService {
       .await
   }
 
+  pub async fn qrGenerateForDesktop(
+    &self,
+    username: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self
+      .qrAuthService
+      .generateQrTokenForDesktopLogin(&username)
+      .await
+  }
+
   pub async fn qrApprove(
     &self,
     token: String,

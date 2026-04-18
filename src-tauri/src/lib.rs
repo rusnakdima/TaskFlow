@@ -23,8 +23,8 @@ use routes::{
     completePasskeyAuthentication, completePasskeyRegistration, disableBiometric, disablePasskey,
     disableTotp, enableBiometric, enableTotp, getUserSecurityStatus, initBiometricAuth,
     initPasskeyAuthentication, initPasskeyRegistration, initTotpQrLogin, login, qrApprove,
-    qrGenerate, qrLoginComplete, qrStatus, qrToggle, register, requestPasswordReset, resetPassword,
-    setupTotp, useRecoveryCode, verifyCode, verifyLoginTotp,
+    qrGenerate, qrGenerateForDesktop, qrLoginComplete, qrStatus, qrToggle, register,
+    requestPasswordReset, resetPassword, setupTotp, useRecoveryCode, verifyCode, verifyLoginTotp,
   },
   manage_db_route::{
     exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
@@ -194,6 +194,7 @@ pub fn run() {
       getUserSecurityStatus,
       initTotpQrLogin,
       qrGenerate,
+      qrGenerateForDesktop,
       qrApprove,
       qrStatus,
       qrToggle,

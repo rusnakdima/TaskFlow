@@ -57,6 +57,11 @@ export class ProfileView implements OnInit, OnDestroy {
   qrCanvasElement: HTMLCanvasElement | null = null;
   qrAnimationFrameId: number | null = null;
 
+  // My QR Code (for mobile login)
+  showMyQr = signal(false);
+  myQrCode = signal<string | null>(null);
+  myQrToken = signal<string | null>(null);
+
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
 
@@ -262,23 +267,28 @@ export class ProfileView implements OnInit, OnDestroy {
     this.stopQrScanning();
 
     let token: string | null = null;
+    let isDesktopTarget = false;
 
     try {
       if (qrData.startsWith("taskflow://qrlogin?data=")) {
         const dataPart = qrData.replace("taskflow://qrlogin?data=", "");
         const parsed = JSON.parse(decodeURIComponent(dataPart));
         token = parsed.t;
+        isDesktopTarget = parsed.d === "desktop";
       } else if (qrData.includes("t=")) {
         const params = new URLSearchParams(qrData.replace("taskflow://qrlogin?", ""));
         token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
       } else {
         const parsed = JSON.parse(qrData);
         token = parsed.t || parsed.token;
+        isDesktopTarget = parsed.d === "desktop";
       }
     } catch {
       try {
         const params = new URLSearchParams(qrData.split("?")[1] || "");
         token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
       } catch {
         token = null;
       }
@@ -289,7 +299,11 @@ export class ProfileView implements OnInit, OnDestroy {
       return;
     }
 
-    this.approveQrLogin(token);
+    if (isDesktopTarget) {
+      this.completeDesktopLoginFromMobileScan(token);
+    } else {
+      this.approveQrLogin(token);
+    }
   }
 
   /**
@@ -343,5 +357,73 @@ export class ProfileView implements OnInit, OnDestroy {
     }
 
     this.isScanningQr.set(false);
+  }
+
+  /**
+   * Show QR code for mobile login (desktop scans this to login)
+   */
+  async showMyQrCode(): Promise<void> {
+    const username = this.authService.getValueByKey("username");
+    if (!username) {
+      this.notifyService.showError("You must be logged in to show QR code");
+      return;
+    }
+
+    try {
+      this.dataSyncProvider
+        .invokeCommand<{
+          token: string;
+          qrCode: string;
+          expiresAt: number;
+        }>("qrGenerateForDesktop", { username })
+        .subscribe({
+          next: (data) => {
+            this.myQrCode.set(data.qrCode);
+            this.myQrToken.set(data.token);
+            this.showMyQr.set(true);
+            this.notifyService.showInfo("Show this QR code to login from desktop");
+          },
+          error: (err: any) => {
+            this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
+          },
+        });
+    } catch (err: any) {
+      this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
+    }
+  }
+
+  /**
+   * Close the QR code modal
+   */
+  closeMyQrCode(): void {
+    this.showMyQr.set(false);
+    this.myQrCode.set(null);
+    this.myQrToken.set(null);
+  }
+
+  /**
+   * Complete desktop login when mobile scans desktop's QR
+   */
+  private completeDesktopLoginFromMobileScan(token: string): void {
+    const username = this.authService.getValueByKey("username");
+    if (!username) {
+      this.notifyService.showError("You must be logged in");
+      return;
+    }
+
+    this.dataSyncProvider.invokeCommand<string>("qrLoginComplete", { token }).subscribe({
+      next: (jwtToken) => {
+        if (jwtToken) {
+          localStorage.setItem("token", jwtToken);
+          this.notifyService.showSuccess("Login successful on desktop!");
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 500);
+        }
+      },
+      error: (err: any) => {
+        this.notifyService.showError("Failed to complete desktop login: " + (err.message || err));
+      },
+    });
   }
 }

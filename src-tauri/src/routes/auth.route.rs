@@ -271,6 +271,14 @@ pub async fn qrGenerate(
 }
 
 #[tauri::command]
+pub async fn qrGenerateForDesktop(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.authService.qrGenerateForDesktop(username).await
+}
+
+#[tauri::command]
 pub async fn qrApprove(
   state: State<'_, AppState>,
   token: String,
