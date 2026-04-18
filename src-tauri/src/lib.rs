@@ -5,7 +5,6 @@ mod errors;
 mod helpers;
 mod entities;
 mod providers;
-mod repositories;
 mod routes;
 mod services;
 
