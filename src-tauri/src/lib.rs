@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 /* imports */
+mod entities;
 mod errors;
 mod helpers;
-mod entities;
 mod providers;
 mod routes;
 mod services;
@@ -38,10 +38,11 @@ use routes::{
 /* services */
 use services::{
   about_service::AboutService, activity_monitor_service::ActivityMonitorService,
-  auth_service::AuthService, cascade::CascadeService, repository_service::RepositoryService,
+  auth_service::AuthService, cascade::CascadeService,
   entity_resolution_service::EntityResolutionService, live_sync_service::LiveSyncService,
   manage_db_service::ManageDbService, profile_service::ProfileService,
-  statistics_service::StatisticsService, websocket::WebSocketServerService,
+  repository_service::RepositoryService, statistics_service::StatisticsService,
+  websocket::WebSocketServerService,
 };
 
 /* nosql_orm */
@@ -78,7 +79,9 @@ pub fn run() {
       let configHelper = Arc::new(ConfigHelper::new());
 
       let documentDir = app.path().document_dir().unwrap();
-      let jsonDbPath = documentDir.join(&configHelper.appHomeFolder).join(&configHelper.jsonDbName);
+      let jsonDbPath = documentDir
+        .join(&configHelper.appHomeFolder)
+        .join(&configHelper.jsonDbName);
       std::fs::create_dir_all(&jsonDbPath).ok();
 
       let jsonProvider = tauri::async_runtime::block_on(JsonProvider::new(&jsonDbPath))
@@ -135,10 +138,7 @@ pub fn run() {
         configHelper.rpDomain.clone(),
       ));
 
-      let statisticsService = Arc::new(StatisticsService::new(
-        json_for_stats,
-        act_for_stats,
-      ));
+      let statisticsService = Arc::new(StatisticsService::new(json_for_stats, act_for_stats));
       let manageDbService = Arc::new(ManageDbService::new(
         json_for_mdb,
         mongo_for_mdb,

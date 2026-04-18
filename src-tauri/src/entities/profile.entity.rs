@@ -50,7 +50,7 @@ pub struct ProfileCreateModel {
   pub userId: String,
   #[serde(skip)]
   pub _id: Option<String>,
-  #[serde(skip)]
+  #[allow(dead_code)]
   pub id: Option<String>,
 }
 

@@ -2,7 +2,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::{Validatable, FrontendProjection, EntityRelations};
+use crate::entities::traits::{EntityRelations, FrontendProjection, Validatable};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,7 +17,6 @@ pub struct UserEntity {
   #[serde(default)]
   pub codeExpiresAt: String,
   pub profileId: String,
-  #[serde(skip)]
   pub profile: Option<crate::entities::profile_entity::ProfileEntity>,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
