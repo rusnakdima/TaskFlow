@@ -54,7 +54,7 @@ rustls = "0.21"
 keyring = "3"
 dashmap = "5"
 
-nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm.git", features = ["json", "mongo"] }
+nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache"] }
 
 [features]
 default = ["custom-protocol"]
