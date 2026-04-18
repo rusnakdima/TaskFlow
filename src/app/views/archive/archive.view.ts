@@ -221,7 +221,11 @@ export class ArchiveView extends BaseAdminView implements OnInit {
       }
     } catch (error: unknown) {
       const errorMsg =
-        error instanceof Error ? error.message : (typeof error === "object" ? JSON.stringify(error) : String(error));
+        error instanceof Error
+          ? error.message
+          : typeof error === "object"
+            ? JSON.stringify(error)
+            : String(error);
       this.notifyService.showError("Error updating record status: " + errorMsg);
     }
   }

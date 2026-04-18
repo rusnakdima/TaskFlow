@@ -261,31 +261,31 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.highlightTaskId) {
-        this.highlightTaskId.set(queryParams.highlightTaskId);
-        setTimeout(() => {
-          const element = document.getElementById("task-" + queryParams.highlightTaskId);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            element.classList.add("ring-4", "ring-green-500", "animate-pulse");
-            setTimeout(() => {
-              element.classList.remove("ring-4", "ring-green-500", "animate-pulse");
-            }, 2000);
-          }
-          this.highlightTaskId.set(null);
-        }, 500);
-      }
-      if (queryParams.highlightCommentId) {
-        this.highlightCommentId.set(queryParams.highlightCommentId);
-        this.openComments.set(true);
-      }
-      if (queryParams.openComments) {
-        this.openComments.set(true);
-      }
-      if (queryParams.openChat) {
-        this.openChat.set(true);
-      }
-    })
+        if (queryParams.highlightTaskId) {
+          this.highlightTaskId.set(queryParams.highlightTaskId);
+          setTimeout(() => {
+            const element = document.getElementById("task-" + queryParams.highlightTaskId);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+              element.classList.add("ring-4", "ring-green-500", "animate-pulse");
+              setTimeout(() => {
+                element.classList.remove("ring-4", "ring-green-500", "animate-pulse");
+              }, 2000);
+            }
+            this.highlightTaskId.set(null);
+          }, 500);
+        }
+        if (queryParams.highlightCommentId) {
+          this.highlightCommentId.set(queryParams.highlightCommentId);
+          this.openComments.set(true);
+        }
+        if (queryParams.openComments) {
+          this.openComments.set(true);
+        }
+        if (queryParams.openChat) {
+          this.openChat.set(true);
+        }
+      })
     );
 
     // Get resolved todo data from route - todo is now computed from storage
@@ -306,11 +306,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const todo = this.storageService.getById("todos", todoId);
     const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
-    const hasCategories = todo?.categories && todo.categories.length > 0 && typeof todo.categories[0] !== 'string';
+    const hasCategories =
+      todo?.categories && todo.categories.length > 0 && typeof todo.categories[0] !== "string";
 
     if (hasSubtasks && hasCategories) return;
 
-    this.loadingRelations.update(set => {
+    this.loadingRelations.update((set) => {
       const newSet = new Set(set);
       newSet.add(todoId);
       return newSet;
@@ -333,7 +334,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showError(err.message || "Failed to load subtasks");
         },
         complete: () => {
-          this.loadingRelations.update(set => {
+          this.loadingRelations.update((set) => {
             const newSet = new Set(set);
             newSet.delete(todoId);
             return newSet;

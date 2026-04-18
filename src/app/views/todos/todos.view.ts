@@ -97,7 +97,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
   private dataSyncService = inject(DataLoaderService);
-  
+
   constructor() {
     super();
   }
@@ -223,21 +223,21 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     // Handle highlight from query params
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-      if (queryParams.highlightTodoId) {
-        this.highlightTodoId.set(queryParams.highlightTodoId);
-        setTimeout(() => {
-          const element = document.getElementById("todo-" + queryParams.highlightTodoId);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            element.classList.add("ring-4", "ring-blue-500", "animate-pulse");
-            setTimeout(() => {
-              element.classList.remove("ring-4", "ring-blue-500", "animate-pulse");
-            }, 2000);
-          }
-          this.highlightTodoId.set(null);
-        }, 500);
-      }
-    })
+        if (queryParams.highlightTodoId) {
+          this.highlightTodoId.set(queryParams.highlightTodoId);
+          setTimeout(() => {
+            const element = document.getElementById("todo-" + queryParams.highlightTodoId);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+              element.classList.add("ring-4", "ring-blue-500", "animate-pulse");
+              setTimeout(() => {
+                element.classList.remove("ring-4", "ring-blue-500", "animate-pulse");
+              }, 2000);
+            }
+            this.highlightTodoId.set(null);
+          }, 500);
+        }
+      })
     );
 
     document.addEventListener("keydown", (event: KeyboardEvent) => {
