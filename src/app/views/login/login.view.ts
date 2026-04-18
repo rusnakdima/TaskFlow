@@ -244,7 +244,8 @@ export class LoginView implements OnDestroy {
       this.router.navigate(["/dashboard"]).then(() => {
         this.submitted.set(false);
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       if (NetworkErrorHelper.isNetworkError(err)) {
         if (this.hasLocalUsers()) {
           this.notifyService.showError("No internet connection. Using local database...");
@@ -253,12 +254,12 @@ export class LoginView implements OnDestroy {
             "Cannot connect to database.\n\nPlease check:\n1. Your internet connection\n2. Backend server is running\n3. Database connection is configured\n\nYou must connect to the database at least once to login."
           );
         }
-      } else if (err.message?.includes("User data exists but no cached token")) {
+      } else if (errorMessage.includes("User data exists but no cached token")) {
         this.notifyService.showError(
           "User found locally but no cached token. Please login online to refresh your session."
         );
       } else {
-        this.notifyService.showError(err.message ?? err.toString());
+        this.notifyService.showError(errorMessage);
       }
       this.submitted.set(false);
     }
@@ -289,8 +290,9 @@ export class LoginView implements OnDestroy {
           error: (err) => reject(err),
         });
       });
-    } catch (err: any) {
-      this.notifyService.showError("Invalid TOTP code: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid TOTP code";
+      this.notifyService.showError("Invalid TOTP code: " + message);
     }
   }
 
@@ -351,20 +353,23 @@ export class LoginView implements OnDestroy {
                 this.submitted.set(false);
               },
             });
-          } catch (err: any) {
-            this.notifyService.showError("Passkey authentication failed: " + (err.message || err));
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Passkey authentication failed";
+            this.notifyService.showError("Passkey authentication failed: " + message);
             this.submitted.set(false);
           }
         },
-        error: (err) => {
-          this.notifyService.showError("Failed to initiate passkey: " + (err.message || err));
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to initiate passkey";
+          this.notifyService.showError("Failed to initiate passkey: " + message);
           this.submitted.set(false);
         },
       });
-    } catch (err: any) {
-      this.notifyService.showError("Passkey authentication failed: " + (err.message || err));
-      this.submitted.set(false);
-    }
+} catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Operation failed";
+            this.notifyService.showError(message);
+            this.submitted.set(false);
+          }
   }
 
   async loginWithBiometric(): Promise<void> {
@@ -432,22 +437,21 @@ export class LoginView implements OnDestroy {
                 next: () => {
                   this.completePasswordlessLogin(username, false);
                 },
-                error: (err) => {
-                  this.notifyService.showError(
-                    "Biometric authentication failed: " + (err.message || err)
-                  );
+                error: (err: unknown) => {
+                  const message = err instanceof Error ? err.message : "Biometric authentication failed";
+                  this.notifyService.showError("Biometric authentication failed: " + message);
                   this.submitted.set(false);
                 },
               });
-            } catch (err: any) {
-              this.notifyService.showError(
-                "Biometric authentication failed: " + (err.message || err)
-              );
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : "Biometric authentication failed";
+              this.notifyService.showError("Biometric authentication failed: " + message);
               this.submitted.set(false);
             }
           },
-          error: (err) => {
-            this.notifyService.showError("Failed to initiate biometric: " + (err.message || err));
+          error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to initiate biometric";
+            this.notifyService.showError("Failed to initiate biometric: " + message);
             this.submitted.set(false);
           },
         });
@@ -502,21 +506,22 @@ export class LoginView implements OnDestroy {
                   this.submitted.set(false);
                 },
               });
-            } catch (err: any) {
-              this.notifyService.showError(
-                "Biometric authentication failed: " + (err.message || err)
-              );
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : "Biometric authentication failed";
+              this.notifyService.showError("Biometric authentication failed: " + message);
               this.submitted.set(false);
             }
           },
-          error: (err) => {
-            this.notifyService.showError("Failed to initiate biometric: " + (err.message || err));
+          error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to initiate biometric";
+            this.notifyService.showError("Failed to initiate biometric: " + message);
             this.submitted.set(false);
           },
         });
       }
-    } catch (err: any) {
-      this.notifyService.showError("Biometric authentication failed: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Biometric authentication failed";
+      this.notifyService.showError("Biometric authentication failed: " + message);
       this.submitted.set(false);
     }
   }
@@ -565,8 +570,9 @@ export class LoginView implements OnDestroy {
           this.isQrLoginActive.set(false);
         },
       });
-    } catch (err: any) {
-      this.notifyService.showError("QR login failed: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "QR login failed";
+      this.notifyService.showError("QR login failed: " + message);
       this.submitted.set(false);
       this.isQrLoginActive.set(false);
     }
@@ -616,8 +622,9 @@ export class LoginView implements OnDestroy {
         this.notifyService.showError("Authentication failed - no token received");
         this.cancelQrLogin();
       }
-    } catch (err: any) {
-      this.notifyService.showError("QR login failed: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "QR login failed";
+      this.notifyService.showError("QR login failed: " + message);
       this.cancelQrLogin();
     } finally {
       this.submitted.set(false);
@@ -653,8 +660,9 @@ export class LoginView implements OnDestroy {
       } else {
         this.notifyService.showError("Authentication failed - no token received");
       }
-    } catch (err: any) {
-      this.notifyService.showError("Login failed: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      this.notifyService.showError("Login failed: " + message);
     } finally {
       this.submitted.set(false);
     }
