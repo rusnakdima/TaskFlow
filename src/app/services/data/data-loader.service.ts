@@ -1,14 +1,6 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import {
-  Observable,
-  of,
-  catchError,
-  tap,
-  retry,
-  BehaviorSubject,
-  map,
-} from "rxjs";
+import { Observable, of, catchError, tap, retry, BehaviorSubject, map } from "rxjs";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -79,28 +71,31 @@ export class DataLoaderService {
   private loadPrivateTodos(userId: string): void {
     const todoLoad = TodoRelations.loadAll;
 
-    this.apiProvider.crud<Todo[]>(
-      "getAll",
-      "todos",
-      {
-        filter: { userId, visibility: "private", deleted_at: null },
-        isOwner: true,
-        isPrivate: true,
-        load: todoLoad,
-      },
-      true
-    ).pipe(
-      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError(() => {
-        return of(null);
-      }),
-      tap((privateTodos) => {
-        if (privateTodos && Array.isArray(privateTodos)) {
-          this.storageService.setCollection("privateTodos", privateTodos);
-          this.emitUpdate();
-        }
-      })
-    ).subscribe();
+    this.apiProvider
+      .crud<Todo[]>(
+        "getAll",
+        "todos",
+        {
+          filter: { userId, visibility: "private", deleted_at: null },
+          isOwner: true,
+          isPrivate: true,
+          load: todoLoad,
+        },
+        true
+      )
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        tap((privateTodos) => {
+          if (privateTodos && Array.isArray(privateTodos)) {
+            this.storageService.setCollection("privateTodos", privateTodos);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -109,31 +104,34 @@ export class DataLoaderService {
   private loadTeamTodosOwner(userId: string): void {
     const todoLoad = TodoRelations.loadAll;
 
-    this.apiProvider.crud<Todo[]>(
-      "getAll",
-      "todos",
-      {
-        filter: { userId, visibility: "team", deleted_at: null },
-        isOwner: true,
-        isPrivate: false,
-        load: todoLoad,
-      },
-      true
-    ).pipe(
-      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError(() => {
-        return of(null);
-      }),
-      tap((teamTodos) => {
-        if (teamTodos && Array.isArray(teamTodos)) {
-          // Merge with existing shared todos
-          const existingShared = this.storageService.sharedTodos();
-          const merged = this.mergeSharedTodos(existingShared, teamTodos);
-          this.storageService.setCollection("sharedTodos", merged);
-          this.emitUpdate();
-        }
-      })
-    ).subscribe();
+    this.apiProvider
+      .crud<Todo[]>(
+        "getAll",
+        "todos",
+        {
+          filter: { userId, visibility: "team", deleted_at: null },
+          isOwner: true,
+          isPrivate: false,
+          load: todoLoad,
+        },
+        true
+      )
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        tap((teamTodos) => {
+          if (teamTodos && Array.isArray(teamTodos)) {
+            // Merge with existing shared todos
+            const existingShared = this.storageService.sharedTodos();
+            const merged = this.mergeSharedTodos(existingShared, teamTodos);
+            this.storageService.setCollection("sharedTodos", merged);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -142,31 +140,34 @@ export class DataLoaderService {
   private loadTeamTodosAssignee(userId: string): void {
     const todoLoad = TodoRelations.loadAll;
 
-    this.apiProvider.crud<Todo[]>(
-      "getAll",
-      "todos",
-      {
-        filter: { assignees: userId, visibility: "team", deleted_at: null },
-        isOwner: false,
-        isPrivate: false,
-        load: todoLoad,
-      },
-      true
-    ).pipe(
-      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError(() => {
-        return of(null);
-      }),
-      tap((teamTodos) => {
-        if (teamTodos && Array.isArray(teamTodos)) {
-          // Merge with existing shared todos
-          const existingShared = this.storageService.sharedTodos();
-          const merged = this.mergeSharedTodos(existingShared, teamTodos);
-          this.storageService.setCollection("sharedTodos", merged);
-          this.emitUpdate();
-        }
-      })
-    ).subscribe();
+    this.apiProvider
+      .crud<Todo[]>(
+        "getAll",
+        "todos",
+        {
+          filter: { assignees: userId, visibility: "team", deleted_at: null },
+          isOwner: false,
+          isPrivate: false,
+          load: todoLoad,
+        },
+        true
+      )
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        tap((teamTodos) => {
+          if (teamTodos && Array.isArray(teamTodos)) {
+            // Merge with existing shared todos
+            const existingShared = this.storageService.sharedTodos();
+            const merged = this.mergeSharedTodos(existingShared, teamTodos);
+            this.storageService.setCollection("sharedTodos", merged);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -174,8 +175,8 @@ export class DataLoaderService {
    */
   private mergeSharedTodos(existing: Todo[], newTodos: Todo[]): Todo[] {
     const todoMap = new Map<string, Todo>();
-    existing.forEach(t => todoMap.set(t.id, t));
-    newTodos.forEach(t => todoMap.set(t.id, t));
+    existing.forEach((t) => todoMap.set(t.id, t));
+    newTodos.forEach((t) => todoMap.set(t.id, t));
     return Array.from(todoMap.values());
   }
 
@@ -183,23 +184,21 @@ export class DataLoaderService {
    * Fire-and-forget: Load categories
    */
   private loadCategories(userId: string): void {
-    this.apiProvider.crud<Category[]>(
-      "getAll",
-      "categories",
-      { filter: { userId, deleted_at: null } },
-      true
-    ).pipe(
-      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError(() => {
-        return of(null);
-      }),
-      tap((categories) => {
-        if (categories && Array.isArray(categories)) {
-          this.storageService.setCollection("categories", categories);
-          this.emitUpdate();
-        }
-      })
-    ).subscribe();
+    this.apiProvider
+      .crud<Category[]>("getAll", "categories", { filter: { userId, deleted_at: null } }, true)
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        tap((categories) => {
+          if (categories && Array.isArray(categories)) {
+            this.storageService.setCollection("categories", categories);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -243,36 +242,39 @@ export class DataLoaderService {
    * Fire-and-forget: Fetch profile from API
    */
   private fetchProfileFromApi(userId: string): void {
-    this.apiProvider.crud<Profile[]>(
-      "getAll",
-      "profiles",
-      {
-        filter: { userId },
-        load: ["user"],
-        isPrivate: true,
-        isOwner: true,
-      },
-      true
-    ).pipe(
-      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError(() => {
-        return of(null);
-      }),
-      map((profiles: Profile[] | null) => {
-        if (Array.isArray(profiles) && profiles.length > 0) {
-          const profileObj = profiles[0] as Profile;
-          if (profileObj?.userId) {
-            return profileObj;
+    this.apiProvider
+      .crud<Profile[]>(
+        "getAll",
+        "profiles",
+        {
+          filter: { userId },
+          load: ["user"],
+          isPrivate: true,
+          isOwner: true,
+        },
+        true
+      )
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        map((profiles: Profile[] | null) => {
+          if (Array.isArray(profiles) && profiles.length > 0) {
+            const profileObj = profiles[0] as Profile;
+            if (profileObj?.userId) {
+              return profileObj;
+            }
           }
-        }
-        return null as Profile | null;
-      }),
-      tap((profile: Profile | null) => {
-        if (profile) {
-          this.storageService.setCollection("profiles", profile);
-        }
-      })
-    ).subscribe();
+          return null as Profile | null;
+        }),
+        tap((profile: Profile | null) => {
+          if (profile) {
+            this.storageService.setCollection("profiles", profile);
+          }
+        })
+      )
+      .subscribe();
   }
 
   /**

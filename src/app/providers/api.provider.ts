@@ -397,7 +397,8 @@ export class ApiProvider {
     const table = match[1];
     const recordId = match[2];
 
-    const operationVerb = operation === "update" || operation === "updateAll" ? "update" : operation;
+    const operationVerb =
+      operation === "update" || operation === "updateAll" ? "update" : operation;
     this.notifyService.showWarning(
       `Cannot ${operationVerb} ${table.slice(0, -1)}: record was deleted or not found. Refreshing...`
     );
