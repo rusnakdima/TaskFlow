@@ -1,6 +1,5 @@
 /* sys lib */
 use bcrypt::verify;
-use serde_json::json;
 use std::sync::Arc;
 
 /* providers */

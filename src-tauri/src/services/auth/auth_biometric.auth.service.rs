@@ -185,8 +185,6 @@ impl AuthBiometricService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    let filter = json!({ "username": username });
-
     match self.jsonProvider.find_all("users").await {
       Ok(users) => {
         for userVal in users {

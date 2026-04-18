@@ -27,9 +27,7 @@ pub struct CascadeService {
 impl CascadeService {
   pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
     let jsonHandler = Some(JsonCascadeHandler::new(jsonProvider.clone()));
-    let mongoHandler = mongodbProvider
-      .as_ref()
-      .map(|p| MongoCascadeHandler::new(p.clone()));
+    let mongoHandler = mongodbProvider.as_ref().map(|_| MongoCascadeHandler::new());
 
     Self {
       jsonProvider,

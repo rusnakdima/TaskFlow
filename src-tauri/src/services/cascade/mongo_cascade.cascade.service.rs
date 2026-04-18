@@ -1,32 +1,28 @@
-/* sys lib */
-use serde_json::{json, Value};
-
-/* providers */
-use nosql_orm::provider::DatabaseProvider;
-use nosql_orm::providers::JsonProvider;
-
-/* helpers */
-use crate::helpers::response_helper::errResponseFormatted;
-
-/* entities */
+/* models */
 use crate::entities::response_entity::ResponseModel;
 
 use super::cascade_ids::CascadeIds;
 use super::cascade_provider::CascadeProvider;
 
-/// JsonCascadeHandler - Handles BFS cascade ID collection for JSON provider
+/// MongoCascadeHandler - Handles BFS cascade ID collection for MongoDB provider
 #[derive(Clone)]
-pub struct JsonCascadeHandler {
-  jsonProvider: JsonProvider,
+pub struct MongoCascadeHandler {
+  _private: (),
 }
 
-impl JsonCascadeHandler {
-  pub fn new(jsonProvider: JsonProvider) -> Self {
-    Self { jsonProvider }
+impl MongoCascadeHandler {
+  pub fn new() -> Self {
+    Self { _private: () }
   }
 }
 
-impl CascadeProvider for JsonCascadeHandler {
+impl Default for MongoCascadeHandler {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl CascadeProvider for MongoCascadeHandler {
   async fn deleteWithCascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
     self.collectCascadeIds(table, id).await
   }
@@ -41,7 +37,7 @@ impl CascadeProvider for JsonCascadeHandler {
   }
 }
 
-impl JsonCascadeHandler {
+impl MongoCascadeHandler {
   pub async fn collectCascadeIds(
     &self,
     table: &str,
