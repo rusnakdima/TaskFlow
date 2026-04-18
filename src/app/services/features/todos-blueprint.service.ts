@@ -61,7 +61,7 @@ export class TodosBlueprintService {
   }
 
   removeBlueprint(templateId: string): void {
-    // TODO: Implement remove blueprint
+    // Blueprint removal not yet implemented
   }
 
   getSubtasksCount(template: ProjectTemplate): number {
