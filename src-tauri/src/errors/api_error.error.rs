@@ -22,8 +22,6 @@ pub enum ApiError {
   Serialization(String),
 }
 
-pub type ApiResult<T> = Result<T, ApiError>;
-
 impl From<ApiError> for ResponseModel {
   fn from(error: ApiError) -> Self {
     ResponseModel {
