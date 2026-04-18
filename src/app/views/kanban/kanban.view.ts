@@ -295,11 +295,13 @@ export class KanbanView implements OnInit, OnDestroy {
     if (!todoId) return;
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
+    const task = this.projectTasks().find((t) => t.id === taskId);
+    if (!task) return;
 
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
         id: taskId,
-        data: { status: newStatus },
+        data: { ...task, status: newStatus },
         parentTodoId: todoId,
         isPrivate,
         isOwner,

@@ -95,7 +95,6 @@ export class CreateProfileView implements OnInit {
     if (userId && userId !== "") {
       this.form.controls["userId"].setValue(userId);
 
-      // Auto-fill from profile loaded from JSON (offline-friendly): use cached profile when available
       const cachedProfile = this.storageService.profile();
       if (cachedProfile && cachedProfile.userId === userId) {
         this.form.patchValue({
@@ -118,7 +117,10 @@ export class CreateProfileView implements OnInit {
     if (this.form.valid) {
       const body = this.form.value;
       this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
-        next: () => {
+        next: (createdProfile: Profile) => {
+          if (createdProfile) {
+            this.storageService.setCollection("profiles", createdProfile);
+          }
           this.profileRequiredService.setProfileRequiredMode(false);
           this.notifyService.showSuccess("Profile created successfully");
           this.router.navigate([""]);

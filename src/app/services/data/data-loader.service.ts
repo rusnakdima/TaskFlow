@@ -3,16 +3,11 @@ import { Injectable, inject } from "@angular/core";
 import {
   Observable,
   of,
-  forkJoin,
   catchError,
-  filter,
-  take,
-  defer,
-  Subject,
-  map,
-  timeout,
   tap,
-  switchMap,
+  retry,
+  BehaviorSubject,
+  map,
 } from "rxjs";
 
 /* models */
@@ -20,9 +15,6 @@ import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 import { TodoRelations } from "@models/relations.config";
-
-/* helpers */
-import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -39,484 +31,280 @@ export class DataLoaderService {
   private apiProvider = inject(ApiProvider);
   private storageService = inject(StorageService);
 
-  private readonly CACHE_EXPIRY_MS = 2 * 60 * 1000;
-  private readonly OFFLINE_TIMEOUT_MS = 8000; // Enough time for 4 parallel requests with relations
+  private readonly RETRY_COUNT = 2;
+  private readonly RETRY_DELAY_MS = 1000;
+
   private loadInProgress = false;
-  // Fresh Subject per in-flight load — no stale replay on force-refresh (H-2)
-  private loadSubject: Subject<any> | null = null;
+  private loadSubject = new BehaviorSubject<{ todos: Todo[]; categories: Category[] } | null>(null);
+
+  /**
+   * Get observable for current load state
+   */
+  loadState$ = this.loadSubject.asObservable();
 
   /**
    * Load all application data (todos and categories)
-   * Works in offline mode - uses cached data if backend unavailable
-   * Profile is loaded separately via loadProfile()
+   * Fire-and-forget: updates StorageService via independent subscriptions
+   * Data is delivered via WS, API calls are fallback/seed
+   * Returns immediately with cached data if available
    */
-  loadAllData(force: boolean = false): Observable<any> {
-    const token = this.jwtTokenService.getToken();
-    const userId = this.jwtTokenService.getUserId(token) || "";
+  loadAllData(force: boolean = false): Observable<{ todos: Todo[]; categories: Category[] }> {
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
-    const hasData =
-      this.storageService.privateTodos().length > 0 || this.storageService.sharedTodos().length > 0;
-
-    if (!hasData) {
-      force = true;
+    // Return cached data immediately if valid
+    if (!force && this.storageService.loaded()) {
+      const todos = this.storageService.todos();
+      const categories = this.storageService.categories();
+      if (todos.length > 0 || categories.length > 0) {
+        return of({ todos, categories });
+      }
     }
 
-    // Check if we have valid cached data
-    if (!force && this.isCacheValid()) {
-      return of({
-        todos: this.storageService.todos(),
-        categories: this.storageService.categories(),
-      });
-    }
+    // Fire independent background loads (no blocking)
+    this.loadPrivateTodos(userId);
+    this.loadTeamTodosOwner(userId);
+    this.loadTeamTodosAssignee(userId);
+    this.loadCategories(userId);
 
-    // If already loading, subscribe to the in-flight subject (no stale replay)
-    if (this.loadInProgress && this.loadSubject) {
-      return this.loadSubject.asObservable().pipe(take(1));
-    }
+    // Return current cache state immediately
+    return of({
+      todos: this.storageService.todos(),
+      categories: this.storageService.categories(),
+    });
+  }
 
-    this.loadInProgress = true;
-    this.loadSubject = new Subject<any>();
-    this.storageService.setLoading(true);
-
-    // Use new load parameter to load complete todo information
-    // Filter out deleted records for regular pages (archive page handles deleted separately)
+  /**
+   * Fire-and-forget: Load private todos
+   */
+  private loadPrivateTodos(userId: string): void {
     const todoLoad = TodoRelations.loadAll;
 
-    // Create a subject to bridge internal execution with external subscribers
-    const resultSubject = new Subject<any>();
-
-    // Create the forkJoin and subscribe internally to ensure execution
-    // ✅ Add timeout to prevent hanging on offline MongoDB queries
-    forkJoin({
-      privateTodos: defer(() => {
-        return this.apiProvider.crud<Todo[]>(
-          "getAll",
-          "todos",
-          {
-            filter: { userId, visibility: "private", deleted_at: null },
-            isOwner: true,
-            isPrivate: true,
-            load: todoLoad,
-          },
-          true
-        );
+    this.apiProvider.crud<Todo[]>(
+      "getAll",
+      "todos",
+      {
+        filter: { userId, visibility: "private", deleted_at: null },
+        isOwner: true,
+        isPrivate: true,
+        load: todoLoad,
+      },
+      true
+    ).pipe(
+      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+      catchError((err) => {
+        console.warn("[DataLoaderService] privateTodos failed after retries:", err?.message || err);
+        return of(null);
       }),
-      teamTodosOwner: defer(() => {
-        return this.apiProvider.crud<Todo[]>(
-          "getAll",
-          "todos",
-          {
-            filter: { userId, visibility: "team", deleted_at: null },
-            isOwner: true,
-            isPrivate: false,
-            load: todoLoad,
-          },
-          true
-        );
-      }),
-      teamTodosAssignee: defer(() => {
-        return this.apiProvider.crud<Todo[]>(
-          "getAll",
-          "todos",
-          {
-            filter: { assignees: userId, visibility: "team", deleted_at: null },
-            isOwner: false,
-            isPrivate: false,
-            load: todoLoad,
-          },
-          true
-        );
-      }),
-      categories: defer(() => {
-        return this.apiProvider.crud<Category[]>(
-          "getAll",
-          "categories",
-          { filter: { userId, deleted_at: null } },
-          true
-        );
-      }),
-    })
-      .pipe(
-        timeout(this.OFFLINE_TIMEOUT_MS) // Short timeout for fast offline detection
-      )
-      .subscribe({
-        next: ({ privateTodos, teamTodosOwner, teamTodosAssignee, categories }) => {
+      tap((privateTodos) => {
+        if (privateTodos && Array.isArray(privateTodos)) {
           this.storageService.setCollection("privateTodos", privateTodos);
-
-          const sharedTodoMap = new Map<string, Todo>();
-          [...teamTodosOwner, ...teamTodosAssignee].forEach((todo) =>
-            sharedTodoMap.set(todo.id, todo)
-          );
-          this.storageService.setCollection("sharedTodos", Array.from(sharedTodoMap.values()));
-
-          this.storageService.setCollection("categories", categories);
-          this.storageService.setLoading(false);
-          this.storageService.setLoaded(true);
-          this.storageService.setLastLoaded(new Date());
-          this.loadInProgress = false;
-
-          const result = {
-            todos: this.storageService.todos(),
-            categories: this.storageService.categories(),
-          };
-
-          // Emit to all waiting subscribers
-          this.loadSubject?.next(result);
-          this.loadSubject = null;
-          resultSubject.next(result);
-          resultSubject.complete();
-        },
-        error: (error) => {
-          this.loadInProgress = false;
-          this.storageService.setLoading(false);
-
-          // ✅ Handle timeout/network errors - use cached data if available
-          const isTimeout = error.name === "TimeoutError";
-          const isNetworkError = NetworkErrorHelper.isNetworkError(error);
-
-          if ((isTimeout || isNetworkError) && this.storageService.loaded()) {
-            // Use cached data on timeout or network error
-            const cachedData = {
-              todos: this.storageService.todos(),
-              categories: this.storageService.categories(),
-            };
-            this.loadSubject?.next(cachedData);
-            this.loadSubject = null;
-            resultSubject.next(cachedData);
-            resultSubject.complete();
-          } else {
-            // No cached data or different error - return empty
-            const emptyData = {
-              todos: [],
-              categories: [],
-            };
-            this.loadSubject?.next(emptyData);
-            this.loadSubject = null;
-            resultSubject.next(emptyData);
-            resultSubject.complete();
-          }
-        },
-      });
-
-    // Return the subject for external subscribers
-    return resultSubject.asObservable();
-  }
-
-  /**
-   * Load team-specific todos
-   */
-  loadTeamTodos(): Observable<Todo[]> {
-    const token = this.jwtTokenService.getToken();
-    const userId = this.jwtTokenService.getUserId(token) || "";
-    const todoLoad = TodoRelations.loadAll; // Load all relations including user data, tasks, assignees
-
-    // Clear cache to ensure fresh data with new relations
-    this.apiProvider.clearCache("todos");
-
-    return forkJoin({
-      myTeamProjects: this.apiProvider.crud<Todo[]>(
-        "getAll",
-        "todos",
-        {
-          filter: { userId, visibility: "team", deleted_at: null },
-          isOwner: true,
-          isPrivate: false,
-          load: todoLoad,
-        },
-        true
-      ),
-      sharedTeamProjects: this.apiProvider.crud<Todo[]>(
-        "getAll",
-        "todos",
-        {
-          filter: { assignees: userId, visibility: "team", deleted_at: null },
-          isOwner: false,
-          isPrivate: false,
-          load: todoLoad,
-        },
-        true
-      ),
-      categories: this.apiProvider.crud<Category[]>(
-        "getAll",
-        "categories",
-        { filter: { userId, deleted_at: null } },
-        true
-      ),
-    }).pipe(
-      switchMap(({ myTeamProjects, sharedTeamProjects, categories }) => {
-        const todoMap = new Map<string, Todo>();
-        [...myTeamProjects, ...sharedTeamProjects].forEach((todo) => todoMap.set(todo.id, todo));
-        const uniqueTodos = Array.from(todoMap.values());
-
-        // Check if any todos are missing any of the required relations
-        const todosMissingUser = uniqueTodos.filter((todo) => !todo.user && todo.userId);
-        const todosMissingTasks = uniqueTodos.filter(
-          (todo) => !todo.tasks || (todo.tasks && todo.tasks.length === 0)
-        );
-        const todosMissingAssignees = uniqueTodos.filter(
-          (todo) => !todo.assigneesProfiles && todo.assignees && todo.assignees.length > 0
-        );
-        const todosMissingCategories = uniqueTodos.filter(
-          (todo) =>
-            !todo.categories ||
-            (todo.categories &&
-              (todo.categories.length === 0 || typeof todo.categories[0] === "string"))
-        );
-
-        // If we have missing data, fetch it
-        if (
-          todosMissingUser.length > 0 ||
-          todosMissingTasks.length > 0 ||
-          todosMissingAssignees.length > 0 ||
-          todosMissingCategories.length > 0
-        ) {
-          // Prepare all the data we need to fetch
-          const userIds = [...new Set(todosMissingUser.map((todo) => todo.userId))];
-          const todoIds = [
-            ...new Set(
-              [...todosMissingTasks, ...todosMissingCategories, ...todosMissingAssignees].map(
-                (todo) => todo.id
-              )
-            ),
-          ];
-          const assigneeIds = [
-            ...new Set(todosMissingAssignees.flatMap((todo) => todo.assignees || [])),
-          ];
-
-          // Create observables for all the data we need to fetch
-          const observables: any = {};
-
-          if (todosMissingUser.length > 0) {
-            observables.users = this.apiProvider.crud<any[]>(
-              "getAll",
-              "users",
-              {
-                filter: { id: { $in: userIds } },
-                isPrivate: false,
-                isOwner: false,
-              },
-              true
-            );
-          }
-
-          if (todosMissingTasks.length > 0) {
-            observables.tasks = this.apiProvider.crud<any[]>(
-              "getAll",
-              "tasks",
-              {
-                filter: { todoId: { $in: todoIds } },
-                isPrivate: false,
-                isOwner: false,
-                load: ["subtasks", "subtasks.comments", "comments"],
-              },
-              true
-            );
-          }
-
-          if (todosMissingAssignees.length > 0) {
-            observables.assignees = this.apiProvider.crud<any[]>(
-              "getAll",
-              "profiles",
-              {
-                filter: { userId: { $in: assigneeIds } },
-                isPrivate: false,
-                isOwner: false,
-                load: ["user"],
-              },
-              true
-            );
-          }
-
-          if (todosMissingCategories.length > 0) {
-            // Find category IDs from todos
-            const categoryIds = [
-              ...new Set(
-                todosMissingCategories.flatMap((t) => {
-                  if (Array.isArray(t.categories) && typeof t.categories[0] === "string") {
-                    return t.categories as unknown as string[];
-                  }
-                  return [];
-                })
-              ),
-            ];
-
-            if (categoryIds.length > 0) {
-              observables.categories = this.apiProvider.crud<any[]>(
-                "getAll",
-                "categories",
-                {
-                  filter: { id: { $in: categoryIds } },
-                },
-                true
-              );
-            }
-          }
-
-          // Execute all requests in parallel
-          return forkJoin(observables).pipe(
-            map((results: any) => {
-              // Process users
-              if (results.users && Array.isArray(results.users)) {
-                const userMap = new Map<string, any>();
-                results.users.forEach((user: any) => {
-                  if (user && user.id) {
-                    userMap.set(user.id, user);
-                  }
-                });
-
-                uniqueTodos.forEach((todo) => {
-                  if (!todo.user && todo.userId && userMap.has(todo.userId)) {
-                    todo.user = userMap.get(todo.userId);
-                  }
-                });
-              }
-
-              // Process tasks
-              if (results.tasks && Array.isArray(results.tasks)) {
-                const tasksByTodoId = new Map<string, any[]>();
-                results.tasks.forEach((task: any) => {
-                  if (task && task.todoId) {
-                    if (!tasksByTodoId.has(task.todoId)) {
-                      tasksByTodoId.set(task.todoId, []);
-                    }
-                    tasksByTodoId.get(task.todoId)!.push(task);
-                  }
-                });
-
-                uniqueTodos.forEach((todo) => {
-                  if ((!todo.tasks || todo.tasks.length === 0) && tasksByTodoId.has(todo.id)) {
-                    todo.tasks = tasksByTodoId.get(todo.id)!;
-                  }
-                });
-              }
-
-              // Process assignees
-              if (results.assignees && Array.isArray(results.assignees)) {
-                const assigneeMap = new Map<string, any>();
-                results.assignees.forEach((assignee: any) => {
-                  if (assignee && assignee.userId) {
-                    assigneeMap.set(assignee.userId, assignee);
-                  }
-                });
-
-                uniqueTodos.forEach((todo) => {
-                  if (
-                    (!todo.assigneesProfiles || todo.assigneesProfiles.length === 0) &&
-                    todo.assignees &&
-                    todo.assignees.length > 0
-                  ) {
-                    const profiles = todo.assignees
-                      .map((userId: string) => assigneeMap.get(userId))
-                      .filter((profile: any) => profile);
-
-                    if (profiles.length > 0) {
-                      todo.assigneesProfiles = profiles;
-                    }
-                  }
-                });
-              }
-
-              // Process categories
-              if (results.categories && Array.isArray(results.categories)) {
-                const categoryMap = new Map<string, any>();
-                results.categories.forEach((category: any) => {
-                  if (category && category.id) {
-                    categoryMap.set(category.id, category);
-                  }
-                });
-
-                uniqueTodos.forEach((todo) => {
-                  // Check if todo has category IDs that need to be converted to full category objects
-                  if (todo.categories && Array.isArray(todo.categories)) {
-                    // Check if the first element is a string (indicating category IDs)
-                    const firstElement = todo.categories[0];
-                    if (firstElement && typeof firstElement === "string") {
-                      // Type assertion to handle the conversion safely
-                      const categoryIds = todo.categories as unknown as string[];
-                      const fullCategories = categoryIds
-                        .map((catId) => categoryMap.get(catId))
-                        .filter((cat) => cat);
-
-                      if (fullCategories.length > 0) {
-                        todo.categories = fullCategories;
-                      }
-                    }
-                  }
-                });
-              }
-
-              return { uniqueTodos, categories };
-            })
-          );
-        } else {
-          return of({ uniqueTodos, categories });
+          this.emitUpdate();
         }
-      }),
-      map(({ uniqueTodos, categories }) => {
-        this.storageService.setCollection("sharedTodos", uniqueTodos);
-        this.storageService.setCollection("categories", categories);
-
-        return uniqueTodos;
       })
-    );
+    ).subscribe();
   }
 
   /**
-   * Load user profile and store in StorageService
-   * Loads from local JSON first (fast, works offline)
-   * User relation loaded separately if needed
+   * Fire-and-forget: Load team todos where user is owner
+   */
+  private loadTeamTodosOwner(userId: string): void {
+    const todoLoad = TodoRelations.loadAll;
+
+    this.apiProvider.crud<Todo[]>(
+      "getAll",
+      "todos",
+      {
+        filter: { userId, visibility: "team", deleted_at: null },
+        isOwner: true,
+        isPrivate: false,
+        load: todoLoad,
+      },
+      true
+    ).pipe(
+      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+      catchError((err) => {
+        console.warn("[DataLoaderService] teamTodosOwner failed after retries:", err?.message || err);
+        return of(null);
+      }),
+      tap((teamTodos) => {
+        if (teamTodos && Array.isArray(teamTodos)) {
+          // Merge with existing shared todos
+          const existingShared = this.storageService.sharedTodos();
+          const merged = this.mergeSharedTodos(existingShared, teamTodos);
+          this.storageService.setCollection("sharedTodos", merged);
+          this.emitUpdate();
+        }
+      })
+    ).subscribe();
+  }
+
+  /**
+   * Fire-and-forget: Load team todos where user is assignee
+   */
+  private loadTeamTodosAssignee(userId: string): void {
+    const todoLoad = TodoRelations.loadAll;
+
+    this.apiProvider.crud<Todo[]>(
+      "getAll",
+      "todos",
+      {
+        filter: { assignees: userId, visibility: "team", deleted_at: null },
+        isOwner: false,
+        isPrivate: false,
+        load: todoLoad,
+      },
+      true
+    ).pipe(
+      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+      catchError((err) => {
+        console.warn("[DataLoaderService] teamTodosAssignee failed after retries:", err?.message || err);
+        return of(null);
+      }),
+      tap((teamTodos) => {
+        if (teamTodos && Array.isArray(teamTodos)) {
+          // Merge with existing shared todos
+          const existingShared = this.storageService.sharedTodos();
+          const merged = this.mergeSharedTodos(existingShared, teamTodos);
+          this.storageService.setCollection("sharedTodos", merged);
+          this.emitUpdate();
+        }
+      })
+    ).subscribe();
+  }
+
+  /**
+   * Merge shared todos, avoiding duplicates by ID
+   */
+  private mergeSharedTodos(existing: Todo[], newTodos: Todo[]): Todo[] {
+    const todoMap = new Map<string, Todo>();
+    existing.forEach(t => todoMap.set(t.id, t));
+    newTodos.forEach(t => todoMap.set(t.id, t));
+    return Array.from(todoMap.values());
+  }
+
+  /**
+   * Fire-and-forget: Load categories
+   */
+  private loadCategories(userId: string): void {
+    this.apiProvider.crud<Category[]>(
+      "getAll",
+      "categories",
+      { filter: { userId, deleted_at: null } },
+      true
+    ).pipe(
+      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+      catchError((err) => {
+        console.warn("[DataLoaderService] categories failed after retries:", err?.message || err);
+        return of(null);
+      }),
+      tap((categories) => {
+        if (categories && Array.isArray(categories)) {
+          this.storageService.setCollection("categories", categories);
+          this.emitUpdate();
+        }
+      })
+    ).subscribe();
+  }
+
+  /**
+   * Emit current state to subscribers
+   */
+  private emitUpdate(): void {
+    this.storageService.setLoaded(true);
+    this.storageService.setLastLoaded(new Date());
+    this.loadSubject.next({
+      todos: this.storageService.todos(),
+      categories: this.storageService.categories(),
+    });
+  }
+
+  /**
+   * Load user profile
+   * Returns cached profile immediately if available
+   * API call is fire-and-forget with retry
    */
   loadProfile(): Observable<Profile | null> {
-    const token = this.jwtTokenService.getToken();
-    const userId = this.jwtTokenService.getUserId(token) || "";
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
     if (!userId) {
       return of(null);
     }
 
-    // Check if profile already exists in storage WITH user relation loaded
-    const existingProfile = this.storageService.profile();
-    if (existingProfile?.user) {
-      return of(existingProfile);
+    // Return cached profile immediately
+    const cached = this.storageService.profile();
+    if (cached?.userId) {
+      return of(cached);
     }
 
-    // Load from local first (fast); cloud check happens in background, never blocks storage
-    return this.apiProvider
-      .crud<Profile[]>(
-        "getAll",
-        "profiles",
-        {
-          filter: { userId },
-          load: ["user"], // Load user relation - JSON provider reads from local users.json
-          isPrivate: true,
-          isOwner: true,
-        },
-        true
-      )
-      .pipe(
-        timeout(3000),
-        map((profiles) => (profiles && profiles.length > 0 ? profiles[0] : null)),
-        tap((profile: Profile | null) => {
+    // Fire-and-forget API call with retry
+    this.fetchProfileFromApi(userId);
+
+    // Return cached or null immediately
+    return of(this.storageService.profile());
+  }
+
+  /**
+   * Fire-and-forget: Fetch profile from API
+   */
+  private fetchProfileFromApi(userId: string): void {
+    this.apiProvider.crud<Profile[]>(
+      "getAll",
+      "profiles",
+      {
+        filter: { userId },
+        load: ["user"],
+        isPrivate: true,
+        isOwner: true,
+      },
+      true
+    ).pipe(
+      retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+      catchError((err) => {
+        console.warn("[DataLoaderService] profile API failed after retries:", err?.message || err);
+        return of(null);
+      }),
+      map((profiles: Profile[] | null) => {
+        if (Array.isArray(profiles) && profiles.length > 0) {
+          const profileObj = profiles[0] as Profile;
+          if (profileObj?.userId) {
+            return profileObj;
+          }
+        }
+        return null as Profile | null;
+      }),
+      tap((profile: Profile | null) => {
+        if (profile) {
           this.storageService.setCollection("profiles", profile);
-        }),
-        catchError(() => {
-          return of(this.storageService.profile());
-        })
-      );
+        }
+      })
+    ).subscribe();
   }
 
-  private isCacheValid(): boolean {
-    if (!this.storageService.loaded()) return false;
-    const lastLoaded = this.storageService.lastLoaded();
-    if (!lastLoaded) return false;
-    return new Date().getTime() - lastLoaded.getTime() < this.CACHE_EXPIRY_MS;
+  /**
+   * Load team todos (for shared-tasks view)
+   * Fire-and-forget, updates storage, returns observable for compatibility
+   */
+  loadTeamTodos(): Observable<Todo[]> {
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    this.loadTeamTodosOwner(userId);
+    this.loadTeamTodosAssignee(userId);
+    return of(this.storageService.sharedTodos());
   }
 
-  getLastLoadStats(): { lastLoaded: Date | null; isLoading: boolean; cacheValid: boolean } {
-    return {
-      lastLoaded: this.storageService.lastLoaded(),
-      isLoading: this.loadInProgress,
-      cacheValid: this.isCacheValid(),
-    };
+  /**
+   * Force refresh all data
+   */
+  refreshAll(): void {
+    this.loadAllData(true).subscribe();
+  }
+
+  /**
+   * Force refresh profile
+   */
+  refreshProfile(): void {
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    if (userId) {
+      this.fetchProfileFromApi(userId);
+    }
   }
 }

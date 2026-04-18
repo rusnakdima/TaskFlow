@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { firstValueFrom, of, timeout, catchError } from "rxjs";
+import { of, catchError } from "rxjs";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -12,6 +12,19 @@ import { TodoRelations } from "@models/relations.config";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 
+/**
+ * MainResolver - Non-Blocking Navigation Resolver
+ *
+ * This resolver NEVER blocks navigation. It returns immediately with:
+ * 1. Cached data from storage (if available)
+ * 2. null for missing data
+ *
+ * Data loading happens in background via:
+ * - WebSocket (real-time updates)
+ * - API fallback (fire-and-forget)
+ *
+ * Components use StorageService signals to react to data changes.
+ */
 @Injectable({
   providedIn: "root",
 })
@@ -34,113 +47,91 @@ export class MainResolver implements Resolve<any> {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
 
-        // First, try to get data from storage
-        let taskFromStorage = this.storageService.getById("tasks", taskId);
-        let todoFromStorage = this.storageService.getById("todos", todoId);
-
-        // Wait for storage to be populated (max 2 seconds)
-        let waitCount = 0;
-        while ((!taskFromStorage || !todoFromStorage) && waitCount < 20) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          taskFromStorage = this.storageService.getById("tasks", taskId);
-          todoFromStorage = this.storageService.getById("todos", todoId);
-          waitCount++;
-        }
+        // IMMEDIATELY return cached data (non-blocking)
+        const taskFromStorage = this.storageService.getById("tasks", taskId);
+        const todoFromStorage = this.storageService.getById("todos", todoId);
 
         if (taskFromStorage && todoFromStorage) {
+          // Have cached data - return immediately
           return { task: taskFromStorage, todo: todoFromStorage };
         }
 
-        // If not in storage after waiting, fetch from backend with TIMEOUT
-        const taskObservable = this.dataSyncProvider.crud<Task>("get", "tasks", {
-          filter: { id: taskId },
-          isOwner,
-          isPrivate,
-        });
-
-        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
-          filter: { id: todoId },
-          isOwner,
-          isPrivate,
-          load: TodoRelations.tasks, // Load tasks with subtasks and comments
-        });
-
-        // ✅ Add timeout to prevent hanging on offline MongoDB queries
-        const [task, todo] = await Promise.all([
-          firstValueFrom(
-            taskObservable.pipe(
-              timeout(5000),
-              catchError(() => of(null))
-            )
-          ),
-          firstValueFrom(
-            todoObservable.pipe(
-              timeout(5000),
-              catchError(() => of(null))
-            )
-          ),
-        ]);
-
-        if (!task || !todo) {
-          console.warn("MainResolver: Failed to load task/todo from backend");
-          // Return empty object instead of error string to prevent route failure
-          return { task: null, todo: null, error: "offline" };
+        // Return cached data if available (even if partial)
+        if (todoFromStorage) {
+          return { task: taskFromStorage, todo: todoFromStorage };
         }
 
-        this.upsertTodo(todo, todoId);
+        // No cached data - fire-and-forget API call, return null for missing
+        this.loadTodoInBackground(todoId, isOwner, isPrivate);
+        this.loadTaskInBackground(taskId, isOwner, isPrivate);
 
-        return { task, todo };
+        return {
+          task: taskFromStorage || null,
+          todo: todoFromStorage || null,
+          loading: true  // Signal to component that data is loading
+        };
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
 
-        // First, try to get data from storage
-        let todoFromStorage = this.storageService.getById("todos", todoId);
+        // IMMEDIATELY return cached data (non-blocking)
+        const todoFromStorage = this.storageService.getById("todos", todoId);
 
-        // Wait for storage to be populated (max 2 seconds)
-        let waitCount = 0;
-        while (!todoFromStorage && waitCount < 20) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          todoFromStorage = this.storageService.getById("todos", todoId);
-          waitCount++;
-        }
-
-        if (todoFromStorage) {
+        if (todoFromStorage && this.hasFullRelations(todoFromStorage)) {
           return todoFromStorage;
         }
 
-        // If not in storage after waiting, fetch from backend with TIMEOUT
-        const todoObservable = this.dataSyncProvider.crud<Todo>("get", "todos", {
-          filter: { id: todoId },
-          isOwner,
-          isPrivate,
-          load: TodoRelations.loadAll, // Load all relations including user
-        });
+        // Fire-and-forget API call to load in background
+        this.loadTodoInBackground(todoId, isOwner, isPrivate);
 
-        // ✅ Add timeout to prevent hanging on offline MongoDB queries
-        const todo: Todo | null = await firstValueFrom(
-          todoObservable.pipe(
-            timeout(5000),
-            catchError(() => of(null))
-          )
-        );
-
-        if (!todo) {
-          console.warn("MainResolver: Failed to load todo from backend");
-          // Return empty object instead of error string
-          return { id: todoId, error: "offline" };
-        }
-
-        this.upsertTodo(todo, todoId);
-
-        return todo;
+        return todoFromStorage || { id: todoId, loading: true };
       } else {
         return "";
       }
     } catch (err) {
       console.error("MainResolver: Error resolving data:", err);
-      // Return empty object instead of error string to prevent route failure
       return { error: "offline" };
     }
+  }
+
+  /**
+   * Fire-and-forget: Load todo in background
+   */
+  private loadTodoInBackground(todoId: string, isOwner: boolean, isPrivate: boolean): void {
+    this.dataSyncProvider.crud<Todo>("get", "todos", {
+      id: todoId,
+      isOwner,
+      isPrivate,
+      load: TodoRelations.loadAll,
+    }).pipe(
+      catchError((err) => {
+        console.warn("[MainResolver] loadTodo failed:", err?.message || err);
+        return of(null);
+      })
+    ).subscribe((todo) => {
+      if (todo) {
+        this.upsertTodo(todo, todoId);
+      }
+    });
+  }
+
+  /**
+   * Fire-and-forget: Load task in background
+   */
+  private loadTaskInBackground(taskId: string, isOwner: boolean, isPrivate: boolean): void {
+    this.dataSyncProvider.crud<Task>("get", "tasks", {
+      id: taskId,
+      isOwner,
+      isPrivate,
+    }).pipe(
+      catchError((err) => {
+        console.warn("[MainResolver] loadTask failed:", err?.message || err);
+        return of(null);
+      })
+    ).subscribe((task) => {
+      if (task) {
+        this.storageService.updateItem("tasks", taskId, task);
+      }
+    });
   }
 
   private upsertTodo(todo: Todo | null, todoId: string): void {
@@ -151,5 +142,12 @@ export class MainResolver implements Resolve<any> {
     } else {
       this.storageService.addItem("todos", todo);
     }
+  }
+
+  private hasFullRelations(todo: Todo | undefined): boolean {
+    if (!todo) return false;
+    const hasCategories = todo.categories && todo.categories.length > 0 && typeof todo.categories[0] !== 'string';
+    const hasTasks = todo.tasks && todo.tasks.length > 0;
+    return !!(hasCategories && hasTasks);
   }
 }

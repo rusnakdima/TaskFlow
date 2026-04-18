@@ -114,6 +114,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   expandedTasks = signal<Set<string>>(new Set());
   chats = signal<any[]>([]);
   private routeSub?: Subscription;
+  private subscriptions = new Subscription();
+  private loadingRelations = signal<Set<string>>(new Set());
 
   // Bulk selection state (like admin page)
   selectedTasks = signal<Set<string>>(new Set());
@@ -242,18 +244,23 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkService.updateTotalCount(0);
 
     // Subscribe to refresh shortcut (Ctrl+R)
-    this.shortcutService.refresh$.subscribe(() => {
-      this.dataSyncService.loadAllData(true).subscribe(() => {
-        this.notifyService.showSuccess("Data refreshed");
-      });
-    });
+    this.subscriptions.add(
+      this.shortcutService.refresh$.subscribe(() => {
+        this.dataSyncService.loadAllData(true).subscribe(() => {
+          this.notifyService.showSuccess("Data refreshed");
+        });
+      })
+    );
 
     // Clear selection when navigating away from this view
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.clearSelection();
-    });
+    this.subscriptions.add(
+      this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+        this.clearSelection();
+      })
+    );
 
-    this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.highlightTaskId) {
         this.highlightTaskId.set(queryParams.highlightTaskId);
         setTimeout(() => {
@@ -278,7 +285,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (queryParams.openChat) {
         this.openChat.set(true);
       }
-    });
+    })
+    );
 
     // Get resolved todo data from route - todo is now computed from storage
     const routeData = this.route.snapshot.data;
@@ -294,10 +302,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private ensureTaskTreeLoaded(todoId: string): void {
+    if (this.loadingRelations().has(todoId)) return;
+
     const todo = this.storageService.getById("todos", todoId);
     const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
+    const hasCategories = todo?.categories && todo.categories.length > 0 && typeof todo.categories[0] !== 'string';
 
-    if (hasSubtasks) return;
+    if (hasSubtasks && hasCategories) return;
+
+    this.loadingRelations.update(set => {
+      const newSet = new Set(set);
+      newSet.add(todoId);
+      return newSet;
+    });
 
     this.dataSyncProvider
       .crud<Todo>("get", "todos", {
@@ -315,11 +332,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to load subtasks");
         },
+        complete: () => {
+          this.loadingRelations.update(set => {
+            const newSet = new Set(set);
+            newSet.delete(todoId);
+            return newSet;
+          });
+        },
       });
   }
 
   ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   toggleTaskCompletion(task: Task) {
@@ -340,7 +364,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
         id: task.id,
-        data: { status: newStatus },
+        data: { ...task, status: newStatus },
         parentTodoId: todoId,
       })
       .subscribe();
