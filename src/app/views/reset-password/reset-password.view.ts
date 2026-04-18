@@ -81,8 +81,9 @@ export class ResetPasswordView {
         this.notifyService.showSuccess("Verification code sent");
         this.step.set("code");
       },
-      error: (err: any) => {
-        this.notifyService.showError(err.message ?? err.toString());
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to send verification code";
+        this.notifyService.showError(message);
       },
     });
   }
@@ -112,8 +113,9 @@ export class ResetPasswordView {
 
         window.location.href = "/change-password";
       },
-      error: (err: any) => {
-        this.notifyService.showError(err.message ?? err.toString());
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to verify code";
+        this.notifyService.showError(message);
       },
     });
   }

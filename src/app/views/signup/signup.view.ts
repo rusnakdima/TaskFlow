@@ -127,8 +127,9 @@ export class SignupView implements OnDestroy {
         }, 500);
         this.submitted.set(false);
       },
-      error: (err: any) => {
-        this.notifyService.showError(err.message ?? err.toString());
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Signup failed";
+        this.notifyService.showError(message);
         this.submitted.set(false);
       },
     });

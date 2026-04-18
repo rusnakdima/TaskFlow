@@ -125,8 +125,9 @@ export class CreateProfileView implements OnInit {
           this.notifyService.showSuccess("Profile created successfully");
           this.router.navigate([""]);
         },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to create profile");
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to create profile";
+          this.notifyService.showError(message);
         },
       });
     } else {

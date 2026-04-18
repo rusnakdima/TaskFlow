@@ -35,6 +35,10 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { ResponseStatus } from "@models/response.model";
 import { ArchiveDataMap, ArchiveRecord } from "@models/archive.model";
 import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
 import { from } from "rxjs";
 
 const bulkActionHelper = new BulkActionHelper();
@@ -168,28 +172,28 @@ export class ArchiveView extends BaseAdminView implements OnInit {
             // Restore: re-fetch from backend and restore in-place
             this.adminService.getAllDataForArchive().subscribe({
               next: (archiveResponse) => {
-                const data = archiveResponse.data as any;
-                const restoredTodo = data["todos"]?.find((t: any) => t.id === record.id);
+                const data = archiveResponse.data as ArchiveDataMap;
+                const restoredTodo = data["todos"]?.find((t: Todo) => t.id === record.id);
                 if (restoredTodo) {
-                  const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
+                  const taskIds = restoredTodo.tasks?.map((t: Task) => t.id) || [];
                   const subtaskIds =
                     restoredTodo.tasks?.flatMap(
-                      (t: any) => t.subtasks?.map((s: any) => s.id) || []
+                      (t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []
                     ) || [];
 
                   const relatedTasks =
-                    data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
+                    data["tasks"]?.filter((t: Task) => taskIds.includes(t.id)) || [];
                   const relatedSubtasks =
-                    data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
+                    data["subtasks"]?.filter((s: Subtask) => subtaskIds.includes(s.id)) || [];
                   const relatedComments =
                     data["comments"]?.filter(
-                      (c: any) =>
+                      (c: Comment) =>
                         c.taskId === record.id ||
                         taskIds.includes(c.taskId) ||
                         subtaskIds.includes(c.subtaskId)
                     ) || [];
                   const relatedChats =
-                    data["chats"]?.filter((c: any) => c.todoId === record.id) || [];
+                    data["chats"]?.filter((c: Chat) => c.todoId === record.id) || [];
 
                   this.adminStorageService.restoreTodoWithCascade({
                     todo: restoredTodo,
@@ -215,9 +219,9 @@ export class ArchiveView extends BaseAdminView implements OnInit {
       } else {
         this.notifyService.showError(response.message || "Failed to update record status");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg =
-        error?.message || (typeof error === "object" ? JSON.stringify(error) : String(error));
+        error instanceof Error ? error.message : (typeof error === "object" ? JSON.stringify(error) : String(error));
       this.notifyService.showError("Error updating record status: " + errorMsg);
     }
   }
@@ -264,28 +268,28 @@ export class ArchiveView extends BaseAdminView implements OnInit {
                 // Restore: re-fetch from backend and restore in-place
                 this.adminService.getAllDataForArchive().subscribe({
                   next: (archiveResponse) => {
-                    const data = archiveResponse.data as any;
-                    const restoredTodo = data["todos"]?.find((t: any) => t.id === item.id);
+                    const data = archiveResponse.data as ArchiveDataMap;
+                    const restoredTodo = data["todos"]?.find((t: Todo) => t.id === item.id);
                     if (restoredTodo) {
-                      const taskIds = restoredTodo.tasks?.map((t: any) => t.id) || [];
+                      const taskIds = restoredTodo.tasks?.map((t: Task) => t.id) || [];
                       const subtaskIds =
                         restoredTodo.tasks?.flatMap(
-                          (t: any) => t.subtasks?.map((s: any) => s.id) || []
+                          (t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []
                         ) || [];
 
                       const relatedTasks =
-                        data["tasks"]?.filter((t: any) => taskIds.includes(t.id)) || [];
+                        data["tasks"]?.filter((t: Task) => taskIds.includes(t.id)) || [];
                       const relatedSubtasks =
-                        data["subtasks"]?.filter((s: any) => subtaskIds.includes(s.id)) || [];
+                        data["subtasks"]?.filter((s: Subtask) => subtaskIds.includes(s.id)) || [];
                       const relatedComments =
                         data["comments"]?.filter(
-                          (c: any) =>
+                          (c: Comment) =>
                             c.taskId === item.id ||
                             taskIds.includes(c.taskId) ||
                             subtaskIds.includes(c.subtaskId)
                         ) || [];
                       const relatedChats =
-                        data["chats"]?.filter((c: any) => c.todoId === item.id) || [];
+                        data["chats"]?.filter((c: Chat) => c.todoId === item.id) || [];
 
                       this.adminStorageService.restoreTodoWithCascade({
                         todo: restoredTodo,

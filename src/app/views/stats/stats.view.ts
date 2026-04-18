@@ -88,8 +88,9 @@ export class StatsView implements OnInit {
             this.achievements.set(response.achievements);
             this.detailedMetrics.set(response.detailedMetrics);
           },
-          error: (err: any) => {
-            this.notifyService.showError(err.message);
+          error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to load statistics";
+            this.notifyService.showError(message);
           },
         });
     }

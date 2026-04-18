@@ -23,6 +23,12 @@ import { PriorityTask, Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
 
+interface RouteParams {
+  todoId?: string;
+  taskId?: string;
+  subtaskId?: string;
+}
+
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -129,7 +135,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
     this.userId = this.authService.getValueByKey("id");
 
-    this.route.params.subscribe((params: any) => {
+    this.route.params.subscribe((params: RouteParams) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
         this.loadProjectInfo(params.todoId);
@@ -182,8 +188,9 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         if (localDates.startDate)
           ValidationHelper.updateEndDateValidation(this.form, localDates.startDate);
       }
-    } catch (err: any) {
-      this.notifyService.showError(err.message || "Failed to load subtask");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load subtask";
+      this.notifyService.showError(message);
     }
   }
 
@@ -206,8 +213,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         this.isOwner = todo.userId === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: (err: any) => {
-        // Error loading project info
+      error: () => {
+        // Error loading project info - silently ignored
       },
     });
   }
@@ -225,8 +232,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       .crud<Task>("get", "tasks", { id: taskId })
       .subscribe({
         next: (task: Task) => this.taskInfo.set(task),
-        error: (err: any) => {
-          // Error loading task info
+        error: () => {
+          // Error loading task info - silently ignored
         },
       });
   }
@@ -254,8 +261,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
             next: () => {
               this.notifyService.showSuccess("Subtask duplicated successfully");
             },
-            error: (err: any) =>
-              this.notifyService.showError(err.message || "Failed to duplicate subtask"),
+            error: (err: unknown) => {
+              const message = err instanceof Error ? err.message : "Failed to duplicate subtask";
+              this.notifyService.showError(message);
+            },
           });
       } catch (err) {
         this.notifyService.showError("Failed to get existing subtasks count");
@@ -314,9 +323,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
               this.notifyService.showSuccess("Subtask created successfully");
               this.back();
             },
-            error: (err: any) => {
+            error: (err: unknown) => {
               this.isSubmitting.set(false);
-              this.notifyService.showError(err.message || "Failed to create subtask");
+              const message = err instanceof Error ? err.message : "Failed to create subtask";
+              this.notifyService.showError(message);
             },
           });
       } catch (err) {
@@ -365,9 +375,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
             this.notifyService.showSuccess("Subtask updated successfully");
             this.back();
           },
-          error: (err: any) => {
+          error: (err: unknown) => {
             this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to update subtask");
+            const message = err instanceof Error ? err.message : "Failed to update subtask";
+            this.notifyService.showError(message);
           },
         });
     } else {
