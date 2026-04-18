@@ -26,6 +26,13 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
+interface QueryParams {
+  fromKanban?: string;
+  highlightSubtask?: string;
+  openComments?: string;
+  highlightComment?: string;
+}
+
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -230,7 +237,7 @@ export class SubtasksView extends BaseListView implements OnInit {
     );
 
     this.subscriptions.add(
-      this.route.queryParams.subscribe((queryParams: any) => {
+      this.route.queryParams.subscribe((queryParams: QueryParams) => {
       if (queryParams.fromKanban !== undefined) {
         this.fromKanban.set(queryParams.fromKanban === "true");
       }
@@ -331,13 +338,14 @@ export class SubtasksView extends BaseListView implements OnInit {
         next: () => {
           // Storage updated automatically by ApiProvider
         },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to update subtask";
+          this.notifyService.showError(message);
         },
       });
   }
 
-  updateSubtaskInline(event: { subtask: Subtask; field: string; value: any }) {
+  updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {
     const todoId = this.todoId();
 
     this.dataSyncProvider
@@ -350,8 +358,9 @@ export class SubtasksView extends BaseListView implements OnInit {
         next: () => {
           // Storage updated automatically by ApiProvider
         },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to update subtask";
+          this.notifyService.showError(message);
         },
       });
   }
@@ -365,8 +374,9 @@ export class SubtasksView extends BaseListView implements OnInit {
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
-      error: (err: any) => {
-        this.notifyService.showError(err.message || "Failed to delete subtask");
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to delete subtask";
+        this.notifyService.showError(message);
       },
     });
   }
