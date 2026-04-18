@@ -51,7 +51,8 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 data-encoding = "2"
 # Use vendored OpenSSL for all platforms including Android
 rustls = "0.21"
-keyring = "3"
+openssl = { version = "0.10", features = ["vendored"] }
+keyring = { version = "3", features = [] }
 
 nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache"] }
 
