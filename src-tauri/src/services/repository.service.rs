@@ -23,6 +23,8 @@ use crate::entities::{
 /* helpers */
 use crate::helpers::{
   common::getProviderType,
+  filter_helper::FilterBuilder,
+  projection_helper::ProjectionHelper,
   response_helper::{errResponse, errResponseFormatted, successResponse},
   user_sync_helper,
 };
@@ -87,46 +89,7 @@ impl RepositoryService {
   }
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
-    if let Some(obj) = filter_value.as_object() {
-      let mut filters = Vec::new();
-
-      for (key, value) in obj {
-        if key.starts_with('$') {
-          continue;
-        }
-
-        if let Some(filter) = self.build_single_filter(key, value) {
-          filters.push(filter);
-        }
-      }
-
-      if filters.is_empty() {
-        None
-      } else if filters.len() == 1 {
-        Some(filters.remove(0))
-      } else {
-        Some(Filter::And(filters))
-      }
-    } else {
-      None
-    }
-  }
-
-  fn build_single_filter(&self, key: &str, value: &Value) -> Option<Filter> {
-    if value.is_null() {
-      Some(Filter::Eq(key.to_string(), Value::Null))
-    } else if let Some(arr) = value.as_array() {
-      if arr
-        .iter()
-        .any(|v| v.is_string() && v.as_str().unwrap().starts_with('$'))
-      {
-        return None;
-      }
-      let values: Vec<serde_json::Value> = arr.iter().cloned().collect();
-      Some(Filter::In(key.to_string(), values))
-    } else {
-      Some(Filter::Eq(key.to_string(), value.clone()))
-    }
+    FilterBuilder::from_json(filter_value)
   }
 
   async fn load_relations_json(
@@ -332,15 +295,11 @@ impl RepositoryService {
   }
 
   fn apply_frontend_projection(&self, doc: Value, _table: &str) -> Value {
-    let projection = user_projection();
-    projection.apply(&doc)
+    ProjectionHelper::apply_frontend_projection(&doc)
   }
 
-  fn apply_projection_to_docs(&self, mut docs: Vec<Value>, table: &str) -> Vec<Value> {
-    for doc in docs.iter_mut() {
-      *doc = self.apply_frontend_projection(doc.clone(), table);
-    }
-    docs
+  fn apply_projection_to_docs(&self, docs: Vec<Value>, _table: &str) -> Vec<Value> {
+    ProjectionHelper::apply_to_docs(&docs)
   }
 
   pub async fn execute(
