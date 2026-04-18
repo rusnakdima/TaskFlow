@@ -1,12 +1,6 @@
 /* sys lib */
 use serde::Serialize;
 
-pub const TABLES_WITHOUT_SOFT_DELETE: &[&str] = &["users", "profiles", "comments", "qr_tokens"];
-
-pub fn supportsSoftDelete(table: &str) -> bool {
-  !TABLES_WITHOUT_SOFT_DELETE.contains(&table)
-}
-
 /* models */
 use crate::entities::{
   provider_type_entity::ProviderType,

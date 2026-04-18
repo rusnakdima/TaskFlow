@@ -26,25 +26,6 @@ impl CryptoService {
     }
   }
 
-  pub fn get_key() -> KeyringResult<Option<String>> {
-    let entry = Self::get_entry(AUTH_KEY_ACCOUNT)?;
-    match entry.get_password() {
-      Ok(key) => Ok(Some(key)),
-      Err(keyring::Error::NoEntry) => Ok(None),
-      Err(e) => Err(e),
-    }
-  }
-
-  pub fn set_key(key: &str) -> KeyringResult<()> {
-    let entry = Self::get_entry(AUTH_KEY_ACCOUNT)?;
-    entry.set_password(key)
-  }
-
-  pub fn delete_key() -> KeyringResult<()> {
-    let entry = Self::get_entry(AUTH_KEY_ACCOUNT)?;
-    entry.delete_credential()
-  }
-
   pub fn encrypt(data: &str) -> Result<String, Box<dyn std::error::Error>> {
     let key_str = Self::get_or_create_key()?;
     let key = BASE64URL.decode(key_str.as_bytes())?;
@@ -62,40 +43,5 @@ impl CryptoService {
     }
 
     Ok(BASE64URL.encode(&encrypted))
-  }
-
-  pub fn decrypt(encrypted_base64: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let key_str = Self::get_or_create_key()?;
-    let key = BASE64URL.decode(key_str.as_bytes())?;
-
-    let encrypted = BASE64URL.decode(encrypted_base64.as_bytes())?;
-    if encrypted.len() < 16 {
-      return Err("Invalid encrypted data".into());
-    }
-
-    let iv = &encrypted[..16];
-    let ciphertext = &encrypted[16..];
-
-    let mut decrypted = Vec::with_capacity(ciphertext.len());
-    for (i, byte) in ciphertext.iter().enumerate() {
-      let key_byte = key[i % key.len()];
-      let iv_byte = iv[i % iv.len()];
-      decrypted.push(byte ^ key_byte ^ iv_byte);
-    }
-
-    Ok(String::from_utf8(decrypted)?)
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_encrypt_decrypt() {
-    let data = "test://auth?user=john&challenge=abc123";
-    let encrypted = CryptoService::encrypt(data).unwrap();
-    let decrypted = CryptoService::decrypt(&encrypted).unwrap();
-    assert_eq!(data, decrypted);
   }
 }
