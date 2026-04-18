@@ -3,15 +3,11 @@ pub mod activity;
 pub mod activity_log;
 #[path = "common.helper.rs"]
 pub mod common;
-#[path = "comparison.helper.rs"]
-pub mod comparison_helper;
 #[path = "config.helper.rs"]
 pub mod config;
+#[path = "crypto.helper.rs"]
 pub mod crypto_helper;
-#[path = "db.helper.rs"]
-pub mod db_helper;
-#[path = "model_helper.rs"]
-pub mod model_helper;
+#[path = "qr.helper.rs"]
 pub mod qr_helper;
 #[path = "response.helper.rs"]
 pub mod response_helper;
