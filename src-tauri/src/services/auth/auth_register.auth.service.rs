@@ -48,9 +48,10 @@ impl AuthRegisterService {
     let username = signupData.username;
     let password = signupData.password;
 
-    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-      errResponse("Registration unavailable: MongoDB offline")
-    })?;
+    let mongo = self
+      .mongodbProvider
+      .as_ref()
+      .ok_or_else(|| errResponse("Registration unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Or(vec![
@@ -105,9 +106,10 @@ impl AuthRegisterService {
 
     let _ = self.jsonProvider.insert(table_name, userVal).await;
 
-    let token = self
-      .tokenService
-      .generateToken(newUser.get_id(), &newUser.username, &newUser.role)?;
+    let token =
+      self
+        .tokenService
+        .generateToken(newUser.get_id(), &newUser.username, &newUser.role)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

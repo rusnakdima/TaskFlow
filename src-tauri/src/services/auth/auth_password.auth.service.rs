@@ -40,9 +40,10 @@ impl AuthPasswordService {
     email: String,
     config: &ConfigHelper,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-      errResponse("Password reset unavailable: MongoDB offline")
-    })?;
+    let mongo = self
+      .mongodbProvider
+      .as_ref()
+      .ok_or_else(|| errResponse("Password reset unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -52,9 +53,7 @@ impl AuthPasswordService {
       .await
       .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
 
-    let user_val = users
-      .pop()
-      .ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
 
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
@@ -83,7 +82,10 @@ impl AuthPasswordService {
       .await
       .map_err(|e| errResponse(&format!("Error updating user: {}", e)))?;
 
-    let _ = self.jsonProvider.update(table_name, &user_id, user_json).await;
+    let _ = self
+      .jsonProvider
+      .update(table_name, &user_id, user_json)
+      .await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -97,9 +99,10 @@ impl AuthPasswordService {
     email: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-      errResponse("Verification unavailable: MongoDB offline")
-    })?;
+    let mongo = self
+      .mongodbProvider
+      .as_ref()
+      .ok_or_else(|| errResponse("Verification unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -109,9 +112,7 @@ impl AuthPasswordService {
       .await
       .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
 
-    let user_val = users
-      .pop()
-      .ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
 
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
@@ -139,9 +140,10 @@ impl AuthPasswordService {
     let email = resetData.email;
     let password = resetData.newPassword;
 
-    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-      errResponse("Password reset unavailable: MongoDB offline")
-    })?;
+    let mongo = self
+      .mongodbProvider
+      .as_ref()
+      .ok_or_else(|| errResponse("Password reset unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -151,9 +153,7 @@ impl AuthPasswordService {
       .await
       .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
 
-    let user_val = users
-      .pop()
-      .ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
 
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
@@ -174,7 +174,10 @@ impl AuthPasswordService {
       .await
       .map_err(|e| errResponse(&format!("Error updating user: {}", e)))?;
 
-    let _ = self.jsonProvider.update(table_name, &user_id, user_json).await;
+    let _ = self
+      .jsonProvider
+      .update(table_name, &user_id, user_json)
+      .await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

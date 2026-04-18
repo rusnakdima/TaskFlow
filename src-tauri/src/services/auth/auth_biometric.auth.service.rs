@@ -208,16 +208,15 @@ impl AuthBiometricService {
     let user_val = match user_val {
       Some(v) => v,
       None => {
-        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-          errResponse("User not found and MongoDB unavailable")
-        })?;
+        let mongo = self
+          .mongodbProvider
+          .as_ref()
+          .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
         let mut users = mongo
           .find_many(table_name, Some(&filter), None, None, None, true)
           .await
           .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
-        users
-          .pop()
-          .ok_or_else(|| errResponse("User not found"))?
+        users.pop().ok_or_else(|| errResponse("User not found"))?
       }
     };
 
@@ -247,16 +246,15 @@ impl AuthBiometricService {
     let user_val = match user_val {
       Some(v) => v,
       None => {
-        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-          errResponse("User not found and MongoDB unavailable")
-        })?;
+        let mongo = self
+          .mongodbProvider
+          .as_ref()
+          .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
         let mut users = mongo
           .find_many(table_name, orm_filter.as_ref(), None, None, None, true)
           .await
           .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
-        users
-          .pop()
-          .ok_or_else(|| errResponse("User not found"))?
+        users.pop().ok_or_else(|| errResponse("User not found"))?
       }
     };
 

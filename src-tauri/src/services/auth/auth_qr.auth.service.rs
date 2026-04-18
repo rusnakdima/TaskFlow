@@ -363,9 +363,10 @@ impl QrAuthService {
     let user_val = if let Some(val) = user_val {
       val
     } else {
-      let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-        errResponse("User not found and MongoDB unavailable")
-      })?;
+      let mongo = self
+        .mongodbProvider
+        .as_ref()
+        .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
       let mut users = mongo
         .find_many(table_name, Some(&filter), None, None, None, true)
         .await
@@ -375,7 +376,7 @@ impl QrAuthService {
         .ok_or_else(|| errResponse(&format!("User '{}' not found in database", username)))?
     };
 
-let user = serde_json::from_value::<UserEntity>(user_val.clone())
+    let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
     let user_id = user.get_id().to_string();

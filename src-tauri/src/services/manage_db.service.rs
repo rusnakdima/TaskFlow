@@ -48,12 +48,20 @@ impl ManageDbService {
   pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
     match self.mongodbProvider.as_ref() {
       Some(mongo_provider) => {
-        let tables = vec!["users", "profiles", "todos", "tasks", "subtasks", "categories", "daily_activities"];
+        let tables = vec![
+          "users",
+          "profiles",
+          "todos",
+          "tasks",
+          "subtasks",
+          "categories",
+          "daily_activities",
+        ];
         let mut imported_count = 0;
 
         for table in tables {
           let cloud_data = mongo_provider.find_all(table).await;
-          
+
           if let Ok(items) = cloud_data {
             for item in items {
               if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
@@ -84,12 +92,20 @@ impl ManageDbService {
   pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
     match self.mongodbProvider.as_ref() {
       Some(mongo_provider) => {
-        let tables = vec!["users", "profiles", "todos", "tasks", "subtasks", "categories", "daily_activities"];
+        let tables = vec![
+          "users",
+          "profiles",
+          "todos",
+          "tasks",
+          "subtasks",
+          "categories",
+          "daily_activities",
+        ];
         let mut exported_count = 0;
 
         for table in tables {
           let local_data = self.jsonProvider.find_all(table).await;
-          
+
           if let Ok(items) = local_data {
             for item in items {
               if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
