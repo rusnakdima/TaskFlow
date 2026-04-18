@@ -144,8 +144,9 @@ export class EditProfileView {
             this.notifyService.showSuccess("Profile updated successfully");
             this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
           },
-          error: (err: any) => {
-            this.notifyService.showError(err.message || "Failed to update profile");
+          error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to update profile";
+            this.notifyService.showError(message);
           },
         });
     } else {

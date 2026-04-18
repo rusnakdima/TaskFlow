@@ -114,8 +114,9 @@ export class ChangePasswordView {
             document.location.href = "/login";
           }, 1500);
         },
-        error: (err: any) => {
-          this.notifyService.showError(err.message ?? err.toString());
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to change password";
+          this.notifyService.showError(message);
         },
       });
     }

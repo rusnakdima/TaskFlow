@@ -13,6 +13,7 @@ import {
   FormsModule,
   ReactiveFormsModule,
   Validators,
+  AbstractControl,
 } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
@@ -198,7 +199,7 @@ export class LoginView implements OnDestroy {
     this.submitted.set(true);
 
     if (this.loginForm.invalid) {
-      Object.values(this.loginForm.controls).forEach((control: any) => {
+      Object.values(this.loginForm.controls).forEach((control: AbstractControl) => {
         control.markAsTouched();
       });
       this.submitted.set(false);

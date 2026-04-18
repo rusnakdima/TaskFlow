@@ -16,8 +16,8 @@ export abstract class BaseListView {
   protected activeFilter = signal<string>("all");
   protected searchQuery = signal<string>("");
 
-  protected handleError(err: any): void {
-    const errorMessage = err?.message || err?.toString() || "An unexpected error occurred";
+  protected handleError(err: unknown): void {
+    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
     this.error.set(errorMessage);
   }
 
