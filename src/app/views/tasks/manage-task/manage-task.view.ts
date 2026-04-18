@@ -197,10 +197,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
           ValidationHelper.updateEndDateValidation(this.form, startDate);
         }
       },
-error: (err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
-            this.notifyService.showError(message || "Failed to update task");
-          },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.notifyService.showError(message || "Failed to update task");
+      },
     });
   }
 

@@ -238,40 +238,40 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: QueryParams) => {
-      if (queryParams.fromKanban !== undefined) {
-        this.fromKanban.set(queryParams.fromKanban === "true");
-      }
-      if (queryParams.highlightSubtask) {
-        const id = queryParams.highlightSubtask;
-        this.highlightSubtask.set(id);
-        if (queryParams.openComments) {
-          this.openCommentsForSubtaskId.set(id);
+        if (queryParams.fromKanban !== undefined) {
+          this.fromKanban.set(queryParams.fromKanban === "true");
         }
-        setTimeout(() => {
-          const element = document.getElementById("subtask-" + id);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            element.classList.add("ring-4", "ring-purple-500", "animate-pulse");
-            setTimeout(() => {
-              element.classList.remove("ring-4", "ring-purple-500", "animate-pulse");
-            }, 2000);
+        if (queryParams.highlightSubtask) {
+          const id = queryParams.highlightSubtask;
+          this.highlightSubtask.set(id);
+          if (queryParams.openComments) {
+            this.openCommentsForSubtaskId.set(id);
           }
-          this.highlightSubtask.set(null);
-        }, 500);
-      }
-      if (queryParams.highlightComment) {
-        this.highlightComment.set(queryParams.highlightComment);
-        // Best-effort: when deep-linking to a comment, open all comment blocks
-        this.openCommentsForSubtaskId.set("*");
-      }
-      if (
-        !queryParams.openComments &&
-        !queryParams.highlightSubtask &&
-        !queryParams.highlightComment
-      ) {
-        this.openCommentsForSubtaskId.set(null);
-      }
-    })
+          setTimeout(() => {
+            const element = document.getElementById("subtask-" + id);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+              element.classList.add("ring-4", "ring-purple-500", "animate-pulse");
+              setTimeout(() => {
+                element.classList.remove("ring-4", "ring-purple-500", "animate-pulse");
+              }, 2000);
+            }
+            this.highlightSubtask.set(null);
+          }, 500);
+        }
+        if (queryParams.highlightComment) {
+          this.highlightComment.set(queryParams.highlightComment);
+          // Best-effort: when deep-linking to a comment, open all comment blocks
+          this.openCommentsForSubtaskId.set("*");
+        }
+        if (
+          !queryParams.openComments &&
+          !queryParams.highlightSubtask &&
+          !queryParams.highlightComment
+        ) {
+          this.openCommentsForSubtaskId.set(null);
+        }
+      })
     );
 
     const routeData = this.route.snapshot.data;

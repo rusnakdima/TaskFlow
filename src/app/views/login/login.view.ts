@@ -365,11 +365,11 @@ export class LoginView implements OnDestroy {
           this.submitted.set(false);
         },
       });
-} catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Operation failed";
-            this.notifyService.showError(message);
-            this.submitted.set(false);
-          }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Operation failed";
+      this.notifyService.showError(message);
+      this.submitted.set(false);
+    }
   }
 
   async loginWithBiometric(): Promise<void> {
@@ -438,13 +438,15 @@ export class LoginView implements OnDestroy {
                   this.completePasswordlessLogin(username, false);
                 },
                 error: (err: unknown) => {
-                  const message = err instanceof Error ? err.message : "Biometric authentication failed";
+                  const message =
+                    err instanceof Error ? err.message : "Biometric authentication failed";
                   this.notifyService.showError("Biometric authentication failed: " + message);
                   this.submitted.set(false);
                 },
               });
             } catch (err: unknown) {
-              const message = err instanceof Error ? err.message : "Biometric authentication failed";
+              const message =
+                err instanceof Error ? err.message : "Biometric authentication failed";
               this.notifyService.showError("Biometric authentication failed: " + message);
               this.submitted.set(false);
             }
@@ -507,7 +509,8 @@ export class LoginView implements OnDestroy {
                 },
               });
             } catch (err: unknown) {
-              const message = err instanceof Error ? err.message : "Biometric authentication failed";
+              const message =
+                err instanceof Error ? err.message : "Biometric authentication failed";
               this.notifyService.showError("Biometric authentication failed: " + message);
               this.submitted.set(false);
             }

@@ -222,14 +222,12 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     }
 
     // Fallback to fetch if not in storage
-    this.dataSyncProvider
-      .crud<Task>("get", "tasks", { id: taskId })
-      .subscribe({
-        next: (task: Task) => this.taskInfo.set(task),
-        error: () => {
-          // Error loading task info - silently ignored
-        },
-      });
+    this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
+      next: (task: Task) => this.taskInfo.set(task),
+      error: () => {
+        // Error loading task info - silently ignored
+      },
+    });
   }
 
   async duplicateSubtask() {
