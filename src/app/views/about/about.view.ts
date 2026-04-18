@@ -85,9 +85,10 @@ export class AboutView {
           throw Error("Invalid request");
         }
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.downloadProgress.set(false);
-        this.notifyService.showError(err.message ?? err.toString());
+        const message = err instanceof Error ? err.message : String(err);
+        this.notifyService.showError(message);
       },
     });
   }
@@ -161,8 +162,9 @@ export class AboutView {
         } else {
           this.notifyService.showNotify(data.status, data.message);
         }
-      } catch (err: any) {
-        this.notifyService.showError(err.message ?? err.toString());
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.notifyService.showError(message);
       } finally {
         this.downloadProgress.set(false);
         if (this.unlistenProgress) {

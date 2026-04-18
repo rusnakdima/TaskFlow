@@ -204,9 +204,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
           ValidationHelper.updateEndDateValidation(this.form, startDate);
         }
       },
-      error: (err: any) => {
-        this.notifyService.showError(err.message || "Failed to load task");
-      },
+error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            this.notifyService.showError(message || "Failed to update task");
+          },
     });
   }
 
@@ -231,7 +232,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.isOwner = todo.userId === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         // Error loading project info - already in storage or fetch failed
       },
     });
@@ -296,12 +297,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
               this.notifyService.showSuccess("Task created successfully");
               this.back();
             },
-            error: (err: any) => {
+            error: (err: unknown) => {
               this.isSubmitting.set(false);
-              this.notifyService.showError(err.message || "Failed to create task");
+              const message = err instanceof Error ? err.message : String(err);
+              this.notifyService.showError(message || "Failed to create task");
             },
           });
-      } catch (err: any) {
+      } catch (err: unknown) {
         this.isSubmitting.set(false);
         this.notifyService.showError("Failed to get existing tasks count");
       }
@@ -347,9 +349,10 @@ export class ManageTaskView implements OnInit, OnDestroy {
             this.notifyService.showSuccess("Task updated successfully");
             this.back();
           },
-          error: (err: any) => {
+          error: (err: unknown) => {
             this.isSubmitting.set(false);
-            this.notifyService.showError(err.message || "Failed to update task");
+            const message = err instanceof Error ? err.message : String(err);
+            this.notifyService.showError(message || "Failed to update task");
           },
         });
     } else {
