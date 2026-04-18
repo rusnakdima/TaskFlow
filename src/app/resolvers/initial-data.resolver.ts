@@ -63,15 +63,6 @@ export class InitialDataResolver implements Resolve<unknown> {
 
     const userId = this.authService.getValueByKey("id") ?? "";
 
-    console.log("========================================");
-    console.log("[AppInit] Cache-first loading (non-blocking):");
-    console.log("  - Token exists:", !!token);
-    console.log("  - UserId:", userId);
-    console.log("  - Has cached todos:", this.storageService.todos().length);
-    console.log("  - Has cached categories:", this.storageService.categories().length);
-    console.log("  - Has cached profile:", !!this.storageService.profile());
-    console.log("========================================");
-
     // IMMEDIATELY fire background loads (non-blocking)
     // Data will come via cache update + WS
     this.dataLoaderService.loadAllData();

@@ -11,6 +11,10 @@ export interface BulkOperationResult {
   errors: Array<{ id: string; error: string }>;
 }
 
+export interface ArchiveDataMap {
+  [table: string]: any[];
+}
+
 /**
  * BulkActionHelper - Centralized bulk operations for all views
  *
@@ -141,5 +145,87 @@ export class BulkActionHelper {
    */
   isAllSelected<T extends { id: string }>(selected: Set<string>, items: T[]): boolean {
     return selected.size === items.length && items.length > 0;
+  }
+
+  /**
+   * Remove record with cascade from data map
+   */
+  removeRecordWithCascade(
+    data: ArchiveDataMap,
+    table: string,
+    recordId: string
+  ): ArchiveDataMap {
+    const updated = { ...data };
+    const tableData = updated[table] || [];
+    updated[table] = tableData.filter((r: any) => r.id !== recordId);
+
+    if (table === "todos") {
+      const todoTasks = tableData.filter((t: any) => t.todoId === recordId);
+      const todoTaskIds = todoTasks.map((t: any) => t.id);
+      updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todoId !== recordId);
+      updated["subtasks"] = (updated["subtasks"] || []).filter(
+        (s: any) => !todoTaskIds.includes(s.taskId)
+      );
+      updated["comments"] = (updated["comments"] || []).filter(
+        (c: any) => c.todoId !== recordId && !todoTaskIds.includes(c.taskId)
+      );
+      updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todoId !== recordId);
+    } else if (table === "tasks") {
+      updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.taskId !== recordId);
+      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.taskId !== recordId);
+    } else if (table === "subtasks") {
+      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.subtaskId !== recordId);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Get cascade child IDs for restore operation
+   */
+  getCascadeChildIds(restoredRecord: any): { taskIds: string[]; subtaskIds: string[] } {
+    const taskIds = restoredRecord.tasks?.map((t: any) => t.id) || [];
+    const subtaskIds =
+      restoredRecord.tasks?.flatMap((t: any) => t.subtasks?.map((s: any) => s.id) || []) || [];
+    return { taskIds, subtaskIds };
+  }
+
+  /**
+   * Restore record with cascade in data map
+   */
+  restoreRecordWithCascade(
+    data: ArchiveDataMap,
+    table: string,
+    restoredRecord: any,
+    recordId: string
+  ): ArchiveDataMap {
+    const updated = { ...data };
+    const tableData = updated[table] || [];
+    updated[table] = tableData.map((r: any) => (r.id === recordId ? restoredRecord : r));
+
+    if (table === "todos") {
+      const { taskIds, subtaskIds } = this.getCascadeChildIds(restoredRecord);
+      const existingTasks = data["tasks"] || [];
+      const existingSubtasks = data["subtasks"] || [];
+      const existingComments = data["comments"] || [];
+      const existingChats = data["chats"] || [];
+
+      const newTasks = restoredRecord.tasks || [];
+      const newSubtasks = newTasks.flatMap((t: any) => t.subtasks || []);
+      const newComments = newSubtasks.flatMap((s: any) => s.comments || []);
+
+      updated["tasks"] = [...existingTasks.filter((t: any) => !taskIds.includes(t.id)), ...newTasks];
+      updated["subtasks"] = [
+        ...existingSubtasks.filter((s: any) => !subtaskIds.includes(s.id)),
+        ...newSubtasks,
+      ];
+      updated["comments"] = [
+        ...existingComments.filter((c: any) => c.todoId !== recordId && !taskIds.includes(c.taskId)),
+        ...newComments,
+      ];
+      updated["chats"] = [...existingChats.filter((c: any) => c.todoId !== recordId)];
+    }
+
+    return updated;
   }
 }

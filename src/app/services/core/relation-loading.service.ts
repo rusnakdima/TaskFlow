@@ -145,7 +145,6 @@ export class RelationLoadingService {
           this.stats.loadTimeMs += elapsed;
         }),
         catchError((error) => {
-          console.error(`Failed to load relations for ${table}:${id}`, error);
           throw error;
         })
       );
@@ -189,7 +188,6 @@ export class RelationLoadingService {
 
       return result as T;
     } catch (error) {
-      console.error(`Failed to load relations for ${table}:${id}`, error);
       throw error;
     }
   }
@@ -237,7 +235,6 @@ export class RelationLoadingService {
           this.stats.loadTimeMs += elapsed;
         }),
         catchError((error) => {
-          console.error(`Failed to load multiple ${table} with relations`, error);
           throw error;
         })
       );

@@ -75,8 +75,7 @@ export class WebAuthnService {
         }
       );
       return result.data;
-    } catch (error) {
-      console.error("Android biometric auth error:", error);
+    } catch {
       return false;
     }
   }
@@ -115,14 +114,9 @@ export class WebAuthnService {
   async createCredential(options: WebAuthnRegistrationOptions): Promise<PasskeyCredential | null> {
     try {
       if (!options.challenge) {
-        console.error("createCredential: options.challenge is missing or undefined");
         return null;
       }
       if (!options.rp || !options.user) {
-        console.error("createCredential: options.rp or options.user is missing", {
-          rp: options.rp,
-          user: options.user,
-        });
         return null;
       }
 
@@ -144,8 +138,7 @@ export class WebAuthnService {
         publicKey,
       } as any)) as unknown as PasskeyCredential;
       return credential;
-    } catch (error: any) {
-      console.error("WebAuthn create credential error:", error?.message || error);
+    } catch {
       return null;
     }
   }
@@ -168,8 +161,7 @@ export class WebAuthnService {
         publicKey,
       } as any)) as unknown as PasskeyCredential;
       return credential;
-    } catch (error: any) {
-      console.error("WebAuthn get assertion error:", error?.message || error);
+    } catch {
       return null;
     }
   }

@@ -19,6 +19,9 @@ import { MatNativeDateModule } from "@angular/material/core";
 /* services */
 import { DataLoaderService } from "@services/data/data-loader.service";
 
+/* helpers */
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
+
 /* base */
 import { BaseAdminView, AdminDataMap } from "@views/base-admin.view";
 
@@ -29,6 +32,8 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 /* models */
 import { ResponseStatus } from "@models/response.model";
+
+const bulkActionHelper = new BulkActionHelper();
 
 @Component({
   selector: "app-admin-view",
@@ -128,38 +133,9 @@ export class AdminView extends BaseAdminView implements OnInit {
         this.adminStorageService.removeRecordWithCascade(table, record.id);
 
         // In-place update without full reload
-        this.adminData.update((data) => {
-          const updated = { ...data };
-          const tableData = updated[table] || [];
-          updated[table] = tableData.filter((r: any) => r.id !== record.id);
-
-          // Cascade remove children
-          if (table === "todos") {
-            const todoTasks = tableData.filter((t: any) => t.todoId === record.id);
-            const todoTaskIds = todoTasks.map((t: any) => t.id);
-            updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todoId !== record.id);
-            updated["subtasks"] = (updated["subtasks"] || []).filter(
-              (s: any) => !todoTaskIds.includes(s.taskId)
-            );
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.todoId !== record.id && !todoTaskIds.includes(c.taskId)
-            );
-            updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todoId !== record.id);
-          } else if (table === "tasks") {
-            updated["subtasks"] = (updated["subtasks"] || []).filter(
-              (s: any) => s.taskId !== record.id
-            );
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.taskId !== record.id
-            );
-          } else if (table === "subtasks") {
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.subtaskId !== record.id
-            );
-          }
-
-          return updated;
-        });
+        this.adminData.update((data) =>
+          bulkActionHelper.removeRecordWithCascade(data, table, record.id)
+        );
 
         // Update counts
         this.dataTypes.forEach((type) => {

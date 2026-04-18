@@ -33,7 +33,7 @@ export class TodosBlueprintService {
   }
 
   saveAsBlueprint(todo: Todo): void {
-    console.log("Save as blueprint", todo);
+    // TODO: Implement save as blueprint
   }
 
   confirmSaveAsBlueprint(): void {
@@ -61,7 +61,7 @@ export class TodosBlueprintService {
   }
 
   removeBlueprint(templateId: string): void {
-    console.log("Remove blueprint", templateId);
+    // TODO: Implement remove blueprint
   }
 
   getSubtasksCount(template: ProjectTemplate): number {

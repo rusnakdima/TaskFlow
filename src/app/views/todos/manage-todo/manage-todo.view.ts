@@ -390,8 +390,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
               this.storageService.setCollection("categories", cats);
             }
           },
-          error: (err) => {
-            console.error("Failed to fetch categories:", err);
+          error: () => {
+            // Silently handle error
           },
         });
     }

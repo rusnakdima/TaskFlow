@@ -91,8 +91,7 @@ export class DataLoaderService {
       true
     ).pipe(
       retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError((err) => {
-        console.warn("[DataLoaderService] privateTodos failed after retries:", err?.message || err);
+      catchError(() => {
         return of(null);
       }),
       tap((privateTodos) => {
@@ -122,8 +121,7 @@ export class DataLoaderService {
       true
     ).pipe(
       retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError((err) => {
-        console.warn("[DataLoaderService] teamTodosOwner failed after retries:", err?.message || err);
+      catchError(() => {
         return of(null);
       }),
       tap((teamTodos) => {
@@ -156,8 +154,7 @@ export class DataLoaderService {
       true
     ).pipe(
       retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError((err) => {
-        console.warn("[DataLoaderService] teamTodosAssignee failed after retries:", err?.message || err);
+      catchError(() => {
         return of(null);
       }),
       tap((teamTodos) => {
@@ -193,8 +190,7 @@ export class DataLoaderService {
       true
     ).pipe(
       retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError((err) => {
-        console.warn("[DataLoaderService] categories failed after retries:", err?.message || err);
+      catchError(() => {
         return of(null);
       }),
       tap((categories) => {
@@ -259,8 +255,7 @@ export class DataLoaderService {
       true
     ).pipe(
       retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-      catchError((err) => {
-        console.warn("[DataLoaderService] profile API failed after retries:", err?.message || err);
+      catchError(() => {
         return of(null);
       }),
       map((profiles: Profile[] | null) => {
