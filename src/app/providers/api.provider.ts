@@ -16,6 +16,7 @@ import { Comment } from "@models/comment.model";
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
+import { CacheHelper } from "@helpers/cache.helper";
 
 /* services */
 import { WebSocketService } from "@services/core/websocket.service";
@@ -62,7 +63,7 @@ export class ApiProvider {
   private injector = inject(Injector);
 
   private inFlightRequests = new Map<string, Observable<any>>();
-  private requestCache = new Map<string, { data: any; timestamp: number }>();
+  private cacheHelper = new CacheHelper();
 
   constructor() {}
 
@@ -286,19 +287,15 @@ export class ApiProvider {
   }
 
   private isCacheable(operation: Operation): boolean {
-    return operation === "get" || operation === "getAll";
+    return this.cacheHelper.isCacheable(operation);
   }
 
   private getCached(requestKey: string): any | null {
-    const cached = this.requestCache.get(requestKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.data;
-    }
-    return null;
+    return this.cacheHelper.getCached(requestKey);
   }
 
   private cacheRequest(requestKey: string, data: any): void {
-    this.requestCache.set(requestKey, { data, timestamp: Date.now() });
+    this.cacheHelper.cacheRequest(requestKey, data);
   }
 
   private tryWebSocket<T>(
@@ -799,15 +796,7 @@ export class ApiProvider {
   // ==================== Cache Management ====================
 
   clearCache(table?: string): void {
-    if (table) {
-      for (const key of this.requestCache.keys()) {
-        if (key.includes(`:${table}:`)) {
-          this.requestCache.delete(key);
-        }
-      }
-    } else {
-      this.requestCache.clear();
-    }
+    this.cacheHelper.clearCache(table);
   }
 
   // ==================== Connection Management ====================
