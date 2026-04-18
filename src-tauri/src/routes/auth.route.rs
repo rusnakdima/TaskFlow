@@ -211,14 +211,12 @@ pub async fn initTotpQrLogin(
 #[tauri::command]
 pub async fn getUserSecurityStatus(
   state: State<'_, AppState>,
-  username: String,
+  _username: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
   use crate::entities::user_entity::UserEntity;
   use crate::helpers::response_helper::errResponse;
   use nosql_orm::provider::DatabaseProvider;
-
-  let filter = json!({ "username": username });
 
   // Try JSON provider first
   let user_result: Option<UserEntity> =

@@ -10,10 +10,12 @@ use tokio::time::{timeout, Duration};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
+use nosql_orm::query::Filter;
 
 /* models */
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
+  table_entity::TableModelType,
   user_entity::UserEntity,
 };
 
@@ -337,54 +339,62 @@ impl AuthTotpService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    match timeout(Duration::from_secs(3), self.jsonProvider.find_all("users")).await {
-      Ok(Ok(users)) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.username == username {
-              return Ok(user);
-            }
-          }
+    let table_name = TableModelType::User.table_name();
+    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
+
+    let user_val = match timeout(
+      Duration::from_secs(3),
+      self.jsonProvider.find_many(table_name, Some(&filter), None, None, None, true),
+    )
+    .await
+    {
+      Ok(Ok(mut users)) => {
+        if users.is_empty() {
+          None
+        } else {
+          Some(users.remove(0))
         }
       }
-      Ok(Err(e)) => {
-        tracing::warn!("Local DB error: {}", e);
-      }
+      Ok(Err(_)) => None,
       Err(_) => {
         tracing::warn!("Local DB timeout");
+        None
       }
-    }
+    };
 
-    let mongoProvider = self
-      .mongodbProvider
-      .as_ref()
-      .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
-
-    match timeout(Duration::from_secs(5), mongoProvider.find_all("users")).await {
-      Ok(Ok(users)) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.username == username {
-              return Ok(user);
-            }
-          }
-        }
-        Err(errResponse("User not found"))
+    let user_val = match user_val {
+      Some(v) => v,
+      None => {
+        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
+          errResponse("User not found and MongoDB unavailable")
+        })?;
+        let mut users = timeout(
+          Duration::from_secs(5),
+          mongo.find_many(table_name, Some(&filter), None, None, None, true),
+        )
+        .await
+        .map_err(|_| errResponse("Database timeout"))?
+        .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
+        users
+          .pop()
+          .ok_or_else(|| errResponse("User not found"))?
       }
-      Ok(Err(e)) => Err(errResponse(&format!("Database error: {}", e))),
-      Err(_) => Err(errResponse("Database timeout")),
-    }
+    };
+
+    serde_json::from_value::<UserEntity>(user_val)
+      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
   }
 
   async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
-    let userVal = serde_json::to_value(user)
+    let user_val = serde_json::to_value(user)
       .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
-    let userId = user.get_id();
+    let user_id = user.get_id();
+    let table_name = TableModelType::User.table_name();
 
     match timeout(
       Duration::from_secs(3),
-      self.jsonProvider.update("users", &userId, userVal.clone()),
+      self.jsonProvider.update(table_name, &user_id, user_val.clone()),
     )
     .await
     {
@@ -397,10 +407,10 @@ impl AuthTotpService {
       }
     }
 
-    if let Some(mongoProvider) = &self.mongodbProvider {
+    if let Some(mongo) = &self.mongodbProvider {
       match timeout(
         Duration::from_secs(5),
-        mongoProvider.update("users", &userId, userVal),
+        mongo.update(table_name, &user_id, user_val),
       )
       .await
       {

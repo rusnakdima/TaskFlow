@@ -11,6 +11,7 @@ use nosql_orm::providers::MongoProvider;
 /* models */
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
+  table_entity::TableModelType,
   user_entity::UserEntity,
 };
 
@@ -72,7 +73,6 @@ impl AuthTokenService {
   }
 
   pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    // Decode and validate JWT token
     let tokenData = decode::<Claims>(
       &token,
       &DecodingKey::from_secret(self.jwtSecret.as_ref()),
@@ -81,9 +81,10 @@ impl AuthTokenService {
     .map_err(|e| errResponse(&format!("Invalid token: {}", e)))?;
 
     let userId = tokenData.claims.id;
+    let table_name = TableModelType::User.table_name();
 
     // STEP 1: Check local JSON database FIRST (works offline)
-    if let Ok(Some(userVal)) = self.jsonProvider.find_by_id("users", &userId).await {
+    if let Ok(Some(userVal)) = self.jsonProvider.find_by_id(table_name, &userId).await {
       let user: UserEntity = serde_json::from_value(userVal.clone())
         .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
@@ -109,13 +110,13 @@ impl AuthTokenService {
       }
     };
 
-    match mongoProvider.find_by_id("users", &userId).await {
+    match mongoProvider.find_by_id(table_name, &userId).await {
       Ok(Some(userVal)) => {
         let user: UserEntity = serde_json::from_value(userVal.clone())
           .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
         // Sync user to local database for future offline use
-        let _ = self.jsonProvider.insert("users", userVal).await;
+        let _ = self.jsonProvider.insert(table_name, userVal).await;
 
         Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -129,18 +130,20 @@ impl AuthTokenService {
   }
 
   /// Sync user data to MongoDB (non-blocking, best effort)
-  async fn syncUserToCloud(&self, userVal: serde_json::Value) -> Result<(), ()> {
-    let mongoProvider = match &self.mongodbProvider {
+  async fn syncUserToCloud(&self, user_val: serde_json::Value) -> Result<(), ()> {
+    let mongo = match &self.mongodbProvider {
       Some(provider) => provider,
-      None => return Ok(()), // Skip sync if MongoDB unavailable
+      None => return Ok(()),
     };
 
-    let userId = userVal
+    let user_id = user_val
       .get("id")
       .and_then(|v| v.as_str())
       .ok_or(())?
       .to_owned();
-    let _ = mongoProvider.update("users", &userId, userVal).await;
+
+    let table_name = TableModelType::User.table_name();
+    let _ = mongo.update(table_name, &user_id, user_val).await;
     Ok(())
   }
 }

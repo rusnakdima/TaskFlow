@@ -4,15 +4,21 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* nosql_orm */
+use nosql_orm::cache::QueryCache;
+use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
+use nosql_orm::relations::{RelationDef, RelationLoader};
+use nosql_orm::query::{Filter, Projection};
 
 /* entities */
 use crate::entities::{
   provider_type_entity::ProviderType,
+  relation_config::{RelationConfig, user_projection},
   relation_obj::RelationObj,
   response_entity::{DataValue, ResponseModel},
   sync_metadata_entity::SyncMetadata,
   table_entity::validateModel,
+  traits::{FrontendProjection, EntityRelations},
 };
 
 /* helpers */
@@ -27,13 +33,14 @@ use crate::services::activity_monitor_service::ActivityMonitorService;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
-#[derive(Clone)]
 pub struct RepositoryService {
   pub jsonProvider: JsonProvider,
   pub mongodbProvider: Option<Arc<MongoProvider>>,
   pub cascadeService: CascadeService,
   pub entityResolution: Arc<EntityResolutionService>,
   pub activityMonitor: ActivityMonitorService,
+  pub queryCache: Option<Arc<QueryCache>>,
+  pub cdcService: Option<Arc<dyn ChangeCapture>>,
 }
 
 impl RepositoryService {
@@ -50,7 +57,19 @@ impl RepositoryService {
       cascadeService,
       entityResolution,
       activityMonitor,
+      queryCache: None,
+      cdcService: None,
     }
+  }
+
+  pub fn with_cache(mut self, cache: QueryCache) -> Self {
+    self.queryCache = Some(Arc::new(cache));
+    self
+  }
+
+  pub fn with_cdc<C: ChangeCapture + 'static>(mut self, cdc: Arc<C>) -> Self {
+    self.cdcService = Some(cdc as Arc<dyn ChangeCapture>);
+    self
   }
 
   fn use_json_provider(&self, sync_metadata: Option<&SyncMetadata>) -> bool {
@@ -68,7 +87,230 @@ impl RepositoryService {
     }
   }
 
-  /// Orchestrate CRUD operations with provider type selection based on SyncMetadata
+  fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
+    if let Some(obj) = filter_value.as_object() {
+      let mut filters = Vec::new();
+
+      for (key, value) in obj {
+        if key.starts_with('$') {
+          continue;
+        }
+
+        if let Some(filter) = self.build_single_filter(key, value) {
+          filters.push(filter);
+        }
+      }
+
+      if filters.is_empty() {
+        None
+      } else if filters.len() == 1 {
+        Some(filters.remove(0))
+      } else {
+        Some(Filter::And(filters))
+      }
+    } else {
+      None
+    }
+  }
+
+  fn build_single_filter(&self, key: &str, value: &Value) -> Option<Filter> {
+    if value.is_null() {
+      Some(Filter::Eq(key.to_string(), Value::Null))
+    } else if let Some(arr) = value.as_array() {
+      if arr.iter().any(|v| v.is_string() && v.as_str().unwrap().starts_with('$')) {
+        return None;
+      }
+      let values: Vec<serde_json::Value> = arr.iter().cloned().collect();
+      Some(Filter::In(key.to_string(), values))
+    } else {
+      Some(Filter::Eq(key.to_string(), value.clone()))
+    }
+  }
+
+  async fn load_relations_json(
+    &self,
+    mut docs: Vec<Value>,
+    table: &str,
+    load_paths: &[String],
+  ) -> Result<Vec<Value>, ResponseModel> {
+    if load_paths.is_empty() {
+      return Ok(docs);
+    }
+
+    let loader = RelationLoader::new(self.jsonProvider.clone());
+    let proj = user_projection();
+
+    for path in load_paths {
+      let parts: Vec<&str> = path.split('.').collect();
+
+      if parts.len() >= 3 {
+        docs = self.load_deep_nested_relation(docs, table, &parts, &loader, &proj).await?;
+        continue;
+      }
+
+      if RelationConfig::is_nested_path(path) {
+        if let Some((base, nested)) = RelationConfig::split_nested_path(path) {
+          docs = self.load_nested_relation(docs, table, base, nested, &loader, &proj).await?;
+        }
+        continue;
+      }
+
+      if let Some(relation_def) = RelationConfig::get_relation_def(table, path) {
+        let needs_proj = RelationConfig::needs_user_projection(table, path);
+        docs = loader
+          .load_many(docs, &relation_def, true)
+          .await
+          .map_err(|e| errResponseFormatted("Relation load failed", &e.to_string()))?;
+        if needs_proj {
+          docs = self.apply_projection_to_relations(docs, path, &proj);
+        }
+      }
+    }
+
+    Ok(docs)
+  }
+
+  async fn load_deep_nested_relation(
+    &self,
+    mut docs: Vec<Value>,
+    table: &str,
+    parts: &[&str],
+    loader: &RelationLoader<JsonProvider>,
+    proj: &Projection,
+  ) -> Result<Vec<Value>, ResponseModel> {
+    if parts.len() < 3 {
+      return Ok(docs);
+    }
+
+    let base = parts[0];
+    let nested1 = parts[1];
+    let nested2 = parts[2];
+
+    for doc in docs.iter_mut() {
+      if let Some(obj) = doc.as_object_mut() {
+        if let Some(relation_arr) = obj.get(base).and_then(|v| v.as_array()) {
+          let mut items: Vec<Value> = relation_arr.clone();
+
+          let nested1_def = RelationConfig::get_nested_relation(table, base, nested1);
+          if let Some(def) = nested1_def {
+            items = loader
+              .load_many(items, &def, true)
+              .await
+              .map_err(|e| errResponseFormatted("Nested1 load failed", &e.to_string()))?;
+          }
+
+          if nested1 == "subtasks" || nested1 == "tasks" {
+            for item in items.iter_mut() {
+              if let Some(obj) = item.as_object_mut() {
+                if let Some(nested1_arr) = obj.get_mut(nested1).and_then(|v| v.as_array_mut()) {
+                  for subtask in nested1_arr.iter_mut() {
+                    if let Some(subtask_obj) = subtask.as_object_mut() {
+                      let nested2_def = RelationConfig::get_nested_relation(nested1, nested1, nested2);
+                      if let Some(def) = nested2_def {
+                        let subtask_id = subtask_obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                        if !subtask_id.is_empty() {
+                          let filter = nosql_orm::query::Filter::Eq("subtaskId".to_string(), serde_json::json!(subtask_id));
+                          let loaded: Vec<Value> = self.jsonProvider
+                            .find_many(&def.target_collection, Some(&filter), None, None, None, true)
+                            .await
+                            .map_err(|e| errResponseFormatted("Nested2 load failed", &e.to_string()))?;
+                          let projected: Vec<Value> = loaded.into_iter().map(|v| proj.apply(&v)).collect();
+                          subtask_obj.insert("comments".to_string(), Value::Array(projected));
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          obj.insert(base.to_string(), Value::Array(items));
+        }
+      }
+    }
+
+    Ok(docs)
+  }
+
+  fn apply_projection_to_relations(&self, mut docs: Vec<Value>, path: &str, proj: &Projection) -> Vec<Value> {
+    for doc in docs.iter_mut() {
+      if let Some(obj) = doc.as_object_mut() {
+        if let Some(rel_doc) = obj.get(path) {
+          let projected = proj.apply(rel_doc);
+          obj.insert(path.to_string(), projected);
+        }
+      }
+    }
+    docs
+  }
+
+  async fn load_nested_relation(
+    &self,
+    mut docs: Vec<Value>,
+    table: &str,
+    base: &str,
+    nested: &str,
+    loader: &RelationLoader<JsonProvider>,
+    proj: &Projection,
+  ) -> Result<Vec<Value>, ResponseModel> {
+    if let Some(nested_def) = RelationConfig::get_nested_relation(table, base, nested) {
+      let needs_proj = RelationConfig::nested_needs_projection(table, base, nested);
+      for doc in docs.iter_mut() {
+        if let Some(obj) = doc.as_object_mut() {
+          if let Some(relation_arr) = obj.get(base).and_then(|v| v.as_array()) {
+            let mut items: Vec<Value> = relation_arr.clone();
+            items = loader
+              .load_many(items, &nested_def, true)
+              .await
+              .map_err(|e| errResponseFormatted("Nested relation load failed", &e.to_string()))?;
+            if needs_proj {
+              items = self.apply_projection_to_array(items, nested, proj);
+            }
+            obj.insert(base.to_string(), Value::Array(items));
+          }
+        }
+      }
+    }
+    Ok(docs)
+  }
+
+  fn apply_projection_to_array(&self, mut items: Vec<Value>, nested_path: &str, proj: &Projection) -> Vec<Value> {
+    for item in items.iter_mut() {
+      if let Some(obj) = item.as_object_mut() {
+        match nested_path {
+          "subtasks" | "comments" => {
+            if let Some(nested) = obj.get_mut(nested_path) {
+              if let Some(arr) = nested.as_array() {
+                let projected: Vec<Value> = arr.iter().map(|v| proj.apply(v)).collect();
+                *nested = Value::Array(projected);
+              }
+            }
+          }
+          _ => {
+            if let Some(nested) = obj.get_mut(nested_path) {
+              let projected = proj.apply(nested);
+              *nested = projected;
+            }
+          }
+        }
+      }
+    }
+    items
+  }
+
+  fn apply_frontend_projection(&self, doc: Value, _table: &str) -> Value {
+    let projection = user_projection();
+    projection.apply(&doc)
+  }
+
+  fn apply_projection_to_docs(&self, mut docs: Vec<Value>, table: &str) -> Vec<Value> {
+    for doc in docs.iter_mut() {
+      *doc = self.apply_frontend_projection(doc.clone(), table);
+    }
+    docs
+  }
+
   pub async fn execute(
     &self,
     operation: String,
@@ -83,145 +325,104 @@ impl RepositoryService {
     match operation.as_str() {
       "getAll" => {
         self
-          .handleGetAll(table, filter, relations, load, sync_metadata)
+          .handle_get_all(table, filter, relations, load, sync_metadata)
           .await
       }
       "get" => {
         self
-          .handleGet(table, id, relations, load, sync_metadata)
+          .handle_get(table, id, relations, load, sync_metadata)
           .await
       }
-      "create" => self.handleCreate(table, data, sync_metadata).await,
-      "update" => self.handleUpdate(table, id, data, sync_metadata).await,
-      "updateAll" => self.handleUpdateAll(table, data, sync_metadata).await,
-      "delete" => self.handleDelete(table, id, sync_metadata).await,
-      "restore" => self.handleRestore(table, id, sync_metadata).await,
+      "create" => self.handle_create(table, data, sync_metadata).await,
+      "update" => self.handle_update(table, id, data, sync_metadata).await,
+      "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
+      "delete" => self.handle_delete(table, id, sync_metadata).await,
+      "restore" => self.handle_restore(table, id, sync_metadata).await,
       _ => Err(errResponse(&format!("Unknown operation: {}", operation))),
     }
   }
 
-  async fn handleGetAll(
+  async fn handle_get_all(
     &self,
     table: String,
     filter: Option<Value>,
     _relations: Option<Vec<RelationObj>>,
-    _load: Option<Vec<String>>,
+    load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    // For profiles table with userId filter: check local first, then cloud import if not found
-    if table == "profiles" {
-      if let Some(ref f) = filter {
-        if let Some(user_id) = f.get("userId").and_then(|v| v.as_str()) {
-          return self.getOrImportProfile(user_id).await;
+    let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
+
+    let cache_key = self.queryCache.as_ref().map(|cache| {
+      let filter_json = filter.as_ref().map(|f| serde_json::to_string(f).unwrap_or_default());
+      cache.cache_key(&table, filter_json.as_deref(), None, None, None)
+    });
+
+    if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
+      if let Ok(Some(cached_docs)) = cache.get::<Vec<Value>>(key).await {
+        tracing::debug!("Cache hit for query: {}", key);
+        let mut docs = cached_docs;
+        if let Some(ref load_paths) = load {
+          docs = self.load_relations_json(docs, &table, load_paths).await?;
         }
+        docs = self.apply_projection_to_docs(docs, &table);
+        return Ok(successResponse(DataValue::Array(docs)));
       }
     }
 
-    let mut docs = if self.use_json_provider(sync_metadata.as_ref()) {
-      self
-        .jsonProvider
-        .find_all(&table)
-        .await
-        .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
-    } else if let Some(ref mongo) = self.mongodbProvider {
-      mongo
-        .find_all(&table)
-        .await
-        .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
+    let json_docs = self
+      .jsonProvider
+      .find_many(&table, orm_filter.as_ref(), None, None, None, true)
+      .await
+      .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?;
+
+    let mut docs = if !json_docs.is_empty() {
+      json_docs
     } else {
-      return Err(errResponse("No provider available"));
+      if let Some(ref mongo) = self.mongodbProvider {
+        mongo
+          .find_many(&table, orm_filter.as_ref(), None, None, None, true)
+          .await
+          .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
+      } else {
+        Vec::new()
+      }
     };
 
-    // Auto-load relations for decentralized storage
-    if table == "todos" {
-      docs = match self.loadTodoRelations(docs).await {
-        Ok(loaded) => loaded,
-        Err(e) => return Err(e),
-      };
+    if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
+      if !docs.is_empty() {
+        let _ = cache.set(key.clone(), &docs).await;
+        tracing::debug!("Cached query result: {}", key);
+      }
     }
+
+    if let Some(ref load_paths) = load {
+      docs = self.load_relations_json(docs, &table, load_paths).await?;
+    }
+
+    docs = self.apply_projection_to_docs(docs, &table);
 
     Ok(successResponse(DataValue::Array(docs)))
   }
 
-  async fn getOrImportProfile(
-    &self,
-    user_id: &str,
-  ) -> Result<ResponseModel, ResponseModel> {
-    // Check local first
-    if let Ok(local_profiles) = self.jsonProvider.find_all("profiles").await {
-      for p in local_profiles {
-        if p.get("userId").and_then(|v| v.as_str()) == Some(user_id) {
-          return Ok(successResponse(DataValue::Object(p)));
-        }
-      }
-    }
-
-    // Not in local, check cloud and import
-    if let Some(ref mongo) = self.mongodbProvider {
-      if let Ok(cloud_profiles) = mongo.find_all("profiles").await {
-        for p in cloud_profiles {
-          if p.get("userId").and_then(|v| v.as_str()) == Some(user_id) {
-            let _ = self.jsonProvider.insert("profiles", p.clone()).await;
-            return Ok(successResponse(DataValue::Object(p)));
-          }
-        }
-      }
-    }
-
-    // Not found anywhere
-    Ok(successResponse(DataValue::Object(serde_json::json!({ "userId": user_id }))))
-  }
-
-  async fn loadTodoRelations(
-    &self,
-    mut todos: Vec<serde_json::Value>,
-  ) -> Result<Vec<serde_json::Value>, ResponseModel> {
-    // Get all tasks from db
-    let tasks = self.jsonProvider.find_all("tasks").await.unwrap_or_default();
-    
-    let tasks_by_todo: std::collections::HashMap<String, Vec<serde_json::Value>> = {
-      let mut map = std::collections::HashMap::new();
-      for task in &tasks {
-        if let Some(todo_id) = task.get("todoId").and_then(|v| v.as_str()) {
-          map.entry(todo_id.to_string())
-            .or_insert_with(Vec::new)
-            .push(task.clone());
-        }
-      }
-      map
-    };
-    
-    for todo in todos.iter_mut() {
-      let todo_id = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
-      let related_tasks = tasks_by_todo.get(todo_id).cloned().unwrap_or_default();
-      
-      if let Some(obj) = todo.as_object_mut() {
-        obj.insert("tasks".to_string(), serde_json::Value::Array(related_tasks));
-      }
-    }
-    
-    Ok(todos)
-  }
-
-  async fn handleGet(
+  async fn handle_get(
     &self,
     table: String,
     id: Option<String>,
     _relations: Option<Vec<RelationObj>>,
-    _load: Option<Vec<String>>,
+    load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let idStr = id.ok_or_else(|| errResponse("ID required for get"))?;
+    let id_str = id.ok_or_else(|| errResponse("ID required for get"))?;
 
     let doc = if self.use_json_provider(sync_metadata.as_ref()) {
       self
         .jsonProvider
-        .find_by_id(&table, &idStr)
+        .find_by_id(&table, &id_str)
         .await
         .map_err(|e| errResponseFormatted("Get failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
       mongo
-        .find_by_id(&table, &idStr)
+        .find_by_id(&table, &id_str)
         .await
         .map_err(|e| errResponseFormatted("Get failed", &e.to_string()))?
     } else {
@@ -229,12 +430,24 @@ impl RepositoryService {
     };
 
     match doc {
-      Some(d) => Ok(successResponse(DataValue::Object(d))),
-      None => Err(errResponse(&format!("{} not found", idStr))),
+      Some(d) => {
+        let mut entity_with_relations = if let Some(ref load_paths) = load {
+          let entities = vec![d.clone()];
+          match self.load_relations_json(entities, &table, load_paths).await {
+            Ok(loaded) => loaded.into_iter().next().unwrap_or(d),
+            Err(_) => d,
+          }
+        } else {
+          d
+        };
+        entity_with_relations = self.apply_frontend_projection(entity_with_relations, &table);
+        Ok(successResponse(DataValue::Object(entity_with_relations)))
+      }
+      None => Err(errResponse(&format!("{} not found", id_str))),
     }
   }
 
-  async fn handleCreate(
+  async fn handle_create(
     &self,
     table: String,
     data: Option<Value>,
@@ -243,11 +456,15 @@ impl RepositoryService {
     let data_val = data.ok_or_else(|| errResponse("Data required for create"))?;
 
     if table == "profiles" {
-      return self.createProfileWithUserUpdate(data_val).await;
+      return self.create_profile_with_user_update(data_val).await;
     }
 
     let validated_data = validateModel(&table, &data_val, true)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
+
+    let validated_data = self.strip_relation_fields(&table, validated_data);
+
+    let is_team_entity = sync_metadata.as_ref().map(|m| !m.isPrivate && m.isOwner).unwrap_or(false);
 
     let created_record = if self.use_json_provider(sync_metadata.as_ref()) {
       self
@@ -264,49 +481,92 @@ impl RepositoryService {
       return Err(errResponse("No provider available"));
     };
 
+    if is_team_entity {
+      let _ = self.jsonProvider.insert(&table, created_record.clone()).await;
+    }
+
+    if let Some(ref cache) = self.queryCache {
+      let _ = cache.invalidate_collection(&table).await;
+    }
+
+    if let Some(ref cdc) = self.cdcService {
+      let change = nosql_orm::cdc::Change::insert(
+        &table,
+        created_record.get("id").and_then(|v| v.as_str()).unwrap_or(""),
+        created_record.clone(),
+      );
+      let _ = cdc.capture(change).await;
+    }
+
     self
       .activityMonitor
       .logAction(&table, "create", &created_record, None)
       .await;
-    Ok(successResponse(DataValue::Object(created_record)))
+
+    let response_doc = self.apply_frontend_projection(created_record, &table);
+    Ok(successResponse(DataValue::Object(response_doc)))
   }
 
-  async fn handleUpdate(
+  async fn handle_update(
     &self,
     table: String,
     id: Option<String>,
     data: Option<Value>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let idStr = id.ok_or_else(|| errResponse("ID required for update"))?;
+    let id_str = id.ok_or_else(|| errResponse("Data required for update"))?;
     let data_val = data.ok_or_else(|| errResponse("Data required for update"))?;
+
+    let data_val = self.strip_relation_fields(&table, data_val);
 
     let validated_data = validateModel(&table, &data_val, false)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
+    let is_team_entity = sync_metadata.as_ref().map(|m| !m.isPrivate && m.isOwner).unwrap_or(false);
+
     let updated_record = if self.use_json_provider(sync_metadata.as_ref()) {
       self
         .jsonProvider
-        .update(&table, &idStr, validated_data.clone())
+        .update(&table, &id_str, validated_data.clone())
         .await
         .map_err(|e| errResponseFormatted("Update failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
       mongo
-        .update(&table, &idStr, validated_data.clone())
+        .update(&table, &id_str, validated_data.clone())
         .await
         .map_err(|e| errResponseFormatted("Update failed", &e.to_string()))?
     } else {
       return Err(errResponse("No provider available"));
     };
 
+    if is_team_entity {
+      let _ = self.jsonProvider.update(&table, &id_str, updated_record.clone()).await;
+    }
+
+    if let Some(ref cache) = self.queryCache {
+      let _ = cache.invalidate_collection(&table).await;
+    }
+
+    if let Some(ref cdc) = self.cdcService {
+      let change = nosql_orm::cdc::Change::update(
+        &table,
+        &id_str,
+        serde_json::json!({}),
+        updated_record.clone(),
+      );
+      let _ = cdc.capture(change).await;
+    }
+
     self
       .activityMonitor
       .logAction(&table, "update", &updated_record, None)
       .await;
-    Ok(successResponse(DataValue::Object(updated_record)))
+
+    let mut response_doc = self.apply_frontend_projection(updated_record, &table);
+    Ok(successResponse(DataValue::Object(response_doc)))
   }
 
-  async fn handleUpdateAll(
+  async fn handle_update_all(
     &self,
     table: String,
     data: Option<Value>,
@@ -321,7 +581,8 @@ impl RepositoryService {
 
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
     for record in raw_records {
-      let validated = validateModel(&table, &record, false)
+      let stripped = self.strip_relation_fields(&table, record);
+      let validated = validateModel(&table, &stripped, false)
         .map_err(|e| errResponseFormatted("Validation failed in updateAll", &e))?;
       validated_records.push(validated);
     }
@@ -338,16 +599,17 @@ impl RepositoryService {
       }
     }
 
-    Ok(successResponse(DataValue::Array(validated_records)))
+    let projected_records = self.apply_projection_to_docs(validated_records, &table);
+    Ok(successResponse(DataValue::Array(projected_records)))
   }
 
-  async fn handleDelete(
+  async fn handle_delete(
     &self,
     table: String,
     id: Option<String>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let idStr = id.ok_or_else(|| errResponse("ID required for delete"))?;
+    let id_str = id.ok_or_else(|| errResponse("ID required for delete"))?;
 
     let provider_type = if let Some(ref metadata) = sync_metadata {
       getProviderType(metadata).unwrap_or(ProviderType::Json)
@@ -358,12 +620,12 @@ impl RepositoryService {
     let _ = if self.use_json_provider(sync_metadata.as_ref()) {
       self
         .jsonProvider
-        .delete(&table, &idStr)
+        .delete(&table, &id_str)
         .await
         .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
       mongo
-        .delete(&table, &idStr)
+        .delete(&table, &id_str)
         .await
         .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?
     } else {
@@ -374,35 +636,48 @@ impl RepositoryService {
       ProviderType::Mongo => {
         self
           .cascadeService
-          .handleMongoCascade(&table, &idStr, false)
+          .handleMongoCascade(&table, &id_str, false)
           .await?;
         let _ = self
           .cascadeService
-          .handleJsonCascade(&table, &idStr, false)
+          .handleJsonCascade(&table, &id_str, false)
           .await;
       }
       _ => {
         self
           .cascadeService
-          .handleJsonCascade(&table, &idStr, false)
+          .handleJsonCascade(&table, &id_str, false)
           .await?;
       }
     }
 
+    if let Some(ref cache) = self.queryCache {
+      let _ = cache.invalidate_collection(&table).await;
+    }
+
+    if let Some(ref cdc) = self.cdcService {
+      let change = nosql_orm::cdc::Change::delete(
+        &table,
+        &id_str,
+        serde_json::json!({"id": id_str.clone()}),
+      );
+      let _ = cdc.capture(change).await;
+    }
+
     self
       .activityMonitor
-      .logAction(&table, "delete", &json!({"id": idStr.clone()}), None)
+      .logAction(&table, "delete", &json!({"id": id_str.clone()}), None)
       .await;
-    Ok(successResponse(DataValue::String(idStr)))
+    Ok(successResponse(DataValue::String(id_str)))
   }
 
-  async fn handleRestore(
+  async fn handle_restore(
     &self,
     table: String,
     id: Option<String>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let idStr = id.ok_or_else(|| errResponse("ID required for restore"))?;
+    let id_str = id.ok_or_else(|| errResponse("ID required for restore"))?;
 
     let provider_type = if let Some(ref metadata) = sync_metadata {
       getProviderType(metadata).unwrap_or(ProviderType::Json)
@@ -415,12 +690,12 @@ impl RepositoryService {
     let _ = if self.use_json_provider(sync_metadata.as_ref()) {
       self
         .jsonProvider
-        .patch(&table, &idStr, patch)
+        .patch(&table, &id_str, patch)
         .await
         .map_err(|e| errResponseFormatted("Restore failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
       mongo
-        .patch(&table, &idStr, patch)
+        .patch(&table, &id_str, patch)
         .await
         .map_err(|e| errResponseFormatted("Restore failed", &e.to_string()))?
     } else {
@@ -431,54 +706,98 @@ impl RepositoryService {
       ProviderType::Mongo => {
         self
           .cascadeService
-          .handleMongoCascade(&table, &idStr, true)
+          .handleMongoCascade(&table, &id_str, true)
           .await?;
       }
       _ => {
         self
           .cascadeService
-          .handleJsonCascade(&table, &idStr, true)
+          .handleJsonCascade(&table, &id_str, true)
           .await?;
       }
     }
 
-    Ok(successResponse(DataValue::String(idStr)))
+    Ok(successResponse(DataValue::String(id_str)))
   }
 
-  async fn createProfileWithUserUpdate(
+  fn strip_relation_fields(&self, table: &str, mut data: Value) -> Value {
+    if let Some(obj) = data.as_object_mut() {
+      match table {
+        "todos" => {
+          obj.remove("tasks");
+          obj.remove("subtasks");
+          obj.remove("comments");
+          obj.remove("assigneesProfiles");
+          obj.remove("user");
+          obj.remove("categories");
+        }
+        "tasks" => {
+          obj.remove("subtasks");
+          obj.remove("comments");
+          obj.remove("todo");
+        }
+        "subtasks" => {
+          obj.remove("task");
+          obj.remove("comments");
+        }
+        "comments" => {
+          obj.remove("task");
+          obj.remove("subtask");
+        }
+        "users" => {
+          obj.remove("profile");
+        }
+        "profiles" => {
+          obj.remove("user");
+        }
+        _ => {}
+      }
+    }
+    data
+  }
+
+  async fn create_profile_with_user_update(
     &self,
-    profileData: Value,
+    profile_data: Value,
   ) -> Result<ResponseModel, ResponseModel> {
-    let validatedProfile = validateModel("profiles", &profileData, true)
+    let validated_profile = validateModel("profiles", &profile_data, true)
       .map_err(|e| errResponseFormatted("Profile validation failed", &e))?;
 
-    let userId = validatedProfile
+    let user_id = validated_profile
       .get("userId")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
 
-    if userId.is_empty() {
+    if user_id.is_empty() {
       return Err(errResponse("Invalid profile data: userId is required"));
     }
 
-    let createdProfile = self
+    if let Ok(existing_profiles) = self.jsonProvider.find_all("profiles").await {
+      for profile in existing_profiles {
+        if profile.get("userId").and_then(|v| v.as_str()) == Some(&user_id) {
+          return Ok(successResponse(DataValue::Object(profile)));
+        }
+      }
+    }
+
+    let created_profile = self
       .jsonProvider
-      .insert("profiles", validatedProfile.clone())
+      .insert("profiles", validated_profile.clone())
       .await
       .map_err(|e| errResponseFormatted("Error creating profile in local store", &e.to_string()))?;
 
-    let profileId = createdProfile
+    let profile_id = created_profile
       .get("id")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
-    user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &userId, &profileId).await?;
+    user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &user_id, &profile_id).await?;
 
     self
       .activityMonitor
-      .logAction("profiles", "create", &createdProfile, None)
+      .logAction("profiles", "create", &created_profile, None)
       .await;
-    Ok(successResponse(DataValue::Object(createdProfile)))
+    Ok(successResponse(DataValue::Object(created_profile)))
   }
 }

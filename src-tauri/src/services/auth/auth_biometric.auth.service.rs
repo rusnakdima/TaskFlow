@@ -6,10 +6,12 @@ use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
+use nosql_orm::query::Filter;
 
 /* models */
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
+  table_entity::TableModelType,
   user_entity::UserEntity,
 };
 
@@ -185,112 +187,121 @@ impl AuthBiometricService {
   }
 
   async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    match self.jsonProvider.find_all("users").await {
-      Ok(users) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.username == username {
-              return Ok(user);
-            }
-          }
+    let table_name = TableModelType::User.table_name();
+    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
+
+    let user_val = match self
+      .jsonProvider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      Ok(mut users) => {
+        if users.is_empty() {
+          None
+        } else {
+          Some(users.remove(0))
         }
       }
-      Err(_) => {}
-    }
+      Err(_) => None,
+    };
 
-    let mongoProvider = self
-      .mongodbProvider
-      .as_ref()
-      .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
-
-    match mongoProvider.find_all("users").await {
-      Ok(users) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.username == username {
-              return Ok(user);
-            }
-          }
-        }
-        Err(errResponse("User not found"))
+    let user_val = match user_val {
+      Some(v) => v,
+      None => {
+        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
+          errResponse("User not found and MongoDB unavailable")
+        })?;
+        let mut users = mongo
+          .find_many(table_name, Some(&filter), None, None, None, true)
+          .await
+          .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
+        users
+          .pop()
+          .ok_or_else(|| errResponse("User not found"))?
       }
-      Err(e) => Err(errResponse(&format!("Database error: {}", e))),
-    }
+    };
+
+    serde_json::from_value::<UserEntity>(user_val)
+      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
   }
 
   async fn findUsers(&self, filter: serde_json::Value) -> Result<UserEntity, ResponseModel> {
-    match self.jsonProvider.find_all("users").await {
-      Ok(users) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.biometricEnabled
-              == filter
-                .get("biometricEnabled")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(user.biometricEnabled)
-            {
-              if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
-                if user.username == username_filter {
-                  return Ok(user);
-                }
-              } else {
-                return Ok(user);
-              }
-            }
-          }
+    let table_name = TableModelType::User.table_name();
+    let orm_filter = self.buildFilter(&filter);
+
+    let user_val = match self
+      .jsonProvider
+      .find_many(table_name, orm_filter.as_ref(), None, None, None, true)
+      .await
+    {
+      Ok(mut users) => {
+        if users.is_empty() {
+          None
+        } else {
+          Some(users.remove(0))
         }
       }
-      Err(_) => {}
+      Err(_) => None,
+    };
+
+    let user_val = match user_val {
+      Some(v) => v,
+      None => {
+        let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
+          errResponse("User not found and MongoDB unavailable")
+        })?;
+        let mut users = mongo
+          .find_many(table_name, orm_filter.as_ref(), None, None, None, true)
+          .await
+          .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
+        users
+          .pop()
+          .ok_or_else(|| errResponse("User not found"))?
+      }
+    };
+
+    serde_json::from_value::<UserEntity>(user_val)
+      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+  }
+
+  fn buildFilter(&self, filter_value: &serde_json::Value) -> Option<Filter> {
+    let obj = filter_value.as_object()?;
+    let mut filters = Vec::new();
+
+    for (key, value) in obj {
+      if key.starts_with('$') {
+        continue;
+      }
+      filters.push(Filter::Eq(key.clone(), value.clone()));
     }
 
-    let mongoProvider = self
-      .mongodbProvider
-      .as_ref()
-      .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
-
-    match mongoProvider.find_all("users").await {
-      Ok(users) => {
-        for userVal in users {
-          if let Ok(user) = serde_json::from_value::<UserEntity>(userVal.clone()) {
-            if user.biometricEnabled
-              == filter
-                .get("biometricEnabled")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(user.biometricEnabled)
-            {
-              if let Some(username_filter) = filter.get("username").and_then(|v| v.as_str()) {
-                if user.username == username_filter {
-                  return Ok(user);
-                }
-              } else {
-                return Ok(user);
-              }
-            }
-          }
-        }
-        Err(errResponse("User not found"))
-      }
-      Err(e) => Err(errResponse(&format!("Database error: {}", e))),
+    if filters.is_empty() {
+      None
+    } else if filters.len() == 1 {
+      Some(filters.remove(0))
+    } else {
+      Some(Filter::And(filters))
     }
   }
 
   async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
-    let userVal = serde_json::to_value(user)
+    let user_val = serde_json::to_value(user)
       .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
-    let userId = user.get_id();
+    let user_id = user.get_id();
+    let table_name = TableModelType::User.table_name();
 
     if let Err(e) = self
       .jsonProvider
-      .update("users", &userId, userVal.clone())
+      .update(table_name, &user_id, user_val.clone())
       .await
     {
       tracing::warn!("Failed to update local user: {}", e);
     }
 
-    if let Some(mongoProvider) = &self.mongodbProvider {
-      mongoProvider
-        .update("users", &userId, userVal)
+    if let Some(mongo) = &self.mongodbProvider {
+      mongo
+        .update(table_name, &user_id, user_val)
         .await
         .map_err(|e| errResponse(&format!("Failed to update MongoDB user: {}", e)))?;
     }

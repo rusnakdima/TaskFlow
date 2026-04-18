@@ -7,12 +7,14 @@ use std::sync::Arc;
 use super::auth_token::AuthTokenService;
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
+  table_entity::TableModelType,
   user_entity::UserEntity,
 };
 use crate::helpers::response_helper::{errResponse, successResponse};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
+use nosql_orm::query::Filter;
 
 const QR_TOKEN_TTL_SECS: i64 = 90;
 
@@ -339,34 +341,38 @@ impl QrAuthService {
       .ok_or_else(|| errResponse("QR token has no username"))?;
 
     // Try local JSON database first
-    let user_val = match self.jsonProvider.find_all("users").await {
-      Ok(users) => users.into_iter().find_map(|u| {
-        serde_json::from_value::<UserEntity>(u.clone())
-          .ok()
-          .filter(|user| user.username == username)
-          .map(|_| u)
-      }),
+    let table_name = TableModelType::User.table_name();
+    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
+
+    let user_val = match self
+      .jsonProvider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      Ok(mut users) => {
+        if users.is_empty() {
+          None
+        } else {
+          Some(users.remove(0))
+        }
+      }
       Err(_) => None,
     };
 
     // Fall back to MongoDB
     let user_val = if let Some(val) = user_val {
       val
-    } else if let Some(ref mongoProvider) = self.mongodbProvider {
-      match mongoProvider.find_all("users").await {
-        Ok(users) => users
-          .into_iter()
-          .find_map(|u| {
-            serde_json::from_value::<UserEntity>(u.clone())
-              .ok()
-              .filter(|user| user.username == username)
-              .map(|_| u)
-          })
-          .ok_or_else(|| errResponse(&format!("User '{}' not found in database", username)))?,
-        Err(e) => return Err(errResponse(&format!("Database error: {}", e))),
-      }
     } else {
-      return Err(errResponse("User not found and MongoDB unavailable"));
+      let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
+        errResponse("User not found and MongoDB unavailable")
+      })?;
+      let mut users = mongo
+        .find_many(table_name, Some(&filter), None, None, None, true)
+        .await
+        .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
+      users
+        .pop()
+        .ok_or_else(|| errResponse(&format!("User '{}' not found in database", username)))?
     };
 
 let user = serde_json::from_value::<UserEntity>(user_val.clone())
@@ -382,7 +388,7 @@ let user = serde_json::from_value::<UserEntity>(user_val.clone())
     // Cache user locally if from MongoDB
     if self.mongodbProvider.is_some() {
       if let Ok(user_val) = serde_json::to_value(&user) {
-        let _ = self.jsonProvider.insert("users", user_val).await;
+        let _ = self.jsonProvider.insert(table_name, user_val).await;
       }
     }
 
