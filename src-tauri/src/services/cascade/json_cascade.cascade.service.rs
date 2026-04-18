@@ -1,28 +1,25 @@
-/* sys lib */
-use std::sync::Arc;
-
 /* providers */
-use nosql_orm::providers::MongoProvider;
+use nosql_orm::providers::JsonProvider;
 
-/* models */
+/* entities */
 use crate::entities::response_entity::ResponseModel;
 
 use super::cascade_ids::CascadeIds;
 use super::cascade_provider::CascadeProvider;
 
-/// MongoCascadeHandler - Handles BFS cascade ID collection for MongoDB provider
+/// JsonCascadeHandler - Handles BFS cascade ID collection for JSON provider
 #[derive(Clone)]
-pub struct MongoCascadeHandler {
-  mongodbProvider: Arc<MongoProvider>,
+pub struct JsonCascadeHandler {
+  jsonProvider: JsonProvider,
 }
 
-impl MongoCascadeHandler {
-  pub fn new(mongodbProvider: Arc<MongoProvider>) -> Self {
-    Self { mongodbProvider }
+impl JsonCascadeHandler {
+  pub fn new(jsonProvider: JsonProvider) -> Self {
+    Self { jsonProvider }
   }
 }
 
-impl CascadeProvider for MongoCascadeHandler {
+impl CascadeProvider for JsonCascadeHandler {
   async fn deleteWithCascade(&self, table: &str, id: &str) -> Result<CascadeIds, ResponseModel> {
     self.collectCascadeIds(table, id).await
   }
@@ -37,7 +34,7 @@ impl CascadeProvider for MongoCascadeHandler {
   }
 }
 
-impl MongoCascadeHandler {
+impl JsonCascadeHandler {
   pub async fn collectCascadeIds(
     &self,
     table: &str,

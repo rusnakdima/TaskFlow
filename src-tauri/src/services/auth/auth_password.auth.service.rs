@@ -1,6 +1,5 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
-use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
