@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 /* nosql_orm */
 use nosql_orm::error::OrmResult;
-use nosql_orm::pool::pool::{JsonPool, PoolConfig, Pooled};
+use nosql_orm::pool::pool::{JsonPool, PoolConfig};
 use nosql_orm::provider::DatabaseProvider;
 
 #[derive(Clone)]

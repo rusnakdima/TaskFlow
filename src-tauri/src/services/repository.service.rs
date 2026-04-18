@@ -7,7 +7,7 @@ use std::sync::Arc;
 use nosql_orm::cache::QueryCache;
 use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use nosql_orm::relations::{RelationDef, RelationLoader};
+use nosql_orm::relations::RelationLoader;
 use nosql_orm::query::{Filter, Projection};
 
 /* entities */
@@ -18,7 +18,6 @@ use crate::entities::{
   response_entity::{DataValue, ResponseModel},
   sync_metadata_entity::SyncMetadata,
   table_entity::validateModel,
-  traits::{FrontendProjection, EntityRelations},
 };
 
 /* helpers */
@@ -348,7 +347,7 @@ impl RepositoryService {
     filter: Option<Value>,
     _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
-    sync_metadata: Option<SyncMetadata>,
+    _sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
