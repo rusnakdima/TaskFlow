@@ -68,6 +68,16 @@
           </button>
 
           <button
+            class="flex w-full items-center gap-3 rounded-lg bg-blue-50 p-4 text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+            (click)="showMyQr() ? closeMyQrCode() : showMyQrCode()"
+          >
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="qr_code" />
+            <span class="font-medium">{{
+              showMyQr() ? "Hide My QR" : "Show My QR (Desktop Login)"
+            }}</span>
+          </button>
+
+          <button
             class="col-span-1 flex w-full items-center gap-3 rounded-lg bg-red-50 p-4 text-red-700 transition-colors hover:bg-red-100 sm:col-span-2 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
             (click)="logout()"
           >
@@ -108,13 +118,39 @@
               }
             </div>
           }
-        } @else {
-          <div
-            class="textMuted col-span-1 rounded-lg border-2 border-dashed border-gray-200 py-4 text-center italic sm:col-span-2 dark:border-zinc-700"
-          >
-            <mat-icon class="mb-2 h-8! w-8! min-w-8 text-2xl!" fontIcon="info" />
-            <p>You are viewing a project member's profile</p>
-          </div>
+
+          <!-- My QR Code Modal -->
+          @if (showMyQr() && myQrCode()) {
+            <div
+              class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+              (click)="closeMyQrCode()"
+            >
+              <div
+                class="mx-4 rounded-xl border border-green-200 bg-white p-6 shadow-xl dark:border-green-800 dark:bg-zinc-800"
+                (click)="$event.stopPropagation()"
+              >
+                <div class="mb-4 text-center">
+                  <h3 class="textNormal text-lg font-semibold">My QR Code for Desktop Login</h3>
+                  <p class="textMuted text-sm">Scan this code from your desktop browser to login</p>
+                </div>
+
+                <div class="flex flex-col items-center gap-4">
+                  <img
+                    [src]="myQrCode()"
+                    alt="My QR Code"
+                    class="h-64 w-64 rounded-lg border-2 border-green-200 dark:border-green-700"
+                  />
+
+                  <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <mat-icon class="h-4! w-4! text-lg!">info</mat-icon>
+                    This code expires in 90 seconds
+                  </div>
+
+                  <button class="styleButDanger w-full" (click)="closeMyQrCode()">Close</button>
+                </div>
+              </div>
+            </div>
+          }
         }
       </div>
     </div>

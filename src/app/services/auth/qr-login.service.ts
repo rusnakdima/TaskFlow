@@ -56,6 +56,27 @@ export class QrLoginService {
     });
   }
 
+  generateQrCodeForDesktopLogin(username: string): Observable<QrGenerationResult> {
+    return new Observable((observer) => {
+      this.dataSyncProvider
+        .invokeCommand<QrGenerationResult>("qrGenerateForDesktop", { username })
+        .subscribe({
+          next: (data) => {
+            this.currentQrData.set({
+              token: data.token,
+              qrCode: data.qrCode,
+              expiresAt: data.expiresAt,
+              username,
+            });
+            this.qrStatus.set("approved");
+            observer.next(data);
+            observer.complete();
+          },
+          error: (err) => observer.error(err),
+        });
+    });
+  }
+
   startPolling(token: string, intervalMs: number = 2000): void {
     this.stopPolling();
 

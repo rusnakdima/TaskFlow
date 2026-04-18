@@ -39,6 +39,8 @@ import { AuthStore } from "@stores/auth.store";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { BufferHelper } from "@helpers/buffer.helper";
 
+import jsQR from "jsqr";
+
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 @Component({
@@ -103,6 +105,8 @@ export class LoginView implements OnDestroy {
     return caps.qrLoginAvailable;
   });
 
+  readonly isMobileDevice = computed(() => this.capabilities().isMobile);
+
   readonly hasAlternativeLoginMethods = computed(() => {
     return this.showPasskeyButton() || this.showBiometricButton() || this.showQrLoginButton();
   });
@@ -112,6 +116,12 @@ export class LoginView implements OnDestroy {
   readonly isQrLoginActive = signal(false);
   readonly qrLoginStatus = this.qrLoginService.qrStatus;
   readonly isQrLoginPolling = this.qrLoginService.isPolling;
+
+  readonly isMobileScanning = signal(false);
+  mobileQrVideoElement: HTMLVideoElement | null = null;
+  mobileQrStream: MediaStream | null = null;
+  mobileQrCanvasElement: HTMLCanvasElement | null = null;
+  mobileQrAnimationFrameId: number | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -185,6 +195,7 @@ export class LoginView implements OnDestroy {
       document.removeEventListener("keydown", this.keydownHandler);
     }
     this.qrLoginService.clearQrData();
+    this.stopMobileQrScanning();
   }
 
   get f() {
@@ -549,11 +560,15 @@ export class LoginView implements OnDestroy {
   }
 
   async loginWithQrCode(): Promise<void> {
+    if (this.isMobileDevice()) {
+      await this.startMobileQrScanning();
+      return;
+    }
+
     this.submitted.set(true);
     this.isQrLoginActive.set(true);
 
     try {
-      // Username is now optional
       const username = this.f["username"].value;
 
       this.qrLoginService.generateQrCode(username || undefined).subscribe({
@@ -561,7 +576,6 @@ export class LoginView implements OnDestroy {
           this.passkeyQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(qrData.qrCode));
           this.qrLoginService.startPolling(qrData.token, 2000);
 
-          // Start watching for QR approval
           this.watchQrApproval(qrData.token);
 
           this.notifyService.showInfo("Scan the QR code with your mobile device");
@@ -579,6 +593,168 @@ export class LoginView implements OnDestroy {
       this.submitted.set(false);
       this.isQrLoginActive.set(false);
     }
+  }
+
+  async startMobileQrScanning(): Promise<void> {
+    if (this.isMobileScanning()) return;
+
+    try {
+      this.isMobileScanning.set(true);
+      this.isQrLoginActive.set(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      this.mobileQrStream = stream;
+
+      const videoElement = document.createElement("video");
+      videoElement.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:black;object-fit:cover;";
+      videoElement.id = "mobile-qr-scanner-video";
+      videoElement.setAttribute("playsinline", "true");
+      document.body.appendChild(videoElement);
+      this.mobileQrVideoElement = videoElement;
+
+      videoElement.srcObject = stream;
+      await videoElement.play();
+
+      const canvas = document.createElement("canvas");
+      canvas.style.cssText = "display:none";
+      document.body.appendChild(canvas);
+      this.mobileQrCanvasElement = canvas;
+
+      this.notifyService.showInfo("Point camera at QR code to login");
+
+      this.scanMobileQrFrame();
+    } catch (error: any) {
+      let errorMsg = "Failed to start camera";
+      if (error.name === "NotAllowedError") {
+        errorMsg = "Camera permission denied";
+      } else if (error.name === "NotFoundError") {
+        errorMsg = "No camera found on this device";
+      }
+      this.notifyService.showError(errorMsg + ": " + (error.message || error));
+      this.stopMobileQrScanning();
+    }
+  }
+
+  private scanMobileQrFrame(): void {
+    if (!this.mobileQrVideoElement || !this.mobileQrCanvasElement || !this.isMobileScanning())
+      return;
+
+    const video = this.mobileQrVideoElement;
+    const canvas = this.mobileQrCanvasElement;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      this.stopMobileQrScanning();
+      return;
+    }
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data) {
+        this.handleMobileQrCodeResult(code.data);
+        return;
+      }
+    }
+
+    this.mobileQrAnimationFrameId = requestAnimationFrame(() => this.scanMobileQrFrame());
+  }
+
+  private async handleMobileQrCodeResult(qrData: string): Promise<void> {
+    if (!qrData) return;
+
+    this.stopMobileQrScanning();
+
+    let token: string | null = null;
+    let isDesktopTarget = false;
+
+    try {
+      if (qrData.startsWith("taskflow://qrlogin?data=")) {
+        const dataPart = qrData.replace("taskflow://qrlogin?data=", "");
+        const parsed = JSON.parse(decodeURIComponent(dataPart));
+        token = parsed.t;
+        isDesktopTarget = parsed.d === "desktop";
+      } else if (qrData.includes("t=")) {
+        const params = new URLSearchParams(qrData.replace("taskflow://qrlogin?", ""));
+        token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
+      } else {
+        const parsed = JSON.parse(qrData);
+        token = parsed.t || parsed.token;
+        isDesktopTarget = parsed.d === "desktop";
+      }
+    } catch {
+      try {
+        const params = new URLSearchParams(qrData.split("?")[1] || "");
+        token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
+      } catch {
+        token = null;
+      }
+    }
+
+    if (!token) {
+      this.notifyService.showError("Invalid QR code");
+      this.isQrLoginActive.set(false);
+      return;
+    }
+
+    if (isDesktopTarget) {
+      this.completeQrLogin(token);
+    } else {
+      this.approveMobileQrLogin(token, "mobile");
+    }
+  }
+
+  private approveMobileQrLogin(token: string, username: string): void {
+    this.dataSyncProvider
+      .invokeCommand<{ success: boolean }>("qrApprove", { token, username })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Login approved!");
+          this.completeQrLogin(token);
+        },
+        error: (err: any) => {
+          this.notifyService.showError("Failed to approve: " + (err.message || err));
+          this.isQrLoginActive.set(false);
+        },
+      });
+  }
+
+  stopMobileQrScanning(): void {
+    if (this.mobileQrAnimationFrameId) {
+      cancelAnimationFrame(this.mobileQrAnimationFrameId);
+      this.mobileQrAnimationFrameId = null;
+    }
+
+    if (this.mobileQrStream) {
+      this.mobileQrStream.getTracks().forEach((track) => track.stop());
+      this.mobileQrStream = null;
+    }
+
+    if (this.mobileQrVideoElement) {
+      this.mobileQrVideoElement.srcObject = null;
+      this.mobileQrVideoElement.remove();
+      this.mobileQrVideoElement = null;
+    }
+
+    if (this.mobileQrCanvasElement) {
+      this.mobileQrCanvasElement.remove();
+      this.mobileQrCanvasElement = null;
+    }
+
+    this.isMobileScanning.set(false);
   }
 
   private watchQrApproval(token: string): void {
