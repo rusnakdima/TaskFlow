@@ -41,7 +41,7 @@ export class OfflineQueueService {
         this.queueSubject.next(queue);
       }
     } catch (error) {
-      console.error("[OfflineQueueService] Failed to load queue from storage:", error);
+      // Silently handle storage errors - queue will start empty
     }
   }
 
@@ -50,7 +50,7 @@ export class OfflineQueueService {
       const queue = this.queueSubject.getValue();
       localStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
     } catch (error) {
-      console.error("[OfflineQueueService] Failed to save queue to storage:", error);
+      // Silently handle storage errors
     }
   }
 
@@ -116,8 +116,6 @@ export class OfflineQueueService {
     this.queueSubject.next([...currentQueue, queuedOp]);
     this.saveQueueToStorage();
 
-    console.log(`[OfflineQueueService] Enqueued operation: ${operation.operation} on ${operation.table}`, queuedOp);
-
     return queuedOp.id;
   }
 
@@ -160,14 +158,11 @@ export class OfflineQueueService {
       try {
         await this.processOperation(operation);
         this.remove(operation.id);
-        console.log(`[OfflineQueueService] Processed operation: ${operation.id}`);
       } catch (error) {
         operation.retryCount++;
         if (operation.retryCount >= this.MAX_RETRIES) {
-          console.error(`[OfflineQueueService] Operation ${operation.id} failed permanently after ${this.MAX_RETRIES} retries`);
           this.remove(operation.id);
         } else {
-          console.warn(`[OfflineQueueService] Operation ${operation.id} failed, retry count: ${operation.retryCount}`);
           failedOperations.push(operation);
         }
       }

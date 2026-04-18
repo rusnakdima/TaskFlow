@@ -91,8 +91,7 @@ export class SecurityService {
       }
 
       return true;
-    } catch (e) {
-      console.warn("WebAuthN check failed:", e);
+    } catch {
       return false;
     }
   }
@@ -368,8 +367,7 @@ export class SecurityService {
         },
       });
       return credential;
-    } catch (error: any) {
-      console.error("Passkey creation error:", error?.message || error);
+    } catch {
       return null;
     }
   }
@@ -443,8 +441,7 @@ export class SecurityService {
         },
       });
       return credential;
-    } catch (error: any) {
-      console.error("Passkey assertion error:", error?.message || error);
+    } catch {
       return null;
     }
   }

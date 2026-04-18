@@ -20,8 +20,11 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { StorageService } from "@services/core/storage.service";
 
+/* helpers */
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
+
 /* base */
-import { BaseAdminView, AdminDataMap } from "@views/base-admin.view";
+import { BaseAdminView } from "@views/base-admin.view";
 
 /* components */
 import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
@@ -30,7 +33,11 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 /* models */
 import { ResponseStatus } from "@models/response.model";
+import { ArchiveDataMap, ArchiveRecord } from "@models/archive.model";
+import { Todo } from "@models/todo.model";
 import { from } from "rxjs";
+
+const bulkActionHelper = new BulkActionHelper();
 
 @Component({
   selector: "app-archive-view",
@@ -59,7 +66,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
   private dataSyncService = inject(DataLoaderService);
   private storageService = inject(StorageService);
 
-  archiveData = signal<AdminDataMap>({});
+  archiveData = signal<ArchiveDataMap>({});
 
   ngOnInit(): void {
     this.loadArchiveData();
@@ -75,12 +82,12 @@ export class ArchiveView extends BaseAdminView implements OnInit {
 
     this.adminService.getAllDataForArchive().subscribe({
       next: (response) => {
-        const data = response.data as any;
+        const data = response.data as ArchiveDataMap;
 
         const allTodos = data["todos"] || [];
-        const privateTodos = allTodos.filter((todo: any) => todo.visibility === "private");
+        const privateTodos = allTodos.filter((todo: Todo) => todo.visibility === "private");
 
-        const archiveData: AdminDataMap = {
+        const archiveData: ArchiveDataMap = {
           todos: privateTodos,
           tasks: data["tasks"] || [],
           subtasks: data["subtasks"] || [],
@@ -98,18 +105,17 @@ export class ArchiveView extends BaseAdminView implements OnInit {
 
         this.loading.set(false);
       },
-      error: (error) => {
-        console.error("Error loading archive data:", error);
+      error: () => {
         this.loading.set(false);
       },
     });
   }
 
-  getCurrentData(): any[] {
-    return this.buildFilteredData(this.archiveData()[this.selectedType()] || []);
+  getCurrentData(): ArchiveRecord[] {
+    return this.buildFilteredData(this.archiveData()[this.selectedType()] || []) as ArchiveRecord[];
   }
 
-  async deleteRecord(record: any) {
+  async deleteRecord(record: ArchiveRecord) {
     const typeSingular = this.selectedType().slice(0, -1);
     const table = this.selectedType();
 
@@ -128,38 +134,9 @@ export class ArchiveView extends BaseAdminView implements OnInit {
         this.storageService.removeRecordWithCascade(table, record.id);
 
         // In-place update without full reload
-        this.archiveData.update((data) => {
-          const updated = { ...data };
-          const tableData = updated[table] || [];
-          updated[table] = tableData.filter((r: any) => r.id !== record.id);
-
-          // Cascade remove children
-          if (table === "todos") {
-            const todoTasks = tableData.filter((t: any) => t.todoId === record.id);
-            const todoTaskIds = todoTasks.map((t: any) => t.id);
-            updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todoId !== record.id);
-            updated["subtasks"] = (updated["subtasks"] || []).filter(
-              (s: any) => !todoTaskIds.includes(s.taskId)
-            );
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.todoId !== record.id && !todoTaskIds.includes(c.taskId)
-            );
-            updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todoId !== record.id);
-          } else if (table === "tasks") {
-            updated["subtasks"] = (updated["subtasks"] || []).filter(
-              (s: any) => s.taskId !== record.id
-            );
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.taskId !== record.id
-            );
-          } else if (table === "subtasks") {
-            updated["comments"] = (updated["comments"] || []).filter(
-              (c: any) => c.subtaskId !== record.id
-            );
-          }
-
-          return updated;
-        });
+        this.archiveData.update((data) =>
+          bulkActionHelper.removeRecordWithCascade(data, table, record.id)
+        );
 
         // Update counts
         this.dataTypes.forEach((type) => {
@@ -174,7 +151,7 @@ export class ArchiveView extends BaseAdminView implements OnInit {
     }
   }
 
-  async toggleDeleteStatus(record: any) {
+  async toggleDeleteStatus(record: ArchiveRecord) {
     try {
       const response = await this.adminService.toggleDeleteStatusLocal(
         this.selectedType(),

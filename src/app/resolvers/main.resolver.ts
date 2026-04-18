@@ -87,8 +87,7 @@ export class MainResolver implements Resolve<any> {
       } else {
         return "";
       }
-    } catch (err) {
-      console.error("MainResolver: Error resolving data:", err);
+    } catch {
       return { error: "offline" };
     }
   }
@@ -103,8 +102,7 @@ export class MainResolver implements Resolve<any> {
       isPrivate,
       load: TodoRelations.loadAll,
     }).pipe(
-      catchError((err) => {
-        console.warn("[MainResolver] loadTodo failed:", err?.message || err);
+      catchError(() => {
         return of(null);
       })
     ).subscribe((todo) => {
@@ -123,8 +121,7 @@ export class MainResolver implements Resolve<any> {
       isOwner,
       isPrivate,
     }).pipe(
-      catchError((err) => {
-        console.warn("[MainResolver] loadTask failed:", err?.message || err);
+      catchError(() => {
         return of(null);
       })
     ).subscribe((task) => {

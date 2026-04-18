@@ -206,7 +206,6 @@ export class ProfileView implements OnInit, OnDestroy {
 
       this.scanQrFrame();
     } catch (error: any) {
-      console.error("Failed to start QR scanner:", error);
       let errorMsg = "Failed to start camera";
       if (error.name === "NotAllowedError") {
         errorMsg = "Camera permission denied";

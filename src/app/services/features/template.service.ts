@@ -35,8 +35,8 @@ export class TemplateService {
     if (stored) {
       try {
         this.templates.set(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to load templates", e);
+      } catch {
+        // Silently ignore parse errors
       }
     }
   }

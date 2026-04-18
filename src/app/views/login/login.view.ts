@@ -164,7 +164,6 @@ export class LoginView implements OnDestroy {
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {
-        console.error("Database connection error:", err);
         this.hasLocalUsers.set(false);
 
         if (NetworkErrorHelper.isNetworkError(err)) {
@@ -245,8 +244,6 @@ export class LoginView implements OnDestroy {
         this.submitted.set(false);
       });
     } catch (err: any) {
-      console.error("Login error:", err);
-
       if (NetworkErrorHelper.isNetworkError(err)) {
         if (this.hasLocalUsers()) {
           this.notifyService.showError("No internet connection. Using local database...");
@@ -364,7 +361,6 @@ export class LoginView implements OnDestroy {
         },
       });
     } catch (err: any) {
-      console.error("Passkey login error:", err);
       this.notifyService.showError("Passkey authentication failed: " + (err.message || err));
       this.submitted.set(false);
     }
@@ -519,7 +515,6 @@ export class LoginView implements OnDestroy {
         });
       }
     } catch (err: any) {
-      console.error("Biometric login error:", err);
       this.notifyService.showError("Biometric authentication failed: " + (err.message || err));
       this.submitted.set(false);
     }
@@ -570,7 +565,6 @@ export class LoginView implements OnDestroy {
         },
       });
     } catch (err: any) {
-      console.error("QR login error:", err);
       this.notifyService.showError("QR login failed: " + (err.message || err));
       this.submitted.set(false);
       this.isQrLoginActive.set(false);

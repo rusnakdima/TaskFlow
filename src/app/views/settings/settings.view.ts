@@ -96,8 +96,8 @@ export class SettingsView implements OnInit {
         this.biometricEnabled.set(status.biometricEnabled);
         this.qrLoginEnabled.set(status.qrLoginEnabled ?? false);
       },
-      error: (err) => {
-        console.error("Failed to load security status:", err);
+      error: () => {
+        // Silently handle error
       },
     });
   }
