@@ -16,7 +16,7 @@ pub mod password_reset;
 pub mod profile_entity;
 #[path = "provider_type.entity.rs"]
 pub mod provider_type_entity;
-#[path = "relation_config.entity.rs"]
+#[path = "relation_config.rs"]
 pub mod relation_config;
 #[path = "relation_obj.entity.rs"]
 pub mod relation_obj;

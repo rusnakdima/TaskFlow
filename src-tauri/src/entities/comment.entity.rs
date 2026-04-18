@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommentEntity {
@@ -36,6 +36,15 @@ impl Entity for CommentEntity {
 
   fn is_soft_deletable() -> bool {
     true
+  }
+}
+
+impl WithRelations for CommentEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![
+      RelationDef::many_to_one("task", "tasks", "taskId"),
+      RelationDef::many_to_one("subtask", "subtasks", "subtaskId"),
+    ]
   }
 }
 

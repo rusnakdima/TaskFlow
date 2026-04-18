@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::entities::traits::Validatable;
-use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TodoEntity {
@@ -40,6 +40,26 @@ impl Entity for TodoEntity {
 
   fn is_soft_deletable() -> bool {
     true
+  }
+}
+
+impl SoftDeletable for TodoEntity {
+  fn deleted_at(&self) -> Option<DateTime<Utc>> {
+    self.deleted_at
+  }
+
+  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
+    self.deleted_at = deleted_at;
+  }
+}
+
+impl WithRelations for TodoEntity {
+  fn relations() -> Vec<RelationDef> {
+    vec![
+      RelationDef::one_to_many("tasks", "tasks", "todoId"),
+      RelationDef::many_to_one("user", "users", "userId"),
+      RelationDef::many_to_many("categories", "categories", "categories"),
+    ]
   }
 }
 
