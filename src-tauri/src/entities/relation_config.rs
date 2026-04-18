@@ -1,4 +1,4 @@
-use nosql_orm::relations::{RelationDef, RelationType};
+use nosql_orm::relations::RelationDef;
 use nosql_orm::query::Projection;
 use crate::entities::traits::FrontendProjection;
 
