@@ -18,12 +18,16 @@ class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         instance = this
-        
+
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
+
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            val imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+            val navBarsInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+
+            val bottomPadding = if (imeInsets.bottom > navBarsInsets.bottom) imeInsets.bottom else navBarsInsets.bottom
+            view.setPadding(insets.left, insets.top, insets.right, bottomPadding)
             WindowInsetsCompat.CONSUMED
         }
     }
