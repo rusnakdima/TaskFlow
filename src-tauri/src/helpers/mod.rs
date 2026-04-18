@@ -7,6 +7,10 @@ pub mod common;
 pub mod config;
 #[path = "crypto.helper.rs"]
 pub mod crypto_helper;
+#[path = "filter.helper.rs"]
+pub mod filter_helper;
+#[path = "projection.helper.rs"]
+pub mod projection_helper;
 #[path = "qr.helper.rs"]
 pub mod qr_helper;
 #[path = "response.helper.rs"]
