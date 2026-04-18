@@ -178,7 +178,7 @@ export class ApiProvider {
   private async fetchEntityById<T>(table: string, id: string): Promise<T | null> {
     try {
       return await firstValueFrom(
-        this.crud<T>("get", table, { filter: { id } }).pipe(catchError(() => of(null)))
+        this.crud<T>("get", table, { id }).pipe(catchError(() => of(null)))
       );
     } catch {
       return null;
@@ -374,10 +374,39 @@ export class ApiProvider {
     subscriber: any,
     requestKey?: string
   ): void {
+    const errorMessage = err.message || String(err);
+
+    if (errorMessage.includes("Record not found")) {
+      this.handleRecordNotFound(operation, params, errorMessage);
+    }
+
     subscriber.error(err);
     if (requestKey) {
       this.inFlightRequests.delete(requestKey);
     }
+  }
+
+  private handleRecordNotFound(
+    operation: Operation,
+    params: CrudParams,
+    errorMessage: string
+  ): void {
+    const match = errorMessage.match(/Record not found:\s*(\w+)\/([^\s]+)/);
+    if (!match) return;
+
+    const table = match[1];
+    const recordId = match[2];
+
+    const operationVerb = operation === "update" || operation === "updateAll" ? "update" : operation;
+    this.notifyService.showWarning(
+      `Cannot ${operationVerb} ${table.slice(0, -1)}: record was deleted or not found. Refreshing...`
+    );
+
+    if (table === "tasks" || table === "subtasks" || table === "comments") {
+      this.storageService.removeItem(table as any, recordId);
+    }
+
+    this.clearCache(table);
   }
 
   private executeUpdateAll<T>(

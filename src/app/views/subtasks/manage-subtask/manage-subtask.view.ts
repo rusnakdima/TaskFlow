@@ -200,7 +200,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       return;
     }
 
-    this.dataSyncProvider.crud<Todo>("get", "todos", { filter: { id: todoId } }).subscribe({
+    this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
       next: (todo: Todo) => {
         this.projectInfo.set(todo);
         this.isOwner = todo.userId === this.userId;
@@ -222,7 +222,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
     // Fallback to fetch if not in storage
     this.dataSyncProvider
-      .crud<Task>("get", "tasks", { filter: { id: taskId }, parentTodoId: this.todoId() })
+      .crud<Task>("get", "tasks", { id: taskId })
       .subscribe({
         next: (task: Task) => this.taskInfo.set(task),
         error: (err: any) => {

@@ -7,6 +7,7 @@ import { InitialDataResolver } from "@resolvers/initial-data.resolver";
 
 /* guards */
 import { canActivateAuth } from "@guards/auth.guard";
+import { canActivateCreateProfile } from "@guards/profile.guard";
 
 /* components */
 import { LoginView } from "@views/login/login.view";
@@ -123,6 +124,7 @@ export const routes: Routes = [
             component: CreateProfileView,
             title: "Create Profile",
             data: { breadcrumb: "Create Profile" },
+            canActivate: [canActivateCreateProfile],
           },
           {
             path: "edit_profile",

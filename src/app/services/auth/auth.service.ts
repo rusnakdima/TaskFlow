@@ -295,8 +295,9 @@ export class AuthService {
     const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
 
     if (!isTokenExpired) {
-      // Token is valid locally - load data
+      // Token is valid locally - load data (loadProfile as safety net for profile check)
       this.dataSyncService.loadAllData();
+      this.dataSyncService.loadProfile();
       this.checkTokenWithBackend(token);
     } else {
       // Token expired - try offline auth

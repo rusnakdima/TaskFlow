@@ -97,6 +97,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
   private dataSyncService = inject(DataLoaderService);
+  
   constructor() {
     super();
   }
@@ -106,6 +107,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   private routeSub?: Subscription;
+  private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
   selectedTodos = signal<Set<string>>(new Set());
@@ -203,19 +205,24 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkService.updateTotalCount(this.storageService.privateTodos().length);
 
     // Subscribe to refresh shortcut (Ctrl+R)
-    this.shortcutService.refresh$.subscribe(() => {
-      this.dataSyncService.loadAllData(true).subscribe(() => {
-        this.notifyService.showSuccess("Data refreshed");
-      });
-    });
+    this.subscriptions.add(
+      this.shortcutService.refresh$.subscribe(() => {
+        this.dataSyncService.loadAllData(true).subscribe(() => {
+          this.notifyService.showSuccess("Data refreshed");
+        });
+      })
+    );
 
     // Clear selection when navigating away from this view
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.clearSelection();
-    });
+    this.subscriptions.add(
+      this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+        this.clearSelection();
+      })
+    );
 
     // Handle highlight from query params
-    this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.highlightTodoId) {
         this.highlightTodoId.set(queryParams.highlightTodoId);
         setTimeout(() => {
@@ -230,7 +237,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.highlightTodoId.set(null);
         }, 500);
       }
-    });
+    })
+    );
 
     document.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
@@ -245,7 +253,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   @HostListener("window:keydown", ["$event"])

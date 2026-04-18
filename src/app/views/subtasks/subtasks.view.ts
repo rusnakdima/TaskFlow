@@ -124,6 +124,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   /** When set, only this subtask should auto-open its comment block */
   openCommentsForSubtaskId = signal<string | null>(null);
   private routeSub?: Subscription;
+  private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
   selectedSubtasks = signal<Set<string>>(new Set());
@@ -213,18 +214,23 @@ export class SubtasksView extends BaseListView implements OnInit {
     this.bulkService.updateTotalCount(0);
 
     // Subscribe to refresh shortcut (Ctrl+R)
-    this.shortcutService.refresh$.subscribe(() => {
-      this.dataSyncService.loadAllData(true).subscribe(() => {
-        this.notifyService.showSuccess("Data refreshed");
-      });
-    });
+    this.subscriptions.add(
+      this.shortcutService.refresh$.subscribe(() => {
+        this.dataSyncService.loadAllData(true).subscribe(() => {
+          this.notifyService.showSuccess("Data refreshed");
+        });
+      })
+    );
 
     // Clear selection when navigating away from this view
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.clearSelection();
-    });
+    this.subscriptions.add(
+      this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+        this.clearSelection();
+      })
+    );
 
-    this.routeSub = this.route.queryParams.subscribe((queryParams: any) => {
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((queryParams: any) => {
       if (queryParams.fromKanban !== undefined) {
         this.fromKanban.set(queryParams.fromKanban === "true");
       }
@@ -258,7 +264,8 @@ export class SubtasksView extends BaseListView implements OnInit {
       ) {
         this.openCommentsForSubtaskId.set(null);
       }
-    });
+    })
+    );
 
     const routeData = this.route.snapshot.data;
     if (routeData?.["task"]) {
@@ -294,7 +301,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   }
 
   ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   toggleChat() {
@@ -448,8 +455,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     Promise.all(updatePromises)
       .then((results) => {
-        // Force storage refresh
-        this.dataSyncService.loadAllData(true).subscribe();
+        // Storage is updated automatically by ApiProvider via WebSocket/Tauri
         this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
         this.clearSelection();
       })
