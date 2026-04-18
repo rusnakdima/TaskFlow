@@ -68,7 +68,7 @@ export class MainResolver implements Resolve<any> {
         return {
           task: taskFromStorage || null,
           todo: todoFromStorage || null,
-          loading: true  // Signal to component that data is loading
+          loading: true, // Signal to component that data is loading
         };
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
@@ -96,39 +96,45 @@ export class MainResolver implements Resolve<any> {
    * Fire-and-forget: Load todo in background
    */
   private loadTodoInBackground(todoId: string, isOwner: boolean, isPrivate: boolean): void {
-    this.dataSyncProvider.crud<Todo>("get", "todos", {
-      id: todoId,
-      isOwner,
-      isPrivate,
-      load: TodoRelations.loadAll,
-    }).pipe(
-      catchError(() => {
-        return of(null);
+    this.dataSyncProvider
+      .crud<Todo>("get", "todos", {
+        id: todoId,
+        isOwner,
+        isPrivate,
+        load: TodoRelations.loadAll,
       })
-    ).subscribe((todo) => {
-      if (todo) {
-        this.upsertTodo(todo, todoId);
-      }
-    });
+      .pipe(
+        catchError(() => {
+          return of(null);
+        })
+      )
+      .subscribe((todo) => {
+        if (todo) {
+          this.upsertTodo(todo, todoId);
+        }
+      });
   }
 
   /**
    * Fire-and-forget: Load task in background
    */
   private loadTaskInBackground(taskId: string, isOwner: boolean, isPrivate: boolean): void {
-    this.dataSyncProvider.crud<Task>("get", "tasks", {
-      id: taskId,
-      isOwner,
-      isPrivate,
-    }).pipe(
-      catchError(() => {
-        return of(null);
+    this.dataSyncProvider
+      .crud<Task>("get", "tasks", {
+        id: taskId,
+        isOwner,
+        isPrivate,
       })
-    ).subscribe((task) => {
-      if (task) {
-        this.storageService.updateItem("tasks", taskId, task);
-      }
-    });
+      .pipe(
+        catchError(() => {
+          return of(null);
+        })
+      )
+      .subscribe((task) => {
+        if (task) {
+          this.storageService.updateItem("tasks", taskId, task);
+        }
+      });
   }
 
   private upsertTodo(todo: Todo | null, todoId: string): void {
@@ -143,7 +149,8 @@ export class MainResolver implements Resolve<any> {
 
   private hasFullRelations(todo: Todo | undefined): boolean {
     if (!todo) return false;
-    const hasCategories = todo.categories && todo.categories.length > 0 && typeof todo.categories[0] !== 'string';
+    const hasCategories =
+      todo.categories && todo.categories.length > 0 && typeof todo.categories[0] !== "string";
     const hasTasks = todo.tasks && todo.tasks.length > 0;
     return !!(hasCategories && hasTasks);
   }
