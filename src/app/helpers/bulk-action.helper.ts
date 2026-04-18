@@ -150,11 +150,7 @@ export class BulkActionHelper {
   /**
    * Remove record with cascade from data map
    */
-  removeRecordWithCascade(
-    data: ArchiveDataMap,
-    table: string,
-    recordId: string
-  ): ArchiveDataMap {
+  removeRecordWithCascade(data: ArchiveDataMap, table: string, recordId: string): ArchiveDataMap {
     const updated = { ...data };
     const tableData = updated[table] || [];
     updated[table] = tableData.filter((r: any) => r.id !== recordId);
@@ -174,7 +170,9 @@ export class BulkActionHelper {
       updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.taskId !== recordId);
       updated["comments"] = (updated["comments"] || []).filter((c: any) => c.taskId !== recordId);
     } else if (table === "subtasks") {
-      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.subtaskId !== recordId);
+      updated["comments"] = (updated["comments"] || []).filter(
+        (c: any) => c.subtaskId !== recordId
+      );
     }
 
     return updated;
@@ -214,13 +212,18 @@ export class BulkActionHelper {
       const newSubtasks = newTasks.flatMap((t: any) => t.subtasks || []);
       const newComments = newSubtasks.flatMap((s: any) => s.comments || []);
 
-      updated["tasks"] = [...existingTasks.filter((t: any) => !taskIds.includes(t.id)), ...newTasks];
+      updated["tasks"] = [
+        ...existingTasks.filter((t: any) => !taskIds.includes(t.id)),
+        ...newTasks,
+      ];
       updated["subtasks"] = [
         ...existingSubtasks.filter((s: any) => !subtaskIds.includes(s.id)),
         ...newSubtasks,
       ];
       updated["comments"] = [
-        ...existingComments.filter((c: any) => c.todoId !== recordId && !taskIds.includes(c.taskId)),
+        ...existingComments.filter(
+          (c: any) => c.todoId !== recordId && !taskIds.includes(c.taskId)
+        ),
         ...newComments,
       ];
       updated["chats"] = [...existingChats.filter((c: any) => c.todoId !== recordId)];
