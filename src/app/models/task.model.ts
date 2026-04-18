@@ -42,3 +42,10 @@ export interface Task {
   dependsOn: string[];
   comments: Array<Comment>;
 }
+
+export interface PriorityOption {
+  value: PriorityTask;
+  label: string;
+  description?: string;
+  colorClass: string;
+}
