@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 /* services */
 import { OfflineQueueService } from "@services/core/offline-queue.service";
 import { ConflictDetectionService } from "@services/core/conflict-detection.service";
+import { SyncProgressService } from "@services/core/sync-progress.service";
 
 @Component({
   selector: "app-sync-status",
@@ -74,6 +75,23 @@ import { ConflictDetectionService } from "@services/core/conflict-detection.serv
         color: #fff;
       }
 
+      .badge.syncing {
+        background: #3b82f6;
+        color: #fff;
+      }
+
+      .status-item.syncing {
+        color: #3b82f6;
+      }
+
+      .sync-progress-text {
+        font-size: 11px;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .spinner-container {
         display: flex;
         align-items: center;
@@ -85,12 +103,17 @@ import { ConflictDetectionService } from "@services/core/conflict-detection.serv
 export class SyncStatusComponent implements OnInit, OnDestroy {
   private offlineQueueService = inject(OfflineQueueService);
   private conflictDetectionService = inject(ConflictDetectionService);
+  private syncProgressService = inject(SyncProgressService);
 
   isOnline = signal(true);
   pendingCount = signal(0);
   conflictCount = signal(0);
   isProcessing = signal(false);
   hasPendingOperations = signal(false);
+
+  readonly isSyncing = this.syncProgressService.isActive;
+  readonly syncProgress = this.syncProgressService.progressPercent;
+  readonly syncMessage = this.syncProgressService.displayMessage;
 
   private subscriptions: Subscription[] = [];
 

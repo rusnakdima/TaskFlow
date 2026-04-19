@@ -79,11 +79,11 @@ export class StorageService extends BaseStorageService {
   });
 
   private readonly privateTodosComputed = computed(() => {
-    return this.privateTodosSignal().filter((todo) => !todo.deleted_at);
+    return this.privateTodosSignal().filter((todo) => !todo.deleted_at && todo.visibility === "private");
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter((todo) => !todo.deleted_at);
+    return this.sharedTodosSignal().filter((todo) => !todo.deleted_at && todo.visibility === "team");
   });
 
   // ==================== PUBLIC SIGNALS ====================
@@ -299,6 +299,7 @@ export class StorageService extends BaseStorageService {
     tasks: Task[];
     subtasks: Subtask[];
     comments: Comment[];
+    chats?: Chat[];
   }): void {
     const handler = this.handlers.todos as TodoHandler;
     handler.restoreWithCascade(data);

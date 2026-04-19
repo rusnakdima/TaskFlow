@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, signal, computed, inject, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap, map } from "rxjs/operators";
+import { tap, map, catchError } from "rxjs/operators";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -12,10 +12,9 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 import { User } from "@models/user.model";
 import { Profile } from "@models/profile.model";
-import { Response } from "@models/response.model";
 
 /* services */
-import { AdminService } from "@services/data/admin.service";
+import { ApiProvider } from "@providers/api.provider";
 import { BaseStorageService } from "./base-storage.service";
 
 interface AdminDataWithRelations {
@@ -26,7 +25,7 @@ interface AdminDataWithRelations {
   providedIn: "root",
 })
 export class AdminStorageService extends BaseStorageService {
-  private adminService = inject(AdminService);
+  private apiProvider = inject(ApiProvider);
 
   // Admin data signals
   private todosSignal = signal<Todo[]>([]);
@@ -124,24 +123,26 @@ export class AdminStorageService extends BaseStorageService {
 
     this.loadingSignal.set(true);
 
-    return this.adminService.getAllDataForAdmin<AdminDataWithRelations>().pipe(
-      tap((response: Response<any>) => {
-        if (response.data) {
-          this.todosSignal.set(response.data["todos"] || []);
-          this.tasksSignal.set(response.data["tasks"] || []);
-          this.subtasksSignal.set(response.data["subtasks"] || []);
-          this.commentsSignal.set(response.data["comments"] || []);
-          this.chatsSignal.set(response.data["chats"] || []);
-          this.categoriesSignal.set(response.data["categories"] || []);
-          this.dailyActivitiesSignal.set(response.data["daily_activities"] || []);
+    return this.apiProvider.loadAllAdminData().pipe(
+      tap((data: AdminDataWithRelations) => {
+        this.todosSignal.set(data["todos"] || []);
+        this.tasksSignal.set(data["tasks"] || []);
+        this.subtasksSignal.set(data["subtasks"] || []);
+        this.commentsSignal.set(data["comments"] || []);
+        this.chatsSignal.set(data["chats"] || []);
+        this.categoriesSignal.set(data["categories"] || []);
+        this.dailyActivitiesSignal.set(data["daily_activities"] || []);
 
-          // Extract users and profiles from relations
-          this.extractUsersAndProfiles(response.data);
-        }
+        // Extract users and profiles from relations
+        this.extractUsersAndProfiles(data);
 
         this.loadingSignal.set(false);
         this.loadedSignal.set(true);
         this.lastLoadedSignal.set(new Date());
+      }),
+      catchError((err) => {
+        this.loadingSignal.set(false);
+        return of(this.getAdminDataWithRelations());
       }),
       map(() => this.getAdminDataWithRelations())
     );

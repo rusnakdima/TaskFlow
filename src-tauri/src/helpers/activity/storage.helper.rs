@@ -48,7 +48,18 @@ impl ActivityStorage {
     userId: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
-    let existing = self.jsonProvider.find_all("daily_activities").await;
+    use nosql_orm::query::Filter;
+
+    // Filter by both userId and date to get the correct activity record
+    let filter = Filter::And(vec![
+      Filter::Eq("userId".to_string(), serde_json::json!(userId)),
+      Filter::Eq("date".to_string(), serde_json::json!(date)),
+    ]);
+
+    let existing = self
+      .jsonProvider
+      .find_many("daily_activities", Some(&filter), None, None, None, false)
+      .await;
 
     if let Ok(activities) = existing {
       if let Some(activityValue) = activities.first() {

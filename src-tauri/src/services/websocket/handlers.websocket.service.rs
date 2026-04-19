@@ -216,7 +216,6 @@ impl CrudHandlers {
     sync_metadata: SyncMetadata,
   ) -> ResponseModel {
     if let Some(id) = request.id {
-      // Get original record for broadcast data
       let original = self
         .repository_service
         .execute(
@@ -226,22 +225,30 @@ impl CrudHandlers {
           None,
           None,
           None,
-          None, // load parameter
+          None,
           Some(sync_metadata.clone()),
         )
         .await
         .ok();
 
+      let operation = if request.is_permanent == Some(true) {
+        "permanent-delete"
+      } else if request.is_cascade == Some(true) {
+        "soft-delete-cascade"
+      } else {
+        "delete"
+      };
+
       let res = self
         .repository_service
         .execute(
-          "delete".to_string(),
+          operation.to_string(),
           request.entity.clone(),
           Some(id.clone()),
           None,
           None,
           None,
-          None, // load parameter
+          None,
           Some(sync_metadata.clone()),
         )
         .await
@@ -291,7 +298,6 @@ impl CrudHandlers {
         .unwrap_or_else(|e| e);
 
       if res.status == ResponseStatus::Success {
-        // Fetch the restored record to include in the broadcast
         let restored = self
           .repository_service
           .execute(
@@ -324,6 +330,90 @@ impl CrudHandlers {
       res
     } else {
       ResponseModel::from("Missing id for restore action".to_string())
+    }
+  }
+
+  /// Handle restore with cascade
+  pub async fn handle_restore_cascade(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
+    if let Some(id) = request.id {
+      let res = self
+        .repository_service
+        .execute(
+          "restore-cascade".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          None,
+          None,
+          None,
+          None,
+          Some(sync_metadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e);
+
+      if res.status == ResponseStatus::Success {
+        let restored = self
+          .repository_service
+          .execute(
+            "get".to_string(),
+            request.entity.clone(),
+            Some(id.clone()),
+            None,
+            None,
+            None,
+            None,
+            Some(sync_metadata),
+          )
+          .await
+          .ok();
+
+        let broadcast_data = if let Some(r) = restored {
+          match r.data {
+            DataValue::Object(obj) => obj,
+            _ => json!({ "id": id }),
+          }
+        } else {
+          json!({ "id": id })
+        };
+
+        self
+          .broadcast
+          .broadcast_restored(&request.entity, broadcast_data)
+          .await;
+      }
+      res
+    } else {
+      ResponseModel::from("Missing id for restore-cascade action".to_string())
+    }
+  }
+
+  /// Handle sync to provider
+  pub async fn handle_sync_to_provider(
+    &self,
+    request: WsRequest,
+    sync_metadata: SyncMetadata,
+  ) -> ResponseModel {
+    if let Some(id) = request.id {
+      self
+        .repository_service
+        .execute(
+          "sync-to-provider".to_string(),
+          request.entity.clone(),
+          Some(id.clone()),
+          None,
+          None,
+          None,
+          None,
+          Some(sync_metadata.clone()),
+        )
+        .await
+        .unwrap_or_else(|e| e)
+    } else {
+      ResponseModel::from("Missing id for sync-to-provider action".to_string())
     }
   }
 }

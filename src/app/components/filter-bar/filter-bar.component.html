@@ -95,17 +95,6 @@
       <!-- Actions -->
       <div class="filter-sidebar-actions">
         <button mat-button color="primary" (click)="closeSidebar()" class="w-full">Done</button>
-        @if (showBlueprintButton) {
-          <button
-            mat-button
-            color="primary"
-            (click)="onOpenBlueprints()"
-            class="mt-2 flex w-full items-center justify-center gap-2"
-          >
-            <mat-icon class="h-4! w-4! min-w-4 text-base!">account_tree</mat-icon>
-            Blueprints
-          </button>
-        }
         @if (activeFilter !== "all" || searchQuery) {
           <button mat-button color="warn" (click)="clearAllFilters()" class="mt-2 w-full">
             <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>

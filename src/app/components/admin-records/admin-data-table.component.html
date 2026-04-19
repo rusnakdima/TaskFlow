@@ -26,9 +26,14 @@
               </div>
             </div>
             <div class="ml-4 flex shrink-0 items-center gap-2">
-              <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deleted_at)">
-                {{ getDeletedStatusText(item.deleted_at) }}
-              </mat-chip>
+              <div class="flex flex-col items-end gap-1">
+                <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deleted_at)">
+                  {{ getDeletedStatusText(item.deleted_at) }}
+                </mat-chip>
+                @if (item.deleted_at) {
+                  <span class="textMuted text-xs">{{ formatDate(item.deleted_at) }}</span>
+                }
+              </div>
               <button mat-icon-button class="h-8 w-8" (click)="toggleExpanded(item.id)">
                 <mat-icon class="h-5 w-5 min-w-5">
                   {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}

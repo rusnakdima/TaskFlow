@@ -11,6 +11,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { SyncProgressService } from "@services/core/sync-progress.service";
 
 export interface SyncProgress {
   isSyncing: boolean;
@@ -36,7 +37,8 @@ export class SyncService {
     private jwtTokenService: JwtTokenService,
     private storageService: StorageService,
     private dataSyncService: DataLoaderService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private syncProgressService: SyncProgressService
   ) {}
 
   get isSyncing$(): Observable<boolean> {
@@ -146,6 +148,7 @@ export class SyncService {
 
   async syncAll<R>(): Promise<Response<R>> {
     this.setSyncing(true);
+    this.syncProgressService.startSync("sync", "Starting full sync...", 100);
     this.updateProgress({ currentStep: "export", progress: 5, message: "Starting sync..." });
 
     try {
@@ -155,6 +158,7 @@ export class SyncService {
         progress: 10,
         message: "Exporting to cloud...",
       });
+      this.syncProgressService.updateProgress(10, "Exporting to cloud...");
       const exportResult = await this.exportToCloud<R>();
 
       if (exportResult.status !== ResponseStatus.SUCCESS) {
@@ -164,6 +168,7 @@ export class SyncService {
           message: "Export failed - sync aborted",
           error: exportResult.message,
         });
+        this.syncProgressService.reset();
         return exportResult;
       }
 
@@ -173,6 +178,7 @@ export class SyncService {
         progress: 55,
         message: "Importing from cloud...",
       });
+      this.syncProgressService.updateProgress(55, "Importing from cloud...");
       const importResult = await this.importToLocal<R>();
 
       if (importResult.status === ResponseStatus.SUCCESS) {
@@ -181,6 +187,7 @@ export class SyncService {
           progress: 100,
           message: "Sync complete - all data up to date",
         });
+        this.syncProgressService.endSync();
       }
 
       return importResult;
@@ -191,9 +198,41 @@ export class SyncService {
         message: "Sync failed",
         error: errorMessage,
       });
+      this.syncProgressService.reset();
       throw error;
     } finally {
       this.setSyncing(false);
     }
+  }
+
+  // ==================== Last-Write-Wins Conflict Resolution ====================
+
+  resolveConflict<T extends { updated_at: string }>(local: T, remote: T): T {
+    const localTime = new Date(local.updated_at).getTime();
+    const remoteTime = new Date(remote.updated_at).getTime();
+    return remoteTime > localTime ? remote : local;
+  }
+
+  async withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delayMs: number = 1000
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (i < maxRetries - 1) {
+          await this.sleep(Math.pow(2, i) * delayMs);
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

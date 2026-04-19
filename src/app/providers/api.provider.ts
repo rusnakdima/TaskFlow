@@ -12,6 +12,7 @@ import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
 
 /* helpers */
 import { RelationsHelper } from "@helpers/relations.helper";
@@ -26,8 +27,13 @@ import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { SyncProgressService } from "@services/core/sync-progress.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+interface AdminDataWithRelations {
+  [key: string]: any[];
+}
 
 // Constants
 const WS_RETRY_ATTEMPTS = 3;
@@ -50,6 +56,10 @@ export class ApiProvider {
 
   private get syncService(): SyncService {
     return this.injector.get(SyncService);
+  }
+
+  private get syncProgressService(): SyncProgressService {
+    return this.injector.get(SyncProgressService);
   }
 
   private get storageService(): StorageService {
@@ -469,29 +479,387 @@ export class ApiProvider {
     }
   }
 
-  // ==================== Visibility Sync ====================
+  // ==================== Visibility Change Sync ====================
 
-  /**
-   * Sync todo visibility change to local storage
-   * Called after CRUD update successfully changes visibility in MongoDB
-   *
-   * Flow:
-   * - Private → Team: Import from cloud to get updated visibility, TodoHandler auto-moves to shared
-   * - Team → Private: Import from cloud to get updated visibility, TodoHandler auto-moves to private
-   */
   async syncSingleTodoVisibilityChange(
     todoId: string,
     newVisibility: "private" | "team"
   ): Promise<void> {
-    // Import the updated todo from cloud
-    // The TodoHandler.update() will automatically detect visibility change
-    // and move the todo between private/shared signals
-    await this.importTodoToLocalDb(todoId);
-    this.clearCache("todos");
+    const todo = this.storageService.getById("todos", todoId);
+    if (!todo) {
+      throw new Error(`Todo with id ${todoId} not found`);
+    }
+
+    const currentVisibility = todo.visibility;
+    const isPrivateToTeam = currentVisibility === "private" && newVisibility === "team";
+    const isTeamToPrivate = currentVisibility === "team" && newVisibility === "private";
+
+    if (!isPrivateToTeam && !isTeamToPrivate) {
+      await this.importTodoToLocalDb(todoId);
+      this.clearCache("todos");
+      return;
+    }
+
+    const sourceProvider = isPrivateToTeam ? "Json" : "Mongo";
+    const targetProvider = isPrivateToTeam ? "Mongo" : "Json";
+
+    this.syncProgressService.startSync(
+      "visibility_change",
+      `Syncing todo to ${newVisibility}...`,
+      10
+    );
+
+    try {
+      await invoke<Response<any>>("syncVisibilityToProvider", {
+        todoId,
+        sourceProvider,
+        targetProvider,
+      });
+
+      this.clearCache("todos");
+      this.syncProgressService.endSync();
+    } catch (error) {
+      this.syncProgressService.reset();
+      throw error;
+    }
+  }
+
+  private async syncPrivateTodoToTeam(todo: Todo): Promise<void> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        this.syncProgressService.updateProgress(0, "Exporting todo to team...");
+
+        await this.withRetry(
+          () => this.exportTodoToMongoDb(todo),
+          attempt,
+          `Exporting todo to MongoDB`
+        );
+
+        this.syncProgressService.updateProgress(
+          this.countTodoChildren(todo),
+          "Importing from MongoDB..."
+        );
+
+        await this.importTodoToLocalDb(todo.id);
+        this.clearCache("todos");
+        return;
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    throw lastError || new Error("Failed to sync private todo to team after retries");
+  }
+
+  private async syncTeamTodoToPrivate(todo: Todo): Promise<void> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        this.syncProgressService.updateProgress(0, "Exporting todo to private...");
+
+        await this.withRetry(
+          () => this.exportTodoToJson(todo),
+          attempt,
+          `Exporting todo to local storage`
+        );
+
+        this.syncProgressService.updateProgress(
+          this.countTodoChildren(todo),
+          "Importing from local storage..."
+        );
+
+        await this.importTodoToLocalDb(todo.id);
+        this.clearCache("todos");
+        return;
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    throw lastError || new Error("Failed to sync team todo to private after retries");
+  }
+
+  private countTodoChildren(todo: Todo): number {
+    let count = 0;
+    todo.tasks?.forEach((task) => {
+      count++;
+      task.subtasks?.forEach(() => {
+        count++;
+      });
+      count++; // comments count approximation
+    });
+    return count;
+  }
+
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    attempt: number,
+    operationName: string
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt < 2) {
+        const delay = Math.pow(2, attempt) * 1000;
+        this.syncProgressService.setMessage(`${operationName} failed, retrying...`);
+        await this.sleep(delay);
+        return await operation();
+      }
+      throw error;
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async exportTodoToMongoDb(todo: Todo): Promise<void> {
+    const todoWithoutRelations = this.stripRelations(todo);
+
+    (await firstValueFrom(
+      this.crud<Todo>("update", "todos", {
+        id: todo.id,
+        data: { ...todoWithoutRelations, visibility: "team" },
+        isOwner: true,
+        isPrivate: false,
+      }).pipe(catchError(() => of(null)))
+    )) as Todo;
+
+    const taskSyncPromises: Promise<void>[] = [];
+    todo.tasks?.forEach((task) => {
+      const taskWithoutRelations = this.stripTaskRelations(task);
+      taskSyncPromises.push(
+        firstValueFrom(
+          this.crud<Task>("update", "tasks", {
+            id: task.id,
+            data: taskWithoutRelations,
+            isOwner: true,
+            isPrivate: false,
+          }).pipe(catchError(() => of(null)))
+        ).then(() => {
+          this.syncProgressService.updateProgress(
+            this.syncProgressService.completedItems() + 1,
+            "Syncing tasks..."
+          );
+        }) as Promise<void>
+      );
+
+      task.subtasks?.forEach((subtask) => {
+        const subtaskWithoutRelations = this.stripSubtaskRelations(subtask);
+        taskSyncPromises.push(
+          firstValueFrom(
+            this.crud<Subtask>("update", "subtasks", {
+              id: subtask.id,
+              data: subtaskWithoutRelations,
+              isOwner: true,
+              isPrivate: false,
+            }).pipe(catchError(() => of(null)))
+          ).then(() => {
+            this.syncProgressService.updateProgress(
+              this.syncProgressService.completedItems() + 1,
+              "Syncing subtasks..."
+            );
+          }) as Promise<void>
+        );
+
+        subtask.comments?.forEach((comment: Comment) => {
+          taskSyncPromises.push(
+            firstValueFrom(
+              this.crud<Comment>("create", "comments", {
+                data: comment,
+                isOwner: true,
+                isPrivate: false,
+              }).pipe(catchError(() => of(null)))
+            ).then(() => {
+              this.syncProgressService.updateProgress(
+                this.syncProgressService.completedItems() + 1,
+                "Syncing comments..."
+              );
+            }) as Promise<void>
+          );
+        });
+      });
+
+      task.comments?.forEach((comment: Comment) => {
+        taskSyncPromises.push(
+          firstValueFrom(
+            this.crud<Comment>("create", "comments", {
+              data: comment,
+              isOwner: true,
+              isPrivate: false,
+            }).pipe(catchError(() => of(null)))
+          ).then(() => {
+            this.syncProgressService.updateProgress(
+              this.syncProgressService.completedItems() + 1,
+              "Syncing comments..."
+            );
+          }) as Promise<void>
+        );
+      });
+    });
+
+    await Promise.all(taskSyncPromises);
+
+    const chatSyncPromises: Promise<void>[] = [];
+    const chats = this.storageService.getChatsByTodo(todo.id);
+    chats.forEach((chat: Chat) => {
+      chatSyncPromises.push(
+        firstValueFrom(
+          this.crud<Chat>("create", "chats", {
+            data: chat,
+            isOwner: true,
+            isPrivate: false,
+          }).pipe(catchError(() => of(null)))
+        ).then(() => {
+          this.syncProgressService.updateProgress(
+            this.syncProgressService.completedItems() + 1,
+            "Syncing chats..."
+          );
+        }) as Promise<void>
+      );
+    });
+
+    await Promise.all(chatSyncPromises);
+  }
+
+  private async exportTodoToJson(todo: Todo): Promise<void> {
+    const todoWithoutRelations = this.stripRelations(todo);
+
+    (await firstValueFrom(
+      this.crud<Todo>("update", "todos", {
+        id: todo.id,
+        data: { ...todoWithoutRelations, visibility: "private" },
+        isOwner: true,
+        isPrivate: true,
+      }).pipe(catchError(() => of(null)))
+    )) as Todo;
+
+    const taskSyncPromises: Promise<void>[] = [];
+    todo.tasks?.forEach((task) => {
+      const taskWithoutRelations = this.stripTaskRelations(task);
+      taskSyncPromises.push(
+        firstValueFrom(
+          this.crud<Task>("update", "tasks", {
+            id: task.id,
+            data: taskWithoutRelations,
+            isOwner: true,
+            isPrivate: true,
+          }).pipe(catchError(() => of(null)))
+        ).then(() => {
+          this.syncProgressService.updateProgress(
+            this.syncProgressService.completedItems() + 1,
+            "Syncing tasks..."
+          );
+        }) as Promise<void>
+      );
+
+      task.subtasks?.forEach((subtask) => {
+        const subtaskWithoutRelations = this.stripSubtaskRelations(subtask);
+        taskSyncPromises.push(
+          firstValueFrom(
+            this.crud<Subtask>("update", "subtasks", {
+              id: subtask.id,
+              data: subtaskWithoutRelations,
+              isOwner: true,
+              isPrivate: true,
+            }).pipe(catchError(() => of(null)))
+          ).then(() => {
+            this.syncProgressService.updateProgress(
+              this.syncProgressService.completedItems() + 1,
+              "Syncing subtasks..."
+            );
+          }) as Promise<void>
+        );
+
+        subtask.comments?.forEach((comment: Comment) => {
+          taskSyncPromises.push(
+            firstValueFrom(
+              this.crud<Comment>("create", "comments", {
+                data: comment,
+                isOwner: true,
+                isPrivate: true,
+              }).pipe(catchError(() => of(null)))
+            ).then(() => {
+              this.syncProgressService.updateProgress(
+                this.syncProgressService.completedItems() + 1,
+                "Syncing comments..."
+              );
+            }) as Promise<void>
+          );
+        });
+      });
+
+      task.comments?.forEach((comment: Comment) => {
+        taskSyncPromises.push(
+          firstValueFrom(
+            this.crud<Comment>("create", "comments", {
+              data: comment,
+              isOwner: true,
+              isPrivate: true,
+            }).pipe(catchError(() => of(null)))
+          ).then(() => {
+            this.syncProgressService.updateProgress(
+              this.syncProgressService.completedItems() + 1,
+              "Syncing comments..."
+            );
+          }) as Promise<void>
+        );
+      });
+    });
+
+    await Promise.all(taskSyncPromises);
+
+    const chatSyncPromises: Promise<void>[] = [];
+    const chats = this.storageService.getChatsByTodo(todo.id);
+    chats.forEach((chat: Chat) => {
+      chatSyncPromises.push(
+        firstValueFrom(
+          this.crud<Chat>("create", "chats", {
+            data: chat,
+            isOwner: true,
+            isPrivate: true,
+          }).pipe(catchError(() => of(null)))
+        ).then(() => {
+          this.syncProgressService.updateProgress(
+            this.syncProgressService.completedItems() + 1,
+            "Syncing chats..."
+          );
+        }) as Promise<void>
+      );
+    });
+
+    await Promise.all(chatSyncPromises);
+  }
+
+  private stripRelations(todo: Todo): Partial<Todo> {
+    const { tasks, assigneesProfiles, user, categories, ...rest } = todo;
+    return rest;
+  }
+
+  private stripTaskRelations(task: Task): Partial<Task> {
+    const { subtasks, comments, todo: parentTodo, ...rest } = task;
+    return rest;
+  }
+
+  private stripSubtaskRelations(subtask: Subtask): Partial<Subtask> {
+    const { comments, task: parentTask, ...rest } = subtask;
+    return rest;
   }
 
   private async importTodoToLocalDb(todoId: string): Promise<void> {
-    // Fetch the latest todo from cloud using id parameter
     const cloudTodo = await firstValueFrom(
       this.crud<Todo>("get", "todos", { id: todoId }).pipe(catchError(() => of(null)))
     );
@@ -500,9 +868,6 @@ export class ApiProvider {
       throw new Error(`Todo with id ${todoId} not found in cloud`);
     }
 
-    // Update local storage with cloud data
-    // TodoHandler.update() will automatically handle visibility change
-    // and move todo between private/shared signals
     this.storageService.updateItem("todos", todoId, cloudTodo);
   }
 
@@ -780,5 +1145,38 @@ export class ApiProvider {
         },
       });
     });
+  }
+
+  // ==================== Admin Data Loading ====================
+
+  /**
+   * Load all admin data from cloud with WS fallback
+   * Returns all records including deleted for admin view
+   */
+  loadAllAdminData(): Observable<AdminDataWithRelations> {
+    const tables = [
+      { key: "todos", load: ["tasks.subtasks", "categories", "user.profile"] },
+      { key: "tasks", load: ["subtasks", "user.profile"] },
+      { key: "subtasks", load: ["user.profile"] },
+      { key: "comments", load: ["user.profile"] },
+      { key: "chats", load: ["user.profile"] },
+      { key: "categories", load: ["user.profile"] },
+    ];
+
+    const loadPromises = tables.map(({ key, load }) =>
+      firstValueFrom(
+        this.crud<any[]>("getAll", key, { filter: {}, load, isOwner: true, isPrivate: false }, true).pipe(catchError(() => of([])))
+      ).then((data) => ({ key, data: data || [] }))
+    );
+
+    return from(Promise.all(loadPromises)).pipe(
+      map((results) => {
+        const dataMap: AdminDataWithRelations = {};
+        results.forEach(({ key, data }) => {
+          dataMap[key] = data;
+        });
+        return dataMap;
+      })
+    );
   }
 }

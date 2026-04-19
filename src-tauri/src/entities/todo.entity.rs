@@ -56,7 +56,10 @@ impl SoftDeletable for TodoEntity {
 impl WithRelations for TodoEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("tasks", "tasks", "todoId"),
+      RelationDef::one_to_many("tasks", "tasks", "todoId")
+        .on_delete(nosql_orm::sql::types::SqlOnDelete::Cascade),
+      RelationDef::one_to_many("chats", "chats", "todoId")
+        .on_delete(nosql_orm::sql::types::SqlOnDelete::Cascade),
       RelationDef::many_to_one("user", "users", "userId"),
       RelationDef::many_to_many("categories", "categories", "categories"),
     ]

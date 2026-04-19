@@ -13,7 +13,11 @@ pub struct WsRequest {
   pub requestId: Option<String>,
   pub syncMetadata: Option<SyncMetadata>,
   pub relations: Option<Vec<RelationObj>>,
-  pub load: Option<Vec<String>>, // NEW: TypeORM-like dot notation for relations
+  pub load: Option<Vec<String>>,
+  #[serde(default)]
+  pub is_permanent: Option<bool>,
+  #[serde(default)]
+  pub is_cascade: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

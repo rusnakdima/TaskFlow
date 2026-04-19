@@ -11,7 +11,15 @@ import { ObjectHelper } from "@helpers/object.helper";
 export interface FilterConfig {
   field: string;
   value: any;
-  operator?: "equals" | "contains" | "startsWith" | "endsWith" | "greaterThan" | "lessThan";
+  operator?:
+    | "equals"
+    | "contains"
+    | "startsWith"
+    | "endsWith"
+    | "greaterThan"
+    | "lessThan"
+    | "isNull"
+    | "isNotNull";
 }
 
 /**
@@ -26,12 +34,25 @@ export class FilterHelper {
   static applyFilter<T>(data: T[], config: FilterConfig): T[] {
     const { field, value, operator = "contains" } = config;
 
-    if (!value && value !== 0 && value !== false) {
+    if (
+      operator !== "isNull" &&
+      operator !== "isNotNull" &&
+      !value &&
+      value !== 0 &&
+      value !== false
+    ) {
       return data;
     }
 
     return data.filter((item: any) => {
       const itemValue = ObjectHelper.getNestedValue(item, field);
+
+      if (operator === "isNull") {
+        return itemValue == null || itemValue === "";
+      }
+      if (operator === "isNotNull") {
+        return itemValue != null && itemValue !== "";
+      }
 
       if (itemValue == null || itemValue === undefined) {
         return false;
@@ -174,10 +195,10 @@ export class FilterHelper {
     }
 
     // Status filter (active/deleted)
-    if (filters.statusFilter === "active") {
-      filterConfigs.push({ field: "deleted_at", value: false, operator: "equals" });
+    if (filters.statusFilter === "not_deleted") {
+      filterConfigs.push({ field: "deleted_at", value: null, operator: "isNull" });
     } else if (filters.statusFilter === "deleted") {
-      filterConfigs.push({ field: "deleted_at", value: true, operator: "equals" });
+      filterConfigs.push({ field: "deleted_at", value: null, operator: "isNotNull" });
     }
 
     // Task/Subtask status filters
@@ -192,6 +213,19 @@ export class FilterHelper {
       }
     }
 
+    // Visibility filter - only for todos
+    if (
+      selectedType === "todos" &&
+      filters.visibilityFilter &&
+      filters.visibilityFilter !== "all"
+    ) {
+      filterConfigs.push({
+        field: "visibility",
+        value: filters.visibilityFilter,
+        operator: "equals",
+      });
+    }
+
     return filterConfigs;
   }
 
@@ -204,27 +238,29 @@ export class FilterHelper {
     selectedType: string
   ): any[] {
     if (filters.userFilter) {
-      const filter = filters.userFilter.toLowerCase();
+      const filter = filters.userFilter;
       data = data.filter((item) => {
-        if ((selectedType === "todos" || selectedType === "categories") && item.user) {
-          const { profile, username } = item.user;
-          const firstName = profile?.name?.toLowerCase() || "";
-          const lastName = profile?.lastName?.toLowerCase() || "";
-          const userName = username?.toLowerCase() || "";
-          return (
-            firstName.includes(filter) || lastName.includes(filter) || userName.includes(filter)
-          );
-        }
-        return false;
+        if (item.user && item.user.id === filter) return true;
+        if (item.userId && item.userId === filter) return true;
+        // Fallback for search
+        const filterStr = filter.toLowerCase();
+        const username = item.user?.username?.toLowerCase() || "";
+        return username.includes(filterStr);
       });
     }
 
-    if (filters.categoriesFilter && selectedType === "todos") {
-      const filter = filters.categoriesFilter.toLowerCase();
+    if (filters.categoriesFilter) {
+      const filter = filters.categoriesFilter;
       data = data.filter((item) => {
+        // Case: categories is an array of objects (check ID)
         if (item.categories && Array.isArray(item.categories)) {
-          return item.categories.some((cat: any) => cat.title?.toLowerCase().includes(filter));
+          return item.categories.some((cat: any) =>
+            typeof cat === "object" ? cat.id === filter : cat === filter
+          );
         }
+        // Case: item has a direct categoryId field
+        if (item.categoryId && item.categoryId === filter) return true;
+
         return false;
       });
     }
@@ -291,12 +327,13 @@ export class FilterHelper {
       priorityFilter: "",
       startDateFilter: "",
       endDateFilter: "",
-      statusFilter: "all",
+      statusFilter: "active",
       isCompletedFilter: "all",
       userFilter: "",
       categoriesFilter: "",
       todoIdFilter: "",
       taskIdFilter: "",
+      visibilityFilter: "all",
       sortBy: "created_at",
       sortOrder: "desc",
     };

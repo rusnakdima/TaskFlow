@@ -10,20 +10,13 @@
 </ng-template>
 
 @if (todo) {
-  <div
-    cdkDrag
-    class="flex h-full flex-col"
-    (cdkDragStarted)="onDragStarted()"
-    (cdkDragEnded)="onDragEnded()"
-  >
+  <div class="flex h-full flex-col">
     <div
       class="group box-border flex min-h-full grow cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-all duration-200 ease-in-out hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
       [ngClass]="{
         'animate-pulse ring-4 ring-blue-500': highlight,
         'opacity-60 grayscale': todo.deleted_at,
         'border-blue-500 bg-blue-50 dark:bg-blue-900/20': isSelected,
-        'z-10 scale-105 shadow-2xl': isDragging(),
-        'pointer-events-none': isDragging() && !isSelected,
       }"
       [routerLink]="['/todos/' + todo.id + '/tasks']"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
@@ -218,7 +211,6 @@
           }
         </div>
       </div>
-      <div *cdkDragPlaceholder class="min-h-[200px] w-full"></div>
     </div>
   </div>
 }

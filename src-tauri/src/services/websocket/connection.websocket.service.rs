@@ -129,6 +129,30 @@ impl ConnectionManager {
           .handle_delete(request, sync_metadata)
           .await
       }
+      "permanent-delete" => {
+        self
+          .crud_handlers
+          .handle_delete(request, sync_metadata)
+          .await
+      }
+      "soft-delete-cascade" => {
+        self
+          .crud_handlers
+          .handle_delete(request, sync_metadata)
+          .await
+      }
+      "restore-cascade" => {
+        self
+          .crud_handlers
+          .handle_restore_cascade(request, sync_metadata)
+          .await
+      }
+      "sync-to-provider" => {
+        self
+          .crud_handlers
+          .handle_sync_to_provider(request, sync_metadata)
+          .await
+      }
       "restore" => {
         self
           .crud_handlers

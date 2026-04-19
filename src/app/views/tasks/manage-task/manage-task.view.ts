@@ -322,17 +322,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
       const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
       const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
 
-      // Ensure id is included in the update payload
-      const body = {
-        ...convertedDates,
-        id: formValue.id, // Include id field for backend validation
-      };
+      const { _id, ...updateData } = convertedDates;
 
       // Update task via ApiProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
         .crud<Task>("update", "tasks", {
-          id: body.id,
-          data: body,
+          id: formValue.id,
+          data: updateData,
           parentTodoId: todoId,
           isPrivate: isPrivate,
         })

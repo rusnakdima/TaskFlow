@@ -29,7 +29,7 @@ use routes::{
   manage_db_route::{
     exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
     permanentlyDeleteRecord, permanentlyDeleteRecordLocal, toggleDeleteStatus,
-    toggleDeleteStatusLocal,
+    toggleDeleteStatusLocal, syncVisibilityToProvider,
   },
   profile_route::{profileSyncAllForUser, profileSyncToCloud},
   statistics_route::statisticsGet,
@@ -86,6 +86,14 @@ pub fn run() {
 
       let jsonProvider = tauri::async_runtime::block_on(JsonProvider::new(&jsonDbPath))
         .expect("Failed to create JSON provider");
+
+      let logDir = documentDir.join(&configHelper.appHomeFolder).join("logs");
+      std::fs::create_dir_all(&logDir).ok();
+
+      let json_logged = nosql_orm::logging::DbQueryLogger::new(Arc::new(jsonProvider.clone()))
+        .with_max_logs(10000)
+        .with_retention_count(1000);
+      let _json_logged = Arc::new(json_logged);
 
       let mongodbProvider = {
         let uri = configHelper.mongoDbUri.clone();
@@ -205,11 +213,12 @@ pub fn run() {
       getAllDataForAdmin,
       getAllDataForArchive,
       importToLocal,
-      manageData,
-      permanentlyDeleteRecord,
-      permanentlyDeleteRecordLocal,
-      toggleDeleteStatus,
-      toggleDeleteStatusLocal,
+manageData,
+    permanentlyDeleteRecord,
+    permanentlyDeleteRecordLocal,
+    toggleDeleteStatus,
+    toggleDeleteStatusLocal,
+    syncVisibilityToProvider,
       profileSyncToCloud,
       profileSyncAllForUser,
       statisticsGet

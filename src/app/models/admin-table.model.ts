@@ -5,12 +5,14 @@ export type AdminFieldType =
   | "priority"
   | "status"
   | "user"
-  | "array-count";
+  | "array-count"
+  | "select";
 
 export interface AdminFieldConfig {
   key: string;
   label: string;
   type: AdminFieldType;
+  options?: string[];
   getValue?: (item: any) => any;
   getChipColor?: (value: any) => string;
   getChipText?: (value: any) => string;
@@ -28,6 +30,8 @@ export interface AdminFilterState {
   categoriesFilter: string;
   todoIdFilter: string;
   taskIdFilter: string;
+  visibilityFilter: string;
+  deletedFilter: string;
   sortBy: string;
   sortOrder: "asc" | "desc";
 }
