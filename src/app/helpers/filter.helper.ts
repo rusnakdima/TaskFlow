@@ -334,6 +334,7 @@ export class FilterHelper {
       todoIdFilter: "",
       taskIdFilter: "",
       visibilityFilter: "all",
+      deletedFilter: "all",
       sortBy: "created_at",
       sortOrder: "desc",
     };
