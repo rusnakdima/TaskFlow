@@ -117,3 +117,29 @@ pub async fn permanentlyDeleteRecordLocal(
     .permanentlyDeleteRecordLocal(table, id)
     .await
 }
+
+#[tauri::command]
+pub async fn syncVisibilityToProvider(
+  state: State<'_, AppState>,
+  todoId: String,
+  sourceProvider: String,
+  targetProvider: String,
+) -> Result<ResponseModel, ResponseModel> {
+  use crate::entities::provider_type_entity::ProviderType;
+
+  let source = if sourceProvider == "Mongo" {
+    ProviderType::Mongo
+  } else {
+    ProviderType::Json
+  };
+  let target = if targetProvider == "Mongo" {
+    ProviderType::Mongo
+  } else {
+    ProviderType::Json
+  };
+
+  state
+    .repositoryService
+    .handle_sync_visibility_to_provider(todoId, source, target)
+    .await
+}

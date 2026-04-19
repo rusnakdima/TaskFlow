@@ -94,15 +94,15 @@ export const routes: Routes = [
       },
       {
         path: "admin",
-        loadComponent: () => import("@views/admin/admin.view").then((m) => m.AdminView),
+        loadComponent: () => import("@views/data-management/data-management.view").then((m) => m.DataManagementView),
         title: "Admin",
-        data: { breadcrumb: "Admin" },
+        data: { breadcrumb: "Admin", mode: "admin" },
       },
       {
         path: "archive",
-        loadComponent: () => import("@views/archive/archive.view").then((m) => m.ArchiveView),
+        loadComponent: () => import("@views/data-management/data-management.view").then((m) => m.DataManagementView),
         title: "Archive",
-        data: { breadcrumb: "Archive" },
+        data: { breadcrumb: "Archive", mode: "archive" },
       },
       {
         path: "settings",

@@ -327,7 +327,19 @@ impl RepositoryService {
       "create" => self.handle_create(table, data, sync_metadata).await,
       "update" => self.handle_update(table, id, data, sync_metadata).await,
       "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
-      "delete" => self.handle_delete(table, id, sync_metadata).await,
+      "delete" => self.handle_delete(table, id, sync_metadata, false).await,
+      "permanent-delete" => self.handle_permanent_delete_cascade(table, id, sync_metadata).await,
+      "soft-delete-cascade" => self.handle_soft_delete_cascade(table, id, sync_metadata).await,
+      "restore-cascade" => self.handle_restore_cascade(table, id, sync_metadata).await,
+      "sync-to-provider" => {
+        let target = if let Some(ref metadata) = sync_metadata {
+          getProviderType(metadata).unwrap_or(ProviderType::Json)
+        } else {
+          ProviderType::Json
+        };
+        let id_str = id.ok_or_else(|| errResponse("ID required for sync"))?;
+        self.handle_sync_to_provider(table, id_str, target, sync_metadata).await
+      }
       "restore" => self.handle_restore(table, id, sync_metadata).await,
       _ => Err(errResponse(&format!("Unknown operation: {}", operation))),
     }
@@ -339,7 +351,7 @@ impl RepositoryService {
     filter: Option<Value>,
     _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
-    _sync_metadata: Option<SyncMetadata>,
+    sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
@@ -362,23 +374,19 @@ impl RepositoryService {
       }
     }
 
-    let json_docs = self
-      .jsonProvider
-      .find_many(&table, orm_filter.as_ref(), None, None, None, true)
-      .await
-      .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?;
-
-    let mut docs = if !json_docs.is_empty() {
-      json_docs
+    let mut docs = if self.use_json_provider(sync_metadata.as_ref()) {
+      self
+        .jsonProvider
+        .find_many(&table, orm_filter.as_ref(), None, None, None, true)
+        .await
+        .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
+    } else if let Some(ref mongo) = self.mongodbProvider {
+      mongo
+        .find_many(&table, orm_filter.as_ref(), None, None, None, true)
+        .await
+        .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
     } else {
-      if let Some(ref mongo) = self.mongodbProvider {
-        mongo
-          .find_many(&table, orm_filter.as_ref(), None, None, None, true)
-          .await
-          .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
-      } else {
-        Vec::new()
-      }
+      Vec::new()
     };
 
     if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
@@ -448,6 +456,8 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| errResponse("Data required for create"))?;
 
+    eprintln!("[RepositoryService] handle_create table={} sync_metadata={:?}", table, sync_metadata);
+
     if table == "profiles" {
       return self.create_profile_with_user_update(data_val).await;
     }
@@ -462,13 +472,17 @@ impl RepositoryService {
       .map(|m| !m.isPrivate && m.isOwner)
       .unwrap_or(false);
 
+    eprintln!("[RepositoryService] is_team_entity={} use_json={}", is_team_entity, self.use_json_provider(sync_metadata.as_ref()));
+
     let created_record = if self.use_json_provider(sync_metadata.as_ref()) {
+      eprintln!("[RepositoryService] INSERTING INTO JSON provider");
       self
         .jsonProvider
         .insert(&table, validated_data.clone())
         .await
         .map_err(|e| errResponseFormatted("Create failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
+      eprintln!("[RepositoryService] INSERTING INTO MONGODB provider");
       mongo
         .insert(&table, validated_data.clone())
         .await
@@ -477,12 +491,8 @@ impl RepositoryService {
       return Err(errResponse("No provider available"));
     };
 
-    if is_team_entity {
-      let _ = self
-        .jsonProvider
-        .insert(&table, created_record.clone())
-        .await;
-    }
+    // Team entities ONLY go to MongoDB, private entities ONLY go to JSON
+    // No dual-write - CDC captures changes for audit purposes
 
     if let Some(ref cache) = self.queryCache {
       let _ = cache.invalidate_collection(&table).await;
@@ -514,7 +524,7 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     data: Option<Value>,
-    sync_metadata: Option<SyncMetadata>,
+    _sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("Data required for update"))?;
     let data_val = data.ok_or_else(|| errResponse("Data required for update"))?;
@@ -524,31 +534,48 @@ impl RepositoryService {
     let validated_data = validateModel(&table, &data_val, false)
       .map_err(|e| errResponseFormatted("Validation failed", &e))?;
 
-    let is_team_entity = sync_metadata
-      .as_ref()
-      .map(|m| !m.isPrivate && m.isOwner)
-      .unwrap_or(false);
-
-    let updated_record = if self.use_json_provider(sync_metadata.as_ref()) {
-      self
-        .jsonProvider
-        .update(&table, &id_str, validated_data.clone())
-        .await
-        .map_err(|e| errResponseFormatted("Update failed", &e.to_string()))?
-    } else if let Some(ref mongo) = self.mongodbProvider {
-      mongo
-        .update(&table, &id_str, validated_data.clone())
-        .await
-        .map_err(|e| errResponseFormatted("Update failed", &e.to_string()))?
-    } else {
-      return Err(errResponse("No provider available"));
+    // Find where the entity currently exists (check both providers)
+    let (updated_record, was_in_json) = match self.jsonProvider.find_by_id(&table, &id_str).await {
+      Ok(Some(record)) => {
+        // Record exists in JSON - update there
+        let updated = self
+          .jsonProvider
+          .update(&table, &id_str, validated_data.clone())
+          .await
+          .map_err(|e| errResponseFormatted("Update failed in JSON", &e.to_string()))?;
+        (updated, true)
+      }
+      _ => {
+        if let Some(ref mongo) = self.mongodbProvider {
+          match mongo.find_by_id(&table, &id_str).await {
+            Ok(Some(record)) => {
+              let updated = mongo
+                .update(&table, &id_str, validated_data.clone())
+                .await
+                .map_err(|e| errResponseFormatted("Update failed in MongoDB", &e.to_string()))?;
+              (updated, false)
+            }
+            _ => {
+              return Err(errResponseFormatted("Record not found", &format!("{}/{}", table, id_str)));
+            }
+          }
+        } else {
+          return Err(errResponse("Record not found and no MongoDB available"));
+        }
+      }
     };
 
-    if is_team_entity {
-      let _ = self
-        .jsonProvider
-        .update(&table, &id_str, updated_record.clone())
-        .await;
+    // Get the new visibility from the data if it was changed
+    let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
+    if let Some(new_vis) = new_visibility {
+      // Visibility changed - sync to the OTHER provider
+      let target_is_json = new_vis == "private";
+      if target_is_json != was_in_json {
+        // Need visibility sync to target provider
+        let source = if was_in_json { ProviderType::Json } else { ProviderType::Mongo };
+        let target = if target_is_json { ProviderType::Json } else { ProviderType::Mongo };
+        let _ = self.handle_sync_visibility_to_provider(id_str.clone(), source, target).await;
+      }
     }
 
     if let Some(ref cache) = self.queryCache {
@@ -616,6 +643,7 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     sync_metadata: Option<SyncMetadata>,
+    is_permanent: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| errResponse("ID required for delete"))?;
 
@@ -625,37 +653,42 @@ impl RepositoryService {
       ProviderType::Json
     };
 
-    let _ = if self.use_json_provider(sync_metadata.as_ref()) {
-      self
-        .jsonProvider
-        .delete(&table, &id_str)
-        .await
-        .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?
-    } else if let Some(ref mongo) = self.mongodbProvider {
-      mongo
-        .delete(&table, &id_str)
-        .await
-        .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?
-    } else {
-      return Err(errResponse("No provider available"));
-    };
-
-    match provider_type {
-      ProviderType::Mongo => {
-        self
-          .cascadeService
-          .handleMongoCascade(&table, &id_str, false)
-          .await?;
-        let _ = self
-          .cascadeService
-          .handleJsonCascade(&table, &id_str, false)
-          .await;
+    if is_permanent {
+      match provider_type {
+        ProviderType::Mongo => {
+          if let Some(ref mongo) = self.mongodbProvider {
+            let _ = mongo
+              .delete(&table, &id_str)
+              .await
+              .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?;
+          }
+          self.cascadeService
+            .permanent_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
+        _ => {
+          let _ = self
+            .jsonProvider
+            .delete(&table, &id_str)
+            .await
+            .map_err(|e| errResponseFormatted("Delete failed", &e.to_string()))?;
+          self.cascadeService
+            .permanent_delete_cascade_json(&table, &id_str)
+            .await?;
+        }
       }
-      _ => {
-        self
-          .cascadeService
-          .handleJsonCascade(&table, &id_str, false)
-          .await?;
+    } else {
+      match provider_type {
+        ProviderType::Mongo => {
+          self.cascadeService
+            .soft_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
+        _ => {
+          self.cascadeService
+            .soft_delete_cascade_json(&table, &id_str)
+            .await?;
+        }
       }
     }
 
@@ -674,6 +707,535 @@ impl RepositoryService {
       .logAction(&table, "delete", &json!({"id": id_str.clone()}), None)
       .await;
     Ok(successResponse(DataValue::String(id_str)))
+  }
+
+  async fn handle_soft_delete_cascade(
+    &self,
+    table: String,
+    id: Option<String>,
+    sync_metadata: Option<SyncMetadata>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.handle_delete(table, id, sync_metadata, false).await
+  }
+
+  async fn handle_permanent_delete_cascade(
+    &self,
+    table: String,
+    id: Option<String>,
+    sync_metadata: Option<SyncMetadata>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.handle_delete(table, id, sync_metadata, true).await
+  }
+
+  async fn handle_restore_cascade(
+    &self,
+    table: String,
+    id: Option<String>,
+    sync_metadata: Option<SyncMetadata>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let id_str = id.ok_or_else(|| errResponse("ID required for restore"))?;
+
+    let provider_type = if let Some(ref metadata) = sync_metadata {
+      getProviderType(metadata).unwrap_or(ProviderType::Json)
+    } else {
+      ProviderType::Json
+    };
+
+    match provider_type {
+      ProviderType::Mongo => {
+        self.cascadeService
+          .restore_cascade_mongo(&table, &id_str)
+          .await?;
+      }
+      _ => {
+        self.cascadeService
+          .restore_cascade_json(&table, &id_str)
+          .await?;
+      }
+    }
+
+    Ok(successResponse(DataValue::String(id_str)))
+  }
+
+  async fn handle_sync_to_provider(
+    &self,
+    table: String,
+    id: String,
+    target_provider: ProviderType,
+    sync_metadata: Option<SyncMetadata>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    match target_provider {
+      ProviderType::Mongo => {
+        self.cascadeService
+          .sync_entity_to_mongo(&table, &id)
+          .await?;
+      }
+      _ => {
+        self.cascadeService
+          .sync_entity_to_json(&table, &id)
+          .await?;
+      }
+    }
+
+    Ok(successResponse(DataValue::String(id)))
+  }
+
+pub async fn handle_sync_visibility_to_provider(
+    &self,
+    todo_id: String,
+    source_provider: ProviderType,
+    target_provider: ProviderType,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mut synced_count = 0;
+    let new_visibility = if target_provider == ProviderType::Mongo { "team" } else { "private" };
+
+    eprintln!("[RepositoryService] handle_sync_visibility todo_id={} source={:?} target={:?} new_visibility={}",
+        todo_id, source_provider, target_provider, new_visibility);
+    eprintln!("[RepositoryService] mongodbProvider.is_some()={}", self.mongodbProvider.is_some());
+
+    if source_provider == ProviderType::Json {
+      eprintln!("[RepositoryService] SOURCE=JSON - reading from JSON and syncing to MongoDB");
+      let todos = self.jsonProvider.find_many("todos", None, None, None, None, false).await.unwrap_or_default();
+      let tasks = self.jsonProvider.find_many("tasks", None, None, None, None, false).await.unwrap_or_default();
+      let subtasks = self.jsonProvider.find_many("subtasks", None, None, None, None, false).await.unwrap_or_default();
+      let comments = self.jsonProvider.find_many("comments", None, None, None, None, false).await.unwrap_or_default();
+      let chats = self.jsonProvider.find_many("chats", None, None, None, None, false).await.unwrap_or_default();
+
+      eprintln!("[RepositoryService] Found todos={} tasks={} subtasks={} comments={} chats={}",
+          todos.len(), tasks.len(), subtasks.len(), comments.len(), chats.len());
+
+      for todo in todos.iter().filter(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
+          let mut updated = todo.clone();
+          if let Some(obj) = updated.as_object_mut() {
+            obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+          }
+          if let Some(ref mongo) = self.mongodbProvider {
+            let existing = mongo.find_by_id("todos", id).await.ok().flatten();
+            let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+            let entity_time = updated.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+            let should_sync = existing_time.map(|e| {
+              match entity_time {
+                Some(n) if n > e => true,
+                None => true,
+                _ => false,
+              }
+            }).unwrap_or(true);
+
+if should_sync {
+  if existing.is_some() {
+    let _ = mongo.patch("todos", id, updated.clone()).await;
+  } else {
+    let _ = mongo.insert("todos", updated.clone()).await;
+  }
+  // Mark as deleted in JSON (source) and ensure active in Mongo (target)
+  let now = chrono::Utc::now().to_rfc3339();
+  let _ = self.jsonProvider.patch("todos", id, serde_json::json!({ 
+    "visibility": new_visibility,
+    "deleted_at": now 
+  })).await;
+  let _ = mongo.patch("todos", id, serde_json::json!({ "deleted_at": serde_json::Value::Null })).await;
+  synced_count += 1;
+}          }
+        }
+      }
+
+      for task in tasks.iter().filter(|t| t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = task.get("id").and_then(|v| v.as_str()) {
+          if let Some(ref mongo) = self.mongodbProvider {
+            eprintln!("[RepositoryService] Syncing task id={}", id);
+            let existing = mongo.find_by_id("tasks", id).await.ok().flatten();
+            eprintln!("[RepositoryService] Task exists in MongoDB: {}", existing.is_some());
+            let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+            let entity_time = task.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+            let should_sync = existing_time.map(|e| {
+              match entity_time {
+                Some(n) if n > e => true,
+                None => true,
+                _ => false,
+              }
+            }).unwrap_or(true);
+
+            if should_sync {
+              eprintln!("[RepositoryService] Should sync={} existing.is_some()={}", should_sync, existing.is_some());
+              if existing.is_some() {
+                eprintln!("[RepositoryService] PATCHING task to MongoDB");
+                let mut patch_with_visibility = task.clone();
+                if let Some(obj) = patch_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let result = mongo.patch("tasks", id, patch_with_visibility).await;
+                eprintln!("[RepositoryService] PATCH result: {:?}", result);
+              } else {
+                eprintln!("[RepositoryService] INSERTING task to MongoDB");
+                let mut task_with_todo = task.clone();
+                if let Some(obj) = task_with_todo.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let result = mongo.insert("tasks", task_with_todo).await;
+                eprintln!("[RepositoryService] INSERT result: {:?}", result);
+              }
+              // Mark as deleted in JSON (source)
+              let now = chrono::Utc::now().to_rfc3339();
+              let _ = self.jsonProvider.patch("tasks", id, serde_json::json!({ 
+                "visibility": new_visibility,
+                "deleted_at": now 
+              })).await;
+              synced_count += 1;
+            }
+          }
+        }
+      }
+
+      for subtask in subtasks.iter() {
+        let is_child = tasks.iter().any(|t| t.get("id") == subtask.get("taskId") && t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id));
+        if is_child {
+          if let Some(id) = subtask.get("id").and_then(|v| v.as_str()) {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let existing = mongo.find_by_id("subtasks", id).await.ok().flatten();
+              let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+              let entity_time = subtask.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+              let should_sync = existing_time.map(|e| {
+                match entity_time {
+                  Some(n) if n > e => true,
+                  None => true,
+                  _ => false,
+                }
+              }).unwrap_or(true);
+
+              if should_sync {
+                if existing.is_some() {
+                  let mut patch_with_visibility = subtask.clone();
+                  if let Some(obj) = patch_with_visibility.as_object_mut() {
+                    obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                    obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                  }
+                  let _ = mongo.patch("subtasks", id, patch_with_visibility).await;
+                } else {
+                  let mut subtask_with_visibility = subtask.clone();
+                  if let Some(obj) = subtask_with_visibility.as_object_mut() {
+                    obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                    obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                  }
+                  let _ = mongo.insert("subtasks", subtask_with_visibility).await;
+                }
+                // Mark as deleted in JSON (source)
+                let now = chrono::Utc::now().to_rfc3339();
+                let _ = self.jsonProvider.patch("subtasks", id, serde_json::json!({ 
+                  "visibility": new_visibility,
+                  "deleted_at": now 
+                })).await;
+                synced_count += 1;
+              }
+            }
+          }
+        }
+      }
+
+      for comment in comments.iter() {
+        let comment_task_id = comment.get("taskId").and_then(|v| v.as_str());
+        let comment_subtask_id = comment.get("subtaskId").and_then(|v| v.as_str());
+        let is_child = tasks.iter().any(|t| t.get("id").and_then(|v| v.as_str()) == comment_task_id) ||
+                       subtasks.iter().any(|s| s.get("id").and_then(|v| v.as_str()) == comment_subtask_id);
+        if is_child {
+          if let Some(id) = comment.get("id").and_then(|v| v.as_str()) {
+            if let Some(ref mongo) = self.mongodbProvider {
+              let existing = mongo.find_by_id("comments", id).await.ok().flatten();
+              let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+              let entity_time = comment.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+              let should_sync = existing_time.map(|e| {
+                match entity_time {
+                  Some(n) if n > e => true,
+                  None => true,
+                  _ => false,
+                }
+              }).unwrap_or(true);
+
+              if should_sync {
+                if existing.is_some() {
+                  let mut patch_with_visibility = comment.clone();
+                  if let Some(obj) = patch_with_visibility.as_object_mut() {
+                    obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                    obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                  }
+                  let _ = mongo.patch("comments", id, patch_with_visibility).await;
+                } else {
+                  let mut comment_with_visibility = comment.clone();
+                  if let Some(obj) = comment_with_visibility.as_object_mut() {
+                    obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                    obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                  }
+                  let _ = mongo.insert("comments", comment_with_visibility).await;
+                }
+                // Mark as deleted in JSON (source)
+                let now = chrono::Utc::now().to_rfc3339();
+                let _ = self.jsonProvider.patch("comments", id, serde_json::json!({ 
+                  "visibility": new_visibility,
+                  "deleted_at": now 
+                })).await;
+                synced_count += 1;
+              }
+            }
+          }
+        }
+      }
+
+      for chat in chats.iter().filter(|c| c.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = chat.get("id").and_then(|v| v.as_str()) {
+          if let Some(ref mongo) = self.mongodbProvider {
+            let existing = mongo.find_by_id("chats", id).await.ok().flatten();
+            let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+            let entity_time = chat.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+            let should_sync = existing_time.map(|e| {
+              match entity_time {
+                Some(n) if n > e => true,
+                None => true,
+                _ => false,
+              }
+            }).unwrap_or(true);
+
+            if should_sync {
+              if existing.is_some() {
+                let mut patch_with_visibility = chat.clone();
+                if let Some(obj) = patch_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = mongo.patch("chats", id, patch_with_visibility).await;
+              } else {
+                let mut chat_with_visibility = chat.clone();
+                if let Some(obj) = chat_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = mongo.insert("chats", chat_with_visibility).await;
+              }
+              // Mark as deleted in JSON (source)
+              let now = chrono::Utc::now().to_rfc3339();
+              let _ = self.jsonProvider.patch("chats", id, serde_json::json!({ 
+                "visibility": new_visibility,
+                "deleted_at": now 
+              })).await;
+              synced_count += 1;
+            }
+          }
+        }
+      }
+    } else if let Some(ref mongo) = self.mongodbProvider {
+      let todos = mongo.find_many("todos", None, None, None, None, false).await.unwrap_or_default();
+      let tasks = mongo.find_many("tasks", None, None, None, None, false).await.unwrap_or_default();
+      let subtasks = mongo.find_many("subtasks", None, None, None, None, false).await.unwrap_or_default();
+      let comments = mongo.find_many("comments", None, None, None, None, false).await.unwrap_or_default();
+      let chats = mongo.find_many("chats", None, None, None, None, false).await.unwrap_or_default();
+
+      for todo in todos.iter().filter(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
+          let mut updated = todo.clone();
+          if let Some(obj) = updated.as_object_mut() {
+            obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+          }
+          let existing = self.jsonProvider.find_by_id("todos", id).await.ok().flatten();
+          let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+          let entity_time = updated.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+          let should_sync = existing_time.map(|e| {
+            match entity_time {
+              Some(n) if n > e => true,
+              None => true,
+              _ => false,
+            }
+          }).unwrap_or(true);
+
+          if should_sync {
+            if existing.is_some() {
+              let _ = self.jsonProvider.patch("todos", id, updated.clone()).await;
+            } else {
+              let _ = self.jsonProvider.insert("todos", updated.clone()).await;
+            }
+            // Mark as deleted in MongoDB (source) and ensure active in JSON (target)
+            let now = chrono::Utc::now().to_rfc3339();
+            let _ = mongo.patch("todos", id, serde_json::json!({ 
+              "visibility": new_visibility,
+              "deleted_at": now 
+            })).await;
+            let _ = self.jsonProvider.patch("todos", id, serde_json::json!({ "deleted_at": serde_json::Value::Null })).await;
+            synced_count += 1;
+          }
+        }
+      }
+
+      for task in tasks.iter().filter(|t| t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = task.get("id").and_then(|v| v.as_str()) {
+          let existing = self.jsonProvider.find_by_id("tasks", id).await.ok().flatten();
+          let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+          let entity_time = task.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+          let should_sync = existing_time.map(|e| {
+            match entity_time {
+              Some(n) if n > e => true,
+              None => true,
+              _ => false,
+            }
+          }).unwrap_or(true);
+
+          if should_sync {
+            if existing.is_some() {
+              let mut patch_with_visibility = task.clone();
+              if let Some(obj) = patch_with_visibility.as_object_mut() {
+                obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+              }
+              let _ = self.jsonProvider.patch("tasks", id, patch_with_visibility).await;
+            } else {
+              let mut task_with_visibility = task.clone();
+              if let Some(obj) = task_with_visibility.as_object_mut() {
+                obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+              }
+              let _ = self.jsonProvider.insert("tasks", task_with_visibility).await;
+            }
+            // Mark as deleted in MongoDB (source)
+            let now = chrono::Utc::now().to_rfc3339();
+            let _ = mongo.patch("tasks", id, serde_json::json!({ 
+              "visibility": new_visibility,
+              "deleted_at": now 
+            })).await;
+            synced_count += 1;
+          }
+        }
+      }
+
+      for subtask in subtasks.iter() {
+        let is_child = tasks.iter().any(|t| t.get("id") == subtask.get("taskId") && t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id));
+        if is_child {
+          if let Some(id) = subtask.get("id").and_then(|v| v.as_str()) {
+            let existing = self.jsonProvider.find_by_id("subtasks", id).await.ok().flatten();
+            let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+            let entity_time = subtask.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+            let should_sync = existing_time.map(|e| {
+              match entity_time {
+                Some(n) if n > e => true,
+                None => true,
+                _ => false,
+              }
+            }).unwrap_or(true);
+
+            if should_sync {
+              if existing.is_some() {
+                let mut patch_with_visibility = subtask.clone();
+                if let Some(obj) = patch_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.patch("subtasks", id, patch_with_visibility).await;
+              } else {
+                let mut subtask_with_visibility = subtask.clone();
+                if let Some(obj) = subtask_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.insert("subtasks", subtask_with_visibility).await;
+              }
+              // Mark as deleted in MongoDB (source)
+              let now = chrono::Utc::now().to_rfc3339();
+              let _ = mongo.patch("subtasks", id, serde_json::json!({ 
+                "visibility": new_visibility,
+                "deleted_at": now 
+              })).await;
+              synced_count += 1;
+            }
+          }
+        }
+      }
+
+      for comment in comments.iter() {
+        let comment_task_id = comment.get("taskId").and_then(|v| v.as_str());
+        let comment_subtask_id = comment.get("subtaskId").and_then(|v| v.as_str());
+        let is_child = tasks.iter().any(|t| t.get("id").and_then(|v| v.as_str()) == comment_task_id) ||
+                       subtasks.iter().any(|s| s.get("id").and_then(|v| v.as_str()) == comment_subtask_id);
+        if is_child {
+          if let Some(id) = comment.get("id").and_then(|v| v.as_str()) {
+            let existing = self.jsonProvider.find_by_id("comments", id).await.ok().flatten();
+            let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+            let entity_time = comment.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+            let should_sync = existing_time.map(|e| {
+              match entity_time {
+                Some(n) if n > e => true,
+                None => true,
+                _ => false,
+              }
+            }).unwrap_or(true);
+
+            if should_sync {
+              if existing.is_some() {
+                let mut patch_with_visibility = comment.clone();
+                if let Some(obj) = patch_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.patch("comments", id, patch_with_visibility).await;
+              } else {
+                let mut comment_with_visibility = comment.clone();
+                if let Some(obj) = comment_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.insert("comments", comment_with_visibility).await;
+              }
+              // Mark as deleted in MongoDB (source)
+              let now = chrono::Utc::now().to_rfc3339();
+              let _ = mongo.patch("comments", id, serde_json::json!({ 
+                "visibility": new_visibility,
+                "deleted_at": now 
+              })).await;
+              synced_count += 1;
+            }
+          }
+        }
+      }
+
+      for chat in chats.iter().filter(|c| c.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)) {
+        if let Some(id) = chat.get("id").and_then(|v| v.as_str()) {
+          let existing = self.jsonProvider.find_by_id("chats", id).await.ok().flatten();
+          let existing_time = existing.as_ref().and_then(|e| e.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()));
+          let entity_time = chat.get("updated_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+          let should_sync = existing_time.map(|e| {
+            match entity_time {
+              Some(n) if n > e => true,
+              None => true,
+              _ => false,
+            }
+          }).unwrap_or(true);
+
+            if should_sync {
+              if existing.is_some() {
+                let mut patch_with_visibility = chat.clone();
+                if let Some(obj) = patch_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.patch("chats", id, patch_with_visibility).await;
+              } else {
+                let mut chat_with_visibility = chat.clone();
+                if let Some(obj) = chat_with_visibility.as_object_mut() {
+                  obj.insert("visibility".to_string(), serde_json::json!(new_visibility));
+                  obj.insert("deleted_at".to_string(), serde_json::Value::Null);
+                }
+                let _ = self.jsonProvider.insert("chats", chat_with_visibility).await;
+              }
+              // Mark as deleted in MongoDB (source)
+              let now = chrono::Utc::now().to_rfc3339();
+              let _ = mongo.patch("chats", id, serde_json::json!({ 
+                "visibility": new_visibility,
+                "deleted_at": now 
+              })).await;
+              synced_count += 1;
+            }
+        }
+      }
+    }
+
+    Ok(successResponse(DataValue::Number(synced_count as f64)))
   }
 
   async fn handle_restore(

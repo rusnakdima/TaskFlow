@@ -1,33 +1,44 @@
 <div class="sync-status-container" matTooltip="{{ statusMessage }}">
-  <!-- Online/Offline Status -->
-  <div class="status-item" [class]="statusClass">
-    @if (isProcessing()) {
+  <!-- Visibility Sync Progress -->
+  @if (isSyncing()) {
+    <div class="status-item syncing">
       <div class="spinner-container">
         <mat-spinner diameter="16"></mat-spinner>
       </div>
-    } @else {
-      <mat-icon>{{ statusIcon }}</mat-icon>
-    }
+      <span class="sync-progress-text">{{ syncMessage() }}</span>
+      <span class="badge syncing">{{ syncProgress() }}%</span>
+    </div>
+  } @else {
+    <!-- Online/Offline Status -->
+    <div class="status-item" [class]="statusClass">
+      @if (isProcessing()) {
+        <div class="spinner-container">
+          <mat-spinner diameter="16"></mat-spinner>
+        </div>
+      } @else {
+        <mat-icon>{{ statusIcon }}</mat-icon>
+      }
 
-    @if (pendingCount() > 0) {
-      <span class="badge pending">{{ pendingCount() }}</span>
-    }
+      @if (pendingCount() > 0) {
+        <span class="badge pending">{{ pendingCount() }}</span>
+      }
 
-    @if (conflictCount() > 0) {
-      <span class="badge conflict">{{ conflictCount() }}</span>
-    }
-  </div>
+      @if (conflictCount() > 0) {
+        <span class="badge conflict">{{ conflictCount() }}</span>
+      }
+    </div>
 
-  <!-- Sync Button (visible when offline or has pending) -->
-  @if (hasPendingOperations() || !isOnline()) {
-    <button
-      mat-icon-button
-      (click)="triggerSync()"
-      [disabled]="!isOnline()"
-      matTooltip="Sync now"
-      class="sync-button"
-    >
-      <mat-icon>sync</mat-icon>
-    </button>
+    <!-- Sync Button (visible when offline or has pending) -->
+    @if (hasPendingOperations() || !isOnline()) {
+      <button
+        mat-icon-button
+        (click)="triggerSync()"
+        [disabled]="!isOnline()"
+        matTooltip="Sync now"
+        class="sync-button"
+      >
+        <mat-icon>sync</mat-icon>
+      </button>
+    }
   }
 </div>

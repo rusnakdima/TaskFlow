@@ -1,6 +1,7 @@
 @if (task) {
   <div cdkDrag class="flex h-full flex-col" [class.expanded]="isExpanded">
     <div
+      cdkDragDisabled
       class="group box-border flex min-h-full grow cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-lg hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
       [ngClass]="{ 'animate-pulse ring-4 ring-green-500': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"

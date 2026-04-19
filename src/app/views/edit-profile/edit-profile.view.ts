@@ -137,8 +137,9 @@ export class EditProfileView {
 
     if (this.form.valid) {
       const body = this.form.value;
+      const { _id, ...updateData } = body;
       this.dataSyncProvider
-        .crud<Profile>("update", "profiles", { id: body.id, data: body })
+        .crud<Profile>("update", "profiles", { id: body.id, data: updateData })
         .subscribe({
           next: () => {
             this.notifyService.showSuccess("Profile updated successfully");

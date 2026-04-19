@@ -45,15 +45,18 @@ export class CrudParamsBuilder {
       throw new Error(`Table '${table}' is not supported. Allowed: ${ALLOWED_TABLES.join(", ")}`);
     }
 
+    const isChildEntity = options.parentTodoId && ["tasks", "subtasks", "comments", "chats"].includes(table);
     const metadata =
       options.isOwner !== undefined
         ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
-        : resolveMetadataFn(
-            table,
-            options.parentTodoId || options.data?.todoId,
-            options.data,
-            options.id
-          );
+        : isChildEntity
+          ? { isOwner: true, isPrivate: false }
+          : resolveMetadataFn(
+              table,
+              options.parentTodoId || options.data?.todoId,
+              options.data,
+              options.id
+            );
 
     const load = options.load;
     const relations = !load
