@@ -54,8 +54,7 @@ impl WithRelations for SubtaskEntity {
     use nosql_orm::sql::types::SqlOnDelete;
     vec![
       RelationDef::many_to_one("task", "tasks", "taskId"),
-      RelationDef::one_to_many("comments", "comments", "subtaskId")
-        .on_delete(SqlOnDelete::Cascade),
+      RelationDef::one_to_many("comments", "comments", "subtaskId").on_delete(SqlOnDelete::Cascade),
     ]
   }
 }

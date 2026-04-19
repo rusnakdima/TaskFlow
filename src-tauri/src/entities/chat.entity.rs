@@ -48,9 +48,7 @@ impl SoftDeletable for ChatEntity {
 
 impl WithRelations for ChatEntity {
   fn relations() -> Vec<RelationDef> {
-    vec![
-      RelationDef::many_to_one("todo", "todos", "todoId"),
-    ]
+    vec![RelationDef::many_to_one("todo", "todos", "todoId")]
   }
 }
 

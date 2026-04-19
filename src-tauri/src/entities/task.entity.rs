@@ -80,10 +80,8 @@ impl WithRelations for TaskEntity {
   fn relations() -> Vec<RelationDef> {
     use nosql_orm::sql::types::SqlOnDelete;
     vec![
-      RelationDef::one_to_many("subtasks", "subtasks", "taskId")
-        .on_delete(SqlOnDelete::Cascade),
-      RelationDef::one_to_many("comments", "comments", "taskId")
-        .on_delete(SqlOnDelete::Cascade),
+      RelationDef::one_to_many("subtasks", "subtasks", "taskId").on_delete(SqlOnDelete::Cascade),
+      RelationDef::one_to_many("comments", "comments", "taskId").on_delete(SqlOnDelete::Cascade),
       RelationDef::many_to_one("todo", "todos", "todoId"),
     ]
   }

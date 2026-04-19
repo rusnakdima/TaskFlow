@@ -151,7 +151,9 @@ impl CascadeService {
             if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
               cascade_ids.add_task_id(task_id.to_string());
               self.collect_subtasks_json(task_id, &mut cascade_ids).await;
-              self.collect_comments_by_task_json(task_id, &mut cascade_ids).await;
+              self
+                .collect_comments_by_task_json(task_id, &mut cascade_ids)
+                .await;
             }
           }
         }
@@ -160,11 +162,15 @@ impl CascadeService {
       "tasks" => {
         cascade_ids.add_task_id(id.to_string());
         self.collect_subtasks_json(id, &mut cascade_ids).await;
-        self.collect_comments_by_task_json(id, &mut cascade_ids).await;
+        self
+          .collect_comments_by_task_json(id, &mut cascade_ids)
+          .await;
       }
       "subtasks" => {
         cascade_ids.add_subtask_id(id.to_string());
-        self.collect_comments_by_subtask_json(id, &mut cascade_ids).await;
+        self
+          .collect_comments_by_subtask_json(id, &mut cascade_ids)
+          .await;
       }
       "comments" => {
         cascade_ids.add_comment_id(id.to_string());
@@ -256,7 +262,9 @@ impl CascadeService {
               if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
                 cascade_ids.add_task_id(task_id.to_string());
                 self.collect_subtasks_mongo(task_id, &mut cascade_ids).await;
-                self.collect_comments_by_task_mongo(task_id, &mut cascade_ids).await;
+                self
+                  .collect_comments_by_task_mongo(task_id, &mut cascade_ids)
+                  .await;
               }
             }
           }
@@ -265,11 +273,15 @@ impl CascadeService {
         "tasks" => {
           cascade_ids.add_task_id(id.to_string());
           self.collect_subtasks_mongo(id, &mut cascade_ids).await;
-          self.collect_comments_by_task_mongo(id, &mut cascade_ids).await;
+          self
+            .collect_comments_by_task_mongo(id, &mut cascade_ids)
+            .await;
         }
         "subtasks" => {
           cascade_ids.add_subtask_id(id.to_string());
-          self.collect_comments_by_subtask_mongo(id, &mut cascade_ids).await;
+          self
+            .collect_comments_by_subtask_mongo(id, &mut cascade_ids)
+            .await;
         }
         "comments" => {
           cascade_ids.add_comment_id(id.to_string());
@@ -297,7 +309,11 @@ impl CascadeService {
     }
   }
 
-  async fn collect_comments_by_subtask_mongo(&self, subtask_id: &str, cascade_ids: &mut CascadeIds) {
+  async fn collect_comments_by_subtask_mongo(
+    &self,
+    subtask_id: &str,
+    cascade_ids: &mut CascadeIds,
+  ) {
     if let Some(ref mongo) = self.mongodb_provider {
       let filter = Filter::Eq("subtaskId".to_string(), serde_json::json!(subtask_id));
       if let Ok(comments) = mongo
@@ -316,7 +332,10 @@ impl CascadeService {
   async fn collect_chats_by_todo_mongo(&self, todo_id: &str, cascade_ids: &mut CascadeIds) {
     if let Some(ref mongo) = self.mongodb_provider {
       let filter = Filter::Eq("todoId".to_string(), serde_json::json!(todo_id));
-      if let Ok(chats) = mongo.find_many("chats", Some(&filter), None, None, None, true).await {
+      if let Ok(chats) = mongo
+        .find_many("chats", Some(&filter), None, None, None, true)
+        .await
+      {
         for chat in chats {
           if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
             cascade_ids.add_chat_id(chat_id.to_string());
@@ -375,7 +394,8 @@ impl CascadeService {
     let timestamp = chrono::Utc::now().to_rfc3339();
     let patch = json!({ "deleted_at": timestamp });
 
-    self.apply_cascade_patch_json(table, &cascade_ids, patch.clone())
+    self
+      .apply_cascade_patch_json(table, &cascade_ids, patch.clone())
       .await?;
     Ok(cascade_ids)
   }
@@ -392,7 +412,8 @@ impl CascadeService {
     let timestamp = chrono::Utc::now().to_rfc3339();
     let patch = json!({ "deleted_at": timestamp });
 
-    self.apply_cascade_patch_mongo(table, &cascade_ids, patch)
+    self
+      .apply_cascade_patch_mongo(table, &cascade_ids, patch)
       .await?;
     Ok(cascade_ids)
   }
@@ -434,7 +455,8 @@ impl CascadeService {
     let cascade_ids = self.collect_cascade_ids_json(table, id).await?;
     let patch = json!({ "deleted_at": serde_json::Value::Null });
 
-    self.apply_cascade_patch_json(table, &cascade_ids, patch)
+    self
+      .apply_cascade_patch_json(table, &cascade_ids, patch)
       .await?;
     Ok(cascade_ids)
   }
@@ -450,7 +472,8 @@ impl CascadeService {
     let cascade_ids = self.collect_cascade_ids_mongo(table, id).await?;
     let patch = json!({ "deleted_at": serde_json::Value::Null });
 
-    self.apply_cascade_patch_mongo(table, &cascade_ids, patch)
+    self
+      .apply_cascade_patch_mongo(table, &cascade_ids, patch)
       .await?;
     Ok(cascade_ids)
   }
@@ -511,10 +534,16 @@ impl CascadeService {
       let _ = self.json_provider.patch("tasks", id, patch.clone()).await;
     }
     for id in &cascade_ids.subtaskIds {
-      let _ = self.json_provider.patch("subtasks", id, patch.clone()).await;
+      let _ = self
+        .json_provider
+        .patch("subtasks", id, patch.clone())
+        .await;
     }
     for id in &cascade_ids.commentIds {
-      let _ = self.json_provider.patch("comments", id, patch.clone()).await;
+      let _ = self
+        .json_provider
+        .patch("comments", id, patch.clone())
+        .await;
     }
     for id in &cascade_ids.chatIds {
       let _ = self.json_provider.patch("chats", id, patch.clone()).await;
@@ -727,7 +756,10 @@ impl CascadeService {
         }));
       }
 
-      if let Ok(chats) = mongo.find_many("chats", None, None, None, None, false).await {
+      if let Ok(chats) = mongo
+        .find_many("chats", None, None, None, None, false)
+        .await
+      {
         docs.extend(chats.into_iter().filter(|d| {
           d.get("id")
             .and_then(|v| v.as_str())

@@ -163,11 +163,15 @@ impl AdminManager {
   ) -> Result<ResponseModel, ResponseModel> {
     if table == "todos" || table == "tasks" || table == "subtasks" {
       if self.cascadeService.mongodb_provider.is_some() {
-        self.cascadeService
+        self
+          .cascadeService
           .permanent_delete_cascade_mongo(&table, &id)
           .await?;
       }
-      let _ = self.cascadeService.permanent_delete_cascade_json(&table, &id).await;
+      let _ = self
+        .cascadeService
+        .permanent_delete_cascade_json(&table, &id)
+        .await;
     } else {
       if let Some(ref mongo) = self.cascadeService.mongodb_provider {
         let _ = mongo.delete(&table, &id).await;
@@ -188,7 +192,8 @@ impl AdminManager {
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
     if table == "todos" || table == "tasks" || table == "subtasks" {
-      self.cascadeService
+      self
+        .cascadeService
         .permanent_delete_cascade_json(&table, &id)
         .await?;
     } else {
@@ -231,11 +236,13 @@ impl AdminManager {
     let newStatus = !isDeleted;
 
     if newStatus {
-      self.cascadeService
+      self
+        .cascadeService
         .soft_delete_cascade_mongo(&table, &id)
         .await?;
     } else {
-      self.cascadeService
+      self
+        .cascadeService
         .restore_cascade_mongo(&table, &id)
         .await?;
     }
@@ -275,11 +282,13 @@ impl AdminManager {
     let newStatus = !isDeleted;
 
     if newStatus {
-      self.cascadeService
+      self
+        .cascadeService
         .soft_delete_cascade_json(&table, &id)
         .await?;
     } else {
-      self.cascadeService
+      self
+        .cascadeService
         .restore_cascade_json(&table, &id)
         .await?;
     }
