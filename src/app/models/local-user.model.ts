@@ -21,6 +21,8 @@ export interface LocalUser {
   localDataUpdatedAt: string;
   /** Whether this user data is available for offline auth */
   availableForOffline: boolean;
+  /** Associated profile ID */
+  profileId?: string;
 }
 
 /**

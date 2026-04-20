@@ -106,6 +106,19 @@ export class LocalAuthService {
   }
 
   /**
+   * Update user's profileId in local storage
+   */
+  updateUserProfileId(userId: string, profileId: string): void {
+    const users = this.getStoredUsers();
+    const existingIndex = users.findIndex((u) => u.id === userId);
+
+    if (existingIndex >= 0) {
+      users[existingIndex].profileId = profileId;
+      this.saveStoredUsers(users);
+    }
+  }
+
+  /**
    * Store user data after successful online authentication
    * This enables future offline authentication
    */
