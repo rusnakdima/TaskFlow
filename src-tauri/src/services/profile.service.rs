@@ -128,7 +128,7 @@ impl ProfileService {
       })?;
 
     for profileData in profiles {
-      if let Some(userIdField) = profileData.get("userId").and_then(|v| v.as_str()) {
+      if let Some(userIdField) = profileData.get("user_id").and_then(|v| v.as_str()) {
         if userIdField == userId {
           let _ = mongodbProvider
             .insert("profiles", profileData.clone())
@@ -148,11 +148,11 @@ impl ProfileService {
 /// Compare timestamps to determine if cloud should be updated
 fn shouldUpdateCloud(local: &Value, cloud: &Value) -> bool {
   let local_updated = local
-    .get("updatedAt")
+    .get("updated_at")
     .and_then(|v| v.as_str())
     .unwrap_or("");
   let cloud_updated = cloud
-    .get("updatedAt")
+    .get("updated_at")
     .and_then(|v| v.as_str())
     .unwrap_or("");
   local_updated > cloud_updated

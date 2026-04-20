@@ -67,7 +67,7 @@ impl AuthPasskeyService {
   pub async fn initRegistration(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.passkeyCredentialId.is_empty() && user.passkeyEnabled {
+    if !user.passkey_credential_id.is_empty() && user.passkey_enabled {
       return Err(errResponse(
         "Passkey already registered. Please disable it first.",
       ));
@@ -123,11 +123,11 @@ impl AuthPasskeyService {
     let user = self.findUser(username).await?;
 
     let mut updatedUser = user.clone();
-    updatedUser.passkeyCredentialId = passkey.cred_id().to_string();
-    updatedUser.passkeyPublicKey = serde_json::to_string(&passkey)
+    updatedUser.passkey_credential_id = passkey.cred_id().to_string();
+    updatedUser.passkey_public_key = serde_json::to_string(&passkey)
       .map_err(|e| errResponse(&format!("Failed to serialize credential: {}", e)))?;
-    updatedUser.passkeyDevice = "cross-platform".to_string();
-    updatedUser.passkeyEnabled = true;
+    updatedUser.passkey_device = "cross-platform".to_string();
+    updatedUser.passkey_enabled = true;
     updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
@@ -150,14 +150,14 @@ impl AuthPasskeyService {
 
     let user = self.findUser(&username_str).await?;
 
-    if user.passkeyCredentialId.is_empty() || !user.passkeyEnabled {
+    if user.passkey_credential_id.is_empty() || !user.passkey_enabled {
       return Err(errResponse("Passkey not enabled for this user"));
     }
 
-    let stored_passkey: Passkey = if user.passkeyPublicKey.is_empty() {
+    let stored_passkey: Passkey = if user.passkey_public_key.is_empty() {
       return Err(errResponse("Passkey credential not properly stored"));
     } else {
-      serde_json::from_str(&user.passkeyPublicKey)
+      serde_json::from_str(&user.passkey_public_key)
         .map_err(|e| errResponse(&format!("Invalid stored credential: {}", e)))?
     };
 
@@ -243,15 +243,15 @@ impl AuthPasskeyService {
   pub async fn disablePasskey(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if user.passkeyCredentialId.is_empty() {
+    if user.passkey_credential_id.is_empty() {
       return Err(errResponse("Passkey not enabled"));
     }
 
     let mut updatedUser = user.clone();
-    updatedUser.passkeyCredentialId = String::new();
-    updatedUser.passkeyPublicKey = String::new();
-    updatedUser.passkeyDevice = String::new();
-    updatedUser.passkeyEnabled = false;
+    updatedUser.passkey_credential_id = String::new();
+    updatedUser.passkey_public_key = String::new();
+    updatedUser.passkey_device = String::new();
+    updatedUser.passkey_enabled = false;
     updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;

@@ -100,7 +100,7 @@ impl BroadcastHelper {
       .broadcast(
         "chat-cleared",
         "chat",
-        serde_json::json!({ "todoId": todo_id }),
+        serde_json::json!({ "todo_id": todo_id }),
       )
       .await;
   }

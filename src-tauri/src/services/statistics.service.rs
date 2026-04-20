@@ -54,14 +54,14 @@ impl StatisticsService {
     let prevEndNaive = previousEndDate.date_naive();
 
     // Fetch data using nosql_orm with filters
-    let userIdFilter = Filter::Eq("userId".to_string(), json!(userId));
-    let startDateFilter = Filter::Gte("createdAt".to_string(), json!(startDate.to_rfc3339()));
-    let endDateFilter = Filter::Lte("createdAt".to_string(), json!(endDate.to_rfc3339()));
+    let userIdFilter = Filter::Eq("user_id".to_string(), json!(userId));
+    let startDateFilter = Filter::Gte("created_at".to_string(), json!(startDate.to_rfc3339()));
+    let endDateFilter = Filter::Lte("created_at".to_string(), json!(endDate.to_rfc3339()));
     let prevStartDateFilter = Filter::Gte(
-      "createdAt".to_string(),
+      "created_at".to_string(),
       json!(previousStartDate.to_rfc3339()),
     );
-    let prevEndDateFilter = Filter::Lt("createdAt".to_string(), json!(startDate.to_rfc3339()));
+    let prevEndDateFilter = Filter::Lt("created_at".to_string(), json!(startDate.to_rfc3339()));
 
     let dailyActivities = self
       .getDailyActivitiesFiltered(&userId, &startDateNaive, &endDateNaive)
@@ -165,7 +165,7 @@ impl StatisticsService {
   ) -> Vec<Value> {
     let activities = self
       .activityLogHelper
-      .getAll(json!({"userId": userId.to_string()}))
+      .getAll(json!({"user_id": userId.to_string()}))
       .await;
 
     let docs = match activities {
@@ -186,15 +186,15 @@ impl StatisticsService {
       if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
         if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
           if date >= *startDate && date <= *endDate {
-            // Keep the latest record for each date (based on updatedAt)
+            // Keep the latest record for each date (based on updated_at)
             let should_insert = match dateMap.get(dateStr) {
               Some(existing) => {
                 let existing_updated = existing
-                  .get("updatedAt")
+                  .get("updated_at")
                   .and_then(|v| v.as_str())
                   .unwrap_or("");
                 let new_updated = activity
-                  .get("updatedAt")
+                  .get("updated_at")
                   .and_then(|v| v.as_str())
                   .unwrap_or("");
                 new_updated > existing_updated

@@ -18,7 +18,7 @@ impl ChartGenerator {
     let mut completionByWeekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
 
     for task in tasks {
-      if let Some(updatedAt) = task.get("updatedAt").and_then(|v| v.as_str()) {
+      if let Some(updatedAt) = task.get("updated_at").and_then(|v| v.as_str()) {
         if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
           if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updatedAt) {
             let weekday = dtUpdated.weekday();

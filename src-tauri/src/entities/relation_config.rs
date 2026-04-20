@@ -28,9 +28,9 @@ impl RelationConfig {
     vec![
       (
         "tasks",
-        RelationDef::one_to_many("tasks", "tasks", "todoId"),
+        RelationDef::one_to_many("tasks", "tasks", "todo_id"),
       ),
-      ("user", RelationDef::many_to_one("user", "users", "userId")),
+      ("user", RelationDef::many_to_one("user", "users", "user_id")),
       (
         "categories",
         RelationDef::many_to_many("categories", "categories", "categories"),
@@ -43,7 +43,7 @@ impl RelationConfig {
         "assigneesProfiles",
         RelationDef::many_to_one("assignees", "profiles", "assignees")
           .local_key_in_array("assignees")
-          .transform_map("userId", "profiles", "id"),
+          .transform_map("user_id", "profiles", "id"),
       ),
     ]
   }
@@ -52,26 +52,26 @@ impl RelationConfig {
     vec![
       (
         "subtasks",
-        RelationDef::one_to_many("subtasks", "subtasks", "taskId"),
+        RelationDef::one_to_many("subtasks", "subtasks", "task_id"),
       ),
       (
         "comments",
-        RelationDef::one_to_many("comments", "comments", "taskId"),
+        RelationDef::one_to_many("comments", "comments", "task_id"),
       ),
       (
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
-      ("todo", RelationDef::many_to_one("todo", "todos", "todoId")),
+      ("todo", RelationDef::many_to_one("todo", "todos", "todo_id")),
     ]
   }
 
   pub fn subtasks_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "taskId")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "comments",
-        RelationDef::one_to_many("comments", "comments", "subtaskId"),
+        RelationDef::one_to_many("comments", "comments", "subtask_id"),
       ),
       (
         "assignees",
@@ -82,22 +82,22 @@ impl RelationConfig {
 
   pub fn comments_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "taskId")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "subtask",
-        RelationDef::many_to_one("subtask", "subtasks", "subtaskId"),
+        RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),
       ),
     ]
   }
 
   pub fn profiles_relations() -> Vec<(&'static str, RelationDef)> {
-    vec![("user", RelationDef::many_to_one("user", "users", "userId"))]
+    vec![("user", RelationDef::many_to_one("user", "users", "user_id"))]
   }
 
   pub fn users_relations() -> Vec<(&'static str, RelationDef)> {
     vec![(
       "profile",
-      RelationDef::many_to_one("profile", "profiles", "profileId"),
+      RelationDef::many_to_one("profile", "profiles", "profile_id"),
     )]
   }
 
@@ -140,6 +140,7 @@ impl RelationConfig {
     )
   }
 
+  #[allow(dead_code)]
   pub fn relation_needs_projection(relation_name: &str) -> bool {
     matches!(relation_name, "assignees" | "user" | "author")
   }
@@ -163,6 +164,7 @@ impl RelationConfig {
     result
   }
 
+  #[allow(dead_code)]
   pub fn nested_relation_key(base: &str, nested: &str) -> String {
     format!("{}.{}", base, nested)
   }
@@ -184,20 +186,20 @@ impl RelationConfig {
   pub fn get_nested_relation(table: &str, base: &str, nested: &str) -> Option<RelationDef> {
     match (table, base, nested) {
       ("todos", "tasks", "subtasks") => {
-        Some(RelationDef::one_to_many("subtasks", "subtasks", "taskId"))
+        Some(RelationDef::one_to_many("subtasks", "subtasks", "task_id"))
       }
       ("todos", "tasks", "comments") => {
-        Some(RelationDef::one_to_many("comments", "comments", "taskId"))
+        Some(RelationDef::one_to_many("comments", "comments", "task_id"))
       }
       ("tasks", "subtasks", "comments") => Some(RelationDef::one_to_many(
         "comments",
         "comments",
-        "subtaskId",
+        "subtask_id",
       )),
       ("subtasks", "subtasks", "comments") => Some(RelationDef::one_to_many(
         "comments",
         "comments",
-        "subtaskId",
+        "subtask_id",
       )),
       _ => None,
     }
@@ -222,7 +224,7 @@ mod tests {
     assert!(def.is_some());
     let def = def.unwrap();
     assert_eq!(def.target_collection, "tasks");
-    assert_eq!(def.foreign_key, "todoId");
+    assert_eq!(def.foreign_key, "todo_id");
   }
 
   #[test]

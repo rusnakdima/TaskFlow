@@ -93,9 +93,9 @@ pub fn run() {
       tauri::async_runtime::spawn(async move {
         for collection in &["todos", "tasks", "categories"] {
           let basic_indexes = vec![
-            NosqlIndex::single("userId", 1).name("idx_userId"),
-            NosqlIndex::single("todoId", 1).name("idx_todoId"),
-            NosqlIndex::compound(&[("userId", 1), ("createdAt", -1)]).name("idx_user_created"),
+            NosqlIndex::single("user_id", 1).name("idx_user_id"),
+            NosqlIndex::single("todo_id", 1).name("idx_todo_id"),
+            NosqlIndex::compound(&[("user_id", 1), ("created_at", -1)]).name("idx_user_created"),
             NosqlIndex::single("status", 1).name("idx_status"),
           ];
           for index in basic_indexes {
@@ -107,9 +107,9 @@ pub fn run() {
 
         // Daily activities indexes
         let daily_indexes = vec![
-          NosqlIndex::single("userId", 1).name("idx_userId_daily_activities"),
+          NosqlIndex::single("user_id", 1).name("idx_user_id_daily_activities"),
           NosqlIndex::single("date", 1).name("idx_date_daily_activities"),
-          NosqlIndex::compound(&[("userId", 1), ("date", 1)]).name("idx_userDate_daily_activities"),
+          NosqlIndex::compound(&[("user_id", 1), ("date", 1)]).name("idx_user_date_daily_activities"),
         ];
         for index in daily_indexes {
           if let Err(e) = json_provider_setup

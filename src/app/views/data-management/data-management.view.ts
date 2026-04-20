@@ -348,13 +348,6 @@ export class DataManagementView implements OnInit {
   getCurrentData(): any[] {
     let data = this.dataMap()[this.selectedType()] || [];
 
-    // const deletedFilter = this.deletedFilter();
-    // if (deletedFilter === "deleted") {
-    //   data = data.filter((item: any) => item.deleted_at != null);
-    // } else if (deletedFilter === "not_deleted") {
-    //   data = data.filter((item: any) => item.deleted_at == null);
-    // }
-
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = FilterHelper.filterAdminByStatus(data, this.isCompletedFilter());
     }
@@ -493,7 +486,7 @@ export class DataManagementView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-        this.loadData();
+        this.loadData(true); // Force reload to bypass cache
       }
     } catch (error) {
       this.notifyService.showError("Error: " + error);
@@ -503,27 +496,29 @@ export class DataManagementView implements OnInit {
   async onBulkSoftDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
-    selected.forEach(async (id) => {
-      await (this.mode === "admin"
+    const promises = selected.map((id) =>
+      this.mode === "admin"
         ? this.adminService.toggleDeleteStatus(table, id)
-        : this.adminService.toggleDeleteStatusLocal(table, id));
-    });
+        : this.adminService.toggleDeleteStatusLocal(table, id)
+    );
+    await Promise.all(promises);
     this.notifyService.showSuccess("Bulk update successful");
     this.clearSelection();
-    this.loadData();
+    this.loadData(true);
   }
 
   async onBulkHardDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
-    selected.forEach(async (id) => {
-      await (this.mode === "admin"
+    const promises = selected.map((id) =>
+      this.mode === "admin"
         ? this.adminService.permanentlyDeleteRecord(table, id)
-        : this.adminService.permanentlyDeleteRecordLocal(table, id));
-    });
+        : this.adminService.permanentlyDeleteRecordLocal(table, id)
+    );
+    await Promise.all(promises);
     this.notifyService.showSuccess("Bulk delete successful");
     this.clearSelection();
-    this.loadData();
+    this.loadData(true);
   }
 
   onBulkCancel(): void {

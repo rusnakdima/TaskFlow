@@ -66,7 +66,7 @@ impl ActivityStorage {
 
     // Filter by both userId and date to get the correct activity record
     let filter = Filter::And(vec![
-      Filter::Eq("userId".to_string(), serde_json::json!(userId)),
+      Filter::Eq("user_id".to_string(), serde_json::json!(userId)),
       Filter::Eq("date".to_string(), serde_json::json!(date)),
     ]);
 
@@ -84,7 +84,7 @@ impl ActivityStorage {
     }
 
     let createModel = DailyActivityCreateModel {
-      userId: userId.clone(),
+      user_id: userId.clone(),
       date: date.clone(),
     };
     let model: DailyActivityModel = createModel.into();
@@ -108,25 +108,25 @@ impl ActivityStorage {
     let updateModel = DailyActivityUpdateModel {
       _id: activity._id,
       id: activity.id,
-      userId: activity.userId,
+      user_id: activity.user_id,
       date: activity.date,
-      todosCreated: activity.todosCreated,
-      todosUpdated: activity.todosUpdated,
-      todosDeleted: activity.todosDeleted,
-      tasksCreated: activity.tasksCreated,
-      tasksUpdated: activity.tasksUpdated,
-      tasksCompleted: activity.tasksCompleted,
-      tasksDeleted: activity.tasksDeleted,
-      subtasksCreated: activity.subtasksCreated,
-      subtasksUpdated: activity.subtasksUpdated,
-      subtasksCompleted: activity.subtasksCompleted,
-      subtasksDeleted: activity.subtasksDeleted,
-      totalActivity: activity.totalActivity,
-      totalTasks: activity.totalTasks,
-      completedTasks: activity.completedTasks,
-      productivityScore: activity.productivityScore,
-      createdAt: activity.createdAt,
-      updatedAt: activity.updatedAt,
+      todos_created: activity.todos_created,
+      todos_updated: activity.todos_updated,
+      todos_deleted: activity.todos_deleted,
+      tasks_created: activity.tasks_created,
+      tasks_updated: activity.tasks_updated,
+      tasks_completed: activity.tasks_completed,
+      tasks_deleted: activity.tasks_deleted,
+      subtasks_created: activity.subtasks_created,
+      subtasks_updated: activity.subtasks_updated,
+      subtasks_completed: activity.subtasks_completed,
+      subtasks_deleted: activity.subtasks_deleted,
+      total_activity: activity.total_activity,
+      total_tasks: activity.total_tasks,
+      completed_tasks: activity.completed_tasks,
+      productivity_score: activity.productivity_score,
+      created_at: activity.created_at,
+      updated_at: activity.updated_at,
     };
 
     let record: Value = to_value(&updateModel).unwrap();

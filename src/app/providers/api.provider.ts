@@ -1013,15 +1013,12 @@ export class ApiProvider {
           if (table === "todos") {
             // Archive todo with cascade (set deleted_at !== null for todo and all related entities)
             this.archiveTodoWithCascade(id!, isTeam);
+          } else if (table === "tasks" || table === "subtasks") {
+            // Use removeRecordWithCascade for proper cascade removal from nested structure
+            this.storageService.removeRecordWithCascade(table, id!);
           } else {
-            // For tasks/subtasks, lookup parent ID before deletion
-            let parentId: string | undefined;
-            if (table === "tasks") {
-              parentId = this.storageService.getById("tasks", id!)?.todoId;
-            } else if (table === "subtasks") {
-              parentId = this.storageService.getById("subtasks", id!)?.taskId;
-            }
-            this.storageService.removeItem(table as any, id!, parentId, isTeam);
+            // For other tables (comments, chats, categories)
+            this.storageService.removeItem(table as any, id!, undefined, isTeam);
           }
           break;
         case "updateAll":

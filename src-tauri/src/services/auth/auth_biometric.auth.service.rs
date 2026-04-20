@@ -79,7 +79,7 @@ impl AuthBiometricService {
 
     let user = self.findUsers(filter).await?;
 
-    if !user.biometricEnabled {
+    if !user.biometric_enabled {
       return Err(errResponse("Biometric not enabled for this user"));
     }
 
@@ -90,7 +90,7 @@ impl AuthBiometricService {
       "rpId": "taskflow.local",
       "allowCredentials": [{
         "type": "public-key",
-        "id": user.passkeyCredentialId,
+        "id": user.passkey_credential_id,
         "transports": ["internal"]
       }],
       "authenticatorSelection": {
@@ -124,15 +124,15 @@ impl AuthBiometricService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if user.biometricEnabled {
+    if user.biometric_enabled {
       return Err(errResponse("Biometric already enabled"));
     }
 
     let mut updatedUser = user.clone();
-    updatedUser.passkeyCredentialId = credentialId.to_string();
-    updatedUser.passkeyPublicKey = publicKey.to_string();
-    updatedUser.passkeyDevice = "platform".to_string();
-    updatedUser.biometricEnabled = true;
+    updatedUser.passkey_credential_id = credentialId.to_string();
+    updatedUser.passkey_public_key = publicKey.to_string();
+    updatedUser.passkey_device = "platform".to_string();
+    updatedUser.biometric_enabled = true;
     updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;
@@ -159,7 +159,7 @@ impl AuthBiometricService {
 
     let user = self.findUser(username).await?;
 
-    if !user.biometricEnabled {
+    if !user.biometric_enabled {
       return Err(errResponse("Biometric not enabled for this user"));
     }
 
@@ -173,12 +173,12 @@ impl AuthBiometricService {
   pub async fn disableBiometric(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.biometricEnabled {
+    if !user.biometric_enabled {
       return Err(errResponse("Biometric not enabled"));
     }
 
     let mut updatedUser = user.clone();
-    updatedUser.biometricEnabled = false;
+    updatedUser.biometric_enabled = false;
     updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;

@@ -10,10 +10,10 @@ use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,
-  pub lastName: String,
+  pub last_name: String,
   pub bio: String,
-  pub imageUrl: String,
-  pub userId: String,
+  pub image_url: String,
+  pub user_id: String,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
 }
@@ -34,7 +34,7 @@ impl Entity for ProfileEntity {
 
 impl WithRelations for ProfileEntity {
   fn relations() -> Vec<RelationDef> {
-    vec![RelationDef::many_to_one("user", "users", "userId")]
+    vec![RelationDef::many_to_one("user", "users", "user_id")]
   }
 }
 
@@ -44,12 +44,12 @@ pub struct ProfileCreateModel {
   #[serde(default)]
   pub name: Option<String>,
   #[serde(default)]
-  pub lastName: Option<String>,
+  pub last_name: Option<String>,
   #[serde(default)]
   pub bio: Option<String>,
   #[serde(default)]
-  pub imageUrl: Option<String>,
-  pub userId: String,
+  pub image_url: Option<String>,
+  pub user_id: String,
   #[serde(skip)]
   pub _id: Option<String>,
   #[allow(dead_code)]
@@ -61,8 +61,8 @@ impl Validatable for ProfileCreateModel {
     if self.name.as_ref().map_or(true, |s| s.is_empty()) {
       return Err("name cannot be empty".to_string());
     }
-    if self.userId.is_empty() {
-      return Err("userId cannot be empty".to_string());
+    if self.user_id.is_empty() {
+      return Err("user_id cannot be empty".to_string());
     }
     Ok(())
   }
@@ -75,10 +75,10 @@ impl From<ProfileCreateModel> for ProfileEntity {
     ProfileEntity {
       id: None,
       name: value.name.unwrap_or_default(),
-      lastName: value.lastName.unwrap_or_default(),
+      last_name: value.last_name.unwrap_or_default(),
       bio: value.bio.unwrap_or_default(),
-      imageUrl: value.imageUrl.unwrap_or_default(),
-      userId: value.userId,
+      image_url: value.image_url.unwrap_or_default(),
+      user_id: value.user_id,
       created_at: now,
       updated_at: now,
     }
@@ -93,13 +93,13 @@ pub struct ProfileUpdateModel {
   #[serde(default)]
   pub name: Option<String>,
   #[serde(default)]
-  pub lastName: Option<String>,
+  pub last_name: Option<String>,
   #[serde(default)]
   pub bio: Option<String>,
   #[serde(default)]
-  pub imageUrl: Option<String>,
+  pub image_url: Option<String>,
   #[serde(default)]
-  pub userId: Option<String>,
+  pub user_id: Option<String>,
   #[serde(default)]
   pub created_at: Option<String>,
   #[serde(default)]
