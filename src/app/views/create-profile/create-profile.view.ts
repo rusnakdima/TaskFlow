@@ -22,6 +22,7 @@ import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
+import { LocalAuthService } from "@services/auth/local-auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
@@ -45,6 +46,7 @@ export class CreateProfileView implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
+    private localAuthService: LocalAuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService,
@@ -118,8 +120,13 @@ export class CreateProfileView implements OnInit {
       const body = this.form.value;
       this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
         next: (createdProfile: Profile) => {
-          if (createdProfile) {
+          if (createdProfile && createdProfile.id) {
             this.storageService.setCollection("profiles", createdProfile);
+
+            const userId = this.authService.getValueByKey("id");
+            if (userId) {
+              this.localAuthService.updateUserProfileId(userId, createdProfile.id);
+            }
           }
           this.profileRequiredService.setProfileRequiredMode(false);
           this.notifyService.showSuccess("Profile created successfully");
