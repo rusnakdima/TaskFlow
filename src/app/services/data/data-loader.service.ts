@@ -215,8 +215,7 @@ export class DataLoaderService {
 
   /**
    * Load user profile
-   * Returns cached profile immediately if available
-   * API call is fire-and-forget with retry
+   * Returns cached profile if available, otherwise fetches from API
    */
   loadProfile(): Observable<Profile | null> {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
@@ -225,24 +224,19 @@ export class DataLoaderService {
       return of(null);
     }
 
-    // Return cached profile immediately
     const cached = this.storageService.profile();
     if (cached?.userId) {
       return of(cached);
     }
 
-    // Fire-and-forget API call with retry
-    this.fetchProfileFromApi(userId);
-
-    // Return cached or null immediately
-    return of(this.storageService.profile());
+    return this.fetchProfileFromApi(userId);
   }
 
   /**
-   * Fire-and-forget: Fetch profile from API
+   * Fetch profile from API and update storage
    */
-  private fetchProfileFromApi(userId: string): void {
-    this.apiProvider
+  private fetchProfileFromApi(userId: string): Observable<Profile | null> {
+    return this.apiProvider
       .crud<Profile[]>(
         "getAll",
         "profiles",
@@ -256,25 +250,18 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
-          return of(null);
-        }),
+        catchError(() => of([] as Profile[])),
         map((profiles: Profile[] | null) => {
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
             if (profileObj?.userId) {
+              this.storageService.setCollection("profiles", profileObj);
               return profileObj;
             }
           }
           return null as Profile | null;
-        }),
-        tap((profile: Profile | null) => {
-          if (profile) {
-            this.storageService.setCollection("profiles", profile);
-          }
         })
-      )
-      .subscribe();
+      );
   }
 
   /**
