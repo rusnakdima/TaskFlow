@@ -220,8 +220,4 @@ export class OfflineQueueService {
   private generateId(): string {
     return `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
-
-  setExecuteFunction(fn: any): void {
-    // Legacy method - not needed in new implementation
-  }
 }
