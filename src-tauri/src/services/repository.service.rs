@@ -15,7 +15,7 @@ use crate::entities::{
   provider_type_entity::ProviderType,
   relation_config::{user_projection, RelationConfig},
   relation_obj::RelationObj,
-  response_entity::{DataValue, ResponseModel},
+  response_entity::{DataValue, ResponseModel, ResponseStatus},
   sync_metadata_entity::SyncMetadata,
   table_entity::validateModel,
 };
@@ -1674,13 +1674,25 @@ impl RepositoryService {
       return Err(errResponse("Invalid profile data: userId is required"));
     }
 
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Checking existing profile for user: {}",
+      user_id
+    );
+
     if let Ok(existing_profiles) = self.jsonProvider.find_all("profiles").await {
       for profile in existing_profiles {
         if profile.get("userId").and_then(|v| v.as_str()) == Some(&user_id) {
+          eprintln!(
+            "[RepositoryService] create_profile_with_user_update: Profile already exists for user"
+          );
           return Ok(successResponse(DataValue::Object(profile)));
         }
       }
     }
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Creating profile in JSON..."
+    );
 
     let created_profile = self
       .jsonProvider
@@ -1693,12 +1705,124 @@ impl RepositoryService {
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
-    user_sync_helper::updateUserProfileIdJson(&self.jsonProvider, &user_id, &profile_id).await?;
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Profile created in JSON: {}",
+      profile_id
+    );
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Updating user.profileId in JSON and MongoDB..."
+    );
+
+    if let Err(e) = user_sync_helper::updateUserProfileIdBoth(
+      &self.jsonProvider,
+      self.mongodbProvider.as_ref(),
+      &user_id,
+      &profile_id,
+    )
+    .await {
+      eprintln!(
+        "[RepositoryService] create_profile_with_user_update: FAILED to update user.profileId: {}",
+        e.message
+      );
+      return Err(e);
+    }
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: User.profileId synced to both providers successfully"
+    );
+
+    // Sync profile to MongoDB - FAIL if MongoDB not available
+    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
+      eprintln!(
+        "[RepositoryService] create_profile_with_user_update: MongoDB not available for profile sync"
+      );
+      ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      }
+    })?;
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Syncing profile to MongoDB..."
+    );
+    if let Err(e) = self.try_sync_profile_to_cloud(&profile_id, mongo).await {
+      eprintln!(
+        "[RepositoryService] create_profile_with_user_update: Profile sync to MongoDB failed: {}",
+        e
+      );
+      return Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Failed to sync profile to MongoDB: {}", e),
+        data: DataValue::String("".to_string()),
+      });
+    }
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Profile synced to MongoDB successfully"
+    );
 
     self
       .activityMonitor
       .logAction("profiles", "create", &created_profile, None)
       .await;
+
+    eprintln!(
+      "[RepositoryService] create_profile_with_user_update: Profile creation completed successfully"
+    );
+
     Ok(successResponse(DataValue::Object(created_profile)))
+  }
+
+  async fn try_sync_profile_to_cloud(
+    &self,
+    profile_id: &str,
+    mongo: &MongoProvider,
+  ) -> Result<(), String> {
+    let profile_data = self
+      .jsonProvider
+      .find_by_id("profiles", profile_id)
+      .await
+      .map_err(|e| format!("Failed to read profile from JSON: {}", e))?
+      .ok_or_else(|| "Profile not found in JSON".to_string())?;
+
+    match mongo.find_by_id("profiles", profile_id).await {
+      Ok(Some(existing_val)) => {
+        let existing_time = existing_val
+          .get("updated_at")
+          .and_then(|v| v.as_str())
+          .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+        let entity_time = profile_data
+          .get("updated_at")
+          .and_then(|v| v.as_str())
+          .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
+
+        let should_sync = existing_time
+          .map(|e| match entity_time {
+            Some(n) if n > e => true,
+            None => true,
+            _ => false,
+          })
+          .unwrap_or(true);
+
+        if should_sync {
+          mongo
+            .update("profiles", profile_id, profile_data)
+            .await
+            .map_err(|e| format!("Failed to update profile in MongoDB: {}", e))?;
+        }
+      }
+      Ok(None) => {
+        mongo
+          .insert("profiles", profile_data)
+          .await
+          .map_err(|e| format!("Failed to insert profile to MongoDB: {}", e))?;
+      }
+      Err(e) => {
+        return Err(format!("Failed to check profile in MongoDB: {}", e));
+      }
+    }
+    Ok(())
   }
 }
