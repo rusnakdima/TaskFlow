@@ -45,7 +45,8 @@ export class CrudParamsBuilder {
       throw new Error(`Table '${table}' is not supported. Allowed: ${ALLOWED_TABLES.join(", ")}`);
     }
 
-    const isChildEntity = options.parentTodoId && ["tasks", "subtasks", "comments", "chats"].includes(table);
+    const isChildEntity =
+      options.parentTodoId && ["tasks", "subtasks", "comments", "chats"].includes(table);
     const metadata =
       options.isOwner !== undefined
         ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }

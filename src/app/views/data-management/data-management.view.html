@@ -270,7 +270,10 @@
             >Categories</label
           >
           <mat-form-field class="w-full">
-            <mat-select [ngModel]="categoriesFilter()" (ngModelChange)="categoriesFilter.set($event)">
+            <mat-select
+              [ngModel]="categoriesFilter()"
+              (ngModelChange)="categoriesFilter.set($event)"
+            >
               <mat-option value="">All Categories</mat-option>
               @for (category of categoryList(); track category.id) {
                 <mat-option [value]="category.id">{{ category.label }}</mat-option>
