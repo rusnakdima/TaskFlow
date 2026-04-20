@@ -9,11 +9,11 @@ use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRel
 #[serde(rename_all = "camelCase")]
 pub struct TodoEntity {
   pub id: Option<String>,
-  pub userId: String,
+  pub user_id: String,
   pub title: String,
   pub description: String,
-  pub startDate: Option<String>,
-  pub endDate: Option<String>,
+  pub start_date: Option<String>,
+  pub end_date: Option<String>,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
@@ -57,9 +57,9 @@ impl SoftDeletable for TodoEntity {
 impl WithRelations for TodoEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("tasks", "tasks", "todoId"),
-      RelationDef::one_to_many("chats", "chats", "todoId"),
-      RelationDef::many_to_one("user", "users", "userId"),
+      RelationDef::one_to_many("tasks", "tasks", "todo_id"),
+      RelationDef::one_to_many("chats", "chats", "todo_id"),
+      RelationDef::many_to_one("user", "users", "user_id"),
       RelationDef::many_to_many("categories", "categories", "categories"),
     ]
   }
@@ -68,11 +68,11 @@ impl WithRelations for TodoEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TodoCreateModel {
-  pub userId: String,
+  pub user_id: String,
   pub title: String,
   pub description: String,
-  pub startDate: String,
-  pub endDate: String,
+  pub start_date: String,
+  pub end_date: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
@@ -82,8 +82,8 @@ pub struct TodoCreateModel {
 
 impl Validatable for TodoCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.userId.is_empty() {
-      return Err("userId cannot be empty".to_string());
+    if self.user_id.is_empty() {
+      return Err("user_id cannot be empty".to_string());
     }
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
@@ -98,9 +98,9 @@ impl Validatable for TodoCreateModel {
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
     let now = Utc::now();
-    let formattedStartDate = if value.startDate.is_empty() {
+    let formatted_start_date = if value.start_date.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -109,9 +109,9 @@ impl From<TodoCreateModel> for TodoEntity {
     } else {
       None
     };
-    let formattedEndDate = if value.endDate.is_empty() {
+    let formatted_end_date = if value.end_date.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.end_date) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -123,11 +123,11 @@ impl From<TodoCreateModel> for TodoEntity {
 
     TodoEntity {
       id: None,
-      userId: value.userId.clone(),
+      user_id: value.user_id,
       title: value.title,
       description: value.description,
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
+      start_date: formatted_start_date,
+      end_date: formatted_end_date,
       categories: value.categories,
       assignees: value.assignees,
       visibility: value.visibility,
@@ -147,15 +147,15 @@ pub struct TodoUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
-  pub userId: Option<String>,
+  pub user_id: Option<String>,
   #[serde(default)]
   pub title: Option<String>,
   #[serde(default)]
   pub description: Option<String>,
   #[serde(default)]
-  pub startDate: Option<String>,
+  pub start_date: Option<String>,
   #[serde(default)]
-  pub endDate: Option<String>,
+  pub end_date: Option<String>,
   #[serde(default)]
   pub categories: Option<Vec<String>>,
   #[serde(default)]

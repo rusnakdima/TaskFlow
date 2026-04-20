@@ -193,16 +193,16 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if user.totpSecret.is_empty() {
+    if user.totp_secret.is_empty() {
       return Err(errResponse("TOTP not setup. Please setup TOTP first."));
     }
 
-    if !self.verifyTotpCode(&user.totpSecret, code).await {
+    if !self.verifyTotpCode(&user.totp_secret, code).await {
       return Err(errResponse("Invalid TOTP code"));
     }
 
     self
-      .updateTotpSettings(username, true, &user.totpSecret, user.recoveryCodes.clone())
+      .updateTotpSettings(username, true, &user.totp_secret, user.recovery_codes.clone())
       .await?;
 
     Ok(successResponse("TOTP enabled successfully"))
@@ -218,20 +218,20 @@ impl AuthTotpService {
     tracing::info!(
       "verifyLoginTotp: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}",
       username,
-      user.totpEnabled,
-      user.totpSecret.len(),
-      if user.totpSecret.len() >= 4 {
-        &user.totpSecret[..4]
+      user.totp_enabled,
+      user.totp_secret.len(),
+      if user.totp_secret.len() >= 4 {
+        &user.totp_secret[..4]
       } else {
-        &user.totpSecret
+        &user.totp_secret
       }
     );
 
-    if !user.totpEnabled {
+    if !user.totp_enabled {
       return Err(errResponse("TOTP not enabled for this user"));
     }
 
-    if user.totpSecret.is_empty() {
+    if user.totp_secret.is_empty() {
       tracing::warn!("verifyLoginTotp: totpSecret is empty for user {}", username);
       return Err(errResponse(
         "TOTP secret not found. Please setup TOTP again.",
@@ -240,9 +240,9 @@ impl AuthTotpService {
 
     tracing::info!(
       "verifyLoginTotp: calling verifyTotpCode with secret.len={}",
-      user.totpSecret.len()
+      user.totp_secret.len()
     );
-    let verified = self.verifyTotpCode(&user.totpSecret, code).await;
+    let verified = self.verifyTotpCode(&user.totp_secret, code).await;
     tracing::info!("verifyLoginTotp: verifyTotpCode returned {}", verified);
 
     if !verified {
@@ -274,11 +274,11 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.totpEnabled || user.totpSecret.is_empty() {
+    if !user.totp_enabled || user.totp_secret.is_empty() {
       return Err(errResponse("TOTP is not enabled or not properly setup"));
     }
 
-    if !self.verifyTotpCode(&user.totpSecret, code).await {
+    if !self.verifyTotpCode(&user.totp_secret, code).await {
       return Err(errResponse("Invalid TOTP code"));
     }
 
@@ -296,13 +296,13 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.totpEnabled {
+    if !user.totp_enabled {
       return Err(errResponse("TOTP is not enabled"));
     }
 
     let mut updatedUser = user.clone();
-    if let Some(pos) = updatedUser.recoveryCodes.iter().position(|c| c == code) {
-      updatedUser.recoveryCodes.remove(pos);
+    if let Some(pos) = updatedUser.recovery_codes.iter().position(|c| c == code) {
+      updatedUser.recovery_codes.remove(pos);
       updatedUser.updated_at = chrono::Utc::now();
       self.saveUser(&updatedUser).await?;
       Ok(successResponse("Recovery code accepted"))
@@ -314,26 +314,26 @@ impl AuthTotpService {
   pub async fn initTotpQrLogin(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.findUser(username).await?;
 
-    if !user.totpEnabled {
+    if !user.totp_enabled {
       return Err(errResponse(
         "TOTP is not enabled for this user. Please enable TOTP in settings first.",
       ));
     }
 
-    if user.totpSecret.is_empty() {
+    if user.totp_secret.is_empty() {
       return Err(errResponse(
         "TOTP secret not found. Please setup TOTP first.",
       ));
     }
 
-    let qrCode = self.generateQrCode(&user.totpSecret, &user.email);
+    let qrCode = self.generateQrCode(&user.totp_secret, &user.email);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP QR code generated".to_string(),
       data: DataValue::Object(serde_json::json!({
         "qrCode": qrCode,
-        "secret": user.totpSecret
+        "secret": user.totp_secret
       })),
     })
   }
@@ -456,9 +456,9 @@ impl AuthTotpService {
     tracing::info!("updateTotpSettings: found user with id={}", user.get_id());
 
     let mut updatedUser = user.clone();
-    updatedUser.totpEnabled = totpEnabled;
-    updatedUser.totpSecret = totpSecret.to_string();
-    updatedUser.recoveryCodes = recoveryCodes;
+    updatedUser.totp_enabled = totpEnabled;
+    updatedUser.totp_secret = totpSecret.to_string();
+    updatedUser.recovery_codes = recoveryCodes;
     updatedUser.updated_at = chrono::Utc::now();
 
     self.saveUser(&updatedUser).await?;

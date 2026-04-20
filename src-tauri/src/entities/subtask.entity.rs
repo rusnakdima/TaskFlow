@@ -9,7 +9,7 @@ use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRel
 #[serde(rename_all = "camelCase")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
-  pub taskId: String,
+  pub task_id: String,
   pub title: String,
   pub description: String,
   pub status: crate::entities::task_entity::TaskStatus,
@@ -18,8 +18,8 @@ pub struct SubtaskEntity {
   pub deleted_at: Option<DateTime<Utc>>,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
-  pub startDate: Option<String>,
-  pub endDate: Option<String>,
+  pub start_date: Option<String>,
+  pub end_date: Option<String>,
 }
 
 impl Entity for SubtaskEntity {
@@ -53,8 +53,8 @@ impl SoftDeletable for SubtaskEntity {
 impl WithRelations for SubtaskEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::many_to_one("task", "tasks", "taskId"),
-      RelationDef::one_to_many("comments", "comments", "subtaskId"),
+      RelationDef::many_to_one("task", "tasks", "task_id"),
+      RelationDef::one_to_many("comments", "comments", "subtask_id"),
     ]
   }
 }
@@ -62,7 +62,7 @@ impl WithRelations for SubtaskEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubtaskCreateModel {
-  pub taskId: String,
+  pub task_id: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -71,8 +71,8 @@ pub struct SubtaskCreateModel {
 
 impl Validatable for SubtaskCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.taskId.is_empty() {
-      return Err("taskId cannot be empty".to_string());
+    if self.task_id.is_empty() {
+      return Err("task_id cannot be empty".to_string());
     }
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
@@ -90,7 +90,7 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
 
     SubtaskEntity {
       id: None,
-      taskId: value.taskId,
+      task_id: value.task_id,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: crate::entities::task_entity::TaskStatus::Pending,
@@ -99,8 +99,8 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       deleted_at: None,
       created_at: now,
       updated_at: now,
-      startDate: None,
-      endDate: None,
+      start_date: None,
+      end_date: None,
     }
   }
 }
@@ -111,7 +111,7 @@ pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
-  pub taskId: Option<String>,
+  pub task_id: Option<String>,
   #[serde(default)]
   pub title: Option<String>,
   #[serde(default)]

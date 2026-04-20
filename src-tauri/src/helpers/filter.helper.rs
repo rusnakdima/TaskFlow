@@ -132,6 +132,7 @@ impl FilterBuilder {
     }
   }
 
+  #[allow(dead_code)]
   pub fn from_filter_group(filter_value: &Value) -> Option<Filter> {
     if let Some(obj) = filter_value.as_object() {
       if let Some(or_arr) = obj.get("$or").and_then(|v| v.as_array()) {

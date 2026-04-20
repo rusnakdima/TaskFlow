@@ -1,5 +1,4 @@
 /* sys lib */
-use serde_json::json;
 use std::sync::Arc;
 
 /* providers */
@@ -11,11 +10,9 @@ use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus}
 
 /* helpers */
 use crate::helpers::common::convertDataToObject;
-use crate::helpers::response_helper::errResponseFormatted;
-use crate::helpers::timestamp_helper;
 
 /* services */
-use crate::services::cascade::{CascadeIds, CascadeService};
+use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */

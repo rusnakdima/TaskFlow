@@ -17,7 +17,7 @@ impl CategoryStatistics {
     // Group tasks by todoId for efficient lookup
     let mut tasksByTodo: HashMap<String, Vec<Value>> = HashMap::new();
     for task in tasks {
-      if let Some(todoId) = task.get("todoId").and_then(|v| v.as_str()) {
+      if let Some(todoId) = task.get("todo_id").and_then(|v| v.as_str()) {
         tasksByTodo
           .entry(todoId.to_string())
           .or_default()
@@ -54,7 +54,7 @@ impl CategoryStatistics {
           if let Some(todoTasks) = tasksByTodo.get(todoId) {
             for task in todoTasks {
               let mut isTaskInRange = false;
-              if let Some(createdAtStr) = task.get("createdAt").and_then(|v| v.as_str()) {
+              if let Some(createdAtStr) = task.get("created_at").and_then(|v| v.as_str()) {
                 if let Ok(dt) = DateTime::parse_from_rfc3339(createdAtStr) {
                   let date = dt.date_naive();
                   if date >= *startDate && date <= *endDate {
@@ -64,7 +64,7 @@ impl CategoryStatistics {
               }
 
               if !isTaskInRange {
-                if let Some(updatedAtStr) = task.get("updatedAt").and_then(|v| v.as_str()) {
+                if let Some(updatedAtStr) = task.get("updated_at").and_then(|v| v.as_str()) {
                   if let Ok(dt) = DateTime::parse_from_rfc3339(updatedAtStr) {
                     let date = dt.date_naive();
                     if date >= *startDate && date <= *endDate {

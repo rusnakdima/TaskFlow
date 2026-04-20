@@ -8,17 +8,17 @@ use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRel
 #[serde(rename_all = "camelCase")]
 pub struct CommentEntity {
   pub id: Option<String>,
-  pub authorId: String,
-  pub authorName: String,
+  pub author_id: String,
+  pub author_name: String,
   pub content: String,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
-  pub taskId: Option<String>,
+  pub task_id: Option<String>,
   #[serde(default)]
-  pub subtaskId: Option<String>,
+  pub subtask_id: Option<String>,
   #[serde(default)]
-  pub readBy: Vec<String>,
+  pub read_by: Vec<String>,
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -53,8 +53,8 @@ impl SoftDeletable for CommentEntity {
 impl WithRelations for CommentEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::many_to_one("task", "tasks", "taskId"),
-      RelationDef::many_to_one("subtask", "subtasks", "subtaskId"),
+      RelationDef::many_to_one("task", "tasks", "task_id"),
+      RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),
     ]
   }
 }
@@ -62,31 +62,31 @@ impl WithRelations for CommentEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommentCreateModel {
-  pub authorId: String,
-  pub authorName: String,
+  pub author_id: String,
+  pub author_name: String,
   pub content: String,
-  pub taskId: Option<String>,
-  pub subtaskId: Option<String>,
+  pub task_id: Option<String>,
+  pub subtask_id: Option<String>,
 }
 
 impl Validatable for CommentCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.authorId.is_empty() {
-      return Err("authorId cannot be empty".to_string());
+    if self.author_id.is_empty() {
+      return Err("author_id cannot be empty".to_string());
     }
-    if self.authorName.is_empty() {
-      return Err("authorName cannot be empty".to_string());
+    if self.author_name.is_empty() {
+      return Err("author_name cannot be empty".to_string());
     }
     if self.content.is_empty() {
       return Err("content cannot be empty".to_string());
     }
     let has_task = self
-      .taskId
+      .task_id
       .as_deref()
       .map(|s| !s.is_empty())
       .unwrap_or(false);
     let has_subtask = self
-      .subtaskId
+      .subtask_id
       .as_deref()
       .map(|s| !s.is_empty())
       .unwrap_or(false);
@@ -106,14 +106,14 @@ impl From<CommentCreateModel> for CommentEntity {
 
     CommentEntity {
       id: None,
-      authorId: value.authorId,
-      authorName: value.authorName,
+      author_id: value.author_id,
+      author_name: value.author_name,
       content: value.content,
       created_at: now,
       updated_at: now,
-      taskId: value.taskId,
-      subtaskId: value.subtaskId,
-      readBy: vec![],
+      task_id: value.task_id,
+      subtask_id: value.subtask_id,
+      read_by: vec![],
       deleted_at: None,
     }
   }
@@ -125,7 +125,7 @@ pub struct CommentUpdateModel {
   #[serde(default)]
   pub content: Option<String>,
   #[serde(default)]
-  pub readBy: Option<Vec<String>>,
+  pub read_by: Option<Vec<String>>,
   #[serde(default)]
   pub updated_at: Option<String>,
 }

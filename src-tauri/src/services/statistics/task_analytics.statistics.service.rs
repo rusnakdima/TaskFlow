@@ -24,8 +24,8 @@ impl TaskAnalytics {
 
     let mut totalDuration = 0.0;
     for task in completedTasks {
-      if let Some(createdStr) = task.get("createdAt").and_then(|v| v.as_str()) {
-        if let Some(updatedStr) = task.get("updatedAt").and_then(|v| v.as_str()) {
+      if let Some(createdStr) = task.get("created_at").and_then(|v| v.as_str()) {
+        if let Some(updatedStr) = task.get("updated_at").and_then(|v| v.as_str()) {
           if let Ok(created) = DateTime::parse_from_rfc3339(createdStr) {
             if let Ok(updated) = DateTime::parse_from_rfc3339(updatedStr) {
               let duration = updated.signed_duration_since(created);

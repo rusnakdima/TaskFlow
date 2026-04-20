@@ -181,7 +181,7 @@ impl RepositoryService {
                           subtask_obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
                         if !subtask_id.is_empty() {
                           let filter = nosql_orm::query::Filter::Eq(
-                            "subtaskId".to_string(),
+                            "subtask_id".to_string(),
                             serde_json::json!(subtask_id),
                           );
                           let loaded: Vec<Value> = self
@@ -567,7 +567,7 @@ impl RepositoryService {
 
     // Find where the entity currently exists (check both providers)
     let (updated_record, was_in_json) = match self.jsonProvider.find_by_id(&table, &id_str).await {
-      Ok(Some(record)) => {
+      Ok(Some(_record)) => {
         // Record exists in JSON - update there
         let updated = self
           .jsonProvider
@@ -579,7 +579,7 @@ impl RepositoryService {
       _ => {
         if let Some(ref mongo) = self.mongodbProvider {
           match mongo.find_by_id(&table, &id_str).await {
-            Ok(Some(record)) => {
+            Ok(Some(_record)) => {
               let updated = mongo
                 .update(&table, &id_str, validated_data.clone())
                 .await
@@ -812,7 +812,7 @@ impl RepositoryService {
     table: String,
     id: String,
     target_provider: ProviderType,
-    sync_metadata: Option<SyncMetadata>,
+    _sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     match target_provider {
       ProviderType::Mongo => {
@@ -948,7 +948,7 @@ impl RepositoryService {
 
       for task in tasks
         .iter()
-        .filter(|t| t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id))
+        .filter(|t| t.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id))
       {
         if let Some(id) = task.get("id").and_then(|v| v.as_str()) {
           if let Some(ref mongo) = self.mongodbProvider {
@@ -1021,8 +1021,8 @@ impl RepositoryService {
 
       for subtask in subtasks.iter() {
         let is_child = tasks.iter().any(|t| {
-          t.get("id") == subtask.get("taskId")
-            && t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)
+          t.get("id") == subtask.get("task_id")
+            && t.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id)
         });
         if is_child {
           if let Some(id) = subtask.get("id").and_then(|v| v.as_str()) {
@@ -1082,8 +1082,8 @@ impl RepositoryService {
       }
 
       for comment in comments.iter() {
-        let comment_task_id = comment.get("taskId").and_then(|v| v.as_str());
-        let comment_subtask_id = comment.get("subtaskId").and_then(|v| v.as_str());
+        let comment_task_id = comment.get("task_id").and_then(|v| v.as_str());
+        let comment_subtask_id = comment.get("subtask_id").and_then(|v| v.as_str());
         let is_child = tasks
           .iter()
           .any(|t| t.get("id").and_then(|v| v.as_str()) == comment_task_id)
@@ -1149,7 +1149,7 @@ impl RepositoryService {
 
       for chat in chats
         .iter()
-        .filter(|c| c.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id))
+        .filter(|c| c.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id))
       {
         if let Some(id) = chat.get("id").and_then(|v| v.as_str()) {
           if let Some(ref mongo) = self.mongodbProvider {
@@ -1292,7 +1292,7 @@ impl RepositoryService {
 
       for task in tasks
         .iter()
-        .filter(|t| t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id))
+        .filter(|t| t.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id))
       {
         if let Some(id) = task.get("id").and_then(|v| v.as_str()) {
           let existing = self
@@ -1359,8 +1359,8 @@ impl RepositoryService {
 
       for subtask in subtasks.iter() {
         let is_child = tasks.iter().any(|t| {
-          t.get("id") == subtask.get("taskId")
-            && t.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id)
+          t.get("id") == subtask.get("task_id")
+            && t.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id)
         });
         if is_child {
           if let Some(id) = subtask.get("id").and_then(|v| v.as_str()) {
@@ -1428,8 +1428,8 @@ impl RepositoryService {
       }
 
       for comment in comments.iter() {
-        let comment_task_id = comment.get("taskId").and_then(|v| v.as_str());
-        let comment_subtask_id = comment.get("subtaskId").and_then(|v| v.as_str());
+        let comment_task_id = comment.get("task_id").and_then(|v| v.as_str());
+        let comment_subtask_id = comment.get("subtask_id").and_then(|v| v.as_str());
         let is_child = tasks
           .iter()
           .any(|t| t.get("id").and_then(|v| v.as_str()) == comment_task_id)
@@ -1503,7 +1503,7 @@ impl RepositoryService {
 
       for chat in chats
         .iter()
-        .filter(|c| c.get("todoId").and_then(|v| v.as_str()) == Some(&todo_id))
+        .filter(|c| c.get("todo_id").and_then(|v| v.as_str()) == Some(&todo_id))
       {
         if let Some(id) = chat.get("id").and_then(|v| v.as_str()) {
           let existing = self
@@ -1665,7 +1665,7 @@ impl RepositoryService {
       .map_err(|e| errResponseFormatted("Profile validation failed", &e))?;
 
     let user_id = validated_profile
-      .get("userId")
+      .get("user_id")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
@@ -1681,7 +1681,7 @@ impl RepositoryService {
 
     if let Ok(existing_profiles) = self.jsonProvider.find_all("profiles").await {
       for profile in existing_profiles {
-        if profile.get("userId").and_then(|v| v.as_str()) == Some(&user_id) {
+        if profile.get("user_id").and_then(|v| v.as_str()) == Some(&user_id) {
           eprintln!(
             "[RepositoryService] create_profile_with_user_update: Profile already exists for user"
           );

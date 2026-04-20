@@ -1,8 +1,6 @@
 /* sys lib */
 use std::sync::Arc;
 
-use chrono::Utc;
-
 /* nosql_orm */
 use nosql_orm::error::OrmResult;
 use nosql_orm::provider::DatabaseProvider;
@@ -141,7 +139,7 @@ impl CascadeService {
     match table {
       "todos" => {
         cascade_ids.add_todo_id(id.to_string());
-        let filter = Filter::Eq("todoId".to_string(), serde_json::json!(id));
+        let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(id));
         if let Ok(tasks) = self
           .json_provider
           .find_many("tasks", Some(&filter), None, None, None, true)
@@ -182,7 +180,7 @@ impl CascadeService {
   }
 
   async fn collect_comments_by_task_json(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
+    let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
     if let Ok(comments) = self
       .json_provider
       .find_many("comments", Some(&filter), None, None, None, true)
@@ -197,7 +195,7 @@ impl CascadeService {
   }
 
   async fn collect_comments_by_subtask_json(&self, subtask_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("subtaskId".to_string(), serde_json::json!(subtask_id));
+    let filter = Filter::Eq("subtask_id".to_string(), serde_json::json!(subtask_id));
     if let Ok(comments) = self
       .json_provider
       .find_many("comments", Some(&filter), None, None, None, true)
@@ -212,7 +210,7 @@ impl CascadeService {
   }
 
   async fn collect_chats_by_todo_json(&self, todo_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("todoId".to_string(), serde_json::json!(todo_id));
+    let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
     if let Ok(chats) = self
       .json_provider
       .find_many("chats", Some(&filter), None, None, None, true)
@@ -227,7 +225,7 @@ impl CascadeService {
   }
 
   async fn collect_subtasks_json(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
+    let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
     let result: OrmResult<Vec<Value>> = self
       .json_provider
       .find_many("subtasks", Some(&filter), None, None, None, true)
@@ -253,7 +251,7 @@ impl CascadeService {
       match table {
         "todos" => {
           cascade_ids.add_todo_id(id.to_string());
-          let filter = Filter::Eq("todoId".to_string(), serde_json::json!(id));
+          let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(id));
           if let Ok(tasks) = mongo
             .find_many("tasks", Some(&filter), None, None, None, true)
             .await
@@ -295,7 +293,7 @@ impl CascadeService {
 
   async fn collect_comments_by_task_mongo(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
     if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
+      let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
       if let Ok(comments) = mongo
         .find_many("comments", Some(&filter), None, None, None, true)
         .await
@@ -315,7 +313,7 @@ impl CascadeService {
     cascade_ids: &mut CascadeIds,
   ) {
     if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("subtaskId".to_string(), serde_json::json!(subtask_id));
+      let filter = Filter::Eq("subtask_id".to_string(), serde_json::json!(subtask_id));
       if let Ok(comments) = mongo
         .find_many("comments", Some(&filter), None, None, None, true)
         .await
@@ -331,7 +329,7 @@ impl CascadeService {
 
   async fn collect_chats_by_todo_mongo(&self, todo_id: &str, cascade_ids: &mut CascadeIds) {
     if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("todoId".to_string(), serde_json::json!(todo_id));
+      let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
       if let Ok(chats) = mongo
         .find_many("chats", Some(&filter), None, None, None, true)
         .await
@@ -347,7 +345,7 @@ impl CascadeService {
 
   async fn collect_subtasks_mongo(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
     if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("taskId".to_string(), serde_json::json!(task_id));
+      let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
       let result: OrmResult<Vec<Value>> = mongo
         .find_many("subtasks", Some(&filter), None, None, None, true)
         .await;
@@ -523,7 +521,7 @@ impl CascadeService {
 
   async fn apply_cascade_patch_json(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
     patch: Value,
   ) -> Result<(), ResponseModel> {
@@ -553,7 +551,7 @@ impl CascadeService {
 
   async fn apply_cascade_patch_mongo(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
     patch: Value,
   ) -> Result<(), ResponseModel> {
@@ -579,7 +577,7 @@ impl CascadeService {
 
   async fn apply_cascade_delete_json(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
   ) -> Result<(), ResponseModel> {
     for id in &cascade_ids.todoIds {
@@ -602,7 +600,7 @@ impl CascadeService {
 
   async fn apply_cascade_delete_mongo(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
   ) -> Result<(), ResponseModel> {
     if let Some(ref mongo) = self.mongodb_provider {
@@ -627,7 +625,7 @@ impl CascadeService {
 
   async fn fetch_cascade_docs_json(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
   ) -> Result<Vec<Value>, ResponseModel> {
     let mut docs = Vec::new();
@@ -702,7 +700,7 @@ impl CascadeService {
 
   async fn fetch_cascade_docs_mongo(
     &self,
-    table: &str,
+    _table: &str,
     cascade_ids: &CascadeIds,
   ) -> Result<Vec<Value>, ResponseModel> {
     let mut docs = Vec::new();

@@ -13,6 +13,7 @@ use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus}
 use nosql_orm::providers::JsonProvider;
 
 /// Helper method to update user's profileId in JSON storage only
+#[allow(dead_code)]
 pub async fn updateUserProfileIdJson(
   jsonProvider: &JsonProvider,
   userId: &str,
@@ -25,10 +26,10 @@ pub async fn updateUserProfileIdJson(
       let mut updatedUser = user_value.clone();
       if let Some(obj) = updatedUser.as_object_mut() {
         obj.insert(
-          "profileId".to_string(),
+          "profile_id".to_string(),
           Value::String(profileId.to_string()),
         );
-        obj.insert("updatedAt".to_string(), Value::String(now.clone()));
+        obj.insert("updated_at".to_string(), Value::String(now.clone()));
       }
 
       let _ = jsonProvider.update("users", userId, updatedUser).await;
@@ -80,10 +81,10 @@ pub async fn updateUserProfileIdBoth(
   let mut updated_user = user_value.clone();
   if let Some(obj) = updated_user.as_object_mut() {
     obj.insert(
-      "profileId".to_string(),
+      "profile_id".to_string(),
       Value::String(profileId.to_string()),
     );
-    obj.insert("updatedAt".to_string(), Value::String(now.clone()));
+    obj.insert("updated_at".to_string(), Value::String(now.clone()));
   }
 
   jsonProvider
@@ -115,10 +116,10 @@ pub async fn updateUserProfileIdBoth(
 
   match mongo.find_by_id("users", userId).await {
     Ok(Some(existing_mongo_user)) => {
-      // Compare updatedAt timestamps - local wins if newer
+      // Compare updated_at timestamps - local wins if newer
       let local_time = chrono::DateTime::parse_from_rfc3339(&now_str).ok();
       let mongo_time = existing_mongo_user
-        .get("updatedAt")
+        .get("updated_at")
         .and_then(|v| v.as_str())
         .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
 
@@ -135,10 +136,10 @@ pub async fn updateUserProfileIdBoth(
         let mut updated = existing_mongo_user.clone();
         if let Some(obj) = updated.as_object_mut() {
           obj.insert(
-            "profileId".to_string(),
+            "profile_id".to_string(),
             Value::String(profileId.to_string()),
           );
-          obj.insert("updatedAt".to_string(), Value::String(now_str));
+          obj.insert("updated_at".to_string(), Value::String(now_str));
         }
         mongo
           .update("users", userId, updated)
@@ -172,10 +173,10 @@ pub async fn updateUserProfileIdBoth(
 
       if let Some(obj) = new_user.as_object_mut() {
         obj.insert(
-          "profileId".to_string(),
+          "profile_id".to_string(),
           Value::String(profileId.to_string()),
         );
-        obj.insert("updatedAt".to_string(), Value::String(now_str));
+        obj.insert("updated_at".to_string(), Value::String(now_str));
       }
 
       mongo

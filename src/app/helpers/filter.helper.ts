@@ -195,9 +195,9 @@ export class FilterHelper {
     }
 
     // Status filter (active/deleted)
-    if (filters.statusFilter === "not_deleted") {
+    if (filters.deletedFilter === "not_deleted") {
       filterConfigs.push({ field: "deleted_at", value: null, operator: "isNull" });
-    } else if (filters.statusFilter === "deleted") {
+    } else if (filters.deletedFilter === "deleted") {
       filterConfigs.push({ field: "deleted_at", value: null, operator: "isNotNull" });
     }
 

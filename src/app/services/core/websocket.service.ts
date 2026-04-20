@@ -67,7 +67,7 @@ export class WebSocketService implements OnDestroy {
       if (data.deleted_at !== null) {
         this.storageService.updateItem("tasks", data.id, data);
       } else {
-        this.storageService.removeItem("tasks", data.id);
+        this.storageService.removeRecordWithCascade("tasks", data.id);
       }
     },
 
@@ -78,7 +78,7 @@ export class WebSocketService implements OnDestroy {
       if (data.deleted_at !== null) {
         this.storageService.updateItem("subtasks", data.id, data);
       } else {
-        this.storageService.removeItem("subtasks", data.id);
+        this.storageService.removeRecordWithCascade("subtasks", data.id);
       }
     },
 

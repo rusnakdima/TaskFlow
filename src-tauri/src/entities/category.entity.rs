@@ -10,7 +10,7 @@ use nosql_orm::prelude::{Entity, EntityMeta};
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
-  pub userId: String,
+  pub user_id: String,
   pub deleted_at: Option<DateTime<Utc>>,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
@@ -38,7 +38,7 @@ impl Entity for CategoryEntity {
 #[serde(rename_all = "camelCase")]
 pub struct CategoryCreateModel {
   pub title: String,
-  pub userId: String,
+  pub user_id: String,
 }
 
 impl Validatable for CategoryCreateModel {
@@ -46,8 +46,8 @@ impl Validatable for CategoryCreateModel {
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
     }
-    if self.userId.is_empty() {
-      return Err("userId cannot be empty".to_string());
+    if self.user_id.is_empty() {
+      return Err("user_id cannot be empty".to_string());
     }
     Ok(())
   }
@@ -59,7 +59,7 @@ impl From<CategoryCreateModel> for CategoryEntity {
     CategoryEntity {
       id: None,
       title: value.title,
-      userId: value.userId,
+      user_id: value.user_id,
       deleted_at: None,
       created_at: now,
       updated_at: now,
@@ -71,7 +71,7 @@ impl From<CategoryCreateModel> for CategoryEntity {
 #[serde(rename_all = "camelCase")]
 pub struct CategoryUpdateModel {
   pub title: Option<String>,
-  pub userId: Option<String>,
+  pub user_id: Option<String>,
   pub deleted_at: Option<bool>,
 }
 

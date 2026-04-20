@@ -47,7 +47,7 @@ impl ManageDbService {
   }
 
   /// Import data from cloud MongoDB to local JSON
-  pub async fn importToLocal(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+  pub async fn importToLocal(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     match self.mongodbProvider.as_ref() {
       Some(mongo_provider) => {
         let tables = vec![
@@ -62,7 +62,10 @@ impl ManageDbService {
         let mut imported_count = 0;
 
         for table in tables {
-          let user_filter = Filter::Eq("userId".to_string(), json!(userId));
+          let user_filter = Filter::And(vec![
+            Filter::Eq("user_id".to_string(), json!(user_id)),
+            Filter::IsNull("deleted_at".to_string()),
+          ]);
           let cloud_data = mongo_provider
             .find_many(table, Some(&user_filter), None, None, None, true)
             .await;
@@ -92,7 +95,7 @@ impl ManageDbService {
   }
 
   /// Export data from local JSON to cloud MongoDB
-  pub async fn exportToCloud(&self, userId: String) -> Result<ResponseModel, ResponseModel> {
+  pub async fn exportToCloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     match self.mongodbProvider.as_ref() {
       Some(mongo_provider) => {
         let tables = vec![
@@ -107,7 +110,10 @@ impl ManageDbService {
         let mut exported_count = 0;
 
         for table in tables {
-          let user_filter = Filter::Eq("userId".to_string(), json!(userId));
+          let user_filter = Filter::And(vec![
+            Filter::Eq("user_id".to_string(), json!(user_id)),
+            Filter::IsNull("deleted_at".to_string()),
+          ]);
           let local_data = self
             .jsonProvider
             .find_many(table, Some(&user_filter), None, None, None, true)

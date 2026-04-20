@@ -84,14 +84,12 @@ export class StorageUpdateHelper {
   private handleDelete(table: string, id?: string, parentTodoId?: string, isTeam?: boolean): void {
     if (table === "todos" && id) {
       this.archiveTodoWithCascade(id, isTeam || false);
+    } else if (table === "tasks" || table === "subtasks") {
+      // Use removeRecordWithCascade for proper cascade removal from nested structure
+      this.storageService.removeRecordWithCascade(table, id!);
     } else {
-      let parentId: string | undefined;
-      if (table === "tasks" && id) {
-        parentId = this.storageService.getById("tasks", id)?.todoId;
-      } else if (table === "subtasks" && id) {
-        parentId = this.storageService.getById("subtasks", id)?.taskId;
-      }
-      this.storageService.removeItem(table as any, id!, parentId, isTeam);
+      // For other tables (comments, chats, categories)
+      this.storageService.removeItem(table as any, id!, undefined, isTeam);
     }
   }
 
