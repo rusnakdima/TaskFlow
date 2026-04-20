@@ -365,6 +365,13 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
+    tracing::info!(
+      target: "query_logger",
+      "[QUERY] FIND_MANY on '{}' filter={:?}",
+      table,
+      orm_filter.as_ref().map(|f| format!("{:?}", f))
+    );
+
     let cache_key = self.queryCache.as_ref().map(|cache| {
       let filter_json = filter
         .as_ref()
@@ -374,7 +381,7 @@ impl RepositoryService {
 
     if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
       if let Ok(Some(cached_docs)) = cache.get::<Vec<Value>>(key).await {
-        tracing::debug!("Cache hit for query: {}", key);
+        tracing::debug!("[CACHE] Cache hit for query: {}", key);
         let mut docs = cached_docs;
         if let Some(ref load_paths) = load {
           docs = self.load_relations_json(docs, &table, load_paths).await?;
@@ -398,6 +405,13 @@ impl RepositoryService {
     } else {
       Vec::new()
     };
+
+    tracing::info!(
+      target: "query_logger",
+      "[QUERY] FIND_MANY on '{}' returned {} results",
+      table,
+      docs.len()
+    );
 
     if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
       if !docs.is_empty() {

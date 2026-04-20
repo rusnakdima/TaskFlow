@@ -46,6 +46,8 @@ use services::{
 };
 
 /* nosql_orm */
+use nosql_orm::nosql_index::NosqlIndex;
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 pub struct AppState {
@@ -87,13 +89,44 @@ pub fn run() {
       let jsonProvider = tauri::async_runtime::block_on(JsonProvider::new(&jsonDbPath))
         .expect("Failed to create JSON provider");
 
+      let json_provider_setup = jsonProvider.clone();
+      tauri::async_runtime::spawn(async move {
+        for collection in &["todos", "tasks", "categories"] {
+          let basic_indexes = vec![
+            NosqlIndex::single("userId", 1).name("idx_userId"),
+            NosqlIndex::single("todoId", 1).name("idx_todoId"),
+            NosqlIndex::compound(&[("userId", 1), ("createdAt", -1)]).name("idx_user_created"),
+            NosqlIndex::single("status", 1).name("idx_status"),
+          ];
+          for index in basic_indexes {
+            if let Err(e) = json_provider_setup.create_index(collection, &index).await {
+              tracing::warn!("Failed to create index in {}: {}", collection, e);
+            }
+          }
+        }
+
+        // Daily activities indexes
+        let daily_indexes = vec![
+          NosqlIndex::single("userId", 1).name("idx_userId_daily_activities"),
+          NosqlIndex::single("date", 1).name("idx_date_daily_activities"),
+          NosqlIndex::compound(&[("userId", 1), ("date", 1)]).name("idx_userDate_daily_activities"),
+        ];
+        for index in daily_indexes {
+          if let Err(e) = json_provider_setup
+            .create_index("daily_activities", &index)
+            .await
+          {
+            tracing::warn!("Failed to create index in daily_activities: {}", e);
+          }
+        }
+
+        tracing::info!("Index setup completed");
+      });
+
       let logDir = documentDir.join(&configHelper.appHomeFolder).join("logs");
       std::fs::create_dir_all(&logDir).ok();
 
-      let json_logged = nosql_orm::logging::DbQueryLogger::new(Arc::new(jsonProvider.clone()))
-        .with_max_logs(10000)
-        .with_retention_count(1000);
-      let _json_logged = Arc::new(json_logged);
+      let _json_logged = jsonProvider.clone();
 
       let mongodbProvider = {
         let uri = configHelper.mongoDbUri.clone();

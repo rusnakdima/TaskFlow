@@ -4,6 +4,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 
@@ -52,7 +53,16 @@ impl StatisticsService {
     let prevStartNaive = previousStartDate.date_naive();
     let prevEndNaive = previousEndDate.date_naive();
 
-    // Fetch data
+    // Fetch data using nosql_orm with filters
+    let userIdFilter = Filter::Eq("userId".to_string(), json!(userId));
+    let startDateFilter = Filter::Gte("createdAt".to_string(), json!(startDate.to_rfc3339()));
+    let endDateFilter = Filter::Lte("createdAt".to_string(), json!(endDate.to_rfc3339()));
+    let prevStartDateFilter = Filter::Gte(
+      "createdAt".to_string(),
+      json!(previousStartDate.to_rfc3339()),
+    );
+    let prevEndDateFilter = Filter::Lt("createdAt".to_string(), json!(startDate.to_rfc3339()));
+
     let dailyActivities = self
       .getDailyActivitiesFiltered(&userId, &startDateNaive, &endDateNaive)
       .await;
@@ -60,39 +70,51 @@ impl StatisticsService {
       .getDailyActivitiesFiltered(&userId, &prevStartNaive, &prevEndNaive)
       .await;
 
-    let allTasks = self
+    let currentTasks: Vec<Value> = self
       .jsonProvider
-      .find_all("tasks")
+      .find_many(
+        "tasks",
+        Some(&Filter::And(vec![
+          userIdFilter.clone(),
+          startDateFilter,
+          endDateFilter,
+        ])),
+        None,
+        None,
+        None,
+        true,
+      )
       .await
       .unwrap_or_default();
-    let tasks: Vec<Value> = allTasks
-      .into_iter()
-      .filter(|t| t.get("userId").and_then(|v| v.as_str()) == Some(&userId))
-      .collect();
 
-    let currentTasks = DateCalculator::filterByDateRange(&tasks, &startDate, &endDate, "createdAt");
-    let previousTasks =
-      DateCalculator::filterByDateRange(&tasks, &previousStartDate, &previousEndDate, "createdAt");
-
-    let allCategories = self
+    let previousTasks: Vec<Value> = self
       .jsonProvider
-      .find_all("categories")
+      .find_many(
+        "tasks",
+        Some(&Filter::And(vec![
+          userIdFilter.clone(),
+          prevStartDateFilter,
+          prevEndDateFilter,
+        ])),
+        None,
+        None,
+        None,
+        true,
+      )
       .await
       .unwrap_or_default();
-    let categories: Vec<Value> = allCategories
-      .into_iter()
-      .filter(|c| c.get("userId").and_then(|v| v.as_str()) == Some(&userId))
-      .collect();
 
-    let allTodos = self
+    let categories: Vec<Value> = self
       .jsonProvider
-      .find_all("todos")
+      .find_many("categories", Some(&userIdFilter), None, None, None, true)
       .await
       .unwrap_or_default();
-    let todos: Vec<Value> = allTodos
-      .into_iter()
-      .filter(|t| t.get("userId").and_then(|v| v.as_str()) == Some(&userId))
-      .collect();
+
+    let todos: Vec<Value> = self
+      .jsonProvider
+      .find_many("todos", Some(&userIdFilter), None, None, None, true)
+      .await
+      .unwrap_or_default();
 
     // Compute metrics
     let statistics = TaskAnalytics::computeStatistics(
