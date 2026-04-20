@@ -20,6 +20,8 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
 
 import { MatIconModule } from "@angular/material/icon";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { MatButtonModule } from "@angular/material/button";
 
 import { Response, ResponseStatus } from "@models/response.model";
 import { LoginForm } from "@models/auth-forms.model";
@@ -54,6 +56,8 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
     ReactiveFormsModule,
     RouterModule,
     MatIconModule,
+    MatProgressSpinnerModule,
+    MatButtonModule,
     CheckboxComponent,
   ],
   templateUrl: "./login.view.html",
@@ -116,8 +120,10 @@ export class LoginView implements OnDestroy {
   readonly isQrLoginActive = signal(false);
   readonly qrLoginStatus = this.qrLoginService.qrStatus;
   readonly isQrLoginPolling = this.qrLoginService.isPolling;
+  readonly isQrGenerating = signal(false);
 
   readonly isMobileScanning = signal(false);
+  readonly isQrScanningLoading = signal(false);
   mobileQrVideoElement: HTMLVideoElement | null = null;
   mobileQrStream: MediaStream | null = null;
   mobileQrCanvasElement: HTMLCanvasElement | null = null;
@@ -567,6 +573,7 @@ export class LoginView implements OnDestroy {
 
     this.submitted.set(true);
     this.isQrLoginActive.set(true);
+    this.isQrGenerating.set(true);
 
     try {
       const username = this.f["username"].value;
@@ -575,6 +582,7 @@ export class LoginView implements OnDestroy {
         next: (qrData) => {
           this.passkeyQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(qrData.qrCode));
           this.qrLoginService.startPolling(qrData.token, 2000);
+          this.isQrGenerating.set(false);
 
           this.watchQrApproval(qrData.token);
 
@@ -585,6 +593,7 @@ export class LoginView implements OnDestroy {
           this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
           this.submitted.set(false);
           this.isQrLoginActive.set(false);
+          this.isQrGenerating.set(false);
         },
       });
     } catch (err: unknown) {
@@ -592,6 +601,7 @@ export class LoginView implements OnDestroy {
       this.notifyService.showError("QR login failed: " + message);
       this.submitted.set(false);
       this.isQrLoginActive.set(false);
+      this.isQrGenerating.set(false);
     }
   }
 
@@ -601,11 +611,13 @@ export class LoginView implements OnDestroy {
     try {
       this.isMobileScanning.set(true);
       this.isQrLoginActive.set(true);
+      this.isQrScanningLoading.set(true);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
       this.mobileQrStream = stream;
+      this.isQrScanningLoading.set(false);
 
       const videoElement = document.createElement("video");
       videoElement.style.cssText =
@@ -627,6 +639,7 @@ export class LoginView implements OnDestroy {
 
       this.scanMobileQrFrame();
     } catch (error: any) {
+      this.isQrScanningLoading.set(false);
       let errorMsg = "Failed to start camera";
       if (error.name === "NotAllowedError") {
         errorMsg = "Camera permission denied";
@@ -755,6 +768,8 @@ export class LoginView implements OnDestroy {
     }
 
     this.isMobileScanning.set(false);
+    this.isQrScanningLoading.set(false);
+    this.isQrLoginActive.set(false);
   }
 
   private watchQrApproval(token: string): void {
@@ -848,8 +863,11 @@ export class LoginView implements OnDestroy {
   }
 
   cancelQrLogin(): void {
+    this.qrLoginService.stopPolling();
     this.qrLoginService.clearQrData();
     this.passkeyQrCode.set(null);
     this.isQrLoginActive.set(false);
+    this.isQrGenerating.set(false);
+    this.submitted.set(false);
   }
 }
