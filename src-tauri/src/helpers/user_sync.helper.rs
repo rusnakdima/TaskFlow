@@ -58,7 +58,10 @@ pub async fn updateUserProfileIdBoth(
   let now = timestamp_helper::getCurrentTimestamp();
 
   // Step 1: Update JSON
-  eprintln!("[user_sync_helper] Updating user.profileId in JSON for user: {}", userId);
+  eprintln!(
+    "[user_sync_helper] Updating user.profileId in JSON for user: {}",
+    userId
+  );
 
   let user_value = jsonProvider
     .find_by_id("users", userId)
@@ -92,9 +95,7 @@ pub async fn updateUserProfileIdBoth(
       data: DataValue::String("".to_string()),
     })?;
 
-  eprintln!(
-    "[user_sync_helper] User.profileId updated in JSON successfully"
-  );
+  eprintln!("[user_sync_helper] User.profileId updated in JSON successfully");
 
   // Step 2: FAIL if MongoDB not available
   eprintln!("[user_sync_helper] Checking MongoDB availability...");
@@ -105,9 +106,7 @@ pub async fn updateUserProfileIdBoth(
     data: DataValue::String("".to_string()),
   })?;
 
-  eprintln!(
-    "[user_sync_helper] MongoDB available, proceeding with user sync"
-  );
+  eprintln!("[user_sync_helper] MongoDB available, proceeding with user sync");
 
   // Step 3: Update MongoDB with last-write-wins
   eprintln!("[user_sync_helper] Checking user in MongoDB...");
@@ -117,8 +116,7 @@ pub async fn updateUserProfileIdBoth(
   match mongo.find_by_id("users", userId).await {
     Ok(Some(existing_mongo_user)) => {
       // Compare updatedAt timestamps - local wins if newer
-      let local_time =
-        chrono::DateTime::parse_from_rfc3339(&now_str).ok();
+      let local_time = chrono::DateTime::parse_from_rfc3339(&now_str).ok();
       let mongo_time = existing_mongo_user
         .get("updatedAt")
         .and_then(|v| v.as_str())
@@ -133,9 +131,7 @@ pub async fn updateUserProfileIdBoth(
         .unwrap_or(true);
 
       if should_update {
-        eprintln!(
-          "[user_sync_helper] Updating user in MongoDB (local is newer)..."
-        );
+        eprintln!("[user_sync_helper] Updating user in MongoDB (local is newer)...");
         let mut updated = existing_mongo_user.clone();
         if let Some(obj) = updated.as_object_mut() {
           obj.insert(
@@ -152,13 +148,9 @@ pub async fn updateUserProfileIdBoth(
             message: format!("Failed to update user in MongoDB: {}", e),
             data: DataValue::String("".to_string()),
           })?;
-        eprintln!(
-          "[user_sync_helper] User updated in MongoDB successfully"
-        );
+        eprintln!("[user_sync_helper] User updated in MongoDB successfully");
       } else {
-        eprintln!(
-          "[user_sync_helper] MongoDB user is newer, skipping update"
-        );
+        eprintln!("[user_sync_helper] MongoDB user is newer, skipping update");
       }
     }
     Ok(None) => {
@@ -194,9 +186,7 @@ pub async fn updateUserProfileIdBoth(
           message: format!("Failed to insert user to MongoDB: {}", e),
           data: DataValue::String("".to_string()),
         })?;
-      eprintln!(
-        "[user_sync_helper] User created in MongoDB successfully"
-      );
+      eprintln!("[user_sync_helper] User created in MongoDB successfully");
     }
     Err(e) => {
       return Err(ResponseModel {
