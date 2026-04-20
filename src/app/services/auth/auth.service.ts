@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap } from "rxjs/operators";
+import { tap, take } from "rxjs/operators";
 
 /* models */
 
@@ -19,6 +19,8 @@ import { isNetworkError } from "@helpers/network-error.helper";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 
@@ -30,6 +32,8 @@ export class AuthService {
   private jwtTokenService = inject(JwtTokenService);
   private localAuthService = inject(LocalAuthService);
   private dataSyncService = inject(DataLoaderService);
+  private profileRequiredService = inject(ProfileRequiredService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
 
@@ -295,9 +299,22 @@ export class AuthService {
     const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
 
     if (!isTokenExpired) {
-      // Token is valid locally - load data (loadProfile as safety net for profile check)
+      // Token is valid locally - load data
       this.dataSyncService.loadAllData();
-      this.dataSyncService.loadProfile();
+
+      const cachedProfile = this.storageService.profile();
+      if (cachedProfile?.userId) {
+        return;
+      }
+
+      this.dataSyncService.loadProfile().pipe(take(1)).subscribe((profile) => {
+        if (!profile) {
+          this.profileRequiredService.setProfileRequiredMode(true);
+          if (window.location.pathname !== "/profile/create-profile") {
+            window.location.href = "/profile/create-profile";
+          }
+        }
+      });
       this.checkTokenWithBackend(token);
     } else {
       // Token expired - try offline auth
