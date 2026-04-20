@@ -6,6 +6,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub userId: String,
@@ -65,6 +66,7 @@ impl WithRelations for TodoEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TodoCreateModel {
   pub userId: String,
   pub title: String,
@@ -140,6 +142,7 @@ impl From<TodoCreateModel> for TodoEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TodoUpdateModel {
   #[serde(default)]
   pub id: Option<String>,

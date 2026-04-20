@@ -5,6 +5,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todoId: String,
@@ -53,6 +54,7 @@ impl WithRelations for ChatEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatCreateModel {
   pub todoId: String,
   pub userId: String,
@@ -93,6 +95,7 @@ impl From<ChatCreateModel> for ChatEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatUpdateModel {
   pub content: String,
 }

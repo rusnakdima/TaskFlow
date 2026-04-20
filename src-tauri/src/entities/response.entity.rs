@@ -20,6 +20,7 @@ pub enum DataValue {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResponseModel {
   pub status: ResponseStatus,
   pub message: String,

@@ -6,6 +6,7 @@ use crate::entities::traits::{EntityRelations, FrontendProjection, Validatable};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -90,6 +91,7 @@ impl WithRelations for UserEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserCreateModel {
   pub email: String,
   pub username: String,
@@ -166,6 +168,7 @@ impl From<UserCreateModel> for UserEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserUpdateModel {
   #[serde(default)]
   pub id: Option<String>,

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WsRequest {
   pub action: String,
   pub entity: String,
@@ -21,6 +22,7 @@ pub struct WsRequest {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WsResponse {
   pub requestId: Option<String>,
   #[serde(flatten)]
@@ -28,6 +30,7 @@ pub struct WsResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WsBroadcast {
   pub event: String,
   pub entity: String,

@@ -31,6 +31,7 @@ impl Display for TaskStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskEntity {
   pub id: Option<String>,
   pub todoId: String,
@@ -87,6 +88,7 @@ impl WithRelations for TaskEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskCreateModel {
   pub todoId: String,
   pub title: String,
@@ -158,6 +160,7 @@ impl From<TaskCreateModel> for TaskEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,

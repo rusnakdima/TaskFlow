@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::traits::Validatable;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyActivityModel {
   pub _id: ObjectId,
   pub id: String,
@@ -30,6 +31,7 @@ pub struct DailyActivityModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyActivityCreateModel {
   pub userId: String,
   pub date: String,
@@ -79,6 +81,7 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyActivityUpdateModel {
   pub _id: ObjectId,
   pub id: String,
