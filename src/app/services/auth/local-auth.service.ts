@@ -1,7 +1,6 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
-import { Observable, from, of } from "rxjs";
-import { map, catchError } from "rxjs/operators";
+import { of } from "rxjs";
 
 /* models */
 import { LocalUser, OfflineAuthResult } from "@models/local-user.model";

@@ -147,18 +147,6 @@ export function formatWeekRange(selectedDate: Date): string {
 }
 
 /**
- * Format selected date
- */
-export function formatSelectedDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-/**
  * Get current title based on view mode
  */
 export function getCurrentTitle(

@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, signal, computed, WritableSignal, inject, Injector } from "@angular/core";
+import { Injectable, signal, computed, inject, Injector } from "@angular/core";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
@@ -79,11 +79,15 @@ export class StorageService extends BaseStorageService {
   });
 
   private readonly privateTodosComputed = computed(() => {
-    return this.privateTodosSignal().filter((todo) => !todo.deleted_at && todo.visibility === "private");
+    return this.privateTodosSignal().filter(
+      (todo) => !todo.deleted_at && todo.visibility === "private"
+    );
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter((todo) => !todo.deleted_at && todo.visibility === "team");
+    return this.sharedTodosSignal().filter(
+      (todo) => !todo.deleted_at && todo.visibility === "team"
+    );
   });
 
   // ==================== PUBLIC SIGNALS ====================
