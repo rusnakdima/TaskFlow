@@ -122,9 +122,7 @@ export class SignupView implements OnDestroy {
     this.authService.signup<string>(authData).subscribe({
       next: () => {
         this.notifyService.showSuccess("Registration successful");
-        setTimeout(() => {
-          this.router.navigate(["/login"]);
-        }, 500);
+        window.location.href = "/login";
         this.submitted.set(false);
       },
       error: (err: unknown) => {
