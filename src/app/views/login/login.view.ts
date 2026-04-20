@@ -258,9 +258,7 @@ export class LoginView implements OnDestroy {
         this.notifyService.showSuccess("Login successful");
       }
 
-      this.router.navigate(["/dashboard"]).then(() => {
-        this.submitted.set(false);
-      });
+      window.location.href = "/";
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (NetworkErrorHelper.isNetworkError(err)) {
@@ -301,7 +299,7 @@ export class LoginView implements OnDestroy {
               sessionStorage.setItem("token", token);
             }
             this.notifyService.showSuccess("Login successful");
-            this.router.navigate(["/dashboard"]);
+            window.location.href = "/";
             resolve();
           },
           error: (err) => reject(err),
@@ -811,7 +809,7 @@ export class LoginView implements OnDestroy {
         this.notifyService.showSuccess("Login successful");
         this.authStore.setAuthenticated(result);
         this.isQrLoginActive.set(false);
-        this.router.navigate(["/dashboard"]);
+        window.location.href = "/";
       } else {
         this.notifyService.showError("Authentication failed - no token received");
         this.cancelQrLogin();
@@ -850,7 +848,7 @@ export class LoginView implements OnDestroy {
 
         this.notifyService.showSuccess("Login successful");
         this.authStore.setAuthenticated(loginResult.token);
-        this.router.navigate(["/dashboard"]);
+        window.location.href = "/";
       } else {
         this.notifyService.showError("Authentication failed - no token received");
       }
