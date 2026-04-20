@@ -6,6 +6,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,
@@ -38,6 +39,7 @@ impl WithRelations for ProfileEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileCreateModel {
   #[serde(default)]
   pub name: Option<String>,
@@ -84,6 +86,7 @@ impl From<ProfileCreateModel> for ProfileEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileUpdateModel {
   #[serde(default)]
   pub id: Option<String>,

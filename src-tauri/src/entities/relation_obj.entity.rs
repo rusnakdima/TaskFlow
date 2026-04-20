@@ -10,6 +10,7 @@ pub enum TypesField {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RelationObj {
   pub nameTable: String,
   pub typeField: TypesField,

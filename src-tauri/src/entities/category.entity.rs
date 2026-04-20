@@ -6,6 +6,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
@@ -34,6 +35,7 @@ impl Entity for CategoryEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CategoryCreateModel {
   pub title: String,
   pub userId: String,
@@ -66,6 +68,7 @@ impl From<CategoryCreateModel> for CategoryEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CategoryUpdateModel {
   pub title: Option<String>,
   pub userId: Option<String>,

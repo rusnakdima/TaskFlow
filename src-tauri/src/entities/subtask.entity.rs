@@ -6,6 +6,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   pub taskId: String,
@@ -59,6 +60,7 @@ impl WithRelations for SubtaskEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubtaskCreateModel {
   pub taskId: String,
   pub title: String,
@@ -104,6 +106,7 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,

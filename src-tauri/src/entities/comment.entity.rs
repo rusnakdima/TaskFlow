@@ -5,6 +5,7 @@ use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub authorId: String,
@@ -59,6 +60,7 @@ impl WithRelations for CommentEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommentCreateModel {
   pub authorId: String,
   pub authorName: String,
@@ -118,6 +120,7 @@ impl From<CommentCreateModel> for CommentEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommentUpdateModel {
   #[serde(default)]
   pub content: Option<String>,
