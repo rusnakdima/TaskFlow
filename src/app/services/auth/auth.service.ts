@@ -307,14 +307,17 @@ export class AuthService {
         return;
       }
 
-      this.dataSyncService.loadProfile().pipe(take(1)).subscribe((profile) => {
-        if (!profile) {
-          this.profileRequiredService.setProfileRequiredMode(true);
-          if (window.location.pathname !== "/profile/create-profile") {
-            window.location.href = "/profile/create-profile";
+      this.dataSyncService
+        .loadProfile()
+        .pipe(take(1))
+        .subscribe((profile) => {
+          if (!profile) {
+            this.profileRequiredService.setProfileRequiredMode(true);
+            if (window.location.pathname !== "/profile/create-profile") {
+              window.location.href = "/profile/create-profile";
+            }
           }
-        }
-      });
+        });
       this.checkTokenWithBackend(token);
     } else {
       // Token expired - try offline auth

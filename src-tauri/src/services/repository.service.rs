@@ -1690,9 +1690,7 @@ impl RepositoryService {
       }
     }
 
-    eprintln!(
-      "[RepositoryService] create_profile_with_user_update: Creating profile in JSON..."
-    );
+    eprintln!("[RepositoryService] create_profile_with_user_update: Creating profile in JSON...");
 
     let created_profile = self
       .jsonProvider
@@ -1721,7 +1719,8 @@ impl RepositoryService {
       &user_id,
       &profile_id,
     )
-    .await {
+    .await
+    {
       eprintln!(
         "[RepositoryService] create_profile_with_user_update: FAILED to update user.profileId: {}",
         e.message
@@ -1745,9 +1744,7 @@ impl RepositoryService {
       }
     })?;
 
-    eprintln!(
-      "[RepositoryService] create_profile_with_user_update: Syncing profile to MongoDB..."
-    );
+    eprintln!("[RepositoryService] create_profile_with_user_update: Syncing profile to MongoDB...");
     if let Err(e) = self.try_sync_profile_to_cloud(&profile_id, mongo).await {
       eprintln!(
         "[RepositoryService] create_profile_with_user_update: Profile sync to MongoDB failed: {}",
