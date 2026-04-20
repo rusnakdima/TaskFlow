@@ -1165,7 +1165,12 @@ export class ApiProvider {
 
     const loadPromises = tables.map(({ key, load }) =>
       firstValueFrom(
-        this.crud<any[]>("getAll", key, { filter: {}, load, isOwner: true, isPrivate: false }, true).pipe(catchError(() => of([])))
+        this.crud<any[]>(
+          "getAll",
+          key,
+          { filter: {}, load, isOwner: true, isPrivate: false },
+          true
+        ).pipe(catchError(() => of([])))
       ).then((data) => ({ key, data: data || [] }))
     );
 
