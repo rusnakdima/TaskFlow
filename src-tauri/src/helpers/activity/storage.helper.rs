@@ -4,6 +4,7 @@ use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::common::convertDataToArray;
+use crate::helpers::filter_helper::FilterBuilder;
 
 /* providers */
 use nosql_orm::providers::JsonProvider;
@@ -24,8 +25,21 @@ impl ActivityStorage {
     Self { jsonProvider }
   }
 
-  pub async fn getAll(&self, _filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let listDailyActivities = self.jsonProvider.find_all("daily_activities").await;
+  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    let orm_filter = FilterBuilder::from_json(&filter);
+
+    let listDailyActivities = self
+      .jsonProvider
+      .find_many(
+        "daily_activities",
+        orm_filter.as_ref(),
+        None,
+        None,
+        None,
+        true,
+      )
+      .await;
+
     match listDailyActivities {
       Ok(dailyActivities) => Ok(ResponseModel {
         status: ResponseStatus::Success,

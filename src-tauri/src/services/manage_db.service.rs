@@ -2,8 +2,10 @@
 use std::sync::Arc;
 
 /* providers */
+use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
+use serde_json::json;
 
 /* entities */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
@@ -60,15 +62,16 @@ impl ManageDbService {
         let mut imported_count = 0;
 
         for table in tables {
-          let cloud_data = mongo_provider.find_all(table).await;
+          let user_filter = Filter::Eq("userId".to_string(), json!(userId));
+          let cloud_data = mongo_provider
+            .find_many(table, Some(&user_filter), None, None, None, true)
+            .await;
 
           if let Ok(items) = cloud_data {
             for item in items {
-              if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
-                let insert_result = self.jsonProvider.insert(table, item.clone()).await;
-                if insert_result.is_ok() {
-                  imported_count += 1;
-                }
+              let insert_result = self.jsonProvider.insert(table, item.clone()).await;
+              if insert_result.is_ok() {
+                imported_count += 1;
               }
             }
           }
@@ -104,15 +107,17 @@ impl ManageDbService {
         let mut exported_count = 0;
 
         for table in tables {
-          let local_data = self.jsonProvider.find_all(table).await;
+          let user_filter = Filter::Eq("userId".to_string(), json!(userId));
+          let local_data = self
+            .jsonProvider
+            .find_many(table, Some(&user_filter), None, None, None, true)
+            .await;
 
           if let Ok(items) = local_data {
             for item in items {
-              if item.get("userId").and_then(|v| v.as_str()) == Some(&userId) {
-                let insert_result = mongo_provider.insert(table, item.clone()).await;
-                if insert_result.is_ok() {
-                  exported_count += 1;
-                }
+              let insert_result = mongo_provider.insert(table, item.clone()).await;
+              if insert_result.is_ok() {
+                exported_count += 1;
               }
             }
           }

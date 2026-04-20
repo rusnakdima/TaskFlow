@@ -16,6 +16,7 @@ pub struct ConfigHelper {
   pub smtpPort: u16,
   pub resetTokenExpiryHours: u64,
   pub rpDomain: String,
+  pub enableQueryLogging: bool,
 }
 
 impl ConfigHelper {
@@ -75,6 +76,10 @@ impl ConfigHelper {
         .get("RP_DOMAIN")
         .cloned()
         .unwrap_or_else(|| "taskflow.tcs.com".to_string()),
+      enableQueryLogging: envVars
+        .get("ENABLE_QUERY_LOGGING")
+        .map(|s| s.to_lowercase() == "true")
+        .unwrap_or(false),
     }
   }
 
