@@ -54,7 +54,7 @@ rustls = "0.21"
 openssl = { version = "0.10", features = ["vendored"] }
 keyring = { version = "3", features = [] }
 
-nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache"] }
+nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm.git", features = ["json", "mongo", "query_cache"] }
 
 [features]
 default = ["custom-protocol"]
