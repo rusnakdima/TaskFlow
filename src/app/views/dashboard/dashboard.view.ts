@@ -24,8 +24,8 @@ interface DisplayTask {
   description: string;
   status: TaskStatus;
   dueDate: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   todoId: string;
   isPrivate: boolean;
   isOwner: boolean;
@@ -94,9 +94,7 @@ export class DashboardView implements OnInit {
 
   processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
     // Filter out deleted tasks and deleted todos
-    const activeTaskData = taskData.filter(
-      (item) => !item.task.deleted_at && !item.todo.deleted_at
-    );
+    const activeTaskData = taskData.filter((item) => !item.task.deletedAt && !item.todo.deletedAt);
     const tasks = activeTaskData.map((item) => item.task);
     this.totalTasks.set(tasks.length);
 
@@ -130,22 +128,22 @@ export class DashboardView implements OnInit {
         description: item.task.description,
         status: item.task.status,
         dueDate: item.task.endDate,
-        created_at: item.task.created_at,
-        updated_at: item.task.updated_at,
+        createdAt: item.task.createdAt,
+        updatedAt: item.task.updatedAt,
         todoId: item.todo.id,
         isPrivate: item.todo.visibility === "private",
         isOwner: item.todo.userId === this.userId,
       }))
       .sort((a, b) => {
-        const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
-        const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
+        const aTime = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime());
+        const bTime = Math.max(new Date(b.createdAt).getTime(), new Date(b.updatedAt).getTime());
         return bTime - aTime;
       });
 
     this.allTasks.set(newAllTasks);
 
     const sortedTasks = [...tasks].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     this.recentActivities.set(
       sortedTasks.slice(0, 4).map((task) => {
@@ -196,7 +194,7 @@ export class DashboardView implements OnInit {
 
   getLastTime(task: DisplayTask): string {
     const latestDate = new Date(
-      Math.max(new Date(task.created_at).getTime(), new Date(task.updated_at).getTime())
+      Math.max(new Date(task.createdAt).getTime(), new Date(task.updatedAt).getTime())
     );
     return this.formatDate(latestDate.toISOString());
   }

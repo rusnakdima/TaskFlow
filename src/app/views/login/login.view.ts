@@ -177,7 +177,7 @@ export class LoginView implements OnDestroy {
   checkDatabaseConnection() {
     this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
       next: (users) => {
-        const activeUsers = (users || []).filter((u) => !u.deleted_at);
+        const activeUsers = (users || []).filter((u) => !u.deletedAt);
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {
@@ -231,7 +231,7 @@ export class LoginView implements OnDestroy {
 
     try {
       const result = await this.authService.loginWithOfflineFirst(authData);
-      const { token, requiresDataSync, isOffline } = result;
+      const { token, requiresDataSync, isOffline, needsProfile, profile } = result;
 
       if (!token) {
         this.notifyService.showError("No authentication token available");
@@ -245,10 +245,9 @@ export class LoginView implements OnDestroy {
         sessionStorage.setItem("token", token);
       }
 
-      const status = this.userSecurityStatus();
-      if (status?.totpEnabled) {
-        this.showTotpInput.set(true);
-        this.submitted.set(false);
+      if (needsProfile) {
+        this.notifyService.showInfo("Please complete your profile setup");
+        window.location.href = "/profile/create-profile";
         return;
       }
 
@@ -292,14 +291,21 @@ export class LoginView implements OnDestroy {
     try {
       await new Promise<void>((resolve, reject) => {
         this.securityService.completeTotpLogin(username, code).subscribe({
-          next: (token) => {
+          next: (authResponse) => {
+            const token = authResponse.token;
             if (this.f["remember"].value) {
               localStorage.setItem("token", token);
             } else {
               sessionStorage.setItem("token", token);
             }
-            this.notifyService.showSuccess("Login successful");
-            window.location.href = "/";
+
+            if (authResponse.needsProfile) {
+              this.notifyService.showInfo("Please complete your profile setup");
+              window.location.href = "/profile/create-profile";
+            } else {
+              this.notifyService.showSuccess("Login successful");
+              window.location.href = "/";
+            }
             resolve();
           },
           error: (err) => reject(err),
@@ -355,7 +361,11 @@ export class LoginView implements OnDestroy {
             this.webAuthnService.completePasskeyAuthentication(username, responseJson).subscribe({
               next: (result) => {
                 if (result.verified) {
-                  this.completePasswordlessLogin(result.username, false);
+                  this.completePasswordlessLogin(result.username, false, {
+                    token: "",
+                    needsProfile: result.needsProfile,
+                    profile: result.profile,
+                  });
                 } else {
                   this.notifyService.showError("Passkey verification failed");
                   this.submitted.set(false);
@@ -823,10 +833,32 @@ export class LoginView implements OnDestroy {
     }
   }
 
-  private async completePasswordlessLogin(username: string, requiresTotp: boolean): Promise<void> {
+  private async completePasswordlessLogin(
+    username: string,
+    requiresTotp: boolean,
+    authResponse?: { token: string; needsProfile: boolean; profile: any | null }
+  ): Promise<void> {
     if (requiresTotp) {
       this.showTotpInput.set(true);
       this.submitted.set(false);
+      return;
+    }
+
+    if (authResponse?.token) {
+      if (this.f["remember"].value) {
+        localStorage.setItem("token", authResponse.token);
+      } else {
+        sessionStorage.setItem("token", authResponse.token);
+      }
+
+      if (authResponse.needsProfile) {
+        this.notifyService.showInfo("Please complete your profile setup");
+        window.location.href = "/profile/create-profile";
+      } else {
+        this.notifyService.showSuccess("Login successful");
+        this.authStore.setAuthenticated(authResponse.token);
+        window.location.href = "/";
+      }
       return;
     }
 
@@ -846,9 +878,14 @@ export class LoginView implements OnDestroy {
           sessionStorage.setItem("token", loginResult.token);
         }
 
-        this.notifyService.showSuccess("Login successful");
-        this.authStore.setAuthenticated(loginResult.token);
-        window.location.href = "/";
+        if (loginResult.needsProfile) {
+          this.notifyService.showInfo("Please complete your profile setup");
+          window.location.href = "/profile/create-profile";
+        } else {
+          this.notifyService.showSuccess("Login successful");
+          this.authStore.setAuthenticated(loginResult.token);
+          window.location.href = "/";
+        }
       } else {
         this.notifyService.showError("Authentication failed - no token received");
       }

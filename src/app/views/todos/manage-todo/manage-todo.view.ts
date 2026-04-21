@@ -91,9 +91,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
       categories: [[]],
       assignees: [[]],
       order: [0],
-      deleted_at: [false],
-      created_at: [""],
-      updated_at: [""],
+      deletedAt: [false],
+      createdAt: [""],
+      updatedAt: [""],
     });
 
     this.dateClass = DateHelper.createDateClass(this.form);

@@ -121,7 +121,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const deletedUserIds = new Set(
       this.adminStorageService
         .users()
-        .filter((u) => u.deleted_at)
+        .filter((u) => u.deletedAt)
         .map((u) => u.id)
     );
     filtered = filtered.filter((todo) => !deletedUserIds.has(todo.userId));
@@ -166,7 +166,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (!task.comments || task.comments.length === 0) continue;
       count += task.comments.filter((c: any) => {
         // Skip deleted comments
-        if (c.deleted_at) return false;
+        if (c.deletedAt) return false;
         // Skip if user is the author (they've read their own comment)
         if (c.authorId === userId) return false;
         // Skip if user has read the comment

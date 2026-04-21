@@ -159,7 +159,7 @@ export class DataManagementView implements OnInit {
     { key: "tasks", label: "Tasks", type: "array-count" },
     { key: "assignees", label: "Assignees", type: "array-count" },
     { key: "user", label: "Owner", type: "user" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   taskFields: AdminFieldConfig[] = [
@@ -170,7 +170,7 @@ export class DataManagementView implements OnInit {
     { key: "endDate", label: "End Date", type: "date" },
     { key: "todoId", label: "Todo ID", type: "text" },
     { key: "subtasks", label: "Subtasks", type: "array-count" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   subtaskFields: AdminFieldConfig[] = [
@@ -178,18 +178,18 @@ export class DataManagementView implements OnInit {
     { key: "priority", label: "Priority", type: "priority" },
     { key: "status", label: "Status", type: "text" },
     { key: "taskId", label: "Task ID", type: "text" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   categoryFields: AdminFieldConfig[] = [
     { key: "user", label: "Owner", type: "user" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   dailyActivityFields: AdminFieldConfig[] = [
     { key: "userId", label: "User ID", type: "text" },
     { key: "date", label: "Date", type: "date" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   commentFields: AdminFieldConfig[] = [
@@ -197,14 +197,14 @@ export class DataManagementView implements OnInit {
     { key: "authorName", label: "Author", type: "text" },
     { key: "taskId", label: "Task ID", type: "text" },
     { key: "subtaskId", label: "Subtask ID", type: "text" },
-    { key: "updated_at", label: "Last Updated", type: "date" },
+    { key: "updatedAt", label: "Last Updated", type: "date" },
   ];
 
   chatFields: AdminFieldConfig[] = [
     { key: "content", label: "Message", type: "text" },
     { key: "authorName", label: "Author", type: "text" },
     { key: "todoId", label: "Todo ID", type: "text" },
-    { key: "created_at", label: "Created", type: "date" },
+    { key: "createdAt", label: "Created", type: "date" },
   ];
 
   // Filter state
@@ -228,7 +228,7 @@ export class DataManagementView implements OnInit {
   taskList = signal<{ id: string; label: string }[]>([]);
   subtaskList = signal<{ id: string; label: string }[]>([]);
   deletedFilter = signal<string>("all");
-  sortBy = signal<string>("created_at");
+  sortBy = signal<string>("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
 
   dataTypes = [
@@ -282,7 +282,7 @@ export class DataManagementView implements OnInit {
         const todos = data["todos"] || [];
         this.todoList.set(
           todos
-            .filter((t: any) => !t.deleted_at)
+            .filter((t: any) => !t.deletedAt)
             .map((t: any) => ({ id: t.id, label: t.title || t.id }))
             .sort((a: any, b: any) => a.label.localeCompare(b.label))
         );
@@ -290,7 +290,7 @@ export class DataManagementView implements OnInit {
         const tasks = data["tasks"] || [];
         this.taskList.set(
           tasks
-            .filter((t: any) => !t.deleted_at)
+            .filter((t: any) => !t.deletedAt)
             .map((t: any) => ({
               id: t.id,
               label: t.title || t.id,
@@ -301,7 +301,7 @@ export class DataManagementView implements OnInit {
         const subtasks = data["subtasks"] || [];
         this.subtaskList.set(
           subtasks
-            .filter((s: any) => !s.deleted_at)
+            .filter((s: any) => !s.deletedAt)
             .map((s: any) => ({
               id: s.id,
               label: s.description || s.id,
