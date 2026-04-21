@@ -119,11 +119,11 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   private onChatDeleted(chat: { id: string; todoId: string }): void {
-    const isDeleted = (chat as any).deleted_at !== null;
+    const isDeleted = (chat as any).deletedAt !== null;
     if (isDeleted) {
       this.storageService.updateChatInTodo(chat.todoId, {
         ...(chat as any),
-        deleted_at: new Date().toISOString(),
+        deletedAt: new Date().toISOString(),
       });
     } else {
       this.storageService.deleteChatFromTodo(chat.todoId, chat.id);
@@ -276,7 +276,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     return this.dataSync.crud<Chat[]>(
       "getAll",
       "chats",
-      { filter: { todoId, deleted_at: null }, parentTodoId: todoId },
+      { filter: { todoId, deletedAt: null }, parentTodoId: todoId },
       true
     );
   }
@@ -338,7 +338,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     const chats = this.chats();
     if (!chats || chats.length === 0) return;
 
-    const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
+    const chatsToDelete = chats.map((chat) => ({ ...chat, deletedAt: new Date().toISOString() }));
     this.dataSync
       .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todoId }, true)
       .subscribe();
