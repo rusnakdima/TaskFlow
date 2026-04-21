@@ -322,23 +322,23 @@ export class AdminStorageService extends BaseStorageService {
   /**
    * Update record delete status (for soft delete/restore)
    */
-  updateRecordDeleteStatus(table: string, id: string, deleted_at: boolean): void {
+  updateRecordDeleteStatus(table: string, id: string, deletedAt: boolean): void {
     const timestamp = new Date().toISOString();
     this.updateRecord(table, id, {
-      deleted_at: deleted_at ? timestamp : null,
-      updated_at: timestamp,
+      deletedAt: deletedAt ? timestamp : null,
+      updatedAt: timestamp,
     });
   }
 
   /**
    * Update record delete status with cascade (for soft delete/restore)
    */
-  updateRecordDeleteStatusWithCascade(table: string, id: string, deleted_at: boolean): void {
+  updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
     const timestamp = new Date().toISOString();
 
     if (table === "todos") {
       // Update todo
-      this.updateRecordDeleteStatus(table, id, deleted_at);
+      this.updateRecordDeleteStatus(table, id, deletedAt);
 
       // Update all tasks for this todo
       const todo = this.todosSignal().find((t) => t.id === id);
@@ -349,7 +349,7 @@ export class AdminStorageService extends BaseStorageService {
         this.tasksSignal.update((tasks) =>
           tasks.map((task) =>
             task.todoId === id
-              ? { ...task, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...task, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : task
           )
         );
@@ -359,7 +359,7 @@ export class AdminStorageService extends BaseStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...subtask, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : subtask
           )
         );
@@ -371,7 +371,7 @@ export class AdminStorageService extends BaseStorageService {
               (comment.taskId && taskIds.includes(comment.taskId)) ||
               (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
             return isRelated
-              ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : comment;
           })
         );
@@ -380,14 +380,14 @@ export class AdminStorageService extends BaseStorageService {
         this.chatsSignal.update((chats) =>
           chats.map((chat) =>
             chat.todoId === id
-              ? { ...chat, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...chat, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : chat
           )
         );
       }
     } else if (table === "tasks") {
       // Update task
-      this.updateRecordDeleteStatus(table, id, deleted_at);
+      this.updateRecordDeleteStatus(table, id, deletedAt);
 
       // Update subtasks and comments for this task
       const task = this.tasksSignal().find((t) => t.id === id);
@@ -398,7 +398,7 @@ export class AdminStorageService extends BaseStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...subtask, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : subtask
           )
         );
@@ -410,26 +410,26 @@ export class AdminStorageService extends BaseStorageService {
               comment.taskId === id ||
               (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
             return isRelated
-              ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : comment;
           })
         );
       }
     } else if (table === "subtasks") {
       // Update subtask
-      this.updateRecordDeleteStatus(table, id, deleted_at);
+      this.updateRecordDeleteStatus(table, id, deletedAt);
 
       // Update subtask comments
       this.commentsSignal.update((comments) =>
         comments.map((comment) =>
           comment.subtaskId === id
-            ? { ...comment, deleted_at: deleted_at ? timestamp : null, updated_at: timestamp }
+            ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
             : comment
         )
       );
     } else {
       // Update single record
-      this.updateRecordDeleteStatus(table, id, deleted_at);
+      this.updateRecordDeleteStatus(table, id, deletedAt);
     }
   }
 

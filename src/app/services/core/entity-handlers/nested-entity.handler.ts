@@ -55,7 +55,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         return {
           ...todo,
           tasks: operation.execute(todo.tasks || []),
-          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       } else {
         // For subtasks, find the task and add to its subtasks
@@ -64,7 +64,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
           const operation = new AddOperation<Subtask>(data as Subtask);
           return { ...task, subtasks: operation.execute(task.subtasks || []) };
         });
-        return { ...todo, tasks: updatedTasks || [], updated_at: new Date().toISOString() };
+        return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
     });
   }
@@ -90,12 +90,12 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
           this.updateSignal(this.privateSignal, todo.id, (t) => ({
             ...t,
             tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
-            updated_at: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }));
           this.updateSignal(this.sharedSignal, todo.id, (t) => ({
             ...t,
             tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
-            updated_at: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }));
           return;
         }
@@ -115,7 +115,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
                         }
                       : tk
                   ) ?? [],
-                updated_at: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               }));
               this.updateSignal(this.sharedSignal, todo.id, (t) => ({
                 ...t,
@@ -130,7 +130,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
                         }
                       : tk
                   ) ?? [],
-                updated_at: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               }));
               return;
             }
@@ -146,7 +146,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         return {
           ...todo,
           tasks: operation.execute(todo.tasks || []),
-          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       } else {
         const updatedTasks = todo.tasks?.map((task) => {
@@ -154,7 +154,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
           const operation = new UpdateOperation<Subtask>(id, updates);
           return { ...task, subtasks: operation.execute(task.subtasks || []) };
         });
-        return { ...todo, tasks: updatedTasks || [], updated_at: new Date().toISOString() };
+        return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
     });
   }
@@ -178,7 +178,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         return {
           ...todo,
           tasks: operation.execute(todo.tasks || []),
-          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       } else {
         const updatedTasks = todo.tasks?.map((task) => {
@@ -186,7 +186,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
           const operation = new RemoveOperation<Subtask>(id);
           return { ...task, subtasks: operation.execute(task.subtasks || []) };
         });
-        return { ...todo, tasks: updatedTasks || [], updated_at: new Date().toISOString() };
+        return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
     });
   }
