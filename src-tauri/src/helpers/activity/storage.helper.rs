@@ -106,7 +106,6 @@ impl ActivityStorage {
   ) -> Result<(), ResponseModel> {
     let activityId = activity.id.clone();
     let updateModel = DailyActivityUpdateModel {
-      _id: activity._id,
       id: activity.id,
       user_id: activity.user_id,
       date: activity.date,
