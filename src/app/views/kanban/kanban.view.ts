@@ -74,7 +74,7 @@ export class KanbanView implements OnInit, OnDestroy {
   TaskStatus = TaskStatus;
 
   // Use storage signals directly for source data — both private and team todos
-  todos = computed(() => this.storageService.todos().filter((todo) => !todo.deleted_at));
+  todos = computed(() => this.storageService.todos().filter((todo) => !todo.deletedAt));
 
   selectedTodo = computed(() => {
     const todoId = this.selectedTodoId();
@@ -114,7 +114,7 @@ export class KanbanView implements OnInit, OnDestroy {
     const tasks = todo?.tasks || [];
 
     // Filter out deleted tasks
-    const filteredTasks = tasks.filter((task) => !task.deleted_at);
+    const filteredTasks = tasks.filter((task) => !task.deletedAt);
 
     // Remove duplicates by ID, keeping the first occurrence
     const uniqueTaskMap = new Map<string, Task>();

@@ -204,7 +204,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     for (const subtask of task.subtasks) {
       if (!subtask.comments || subtask.comments.length === 0) continue;
       count += subtask.comments.filter((c: any) => {
-        if (c.deleted_at) return false;
+        if (c.deletedAt) return false;
         // Skip if user is the author (they've read their own comment)
         if (c.authorId === userId) return false;
         if (c.readBy && c.readBy.includes(userId)) return false;
@@ -437,8 +437,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     delete (nextTask as any)._id;
     nextTask.id = "";
     nextTask.status = TaskStatus.PENDING;
-    nextTask.created_at = new Date().toISOString();
-    nextTask.updated_at = nextTask.created_at;
+    nextTask.createdAt = new Date().toISOString();
+    nextTask.updatedAt = nextTask.createdAt;
 
     if (task.startDate) {
       const nextStart = new Date(task.startDate);

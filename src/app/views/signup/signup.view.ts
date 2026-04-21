@@ -21,7 +21,7 @@ import { Common } from "@helpers/common.helper";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { SignupForm } from "@models/auth-forms.model";
+import { SignupForm, AuthResponse } from "@models/auth-forms.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -119,10 +119,18 @@ export class SignupView implements OnDestroy {
       username: this.f["username"].value,
       password: this.f["password"].value,
     };
-    this.authService.signup<string>(authData).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Registration successful");
-        window.location.href = "/login";
+    this.authService.signup<AuthResponse>(authData).subscribe({
+      next: (authResponse) => {
+        const token = authResponse.token;
+        localStorage.setItem("token", token);
+
+        if (authResponse.needsProfile) {
+          this.notifyService.showInfo("Please complete your profile setup");
+          window.location.href = "/profile/create-profile";
+        } else {
+          this.notifyService.showSuccess("Registration successful");
+          window.location.href = "/login";
+        }
         this.submitted.set(false);
       },
       error: (err: unknown) => {

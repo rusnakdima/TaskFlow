@@ -79,9 +79,9 @@ export class ManageTaskView implements OnInit, OnDestroy {
       endDate: [""],
       repeat: [RepeatInterval.NONE],
       order: [0],
-      deleted_at: [false],
-      created_at: [""],
-      updated_at: [""],
+      deletedAt: [false],
+      createdAt: [""],
+      updatedAt: [""],
       dependsOn: [[]],
     });
 
