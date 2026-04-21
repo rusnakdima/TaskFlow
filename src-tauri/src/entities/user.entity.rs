@@ -2,7 +2,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::{EntityRelations, FrontendProjection, Validatable};
+use crate::entities::{
+  profile_entity::ProfileEntity,
+  traits::{EntityRelations, FrontendProjection, Validatable},
+};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +21,7 @@ pub struct UserEntity {
   #[serde(default)]
   pub code_expires_at: String,
   pub profile_id: String,
-  pub profile: Option<crate::entities::profile_entity::ProfileEntity>,
+  pub profile: Option<ProfileEntity>,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
   pub deleted_at: Option<DateTime<Utc>>,
@@ -86,7 +89,11 @@ impl Entity for UserEntity {
 
 impl WithRelations for UserEntity {
   fn relations() -> Vec<RelationDef> {
-    vec![RelationDef::many_to_one("profile", "profiles", "profile_id")]
+    vec![RelationDef::many_to_one(
+      "profile",
+      "profiles",
+      "profile_id",
+    )]
   }
 }
 
