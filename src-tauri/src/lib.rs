@@ -109,7 +109,8 @@ pub fn run() {
         let daily_indexes = vec![
           NosqlIndex::single("user_id", 1).name("idx_user_id_daily_activities"),
           NosqlIndex::single("date", 1).name("idx_date_daily_activities"),
-          NosqlIndex::compound(&[("user_id", 1), ("date", 1)]).name("idx_user_date_daily_activities"),
+          NosqlIndex::compound(&[("user_id", 1), ("date", 1)])
+            .name("idx_user_date_daily_activities"),
         ];
         for index in daily_indexes {
           if let Err(e) = json_provider_setup
