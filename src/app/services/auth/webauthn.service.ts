@@ -8,6 +8,7 @@ import {
   WebAuthnAuthOptions,
   PasskeyResult,
 } from "@models/webauthn.model";
+import { AuthResponse } from "@models/auth-forms.model";
 import { BufferHelper } from "@helpers/buffer.helper";
 
 @Injectable({
@@ -202,11 +203,19 @@ export class WebAuthnService {
   completePasskeyAuthentication(
     username: string,
     responseJson: string
-  ): Observable<{ verified: boolean; username: string; method: string }> {
+  ): Observable<{
+    verified: boolean;
+    username: string;
+    method: string;
+    needsProfile: boolean;
+    profile: any | null;
+  }> {
     return this.dataSyncProvider.invokeCommand<{
       verified: boolean;
       username: string;
       method: string;
+      needsProfile: boolean;
+      profile: any | null;
     }>("completePasskeyAuthentication", {
       username,
       responseJson,

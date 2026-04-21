@@ -72,7 +72,11 @@ export class ApiProvider {
         if (response.status === ResponseStatus.SUCCESS) {
           return response.data as T;
         }
-        throw new Error(response.message || `Command ${command} failed`);
+        const message =
+          typeof response.message === "string"
+            ? response.message
+            : JSON.stringify(response.message || "Unknown error");
+        throw new Error(message);
       })
     );
   }
@@ -274,12 +278,9 @@ export class ApiProvider {
         error: (err) => {
           this.executeTauriFallback(operation, params, subscriber, requestKey);
         },
-        complete: () => {
-          // WebSocket subscription completed
-        },
+        complete: () => {},
       });
 
-      // Store subscription to allow cleanup if needed
       subscriber.add(wsSubscription);
     } else if (attempt < WS_RETRY_ATTEMPTS) {
       setTimeout(
@@ -331,10 +332,20 @@ export class ApiProvider {
     subscriber: any,
     requestKey?: string
   ): void {
-    const errorMessage = err.message || String(err);
+    const isResponseError =
+      err && typeof err.status !== "undefined" && typeof err.message !== "undefined";
+    const errorMessage = isResponseError
+      ? typeof err.message === "string"
+        ? err.message
+        : JSON.stringify(err.message)
+      : err.message || String(err);
 
-    if (errorMessage.includes("Record not found")) {
+    if (isResponseError) {
+      this.notifyService.showError(errorMessage);
+    } else if (errorMessage.includes("Record not found")) {
       this.handleRecordNotFound(operation, params, errorMessage);
+    } else {
+      this.notifyService.showError(errorMessage);
     }
 
     subscriber.error(err);
@@ -390,13 +401,13 @@ export class ApiProvider {
           subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
           subscriber.complete();
         } else {
-          this.handleError(
-            new Error("Failed to update all records"),
-            "updateAll",
-            params,
-            subscriber,
-            requestKey
-          );
+          const firstError = responses.find((r) => r.status !== ResponseStatus.SUCCESS);
+          const message =
+            firstError && typeof firstError.message === "string"
+              ? firstError.message
+              : "Failed to update all records";
+          this.notifyService.showError(message);
+          subscriber.error(new Error(message));
         }
         this.inFlightRequests.delete(requestKey);
       })
@@ -418,13 +429,12 @@ export class ApiProvider {
           subscriber.next(response.data as T);
           subscriber.complete();
         } else {
-          this.handleError(
-            new Error(response.message || `Failed to ${operation}`),
-            operation,
-            params,
-            subscriber,
-            requestKey
-          );
+          const message =
+            typeof response.message === "string"
+              ? response.message
+              : JSON.stringify(response.message || "Unknown error");
+          this.notifyService.showError(message);
+          subscriber.error(new Error(message));
         }
         this.inFlightRequests.delete(requestKey);
       })
@@ -884,7 +894,7 @@ export class ApiProvider {
     this.storageService.updateItem(
       "todos",
       todoId,
-      { deleted_at: new Date().toISOString() },
+      { deletedAt: new Date().toISOString() },
       options
     );
 
@@ -893,7 +903,7 @@ export class ApiProvider {
       this.storageService.updateItem(
         "tasks",
         task.id,
-        { deleted_at: new Date().toISOString() },
+        { deletedAt: new Date().toISOString() },
         options
       );
 
@@ -902,7 +912,7 @@ export class ApiProvider {
         this.storageService.updateItem(
           "subtasks",
           subtask.id,
-          { deleted_at: new Date().toISOString() },
+          { deletedAt: new Date().toISOString() },
           options
         );
 
@@ -911,7 +921,7 @@ export class ApiProvider {
           this.storageService.updateItem(
             "comments",
             comment.id,
-            { deleted_at: new Date().toISOString() },
+            { deletedAt: new Date().toISOString() },
             options
           );
         });
@@ -922,7 +932,7 @@ export class ApiProvider {
         this.storageService.updateItem(
           "comments",
           comment.id,
-          { deleted_at: new Date().toISOString() },
+          { deletedAt: new Date().toISOString() },
           options
         );
       });
@@ -1009,9 +1019,9 @@ export class ApiProvider {
           this.handleUpdateOperation(table, result, isTeam);
           break;
         case "delete":
-          // For soft delete (archive), update deleted_at field instead of removing
+          // For soft delete (archive), update deletedAt field instead of removing
           if (table === "todos") {
-            // Archive todo with cascade (set deleted_at !== null for todo and all related entities)
+            // Archive todo with cascade (set deletedAt !== null for todo and all related entities)
             this.archiveTodoWithCascade(id!, isTeam);
           } else if (table === "tasks" || table === "subtasks") {
             // Use removeRecordWithCascade for proper cascade removal from nested structure
