@@ -76,7 +76,7 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "private", deleted_at: null },
+          filter: { userId, visibility: "private", deletedAt: null },
           isOwner: true,
           isPrivate: true,
           load: todoLoad,
@@ -109,7 +109,7 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "team", deleted_at: null },
+          filter: { userId, visibility: "team", deletedAt: null },
           isOwner: true,
           isPrivate: false,
           load: todoLoad,
@@ -145,7 +145,7 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { assignees: userId, visibility: "team", deleted_at: null },
+          filter: { assignees: userId, visibility: "team", deletedAt: null },
           isOwner: false,
           isPrivate: false,
           load: todoLoad,
@@ -185,7 +185,7 @@ export class DataLoaderService {
    */
   private loadCategories(userId: string): void {
     this.apiProvider
-      .crud<Category[]>("getAll", "categories", { filter: { userId, deleted_at: null } }, true)
+      .crud<Category[]>("getAll", "categories", { filter: { userId, deletedAt: null } }, true)
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {

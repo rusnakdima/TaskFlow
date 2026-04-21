@@ -73,7 +73,7 @@ export class TodosBlueprintService {
       id: `todo-${Date.now()}`,
       title: template.title,
       description: template.description,
-      deleted_at: null,
+      deletedAt: null,
       userId: userId,
       user: { id: userId } as any,
       visibility: "private",
@@ -85,8 +85,8 @@ export class TodosBlueprintService {
       order: 0,
       startDate: null,
       endDate: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   }
 }

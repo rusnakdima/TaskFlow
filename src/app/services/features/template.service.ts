@@ -8,7 +8,7 @@ export interface ProjectTemplate {
   description: string;
   tasks: TemplateTask[];
   categories: string[];
-  created_at: string;
+  createdAt: string;
 }
 
 export interface TemplateTask {
@@ -63,7 +63,7 @@ export class TemplateService {
       description,
       tasks: templateTasks,
       categories: todo.categories.map((cat) => cat.id),
-      created_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
 
     this.templates.update((templates) => [...templates, template]);
@@ -86,21 +86,21 @@ export class TemplateService {
         status: "pending",
         priority: templateTask.priority,
         isCompleted: false,
-        deleted_at: null,
+        deletedAt: null,
         order: stIndex,
         startDate: null,
         endDate: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })),
       status: "pending",
       priority: templateTask.priority,
       startDate: null,
       endDate: null,
       order: index,
-      deleted_at: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      deletedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       assignees: [],
       dependsOn: [],
     }));

@@ -207,9 +207,9 @@ export class SyncService {
 
   // ==================== Last-Write-Wins Conflict Resolution ====================
 
-  resolveConflict<T extends { updated_at: string }>(local: T, remote: T): T {
-    const localTime = new Date(local.updated_at).getTime();
-    const remoteTime = new Date(remote.updated_at).getTime();
+  resolveConflict<T extends { updatedAt: string }>(local: T, remote: T): T {
+    const localTime = new Date(local.updatedAt).getTime();
+    const remoteTime = new Date(remote.updatedAt).getTime();
     return remoteTime > localTime ? remote : local;
   }
 
