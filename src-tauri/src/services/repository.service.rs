@@ -1665,7 +1665,7 @@ impl RepositoryService {
       .map_err(|e| errResponseFormatted("Profile validation failed", &e))?;
 
     let user_id = validated_profile
-      .get("user_id")
+      .get("userId")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();

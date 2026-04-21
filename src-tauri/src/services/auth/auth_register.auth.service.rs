@@ -108,7 +108,7 @@ impl AuthRegisterService {
 
     let _ = self.jsonProvider.insert(table_name, userVal).await;
 
-    let userId = newUser.get_id().ok_or_else(|| errResponse("Failed to get user ID"))?;
+    let userId = newUser.get_id();
     let token =
       self
         .tokenService
