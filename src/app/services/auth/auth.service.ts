@@ -54,6 +54,7 @@ export class AuthService {
     isOffline: boolean;
     needsProfile: boolean;
     profile: any | null;
+    userId?: string;
   }> {
     const offlineResult = await this.localAuthService.authenticateOffline(loginData);
 
@@ -76,6 +77,7 @@ export class AuthService {
             isOffline: false,
             needsProfile: authResponse.needsProfile,
             profile: authResponse.profile,
+            userId: authResponse.userId,
           });
         },
         error: (err: any) => {

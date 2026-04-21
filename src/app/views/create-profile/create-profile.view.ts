@@ -137,26 +137,23 @@ export class CreateProfileView implements OnInit {
 
     const body = this.form.value;
     this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
-        next: (createdProfile: Profile) => {
-          if (createdProfile && createdProfile.id) {
-            this.storageService.setCollection("profiles", createdProfile);
+      next: (createdProfile: Profile) => {
+        if (createdProfile && createdProfile.id) {
+          this.storageService.setCollection("profiles", createdProfile);
 
-            const userId = this.authService.getValueByKey("id");
-            if (userId) {
-              this.localAuthService.updateUserProfileId(userId, createdProfile.id);
-            }
+          const userId = this.authService.getValueByKey("id");
+          if (userId) {
+            this.localAuthService.updateUserProfileId(userId, createdProfile.id);
           }
-          this.profileRequiredService.setProfileRequiredMode(false);
-          this.notifyService.showSuccess("Profile created successfully");
-          this.router.navigate([""]);
-        },
-        error: (err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to create profile";
-          this.notifyService.showError(message);
-        },
-      });
-    } else {
-      this.notifyService.showError("Error sending data! Enter the data in the field.");
-    }
+        }
+        this.profileRequiredService.setProfileRequiredMode(false);
+        this.notifyService.showSuccess("Profile created successfully");
+        this.router.navigate([""]);
+      },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to create profile";
+        this.notifyService.showError(message);
+      },
+    });
   }
 }
