@@ -12,6 +12,7 @@ use nosql_orm::query::Filter;
 
 /* models */
 use crate::entities::{
+  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
@@ -229,13 +230,18 @@ impl AuthPasskeyService {
 
     self.saveUser(&updatedUser).await?;
 
+    let profile = self.checkProfileExists(&user.get_id()).await.ok().flatten();
+    let needs_profile = profile.is_none();
+
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Authentication successful".to_string(),
       data: DataValue::Object(json!({
         "verified": true,
         "username": username.to_string(),
-        "method": "passkey"
+        "method": "passkey",
+        "needsProfile": needs_profile,
+        "profile": profile
       })),
     })
   }
@@ -320,5 +326,40 @@ impl AuthPasskeyService {
     }
 
     Ok(())
+  }
+
+  pub async fn checkProfileExists(
+    &self,
+    user_id: &str,
+  ) -> Result<Option<ProfileEntity>, ResponseModel> {
+    let table_name = "profiles";
+    let filter = Filter::Eq("userId".to_string(), serde_json::json!(user_id));
+
+    if let Ok(mut profiles) = self
+      .jsonProvider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      if let Some(profile_val) = profiles.pop() {
+        let profile: ProfileEntity = serde_json::from_value(profile_val)
+          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+        return Ok(Some(profile));
+      }
+    }
+
+    if let Some(mongo) = &self.mongodbProvider {
+      if let Ok(mut profiles) = mongo
+        .find_many(table_name, Some(&filter), None, None, None, true)
+        .await
+      {
+        if let Some(profile_val) = profiles.pop() {
+          let profile: ProfileEntity = serde_json::from_value(profile_val)
+            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+          return Ok(Some(profile));
+        }
+      }
+    }
+
+    Ok(None)
   }
 }

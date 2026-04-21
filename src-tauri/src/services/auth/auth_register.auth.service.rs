@@ -14,6 +14,7 @@ use super::auth_token::AuthTokenService;
 
 /* models */
 use crate::entities::{
+  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   signup_form_entity::SignupForm,
   table_entity::TableModelType,
@@ -97,7 +98,8 @@ impl AuthRegisterService {
       recovery_codes: Vec::new(),
     };
 
-    let userVal = serde_json::to_value(&newUser).unwrap();
+    let userVal = serde_json::to_value(&newUser)
+      .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
 
     mongo
       .insert(table_name, userVal.clone())
@@ -114,7 +116,46 @@ impl AuthRegisterService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "User registered successfully".to_string(),
-      data: DataValue::String(token),
+      data: DataValue::Object(serde_json::json!({
+        "token": token,
+        "needsProfile": true,
+        "profile": null
+      })),
     })
+  }
+
+  pub async fn checkProfileExists(
+    &self,
+    user_id: &str,
+  ) -> Result<Option<ProfileEntity>, ResponseModel> {
+    let table_name = "profiles";
+    let filter = Filter::Eq("userId".to_string(), serde_json::json!(user_id));
+
+    if let Ok(mut profiles) = self
+      .jsonProvider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      if let Some(profile_val) = profiles.pop() {
+        let profile: ProfileEntity = serde_json::from_value(profile_val)
+          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+        return Ok(Some(profile));
+      }
+    }
+
+    if let Some(mongo) = &self.mongodbProvider {
+      if let Ok(mut profiles) = mongo
+        .find_many(table_name, Some(&filter), None, None, None, true)
+        .await
+      {
+        if let Some(profile_val) = profiles.pop() {
+          let profile: ProfileEntity = serde_json::from_value(profile_val)
+            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+          return Ok(Some(profile));
+        }
+      }
+    }
+
+    Ok(None)
   }
 }
