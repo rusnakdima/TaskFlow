@@ -11,6 +11,6 @@ export interface PasswordReset {
   token?: string;
   expiresAt?: Date;
   isUsed?: boolean;
-  created_at?: Date;
-  updated_at?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

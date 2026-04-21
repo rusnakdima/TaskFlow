@@ -12,8 +12,8 @@ export interface Subtask {
   startDate: string | null;
   endDate: string | null;
   order: number;
-  deleted_at: string | null;
-  created_at: string;
-  updated_at: string;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   comments: Array<Comment>;
 }

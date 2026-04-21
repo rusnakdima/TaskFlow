@@ -8,6 +8,6 @@ export interface Profile {
   imageUrl: string;
   user: User;
   userId: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }

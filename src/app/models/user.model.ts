@@ -10,9 +10,9 @@ export interface User {
   codeExpiresAt: string;
   profile: Profile;
   profileId: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 
   totpEnabled?: boolean;
   totpSecret?: string;

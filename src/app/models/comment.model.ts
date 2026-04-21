@@ -3,10 +3,10 @@ export interface Comment {
   authorId: string;
   authorName: string;
   content: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   taskId?: string;
   subtaskId?: string;
   readBy: string[];
-  deleted_at: string | null;
+  deletedAt: string | null;
 }
