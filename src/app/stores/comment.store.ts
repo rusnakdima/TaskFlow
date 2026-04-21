@@ -133,7 +133,7 @@ export class CommentStore {
   }
 
   restoreComment(id: string): void {
-    this.updateComment(id, { deleted_at: null });
+    this.updateComment(id, { deletedAt: null });
   }
 
   clear(): void {

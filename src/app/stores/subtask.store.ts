@@ -118,7 +118,7 @@ export class SubtaskStore {
   }
 
   restoreSubtask(id: string): void {
-    this.updateSubtask(id, { deleted_at: null });
+    this.updateSubtask(id, { deletedAt: null });
   }
 
   clear(): void {
