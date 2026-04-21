@@ -129,8 +129,16 @@ impl RepositoryService {
       }
 
       if let Some(relation_def) = RelationConfig::get_relation_def(table, path) {
-        tracing::warn!("[REPO] load_relations - found relation_def for path={}, def={:?}", path, relation_def);
+        tracing::warn!("[REPO] load_relations - found relation_def for path={}, def.target={}, def.foreign_key={}", 
+                       path, relation_def.target_collection, relation_def.foreign_key);
+        
+        let doc_ids: Vec<String> = docs.iter()
+          .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(String::from))
+          .collect();
+        tracing::warn!("[REPO] load_relations - doc ids being passed: {:?}", doc_ids);
+        
         let needs_proj = RelationConfig::needs_user_projection(table, path);
+        tracing::warn!("[REPO] load_relations - calling loader.load_many...");
         docs = loader
           .load_many(docs, &relation_def, true)
           .await

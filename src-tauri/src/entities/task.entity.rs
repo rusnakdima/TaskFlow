@@ -82,7 +82,7 @@ impl WithRelations for TaskEntity {
     vec![
       RelationDef::one_to_many("subtasks", "subtasks", "taskId"),
       RelationDef::one_to_many("comments", "comments", "taskId"),
-      RelationDef::many_to_one("todo", "todos", "todoId"),
+      RelationDef::many_to_one("todo", "todos", "taskId"),
     ]
   }
 }
