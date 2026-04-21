@@ -50,10 +50,6 @@ pub struct ProfileCreateModel {
   #[serde(default)]
   pub image_url: Option<String>,
   pub user_id: String,
-  #[serde(skip)]
-  pub _id: Option<String>,
-  #[allow(dead_code)]
-  pub id: Option<String>,
 }
 
 impl Validatable for ProfileCreateModel {

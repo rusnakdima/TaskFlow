@@ -5,18 +5,18 @@ pub struct RelationConfig;
 
 pub const FRONTEND_EXCLUDED_FIELDS: &[&str] = &[
   "password",
-  "totpSecret",
-  "passkeyPublicKey",
-  "passkeyCredentialId",
-  "passkeyDevice",
-  "recoveryCodes",
-  "resetToken",
-  "temporaryCode",
-  "codeExpiresAt",
-  "biometricEnabled",
-  "passkeyEnabled",
-  "totpEnabled",
-  "qrLoginEnabled",
+  "totp_secret",
+  "passkey_public_key",
+  "passkey_credential_id",
+  "passkey_device",
+  "recovery_codes",
+  "reset_token",
+  "temporary_code",
+  "code_expires_at",
+  "biometric_enabled",
+  "passkey_enabled",
+  "totp_enabled",
+  "qr_login_enabled",
 ];
 
 pub fn user_projection() -> Projection {
@@ -217,6 +217,7 @@ impl RelationConfig {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::entities::traits::FrontendProjection;
 
   #[test]
   fn test_get_relation_def() {
@@ -239,7 +240,7 @@ mod tests {
     let excluded =
       <crate::entities::user_entity::UserEntity as FrontendProjection>::excluded_fields();
     assert!(excluded.contains(&"password"));
-    assert!(excluded.contains(&"totpSecret"));
+    assert!(excluded.contains(&"totp_secret"));
     assert!(!excluded.contains(&"email"));
   }
 }
