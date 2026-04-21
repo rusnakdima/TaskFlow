@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { BufferHelper } from "@helpers/buffer.helper";
+import { AuthResponse } from "@models/auth-forms.model";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -212,10 +213,10 @@ export class SecurityService {
 
   /**
    * Complete login with TOTP after passkey/biometric authentication
-   * This returns a JWT token directly
+   * This returns AuthResponse with token, needsProfile, and profile
    */
-  completeTotpLogin(username: string, code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("verifyLoginTotp", {
+  completeTotpLogin(username: string, code: string): Observable<AuthResponse> {
+    return this.dataSyncProvider.invokeCommand<AuthResponse>("verifyLoginTotp", {
       username,
       code,
     });

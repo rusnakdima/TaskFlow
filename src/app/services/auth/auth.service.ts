@@ -5,7 +5,7 @@ import { tap, take } from "rxjs/operators";
 
 /* models */
 
-import { LoginForm, SignupForm } from "@models/auth-forms.model";
+import { LoginForm, SignupForm, AuthResponse } from "@models/auth-forms.model";
 import { PasswordReset } from "@models/password-reset.model";
 import { OfflineAuthResult } from "@models/local-user.model";
 
@@ -50,38 +50,39 @@ export class AuthService {
    */
   async loginWithOfflineFirst(
     loginData: LoginForm
-  ): Promise<{ token: string; requiresDataSync: boolean; isOffline: boolean }> {
-    // STEP 1: Always check local storage FIRST
+  ): Promise<{
+    token: string;
+    requiresDataSync: boolean;
+    isOffline: boolean;
+    needsProfile: boolean;
+    profile: any | null;
+  }> {
     const offlineResult = await this.localAuthService.authenticateOffline(loginData);
 
-    // STEP 2: If offline auth succeeded with cached token, use it immediately
     if (offlineResult.success && offlineResult.token) {
       return {
         token: offlineResult.token,
         requiresDataSync: true,
         isOffline: true,
+        needsProfile: false,
+        profile: null,
       };
     }
 
-    // STEP 3: User found locally but needs online auth (no cached token or incomplete data)
-    // OR user not found locally - try online either way
     return new Promise((resolve, reject) => {
       this.performOnlineLogin(loginData).subscribe({
-        next: (token: string) => {
-          // ✅ Online login successful
+        next: (authResponse: AuthResponse) => {
           resolve({
-            token,
+            token: authResponse.token,
             requiresDataSync: true,
             isOffline: false,
+            needsProfile: authResponse.needsProfile,
+            profile: authResponse.profile,
           });
         },
         error: (err: any) => {
-          // ❌ Online login failed - check why
           if (isNetworkError(err)) {
-            // Network error - check if we have local user data
             if (offlineResult.user && offlineResult.user.availableForOffline) {
-              // ✅ User exists locally with valid credentials - allow offline login
-              // Use cached token even if it might be expired (better than nothing)
               const tokenToUse = offlineResult.user.lastToken || "";
 
               if (tokenToUse) {
@@ -89,9 +90,10 @@ export class AuthService {
                   token: tokenToUse,
                   requiresDataSync: true,
                   isOffline: true,
+                  needsProfile: false,
+                  profile: null,
                 });
               } else {
-                // User exists locally but no token - can't login without network
                 reject(
                   new Error(
                     "No internet connection. User data exists but no cached token available."
@@ -99,7 +101,6 @@ export class AuthService {
                 );
               }
             } else {
-              // ❌ No local user data - can't login offline
               reject(
                 new Error(
                   "No internet connection. Please login online first to enable offline access."
@@ -107,7 +108,6 @@ export class AuthService {
               );
             }
           } else {
-            // Not a network error - actual authentication failure (wrong password, etc.)
             reject(err);
           }
         },
@@ -118,28 +118,29 @@ export class AuthService {
   /**
    * Perform online login and store user data for future offline auth
    */
-  private performOnlineLogin(loginData: LoginForm): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("login", { loginForm: loginData }).pipe(
-      tap((token: string) => {
-        // Store user data for future offline auth
-        // Extract user info from token
-        const userId = this.jwtTokenService.getUserId(token);
-        const username = this.jwtTokenService.getValueByKey(token, "username");
-        const email = this.jwtTokenService.getValueByKey(token, "email");
-        const role = this.jwtTokenService.getRole(token);
+  private performOnlineLogin(loginData: LoginForm): Observable<AuthResponse> {
+    return this.dataSyncProvider
+      .invokeCommand<AuthResponse>("login", { loginForm: loginData })
+      .pipe(
+        tap((authResponse: AuthResponse) => {
+          const token = authResponse.token;
+          const userId = this.jwtTokenService.getUserId(token);
+          const username = this.jwtTokenService.getValueByKey(token, "username");
+          const email = this.jwtTokenService.getValueByKey(token, "email");
+          const role = this.jwtTokenService.getRole(token);
 
-        if (userId && username && email) {
-          this.localAuthService.storeUserDataAfterAuth(
-            userId,
-            username,
-            email,
-            loginData.password, // Store password hash for offline auth
-            role || "user",
-            token
-          );
-        }
-      })
-    );
+          if (userId && username && email) {
+            this.localAuthService.storeUserDataAfterAuth(
+              userId,
+              username,
+              email,
+              loginData.password,
+              role || "user",
+              token
+            );
+          }
+        })
+      );
   }
 
   login<R>(loginData: LoginForm): Observable<R> {
@@ -148,9 +149,9 @@ export class AuthService {
 
   signup<R>(signupData: SignupForm): Observable<R> {
     return this.dataSyncProvider.invokeCommand<R>("register", { signupForm: signupData }).pipe(
-      tap((token: R) => {
-        // Store user data for future offline auth after successful signup
-        const tokenStr = token as unknown as string;
+      tap((authResponse: R) => {
+        const authData = authResponse as unknown as AuthResponse;
+        const tokenStr = authData.token;
         const userId = this.jwtTokenService.getUserId(tokenStr);
         const username = this.jwtTokenService.getValueByKey(tokenStr, "username");
         const email = this.jwtTokenService.getValueByKey(tokenStr, "email");
