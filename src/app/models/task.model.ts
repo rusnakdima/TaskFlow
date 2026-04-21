@@ -35,9 +35,9 @@ export interface Task {
   endDate: string | null;
   repeat?: RepeatInterval;
   order: number;
-  deleted_at: string | null;
-  created_at: string;
-  updated_at: string;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   assignees: string[];
   dependsOn: string[];
   comments: Array<Comment>;

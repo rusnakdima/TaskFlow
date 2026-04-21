@@ -19,3 +19,9 @@ export interface SignupForm {
   username: string;
   password: string;
 }
+
+export interface AuthResponse {
+  token: string;
+  needsProfile: boolean;
+  profile: any | null;
+}

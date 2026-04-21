@@ -13,9 +13,9 @@ export interface DailyActivity {
   id: string;
   userId: string;
   date: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export type ArchiveRecord = Todo | Task | Subtask | Comment | Chat | Category | DailyActivity;
