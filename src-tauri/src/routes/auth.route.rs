@@ -254,10 +254,10 @@ pub async fn getUserSecurityStatus(
     status: ResponseStatus::Success,
     message: "Security status retrieved".to_string(),
     data: DataValue::Object(json!({
-      "totpEnabled": user.totp_enabled,
-      "passkeyEnabled": user.passkey_enabled,
-      "biometricEnabled": user.biometric_enabled,
-      "qrLoginEnabled": user.qr_login_enabled,
+      "totpEnabled": user.totpEnabled,
+      "passkeyEnabled": user.passkeyEnabled,
+      "biometricEnabled": user.biometricEnabled,
+      "qrLoginEnabled": user.qrLoginEnabled,
     })),
   })
 }

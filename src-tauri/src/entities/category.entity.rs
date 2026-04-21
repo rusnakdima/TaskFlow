@@ -10,10 +10,10 @@ use nosql_orm::prelude::{Entity, EntityMeta};
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
-  pub user_id: String,
-  pub deleted_at: Option<DateTime<Utc>>,
-  pub created_at: DateTime<Utc>,
-  pub updated_at: DateTime<Utc>,
+  pub userId: String,
+  pub deletedAt: Option<DateTime<Utc>>,
+  pub createdAt: DateTime<Utc>,
+  pub updatedAt: DateTime<Utc>,
 }
 
 impl Entity for CategoryEntity {
@@ -38,7 +38,7 @@ impl Entity for CategoryEntity {
 #[serde(rename_all = "camelCase")]
 pub struct CategoryCreateModel {
   pub title: String,
-  pub user_id: String,
+  pub userId: String,
 }
 
 impl Validatable for CategoryCreateModel {
@@ -46,8 +46,8 @@ impl Validatable for CategoryCreateModel {
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
     }
-    if self.user_id.is_empty() {
-      return Err("user_id cannot be empty".to_string());
+    if self.userId.is_empty() {
+      return Err("userId cannot be empty".to_string());
     }
     Ok(())
   }
@@ -59,10 +59,10 @@ impl From<CategoryCreateModel> for CategoryEntity {
     CategoryEntity {
       id: None,
       title: value.title,
-      user_id: value.user_id,
-      deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      userId: value.userId,
+      deletedAt: None,
+      createdAt: now,
+      updatedAt: now,
     }
   }
 }
@@ -71,8 +71,8 @@ impl From<CategoryCreateModel> for CategoryEntity {
 #[serde(rename_all = "camelCase")]
 pub struct CategoryUpdateModel {
   pub title: Option<String>,
-  pub user_id: Option<String>,
-  pub deleted_at: Option<bool>,
+  pub userId: Option<String>,
+  pub deletedAt: Option<bool>,
 }
 
 impl Validatable for CategoryUpdateModel {

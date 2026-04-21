@@ -9,17 +9,17 @@ use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRel
 #[serde(rename_all = "camelCase")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
-  pub task_id: String,
+  pub taskId: String,
   pub title: String,
   pub description: String,
   pub status: crate::entities::task_entity::TaskStatus,
   pub priority: String,
   pub order: i32,
-  pub deleted_at: Option<DateTime<Utc>>,
-  pub created_at: DateTime<Utc>,
-  pub updated_at: DateTime<Utc>,
-  pub start_date: Option<String>,
-  pub end_date: Option<String>,
+  pub deletedAt: Option<DateTime<Utc>>,
+  pub createdAt: DateTime<Utc>,
+  pub updatedAt: DateTime<Utc>,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
 }
 
 impl Entity for SubtaskEntity {
@@ -42,19 +42,19 @@ impl Entity for SubtaskEntity {
 
 impl SoftDeletable for SubtaskEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
+    self.deletedAt
   }
 
   fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
+    self.deletedAt = deleted_at;
   }
 }
 
 impl WithRelations for SubtaskEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::many_to_one("task", "tasks", "task_id"),
-      RelationDef::one_to_many("comments", "comments", "subtask_id"),
+      RelationDef::many_to_one("task", "tasks", "taskId"),
+      RelationDef::one_to_many("comments", "comments", "subtaskId"),
     ]
   }
 }
@@ -62,7 +62,7 @@ impl WithRelations for SubtaskEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubtaskCreateModel {
-  pub task_id: String,
+  pub taskId: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -71,8 +71,8 @@ pub struct SubtaskCreateModel {
 
 impl Validatable for SubtaskCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.task_id.is_empty() {
-      return Err("task_id cannot be empty".to_string());
+    if self.taskId.is_empty() {
+      return Err("taskId cannot be empty".to_string());
     }
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
@@ -90,17 +90,17 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
 
     SubtaskEntity {
       id: None,
-      task_id: value.task_id,
+      taskId: value.taskId,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: crate::entities::task_entity::TaskStatus::Pending,
       priority: value.priority,
       order: value.order,
-      deleted_at: None,
-      created_at: now,
-      updated_at: now,
-      start_date: None,
-      end_date: None,
+      deletedAt: None,
+      createdAt: now,
+      updatedAt: now,
+      startDate: None,
+      endDate: None,
     }
   }
 }
@@ -111,7 +111,7 @@ pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
-  pub task_id: Option<String>,
+  pub taskId: Option<String>,
   #[serde(default)]
   pub title: Option<String>,
   #[serde(default)]
@@ -123,11 +123,11 @@ pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub order: Option<i32>,
   #[serde(default)]
-  pub deleted_at: Option<bool>,
+  pub deletedAt: Option<bool>,
   #[serde(default)]
-  pub created_at: Option<String>,
+  pub createdAt: Option<String>,
   #[serde(default)]
-  pub updated_at: Option<String>,
+  pub updatedAt: Option<String>,
   #[serde(default)]
   pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
   #[serde(default)]
