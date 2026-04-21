@@ -48,9 +48,7 @@ export class AuthService {
    * Attempt offline-first authentication
    * ALWAYS checks local storage first, then tries cloud
    */
-  async loginWithOfflineFirst(
-    loginData: LoginForm
-  ): Promise<{
+  async loginWithOfflineFirst(loginData: LoginForm): Promise<{
     token: string;
     requiresDataSync: boolean;
     isOffline: boolean;
