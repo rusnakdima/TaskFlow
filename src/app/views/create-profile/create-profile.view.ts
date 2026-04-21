@@ -93,7 +93,10 @@ export class CreateProfileView implements OnInit {
   ];
 
   ngOnInit() {
-    const userId = this.authService.getValueByKey("id");
+    let userId = this.authService.getValueByKey("id");
+    if (!userId || userId === "") {
+      userId = localStorage.getItem("userId");
+    }
     if (userId && userId !== "") {
       this.form.controls["userId"].setValue(userId);
 
@@ -106,6 +109,9 @@ export class CreateProfileView implements OnInit {
           imageUrl: cachedProfile.imageUrl ?? "",
         });
       }
+    } else {
+      this.notifyService.showError("User session not found. Please login again.");
+      window.location.href = "/login";
     }
   }
 
@@ -114,11 +120,23 @@ export class CreateProfileView implements OnInit {
       Object.values(this.form.controls).forEach((control) => {
         control.markAsTouched();
       });
+      return;
     }
 
-    if (this.form.valid) {
-      const body = this.form.value;
-      this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
+    let userId = this.authService.getValueByKey("id");
+    if (!userId || userId === "") {
+      userId = localStorage.getItem("userId");
+    }
+    if (!userId || userId === "") {
+      this.notifyService.showError("User session expired. Please login again.");
+      window.location.href = "/login";
+      return;
+    }
+
+    this.form.controls["userId"].setValue(userId);
+
+    const body = this.form.value;
+    this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
         next: (createdProfile: Profile) => {
           if (createdProfile && createdProfile.id) {
             this.storageService.setCollection("profiles", createdProfile);

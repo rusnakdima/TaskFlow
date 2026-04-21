@@ -24,4 +24,5 @@ export interface AuthResponse {
   token: string;
   needsProfile: boolean;
   profile: any | null;
+  userId?: string;
 }

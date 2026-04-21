@@ -109,7 +109,8 @@ impl AuthLoginService {
       data: DataValue::Object(serde_json::json!({
         "token": token,
         "needsProfile": needs_profile,
-        "profile": profile
+        "profile": profile,
+        "userId": user.get_id()
       })),
     })
   }

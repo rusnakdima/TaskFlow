@@ -231,7 +231,7 @@ export class LoginView implements OnDestroy {
 
     try {
       const result = await this.authService.loginWithOfflineFirst(authData);
-      const { token, requiresDataSync, isOffline, needsProfile, profile } = result;
+      const { token, requiresDataSync, isOffline, needsProfile, profile, userId } = result;
 
       if (!token) {
         this.notifyService.showError("No authentication token available");
@@ -241,6 +241,9 @@ export class LoginView implements OnDestroy {
 
       if (this.f["remember"].value) {
         localStorage.setItem("token", token);
+        if (userId) {
+          localStorage.setItem("userId", userId);
+        }
       } else {
         sessionStorage.setItem("token", token);
       }

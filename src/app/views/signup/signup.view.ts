@@ -124,6 +124,10 @@ export class SignupView implements OnDestroy {
         const token = authResponse.token;
         localStorage.setItem("token", token);
 
+        if (authResponse.userId) {
+          localStorage.setItem("userId", authResponse.userId);
+        }
+
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");
           window.location.href = "/profile/create-profile";

@@ -108,10 +108,11 @@ impl AuthRegisterService {
 
     let _ = self.jsonProvider.insert(table_name, userVal).await;
 
+    let userId = newUser.get_id().ok_or_else(|| errResponse("Failed to get user ID"))?;
     let token =
       self
         .tokenService
-        .generateToken(newUser.get_id(), &newUser.username, &newUser.role)?;
+        .generateToken(&userId, &newUser.username, &newUser.role)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -119,7 +120,8 @@ impl AuthRegisterService {
       data: DataValue::Object(serde_json::json!({
         "token": token,
         "needsProfile": true,
-        "profile": null
+        "profile": null,
+        "userId": userId
       })),
     })
   }

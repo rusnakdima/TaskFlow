@@ -68,16 +68,36 @@ export class ApiProvider {
 
   invokeCommand<T>(command: string, args: Record<string, any> = {}): Observable<T> {
     return from(
-      invoke<Response<T>>(command, args).then((response) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          return response.data as T;
-        }
-        const message =
-          typeof response.message === "string"
-            ? response.message
-            : JSON.stringify(response.message || "Unknown error");
-        throw new Error(message);
-      })
+      invoke<Response<T>>(command, args)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            return response.data as T;
+          }
+          const rawMessage = response?.message;
+          let message: string;
+          if (typeof rawMessage === "string") {
+            message = rawMessage;
+          } else if (rawMessage) {
+            message = JSON.stringify(rawMessage);
+          } else {
+            message = "Unknown error";
+          }
+          throw new Error(message);
+        })
+        .catch((err) => {
+          let errorMessage: string;
+          if (err instanceof Error) {
+            errorMessage = err.message;
+          } else if (typeof err === "string") {
+            errorMessage = err;
+          } else if (err?.message) {
+            errorMessage =
+              typeof err.message === "string" ? err.message : JSON.stringify(err.message);
+          } else {
+            errorMessage = JSON.stringify(err) || "Unknown error";
+          }
+          throw new Error(errorMessage);
+        })
     );
   }
 
@@ -334,11 +354,27 @@ export class ApiProvider {
   ): void {
     const isResponseError =
       err && typeof err.status !== "undefined" && typeof err.message !== "undefined";
-    const errorMessage = isResponseError
-      ? typeof err.message === "string"
-        ? err.message
-        : JSON.stringify(err.message)
-      : err.message || String(err);
+
+    let errorMessage: string;
+    if (isResponseError) {
+      if (typeof err.message === "string") {
+        errorMessage = err.message;
+      } else if (err.message) {
+        errorMessage = JSON.stringify(err.message);
+      } else {
+        errorMessage = "Unknown error";
+      }
+    } else if (typeof err?.message === "string") {
+      errorMessage = err.message;
+    } else if (err instanceof Error) {
+      errorMessage = err.message;
+    } else if (typeof err === "string") {
+      errorMessage = err;
+    } else if (err) {
+      errorMessage = JSON.stringify(err);
+    } else {
+      errorMessage = "Unknown error";
+    }
 
     if (isResponseError) {
       this.notifyService.showError(errorMessage);
@@ -402,10 +438,15 @@ export class ApiProvider {
           subscriber.complete();
         } else {
           const firstError = responses.find((r) => r.status !== ResponseStatus.SUCCESS);
-          const message =
-            firstError && typeof firstError.message === "string"
-              ? firstError.message
-              : "Failed to update all records";
+          const rawMessage = firstError?.message;
+          let message: string;
+          if (typeof rawMessage === "string") {
+            message = rawMessage;
+          } else if (rawMessage) {
+            message = JSON.stringify(rawMessage);
+          } else {
+            message = "Failed to update all records";
+          }
           this.notifyService.showError(message);
           subscriber.error(new Error(message));
         }
@@ -429,10 +470,15 @@ export class ApiProvider {
           subscriber.next(response.data as T);
           subscriber.complete();
         } else {
-          const message =
-            typeof response.message === "string"
-              ? response.message
-              : JSON.stringify(response.message || "Unknown error");
+          const rawMessage = response?.message;
+          let message: string;
+          if (typeof rawMessage === "string") {
+            message = rawMessage;
+          } else if (rawMessage) {
+            message = JSON.stringify(rawMessage);
+          } else {
+            message = "Unknown error";
+          }
           this.notifyService.showError(message);
           subscriber.error(new Error(message));
         }
