@@ -66,11 +66,11 @@ export class StorageService extends BaseStorageService {
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
       // Filter out deleted todos
-      if (todo.deleted_at) return;
+      if (todo.deletedAt) return;
 
       if (
         !uniqueTodoMap.has(todo.id) ||
-        (todo.updated_at && uniqueTodoMap.get(todo.id)!.updated_at! < todo.updated_at)
+        (todo.updatedAt && uniqueTodoMap.get(todo.id)!.updatedAt! < todo.updatedAt)
       ) {
         uniqueTodoMap.set(todo.id, todo);
       }
@@ -80,14 +80,12 @@ export class StorageService extends BaseStorageService {
 
   private readonly privateTodosComputed = computed(() => {
     return this.privateTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "private"
+      (todo) => !todo.deletedAt && todo.visibility === "private"
     );
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "team"
-    );
+    return this.sharedTodosSignal().filter((todo) => !todo.deletedAt && todo.visibility === "team");
   });
 
   // ==================== PUBLIC SIGNALS ====================
@@ -95,10 +93,10 @@ export class StorageService extends BaseStorageService {
   readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
   readonly tasks = computed(() =>
-    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deleted_at))
+    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deletedAt))
   );
   readonly subtasks = computed(() =>
-    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deleted_at))
+    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deletedAt))
   );
   readonly comments = computed(() => {
     const todos = this.todos();
@@ -136,9 +134,9 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    if (updates["deleted_at"] === true) {
+    if (updates["deletedAt"] === true) {
       const existing: any = this.getById(type, id);
-      if (existing?.["deleted_at"] === true) return;
+      if (existing?.["deletedAt"] === true) return;
     }
 
     if (type === "todos") {

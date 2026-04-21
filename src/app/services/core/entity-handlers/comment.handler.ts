@@ -62,7 +62,7 @@ export class CommentHandler extends EntityHandler<Comment> {
           comments: subtask.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         })),
       })),
-      updated_at: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }));
   }
 
@@ -77,7 +77,7 @@ export class CommentHandler extends EntityHandler<Comment> {
           comments: subtask.comments?.filter((c) => c.id !== id),
         })),
       })),
-      updated_at: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }));
   }
 
@@ -113,7 +113,7 @@ export class CommentHandler extends EntityHandler<Comment> {
             comments: [...(task.comments || []), comment],
           };
         });
-        return { ...todo, tasks: updatedTasks || [], updated_at: new Date().toISOString() };
+        return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       } else {
         const updatedTasks = todo.tasks?.map((task) => {
           const updatedSubtasks = task.subtasks?.map((subtask) => {
@@ -125,7 +125,7 @@ export class CommentHandler extends EntityHandler<Comment> {
           });
           return { ...task, subtasks: updatedSubtasks || [] };
         });
-        return { ...todo, tasks: updatedTasks || [], updated_at: new Date().toISOString() };
+        return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
     });
   }
