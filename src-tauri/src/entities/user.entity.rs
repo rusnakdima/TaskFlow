@@ -17,44 +17,44 @@ pub struct UserEntity {
   pub password: String,
   pub role: String,
   #[serde(default)]
-  pub temporary_code: String,
+  pub temporaryCode: String,
   #[serde(default)]
-  pub code_expires_at: String,
-  pub profile_id: String,
+  pub codeExpiresAt: String,
+  pub profileId: String,
   pub profile: Option<ProfileEntity>,
-  pub created_at: DateTime<Utc>,
-  pub updated_at: DateTime<Utc>,
-  pub deleted_at: Option<DateTime<Utc>>,
+  pub createdAt: DateTime<Utc>,
+  pub updatedAt: DateTime<Utc>,
+  pub deletedAt: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub totp_enabled: bool,
+  pub totpEnabled: bool,
   #[serde(default)]
-  pub totp_secret: String,
+  pub totpSecret: String,
   #[serde(default)]
-  pub passkey_credential_id: String,
+  pub passkeyCredentialId: String,
   #[serde(default)]
-  pub passkey_public_key: String,
+  pub passkeyPublicKey: String,
   #[serde(default)]
-  pub passkey_device: String,
+  pub passkeyDevice: String,
   #[serde(default)]
-  pub passkey_enabled: bool,
+  pub passkeyEnabled: bool,
   #[serde(default)]
-  pub biometric_enabled: bool,
+  pub biometricEnabled: bool,
   #[serde(default)]
-  pub qr_login_enabled: bool,
+  pub qrLoginEnabled: bool,
   #[serde(default)]
-  pub recovery_codes: Vec<String>,
+  pub recoveryCodes: Vec<String>,
 }
 
 impl FrontendProjection for UserEntity {
   fn excluded_fields() -> Vec<&'static str> {
     vec![
       "password",
-      "totp_secret",
-      "passkey_public_key",
-      "passkey_credential_id",
-      "passkey_device",
-      "recovery_codes",
-      "reset_token",
+      "totpSecret",
+      "passkeyPublicKey",
+      "passkeyCredentialId",
+      "passkeyDevice",
+      "recoveryCodes",
+      "resetToken",
     ]
   }
 }
@@ -92,7 +92,7 @@ impl WithRelations for UserEntity {
     vec![RelationDef::many_to_one(
       "profile",
       "profiles",
-      "profile_id",
+      "profileId",
     )]
   }
 }
@@ -105,28 +105,28 @@ pub struct UserCreateModel {
   pub password: String,
   pub role: String,
   #[serde(default)]
-  pub temporary_code: String,
+  pub temporaryCode: String,
   #[serde(default)]
-  pub code_expires_at: String,
-  pub profile_id: String,
+  pub codeExpiresAt: String,
+  pub profileId: String,
   #[serde(default)]
-  pub totp_enabled: bool,
+  pub totpEnabled: bool,
   #[serde(default)]
-  pub totp_secret: String,
+  pub totpSecret: String,
   #[serde(default)]
-  pub passkey_credential_id: String,
+  pub passkeyCredentialId: String,
   #[serde(default)]
-  pub passkey_public_key: String,
+  pub passkeyPublicKey: String,
   #[serde(default)]
-  pub passkey_device: String,
+  pub passkeyDevice: String,
   #[serde(default)]
-  pub passkey_enabled: bool,
+  pub passkeyEnabled: bool,
   #[serde(default)]
-  pub biometric_enabled: bool,
+  pub biometricEnabled: bool,
   #[serde(default)]
-  pub qr_login_enabled: bool,
+  pub qrLoginEnabled: bool,
   #[serde(default)]
-  pub recovery_codes: Vec<String>,
+  pub recoveryCodes: Vec<String>,
 }
 
 impl Validatable for UserCreateModel {
@@ -154,22 +154,22 @@ impl From<UserCreateModel> for UserEntity {
       username: value.username,
       password: value.password,
       role: value.role,
-      temporary_code: value.temporary_code,
-      code_expires_at: value.code_expires_at,
-      profile_id: value.profile_id,
-      created_at: now,
-      updated_at: now,
-      deleted_at: None,
+      temporaryCode: value.temporaryCode,
+      codeExpiresAt: value.codeExpiresAt,
+      profileId: value.profileId,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: None,
       profile: None,
-      totp_enabled: value.totp_enabled,
-      totp_secret: value.totp_secret,
-      passkey_credential_id: value.passkey_credential_id,
-      passkey_public_key: value.passkey_public_key,
-      passkey_device: value.passkey_device,
-      passkey_enabled: value.passkey_enabled,
-      biometric_enabled: value.biometric_enabled,
-      qr_login_enabled: value.qr_login_enabled,
-      recovery_codes: value.recovery_codes,
+      totpEnabled: value.totpEnabled,
+      totpSecret: value.totpSecret,
+      passkeyCredentialId: value.passkeyCredentialId,
+      passkeyPublicKey: value.passkeyPublicKey,
+      passkeyDevice: value.passkeyDevice,
+      passkeyEnabled: value.passkeyEnabled,
+      biometricEnabled: value.biometricEnabled,
+      qrLoginEnabled: value.qrLoginEnabled,
+      recoveryCodes: value.recoveryCodes,
     }
   }
 }
@@ -188,33 +188,33 @@ pub struct UserUpdateModel {
   #[serde(default)]
   pub role: Option<String>,
   #[serde(default)]
-  pub temporary_code: Option<String>,
+  pub temporaryCode: Option<String>,
   #[serde(default)]
-  pub code_expires_at: Option<String>,
+  pub codeExpiresAt: Option<String>,
   #[serde(default)]
-  pub profile_id: Option<String>,
+  pub profileId: Option<String>,
   #[serde(default)]
-  pub created_at: Option<String>,
+  pub createdAt: Option<String>,
   #[serde(default)]
-  pub updated_at: Option<String>,
+  pub updatedAt: Option<String>,
   #[serde(default)]
-  pub totp_enabled: Option<bool>,
+  pub totpEnabled: Option<bool>,
   #[serde(default)]
-  pub totp_secret: Option<String>,
+  pub totpSecret: Option<String>,
   #[serde(default)]
-  pub passkey_credential_id: Option<String>,
+  pub passkeyCredentialId: Option<String>,
   #[serde(default)]
-  pub passkey_public_key: Option<String>,
+  pub passkeyPublicKey: Option<String>,
   #[serde(default)]
-  pub passkey_device: Option<String>,
+  pub passkeyDevice: Option<String>,
   #[serde(default)]
-  pub passkey_enabled: Option<bool>,
+  pub passkeyEnabled: Option<bool>,
   #[serde(default)]
-  pub biometric_enabled: Option<bool>,
+  pub biometricEnabled: Option<bool>,
   #[serde(default)]
-  pub qr_login_enabled: Option<bool>,
+  pub qrLoginEnabled: Option<bool>,
   #[serde(default)]
-  pub recovery_codes: Option<Vec<String>>,
+  pub recoveryCodes: Option<Vec<String>>,
 }
 
 impl Validatable for UserUpdateModel {

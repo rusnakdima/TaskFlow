@@ -34,19 +34,19 @@ impl Display for TaskStatus {
 #[serde(rename_all = "camelCase")]
 pub struct TaskEntity {
   pub id: Option<String>,
-  pub task_id: String,
+  pub taskId: String,
   pub title: String,
   pub description: String,
   pub status: TaskStatus,
   pub priority: String,
-  pub start_date: Option<String>,
-  pub end_date: Option<String>,
+  pub startDate: Option<String>,
+  pub endDate: Option<String>,
   pub order: i32,
-  pub deleted_at: Option<DateTime<Utc>>,
-  pub created_at: DateTime<Utc>,
-  pub updated_at: DateTime<Utc>,
+  pub deletedAt: Option<DateTime<Utc>>,
+  pub createdAt: DateTime<Utc>,
+  pub updatedAt: DateTime<Utc>,
   pub assignees: Vec<String>,
-  pub depends_on: Vec<String>,
+  pub dependsOn: Vec<String>,
 }
 
 impl Entity for TaskEntity {
@@ -69,20 +69,20 @@ impl Entity for TaskEntity {
 
 impl SoftDeletable for TaskEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
+    self.deletedAt
   }
 
   fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
+    self.deletedAt = deleted_at;
   }
 }
 
 impl WithRelations for TaskEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("subtasks", "subtasks", "task_id"),
-      RelationDef::one_to_many("comments", "comments", "task_id"),
-      RelationDef::many_to_one("todo", "todos", "todo_id"),
+      RelationDef::one_to_many("subtasks", "subtasks", "taskId"),
+      RelationDef::one_to_many("comments", "comments", "taskId"),
+      RelationDef::many_to_one("todo", "todos", "todoId"),
     ]
   }
 }
@@ -90,19 +90,19 @@ impl WithRelations for TaskEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskCreateModel {
-  pub todo_id: String,
+  pub todoId: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
-  pub start_date: String,
-  pub end_date: String,
+  pub startDate: String,
+  pub endDate: String,
   pub order: i32,
 }
 
 impl Validatable for TaskCreateModel {
   fn validate(&self) -> std::result::Result<(), String> {
-    if self.todo_id.is_empty() {
-      return Err("todo_id cannot be empty".to_string());
+    if self.todoId.is_empty() {
+      return Err("todoId cannot be empty".to_string());
     }
     if self.title.is_empty() {
       return Err("title cannot be empty".to_string());
@@ -117,9 +117,9 @@ impl Validatable for TaskCreateModel {
 impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
     let now = Utc::now();
-    let formatted_start_date = if value.start_date.is_empty() {
+    let formatted_start_date = if value.startDate.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -128,9 +128,9 @@ impl From<TaskCreateModel> for TaskEntity {
     } else {
       None
     };
-    let formatted_end_date = if value.end_date.is_empty() {
+    let formatted_end_date = if value.endDate.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.end_date) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -142,19 +142,19 @@ impl From<TaskCreateModel> for TaskEntity {
 
     TaskEntity {
       id: None,
-      task_id: value.todo_id,
+      taskId: value.todoId,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: TaskStatus::Pending,
       priority: value.priority,
-      start_date: formatted_start_date,
-      end_date: formatted_end_date,
+      startDate: formatted_start_date,
+      endDate: formatted_end_date,
       order: value.order,
-      deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      deletedAt: None,
+      createdAt: now,
+      updatedAt: now,
       assignees: vec![],
-      depends_on: vec![],
+      dependsOn: vec![],
     }
   }
 }
@@ -165,7 +165,7 @@ pub struct TaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
-  pub task_id: Option<String>,
+  pub taskId: Option<String>,
   #[serde(default)]
   pub title: Option<String>,
   #[serde(default)]
@@ -175,15 +175,15 @@ pub struct TaskUpdateModel {
   #[serde(default)]
   pub priority: Option<String>,
   #[serde(default)]
-  pub start_date: Option<String>,
+  pub startDate: Option<String>,
   #[serde(default)]
-  pub end_date: Option<String>,
+  pub endDate: Option<String>,
   #[serde(default)]
   pub order: Option<i32>,
   #[serde(default)]
-  pub deleted_at: Option<bool>,
+  pub deletedAt: Option<bool>,
   #[serde(default)]
-  pub updated_at: Option<String>,
+  pub updatedAt: Option<String>,
   #[serde(default)]
   pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
 }

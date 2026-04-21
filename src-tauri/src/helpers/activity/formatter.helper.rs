@@ -4,22 +4,22 @@ pub struct ActivityFormatter;
 
 impl ActivityFormatter {
   pub fn calculateTotalActivity(activity: &DailyActivityModel) -> i32 {
-    activity.todos_created
-      + activity.todos_updated
-      + activity.todos_deleted
-      + activity.tasks_created
-      + activity.tasks_updated
-      + activity.tasks_completed
-      + activity.tasks_deleted
-      + activity.subtasks_created
-      + activity.subtasks_updated
-      + activity.subtasks_completed
-      + activity.subtasks_deleted
+    activity.todosCreated
+      + activity.todosUpdated
+      + activity.todosDeleted
+      + activity.tasksCreated
+      + activity.tasksUpdated
+      + activity.tasksCompleted
+      + activity.tasksDeleted
+      + activity.subtasksCreated
+      + activity.subtasksUpdated
+      + activity.subtasksCompleted
+      + activity.subtasksDeleted
   }
 
   pub fn calculateProductivityScore(activity: &DailyActivityModel) -> i32 {
-    if activity.total_tasks > 0 {
-      ((activity.completed_tasks as f32 / activity.total_tasks as f32) * 100.0) as i32
+    if activity.totalTasks > 0 {
+      ((activity.completedTasks as f32 / activity.totalTasks as f32) * 100.0) as i32
     } else {
       0
     }

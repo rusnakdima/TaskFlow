@@ -38,34 +38,34 @@ impl ActivityLogHelper {
     let mut activity = self.storage.getOrCreateDailyActivity(userId, today).await?;
 
     match activityType {
-      "todo_created" => activity.todos_created += count,
-      "todo_updated" => activity.todos_updated += count,
-      "todo_deleted" => activity.todos_deleted += count,
+      "todo_created" => activity.todosCreated += count,
+      "todo_updated" => activity.todosUpdated += count,
+      "todo_deleted" => activity.todosDeleted += count,
       "task_created" => {
-        activity.tasks_created += count;
-        activity.total_tasks += count;
+        activity.tasksCreated += count;
+        activity.totalTasks += count;
       }
-      "task_updated" => activity.tasks_updated += count,
+      "task_updated" => activity.tasksUpdated += count,
       "task_completed" => {
-        activity.tasks_completed += count;
-        activity.completed_tasks += count;
+        activity.tasksCompleted += count;
+        activity.completedTasks += count;
       }
       "task_deleted" => {
-        activity.tasks_deleted += count;
-        activity.total_tasks -= count;
-        if activity.total_tasks < 0 {
-          activity.total_tasks = 0;
+        activity.tasksDeleted += count;
+        activity.totalTasks -= count;
+        if activity.totalTasks < 0 {
+          activity.totalTasks = 0;
         }
       }
-      "subtask_created" => activity.subtasks_created += count,
-      "subtask_updated" => activity.subtasks_updated += count,
-      "subtask_completed" => activity.subtasks_completed += count,
-      "subtask_deleted" => activity.subtasks_deleted += count,
+      "subtask_created" => activity.subtasksCreated += count,
+      "subtask_updated" => activity.subtasksUpdated += count,
+      "subtask_completed" => activity.subtasksCompleted += count,
+      "subtask_deleted" => activity.subtasksDeleted += count,
       _ => {}
     }
 
-    activity.total_activity = ActivityFormatter::calculateTotalActivity(&activity);
-    activity.productivity_score = ActivityFormatter::calculateProductivityScore(&activity);
+    activity.totalActivity = ActivityFormatter::calculateTotalActivity(&activity);
+    activity.productivityScore = ActivityFormatter::calculateProductivityScore(&activity);
 
     self.storage.updateDailyActivity(activity).await
   }
