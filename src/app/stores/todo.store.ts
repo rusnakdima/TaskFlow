@@ -64,14 +64,14 @@ export class TodoStore {
    * Private todos only (filtered)
    */
   readonly privateTodos: Signal<Todo[]> = computed(() => {
-    return this.state().privateTodos.filter((todo) => !todo.deleted_at);
+    return this.state().privateTodos.filter((todo) => !todo.deletedAt);
   });
 
   /**
    * Shared todos only (filtered)
    */
   readonly sharedTodos: Signal<Todo[]> = computed(() => {
-    return this.state().sharedTodos.filter((todo) => !todo.deleted_at);
+    return this.state().sharedTodos.filter((todo) => !todo.deletedAt);
   });
 
   /**
@@ -288,14 +288,14 @@ export class TodoStore {
    * Restore todo (mark as not deleted)
    */
   restoreTodo(id: string): void {
-    this.updateTodo(id, { deleted_at: null });
+    this.updateTodo(id, { deletedAt: null });
   }
 
   /**
    * Restore todo with cascade data
    */
   restoreTodoWithCascade(todo: Todo): void {
-    this.addTodo({ ...todo, deleted_at: null });
+    this.addTodo({ ...todo, deletedAt: null });
   }
 
   /**

@@ -90,7 +90,7 @@ export class CategoryStore {
   }
 
   restoreCategory(id: string): void {
-    this.updateCategory(id, { deleted_at: null });
+    this.updateCategory(id, { deletedAt: null });
   }
 
   clear(): void {
