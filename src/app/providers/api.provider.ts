@@ -289,27 +289,8 @@ export class ApiProvider {
     subscriber: any,
     attempt: number
   ): void {
-    if (this.ws.isConnected()) {
-      const wsSubscription = this.ws.crud<T>(operation, params).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => {
-          this.executeTauriFallback(operation, params, subscriber, requestKey);
-        },
-        complete: () => {},
-      });
-
-      subscriber.add(wsSubscription);
-    } else if (attempt < WS_RETRY_ATTEMPTS) {
-      setTimeout(
-        () => this.tryWebSocket(operation, params, requestKey, subscriber, attempt + 1),
-        WS_RETRY_DELAY_MS
-      );
-    } else {
-      this.executeTauriFallback(operation, params, subscriber, requestKey);
-    }
+    // DISABLED WS - always use direct Tauri API calls
+    this.executeTauriFallback(operation, params, subscriber, requestKey);
   }
 
   // ==================== Tauri Fallback ====================
@@ -338,10 +319,11 @@ export class ApiProvider {
 
     if (params.filter) payload.filter = params.filter;
     if (params.relations) payload.relations = params.relations;
-    if (params.load) payload.load = params.load; // NEW: Include load parameter
+    if (params.load) payload.load = params.load;
     if (params.id) payload.id = params.id;
     if (params.data) payload.data = params.data;
 
+    console.log('[ApiProvider] buildTauriPayload:', { operation, table: params.table, filter: params.filter, syncMetadata: params.syncMetadata });
     return payload;
   }
 
@@ -464,8 +446,10 @@ export class ApiProvider {
     subscriber: any,
     requestKey: string
   ): void {
+    console.log('[ApiProvider] executeSingleOperation called:', { operation, table: params.table, payload });
     invoke<Response<T>>("manageData", payload)
       .then((response: Response<T>) => {
+        console.log('[ApiProvider] manageData response:', { status: response.status, data: response.data });
         if (response.status === ResponseStatus.SUCCESS) {
           subscriber.next(response.data as T);
           subscriber.complete();
@@ -479,12 +463,14 @@ export class ApiProvider {
           } else {
             message = "Unknown error";
           }
+          console.log('[ApiProvider] manageData error:', message);
           this.notifyService.showError(message);
           subscriber.error(new Error(message));
         }
         this.inFlightRequests.delete(requestKey);
       })
       .catch((err) => {
+        console.log('[ApiProvider] manageData exception:', err);
         this.handleError(err, operation, params, subscriber, requestKey);
       });
   }

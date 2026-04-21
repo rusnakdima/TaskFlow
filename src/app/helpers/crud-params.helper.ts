@@ -51,13 +51,15 @@ export class CrudParamsBuilder {
       options.isOwner !== undefined
         ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
         : isChildEntity
-          ? { isOwner: true, isPrivate: false }
+          ? { isOwner: true, isPrivate: options.isPrivate ?? true }
           : resolveMetadataFn(
               table,
               options.parentTodoId || options.data?.todoId,
               options.data,
               options.id
             );
+
+    console.log('[CrudParamsBuilder] build:', { table, isChildEntity, options, metadata });
 
     const load = options.load;
     const relations = !load
