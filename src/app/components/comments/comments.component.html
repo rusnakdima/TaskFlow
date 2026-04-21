@@ -31,7 +31,7 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="textMuted text-[10px]">
-              {{ formatDate(comment.created_at) }}
+              {{ formatDate(comment.createdAt) }}
             </span>
             @if (isOwner || comment.authorId === currentUserId) {
               <button

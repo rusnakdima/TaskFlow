@@ -162,7 +162,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
     if (!comments || comments.length === 0) return [];
-    return comments.filter((c) => !c.deleted_at);
+    return comments.filter((c) => !c.deletedAt);
   }
 
   toggleComments() {
@@ -181,7 +181,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
           const updatedComments = subtask.comments.map((c: any) => {
             // Skip deleted comments and task comments (only subtask comments)
-            if (c.deleted_at || !c.subtaskId) return c;
+            if (c.deletedAt || !c.subtaskId) return c;
             // Skip if user is author (already read)
             if (c.authorId === userId) return c;
 
@@ -211,7 +211,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           if (effectiveTodoId) {
             const allSubtaskComments = updatedSubtasks.flatMap((s: any) =>
               (s.comments || []).filter(
-                (c: any) => !c.deleted_at && c.subtaskId && c.authorId !== userId
+                (c: any) => !c.deletedAt && c.subtaskId && c.authorId !== userId
               )
             );
 
@@ -284,7 +284,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         content: content,
         taskId: this.task.id,
         readBy: [userId],
-        deleted_at: null,
+        deletedAt: null,
       };
 
       this.dataSyncProvider
@@ -322,7 +322,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       content,
       subtaskId,
       readBy: [userId],
-      deleted_at: null,
+      deletedAt: null,
     };
 
     this.dataSyncProvider
@@ -406,7 +406,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const commentsToUpdate = updatedSubtasks
       .find((s: any) => s.id === subtaskId)
       ?.comments?.filter(
-        (c: any) => commentIds.includes(c.id) && !c.deleted_at && c.authorId !== userId
+        (c: any) => commentIds.includes(c.id) && !c.deletedAt && c.authorId !== userId
       );
 
     if (commentsToUpdate && commentsToUpdate.length > 0) {

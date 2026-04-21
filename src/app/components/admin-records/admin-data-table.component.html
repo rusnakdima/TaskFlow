@@ -15,23 +15,23 @@
                 @if (titleKey === "content") {
                   {{ item[titleKey] || "No content" }}
                 } @else if (titleKey === "date") {
-                  {{ item[titleKey] || formatDate(item.created_at) }}
+                  {{ item[titleKey] || formatDate(item.createdAt) }}
                 } @else {
                   {{ item[titleKey] || "No Title" }}
                 }
               </h4>
               <div class="textMuted flex items-center gap-4 text-sm">
                 <span class="truncate">ID: {{ item.id }}</span>
-                <span>{{ formatDate(item.created_at) }}</span>
+                <span>{{ formatDate(item.createdAt) }}</span>
               </div>
             </div>
             <div class="ml-4 flex shrink-0 items-center gap-2">
               <div class="flex flex-col items-end gap-1">
-                <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deleted_at)">
-                  {{ getDeletedStatusText(item.deleted_at) }}
+                <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deletedAt)">
+                  {{ getDeletedStatusText(item.deletedAt) }}
                 </mat-chip>
-                @if (item.deleted_at) {
-                  <span class="textMuted text-xs">{{ formatDate(item.deleted_at) }}</span>
+                @if (item.deletedAt) {
+                  <span class="textMuted text-xs">{{ formatDate(item.deletedAt) }}</span>
                 }
               </div>
               <button mat-icon-button class="h-8 w-8" (click)="toggleExpanded(item.id)">
@@ -44,11 +44,11 @@
                   mat-icon-button
                   class="h-8 w-8 text-blue-600"
                   (click)="toggleDelete.emit(item)"
-                  [title]="item.deleted_at ? 'Restore record' : 'Soft delete record'"
+                  [title]="item.deletedAt ? 'Restore record' : 'Soft delete record'"
                 >
                   <mat-icon
                     class="h-5! w-5! min-w-5 text-xl!"
-                    [fontIcon]="item.deleted_at ? 'restore_from_trash' : 'delete'"
+                    [fontIcon]="item.deletedAt ? 'restore_from_trash' : 'delete'"
                   />
                 </button>
                 <button
