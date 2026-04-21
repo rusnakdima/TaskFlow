@@ -42,16 +42,19 @@ export class DataLoaderService {
    */
   loadAllData(force: boolean = false): Observable<{ todos: Todo[]; categories: Category[] }> {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    console.log('[DataLoader] loadAllData called', { force, userId, loaded: this.storageService.loaded() });
 
     // Return cached data immediately if valid
     if (!force && this.storageService.loaded()) {
       const todos = this.storageService.todos();
       const categories = this.storageService.categories();
+      console.log('[DataLoader] Using cache - loaded=true, returning:', { todosCount: todos.length, categoriesCount: categories.length });
       if (todos.length > 0 || categories.length > 0) {
         return of({ todos, categories });
       }
     }
 
+    console.log('[DataLoader] Fetching fresh data for user:', userId);
     // Fire independent background loads (no blocking)
     this.loadPrivateTodos(userId);
     this.loadTeamTodosOwner(userId);
@@ -59,9 +62,12 @@ export class DataLoaderService {
     this.loadCategories(userId);
 
     // Return current cache state immediately
+    const currentTodos = this.storageService.todos();
+    const currentCategories = this.storageService.categories();
+    console.log('[DataLoader] Returning current state:', { todosCount: currentTodos.length, categoriesCount: currentCategories.length });
     return of({
-      todos: this.storageService.todos(),
-      categories: this.storageService.categories(),
+      todos: currentTodos,
+      categories: currentCategories,
     });
   }
 
@@ -70,13 +76,15 @@ export class DataLoaderService {
    */
   private loadPrivateTodos(userId: string): void {
     const todoLoad = TodoRelations.loadAll;
+    const filter = { userId, visibility: "private", deletedAt: null };
+    console.log('[DataLoader] loadPrivateTodos called with filter:', JSON.stringify(filter));
 
     this.apiProvider
       .crud<Todo[]>(
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "private", deletedAt: null },
+          filter,
           isOwner: true,
           isPrivate: true,
           load: todoLoad,
@@ -86,9 +94,11 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {
+          console.log('[DataLoader] loadPrivateTodos error, returning null');
           return of(null);
         }),
         tap((privateTodos) => {
+          console.log('[DataLoader] loadPrivateTodos response:', privateTodos);
           if (privateTodos && Array.isArray(privateTodos)) {
             this.storageService.setCollection("privateTodos", privateTodos);
             this.emitUpdate();

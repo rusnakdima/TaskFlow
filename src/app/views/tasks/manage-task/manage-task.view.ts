@@ -282,6 +282,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
           .crud<Task>("create", "tasks", {
             data: body,
             parentTodoId: todoId,
+            isOwner: this.isOwner,
             isPrivate: isPrivate,
           })
           .subscribe({

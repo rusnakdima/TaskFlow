@@ -5,6 +5,8 @@ pub struct FilterBuilder;
 
 impl FilterBuilder {
   pub fn from_json(filter_value: &Value) -> Option<Filter> {
+    tracing::debug!("[FilterBuilder] from_json input: {:?}", filter_value);
+
     if let Some(obj) = filter_value.as_object() {
       let mut filters = Vec::new();
 
@@ -13,10 +15,17 @@ impl FilterBuilder {
           continue;
         }
 
+        tracing::debug!("[FilterBuilder] building filter for key '{}', value: {:?}", key, value);
+
         if let Some(filter) = Self::build_single_filter(key, value) {
+          tracing::debug!("[FilterBuilder] built filter: {:?}", filter);
           filters.push(filter);
+        } else {
+          tracing::warn!("[FilterBuilder] could not build filter for key '{}', value: {:?}", key, value);
         }
       }
+
+      tracing::debug!("[FilterBuilder] total filters built: {}, filters: {:?}", filters.len(), filters);
 
       if filters.is_empty() {
         None

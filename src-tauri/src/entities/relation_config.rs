@@ -28,7 +28,7 @@ impl RelationConfig {
     vec![
       (
         "tasks",
-        RelationDef::one_to_many("tasks", "tasks", "todoId"),
+        RelationDef::one_to_many("tasks", "tasks", "taskId"),
       ),
       ("user", RelationDef::many_to_one("user", "users", "userId")),
       (
@@ -62,7 +62,7 @@ impl RelationConfig {
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
-      ("todo", RelationDef::many_to_one("todo", "todos", "todoId")),
+      ("todo", RelationDef::many_to_one("todo", "todos", "taskId")),
     ]
   }
 
@@ -225,7 +225,7 @@ mod tests {
     assert!(def.is_some());
     let def = def.unwrap();
     assert_eq!(def.target_collection, "tasks");
-    assert_eq!(def.foreign_key, "todoId");
+    assert_eq!(def.foreign_key, "taskId");
   }
 
   #[test]

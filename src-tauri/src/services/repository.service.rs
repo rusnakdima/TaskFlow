@@ -98,6 +98,9 @@ impl RepositoryService {
     table: &str,
     load_paths: &[String],
   ) -> Result<Vec<Value>, ResponseModel> {
+    tracing::warn!("[REPO] load_relations_json ENTRY - table={}, doc_count={}, load_paths={:?}", 
+                   table, docs.len(), load_paths);
+    
     if load_paths.is_empty() {
       return Ok(docs);
     }
@@ -106,6 +109,7 @@ impl RepositoryService {
     let proj = user_projection();
 
     for path in load_paths {
+      tracing::warn!("[REPO] load_relations - processing path: {}", path);
       let parts: Vec<&str> = path.split('.').collect();
 
       if parts.len() >= 3 {
@@ -125,14 +129,18 @@ impl RepositoryService {
       }
 
       if let Some(relation_def) = RelationConfig::get_relation_def(table, path) {
+        tracing::warn!("[REPO] load_relations - found relation_def for path={}, def={:?}", path, relation_def);
         let needs_proj = RelationConfig::needs_user_projection(table, path);
         docs = loader
           .load_many(docs, &relation_def, true)
           .await
           .map_err(|e| errResponseFormatted("Relation load failed", &e.to_string()))?;
+        tracing::warn!("[REPO] load_relations - after load_many, doc_count={}", docs.len());
         if needs_proj {
           docs = self.apply_projection_to_relations(docs, path, &proj);
         }
+      } else {
+        tracing::warn!("[REPO] load_relations - NO relation_def found for path={}", path);
       }
     }
 
@@ -363,20 +371,32 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
+    tracing::warn!("[REPO] handle_get_all ENTRY - table={}, filter={:?}, sync_metadata={:?}", 
+                   table, filter, sync_metadata);
+    
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
     tracing::info!(
       target: "query_logger",
-      "[QUERY] FIND_MANY on '{}' filter={:?}",
+      "[QUERY] FIND_MANY on '{}' raw_filter={:?} orm_filter={:?}",
       table,
+      filter,
       orm_filter.as_ref().map(|f| format!("{:?}", f))
+    );
+
+    tracing::debug!(
+      "[DEBUG] use_json_provider = {} for sync_metadata: {:?}",
+      self.use_json_provider(sync_metadata.as_ref()),
+      sync_metadata
     );
 
     let cache_key = self.queryCache.as_ref().map(|cache| {
       let filter_json = filter
         .as_ref()
         .map(|f| serde_json::to_string(f).unwrap_or_default());
-      cache.cache_key(&table, filter_json.as_deref(), None, None, None)
+      let key = cache.cache_key(&table, filter_json.as_deref(), None, None, None);
+      tracing::debug!("[DEBUG] cache_key generated: {}", key);
+      key
     });
 
     if let (Some(ref cache), Some(ref key)) = (&self.queryCache, &cache_key) {
@@ -388,23 +408,33 @@ impl RepositoryService {
         }
         docs = self.apply_projection_to_docs(docs, &table);
         return Ok(successResponse(DataValue::Array(docs)));
+      } else {
+        tracing::debug!("[CACHE] Cache miss for query: {}", key);
       }
     }
 
     let mut docs = if self.use_json_provider(sync_metadata.as_ref()) {
+      tracing::debug!("[DEBUG] Using JSON provider, filter: {:?}", orm_filter);
       self
         .jsonProvider
         .find_many(&table, orm_filter.as_ref(), None, None, None, true)
         .await
         .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
     } else if let Some(ref mongo) = self.mongodbProvider {
+      tracing::debug!("[DEBUG] Using MongoDB provider, filter: {:?}", orm_filter);
       mongo
         .find_many(&table, orm_filter.as_ref(), None, None, None, true)
         .await
         .map_err(|e| errResponseFormatted("Get all failed", &e.to_string()))?
     } else {
+      tracing::warn!("[DEBUG] No provider available, returning empty vec");
       Vec::new()
     };
+
+    tracing::warn!("[REPO] handle_get_all DOCS FROM PROVIDER - table={}, count={}", table, docs.len());
+    if !docs.is_empty() {
+      tracing::warn!("[REPO] handle_get_all - First doc keys: {:?}", docs[0].as_object().map(|m| m.keys().collect::<Vec<_>>()));
+    }
 
     tracing::info!(
       target: "query_logger",
@@ -697,6 +727,15 @@ impl RepositoryService {
       ProviderType::Json
     };
 
+    let metadata_is_private = sync_metadata
+      .as_ref()
+      .map(|m| m.isPrivate)
+      .unwrap_or(false);
+    let metadata_is_owner = sync_metadata
+      .as_ref()
+      .map(|m| m.isOwner)
+      .unwrap_or(true);
+
     if is_permanent {
       match provider_type {
         ProviderType::Mongo => {
@@ -730,12 +769,18 @@ impl RepositoryService {
             .cascadeService
             .soft_delete_cascade_mongo(&table, &id_str)
             .await?;
+          if metadata_is_private && metadata_is_owner {
+            self.cascadeService.soft_delete_cascade_json(&table, &id_str).await.ok();
+          }
         }
         _ => {
           self
             .cascadeService
             .soft_delete_cascade_json(&table, &id_str)
             .await?;
+          if metadata_is_private && metadata_is_owner {
+            self.cascadeService.soft_delete_cascade_mongo(&table, &id_str).await.ok();
+          }
         }
       }
     }

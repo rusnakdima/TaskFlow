@@ -11,6 +11,7 @@ mod services;
 /* sys lib */
 use std::sync::Arc;
 use tauri::Manager;
+use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Layer};
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
@@ -66,6 +67,23 @@ pub struct AppState {
 pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+
+  // Initialize tracing subscriber - stdout only
+  let filter = EnvFilter::try_from_default_env()
+    .unwrap_or_else(|_| EnvFilter::new("info"));
+
+  let stdout_layer = fmt::layer()
+    .with_target(true)
+    .with_level(true)
+    .with_writer(std::io::stdout)
+    .with_ansi(true)
+    .with_filter(filter);
+
+  tracing::subscriber::set_global_default(
+    tracing_subscriber::registry().with(stdout_layer)
+  ).expect("Failed to set tracing subscriber");
+
+  tracing::info!("Logging initialized (stdout only)");
 
   let mut builder = tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
@@ -123,9 +141,6 @@ pub fn run() {
 
         tracing::info!("Index setup completed");
       });
-
-      let logDir = documentDir.join(&configHelper.appHomeFolder).join("logs");
-      std::fs::create_dir_all(&logDir).ok();
 
       let _json_logged = jsonProvider.clone();
 
