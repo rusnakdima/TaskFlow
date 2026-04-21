@@ -14,6 +14,7 @@ use nosql_orm::query::Filter;
 
 /* models */
 use crate::entities::{
+  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
@@ -202,7 +203,12 @@ impl AuthTotpService {
     }
 
     self
-      .updateTotpSettings(username, true, &user.totp_secret, user.recovery_codes.clone())
+      .updateTotpSettings(
+        username,
+        true,
+        &user.totp_secret,
+        user.recovery_codes.clone(),
+      )
       .await?;
 
     Ok(successResponse("TOTP enabled successfully"))
@@ -249,21 +255,25 @@ impl AuthTotpService {
       return Err(errResponse("Invalid TOTP code"));
     }
 
-    // Generate JWT token after successful TOTP verification
     if let Some(ref ts) = self.tokenService {
       match ts.generateToken(&user.get_id(), &user.username, &user.role) {
         Ok(token) => {
+          let profile = self.checkProfileExists(&user.get_id()).await.ok().flatten();
+          let needs_profile = profile.is_none();
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "TOTP verified".to_string(),
-            data: DataValue::String(token),
+            data: DataValue::Object(serde_json::json!({
+              "token": token,
+              "needsProfile": needs_profile,
+              "profile": profile
+            })),
           });
         }
         Err(e) => return Err(e),
       }
     }
 
-    // Fallback if no token service
     Ok(successResponse("TOTP verified"))
   }
 
@@ -489,5 +499,40 @@ impl AuthTotpService {
     }
 
     Ok(())
+  }
+
+  pub async fn checkProfileExists(
+    &self,
+    user_id: &str,
+  ) -> Result<Option<ProfileEntity>, ResponseModel> {
+    let table_name = "profiles";
+    let filter = Filter::Eq("userId".to_string(), serde_json::json!(user_id));
+
+    if let Ok(mut profiles) = self
+      .jsonProvider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      if let Some(profile_val) = profiles.pop() {
+        let profile: ProfileEntity = serde_json::from_value(profile_val)
+          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+        return Ok(Some(profile));
+      }
+    }
+
+    if let Some(mongo) = &self.mongodbProvider {
+      if let Ok(mut profiles) = mongo
+        .find_many(table_name, Some(&filter), None, None, None, true)
+        .await
+      {
+        if let Some(profile_val) = profiles.pop() {
+          let profile: ProfileEntity = serde_json::from_value(profile_val)
+            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+          return Ok(Some(profile));
+        }
+      }
+    }
+
+    Ok(None)
   }
 }
