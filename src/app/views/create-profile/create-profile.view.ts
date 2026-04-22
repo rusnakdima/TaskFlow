@@ -108,6 +108,13 @@ export class CreateProfileView implements OnInit {
           bio: cachedProfile.bio ?? "",
           imageUrl: cachedProfile.imageUrl ?? "",
         });
+      } else {
+        const userProfileId = this.authService.getValueByKey("profile_id");
+        if (userProfileId) {
+          this.notifyService.showWarning("Profile already exists");
+          this.router.navigate([""]);
+          return;
+        }
       }
     } else {
       this.notifyService.showError("User session not found. Please login again.");
