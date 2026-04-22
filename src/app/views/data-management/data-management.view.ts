@@ -282,7 +282,7 @@ export class DataManagementView implements OnInit {
         const todos = data["todos"] || [];
         this.todoList.set(
           todos
-            .filter((t: any) => !t.deletedAt)
+            .filter((t: any) => !t.deleted_at)
             .map((t: any) => ({ id: t.id, label: t.title || t.id }))
             .sort((a: any, b: any) => a.label.localeCompare(b.label))
         );
@@ -290,7 +290,7 @@ export class DataManagementView implements OnInit {
         const tasks = data["tasks"] || [];
         this.taskList.set(
           tasks
-            .filter((t: any) => !t.deletedAt)
+            .filter((t: any) => !t.deleted_at)
             .map((t: any) => ({
               id: t.id,
               label: t.title || t.id,
@@ -301,7 +301,7 @@ export class DataManagementView implements OnInit {
         const subtasks = data["subtasks"] || [];
         this.subtaskList.set(
           subtasks
-            .filter((s: any) => !s.deletedAt)
+            .filter((s: any) => !s.deleted_at)
             .map((s: any) => ({
               id: s.id,
               label: s.description || s.id,

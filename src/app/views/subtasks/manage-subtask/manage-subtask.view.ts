@@ -73,21 +73,21 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     this.form = fb.group({
       _id: [""],
       id: [""],
-      taskId: ["", Validators.required],
+      task_id: ["", Validators.required],
       title: ["", Validators.required],
       description: [""],
       status: [TaskStatus.PENDING],
       priority: ["", Validators.required],
-      startDate: [""],
-      endDate: [""],
+      start_date: [""],
+      end_date: [""],
       order: [0],
-      deletedAt: [false],
-      createdAt: [""],
-      updatedAt: [""],
+      deleted_at: [false],
+      created_at: [""],
+      updated_at: [""],
     });
 
-    this.form.get("startDate")?.valueChanges.subscribe((startDate) => {
-      const endDateControl = this.form.get("endDate");
+    this.form.get("start_date")?.valueChanges.subscribe((startDate) => {
+      const endDateControl = this.form.get("end_date");
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
@@ -136,7 +136,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       }
       if (params.taskId && params.taskId.trim() !== "") {
         this.taskId.set(params.taskId);
-        this.form.controls["taskId"].setValue(params.taskId);
+        this.form.controls["task_id"].setValue(params.taskId);
         this.loadTaskInfo(params.taskId);
       }
       if (params.subtaskId && params.subtaskId.trim() !== "") {
@@ -151,21 +151,20 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    return ValidationHelper.createEndDateFilter("startDate", this.form)(date);
+    return ValidationHelper.createEndDateFilter("start_date", this.form)(date);
   };
 
-  async getSubtaskInfo(subtaskId: string) {
-    // First, try to get from storage
+  async getSubtaskInfo(subtaskId?: string) {
+    if (!subtaskId) return;
     const subtaskFromStorage = this.storageService.getById("subtasks", subtaskId);
     if (subtaskFromStorage) {
       const localDates = DateHelper.convertDatesFromUtcToLocal(subtaskFromStorage);
       this.form.patchValue(localDates);
-      if (localDates.startDate)
-        ValidationHelper.updateEndDateValidation(this.form, localDates.startDate);
+      if (localDates.start_date)
+        ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
       return;
     }
 
-    // Fallback to fetch if not in storage
     try {
       const todoId = this.todoId();
       const subtasks = await firstValueFrom(
@@ -179,8 +178,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       if (subtasks.length > 0) {
         const localDates = DateHelper.convertDatesFromUtcToLocal(subtasks[0]);
         this.form.patchValue(localDates);
-        if (localDates.startDate)
-          ValidationHelper.updateEndDateValidation(this.form, localDates.startDate);
+        if (localDates.start_date)
+          ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load subtask";
@@ -192,11 +191,12 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     this.location.back();
   }
 
-  loadProjectInfo(todoId: string) {
+  loadProjectInfo(todoId?: string) {
+    if (!todoId) return;
     const cachedTodo = this.storageService.getById("todos", todoId);
     if (cachedTodo) {
       this.projectInfo.set(cachedTodo);
-      this.isOwner = cachedTodo.userId === this.userId;
+      this.isOwner = cachedTodo.user_id === this.userId;
       this.isPrivate = cachedTodo.visibility === "private";
       return;
     }
@@ -204,28 +204,25 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
       next: (todo: Todo) => {
         this.projectInfo.set(todo);
-        this.isOwner = todo.userId === this.userId;
+        this.isOwner = todo.user_id === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
       error: () => {
-        // Error loading project info - silently ignored
       },
     });
   }
 
-  loadTaskInfo(taskId: string) {
-    // First, try to get from storage
+  loadTaskInfo(taskId?: string) {
+    if (!taskId) return;
     const taskFromStorage = this.storageService.getById("tasks", taskId);
     if (taskFromStorage) {
       this.taskInfo.set(taskFromStorage);
       return;
     }
 
-    // Fallback to fetch if not in storage
     this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
       next: (task: Task) => this.taskInfo.set(task),
       error: () => {
-        // Error loading task info - silently ignored
       },
     });
   }
@@ -234,7 +231,8 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     if (this.form.valid) {
       try {
         const todoId = this.todoId();
-        const subtasks = this.storageService.getAllByParentId("subtasks", this.taskId());
+        const taskId = this.taskId();
+        const subtasks = this.storageService.getAllByParentId("subtasks", taskId);
         const formValue = this.form.value;
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
         const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
@@ -265,8 +263,10 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   viewTaskDetails() {
-    if (this.todoId() && this.taskId()) {
-      this.router.navigate(["/todos", this.todoId(), "tasks", this.taskId(), "edit_task"]);
+    const todoId = this.todoId();
+    const taskId = this.taskId();
+    if (todoId && taskId) {
+      this.router.navigate(["/todos", todoId, "tasks", taskId, "edit_task"]);
     }
   }
 
@@ -284,24 +284,24 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
   }
 
   clearDates() {
-    this.form.get("startDate")?.setValue("");
-    this.form.get("endDate")?.setValue("");
+    this.form.get("start_date")?.setValue("");
+    this.form.get("end_date")?.setValue("");
   }
 
   async createSubtask() {
     if (this.form.valid) {
       try {
         const todoId = this.todoId();
+        const taskId = this.taskId();
 
-        // ✅ Check parent todo visibility to determine if subtask should sync to MongoDB only
         const parentTodo = this.storageService.getById("todos", todoId);
         const isPrivate = parentTodo?.visibility !== "team";
 
-        const subtasks = this.storageService.getAllByParentId("subtasks", this.taskId());
+        const subtasks = this.storageService.getAllByParentId("subtasks", taskId);
         const formValue = this.form.value;
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
         const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
-        const body = { ...convertedDates, order: subtasks.length, taskId: this.taskId() };
+        const body = { ...convertedDates, order: subtasks.length, task_id: taskId };
 
         this.dataSyncProvider
           .crud<Subtask>("create", "subtasks", {
@@ -339,7 +339,6 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         return;
       }
 
-      // ✅ Check parent todo visibility to determine if subtask should sync to MongoDB only
       const parentTodo = this.storageService.getById("todos", todoId);
       const isPrivate = parentTodo?.visibility !== "team";
 
@@ -347,13 +346,11 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
       const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
       const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
 
-      // Ensure id is included in the update payload
       const body = {
         ...convertedDates,
-        id: formValue.id, // Include id field for backend validation
+        id: formValue.id,
       };
 
-      // Update subtask via ApiProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
         .crud<Subtask>("update", "subtasks", {
           id: body.id,

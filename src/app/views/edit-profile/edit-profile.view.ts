@@ -54,12 +54,12 @@ export class EditProfileView {
       _id: [""],
       id: [""],
       name: ["", Validators.required],
-      lastName: ["", Validators.required],
+      last_name: ["", Validators.required],
       bio: [""],
-      imageUrl: [""],
-      userId: ["", Validators.required],
-      createdAt: [""],
-      updatedAt: [""],
+      image_url: [""],
+      user_id: ["", Validators.required],
+      created_at: [""],
+      updated_at: [""],
     });
   }
 
@@ -74,7 +74,7 @@ export class EditProfileView {
     },
     {
       label: "Last Name",
-      name: "lastName",
+      name: "last_name",
       type: TypeField.text,
       isShow: (param) => true,
     },
@@ -86,7 +86,7 @@ export class EditProfileView {
     },
     {
       label: "Image Profile",
-      name: "imageUrl",
+      name: "image_url",
       type: TypeField.image,
       isShow: (param) => true,
     },
@@ -95,11 +95,11 @@ export class EditProfileView {
   ngOnInit() {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
-      this.form.controls["userId"].setValue(userId);
+      this.form.controls["user_id"].setValue(userId);
 
       // Use profile from storage first (loaded from JSON on init; works offline)
       const cachedProfile = this.storageService.profile();
-      if (cachedProfile && cachedProfile.userId === userId) {
+      if (cachedProfile && cachedProfile.user_id === userId) {
         this.form.patchValue(cachedProfile);
       } else {
         // Not in cache - try to load (e.g. first visit); on failure (e.g. offline) try cache again
@@ -109,12 +109,12 @@ export class EditProfileView {
               this.form.patchValue(profile);
             } else {
               const fallback = this.storageService.profile();
-              if (fallback && fallback.userId === userId) this.form.patchValue(fallback);
+              if (fallback && fallback.user_id === userId) this.form.patchValue(fallback);
             }
           },
           error: () => {
             const fallback = this.storageService.profile();
-            if (fallback && fallback.userId === userId) {
+            if (fallback && fallback.user_id === userId) {
               this.form.patchValue(fallback);
             } else {
               this.notifyService.showError("Could not load profile. You may be offline.");
@@ -143,7 +143,7 @@ export class EditProfileView {
         .subscribe({
           next: () => {
             this.notifyService.showSuccess("Profile updated successfully");
-            this.router.navigate(["/profile"], { queryParams: { id: body.userId } });
+            this.router.navigate(["/profile"], { queryParams: { id: body.user_id } });
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to update profile";

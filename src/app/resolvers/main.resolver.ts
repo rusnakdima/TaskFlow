@@ -61,8 +61,8 @@ export class MainResolver implements Resolve<any> {
         }
 
         // No cached data - fire-and-forget API call, return null for missing
-        this.loadTodoInBackground(todoId, isOwner, isPrivate);
-        this.loadTaskInBackground(taskId, isOwner, isPrivate);
+        this.loadTodoInBackground(isPrivate, todoId, isOwner);
+        this.loadTaskInBackground(isPrivate, taskId, isOwner);
 
         return {
           task: taskFromStorage || null,
@@ -80,7 +80,7 @@ export class MainResolver implements Resolve<any> {
         }
 
         // Fire-and-forget API call to load in background
-        this.loadTodoInBackground(todoId, isOwner, isPrivate);
+        this.loadTodoInBackground(isPrivate, todoId, isOwner);
 
         return todoFromStorage || { id: todoId, loading: true };
       } else {
@@ -94,10 +94,11 @@ export class MainResolver implements Resolve<any> {
   /**
    * Fire-and-forget: Load todo in background
    */
-  private loadTodoInBackground(todoId: string, isOwner: boolean, isPrivate: boolean): void {
+  private loadTodoInBackground(isPrivate: boolean, todo_id?: string, isOwner: boolean = true): void {
+    if (!todo_id) return;
     this.dataSyncProvider
       .crud<Todo>("get", "todos", {
-        id: todoId,
+        id: todo_id,
         isOwner,
         isPrivate,
         load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
@@ -109,7 +110,7 @@ export class MainResolver implements Resolve<any> {
       )
       .subscribe((todo) => {
         if (todo) {
-          this.upsertTodo(todo, todoId);
+          this.upsertTodo(todo, todo_id);
         }
       });
   }
@@ -117,10 +118,11 @@ export class MainResolver implements Resolve<any> {
   /**
    * Fire-and-forget: Load task in background
    */
-  private loadTaskInBackground(taskId: string, isOwner: boolean, isPrivate: boolean): void {
+  private loadTaskInBackground(isPrivate: boolean, task_id?: string, isOwner: boolean = true): void {
+    if (!task_id) return;
     this.dataSyncProvider
       .crud<Task>("get", "tasks", {
-        id: taskId,
+        id: task_id,
         isOwner,
         isPrivate,
       })
@@ -131,16 +133,17 @@ export class MainResolver implements Resolve<any> {
       )
       .subscribe((task) => {
         if (task) {
-          this.storageService.updateItem("tasks", taskId, task);
+          this.storageService.updateItem("tasks", task_id, task);
         }
       });
   }
 
-  private upsertTodo(todo: Todo | null, todoId: string): void {
+  private upsertTodo(todo: Todo | null, todo_id?: string): void {
     if (!todo?.id) return;
-    const existing = this.storageService.getById("todos", todoId);
+    const id = todo_id || todo.id;
+    const existing = this.storageService.getById("todos", id);
     if (existing) {
-      this.storageService.updateItem("todos", todoId, todo);
+      this.storageService.updateItem("todos", id, todo);
     } else {
       this.storageService.addItem("todos", todo);
     }

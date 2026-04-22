@@ -49,20 +49,20 @@ export class SharedTasksView implements OnInit, OnDestroy {
     // Only show team projects where user is the owner
     return this.storageService
       .sharedTodos()
-      .filter((todo) => todo.userId === userId && !todo.deletedAt);
+      .filter((todo) => todo.user_id === userId && !todo.deleted_at);
   });
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
     // Only show team projects where user is NOT the owner but is an assignee
     return this.storageService.sharedTodos().filter((todo) => {
-      const isNotOwner = todo.userId !== userId;
+      const isNotOwner = todo.user_id !== userId;
 
       const isAssignee =
         todo.assignees?.includes(userId) ||
-        todo.assigneesProfiles?.some((profile) => profile.userId === userId);
+        todo.assignees_profiles?.some((profile: any) => profile.user_id === userId);
 
-      return isNotOwner && isAssignee && !todo.deletedAt;
+      return isNotOwner && isAssignee && !todo.deleted_at;
     });
   });
 
@@ -94,7 +94,7 @@ export class SharedTasksView implements OnInit, OnDestroy {
   }
 
   todoIsOwner(todo: Todo): boolean {
-    return todo.userId === this.userId();
+    return todo.user_id === this.userId();
   }
 
   deleteTodoById(todoId: string, isOwner: boolean): void {

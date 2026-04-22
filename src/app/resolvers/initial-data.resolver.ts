@@ -45,7 +45,7 @@ export class InitialDataResolver implements Resolve<unknown> {
 
   private hasValidProfile(): boolean {
     const profile = this.storageService.profile();
-    return !!profile?.userId;
+    return !!profile?.user_id;
   }
 
   async resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {

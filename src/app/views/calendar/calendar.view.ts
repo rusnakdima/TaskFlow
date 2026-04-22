@@ -91,23 +91,23 @@ export class CalendarView implements OnInit {
 
     tasks.forEach((task) => {
       const isPrivate = task.todo.visibility === "private";
-      const isOwner = task.todo.userId === userId;
+      const isOwner = task.todo.user_id === userId;
 
-      if (task.startDate) {
+      if (task.start_date) {
         newEvents.push({
           id: task.id!,
           title: `Start: ${task.title}`,
-          date: new Date(task.startDate),
+          date: new Date(task.start_date),
           type: "task",
           status: "start",
           description: task.description,
-          todoId: task.todo.id,
+          todo_id: task.todo.id,
           isPrivate,
           isOwner,
         });
       }
 
-      if (task.endDate) {
+      if (task.end_date) {
         const statusText = getTaskEventTitle(task.status, task.title);
         const status =
           task.status === TaskStatus.COMPLETED
@@ -121,11 +121,11 @@ export class CalendarView implements OnInit {
         newEvents.push({
           id: task.id!,
           title: statusText,
-          date: new Date(task.endDate),
+          date: new Date(task.end_date),
           type: "task",
           status,
           description: task.description,
-          todoId: task.todo.id,
+          todo_id: task.todo.id,
           isPrivate,
           isOwner,
         });
@@ -242,7 +242,7 @@ export class CalendarView implements OnInit {
   }
 
   navigateToTasks(event: CalendarEvent): void {
-    this.router.navigate(["/todos", event.todoId, "tasks"], {
+    this.router.navigate(["/todos", event.todo_id, "tasks"], {
       queryParams: {
         highlightTaskId: event.id,
       },

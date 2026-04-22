@@ -17,11 +17,11 @@ export interface NotificationAction {
   message: string;
   timestamp: Date;
   read: boolean;
-  todoId?: string;
-  taskId?: string;
-  subtaskId?: string;
-  commentId?: string;
-  chatId?: string;
+  todo_id?: string;
+  task_id?: string;
+  subtask_id?: string;
+  comment_id?: string;
+  chat_id?: string;
 }
 
 export interface NotificationSettings {
@@ -361,7 +361,7 @@ export class NotifyService implements OnDestroy {
 
     // Check if this is own action
     const isOwnAction =
-      isLocalAction || data.userId === currentUserId || data.authorId === currentUserId;
+      isLocalAction || data.user_id === currentUserId || data.author_id === currentUserId;
 
     const [type, action] = event.split("-") as [
       NotificationAction["type"],
@@ -395,14 +395,14 @@ export class NotifyService implements OnDestroy {
     shouldNotify: boolean
   ): void {
     // Track comment events for task update suppression
-    if (type === "comment" && action === "created" && data.taskId) {
-      this.recentCommentEvents.set(data.taskId, Date.now());
+    if (type === "comment" && action === "created" && data.task_id) {
+      this.recentCommentEvents.set(data.task_id, Date.now());
     }
 
     let title = "";
     let message = "";
-    const todoId = data.todoId;
-    const taskId = data.taskId;
+    const todoId = data.todo_id;
+    const taskId = data.task_id;
     const commentId = data.id;
     const chatId = data.id;
 
@@ -423,8 +423,8 @@ export class NotifyService implements OnDestroy {
       if (action === "created") {
         title = "New Chat Message";
         message = todoTitle
-          ? `${data.authorName} in "${todoTitle}": ${data.content}`
-          : `${data.authorName}: ${data.content}`;
+          ? `${data.author_name} in "${todoTitle}": ${data.content}`
+          : `${data.author_name}: ${data.content}`;
       } else if (action === "cleared") {
         title = "Chat Cleared";
         message = todoTitle ? `Chat in "${todoTitle}" was cleared` : "Chat was cleared";
@@ -440,7 +440,7 @@ export class NotifyService implements OnDestroy {
         if (todoTitle) contextParts.push(`"${todoTitle}"`);
         if (taskTitle) contextParts.push(`task "${taskTitle}"`);
         const context = contextParts.join(" > ");
-        message = `${data.authorName} commented on ${context || "a task"}: "${data.content}"`;
+        message = `${data.author_name} commented on ${context || "a task"}: "${data.content}"`;
       } else if (action === "deleted") {
         title = "Comment Deleted";
         const contextParts: string[] = [];
@@ -471,10 +471,10 @@ export class NotifyService implements OnDestroy {
         message,
         timestamp: new Date(),
         read: false,
-        todoId,
-        taskId,
-        commentId: type === "comment" ? commentId : undefined,
-        chatId: type === "chat" ? chatId : undefined,
+        todo_id: todoId,
+        task_id: taskId,
+        comment_id: type === "comment" ? commentId : undefined,
+        chat_id: type === "chat" ? chatId : undefined,
       };
 
       this.addNotification(newNotification);
@@ -488,9 +488,9 @@ export class NotifyService implements OnDestroy {
     shouldNotify: boolean
   ): void {
     let title = data.title || "";
-    let todoId = data.todoId;
-    let taskId = data.taskId;
-    const subtaskId = data.subtaskId;
+    let todoId = data.todo_id;
+    let taskId = data.task_id;
+    const subtaskId = data.subtask_id;
 
     const entityName = type.charAt(0).toUpperCase() + type.slice(1);
 
@@ -515,12 +515,12 @@ export class NotifyService implements OnDestroy {
           entityName,
           todoTitle,
           taskTitle,
-          todoId,
-          taskId,
-          subtaskId,
           data,
           action,
-          shouldNotify
+          shouldNotify,
+          todoId,
+          taskId,
+          subtaskId
         );
       }, 0);
       return;
@@ -528,11 +528,11 @@ export class NotifyService implements OnDestroy {
 
     if (action === "deleted") {
       if (type === "task" && !todoId) {
-        todoId = data.todoId;
+        todoId = data.todo_id;
       } else if (type === "subtask" && !taskId) {
-        taskId = data.taskId;
-        const task = this.storageService.getById("tasks", data.taskId);
-        todoId = task?.todoId;
+        taskId = data.task_id;
+        const task = this.storageService.getById("tasks", data.task_id);
+        todoId = task?.todo_id;
       }
 
       // Only store notification if not own action
@@ -548,9 +548,9 @@ export class NotifyService implements OnDestroy {
           message,
           timestamp: new Date(),
           read: false,
-          todoId,
-          taskId,
-          subtaskId,
+          todo_id: todoId,
+          task_id: taskId,
+          subtask_id: subtaskId,
         };
 
         this.addNotification(newNotification);
@@ -575,12 +575,12 @@ export class NotifyService implements OnDestroy {
         entityName,
         todoTitle,
         taskTitle,
-        todoId,
-        taskId,
-        subtaskId,
         data,
         action,
-        shouldNotify
+        shouldNotify,
+        todoId,
+        taskId,
+        subtaskId
       );
     }, 0);
   }
@@ -591,12 +591,12 @@ export class NotifyService implements OnDestroy {
     entityName: string,
     todoTitle: string,
     taskTitle: string,
-    todoId: string | undefined,
-    taskId: string | undefined,
-    subtaskId: string | undefined,
     data: any,
     action: NotificationAction["action"],
-    shouldNotify: boolean
+    shouldNotify: boolean,
+    todo_id?: string | undefined,
+    task_id?: string | undefined,
+    subtask_id?: string | undefined
   ): void {
     let title = originalTitle;
     let message = "";
@@ -643,9 +643,9 @@ export class NotifyService implements OnDestroy {
         message,
         timestamp: new Date(),
         read: false,
-        todoId,
-        taskId,
-        subtaskId,
+        todo_id,
+        task_id,
+        subtask_id,
       };
 
       this.addNotification(newNotification);

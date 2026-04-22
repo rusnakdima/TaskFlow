@@ -309,7 +309,7 @@ export class AuthService {
       this.dataSyncService.loadAllData();
 
       const cachedProfile = this.storageService.profile();
-      if (cachedProfile?.userId) {
+      if (cachedProfile?.user_id) {
         return;
       }
 

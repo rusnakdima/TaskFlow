@@ -118,7 +118,7 @@ export class TodoHandler extends EntityHandler<Todo> {
     );
   }
 
-  private handleVisibilityChange(todoId: string, newVisibility: string): void {
+  private handleVisibilityChange(newVisibility: string, todo_id?: string): void {
     const isPrivate = newVisibility === "private";
     const isTeam = newVisibility === "team";
     if (!isPrivate && !isTeam) return;
@@ -129,16 +129,16 @@ export class TodoHandler extends EntityHandler<Todo> {
 
     // Get the todo from either signal
     const todo =
-      this.privateSignal().find((t) => t.id === todoId) ||
-      this.sharedSignal().find((t) => t.id === todoId);
+      this.privateSignal().find((t) => t.id === todo_id) ||
+      this.sharedSignal().find((t) => t.id === todo_id);
 
     if (!todo) return;
 
     // Remove from both signals to ensure clean state
-    from.update((todos) => todos.filter((t) => t.id !== todoId));
+    from.update((todos) => todos.filter((t) => t.id !== todo_id));
     to.update((todos) => {
       // Ensure todo doesn't already exist in target signal
-      const exists = todos.some((t) => t.id === todoId);
+      const exists = todos.some((t) => t.id === todo_id);
       if (exists) return todos;
       return [{ ...todo, visibility: newVisibility }, ...todos];
     });

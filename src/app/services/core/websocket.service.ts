@@ -53,7 +53,7 @@ export class WebSocketService implements OnDestroy {
     "todo-created": (data) => this.storageService.addItem("todos", data),
     "todo-updated": (data) => this.storageService.updateItem("todos", data.id, data),
     "todo-deleted": (data) => {
-      if (data.deletedAt !== null) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("todos", data.id, data);
       } else {
         this.storageService.removeItem("todos", data.id);
@@ -64,7 +64,7 @@ export class WebSocketService implements OnDestroy {
     "task-created": (data) => this.storageService.addItem("tasks", data),
     "task-updated": (data) => this.storageService.updateItem("tasks", data.id, data),
     "task-deleted": (data) => {
-      if (data.deletedAt !== null) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("tasks", data.id, data);
       } else {
         this.storageService.removeRecordWithCascade("tasks", data.id);
@@ -75,7 +75,7 @@ export class WebSocketService implements OnDestroy {
     "subtask-created": (data) => this.storageService.addItem("subtasks", data),
     "subtask-updated": (data) => this.storageService.updateItem("subtasks", data.id, data),
     "subtask-deleted": (data) => {
-      if (data.deletedAt !== null) {
+      if (data.deleted_at !== null) {
         this.storageService.updateItem("subtasks", data.id, data);
       } else {
         this.storageService.removeRecordWithCascade("subtasks", data.id);
@@ -245,15 +245,15 @@ export class WebSocketService implements OnDestroy {
   // ==================== Comment Event Handlers ====================
 
   private handleCommentCreate(data: Comment): void {
-    if (data.taskId) {
-      const task = this.storageService.getById("tasks", data.taskId);
+    if (data.task_id) {
+      const task = this.storageService.getById("tasks", data.task_id);
       if (task) {
-        this.storageService.addCommentToTask(data.taskId, data);
+        this.storageService.addCommentToTask(data, data.task_id);
       }
-    } else if (data.subtaskId) {
-      const subtask = this.storageService.getById("subtasks", data.subtaskId);
+    } else if (data.subtask_id) {
+      const subtask = this.storageService.getById("subtasks", data.subtask_id);
       if (subtask) {
-        this.storageService.addCommentToSubtask(data.subtaskId, data);
+        this.storageService.addCommentToSubtask(data, data.subtask_id);
       }
     }
   }
@@ -354,19 +354,19 @@ export class WebSocketService implements OnDestroy {
       case "create":
         payload.data = { ...params.data };
         if (params.parentTodoId && params.table === "tasks") {
-          payload.data.todoId = params.parentTodoId;
+          payload.data.todo_id = params.parentTodoId;
         }
         break;
       case "update":
         payload.id = params.id;
         payload.data = { ...params.data };
         if (params.parentTodoId && params.table === "tasks") {
-          payload.data.todoId = params.parentTodoId;
+          payload.data.todo_id = params.parentTodoId;
         }
         break;
       case "updateAll":
         payload.data = params.data;
-        payload.todoId = params.parentTodoId;
+        payload.todo_id = params.parentTodoId;
         break;
       case "delete":
         payload.id = params.id;
@@ -418,7 +418,7 @@ export class WebSocketService implements OnDestroy {
       );
       window.addEventListener(`ws-${entity}-deleted`, (event: any) => {
         const data = event.detail;
-        if (data.deletedAt !== null) {
+        if (data.deleted_at !== null) {
           this.storageService.updateItem(entity, data.id, data);
         } else {
           this.storageService.removeItem(entity, data.id);

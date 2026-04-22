@@ -200,8 +200,9 @@ export class AdminStorageService extends BaseStorageService {
   /**
    * Remove todo with all related data (tasks, subtasks, comments, chats)
    */
-  removeTodoWithCascade(todoId: string): void {
-    const todo = this.todosSignal().find((t) => t.id === todoId);
+  removeTodoWithCascade(todo_id?: string): void {
+    if (!todo_id) return;
+    const todo = this.todosSignal().find((t) => t.id === todo_id);
     if (!todo) return;
 
     // Get all related IDs for deep cleanup
@@ -212,23 +213,23 @@ export class AdminStorageService extends BaseStorageService {
     this.subtasksSignal.update((items) => items.filter((s) => !subtaskIds.includes(s.id)));
 
     // 2. Remove tasks
-    this.tasksSignal.update((items) => items.filter((t) => t.todoId !== todoId));
+    this.tasksSignal.update((items) => items.filter((t) => t.todo_id !== todo_id));
 
     // 3. Remove all comments related to this todo
     this.commentsSignal.update((items) =>
       items.filter((c) => {
-        const isTodoComment = (c as any).todoId === todoId;
-        const isTaskComment = c.taskId && taskIds.includes(c.taskId);
-        const isSubtaskComment = c.subtaskId && subtaskIds.includes(c.subtaskId);
+        const isTodoComment = (c as any).todo_id === todo_id;
+        const isTaskComment = c.task_id && taskIds.includes(c.task_id);
+        const isSubtaskComment = c.subtask_id && subtaskIds.includes(c.subtask_id);
         return !isTodoComment && !isTaskComment && !isSubtaskComment;
       })
     );
 
     // 4. Remove chats
-    this.chatsSignal.update((items) => items.filter((c) => c.todoId !== todoId));
+    this.chatsSignal.update((items) => items.filter((c) => c.todo_id !== todo_id));
 
     // 5. Finally remove todo
-    this.todosSignal.update((items) => items.filter((t) => t.id !== todoId));
+    this.todosSignal.update((items) => items.filter((t) => t.id !== todo_id));
   }
 
   /**
@@ -292,13 +293,13 @@ export class AdminStorageService extends BaseStorageService {
     if (parentTable === "todos") {
       // Update all tasks for this todo
       this.tasksSignal.update((tasks) =>
-        tasks.map((task) => (task.todoId === parentId ? { ...task, ...updates } : task))
+        tasks.map((task) => (task.todo_id === parentId ? { ...task, ...updates } : task))
       );
     } else if (parentTable === "tasks") {
       // Update all subtasks for this task
       this.subtasksSignal.update((subtasks) =>
         subtasks.map((subtask) =>
-          subtask.taskId === parentId ? { ...subtask, ...updates } : subtask
+          subtask.task_id === parentId ? { ...subtask, ...updates } : subtask
         )
       );
     }
@@ -313,9 +314,9 @@ export class AdminStorageService extends BaseStorageService {
     sig.update((items) => items.filter((item) => item.id !== id));
     // Cascade: remove children when parent is deleted
     if (table === "todos") {
-      this.tasksSignal.update((tasks) => tasks.filter((task) => task.todoId !== id));
+      this.tasksSignal.update((tasks) => tasks.filter((task) => task.todo_id !== id));
     } else if (table === "tasks") {
-      this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.taskId !== id));
+      this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.task_id !== id));
     }
   }
 
@@ -348,7 +349,7 @@ export class AdminStorageService extends BaseStorageService {
         // Update tasks
         this.tasksSignal.update((tasks) =>
           tasks.map((task) =>
-            task.todoId === id
+            task.todo_id === id
               ? { ...task, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : task
           )
@@ -368,8 +369,8 @@ export class AdminStorageService extends BaseStorageService {
         this.commentsSignal.update((comments) =>
           comments.map((comment) => {
             const isRelated =
-              (comment.taskId && taskIds.includes(comment.taskId)) ||
-              (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
+              (comment.task_id && taskIds.includes(comment.task_id)) ||
+              (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
             return isRelated
               ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : comment;
@@ -379,7 +380,7 @@ export class AdminStorageService extends BaseStorageService {
         // Update chats
         this.chatsSignal.update((chats) =>
           chats.map((chat) =>
-            chat.todoId === id
+            chat.todo_id === id
               ? { ...chat, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : chat
           )
@@ -407,8 +408,8 @@ export class AdminStorageService extends BaseStorageService {
         this.commentsSignal.update((comments) =>
           comments.map((comment) => {
             const isRelated =
-              comment.taskId === id ||
-              (comment.subtaskId && subtaskIds.includes(comment.subtaskId));
+              comment.task_id === id ||
+              (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
             return isRelated
               ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : comment;
@@ -422,7 +423,7 @@ export class AdminStorageService extends BaseStorageService {
         // Update subtask comments
         this.commentsSignal.update((comments) =>
           comments.map((comment) =>
-            comment.subtaskId === id
+            comment.subtask_id === id
               ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
               : comment
           )
@@ -446,12 +447,12 @@ export class AdminStorageService extends BaseStorageService {
         const subtaskIds = task.subtasks?.map((s) => s.id) || [];
         this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
         // Remove task comments
-        this.commentsSignal.set(this.commentsSignal().filter((c) => c.taskId !== id));
+        this.commentsSignal.set(this.commentsSignal().filter((c) => c.task_id !== id));
         this.tasksSignal.set(this.tasksSignal().filter((t) => t.id !== id));
       }
     } else if (table === "subtasks") {
       // Remove subtask and its comments
-      this.commentsSignal.set(this.commentsSignal().filter((c) => c.subtaskId !== id));
+      this.commentsSignal.set(this.commentsSignal().filter((c) => c.subtask_id !== id));
       this.subtasksSignal.set(this.subtasksSignal().filter((s) => s.id !== id));
     } else {
       this.removeRecord(table, id);

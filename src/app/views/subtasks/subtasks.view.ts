@@ -121,8 +121,8 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   todo = computed(() => {
     const t = this.task();
-    if (!t?.todoId) return null;
-    return this.storageService.getTodoReactive(t.todoId)() || null;
+    if (!t?.todo_id) return null;
+    return this.storageService.getTodoReactive(t.todo_id)() || null;
   });
 
   fromKanban = signal(false);
@@ -192,7 +192,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   userId: string = "";
 
-  isOwner = computed(() => this.todo()?.userId === this.userId);
+  isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
   @HostListener("window:keydown", ["$event"])
@@ -290,7 +290,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         this.dataSyncService.loadAllData().subscribe(() => {
           const taskFromStorage = this.storageService.getById("tasks", taskId);
           if (taskFromStorage) {
-            const todoFromStorage = this.storageService.getById("todos", taskFromStorage.todoId);
+            const todoFromStorage = this.storageService.getById("todos", taskFromStorage.todo_id);
             if (todoFromStorage) {
               this.todoId.set(todoFromStorage.id);
               this.projectTitle.set(todoFromStorage.title);
@@ -320,7 +320,7 @@ export class SubtasksView extends BaseListView implements OnInit {
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
     const chats = this.chats();
-    return chats.filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
+    return chats.filter((c) => !c.read_by || !c.read_by.includes(currentUserId)).length;
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {

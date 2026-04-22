@@ -15,7 +15,7 @@ import {
   Validators,
   AbstractControl,
 } from "@angular/forms";
-import { Router, RouterModule } from "@angular/router";
+import { RouterModule } from "@angular/router";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
 
@@ -23,7 +23,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { MatButtonModule } from "@angular/material/button";
 
-import { Response, ResponseStatus } from "@models/response.model";
 import { LoginForm } from "@models/auth-forms.model";
 import { CheckboxField, TypeField } from "@models/form-field.model";
 
@@ -31,7 +30,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { QrLoginService } from "@services/auth/qr-login.service";
@@ -39,7 +37,6 @@ import { QrLoginService } from "@services/auth/qr-login.service";
 import { AuthStore } from "@stores/auth.store";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-import { BufferHelper } from "@helpers/buffer.helper";
 
 import jsQR from "jsqr";
 
@@ -65,7 +62,6 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 export class LoginView implements OnDestroy {
   loginForm: FormGroup<any>;
   private authStore = inject(AuthStore);
-  private jwtTokenService = inject(JwtTokenService);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private qrLoginService = inject(QrLoginService);
@@ -133,7 +129,6 @@ export class LoginView implements OnDestroy {
     private fb: FormBuilder,
     private authService: AuthService,
     public securityService: SecurityService,
-    private router: Router,
     private notifyService: NotifyService,
     private dataSyncProvider: ApiProvider,
     private sanitizer: DomSanitizer
@@ -177,7 +172,7 @@ export class LoginView implements OnDestroy {
   checkDatabaseConnection() {
     this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
       next: (users) => {
-        const activeUsers = (users || []).filter((u) => !u.deletedAt);
+        const activeUsers = (users || []).filter((u) => !u.deleted_at);
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {
