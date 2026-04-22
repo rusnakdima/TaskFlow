@@ -218,13 +218,13 @@ export class BaseItemHelper {
     if (entity.comments && entity.comments.length > 0) {
       count += entity.comments.filter((c: any) => {
         // Skip deleted comments
-        if (c.deletedAt) return false;
+        if (c.deleted_at) return false;
         // Skip if user has read the comment
-        if (c.readBy && c.readBy.includes(userId)) return false;
+        if (c.read_by && c.read_by.includes(userId)) return false;
         // For tasks, only count task comments (not subtask comments)
-        if (entityType === "task" && c.subtaskId) return false;
+        if (entityType === "task" && c.subtask_id) return false;
         // For subtasks, only count subtask comments
-        if (entityType === "subtask" && !c.subtaskId) return false;
+        if (entityType === "subtask" && !c.subtask_id) return false;
         return true;
       }).length;
     }
@@ -245,18 +245,18 @@ export class BaseItemHelper {
 
     return entity.comments.map((comment: any) => {
       // Skip deleted comments
-      if (comment.deletedAt) return comment;
+      if (comment.deleted_at) return comment;
 
       // For tasks, only mark task comments (not subtask comments)
-      if (entityType === "task" && comment.subtaskId) return comment;
+      if (entityType === "task" && comment.subtask_id) return comment;
       // For subtasks, only mark subtask comments
-      if (entityType === "subtask" && !comment.subtaskId) return comment;
+      if (entityType === "subtask" && !comment.subtask_id) return comment;
 
       // Mark as read if not already
-      if (!comment.readBy || !comment.readBy.includes(userId)) {
+      if (!comment.read_by || !comment.read_by.includes(userId)) {
         return {
           ...comment,
-          readBy: [...(comment.readBy || []), userId],
+          readBy: [...(comment.read_by || []), userId],
         };
       }
       return comment;

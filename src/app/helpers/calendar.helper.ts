@@ -8,7 +8,7 @@ export interface CalendarEvent {
   type: "todo" | "task";
   status: string;
   description?: string;
-  todoId: string;
+  todo_id?: string;
   isPrivate: boolean;
   isOwner: boolean;
 }
