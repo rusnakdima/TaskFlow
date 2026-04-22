@@ -41,19 +41,26 @@ export class DataLoaderService {
    */
   loadAllData(force: boolean = false): Observable<{ todos: Todo[]; categories: Category[] }> {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
-    console.log('[DataLoader] loadAllData called', { force, userId, loaded: this.storageService.loaded() });
+    console.log("[DataLoader] loadAllData called", {
+      force,
+      userId,
+      loaded: this.storageService.loaded(),
+    });
 
     // Return cached data immediately if valid
     if (!force && this.storageService.loaded()) {
       const todos = this.storageService.todos();
       const categories = this.storageService.categories();
-      console.log('[DataLoader] Using cache - loaded=true, returning:', { todosCount: todos.length, categoriesCount: categories.length });
+      console.log("[DataLoader] Using cache - loaded=true, returning:", {
+        todosCount: todos.length,
+        categoriesCount: categories.length,
+      });
       if (todos.length > 0 || categories.length > 0) {
         return of({ todos, categories });
       }
     }
 
-    console.log('[DataLoader] Fetching fresh data for user:', userId);
+    console.log("[DataLoader] Fetching fresh data for user:", userId);
     // Fire independent background loads (no blocking)
     this.loadPrivateTodos(userId);
     this.loadTeamTodosOwner(userId);
@@ -63,7 +70,10 @@ export class DataLoaderService {
     // Return current cache state immediately
     const currentTodos = this.storageService.todos();
     const currentCategories = this.storageService.categories();
-    console.log('[DataLoader] Returning current state:', { todosCount: currentTodos.length, categoriesCount: currentCategories.length });
+    console.log("[DataLoader] Returning current state:", {
+      todosCount: currentTodos.length,
+      categoriesCount: currentCategories.length,
+    });
     return of({
       todos: currentTodos,
       categories: currentCategories,
@@ -74,8 +84,8 @@ export class DataLoaderService {
    * Fire-and-forget: Load private todos
    */
   private loadPrivateTodos(userId: string): void {
-    const filter = { userId, visibility: "private", deletedAt: null };
-    console.log('[DataLoader] loadPrivateTodos called with filter:', JSON.stringify(filter));
+    const filter = { user_id: userId, visibility: "private", deleted_at: null };
+    console.log("[DataLoader] loadPrivateTodos called with filter:", JSON.stringify(filter));
 
     this.apiProvider
       .crud<Todo[]>(
@@ -85,18 +95,28 @@ export class DataLoaderService {
           filter,
           isOwner: true,
           isPrivate: true,
-          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
+          load: [
+            "user",
+            "user.profile",
+            "tasks",
+            "tasks.subtasks",
+            "tasks.subtasks.comments",
+            "tasks.comments",
+            "categories",
+            "assigneesProfiles",
+            "assigneesProfiles.user",
+          ],
         },
         true
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {
-          console.log('[DataLoader] loadPrivateTodos error, returning null');
+          console.log("[DataLoader] loadPrivateTodos error, returning null");
           return of(null);
         }),
         tap((privateTodos) => {
-          console.log('[DataLoader] loadPrivateTodos response:', privateTodos);
+          console.log("[DataLoader] loadPrivateTodos response:", privateTodos);
           if (privateTodos && Array.isArray(privateTodos)) {
             this.storageService.setCollection("privateTodos", privateTodos);
             this.emitUpdate();
@@ -115,10 +135,20 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { userId, visibility: "team", deletedAt: null },
+          filter: { user_id: userId, visibility: "team", deleted_at: null },
           isOwner: true,
           isPrivate: false,
-          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
+          load: [
+            "user",
+            "user.profile",
+            "tasks",
+            "tasks.subtasks",
+            "tasks.subtasks.comments",
+            "tasks.comments",
+            "categories",
+            "assigneesProfiles",
+            "assigneesProfiles.user",
+          ],
         },
         true
       )
@@ -149,10 +179,20 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { assignees: userId, visibility: "team", deletedAt: null },
+          filter: { assignees: userId, visibility: "team", deleted_at: null },
           isOwner: false,
           isPrivate: false,
-          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
+          load: [
+            "user",
+            "user.profile",
+            "tasks",
+            "tasks.subtasks",
+            "tasks.subtasks.comments",
+            "tasks.comments",
+            "categories",
+            "assigneesProfiles",
+            "assigneesProfiles.user",
+          ],
         },
         true
       )
@@ -189,7 +229,12 @@ export class DataLoaderService {
    */
   private loadCategories(userId: string): void {
     this.apiProvider
-      .crud<Category[]>("getAll", "categories", { filter: { userId, deletedAt: null } }, true)
+      .crud<Category[]>(
+        "getAll",
+        "categories",
+        { filter: { user_id: userId, deleted_at: null } },
+        true
+      )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {
@@ -225,14 +270,14 @@ export class DataLoaderService {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
     if (!userId) {
-      console.log('[DataLoader] loadProfile: no userId, returning null');
+      console.log("[DataLoader] loadProfile: no userId, returning null");
       return of(null);
     }
 
     const cached = this.storageService.profile();
-    console.log('[DataLoader] loadProfile: userId=', userId, 'cached=', cached);
-    
-    if (cached?.userId) {
+    console.log("[DataLoader] loadProfile: userId=", userId, "cached=", cached);
+
+    if (cached?.user_id) {
       return of(cached);
     }
 
@@ -243,8 +288,8 @@ export class DataLoaderService {
    * Fetch profile from API and update storage
    */
   private fetchProfileFromApi(userId: string): Observable<Profile | null> {
-    console.log('[DataLoader] fetchProfileFromApi called with userId:', userId);
-    
+    console.log("[DataLoader] fetchProfileFromApi called with userId:", userId);
+
     return this.apiProvider
       .crud<Profile[]>(
         "getAll",
@@ -260,20 +305,20 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((err) => {
-          console.error('[DataLoader] fetchProfileFromApi error:', err);
+          console.error("[DataLoader] fetchProfileFromApi error:", err);
           return of([] as Profile[]);
         }),
         map((profiles: Profile[] | null) => {
-          console.log('[DataLoader] fetchProfileFromApi response:', profiles);
+          console.log("[DataLoader] fetchProfileFromApi response:", profiles);
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
-            if (profileObj?.userId) {
-              console.log('[DataLoader] Profile found, updating storage:', profileObj);
+            if (profileObj?.user_id) {
+              console.log("[DataLoader] Profile found, updating storage:", profileObj);
               this.storageService.setCollection("profiles", profileObj);
               return profileObj;
             }
           }
-          console.log('[DataLoader] No profile found for userId:', userId);
+          console.log("[DataLoader] No profile found for userId:", userId);
           return null as Profile | null;
         })
       );
