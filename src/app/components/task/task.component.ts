@@ -180,12 +180,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           if (!subtask.comments || subtask.comments.length === 0) return subtask;
 
           const updatedComments = subtask.comments.map((c: any) => {
-            // Skip deleted comments and task comments (only subtask comments)
             if (c.deletedAt || !c.subtaskId) return c;
-            // Skip if user is author (already read)
             if (c.authorId === userId) return c;
 
-            // Mark as read if not already
             if (!c.readBy || !c.readBy.includes(userId)) {
               hasUpdates = true;
               return {
@@ -294,7 +291,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         })
         .subscribe({
           next: () => {
-            // ApiProvider auto-updates storage, just refresh UI
             this.showComments.set(true);
             this.cdr.markForCheck();
           },
@@ -320,7 +316,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       authorId: userId,
       authorName: username || "Unknown",
       content,
-      subtaskId,
+      subtaskId: subtaskId,
       readBy: [userId],
       deletedAt: null,
     };

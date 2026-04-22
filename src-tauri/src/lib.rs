@@ -69,8 +69,7 @@ pub fn run() {
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
   // Initialize tracing subscriber - stdout only
-  let filter = EnvFilter::try_from_default_env()
-    .unwrap_or_else(|_| EnvFilter::new("info"));
+  let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
   let stdout_layer = fmt::layer()
     .with_target(true)
@@ -79,9 +78,8 @@ pub fn run() {
     .with_ansi(true)
     .with_filter(filter);
 
-  tracing::subscriber::set_global_default(
-    tracing_subscriber::registry().with(stdout_layer)
-  ).expect("Failed to set tracing subscriber");
+  tracing::subscriber::set_global_default(tracing_subscriber::registry().with(stdout_layer))
+    .expect("Failed to set tracing subscriber");
 
   tracing::info!("Logging initialized (stdout only)");
 

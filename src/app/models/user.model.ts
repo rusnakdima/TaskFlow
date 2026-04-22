@@ -10,10 +10,6 @@ export interface User {
   codeExpiresAt: string;
   profile: Profile;
   profileId: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-
   totpEnabled?: boolean;
   totpSecret?: string;
   passkeyEnabled?: boolean;
@@ -23,4 +19,7 @@ export interface User {
   biometricEnabled?: boolean;
   qrLoginEnabled?: boolean;
   recoveryCodes?: string[];
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }

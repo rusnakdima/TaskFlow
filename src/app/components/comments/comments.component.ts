@@ -182,9 +182,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   isUnread(comment: Comment): boolean {
     const userId = this.currentUserId;
     if (!userId) return false;
-    // User's own comments are always considered "read"
     if (comment.authorId === userId) return false;
-    // Check if user has read the comment
     return !comment.readBy || !comment.readBy.includes(userId);
   }
 

@@ -35,12 +35,12 @@ export interface Task {
   endDate: string | null;
   repeat?: RepeatInterval;
   order: number;
-  deletedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
   assignees: string[];
   dependsOn: string[];
   comments: Array<Comment>;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface PriorityOption {

@@ -2,14 +2,14 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::{
-  profile_entity::ProfileEntity,
-  traits::{EntityRelations, FrontendProjection, Validatable},
-};
+/* crate */
+use crate::entities::profile_entity::ProfileEntity;
+use crate::entities::traits::{EntityRelations, FrontendProjection, Validatable};
+
+/* nosql_orm */
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -17,44 +17,47 @@ pub struct UserEntity {
   pub password: String,
   pub role: String,
   #[serde(default)]
-  pub temporaryCode: String,
+  pub temporary_code: String,
   #[serde(default)]
-  pub codeExpiresAt: String,
-  pub profileId: String,
+  pub code_expires_at: String,
+  pub profile_id: String,
   pub profile: Option<ProfileEntity>,
-  pub createdAt: DateTime<Utc>,
-  pub updatedAt: DateTime<Utc>,
-  pub deletedAt: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub totpEnabled: bool,
+  pub totp_enabled: bool,
   #[serde(default)]
-  pub totpSecret: String,
+  pub totp_secret: String,
   #[serde(default)]
-  pub passkeyCredentialId: String,
+  pub passkey_credential_id: String,
   #[serde(default)]
-  pub passkeyPublicKey: String,
+  pub passkey_public_key: String,
   #[serde(default)]
-  pub passkeyDevice: String,
+  pub passkey_device: String,
   #[serde(default)]
-  pub passkeyEnabled: bool,
+  pub passkey_enabled: bool,
   #[serde(default)]
-  pub biometricEnabled: bool,
+  pub biometric_enabled: bool,
   #[serde(default)]
-  pub qrLoginEnabled: bool,
+  pub qr_login_enabled: bool,
   #[serde(default)]
-  pub recoveryCodes: Vec<String>,
+  pub recovery_codes: Vec<String>,
+  #[serde(default)]
+  pub created_at: DateTime<Utc>,
+  #[serde(default)]
+  pub updated_at: DateTime<Utc>,
+  #[serde(default)]
+  pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl FrontendProjection for UserEntity {
   fn excluded_fields() -> Vec<&'static str> {
     vec![
       "password",
-      "totpSecret",
-      "passkeyPublicKey",
-      "passkeyCredentialId",
-      "passkeyDevice",
-      "recoveryCodes",
-      "resetToken",
+      "totp_secret",
+      "passkey_public_key",
+      "passkey_credential_id",
+      "passkey_device",
+      "recovery_codes",
+      "reset_token",
     ]
   }
 }
@@ -92,41 +95,46 @@ impl WithRelations for UserEntity {
     vec![RelationDef::many_to_one(
       "profile",
       "profiles",
-      "profileId",
+      "profile_id",
     )]
   }
 }
 
+impl UserEntity {
+  pub fn get_id(&self) -> &str {
+    self.id.as_deref().unwrap_or("")
+  }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct UserCreateModel {
   pub email: String,
   pub username: String,
   pub password: String,
   pub role: String,
   #[serde(default)]
-  pub temporaryCode: String,
+  pub temporary_code: String,
   #[serde(default)]
-  pub codeExpiresAt: String,
-  pub profileId: String,
+  pub code_expires_at: String,
+  pub profile_id: String,
   #[serde(default)]
-  pub totpEnabled: bool,
+  pub totp_enabled: bool,
   #[serde(default)]
-  pub totpSecret: String,
+  pub totp_secret: String,
   #[serde(default)]
-  pub passkeyCredentialId: String,
+  pub passkey_credential_id: String,
   #[serde(default)]
-  pub passkeyPublicKey: String,
+  pub passkey_public_key: String,
   #[serde(default)]
-  pub passkeyDevice: String,
+  pub passkey_device: String,
   #[serde(default)]
-  pub passkeyEnabled: bool,
+  pub passkey_enabled: bool,
   #[serde(default)]
-  pub biometricEnabled: bool,
+  pub biometric_enabled: bool,
   #[serde(default)]
-  pub qrLoginEnabled: bool,
+  pub qr_login_enabled: bool,
   #[serde(default)]
-  pub recoveryCodes: Vec<String>,
+  pub recovery_codes: Vec<String>,
 }
 
 impl Validatable for UserCreateModel {
@@ -154,28 +162,27 @@ impl From<UserCreateModel> for UserEntity {
       username: value.username,
       password: value.password,
       role: value.role,
-      temporaryCode: value.temporaryCode,
-      codeExpiresAt: value.codeExpiresAt,
-      profileId: value.profileId,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: None,
+      temporary_code: value.temporary_code,
+      code_expires_at: value.code_expires_at,
+      profile_id: value.profile_id,
+      created_at: now,
+      updated_at: now,
+      deleted_at: None,
       profile: None,
-      totpEnabled: value.totpEnabled,
-      totpSecret: value.totpSecret,
-      passkeyCredentialId: value.passkeyCredentialId,
-      passkeyPublicKey: value.passkeyPublicKey,
-      passkeyDevice: value.passkeyDevice,
-      passkeyEnabled: value.passkeyEnabled,
-      biometricEnabled: value.biometricEnabled,
-      qrLoginEnabled: value.qrLoginEnabled,
-      recoveryCodes: value.recoveryCodes,
+      totp_enabled: value.totp_enabled,
+      totp_secret: value.totp_secret,
+      passkey_credential_id: value.passkey_credential_id,
+      passkey_public_key: value.passkey_public_key,
+      passkey_device: value.passkey_device,
+      passkey_enabled: value.passkey_enabled,
+      biometric_enabled: value.biometric_enabled,
+      qr_login_enabled: value.qr_login_enabled,
+      recovery_codes: value.recovery_codes,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct UserUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
@@ -188,33 +195,33 @@ pub struct UserUpdateModel {
   #[serde(default)]
   pub role: Option<String>,
   #[serde(default)]
-  pub temporaryCode: Option<String>,
+  pub temporary_code: Option<String>,
   #[serde(default)]
-  pub codeExpiresAt: Option<String>,
+  pub code_expires_at: Option<String>,
   #[serde(default)]
-  pub profileId: Option<String>,
+  pub profile_id: Option<String>,
   #[serde(default)]
-  pub createdAt: Option<String>,
+  pub created_at: Option<String>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
   #[serde(default)]
-  pub totpEnabled: Option<bool>,
+  pub totp_enabled: Option<bool>,
   #[serde(default)]
-  pub totpSecret: Option<String>,
+  pub totp_secret: Option<String>,
   #[serde(default)]
-  pub passkeyCredentialId: Option<String>,
+  pub passkey_credential_id: Option<String>,
   #[serde(default)]
-  pub passkeyPublicKey: Option<String>,
+  pub passkey_public_key: Option<String>,
   #[serde(default)]
-  pub passkeyDevice: Option<String>,
+  pub passkey_device: Option<String>,
   #[serde(default)]
-  pub passkeyEnabled: Option<bool>,
+  pub passkey_enabled: Option<bool>,
   #[serde(default)]
-  pub biometricEnabled: Option<bool>,
+  pub biometric_enabled: Option<bool>,
   #[serde(default)]
-  pub qrLoginEnabled: Option<bool>,
+  pub qr_login_enabled: Option<bool>,
   #[serde(default)]
-  pub recoveryCodes: Option<Vec<String>>,
+  pub recovery_codes: Option<Vec<String>>,
 }
 
 impl Validatable for UserUpdateModel {
@@ -230,11 +237,5 @@ impl Validatable for UserUpdateModel {
       }
     }
     Ok(())
-  }
-}
-
-impl UserEntity {
-  pub fn get_id(&self) -> &str {
-    self.id.as_deref().unwrap_or("")
   }
 }

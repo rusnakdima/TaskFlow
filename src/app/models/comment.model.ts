@@ -3,10 +3,10 @@ export interface Comment {
   authorId: string;
   authorName: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
   taskId?: string;
   subtaskId?: string;
   readBy: string[];
+  createdAt: string;
+  updatedAt: string;
   deletedAt: string | null;
 }

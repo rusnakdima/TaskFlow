@@ -321,7 +321,17 @@ export class LocalAuthService {
   }
 
   /**
-   * Remove specific user's cached data
+   * Remove user from offline users list (when user deleted from MongoDB)
+   * Only removes from offline users list, doesn't clear current user
+   */
+  removeFromOfflineUsers(userId: string): void {
+    const users = this.getStoredUsers();
+    const filtered = users.filter((u) => u.id !== userId);
+    this.saveStoredUsers(filtered);
+  }
+
+  /**
+   * Clear specific user's cached data
    */
   clearUserCache(userId: string): void {
     const users = this.getStoredUsers();

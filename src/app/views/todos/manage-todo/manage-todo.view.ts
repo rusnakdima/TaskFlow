@@ -27,7 +27,6 @@ import { MatDividerModule } from "@angular/material/divider";
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
-import { TodoRelations, ProfileRelations } from "@models/relations.config";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -178,7 +177,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
     // Todo not in storage — fetch once with relations
     this.relationLoader
-      .load<Todo>(this.dataSyncProvider, "todos", todoId, TodoRelations.forDetailView())
+      .load<Todo>(this.dataSyncProvider, "todos", todoId, ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories"])
       .subscribe({
         next: (todo: Todo) => {
           this.storageService.updateItem("todos", todo.id, todo);
@@ -249,7 +248,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
       return of([]);
     }
 
-    // First try to get profiles from storage using assigneesProfiles
+    // First try to get profiles from storage using assignees_profiles
     const storedProfiles = this.storageService
       .todos()
       .flatMap((todo) => todo.assigneesProfiles || [])
@@ -265,7 +264,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
     // Otherwise, fetch all profiles with user relation and filter
     return this.dataSyncProvider
-      .crud<Profile[]>("getAll", "profiles", { filter: {}, load: ProfileRelations.user }, true)
+      .crud<Profile[]>("getAll", "profiles", { filter: {}, load: ["user"] }, true)
       .pipe(
         map((profiles) => {
           if (!profiles || profiles.length === 0) {
@@ -320,7 +319,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
         "profiles",
         {
           filter: {},
-          load: ProfileRelations.user,
+          load: ["user"],
           isPrivate: false,
           isOwner: false,
         },
@@ -381,7 +380,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     } else {
       // If no categories in storage, fetch from backend
       this.dataSyncProvider
-        .crud<Category[]>("getAll", "categories", { filter: { deleted_at: null } }, true)
+        .crud<Category[]>("getAll", "categories", { filter: { deletedAt: null } }, true)
         .subscribe({
           next: (cats) => {
             if (cats && cats.length > 0) {
@@ -433,7 +432,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
         .crud<Category>("create", "categories", {
           data: {
             title: title,
-            userId: this.userId(),
+            user_id: this.userId(),
           },
         })
         .subscribe({
@@ -517,9 +516,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
         categories: Array.isArray(categories)
           ? categories.map((c: Category) => c?.id).filter(Boolean)
           : [],
-        assignees: Array.isArray(assignees)
-          ? assignees.map((p: Profile) => p?.userId).filter(Boolean)
-          : [],
+assignees: Array.isArray(assignees)
+           ? assignees.map((p: Profile) => p?.userId).filter(Boolean)
+           : [],
         visibility: formValue.visibility as "private" | "team",
       };
 

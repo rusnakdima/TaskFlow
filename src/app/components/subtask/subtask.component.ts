@@ -114,11 +114,9 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     const wasOpen = this.showComments();
     this.showComments.update((v) => !v);
 
-    // Mark comments as read when opening
     if (!wasOpen && this.subtask) {
       const userId = this.authService.getValueByKey("id");
       if (userId && this.subtask.comments && this.subtask.comments.length > 0) {
-        // Check if there are any unread comments (excluding own comments)
         const hasUnread = this.subtask.comments.some(
           (c: any) =>
             !c.deletedAt &&
@@ -128,14 +126,10 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         );
 
         if (hasUnread) {
-          // Update storage directly - mark comments as read
           const updatedComments = this.subtask.comments.map((c: any) => {
-            // Skip deleted comments and task comments (only subtask comments)
             if (c.deletedAt || !c.subtaskId) return c;
-            // Skip if user is author (already read)
             if (c.authorId === userId) return c;
 
-            // Mark as read if not already
             if (!c.readBy || !c.readBy.includes(userId)) {
               return {
                 ...c,
@@ -150,7 +144,6 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
             comments: updatedComments,
           });
 
-          // Send update to backend (only ids and readBy)
           const effectiveTodoId =
             this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
           if (effectiveTodoId) {
@@ -202,7 +195,6 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         })
         .subscribe({
           next: () => {
-            // ApiProvider auto-updates storage, just refresh UI
             this.showComments.set(true);
             this.cdr.markForCheck();
           },

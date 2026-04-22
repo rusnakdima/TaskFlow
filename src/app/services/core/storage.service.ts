@@ -310,12 +310,12 @@ export class StorageService extends BaseStorageService {
   // ==================== COMMENT OPERATIONS ====================
   addCommentToTask(taskId: string, comment: Comment): void {
     const handler = this.handlers.comments as CommentHandler;
-    handler.add({ ...comment, taskId });
+    handler.add({ ...comment, taskId: taskId });
   }
 
   addCommentToSubtask(subtaskId: string, comment: Comment): void {
     const handler = this.handlers.comments as CommentHandler;
-    handler.add({ ...comment, subtaskId });
+    handler.add({ ...comment, subtaskId: subtaskId });
   }
 
   removeCommentFromAll(commentId: string): void {

@@ -2,28 +2,34 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/* crate */
+use crate::entities::task_entity::TaskEntity;
 use crate::entities::traits::Validatable;
+
+/* nosql_orm */
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TodoEntity {
   pub id: Option<String>,
-  pub userId: String,
+  pub user_id: String,
   pub title: String,
   pub description: String,
-  pub startDate: Option<String>,
-  pub endDate: Option<String>,
+  pub start_date: Option<String>,
+  pub end_date: Option<String>,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
   pub priority: String,
   pub order: i32,
   #[serde(skip_deserializing)]
-  pub tasks: Vec<crate::entities::task_entity::TaskEntity>,
-  pub deletedAt: Option<DateTime<Utc>>,
-  pub createdAt: DateTime<Utc>,
-  pub updatedAt: DateTime<Utc>,
+  pub tasks: Vec<TaskEntity>,
+  #[serde(default)]
+  pub created_at: DateTime<Utc>,
+  #[serde(default)]
+  pub updated_at: DateTime<Utc>,
+  #[serde(default)]
+  pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl Entity for TodoEntity {
@@ -46,33 +52,32 @@ impl Entity for TodoEntity {
 
 impl SoftDeletable for TodoEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deletedAt
+    self.deleted_at
   }
 
   fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deletedAt = deleted_at;
+    self.deleted_at = deleted_at;
   }
 }
 
 impl WithRelations for TodoEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("tasks", "tasks", "todoId"),
-      RelationDef::one_to_many("chats", "chats", "todoId"),
-      RelationDef::many_to_one("user", "users", "userId"),
+      RelationDef::one_to_many("tasks", "tasks", "todo_id"),
+      RelationDef::one_to_many("chats", "chats", "todo_id"),
+      RelationDef::many_to_one("user", "users", "user_id"),
       RelationDef::many_to_many("categories", "categories", "categories"),
     ]
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TodoCreateModel {
-  pub userId: String,
+  pub user_id: String,
   pub title: String,
   pub description: String,
-  pub startDate: String,
-  pub endDate: String,
+  pub start_date: String,
+  pub end_date: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   pub visibility: String,
@@ -82,7 +87,7 @@ pub struct TodoCreateModel {
 
 impl Validatable for TodoCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.userId.is_empty() {
+    if self.user_id.is_empty() {
       return Err("userId cannot be empty".to_string());
     }
     if self.title.is_empty() {
@@ -98,9 +103,9 @@ impl Validatable for TodoCreateModel {
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
     let now = Utc::now();
-    let formatted_start_date = if value.startDate.is_empty() {
+    let formatted_start_date = if value.start_date.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.startDate) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -109,9 +114,9 @@ impl From<TodoCreateModel> for TodoEntity {
     } else {
       None
     };
-    let formatted_end_date = if value.endDate.is_empty() {
+    let formatted_end_date = if value.end_date.is_empty() {
       None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.endDate) {
+    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.end_date) {
       Some(
         dt.with_timezone(&Utc)
           .format("%Y-%m-%dT%H:%M:%SZ")
@@ -123,39 +128,38 @@ impl From<TodoCreateModel> for TodoEntity {
 
     TodoEntity {
       id: None,
-      userId: value.userId,
+      user_id: value.user_id,
       title: value.title,
       description: value.description,
-      startDate: formatted_start_date,
-      endDate: formatted_end_date,
+      start_date: formatted_start_date,
+      end_date: formatted_end_date,
       categories: value.categories,
       assignees: value.assignees,
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,
       tasks: vec![],
-      deletedAt: None,
-      createdAt: now,
-      updatedAt: now,
+      deleted_at: None,
+      created_at: now,
+      updated_at: now,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TodoUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
-  pub userId: Option<String>,
+  pub user_id: Option<String>,
   #[serde(default)]
   pub title: Option<String>,
   #[serde(default)]
   pub description: Option<String>,
   #[serde(default)]
-  pub startDate: Option<String>,
+  pub start_date: Option<String>,
   #[serde(default)]
-  pub endDate: Option<String>,
+  pub end_date: Option<String>,
   #[serde(default)]
   pub categories: Option<Vec<String>>,
   #[serde(default)]
@@ -167,11 +171,11 @@ pub struct TodoUpdateModel {
   #[serde(default)]
   pub order: Option<i32>,
   #[serde(default)]
-  pub deletedAt: Option<bool>,
+  pub deleted_at: Option<bool>,
   #[serde(default)]
-  pub createdAt: Option<String>,
+  pub created_at: Option<String>,
   #[serde(default)]
-  pub updatedAt: Option<String>,
+  pub updated_at: Option<String>,
 }
 
 impl Validatable for TodoUpdateModel {

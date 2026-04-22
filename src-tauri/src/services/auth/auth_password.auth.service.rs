@@ -64,9 +64,9 @@ impl AuthPasswordService {
       .expect("valid timestamp")
       .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
-    user.temporaryCode = code.clone();
-    user.codeExpiresAt = expiration;
-    user.updatedAt = chrono::Utc::now();
+    user.temporary_code = code.clone();
+    user.code_expires_at = expiration;
+    user.updated_at = chrono::Utc::now();
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();
@@ -117,9 +117,9 @@ impl AuthPasswordService {
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
 
-    if user.temporaryCode == code && !user.temporaryCode.is_empty() {
+    if user.temporary_code == code && !user.temporary_code.is_empty() {
       let now = chrono::Utc::now();
-      if let Ok(expires) = chrono::DateTime::parse_from_rfc3339(&user.codeExpiresAt) {
+      if let Ok(expires) = chrono::DateTime::parse_from_rfc3339(&user.code_expires_at) {
         if now < expires {
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
@@ -162,9 +162,9 @@ impl AuthPasswordService {
       .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
 
     user.password = hashedPassword;
-    user.temporaryCode = "".to_string();
-    user.codeExpiresAt = "".to_string();
-    user.updatedAt = chrono::Utc::now();
+    user.temporary_code = "".to_string();
+    user.code_expires_at = "".to_string();
+    user.updated_at = chrono::Utc::now();
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();

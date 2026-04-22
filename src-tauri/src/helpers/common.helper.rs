@@ -1,5 +1,5 @@
 /* sys lib */
-use serde::{Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 /* models */
@@ -36,9 +36,7 @@ pub fn normalize_camel_case_keys(value: Value) -> Value {
       }
       Value::Object(new_map)
     }
-    Value::Array(arr) => {
-      Value::Array(arr.into_iter().map(normalize_camel_case_keys).collect())
-    }
+    Value::Array(arr) => Value::Array(arr.into_iter().map(normalize_camel_case_keys).collect()),
     _ => value,
   }
 }
@@ -55,31 +53,31 @@ fn camel_to_snake(s: &str) -> String {
 }
 
 pub fn getProviderType(syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
-    tracing::debug!(
-      "[getProviderType] syncMetadata: isOwner={}, isPrivate={}",
-      syncMetadata.isOwner,
-      syncMetadata.isPrivate
-    );
-    match (syncMetadata.isOwner, syncMetadata.isPrivate) {
-      (true, true) => {
-        tracing::debug!("[getProviderType] -> Json (owner + private)");
-        Ok(ProviderType::Json)
-      }
-      (false, false) => {
-        tracing::debug!("[getProviderType] -> Mongo (not owner + shared)");
-        Ok(ProviderType::Mongo)
-      }
-      (true, false) => {
-        tracing::debug!("[getProviderType] -> Mongo (owner + shared)");
-        Ok(ProviderType::Mongo)
-      }
-      (false, true) => {
-        tracing::warn!("[getProviderType] -> Error (cannot have isOwner false and isPrivate true)");
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
-          data: DataValue::String("".to_string()),
-        })
-      }
+  tracing::debug!(
+    "[getProviderType] syncMetadata: isOwner={}, isPrivate={}",
+    syncMetadata.isOwner,
+    syncMetadata.isPrivate
+  );
+  match (syncMetadata.isOwner, syncMetadata.isPrivate) {
+    (true, true) => {
+      tracing::debug!("[getProviderType] -> Json (owner + private)");
+      Ok(ProviderType::Json)
+    }
+    (false, false) => {
+      tracing::debug!("[getProviderType] -> Mongo (not owner + shared)");
+      Ok(ProviderType::Mongo)
+    }
+    (true, false) => {
+      tracing::debug!("[getProviderType] -> Mongo (owner + shared)");
+      Ok(ProviderType::Mongo)
+    }
+    (false, true) => {
+      tracing::warn!("[getProviderType] -> Error (cannot have isOwner false and isPrivate true)");
+      Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),
+        data: DataValue::String("".to_string()),
+      })
     }
   }
+}

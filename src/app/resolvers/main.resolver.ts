@@ -6,7 +6,6 @@ import { of, catchError } from "rxjs";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
-import { TodoRelations } from "@models/relations.config";
 
 /* services */
 import { ApiProvider } from "@providers/api.provider";
@@ -101,7 +100,7 @@ export class MainResolver implements Resolve<any> {
         id: todoId,
         isOwner,
         isPrivate,
-        load: TodoRelations.loadAll,
+        load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
       })
       .pipe(
         catchError(() => {

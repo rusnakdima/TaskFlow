@@ -5,18 +5,18 @@ pub struct RelationConfig;
 
 pub const FRONTEND_EXCLUDED_FIELDS: &[&str] = &[
   "password",
-  "totpSecret",
-  "passkeyPublicKey",
-  "passkeyCredentialId",
-  "passkeyDevice",
-  "recoveryCodes",
-  "resetToken",
-  "temporaryCode",
-  "codeExpiresAt",
-  "biometricEnabled",
-  "passkeyEnabled",
-  "totpEnabled",
-  "qrLoginEnabled",
+  "totp_secret",
+  "passkey_public_key",
+  "passkey_credential_id",
+  "passkey_device",
+  "recovery_codes",
+  "reset_token",
+  "temporary_code",
+  "code_expires_at",
+  "biometric_enabled",
+  "passkey_enabled",
+  "totp_enabled",
+  "qr_login_enabled",
 ];
 
 pub fn user_projection() -> Projection {
@@ -28,9 +28,9 @@ impl RelationConfig {
     vec![
       (
         "tasks",
-        RelationDef::one_to_many("tasks", "tasks", "taskId"),
+        RelationDef::one_to_many("tasks", "tasks", "task_id"),
       ),
-      ("user", RelationDef::many_to_one("user", "users", "userId")),
+      ("user", RelationDef::many_to_one("user", "users", "user_id")),
       (
         "categories",
         RelationDef::many_to_many("categories", "categories", "categories"),
@@ -40,10 +40,10 @@ impl RelationConfig {
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
       (
-        "assigneesProfiles",
+        "assignees_profiles",
         RelationDef::many_to_one("assignees", "profiles", "assignees")
           .local_key_in_array("assignees")
-          .transform_map("userId", "profiles", "id"),
+          .transform_map("user_id", "profiles", "id"),
       ),
     ]
   }
@@ -52,26 +52,26 @@ impl RelationConfig {
     vec![
       (
         "subtasks",
-        RelationDef::one_to_many("subtasks", "subtasks", "taskId"),
+        RelationDef::one_to_many("subtasks", "subtasks", "task_id"),
       ),
       (
         "comments",
-        RelationDef::one_to_many("comments", "comments", "taskId"),
+        RelationDef::one_to_many("comments", "comments", "task_id"),
       ),
       (
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
-      ("todo", RelationDef::many_to_one("todo", "todos", "taskId")),
+      ("todo", RelationDef::many_to_one("todo", "todos", "task_id")),
     ]
   }
 
   pub fn subtasks_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "taskId")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "comments",
-        RelationDef::one_to_many("comments", "comments", "subtaskId"),
+        RelationDef::one_to_many("comments", "comments", "subtask_id"),
       ),
       (
         "assignees",
@@ -82,22 +82,22 @@ impl RelationConfig {
 
   pub fn comments_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "taskId")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "subtask",
-        RelationDef::many_to_one("subtask", "subtasks", "subtaskId"),
+        RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),
       ),
     ]
   }
 
   pub fn profiles_relations() -> Vec<(&'static str, RelationDef)> {
-    vec![("user", RelationDef::many_to_one("user", "users", "userId"))]
+    vec![("user", RelationDef::many_to_one("user", "users", "user_id"))]
   }
 
   pub fn users_relations() -> Vec<(&'static str, RelationDef)> {
     vec![(
       "profile",
-      RelationDef::many_to_one("profile", "profiles", "profileId"),
+      RelationDef::many_to_one("profile", "profiles", "profile_id"),
     )]
   }
 
@@ -132,84 +132,11 @@ impl RelationConfig {
     matches!(
       (table, path),
       ("todos", "user")
-        | ("todos", "assigneesProfiles")
+        | ("todos", "assignees_profiles")
         | ("profiles", "user")
         | ("tasks", "assignees")
         | ("subtasks", "assignees")
         | ("comments", "author")
-    )
-  }
-
-  #[allow(dead_code)]
-  pub fn relation_needs_projection(relation_name: &str) -> bool {
-    matches!(relation_name, "assignees" | "user" | "author")
-  }
-
-  #[allow(dead_code)]
-  pub fn parse_load_paths(table: &str, load_paths: &[String]) -> Vec<(String, RelationDef)> {
-    let mut result = Vec::new();
-    let relations = Self::get_relations_for_table(table);
-
-    for path in load_paths {
-      if path.contains('.') {
-        continue;
-      }
-      for (name, def) in &relations {
-        if *name == path.as_str() {
-          result.push((path.clone(), def.clone()));
-          break;
-        }
-      }
-    }
-    result
-  }
-
-  #[allow(dead_code)]
-  pub fn nested_relation_key(base: &str, nested: &str) -> String {
-    format!("{}.{}", base, nested)
-  }
-
-  #[allow(dead_code)]
-  pub fn is_nested_path(path: &str) -> bool {
-    path.contains('.')
-  }
-
-  pub fn split_nested_path(path: &str) -> Option<(&str, &str)> {
-    let parts: Vec<&str> = path.split('.').collect();
-    if parts.len() == 2 {
-      Some((parts[0], parts[1]))
-    } else {
-      None
-    }
-  }
-
-  pub fn get_nested_relation(table: &str, base: &str, nested: &str) -> Option<RelationDef> {
-    match (table, base, nested) {
-      ("todos", "tasks", "subtasks") => {
-        Some(RelationDef::one_to_many("subtasks", "subtasks", "taskId"))
-      }
-      ("todos", "tasks", "comments") => {
-        Some(RelationDef::one_to_many("comments", "comments", "taskId"))
-      }
-      ("tasks", "subtasks", "comments") => Some(RelationDef::one_to_many(
-        "comments",
-        "comments",
-        "subtaskId",
-      )),
-      ("subtasks", "subtasks", "comments") => Some(RelationDef::one_to_many(
-        "comments",
-        "comments",
-        "subtaskId",
-      )),
-      _ => None,
-    }
-  }
-
-  #[allow(dead_code)]
-  pub fn nested_needs_projection(_table: &str, base: &str, nested: &str) -> bool {
-    matches!(
-      (base, nested),
-      ("tasks", "subtasks") | ("tasks", "comments") | ("subtasks", "comments")
     )
   }
 }
@@ -225,14 +152,7 @@ mod tests {
     assert!(def.is_some());
     let def = def.unwrap();
     assert_eq!(def.target_collection, "tasks");
-    assert_eq!(def.foreign_key, "taskId");
-  }
-
-  #[test]
-  fn test_split_nested_path() {
-    let (base, nested) = RelationConfig::split_nested_path("tasks.subtasks").unwrap();
-    assert_eq!(base, "tasks");
-    assert_eq!(nested, "subtasks");
+    assert_eq!(def.foreign_key, "task_id");
   }
 
   #[test]
@@ -240,7 +160,7 @@ mod tests {
     let excluded =
       <crate::entities::user_entity::UserEntity as FrontendProjection>::excluded_fields();
     assert!(excluded.contains(&"password"));
-    assert!(excluded.contains(&"totpSecret"));
+    assert!(excluded.contains(&"totp_secret"));
     assert!(!excluded.contains(&"email"));
   }
 }
