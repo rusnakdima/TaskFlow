@@ -4,16 +4,16 @@ import { Comment } from "@models/comment.model";
 export interface Subtask {
   id: string;
   task: Task;
-  taskId: string;
+  task_id: string;
   title: string;
   description: string;
   status: TaskStatus;
   priority: string;
-  startDate: string | null;
-  endDate: string | null;
+  start_date: string | null;
+  end_date: string | null;
   order: number;
   comments: Array<Comment>;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }

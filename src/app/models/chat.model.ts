@@ -1,18 +1,18 @@
 export interface Chat {
   id: string;
-  todoId: string;
-  userId: string;
-  authorName: string;
+  todo_id: string;
+  user_id: string;
+  author_name: string;
   content: string;
-  readBy: string[];
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  read_by: string[];
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface ChatCreate {
-  todoId: string;
-  userId: string;
-  authorName: string;
+  todo_id: string;
+  user_id: string;
+  author_name: string;
   content: string;
 }

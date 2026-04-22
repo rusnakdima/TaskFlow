@@ -134,7 +134,7 @@ export class FilterHelper {
   /**
    * Filter this week
    */
-  static filterThisWeek<T extends { startDate?: string | null; endDate?: string | null }>(
+  static filterThisWeek<T extends { start_date?: string | null; end_date?: string | null }>(
     data: T[]
   ): T[] {
     const today = new Date();
@@ -148,9 +148,9 @@ export class FilterHelper {
     endOfWeek.setHours(23, 59, 59, 999);
 
     return data.filter((item) => {
-      if (item.startDate && item.endDate) {
-        const itemStart = new Date(item.startDate);
-        const itemEnd = new Date(item.endDate);
+      if (item.start_date && item.end_date) {
+        const itemStart = new Date(item.start_date);
+        const itemEnd = new Date(item.end_date);
         return itemStart <= endOfWeek && itemEnd >= startOfWeek;
       }
       return false;
@@ -241,7 +241,7 @@ export class FilterHelper {
       const filter = filters.userFilter;
       data = data.filter((item) => {
         if (item.user && item.user.id === filter) return true;
-        if (item.userId && item.userId === filter) return true;
+        if (item.user_id && item.user_id === filter) return true;
         // Fallback for search
         const filterStr = filter.toLowerCase();
         const username = item.user?.username?.toLowerCase() || "";
@@ -268,7 +268,7 @@ export class FilterHelper {
     if (filters.startDateFilter) {
       const filterDate = new Date(filters.startDateFilter);
       data = data.filter((item) => {
-        const itemDate = new Date(item.startDate || item.createdAt);
+        const itemDate = new Date(item.start_date || item.created_at);
         return itemDate >= filterDate;
       });
     }
@@ -276,20 +276,20 @@ export class FilterHelper {
     if (filters.endDateFilter) {
       const filterDate = new Date(filters.endDateFilter);
       data = data.filter((item) => {
-        const itemDate = new Date(item.endDate || item.createdAt);
+        const itemDate = new Date(item.end_date || item.created_at);
         return itemDate <= filterDate;
       });
     }
 
     if (filters.todoIdFilter && selectedType === "tasks") {
       data = data.filter((item) => {
-        return item.todoId === filters.todoIdFilter;
+        return item.todo_id === filters.todoIdFilter;
       });
     }
 
     if (filters.taskIdFilter && selectedType === "subtasks") {
       data = data.filter((item) => {
-        return item.taskId === filters.taskIdFilter;
+        return item.task_id === filters.taskIdFilter;
       });
     }
 

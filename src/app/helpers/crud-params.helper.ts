@@ -1,6 +1,5 @@
 import { SyncMetadata } from "@models/sync-metadata";
 import { RelationObj } from "@models/relation-obj.model";
-import { RelationsHelper } from "@helpers/relations.helper";
 
 export interface CrudParams {
   table: string;
@@ -49,22 +48,18 @@ export class CrudParamsBuilder {
       options.parentTodoId && ["tasks", "subtasks", "comments", "chats"].includes(table);
     const metadata =
       options.isOwner !== undefined
-        ? { isOwner: options.isOwner, isPrivate: options.isPrivate ?? true }
+        ? { is_owner: options.isOwner, is_private: options.isPrivate ?? true }
         : isChildEntity
-          ? { isOwner: true, isPrivate: options.isPrivate ?? true }
+          ? { is_owner: true, is_private: options.isPrivate ?? true }
           : resolveMetadataFn(
               table,
-              options.parentTodoId || options.data?.todoId,
+              options.parentTodoId || options.data?.todo_id,
               options.data,
               options.id
             );
 
-    console.log('[CrudParamsBuilder] build:', { table, isChildEntity, options, metadata });
-
     const load = options.load;
-    const relations = !load
-      ? (options.relations ?? RelationsHelper.getRelationsForTable(table))
-      : undefined;
+    const relations = options.relations;
 
     return {
       table,
