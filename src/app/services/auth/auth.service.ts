@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap, take } from "rxjs/operators";
+import { tap, take, catchError, map } from "rxjs/operators";
 
 /* models */
 
@@ -300,7 +300,12 @@ export class AuthService {
     const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
 
     if (!isTokenExpired) {
-      // Token is valid locally - load data
+      // Token is valid locally - validate user exists in MongoDB
+      const userId = this.jwtTokenService.getUserId(token);
+      if (userId) {
+        this.validateUserExistsInMongoDb(userId);
+      }
+
       this.dataSyncService.loadAllData();
 
       const cachedProfile = this.storageService.profile();
@@ -346,5 +351,66 @@ export class AuthService {
         // Backend check failed - token might be invalid but we already loaded data
       },
     });
+  }
+
+  /**
+   * Validate user exists in MongoDB
+   * If user not found, invalidate session and redirect to login
+   */
+  private validateUserExistsInMongoDb(userId: string): void {
+    this.dataSyncProvider
+      .crud<any>("get", "users", { id: userId, isOwner: true, isPrivate: true })
+      .pipe(take(1))
+      .subscribe({
+        next: (user) => {
+          if (!user || (Array.isArray(user) && user.length === 0)) {
+            console.warn("User not found in MongoDB, invalidating session for user:", userId);
+            this.invalidateUserSession();
+          }
+        },
+        error: (err: Error) => {
+          const isNetworkError = err.message.includes("Failed to fetch") ||
+                                 err.message.includes("NetworkError") ||
+                                 err.message.includes("net::");
+          const isBackendUnavailable = err.message.includes("Backend unavailable") ||
+                                      err.message.includes("Connection refused");
+
+          if (isNetworkError || isBackendUnavailable) {
+            console.warn("User validation skipped: MongoDB unavailable", err.message);
+          } else {
+            console.warn("User not found in MongoDB, invalidating session for user:", userId);
+            this.invalidateUserSession();
+          }
+        }
+      });
+  }
+
+  /**
+   * Invalidate user session when user deleted from MongoDB
+   * Clears token and removes from offline users, then redirects to login
+   */
+  private invalidateUserSession(): void {
+    const token = this.getToken();
+    const userId = token ? this.jwtTokenService.getUserId(token) : null;
+
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+
+    if (userId) {
+      this.removeFromOfflineUsers(userId);
+    }
+
+    this.notifyService.showWarning("Your account was deleted. Please login again.");
+
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 1500);
+  }
+
+  /**
+   * Remove user from offline users list
+   */
+  private removeFromOfflineUsers(userId: string): void {
+    this.localAuthService.removeFromOfflineUsers(userId);
   }
 }

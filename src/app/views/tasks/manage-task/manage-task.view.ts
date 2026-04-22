@@ -174,7 +174,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     // First, try to get from storage
     const taskFromStorage = this.storageService.getById("tasks", taskId);
     if (taskFromStorage) {
-      const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
+const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
       this.form.patchValue(localDates);
 
       const startDate = localDates.startDate;
@@ -188,7 +188,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     // Fallback to fetch if not in storage
     this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
       next: (taskData: Task) => {
-        const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
+const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         this.form.patchValue(localDates);
 
         const startDate = localDates.startDate;
@@ -367,7 +367,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
   checkDependenciesCompleted(dependsOn: string[]): boolean {
     if (!dependsOn || dependsOn.length === 0) return true;
     const tasks = this.projectInfo()?.tasks || [];
-    return dependsOn.every((depId) => {
+    return dependsOn.every((depId: string) => {
       const task = tasks.find((t) => t.id === depId);
       return task && (task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED);
     });

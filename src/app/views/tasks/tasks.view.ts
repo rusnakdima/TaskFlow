@@ -45,7 +45,6 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
-import { TodoRelations } from "@models/relations.config";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -206,10 +205,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       count += subtask.comments.filter((c: any) => {
         if (c.deletedAt) return false;
         // Skip if user is the author (they've read their own comment)
-        if (c.authorId === userId) return false;
-        if (c.readBy && c.readBy.includes(userId)) return false;
+        if (c.author_id === userId) return false;
+        if (c.read_by && c.read_by.includes(userId)) return false;
         // Only count subtask comments (must have subtaskId)
-        if (!c.subtaskId) return false;
+        if (!c.subtask_id) return false;
         return true;
       }).length;
     }
@@ -320,7 +319,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.dataSyncProvider
       .crud<Todo>("get", "todos", {
         id: todoId,
-        load: TodoRelations.loadAll,
+        load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
         isOwner: this.isOwner(),
         isPrivate: this.isPrivate(),
       })

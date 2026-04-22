@@ -16,9 +16,9 @@ export interface Todo {
   visibility: string;
   priority: string;
   order: number;
-  deletedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
   user: User;
   tasks: Array<Task>;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }

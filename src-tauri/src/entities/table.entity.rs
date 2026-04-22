@@ -15,6 +15,37 @@ use crate::entities::{
   user_entity::{UserCreateModel, UserEntity, UserUpdateModel},
 };
 
+/// Convert camelCase keys to snake_case recursively in a JSON value
+fn convert_camel_to_snake(value: Value) -> Value {
+  match value {
+    Value::Object(map) => {
+      let converted: Map<String, Value> = map
+        .into_iter()
+        .map(|(k, v)| {
+          let snake_key = to_snake_case(&k);
+          (snake_key, convert_camel_to_snake(v))
+        })
+        .collect();
+      Value::Object(converted)
+    }
+    Value::Array(arr) => Value::Array(arr.into_iter().map(convert_camel_to_snake).collect()),
+    other => other,
+  }
+}
+
+/// Convert a camelCase string to snake_case
+/// e.g., "userId" -> "user_id", "createdAt" -> "created_at"
+fn to_snake_case(s: &str) -> String {
+  let mut result = String::with_capacity(s.len());
+  for (i, c) in s.chars().enumerate() {
+    if c.is_uppercase() && i > 0 {
+      result.push('_');
+    }
+    result.extend(c.to_lowercase());
+  }
+  result
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TableModelType {
   Todo,
@@ -86,6 +117,9 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
   if !data.is_object() {
     return Err("Data must be a JSON object".to_string());
   }
+
+  // Convert camelCase keys to snake_case before deserializing
+  let data = convert_camel_to_snake(data.clone());
 
   match modelType {
     TableModelType::Chat => {

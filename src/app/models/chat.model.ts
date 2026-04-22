@@ -4,10 +4,10 @@ export interface Chat {
   userId: string;
   authorName: string;
   content: string;
+  readBy: string[];
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  readBy: string[];
 }
 
 export interface ChatCreate {

@@ -122,7 +122,7 @@ export class ApiProvider {
       if (todo) {
         return {
           isPrivate: todo.visibility === "private",
-          isOwner: todo.userId === currentUserId,
+          isOwner: todo.user_id === currentUserId,
         };
       }
     }
@@ -154,7 +154,7 @@ export class ApiProvider {
         }
       }
 
-      if (table === "tasks") {
+ if (table === "tasks") {
         const task = await this.fetchEntityById<Task>("tasks", id);
         if (task?.todoId) {
           const todo = await this.fetchEntityById<Todo>("todos", task.todoId);
@@ -1003,7 +1003,6 @@ export class ApiProvider {
     }
 
     if (table === "comments" && id) {
-      // Comments can be on tasks or subtasks - find parent todo (H-5)
       const comment = this.storageService.getById("comments", id);
       if (comment?.taskId) {
         const task = this.storageService.getById("tasks", comment.taskId);

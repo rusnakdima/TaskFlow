@@ -80,22 +80,22 @@ impl AuthRegisterService {
       username,
       password: hashedPassword,
       role: "user".to_string(),
-      temporaryCode: "".to_string(),
-      codeExpiresAt: "".to_string(),
-      profileId: "".to_string(),
+      temporary_code: "".to_string(),
+      code_expires_at: "".to_string(),
+      profile_id: "".to_string(),
       profile: None,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: None,
-      totpEnabled: false,
-      totpSecret: String::new(),
-      passkeyCredentialId: String::new(),
-      passkeyPublicKey: String::new(),
-      passkeyDevice: String::new(),
-      passkeyEnabled: false,
-      biometricEnabled: false,
-      qrLoginEnabled: false,
-      recoveryCodes: Vec::new(),
+      created_at: now,
+      updated_at: now,
+      deleted_at: None,
+      totp_enabled: false,
+      totp_secret: String::new(),
+      passkey_credential_id: String::new(),
+      passkey_public_key: String::new(),
+      passkey_device: String::new(),
+      passkey_enabled: false,
+      biometric_enabled: false,
+      qr_login_enabled: false,
+      recovery_codes: Vec::new(),
     };
 
     let userVal = serde_json::to_value(&newUser)
@@ -109,10 +109,9 @@ impl AuthRegisterService {
     let _ = self.jsonProvider.insert(table_name, userVal).await;
 
     let userId = newUser.get_id();
-    let token =
-      self
-        .tokenService
-        .generateToken(&userId, &newUser.username, &newUser.role)?;
+    let token = self
+      .tokenService
+      .generateToken(&userId, &newUser.username, &newUser.role)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

@@ -276,7 +276,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     return this.dataSync.crud<Chat[]>(
       "getAll",
       "chats",
-      { filter: { todoId, deletedAt: null }, parentTodoId: todoId },
+      { filter: { todoId: todoId, deletedAt: null }, parentTodoId: todoId },
       true
     );
   }
@@ -299,7 +299,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
       .subscribe(() => {
         this.newMessage = "";
         this.shouldScroll = true;
-        this.forceScrollBottom = true; // Force bottom for sent messages
+        this.forceScrollBottom = true;
         setTimeout(() => this.updateObservedElements(), 500);
       });
   }

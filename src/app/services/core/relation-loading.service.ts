@@ -2,11 +2,38 @@ import { Injectable } from "@angular/core";
 import { Observable, of, firstValueFrom } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 
-/* models */
-import { ViewContext, getRelationsForView } from "@models/relations.config";
-
 /* services */
 import { ApiProvider } from "@providers/api.provider";
+
+export type ViewContext = "list" | "detail" | "kanban" | "calendar" | "minimal";
+
+const VIEW_RELATIONS: Record<string, Record<ViewContext, string[]>> = {
+  todos: {
+    list: ["user", "categories"],
+    detail: ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories"],
+    kanban: ["tasks", "tasks.subtasks", "categories"],
+    calendar: ["user", "categories"],
+    minimal: ["user", "categories"],
+  },
+  tasks: {
+    list: ["subtasks"],
+    detail: ["todo", "subtasks", "subtasks.comments", "comments"],
+    kanban: ["subtasks"],
+    calendar: ["todo"],
+    minimal: ["subtasks"],
+  },
+  subtasks: {
+    list: ["task"],
+    detail: ["task", "comments"],
+    kanban: ["task"],
+    calendar: ["task"],
+    minimal: ["task"],
+  },
+};
+
+function getRelationsForView(table: string, context: ViewContext = "list"): string[] {
+  return VIEW_RELATIONS[table]?.[context] ?? [];
+}
 
 /**
  * Relation loading statistics

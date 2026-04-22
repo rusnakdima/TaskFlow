@@ -419,14 +419,14 @@ export class AdminStorageService extends BaseStorageService {
       // Update subtask
       this.updateRecordDeleteStatus(table, id, deletedAt);
 
-      // Update subtask comments
-      this.commentsSignal.update((comments) =>
-        comments.map((comment) =>
-          comment.subtaskId === id
-            ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
-            : comment
-        )
-      );
+        // Update subtask comments
+        this.commentsSignal.update((comments) =>
+          comments.map((comment) =>
+            comment.subtaskId === id
+              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              : comment
+          )
+        );
     } else {
       // Update single record
       this.updateRecordDeleteStatus(table, id, deletedAt);
