@@ -10,12 +10,12 @@ pub enum TypesField {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct RelationObj {
-  pub nameTable: String,
-  pub typeField: TypesField,
-  pub nameField: String,
-  pub newNameField: String,
-  pub targetField: Option<String>,
+  pub name_table: String,
+  pub type_field: TypesField,
+  pub name_field: String,
+  pub new_name_field: String,
+  pub target_field: Option<String>,
   pub relations: Option<Vec<RelationObj>>,
 }

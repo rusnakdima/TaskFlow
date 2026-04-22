@@ -465,7 +465,7 @@ impl RepositoryService {
 
     let is_team_entity = sync_metadata
       .as_ref()
-      .map(|m| !m.isPrivate && m.isOwner)
+      .map(|m| !m.is_private && m.is_owner)
       .unwrap_or(false);
 
     eprintln!(
@@ -666,8 +666,11 @@ impl RepositoryService {
       ProviderType::Json
     };
 
-    let metadata_is_private = sync_metadata.as_ref().map(|m| m.isPrivate).unwrap_or(false);
-    let metadata_is_owner = sync_metadata.as_ref().map(|m| m.isOwner).unwrap_or(true);
+    let metadata_is_private = sync_metadata
+      .as_ref()
+      .map(|m| m.is_private)
+      .unwrap_or(false);
+    let metadata_is_owner = sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true);
 
     if is_permanent {
       match provider_type {

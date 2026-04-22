@@ -54,11 +54,11 @@ fn camel_to_snake(s: &str) -> String {
 
 pub fn getProviderType(syncMetadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
   tracing::debug!(
-    "[getProviderType] syncMetadata: isOwner={}, isPrivate={}",
-    syncMetadata.isOwner,
-    syncMetadata.isPrivate
+    "[getProviderType] syncMetadata: is_owner={}, is_private={}",
+    syncMetadata.is_owner,
+    syncMetadata.is_private
   );
-  match (syncMetadata.isOwner, syncMetadata.isPrivate) {
+  match (syncMetadata.is_owner, syncMetadata.is_private) {
     (true, true) => {
       tracing::debug!("[getProviderType] -> Json (owner + private)");
       Ok(ProviderType::Json)
@@ -72,7 +72,7 @@ pub fn getProviderType(syncMetadata: &SyncMetadata) -> Result<ProviderType, Resp
       Ok(ProviderType::Mongo)
     }
     (false, true) => {
-      tracing::warn!("[getProviderType] -> Error (cannot have isOwner false and isPrivate true)");
+      tracing::warn!("[getProviderType] -> Error (cannot have is_owner false and is_private true)");
       Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "Incorrect request: cannot have isOwner false and isPrivate true".to_string(),

@@ -77,7 +77,7 @@ impl ChartGenerator {
 
     for activity in dailyActivities {
       if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
-        if let Some(totalActivity) = activity.get("totalActivity").and_then(|v| v.as_i64()) {
+        if let Some(totalActivity) = activity.get("total_activity").and_then(|v| v.as_i64()) {
           if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
             let weekday = date.weekday();
             let dayIndex = match weekday {

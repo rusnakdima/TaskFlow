@@ -12,8 +12,8 @@ pub async fn statisticsGet(
   timeRange: String,
 ) -> Result<serde_json::Value, serde_json::Value> {
   let syncMetadata = SyncMetadata {
-    isOwner: true,
-    isPrivate: true,
+    is_owner: true,
+    is_private: true,
   };
 
   match state
