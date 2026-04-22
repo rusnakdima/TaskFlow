@@ -1,5 +1,5 @@
 export interface SyncMetadata {
-  isOwner: boolean;
-  isPrivate: boolean;
-  hasConflict?: boolean;
+  is_owner: boolean;
+  is_private: boolean;
+  has_conflict?: boolean;
 }

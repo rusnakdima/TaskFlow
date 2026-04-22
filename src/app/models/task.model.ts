@@ -25,22 +25,22 @@ export enum RepeatInterval {
 export interface Task {
   id: string;
   todo: Todo;
-  todoId: string;
+  todo_id: string;
   title: string;
   description: string;
   subtasks: Array<Subtask>;
   status: TaskStatus;
   priority: string;
-  startDate: string | null;
-  endDate: string | null;
+  start_date: string | null;
+  end_date: string | null;
   repeat?: RepeatInterval;
   order: number;
   assignees: string[];
-  dependsOn: string[];
+  depends_on: string[];
   comments: Array<Comment>;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface PriorityOption {

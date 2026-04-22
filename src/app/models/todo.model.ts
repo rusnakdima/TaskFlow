@@ -5,20 +5,20 @@ import { User } from "@models/user.model";
 
 export interface Todo {
   id: string;
-  userId: string;
+  user_id: string;
   title: string;
   description: string;
-  startDate: string | null;
-  endDate: string | null;
+  start_date: string | null;
+  end_date: string | null;
   categories: Array<Category>;
   assignees: Array<string>;
-  assigneesProfiles: Array<Profile>;
+  assignees_profiles: Array<Profile>;
   visibility: string;
   priority: string;
   order: number;
   user: User;
   tasks: Array<Task>;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }

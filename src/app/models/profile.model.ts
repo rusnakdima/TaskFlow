@@ -3,11 +3,11 @@ import { User } from "@models/user.model";
 export interface Profile {
   id: string;
   name: string;
-  lastName: string;
+  last_name: string;
   bio: string;
-  imageUrl: string;
+  image_url: string;
   user: User;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }

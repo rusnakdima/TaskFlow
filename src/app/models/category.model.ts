@@ -3,9 +3,9 @@ import { User } from "@models/user.model";
 export interface Category {
   id: string;
   title: string;
-  userId: string;
+  user_id: string;
   user: User;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }

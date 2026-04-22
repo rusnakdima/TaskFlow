@@ -11,11 +11,11 @@ export interface ArchiveDataMap {
 
 export interface DailyActivity {
   id: string;
-  userId: string;
+  user_id: string;
   date: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
 }
 
 export type ArchiveRecord = Todo | Task | Subtask | Comment | Chat | Category | DailyActivity;
