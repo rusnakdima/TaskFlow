@@ -3,6 +3,17 @@ use serde_json::Value;
 
 pub struct FilterBuilder;
 
+fn to_snake_case(s: &str) -> String {
+  let mut result = String::with_capacity(s.len());
+  for (i, c) in s.chars().enumerate() {
+    if c.is_uppercase() && i > 0 {
+      result.push('_');
+    }
+    result.extend(c.to_lowercase());
+  }
+  result
+}
+
 impl FilterBuilder {
   pub fn from_json(filter_value: &Value) -> Option<Filter> {
     tracing::debug!("[FilterBuilder] from_json input: {:?}", filter_value);
@@ -15,17 +26,32 @@ impl FilterBuilder {
           continue;
         }
 
-        tracing::debug!("[FilterBuilder] building filter for key '{}', value: {:?}", key, value);
+        let snake_key = to_snake_case(key);
 
-        if let Some(filter) = Self::build_single_filter(key, value) {
+        tracing::debug!(
+          "[FilterBuilder] building filter for key '{}' -> '{}', value: {:?}",
+          key,
+          snake_key,
+          value
+        );
+
+        if let Some(filter) = Self::build_single_filter(&snake_key, value) {
           tracing::debug!("[FilterBuilder] built filter: {:?}", filter);
           filters.push(filter);
         } else {
-          tracing::warn!("[FilterBuilder] could not build filter for key '{}', value: {:?}", key, value);
+          tracing::warn!(
+            "[FilterBuilder] could not build filter for key '{}', value: {:?}",
+            key,
+            value
+          );
         }
       }
 
-      tracing::debug!("[FilterBuilder] total filters built: {}, filters: {:?}", filters.len(), filters);
+      tracing::debug!(
+        "[FilterBuilder] total filters built: {}, filters: {:?}",
+        filters.len(),
+        filters
+      );
 
       if filters.is_empty() {
         None

@@ -94,144 +94,123 @@ impl RepositoryService {
 
   async fn load_relations_json(
     &self,
-    mut docs: Vec<Value>,
+    docs: Vec<Value>,
     table: &str,
     load_paths: &[String],
   ) -> Result<Vec<Value>, ResponseModel> {
-    tracing::warn!("[REPO] load_relations_json ENTRY - table={}, doc_count={}, load_paths={:?}", 
-                   table, docs.len(), load_paths);
-    
+    tracing::warn!(
+      "[REPO] load_relations_json ENTRY - table={}, doc_count={}, load_paths={:?}",
+      table,
+      docs.len(),
+      load_paths
+    );
+
     if load_paths.is_empty() {
       return Ok(docs);
     }
 
-    let loader = RelationLoader::new(self.jsonProvider.clone());
     let proj = user_projection();
 
+    let mut result = docs;
+
     for path in load_paths {
-      tracing::warn!("[REPO] load_relations - processing path: {}", path);
-      let parts: Vec<&str> = path.split('.').collect();
-
-      if parts.len() >= 3 {
-        docs = self
-          .load_deep_nested_relation(docs, table, &parts, &loader, &proj)
-          .await?;
+      let segments: Vec<&str> = path.split('.').collect();
+      if segments.is_empty() {
         continue;
       }
 
-      if RelationConfig::is_nested_path(path) {
-        if let Some((base, nested)) = RelationConfig::split_nested_path(path) {
-          docs = self
-            .load_nested_relation(docs, table, base, nested, &loader, &proj)
-            .await?;
-        }
-        continue;
-      }
-
-      if let Some(relation_def) = RelationConfig::get_relation_def(table, path) {
-        tracing::warn!("[REPO] load_relations - found relation_def for path={}, def.target={}, def.foreign_key={}", 
-                       path, relation_def.target_collection, relation_def.foreign_key);
-        
-        let doc_ids: Vec<String> = docs.iter()
-          .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(String::from))
-          .collect();
-        tracing::warn!("[REPO] load_relations - doc ids being passed: {:?}", doc_ids);
-        
-        let needs_proj = RelationConfig::needs_user_projection(table, path);
-        tracing::warn!("[REPO] load_relations - calling loader.load_many...");
-        docs = loader
-          .load_many(docs, &relation_def, true)
-          .await
-          .map_err(|e| errResponseFormatted("Relation load failed", &e.to_string()))?;
-        tracing::warn!("[REPO] load_relations - after load_many, doc_count={}", docs.len());
-        if needs_proj {
-          docs = self.apply_projection_to_relations(docs, path, &proj);
-        }
-      } else {
-        tracing::warn!("[REPO] load_relations - NO relation_def found for path={}", path);
-      }
+      result = self.load_n_levels(result, table, &segments, &proj).await?;
     }
 
-    Ok(docs)
+    Ok(result)
   }
 
-  async fn load_deep_nested_relation(
+  async fn load_n_levels(
     &self,
-    mut docs: Vec<Value>,
+    docs: Vec<Value>,
     table: &str,
-    parts: &[&str],
-    loader: &RelationLoader<JsonProvider>,
+    segments: &[&str],
     proj: &Projection,
   ) -> Result<Vec<Value>, ResponseModel> {
-    if parts.len() < 3 {
+    if segments.is_empty() {
       return Ok(docs);
     }
 
-    let base = parts[0];
-    let nested1 = parts[1];
-    let nested2 = parts[2];
+    let loader = RelationLoader::new(self.jsonProvider.clone());
+    let mut current_docs = docs;
+    let mut current_table = table.to_string();
 
-    for doc in docs.iter_mut() {
-      if let Some(obj) = doc.as_object_mut() {
-        if let Some(relation_arr) = obj.get(base).and_then(|v| v.as_array()) {
-          let mut items: Vec<Value> = relation_arr.clone();
+    #[derive(Default)]
+    struct LevelData {
+      parent_segment: String,
+      children_ids: Vec<String>,
+      loaded_children: Vec<Value>,
+    }
 
-          let nested1_def = RelationConfig::get_nested_relation(table, base, nested1);
-          if let Some(def) = nested1_def {
-            items = loader
-              .load_many(items, &def, true)
-              .await
-              .map_err(|e| errResponseFormatted("Nested1 load failed", &e.to_string()))?;
-          }
+    let mut levels: Vec<LevelData> = Vec::new();
 
-          if nested1 == "subtasks" || nested1 == "tasks" {
-            for item in items.iter_mut() {
-              if let Some(obj) = item.as_object_mut() {
-                if let Some(nested1_arr) = obj.get_mut(nested1).and_then(|v| v.as_array_mut()) {
-                  for subtask in nested1_arr.iter_mut() {
-                    if let Some(subtask_obj) = subtask.as_object_mut() {
-                      let nested2_def =
-                        RelationConfig::get_nested_relation(nested1, nested1, nested2);
-                      if let Some(def) = nested2_def {
-                        let subtask_id =
-                          subtask_obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
-                        if !subtask_id.is_empty() {
-                          let filter = nosql_orm::query::Filter::Eq(
-                            "subtask_id".to_string(),
-                            serde_json::json!(subtask_id),
-                          );
-                          let loaded: Vec<Value> = self
-                            .jsonProvider
-                            .find_many(
-                              &def.target_collection,
-                              Some(&filter),
-                              None,
-                              None,
-                              None,
-                              true,
-                            )
-                            .await
-                            .map_err(|e| {
-                              errResponseFormatted("Nested2 load failed", &e.to_string())
-                            })?;
-                          let projected: Vec<Value> =
-                            loaded.into_iter().map(|v| proj.apply(&v)).collect();
-                          subtask_obj.insert("comments".to_string(), Value::Array(projected));
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+    for (i, segment) in segments.iter().enumerate() {
+      if let Some(rel_def) = RelationConfig::get_relation_def(&current_table, segment) {
+        current_docs = loader
+          .load_many(current_docs, &rel_def, true)
+          .await
+          .map_err(|e| errResponseFormatted("Relation load failed", &e.to_string()))?;
 
-          obj.insert(base.to_string(), Value::Array(items));
+        if i == 0 && RelationConfig::needs_user_projection(&current_table, segment) {
+          current_docs = self.apply_projection_to_relations(current_docs, segment, proj);
         }
+
+        let children: Vec<Value> = current_docs
+          .iter()
+          .filter_map(|d| d.get(segment).and_then(|v| v.as_array()).cloned())
+          .flatten()
+          .collect();
+
+        let children_ids: Vec<String> = children
+          .iter()
+          .filter_map(|c| c.get("id").and_then(|v| v.as_str()).map(String::from))
+          .collect();
+
+        levels.push(LevelData {
+          parent_segment: segment.to_string(),
+          children_ids,
+          loaded_children: children,
+        });
+
+        current_table = segment.to_string();
       }
     }
 
-    Ok(docs)
+    for i in (1..levels.len()).rev() {
+      let level = &levels[i];
+
+      for doc in current_docs.iter_mut() {
+        if let Some(obj) = doc.as_object_mut() {
+          if let Some(arr) = obj.get_mut(&level.parent_segment) {
+            if let Some(arr_mut) = arr.as_array_mut() {
+              let matched: Vec<Value> = level
+                .loaded_children
+                .iter()
+                .filter(|c| {
+                  c.get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|id| level.children_ids.contains(&id.to_string()))
+                    .unwrap_or(false)
+                })
+                .cloned()
+                .collect();
+              *arr_mut = matched;
+            }
+          }
+        }
+      }
+
+      if i > 0 {
+        current_docs = levels[i - 1].loaded_children.clone();
+      }
+    }
+
+    Ok(current_docs)
   }
 
   fn apply_projection_to_relations(
@@ -249,65 +228,6 @@ impl RepositoryService {
       }
     }
     docs
-  }
-
-  async fn load_nested_relation(
-    &self,
-    mut docs: Vec<Value>,
-    table: &str,
-    base: &str,
-    nested: &str,
-    loader: &RelationLoader<JsonProvider>,
-    proj: &Projection,
-  ) -> Result<Vec<Value>, ResponseModel> {
-    if let Some(nested_def) = RelationConfig::get_nested_relation(table, base, nested) {
-      let needs_proj = RelationConfig::nested_needs_projection(table, base, nested);
-      for doc in docs.iter_mut() {
-        if let Some(obj) = doc.as_object_mut() {
-          if let Some(relation_arr) = obj.get(base).and_then(|v| v.as_array()) {
-            let mut items: Vec<Value> = relation_arr.clone();
-            items = loader
-              .load_many(items, &nested_def, true)
-              .await
-              .map_err(|e| errResponseFormatted("Nested relation load failed", &e.to_string()))?;
-            if needs_proj {
-              items = self.apply_projection_to_array(items, nested, proj);
-            }
-            obj.insert(base.to_string(), Value::Array(items));
-          }
-        }
-      }
-    }
-    Ok(docs)
-  }
-
-  fn apply_projection_to_array(
-    &self,
-    mut items: Vec<Value>,
-    nested_path: &str,
-    proj: &Projection,
-  ) -> Vec<Value> {
-    for item in items.iter_mut() {
-      if let Some(obj) = item.as_object_mut() {
-        match nested_path {
-          "subtasks" | "comments" => {
-            if let Some(nested) = obj.get_mut(nested_path) {
-              if let Some(arr) = nested.as_array() {
-                let projected: Vec<Value> = arr.iter().map(|v| proj.apply(v)).collect();
-                *nested = Value::Array(projected);
-              }
-            }
-          }
-          _ => {
-            if let Some(nested) = obj.get_mut(nested_path) {
-              let projected = proj.apply(nested);
-              *nested = projected;
-            }
-          }
-        }
-      }
-    }
-    items
   }
 
   fn apply_frontend_projection(&self, doc: Value, _table: &str) -> Value {
@@ -379,9 +299,13 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    tracing::warn!("[REPO] handle_get_all ENTRY - table={}, filter={:?}, sync_metadata={:?}", 
-                   table, filter, sync_metadata);
-    
+    tracing::warn!(
+      "[REPO] handle_get_all ENTRY - table={}, filter={:?}, sync_metadata={:?}",
+      table,
+      filter,
+      sync_metadata
+    );
+
     let orm_filter = filter.as_ref().and_then(|f| self.build_filter(f));
 
     tracing::info!(
@@ -439,9 +363,16 @@ impl RepositoryService {
       Vec::new()
     };
 
-    tracing::warn!("[REPO] handle_get_all DOCS FROM PROVIDER - table={}, count={}", table, docs.len());
+    tracing::warn!(
+      "[REPO] handle_get_all DOCS FROM PROVIDER - table={}, count={}",
+      table,
+      docs.len()
+    );
     if !docs.is_empty() {
-      tracing::warn!("[REPO] handle_get_all - First doc keys: {:?}", docs[0].as_object().map(|m| m.keys().collect::<Vec<_>>()));
+      tracing::warn!(
+        "[REPO] handle_get_all - First doc keys: {:?}",
+        docs[0].as_object().map(|m| m.keys().collect::<Vec<_>>())
+      );
     }
 
     tracing::info!(
@@ -735,14 +666,8 @@ impl RepositoryService {
       ProviderType::Json
     };
 
-    let metadata_is_private = sync_metadata
-      .as_ref()
-      .map(|m| m.isPrivate)
-      .unwrap_or(false);
-    let metadata_is_owner = sync_metadata
-      .as_ref()
-      .map(|m| m.isOwner)
-      .unwrap_or(true);
+    let metadata_is_private = sync_metadata.as_ref().map(|m| m.isPrivate).unwrap_or(false);
+    let metadata_is_owner = sync_metadata.as_ref().map(|m| m.isOwner).unwrap_or(true);
 
     if is_permanent {
       match provider_type {
@@ -778,7 +703,11 @@ impl RepositoryService {
             .soft_delete_cascade_mongo(&table, &id_str)
             .await?;
           if metadata_is_private && metadata_is_owner {
-            self.cascadeService.soft_delete_cascade_json(&table, &id_str).await.ok();
+            self
+              .cascadeService
+              .soft_delete_cascade_json(&table, &id_str)
+              .await
+              .ok();
           }
         }
         _ => {
@@ -787,7 +716,11 @@ impl RepositoryService {
             .soft_delete_cascade_json(&table, &id_str)
             .await?;
           if metadata_is_private && metadata_is_owner {
-            self.cascadeService.soft_delete_cascade_mongo(&table, &id_str).await.ok();
+            self
+              .cascadeService
+              .soft_delete_cascade_mongo(&table, &id_str)
+              .await
+              .ok();
           }
         }
       }
@@ -1718,7 +1651,7 @@ impl RepositoryService {
       .map_err(|e| errResponseFormatted("Profile validation failed", &e))?;
 
     let user_id = validated_profile
-      .get("userId")
+      .get("user_id")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
@@ -1785,33 +1718,24 @@ impl RepositoryService {
       "[RepositoryService] create_profile_with_user_update: User.profileId synced to both providers successfully"
     );
 
-    // Sync profile to MongoDB - FAIL if MongoDB not available
-    let mongo = self.mongodbProvider.as_ref().ok_or_else(|| {
-      eprintln!(
-        "[RepositoryService] create_profile_with_user_update: MongoDB not available for profile sync"
-      );
-      ResponseModel {
-        status: ResponseStatus::Error,
-        message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+    // Sync profile to MongoDB if available (non-blocking)
+    // Profile is already saved in JSON, so we log MongoDB failures as warnings, not errors
+    if let Some(ref mongo) = self.mongodbProvider {
+      if let Err(e) = self.try_sync_profile_to_cloud(&profile_id, mongo).await {
+        eprintln!(
+          "[RepositoryService] create_profile_with_user_update: WARNING - Profile synced to JSON but MongoDB sync failed: {}",
+          e
+        );
+      } else {
+        eprintln!(
+          "[RepositoryService] create_profile_with_user_update: Profile synced to MongoDB successfully"
+        );
       }
-    })?;
-
-    eprintln!("[RepositoryService] create_profile_with_user_update: Syncing profile to MongoDB...");
-    if let Err(e) = self.try_sync_profile_to_cloud(&profile_id, mongo).await {
+    } else {
       eprintln!(
-        "[RepositoryService] create_profile_with_user_update: Profile sync to MongoDB failed: {}",
-        e
+        "[RepositoryService] create_profile_with_user_update: WARNING - MongoDB not available, profile only saved to JSON"
       );
-      return Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Failed to sync profile to MongoDB: {}", e),
-        data: DataValue::String("".to_string()),
-      });
     }
-    eprintln!(
-      "[RepositoryService] create_profile_with_user_update: Profile synced to MongoDB successfully"
-    );
 
     self
       .activityMonitor

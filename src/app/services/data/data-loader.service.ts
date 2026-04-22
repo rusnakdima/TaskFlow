@@ -6,7 +6,6 @@ import { Observable, of, catchError, tap, retry, BehaviorSubject, map } from "rx
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
-import { TodoRelations } from "@models/relations.config";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -75,7 +74,6 @@ export class DataLoaderService {
    * Fire-and-forget: Load private todos
    */
   private loadPrivateTodos(userId: string): void {
-    const todoLoad = TodoRelations.loadAll;
     const filter = { userId, visibility: "private", deletedAt: null };
     console.log('[DataLoader] loadPrivateTodos called with filter:', JSON.stringify(filter));
 
@@ -87,7 +85,7 @@ export class DataLoaderService {
           filter,
           isOwner: true,
           isPrivate: true,
-          load: todoLoad,
+          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
         },
         true
       )
@@ -112,8 +110,6 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is owner
    */
   private loadTeamTodosOwner(userId: string): void {
-    const todoLoad = TodoRelations.loadAll;
-
     this.apiProvider
       .crud<Todo[]>(
         "getAll",
@@ -122,7 +118,7 @@ export class DataLoaderService {
           filter: { userId, visibility: "team", deletedAt: null },
           isOwner: true,
           isPrivate: false,
-          load: todoLoad,
+          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
         },
         true
       )
@@ -148,8 +144,6 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is assignee
    */
   private loadTeamTodosAssignee(userId: string): void {
-    const todoLoad = TodoRelations.loadAll;
-
     this.apiProvider
       .crud<Todo[]>(
         "getAll",
@@ -158,7 +152,7 @@ export class DataLoaderService {
           filter: { assignees: userId, visibility: "team", deletedAt: null },
           isOwner: false,
           isPrivate: false,
-          load: todoLoad,
+          load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
         },
         true
       )
@@ -231,10 +225,13 @@ export class DataLoaderService {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
     if (!userId) {
+      console.log('[DataLoader] loadProfile: no userId, returning null');
       return of(null);
     }
 
     const cached = this.storageService.profile();
+    console.log('[DataLoader] loadProfile: userId=', userId, 'cached=', cached);
+    
     if (cached?.userId) {
       return of(cached);
     }
@@ -246,12 +243,14 @@ export class DataLoaderService {
    * Fetch profile from API and update storage
    */
   private fetchProfileFromApi(userId: string): Observable<Profile | null> {
+    console.log('[DataLoader] fetchProfileFromApi called with userId:', userId);
+    
     return this.apiProvider
       .crud<Profile[]>(
         "getAll",
         "profiles",
         {
-          filter: { userId },
+          filter: { userId: userId },
           load: ["user"],
           isPrivate: true,
           isOwner: true,
@@ -260,15 +259,21 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => of([] as Profile[])),
+        catchError((err) => {
+          console.error('[DataLoader] fetchProfileFromApi error:', err);
+          return of([] as Profile[]);
+        }),
         map((profiles: Profile[] | null) => {
+          console.log('[DataLoader] fetchProfileFromApi response:', profiles);
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
             if (profileObj?.userId) {
+              console.log('[DataLoader] Profile found, updating storage:', profileObj);
               this.storageService.setCollection("profiles", profileObj);
               return profileObj;
             }
           }
+          console.log('[DataLoader] No profile found for userId:', userId);
           return null as Profile | null;
         })
       );
