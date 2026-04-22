@@ -156,22 +156,22 @@ export class BulkActionHelper {
     updated[table] = tableData.filter((r: any) => r.id !== recordId);
 
     if (table === "todos") {
-      const todoTasks = tableData.filter((t: any) => t.todoId === recordId);
+      const todoTasks = tableData.filter((t: any) => t.todo_id === recordId);
       const todoTaskIds = todoTasks.map((t: any) => t.id);
-      updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todoId !== recordId);
+      updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todo_id !== recordId);
       updated["subtasks"] = (updated["subtasks"] || []).filter(
-        (s: any) => !todoTaskIds.includes(s.taskId)
+        (s: any) => !todoTaskIds.includes(s.task_id)
       );
       updated["comments"] = (updated["comments"] || []).filter(
-        (c: any) => c.todoId !== recordId && !todoTaskIds.includes(c.taskId)
+        (c: any) => c.todo_id !== recordId && !todoTaskIds.includes(c.task_id)
       );
-      updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todoId !== recordId);
+      updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todo_id !== recordId);
     } else if (table === "tasks") {
-      updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.taskId !== recordId);
-      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.taskId !== recordId);
+      updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.task_id !== recordId);
+      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.task_id !== recordId);
     } else if (table === "subtasks") {
       updated["comments"] = (updated["comments"] || []).filter(
-        (c: any) => c.subtaskId !== recordId
+        (c: any) => c.subtask_id !== recordId
       );
     }
 
@@ -222,11 +222,11 @@ export class BulkActionHelper {
       ];
       updated["comments"] = [
         ...existingComments.filter(
-          (c: any) => c.todoId !== recordId && !taskIds.includes(c.taskId)
+          (c: any) => c.todo_id !== recordId && !taskIds.includes(c.task_id)
         ),
         ...newComments,
       ];
-      updated["chats"] = [...existingChats.filter((c: any) => c.todoId !== recordId)];
+      updated["chats"] = [...existingChats.filter((c: any) => c.todo_id !== recordId)];
     }
 
     return updated;

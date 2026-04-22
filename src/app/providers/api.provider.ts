@@ -2,7 +2,7 @@
 import { Injectable, Injector, inject } from "@angular/core";
 import { Observable, from, of, firstValueFrom, defer } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
-import { finalize, tap, catchError, map, switchMap } from "rxjs/operators";
+import { finalize, tap, catchError, map } from "rxjs/operators";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -15,14 +15,11 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 
 /* helpers */
-import { RelationsHelper } from "@helpers/relations.helper";
-import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { CacheHelper } from "@helpers/cache.helper";
 import { CrudParamsBuilder, CrudParams } from "@helpers/crud-params.helper";
 import { StorageUpdateHelper } from "@helpers/storage-update.helper";
 
 /* services */
-import { WebSocketService } from "@services/core/websocket.service";
 import { SyncService } from "@services/data/sync.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -35,15 +32,10 @@ interface AdminDataWithRelations {
   [key: string]: any[];
 }
 
-// Constants
-const WS_RETRY_ATTEMPTS = 3;
-const WS_RETRY_DELAY_MS = 100;
-
 @Injectable({
   providedIn: "root",
 })
 export class ApiProvider {
-  private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private jwtTokenService = inject(JwtTokenService);
   private injector = inject(Injector);
@@ -109,7 +101,7 @@ export class ApiProvider {
   }
 
   private createDefaultMetadata(): SyncMetadata {
-    return { isOwner: true, isPrivate: true };
+    return { is_owner: true, is_private: true };
   }
 
   private resolveMetadata(table: string, todoId?: string, record?: any, id?: string): SyncMetadata {
@@ -121,8 +113,8 @@ export class ApiProvider {
       const todo = record || (targetId ? this.storageService.getById("todos", targetId) : null);
       if (todo) {
         return {
-          isPrivate: todo.visibility === "private",
-          isOwner: todo.user_id === currentUserId,
+          is_private: todo.visibility === "private",
+          is_owner: todo.user_id === currentUserId,
         };
       }
     }
@@ -131,8 +123,8 @@ export class ApiProvider {
     if (effectiveTodoId) {
       const todo = this.storageService.getById("todos", effectiveTodoId);
       if (todo) {
-        metadata.isPrivate = todo.visibility === "private";
-        metadata.isOwner = todo.userId === currentUserId;
+        metadata.is_private = todo.visibility === "private";
+        metadata.is_owner = todo.user_id === currentUserId;
       }
     }
 
@@ -148,20 +140,20 @@ export class ApiProvider {
         const todo = await this.fetchEntityById<Todo>("todos", id);
         if (todo) {
           return {
-            isPrivate: todo.visibility === "private",
-            isOwner: todo.userId === currentUserId,
+            is_private: todo.visibility === "private",
+            is_owner: todo.user_id === currentUserId,
           };
         }
       }
 
- if (table === "tasks") {
+      if (table === "tasks") {
         const task = await this.fetchEntityById<Task>("tasks", id);
-        if (task?.todoId) {
-          const todo = await this.fetchEntityById<Todo>("todos", task.todoId);
+        if (task?.todo_id) {
+          const todo = await this.fetchEntityById<Todo>("todos", task.todo_id);
           if (todo) {
             return {
-              isPrivate: todo.visibility === "private",
-              isOwner: todo.userId === currentUserId,
+              is_private: todo.visibility === "private",
+              is_owner: todo.user_id === currentUserId,
             };
           }
         }
@@ -174,16 +166,16 @@ export class ApiProvider {
   }
 
   private resolveTodoId(table: string, todoId?: string, record?: any, id?: string): string | null {
-    let effectiveTodoId = todoId || record?.todoId;
+    let effectiveTodoId = todoId || record?.todo_id;
 
     if (!effectiveTodoId && (record?.id || id)) {
       const targetId = id || record?.id;
       if (table === "tasks") {
-        effectiveTodoId = this.storageService.getById("tasks", targetId!)?.todoId;
+        effectiveTodoId = this.storageService.getById("tasks", targetId!)?.todo_id;
       } else if (table === "subtasks") {
         const subtask = this.storageService.getById("subtasks", targetId!);
         if (subtask) {
-          effectiveTodoId = this.storageService.getById("tasks", subtask.taskId)?.todoId;
+          effectiveTodoId = this.storageService.getById("tasks", subtask.task_id)?.todo_id;
         }
       }
     }
@@ -323,7 +315,6 @@ export class ApiProvider {
     if (params.id) payload.id = params.id;
     if (params.data) payload.data = params.data;
 
-    console.log('[ApiProvider] buildTauriPayload:', { operation, table: params.table, filter: params.filter, syncMetadata: params.syncMetadata });
     return payload;
   }
 
@@ -446,10 +437,8 @@ export class ApiProvider {
     subscriber: any,
     requestKey: string
   ): void {
-    console.log('[ApiProvider] executeSingleOperation called:', { operation, table: params.table, payload });
     invoke<Response<T>>("manageData", payload)
       .then((response: Response<T>) => {
-        console.log('[ApiProvider] manageData response:', { status: response.status, data: response.data });
         if (response.status === ResponseStatus.SUCCESS) {
           subscriber.next(response.data as T);
           subscriber.complete();
@@ -463,14 +452,12 @@ export class ApiProvider {
           } else {
             message = "Unknown error";
           }
-          console.log('[ApiProvider] manageData error:', message);
           this.notifyService.showError(message);
           subscriber.error(new Error(message));
         }
         this.inFlightRequests.delete(requestKey);
       })
       .catch((err) => {
-        console.log('[ApiProvider] manageData exception:', err);
         this.handleError(err, operation, params, subscriber, requestKey);
       });
   }
@@ -514,9 +501,9 @@ export class ApiProvider {
 
   private handleChatsResult(chats: any[], filter?: { [key: string]: any }): void {
     if (chats && chats.length > 0) {
-      const todoId = chats[0]?.todoId || filter?.["todoId"];
+      const todoId = chats[0]?.todo_id || filter?.["todo_id"];
       if (todoId) {
-        this.storageService.setChatsByTodo(todoId, chats);
+        this.storageService.setChatsByTodo(chats, todoId);
       }
     }
   }
@@ -524,12 +511,13 @@ export class ApiProvider {
   // ==================== Visibility Change Sync ====================
 
   async syncSingleTodoVisibilityChange(
-    todoId: string,
-    newVisibility: "private" | "team"
+    newVisibility: "private" | "team",
+    todo_id?: string,
   ): Promise<void> {
-    const todo = this.storageService.getById("todos", todoId);
+    if (!todo_id) return;
+    const todo = this.storageService.getById("todos", todo_id);
     if (!todo) {
-      throw new Error(`Todo with id ${todoId} not found`);
+      throw new Error(`Todo with id ${todo_id} not found`);
     }
 
     const currentVisibility = todo.visibility;
@@ -537,7 +525,7 @@ export class ApiProvider {
     const isTeamToPrivate = currentVisibility === "team" && newVisibility === "private";
 
     if (!isPrivateToTeam && !isTeamToPrivate) {
-      await this.importTodoToLocalDb(todoId);
+      await this.importTodoToLocalDb(todo_id);
       this.clearCache("todos");
       return;
     }
@@ -553,7 +541,7 @@ export class ApiProvider {
 
     try {
       await invoke<Response<any>>("syncVisibilityToProvider", {
-        todoId,
+        todo_id,
         sourceProvider,
         targetProvider,
       });
@@ -887,7 +875,7 @@ export class ApiProvider {
   }
 
   private stripRelations(todo: Todo): Partial<Todo> {
-    const { tasks, assigneesProfiles, user, categories, ...rest } = todo;
+    const { tasks, user, categories, ...rest } = todo;
     return rest;
   }
 
@@ -901,22 +889,24 @@ export class ApiProvider {
     return rest;
   }
 
-  private async importTodoToLocalDb(todoId: string): Promise<void> {
+  private async importTodoToLocalDb(todo_id?: string): Promise<void> {
+    if (!todo_id) return;
     const cloudTodo = await firstValueFrom(
-      this.crud<Todo>("get", "todos", { id: todoId }).pipe(catchError(() => of(null)))
+      this.crud<Todo>("get", "todos", { id: todo_id }).pipe(catchError(() => of(null)))
     );
 
     if (!cloudTodo) {
-      throw new Error(`Todo with id ${todoId} not found in cloud`);
+      throw new Error(`Todo with id ${todo_id} not found in cloud`);
     }
 
-    this.storageService.updateItem("todos", todoId, cloudTodo);
+    this.storageService.updateItem("todos", todo_id, cloudTodo);
   }
 
   // ==================== Archive Operations ====================
 
-  private archiveTodoWithCascade(todoId: string, isTeam: boolean = false): void {
-    const todo = this.storageService.getById("todos", todoId);
+  private archiveTodoWithCascade(todo_id?: string, isTeam: boolean = false): void {
+    if (!todo_id) return;
+    const todo = this.storageService.getById("todos", todo_id);
     if (!todo) return;
 
     // For team entities, pass isPrivate: false to prevent local JSON persistence
@@ -925,8 +915,8 @@ export class ApiProvider {
     // Archive todo
     this.storageService.updateItem(
       "todos",
-      todoId,
-      { deletedAt: new Date().toISOString() },
+      todo_id,
+      { deleted_at: new Date().toISOString() },
       options
     );
 
@@ -935,7 +925,7 @@ export class ApiProvider {
       this.storageService.updateItem(
         "tasks",
         task.id,
-        { deletedAt: new Date().toISOString() },
+        { deleted_at: new Date().toISOString() },
         options
       );
 
@@ -944,7 +934,7 @@ export class ApiProvider {
         this.storageService.updateItem(
           "subtasks",
           subtask.id,
-          { deletedAt: new Date().toISOString() },
+          { deleted_at: new Date().toISOString() },
           options
         );
 
@@ -953,7 +943,7 @@ export class ApiProvider {
           this.storageService.updateItem(
             "comments",
             comment.id,
-            { deletedAt: new Date().toISOString() },
+            { deleted_at: new Date().toISOString() },
             options
           );
         });
@@ -964,14 +954,14 @@ export class ApiProvider {
         this.storageService.updateItem(
           "comments",
           comment.id,
-          { deletedAt: new Date().toISOString() },
+          { deleted_at: new Date().toISOString() },
           options
         );
       });
     });
 
     // Archive chats for this todo (H-4)
-    this.storageService.clearChatsByTodo(todoId);
+    this.storageService.clearChatsByTodo(todo_id);
   }
 
   // ==================== Storage Updates ====================
@@ -987,36 +977,36 @@ export class ApiProvider {
     }
 
     if (table === "tasks" && id) {
-      const todoId = parentTodoId || this.storageService.getById("tasks", id)?.todoId;
+      const todoId = parentTodoId || this.storageService.getById("tasks", id)?.todo_id;
       if (!todoId) return false;
       const todo = this.storageService.getById("todos", todoId);
       return todo?.visibility === "team";
     }
 
     if (table === "subtasks" && id) {
-      const taskId = this.storageService.getById("subtasks", id)?.taskId;
+      const taskId = this.storageService.getById("subtasks", id)?.task_id;
       if (!taskId) return false;
       const task = this.storageService.getById("tasks", taskId);
-      if (!task?.todoId) return false;
-      const todo = this.storageService.getById("todos", task.todoId);
+      if (!task?.todo_id) return false;
+      const todo = this.storageService.getById("todos", task.todo_id);
       return todo?.visibility === "team";
     }
 
     if (table === "comments" && id) {
       const comment = this.storageService.getById("comments", id);
-      if (comment?.taskId) {
-        const task = this.storageService.getById("tasks", comment.taskId);
-        if (task?.todoId) {
-          const todo = this.storageService.getById("todos", task.todoId);
+      if (comment?.task_id) {
+        const task = this.storageService.getById("tasks", comment.task_id);
+        if (task?.todo_id) {
+          const todo = this.storageService.getById("todos", task.todo_id);
           return todo?.visibility === "team";
         }
       }
-      if (comment?.subtaskId) {
-        const taskId = this.storageService.getById("subtasks", comment.subtaskId)?.taskId;
+      if (comment?.subtask_id) {
+        const taskId = this.storageService.getById("subtasks", comment.subtask_id)?.task_id;
         if (taskId) {
           const task = this.storageService.getById("tasks", taskId);
-          if (task?.todoId) {
-            const todo = this.storageService.getById("todos", task.todoId);
+          if (task?.todo_id) {
+            const todo = this.storageService.getById("todos", task.todo_id);
             return todo?.visibility === "team";
           }
         }
@@ -1065,9 +1055,9 @@ export class ApiProvider {
         case "updateAll":
           // Special handling for chats - set the entire list
           if (table === "chats" && result && Array.isArray(result)) {
-            const todoId = parentTodoId || (result[0] as any)?.todoId;
+            const todoId = parentTodoId || (result[0] as any)?.todo_id;
             if (todoId) {
-              this.storageService.setChatsByTodo(todoId, result);
+              this.storageService.setChatsByTodo(result, todoId);
             }
           } else {
             (result as any[]).forEach((item) => {
@@ -1100,7 +1090,7 @@ export class ApiProvider {
     if (table === "tasks") {
       const existingTask = this.storageService.getById("tasks", result.id);
       if (existingTask) {
-        const merged = this.preserveEntityFields(result, existingTask, ["comments", "subtasks"]);
+        const merged = this.storageUpdateHelper.preserveFields(result, existingTask, ["comments", "subtasks"]);
         this.storageService.updateItem(table as any, result.id, merged, options);
       } else {
         // Entity not in storage, update with backend response directly
@@ -1112,7 +1102,7 @@ export class ApiProvider {
     if (table === "subtasks") {
       const existingSubtask = this.storageService.getById("subtasks", result.id);
       if (existingSubtask) {
-        const merged = this.preserveEntityFields(result, existingSubtask, ["comments"]);
+        const merged = this.storageUpdateHelper.preserveFields(result, existingSubtask, ["comments"]);
         this.storageService.updateItem(table as any, result.id, merged, options);
       } else {
         // Entity not in storage, update with backend response directly
@@ -1134,8 +1124,6 @@ export class ApiProvider {
       const incomingValue = incoming[field];
       const existingValue = existing[field];
 
-      // Always prefer incoming value if it exists (backend is source of truth)
-      // Only use existing value if incoming doesn't have this field
       if (incomingValue !== undefined && incomingValue !== null) {
         result[field] = incomingValue;
       } else if (existingValue) {
@@ -1146,43 +1134,10 @@ export class ApiProvider {
     return result as T;
   }
 
-  // ==================== Cache Management ====================
+  // ==================== Cache Management
 
   clearCache(table?: string): void {
     this.cacheHelper.clearCache(table);
-  }
-
-  // ==================== Connection Management ====================
-
-  /**
-   * Check MongoDB connection with timeout
-   * @param timeoutMs - Timeout in milliseconds (default: 5000ms)
-   * @returns Observable that emits true if connection successful, false otherwise
-   * @deprecated Backend now uses local JSON first - this is for diagnostics only
-   */
-  checkMongoDbConnection(timeoutMs: number = 5000): Observable<boolean> {
-    return new Observable<boolean>((subscriber) => {
-      const timeoutId = setTimeout(() => {
-        subscriber.next(false);
-        subscriber.complete();
-      }, timeoutMs);
-
-      // Try a simple operation to test connection
-      this.crud<any[]>("getAll", "users", { filter: {} }, true).subscribe({
-        next: () => {
-          clearTimeout(timeoutId);
-          subscriber.next(true);
-          subscriber.complete();
-        },
-        error: (err) => {
-          clearTimeout(timeoutId);
-          // Check if it's a network error
-          const isNetworkError = NetworkErrorHelper.isNetworkError(err);
-          subscriber.next(!isNetworkError);
-          subscriber.complete();
-        },
-      });
-    });
   }
 
   // ==================== Admin Data Loading ====================

@@ -95,9 +95,9 @@ export class StorageUpdateHelper {
 
   private handleUpdateAll(table: string, result: any, parentTodoId?: string): void {
     if (table === "chats" && result && Array.isArray(result)) {
-      const todoId = parentTodoId || (result[0] as any)?.todoId;
+      const todoId = parentTodoId || (result[0] as any)?.todo_id;
       if (todoId) {
-        this.storageService.setChatsByTodo(todoId, result);
+        this.storageService.setChatsByTodo(result, todoId);
       }
     } else {
       (result as any[]).forEach((item) => {
@@ -108,8 +108,9 @@ export class StorageUpdateHelper {
     }
   }
 
-  private archiveTodoWithCascade(todoId: string, isTeam: boolean): void {
-    this.storageService.removeItem("todos", todoId, undefined, isTeam);
+  private archiveTodoWithCascade(todo_id?: string, isTeam: boolean = false): void {
+    if (!todo_id) return;
+    this.storageService.removeItem("todos", todo_id, undefined, isTeam);
   }
 
   preserveFields<T extends Record<string, any>>(
