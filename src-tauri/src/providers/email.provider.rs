@@ -25,11 +25,11 @@ impl EmailProvider {
 
   pub fn fromConfig(config: &ConfigHelper) -> Result<Self, ResponseModel> {
     let emailConfig = EmailConfig {
-      smtpUsername: config.smtpUsername.clone(),
-      smtpPassword: config.smtpPassword.clone(),
-      smtpServer: config.smtpServer.clone(),
-      smtpPort: config.smtpPort,
-      resetTokenExpiryHours: config.resetTokenExpiryHours,
+      smtp_username: config.smtpUsername.clone(),
+      smtp_password: config.smtpPassword.clone(),
+      smtp_server: config.smtpServer.clone(),
+      smtp_port: config.smtpPort,
+      reset_token_expiry_hours: config.resetTokenExpiryHours,
     };
 
     Ok(Self::new(emailConfig))
@@ -42,7 +42,7 @@ impl EmailProvider {
   ) -> Result<(), ResponseModel> {
     let email = Message::builder()
       .from(
-        format!("{} <{}>", "TaskFlow", self.config.smtpUsername)
+        format!("{} <{}>", "TaskFlow", self.config.smtp_username)
           .parse()
           .map_err(|_| ResponseModel {
             status: ResponseStatus::Error,
@@ -79,7 +79,7 @@ impl EmailProvider {
           </body>
         </html>
         "#,
-        code, self.config.resetTokenExpiryHours
+        code, self.config.reset_token_expiry_hours
       ))
       .map_err(|_| ResponseModel {
         status: ResponseStatus::Error,
@@ -88,11 +88,11 @@ impl EmailProvider {
       })?;
 
     let creds = Credentials::new(
-      self.config.smtpUsername.clone(),
-      self.config.smtpPassword.clone(),
+      self.config.smtp_username.clone(),
+      self.config.smtp_password.clone(),
     );
 
-    let mailer = match SmtpTransport::relay(&self.config.smtpServer) {
+    let mailer = match SmtpTransport::relay(&self.config.smtp_server) {
       Ok(builder) => builder.credentials(creds).build(),
       Err(e) => {
         return Err(ResponseModel {

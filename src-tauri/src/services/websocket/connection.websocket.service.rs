@@ -93,8 +93,8 @@ impl ConnectionManager {
 
     let request_id = request.requestId.clone();
     let sync_metadata = request.syncMetadata.clone().unwrap_or(SyncMetadata {
-      isOwner: true,
-      isPrivate: false,
+      is_owner: true,
+      is_private: false,
     });
 
     let res = match request.action.as_str() {

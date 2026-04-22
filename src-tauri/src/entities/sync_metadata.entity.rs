@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SyncMetadata {
-  pub isOwner: bool,
-  pub isPrivate: bool,
+  pub is_owner: bool,
+  pub is_private: bool,
 }
