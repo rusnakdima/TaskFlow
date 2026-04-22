@@ -65,7 +65,7 @@
         [matMenuTriggerFor]="userMenu"
       >
         <img
-          [src]="profile()?.imageUrl ? profile()!.imageUrl : 'assets/images/user.png'"
+          [src]="profile()?.image_url ? profile()!.image_url : 'assets/images/user.png'"
           class="h-8 w-8 min-w-8 rounded-full"
           alt=""
         />
@@ -80,7 +80,7 @@
     (click)="$event.stopPropagation()"
   >
     <p class="textNormal font-medium">
-      {{ profile()?.name || "User" }} {{ profile()?.lastName || "" }}
+      {{ profile()?.name || "User" }} {{ profile()?.last_name || "" }}
     </p>
     @if (profile()?.user?.email) {
       <p class="textMuted text-sm">{{ profile()?.user?.email }}</p>

@@ -30,7 +30,7 @@
   </div>
 
   <div #scrollContainer class="flex-1 space-y-4 overflow-y-auto p-4">
-    @for (chat of getChats(todoId); track chat.id) {
+    @for (chat of getChats(todo_id); track chat.id) {
       <div
         [id]="'chat-' + chat.id"
         [attr.data-chat-id]="chat.id"
@@ -43,14 +43,14 @@
           }
           <a
             [routerLink]="['/profile']"
-            [queryParams]="{ id: chat.userId }"
+            [queryParams]="{ id: chat.user_id }"
             (click)="close.emit()"
             class="cursor-pointer text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
           >
-            {{ chat.authorName }}
+            {{ chat.author_name }}
           </a>
           <span class="text-[10px] text-gray-400">
-            {{ chat.createdAt | date: "shortTime" }}
+            {{ chat.created_at | date: "shortTime" }}
           </span>
         </div>
         <div

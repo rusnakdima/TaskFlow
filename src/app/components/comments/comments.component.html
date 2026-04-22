@@ -26,14 +26,14 @@
               <div class="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
             }
             <span class="text-xs font-bold text-purple-600 dark:text-purple-400">
-              {{ comment.authorName }}
+              {{ comment.author_name }}
             </span>
           </div>
           <div class="flex items-center gap-2">
             <span class="textMuted text-[10px]">
-              {{ formatDate(comment.createdAt) }}
+              {{ formatDate(comment.created_at) }}
             </span>
-            @if (isOwner || comment.authorId === currentUserId) {
+            @if (isOwner || comment.author_id === currentUserId) {
               <button
                 class="rounded-md p-1 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
                 (click)="deleteComment(comment.id)"

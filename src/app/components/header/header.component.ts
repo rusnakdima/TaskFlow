@@ -239,51 +239,51 @@ export class HeaderComponent implements OnInit, OnDestroy {
     // Navigate based on notification type
     if (notif.type === "chat") {
       // Navigate to todo -> chat section
-      if (notif.todoId) {
-        this.router.navigate(["/todos", notif.todoId, "tasks"], {
-          queryParams: { openChat: true, highlightChat: notif.chatId },
+      if (notif.todo_id) {
+        this.router.navigate(["/todos", notif.todo_id, "tasks"], {
+          queryParams: { openChat: true, highlightChat: notif.chat_id },
         });
       }
     } else if (notif.type === "comment") {
       // Navigate to the task/subtask with the comment
-      if (notif.todoId && notif.taskId) {
+      if (notif.todo_id && notif.task_id) {
         const queryParams: any = {
-          highlightComment: notif.commentId,
+          highlightComment: notif.comment_id,
           openComments: true,
         };
-        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
+        this.router.navigate(["/todos", notif.todo_id, "tasks", notif.task_id, "subtasks"], {
           queryParams,
         });
-      } else if (notif.todoId) {
+      } else if (notif.todo_id) {
         // Comment on todo level (if applicable)
-        this.router.navigate(["/todos", notif.todoId, "tasks"], {
+        this.router.navigate(["/todos", notif.todo_id, "tasks"], {
           queryParams: { openChat: true },
         });
       }
     } else if (notif.type === "todo") {
       // Navigate to todos page and highlight
-      if (notif.todoId) {
+      if (notif.todo_id) {
         this.router.navigate(["/todos"], {
-          queryParams: { highlightTodo: notif.todoId },
+          queryParams: { highlightTodo: notif.todo_id },
         });
       }
     } else if (notif.type === "task") {
       // Navigate to tasks page and highlight
-      if (notif.todoId && notif.taskId) {
-        this.router.navigate(["/todos", notif.todoId, "tasks"], {
-          queryParams: { highlightTaskId: notif.taskId },
+      if (notif.todo_id && notif.task_id) {
+        this.router.navigate(["/todos", notif.todo_id, "tasks"], {
+          queryParams: { highlightTaskId: notif.task_id },
         });
-      } else if (notif.todoId) {
-        this.router.navigate(["/todos", notif.todoId, "tasks"]);
+      } else if (notif.todo_id) {
+        this.router.navigate(["/todos", notif.todo_id, "tasks"]);
       }
     } else if (notif.type === "subtask") {
       // Navigate to subtasks page and highlight
-      if (notif.todoId && notif.taskId && notif.subtaskId) {
-        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"], {
-          queryParams: { highlightSubtask: notif.subtaskId },
+      if (notif.todo_id && notif.task_id && notif.subtask_id) {
+        this.router.navigate(["/todos", notif.todo_id, "tasks", notif.task_id, "subtasks"], {
+          queryParams: { highlightSubtask: notif.subtask_id },
         });
-      } else if (notif.todoId && notif.taskId) {
-        this.router.navigate(["/todos", notif.todoId, "tasks", notif.taskId, "subtasks"]);
+      } else if (notif.todo_id && notif.task_id) {
+        this.router.navigate(["/todos", notif.todo_id, "tasks", notif.task_id, "subtasks"]);
       }
     }
   }

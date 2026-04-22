@@ -39,7 +39,7 @@ export class TaskInformationComponent {
   protected formatDate = DateHelper.formatDateShort;
 
   @Input() task!: Task;
-  @Input() todoId!: string;
+  @Input() todo_id!: string;
   @Input() projectTitle!: string;
   @Input() listSubtasks: Array<Subtask> = [];
 
@@ -73,7 +73,7 @@ export class TaskInformationComponent {
         .crud<Task>("update", "tasks", {
           id: this.task.id,
           data: updatedTask,
-          parentTodoId: this.todoId,
+          parentTodoId: this.todo_id,
           isOwner: this.isOwner,
           isPrivate: this.isPrivate,
         })
@@ -103,14 +103,14 @@ export class TaskInformationComponent {
     this.dataSyncProvider
       .crud("delete", "tasks", {
         id: this.task?.id ?? "",
-        parentTodoId: this.todoId,
+        parentTodoId: this.todo_id,
         isOwner: this.isOwner,
         isPrivate: this.isPrivate,
       })
       .subscribe({
         next: (result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");
-          this.router.navigate(["/todos", this.todoId, "tasks"]);
+          this.router.navigate(["/todos", this.todo_id, "tasks"]);
         },
         error: (err: any) => {
           this.notifyService.showError(err.message || "Failed to delete task");

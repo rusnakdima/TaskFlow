@@ -88,11 +88,11 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   getAssigneeImageUrl(assignee: any): string {
-    return assignee?.user?.profile?.imageUrl || "assets/images/user.png";
+    return assignee?.user?.profile?.image_url || "assets/images/user.png";
   }
 
   getAssigneeUserId(assignee: any): string {
-    return assignee?.userId || "";
+    return assignee?.user_id || "";
   }
 
   getProjectStatusColor(): string {

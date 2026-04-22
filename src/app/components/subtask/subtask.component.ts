@@ -67,7 +67,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   @Input() highlight: boolean = false;
   @Input() showActions: boolean = true;
   @Input() subtask: Subtask | null = null;
-  @Input() todoId: string | null = null;
+  @Input() todo_id: string | null = null;
   @Input() index: number = 0;
   @Input() highlightComment: string | null = null;
   @Input() openComments: boolean = false;
@@ -107,7 +107,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
    */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
     if (!comments || comments.length === 0) return [];
-    return comments.filter((c) => !c.deletedAt);
+    return comments.filter((c) => !c.deleted_at);
   }
 
   toggleComments() {
@@ -119,21 +119,21 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       if (userId && this.subtask.comments && this.subtask.comments.length > 0) {
         const hasUnread = this.subtask.comments.some(
           (c: any) =>
-            !c.deletedAt &&
-            c.subtaskId &&
-            c.authorId !== userId &&
-            (!c.readBy || !c.readBy.includes(userId))
+            !c.deleted_at &&
+            c.subtask_id &&
+            c.author_id !== userId &&
+            (!c.read_by || !c.read_by.includes(userId))
         );
 
         if (hasUnread) {
           const updatedComments = this.subtask.comments.map((c: any) => {
-            if (c.deletedAt || !c.subtaskId) return c;
-            if (c.authorId === userId) return c;
+            if (c.deleted_at || !c.subtask_id) return c;
+            if (c.author_id === userId) return c;
 
-            if (!c.readBy || !c.readBy.includes(userId)) {
+            if (!c.read_by || !c.read_by.includes(userId)) {
               return {
                 ...c,
-                readBy: [...(c.readBy || []), userId],
+                readBy: [...(c.read_by || []), userId],
               };
             }
             return c;
@@ -145,16 +145,16 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
           });
 
           const effectiveTodoId =
-            this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
+            this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
           if (effectiveTodoId) {
             const commentsToUpdate = updatedComments.filter(
-              (c: any) => !c.deletedAt && c.subtaskId === this.subtask?.id && c.authorId !== userId
+              (c: any) => !c.deleted_at && c.subtask_id === this.subtask?.id && c.author_id !== userId
             );
 
             if (commentsToUpdate.length > 0) {
               this.dataSyncProvider
                 .crud("updateAll", "comments", {
-                  data: commentsToUpdate.map((c: any) => ({ id: c.id, readBy: c.readBy })),
+                  data: commentsToUpdate.map((c: any) => ({ id: c.id, read_by: c.read_by })),
                   parentTodoId: effectiveTodoId,
                 })
                 .subscribe();
@@ -172,7 +172,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       const userId = this.authService.getValueByKey("id");
       const username = this.authService.getValueByKey("username");
       const effectiveTodoId =
-        this.todoId || this.storageService.getById("tasks", this.subtask.taskId)?.todoId;
+        this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
 
       if (!userId || !effectiveTodoId) {
         this.notifyService.showError("Cannot add comment: User or Project not found");
@@ -180,12 +180,12 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       }
 
       const commentForBackend: any = {
-        authorId: userId,
-        authorName: username || "Unknown",
+        author_id: userId,
+        author_name: username || "Unknown",
         content: content,
-        subtaskId: this.subtask.id,
-        readBy: [userId],
-        deletedAt: null,
+        subtask_id: this.subtask.id,
+        read_by: [userId],
+        deleted_at: null,
       };
 
       this.dataSyncProvider
@@ -207,8 +207,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
   onDeleteComment(commentId: string) {
     const effectiveTodoId =
-      this.todoId ||
-      (this.subtask && this.storageService.getById("tasks", this.subtask.taskId)?.todoId);
+      this.todo_id ||
+      (this.subtask && this.storageService.getById("tasks", this.subtask.task_id)?.todo_id);
     if (effectiveTodoId) {
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
@@ -222,10 +222,10 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       let changed = false;
       const updatedComments = (this.subtask.comments || []).map((c) => {
         if (commentIds.includes(c.id)) {
-          const readBy = c.readBy || [];
+          const readBy = c.read_by || [];
           if (!readBy.includes(userId)) {
             changed = true;
-            return { ...c, readBy: [...readBy, userId] };
+            return { ...c, readBy: [...(c.read_by || []), userId] };
           }
         }
         return c;
