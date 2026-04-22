@@ -70,23 +70,23 @@ export class ManageTaskView implements OnInit, OnDestroy {
     this.form = fb.group({
       _id: [""],
       id: [""],
-      todoId: ["", Validators.required],
+      todo_id: ["", Validators.required],
       title: ["", Validators.required],
       description: [""],
       status: [TaskStatus.PENDING],
       priority: ["", Validators.required],
-      startDate: [""],
-      endDate: [""],
+      start_date: [""],
+      end_date: [""],
       repeat: [RepeatInterval.NONE],
       order: [0],
-      deletedAt: [false],
-      createdAt: [""],
-      updatedAt: [""],
-      dependsOn: [[]],
+      deleted_at: [false],
+      created_at: [""],
+      updated_at: [""],
+      depends_on: [[]],
     });
 
-    this.form.get("startDate")?.valueChanges.subscribe((startDate) => {
-      const endDateControl = this.form.get("endDate");
+    this.form.get("start_date")?.valueChanges.subscribe((startDate) => {
+      const endDateControl = this.form.get("end_date");
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
@@ -152,7 +152,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
     this.route.params.subscribe((params: any) => {
       if (params.todoId) {
         this.todoId.set(params.todoId);
-        this.form.controls["todoId"].setValue(params.todoId);
+        this.form.controls["todo_id"].setValue(params.todoId);
         this.loadProjectInfo(params.todoId);
       }
       if (params.taskId && params.taskId.trim() !== "") {
@@ -167,32 +167,31 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    return ValidationHelper.createEndDateFilter("startDate", this.form)(date);
+    return ValidationHelper.createEndDateFilter("start_date", this.form)(date);
   };
 
-  getTaskInfo(taskId: string) {
-    // First, try to get from storage
+  getTaskInfo(taskId?: string) {
+    if (!taskId) return;
     const taskFromStorage = this.storageService.getById("tasks", taskId);
     if (taskFromStorage) {
-const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
+      const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
       this.form.patchValue(localDates);
 
-      const startDate = localDates.startDate;
-      const endDate = localDates.endDate;
+      const startDate = localDates.start_date;
+      const endDate = localDates.end_date;
       if (startDate && endDate) {
         ValidationHelper.updateEndDateValidation(this.form, startDate);
       }
       return;
     }
 
-    // Fallback to fetch if not in storage
     this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
       next: (taskData: Task) => {
-const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
+        const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         this.form.patchValue(localDates);
 
-        const startDate = localDates.startDate;
-        const endDate = localDates.endDate;
+        const startDate = localDates.start_date;
+        const endDate = localDates.end_date;
         if (startDate && endDate) {
           ValidationHelper.updateEndDateValidation(this.form, startDate);
         }
@@ -208,25 +207,23 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
     this.location.back();
   }
 
-  loadProjectInfo(todoId: string) {
-    // Try to get from storage first
+  loadProjectInfo(todoId?: string) {
+    if (!todoId) return;
     const cachedTodo = this.storageService.getById("todos", todoId);
     if (cachedTodo) {
       this.projectInfo.set(cachedTodo);
-      this.isOwner = cachedTodo.userId === this.userId;
+      this.isOwner = cachedTodo.user_id === this.userId;
       this.isPrivate = cachedTodo.visibility === "private";
       return;
     }
 
-    // Fallback to fetch if not in storage
     this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
       next: (todo: Todo) => {
         this.projectInfo.set(todo);
-        this.isOwner = todo.userId === this.userId;
+        this.isOwner = todo.user_id === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
       error: (err: unknown) => {
-        // Error loading project info - already in storage or fetch failed
       },
     });
   }
@@ -253,8 +250,8 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
   }
 
   clearDates() {
-    this.form.get("startDate")?.setValue("");
-    this.form.get("endDate")?.setValue("");
+    this.form.get("start_date")?.setValue("");
+    this.form.get("end_date")?.setValue("");
   }
 
   async createTask() {
@@ -263,7 +260,6 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         const todoId = this.projectInfo()?.id;
         if (!todoId) throw new Error("Project ID not found");
 
-        // ✅ Check parent todo visibility to determine if task should sync to MongoDB only
         const parentTodo = this.storageService.getById("todos", todoId);
         const isPrivate = parentTodo?.visibility !== "team";
 
@@ -274,10 +270,9 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         const body = {
           ...convertedDates,
           order: tasks.length,
-          todoId: todoId,
+          todo_id: todoId,
         };
 
-        // Sync with backend - pass isPrivate flag to control storage behavior
         this.dataSyncProvider
           .crud<Task>("create", "tasks", {
             data: body,
@@ -315,7 +310,6 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
         return;
       }
 
-      // ✅ Check parent todo visibility to determine if task should sync to MongoDB only
       const parentTodo = this.storageService.getById("todos", todoId);
       const isPrivate = parentTodo?.visibility !== "team";
 
@@ -325,7 +319,6 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
 
       const { _id, ...updateData } = convertedDates;
 
-      // Update task via ApiProvider - pass isPrivate flag to control storage behavior
       this.dataSyncProvider
         .crud<Task>("update", "tasks", {
           id: formValue.id,
@@ -351,17 +344,17 @@ const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
     }
   }
 
-  isTaskDependent(taskId: string): boolean {
-    const dependsOn = this.form.get("dependsOn")?.value || [];
+  isTaskDependent(taskId?: string): boolean {
+    const dependsOn = this.form.get("depends_on")?.value || [];
     return dependsOn.includes(taskId);
   }
 
-  toggleDependency(taskId: string): void {
-    const dependsOn = this.form.get("dependsOn")?.value || [];
+  toggleDependency(taskId?: string): void {
+    const dependsOn = this.form.get("depends_on")?.value || [];
     const index = dependsOn.indexOf(taskId);
     if (index === -1) dependsOn.push(taskId);
     else dependsOn.splice(index, 1);
-    this.form.get("dependsOn")?.setValue([...dependsOn]);
+    this.form.get("depends_on")?.setValue([...dependsOn]);
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {

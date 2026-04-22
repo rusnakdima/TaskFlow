@@ -66,11 +66,11 @@ export class StorageService extends BaseStorageService {
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
       // Filter out deleted todos
-      if (todo.deletedAt) return;
+      if (todo.deleted_at) return;
 
       if (
         !uniqueTodoMap.has(todo.id) ||
-        (todo.updatedAt && uniqueTodoMap.get(todo.id)!.updatedAt! < todo.updatedAt)
+        (todo.updated_at && uniqueTodoMap.get(todo.id)!.updated_at! < todo.updated_at)
       ) {
         uniqueTodoMap.set(todo.id, todo);
       }
@@ -80,12 +80,14 @@ export class StorageService extends BaseStorageService {
 
   private readonly privateTodosComputed = computed(() => {
     return this.privateTodosSignal().filter(
-      (todo) => !todo.deletedAt && todo.visibility === "private"
+      (todo) => !todo.deleted_at && todo.visibility === "private"
     );
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter((todo) => !todo.deletedAt && todo.visibility === "team");
+    return this.sharedTodosSignal().filter(
+      (todo) => !todo.deleted_at && todo.visibility === "team"
+    );
   });
 
   // ==================== PUBLIC SIGNALS ====================
@@ -93,10 +95,10 @@ export class StorageService extends BaseStorageService {
   readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
   readonly tasks = computed(() =>
-    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deletedAt))
+    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deleted_at))
   );
   readonly subtasks = computed(() =>
-    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deletedAt))
+    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deleted_at))
   );
   readonly comments = computed(() => {
     const todos = this.todos();
@@ -158,12 +160,12 @@ export class StorageService extends BaseStorageService {
   }
 
   // ==================== PUBLIC GETTERS ====================
-  getTasksByTodoId(todoId: string): Task[] {
-    return this.todos().find((t) => t.id === todoId)?.tasks || [];
+  getTasksByTodoId(todo_id?: string): Task[] {
+    return this.todos().find((t) => t.id === todo_id)?.tasks || [];
   }
 
-  getSubtasksByTaskId(taskId: string): Subtask[] {
-    return this.tasks().find((t) => t.id === taskId)?.subtasks || [];
+  getSubtasksByTaskId(task_id?: string): Subtask[] {
+    return this.tasks().find((t) => t.id === task_id)?.subtasks || [];
   }
 
   get pendingTasksCount(): number {
@@ -171,35 +173,42 @@ export class StorageService extends BaseStorageService {
   }
 
   // ==================== CHAT OPERATIONS ====================
-  getChatsByTodo(todoId: string): Chat[] {
-    return this.chatsByTodoSignal().get(todoId) || [];
+  getChatsByTodo(todo_id?: string): Chat[] {
+    if (!todo_id) return [];
+    return this.chatsByTodoSignal().get(todo_id) || [];
   }
 
-  getChatsByTodoReactive(todoId: string): ReturnType<typeof computed<Chat[]>> {
-    return computed(() => this.chatsByTodoSignal().get(todoId) || []);
+  getChatsByTodoReactive(todo_id?: string): ReturnType<typeof computed<Chat[]>> {
+    return computed(() => {
+      if (!todo_id) return [];
+      return this.chatsByTodoSignal().get(todo_id) || [];
+    });
   }
 
-  setChatsByTodo(todoId: string, chats: Chat[]): void {
+  setChatsByTodo(chats: Chat[], todo_id?: string): void {
+    if (!todo_id) return;
     const handler = this.handlers.chats as ChatHandler;
-    handler.setByTodoId(todoId, chats);
+    handler.setByTodoId(chats, todo_id);
   }
 
-  addChatToTodo(todoId: string, chat: Chat): void {
+  addChatToTodo(chat: Chat, todo_id?: string): void {
+    if (!todo_id) return;
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
-      const chats = newMap.get(todoId) || [];
+      const chats = newMap.get(todo_id) || [];
       if (!chats.some((c) => c.id === chat.id)) {
-        newMap.set(todoId, [chat, ...chats]);
+        newMap.set(todo_id, [chat, ...chats]);
       }
       return newMap;
     });
   }
 
-  updateChatInTodo(todoId: string, chat: Chat): void {
+  updateChatInTodo(chat: Chat, todo_id?: string): void {
+    if (!todo_id) return;
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
       for (const [tid, chats] of newMap.entries()) {
-        if (tid === todoId) {
+        if (tid === todo_id) {
           const updatedChats = chats.map((c) => (c.id === chat.id ? { ...c, ...chat } : c));
           newMap.set(tid, updatedChats);
           break;
@@ -209,49 +218,53 @@ export class StorageService extends BaseStorageService {
     });
   }
 
-  deleteChatFromTodo(todoId: string, chatId: string): void {
+  deleteChatFromTodo(chatId: string, todo_id?: string): void {
+    if (!todo_id) return;
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
-      const chats = newMap.get(todoId) || [];
+      const chats = newMap.get(todo_id) || [];
       const filtered = chats.filter((c) => c.id !== chatId);
       if (filtered.length !== chats.length) {
-        newMap.set(todoId, filtered);
+        newMap.set(todo_id, filtered);
       }
       return newMap;
     });
   }
 
-  clearChatsByTodo(todoId: string): void {
+  clearChatsByTodo(todo_id?: string): void {
+    if (!todo_id) return;
     this.chatsByTodoSignal.update((map) => {
       const newMap = new Map(map);
-      newMap.delete(todoId);
+      newMap.delete(todo_id);
       return newMap;
     });
   }
 
   // ==================== TODO OPERATIONS ====================
-  moveTodoToShared(todoId: string): void {
-    const todo = this.getById("todos", todoId);
+  moveTodoToShared(todo_id?: string): void {
+    if (!todo_id) return;
+    const todo = this.getById("todos", todo_id);
     if (!todo) return;
 
-    this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
-    if (!this.sharedTodosSignal().some((t) => t.id === todoId)) {
+    this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
+    if (!this.sharedTodosSignal().some((t) => t.id !== todo_id)) {
       this.sharedTodosSignal.update((todos) => [
         { ...todo, visibility: "team" },
-        ...todos.filter((t) => t.id !== todoId),
+        ...todos.filter((t) => t.id !== todo_id),
       ]);
     }
   }
 
-  moveTodoToPrivate(todoId: string): void {
-    const todo = this.getById("todos", todoId);
+  moveTodoToPrivate(todo_id?: string): void {
+    if (!todo_id) return;
+    const todo = this.getById("todos", todo_id);
     if (!todo) return;
 
-    this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todoId));
-    if (!this.privateTodosSignal().some((t) => t.id === todoId)) {
+    this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
+    if (!this.privateTodosSignal().some((t) => t.id === todo_id)) {
       this.privateTodosSignal.update((todos) => [
         { ...todo, visibility: "private" },
-        ...todos.filter((t) => t.id !== todoId),
+        ...todos.filter((t) => t.id !== todo_id),
       ]);
     }
   }
@@ -259,13 +272,14 @@ export class StorageService extends BaseStorageService {
   /**
    * Remove todo with all related data (tasks, subtasks, comments)
    */
-  removeTodoWithCascade(todoId: string): void {
-    const todo = this.getById("todos", todoId);
+  removeTodoWithCascade(todo_id?: string): void {
+    if (!todo_id) return;
+    const todo = this.getById("todos", todo_id);
     if (!todo) return;
 
     const handler = this.handlers.todos as TodoHandler;
     const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
-    handler.removeWithCascade(todoId, allTodos);
+    handler.removeWithCascade(todo_id, allTodos);
   }
 
   /**
@@ -308,14 +322,16 @@ export class StorageService extends BaseStorageService {
   }
 
   // ==================== COMMENT OPERATIONS ====================
-  addCommentToTask(taskId: string, comment: Comment): void {
+  addCommentToTask(comment: Comment, task_id?: string): void {
+    if (!task_id) return;
     const handler = this.handlers.comments as CommentHandler;
-    handler.add({ ...comment, taskId: taskId });
+    handler.add({ ...comment, task_id: task_id });
   }
 
-  addCommentToSubtask(subtaskId: string, comment: Comment): void {
+  addCommentToSubtask(comment: Comment, subtask_id?: string): void {
+    if (!subtask_id) return;
     const handler = this.handlers.comments as CommentHandler;
-    handler.add({ ...comment, subtaskId: subtaskId });
+    handler.add({ ...comment, subtask_id: subtask_id });
   }
 
   removeCommentFromAll(commentId: string): void {
@@ -333,12 +349,18 @@ export class StorageService extends BaseStorageService {
     return this.tasks().find((t) => t.id === parentId)?.subtasks || ([] as any);
   }
 
-  getTodoReactive(todoId: string): ReturnType<typeof computed<Todo | undefined>> {
-    return computed(() => this.todos().find((t) => t.id === todoId));
+  getTodoReactive(todo_id?: string): ReturnType<typeof computed<Todo | undefined>> {
+    return computed(() => {
+      if (!todo_id) return undefined;
+      return this.todos().find((t) => t.id === todo_id);
+    });
   }
 
-  getTaskReactive(taskId: string): ReturnType<typeof computed<Task | undefined>> {
-    return computed(() => this.tasks().find((t) => t.id === taskId));
+  getTaskReactive(task_id?: string): ReturnType<typeof computed<Task | undefined>> {
+    return computed(() => {
+      if (!task_id) return undefined;
+      return this.tasks().find((t) => t.id === task_id);
+    });
   }
 
   // ==================== UTILITY METHODS ====================

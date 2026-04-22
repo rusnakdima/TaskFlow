@@ -7,7 +7,7 @@
         <div class="relative">
           <div class="h-32 w-32 rounded-full bg-linear-to-r from-blue-500 to-purple-600 p-1">
             <img
-              [src]="profile()?.imageUrl ? profile()?.imageUrl : 'assets/images/user.png'"
+              [src]="profile()?.image_url ? profile()?.image_url : 'assets/images/user.png'"
               alt="Profile"
               class="h-full w-full rounded-full bg-white object-cover dark:bg-zinc-800"
             />
@@ -24,7 +24,7 @@
 
         <div class="flex-1 text-center sm:text-left">
           <h1 class="textNormal mb-2 text-2xl font-bold sm:text-3xl">
-            {{ profile()?.name }} {{ profile()?.lastName }}
+            {{ profile()?.name }} {{ profile()?.last_name }}
           </h1>
           @if (profile()?.bio) {
             <p class="textMuted text-lg">{{ profile()?.bio }}</p>

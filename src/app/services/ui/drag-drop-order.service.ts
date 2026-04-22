@@ -122,7 +122,7 @@ export class DragDropOrderService {
           ...todo,
           categories:
             todo.categories?.map((cat: any) => (typeof cat === "string" ? cat : cat.id)) || [],
-          assignees: todo.assignees?.map((a: any) => (typeof a === "string" ? a : a.userId)) || [],
+          assignees: todo.assignees?.map((a: any) => (typeof a === "string" ? a : a.user_id)) || [],
         };
       }
       return item;

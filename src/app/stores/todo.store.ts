@@ -64,14 +64,14 @@ export class TodoStore {
    * Private todos only (filtered)
    */
   readonly privateTodos: Signal<Todo[]> = computed(() => {
-    return this.state().privateTodos.filter((todo) => !todo.deletedAt);
+    return this.state().privateTodos.filter((todo) => !todo.deleted_at);
   });
 
   /**
    * Shared todos only (filtered)
    */
   readonly sharedTodos: Signal<Todo[]> = computed(() => {
-    return this.state().sharedTodos.filter((todo) => !todo.deletedAt);
+    return this.state().sharedTodos.filter((todo) => !todo.deleted_at);
   });
 
   /**
@@ -123,7 +123,7 @@ export class TodoStore {
    * Get todos by user ID
    */
   todosByUserId(userId: string): Signal<Todo[]> {
-    return computed(() => this.todos().filter((todo) => todo.userId === userId));
+    return computed(() => this.todos().filter((todo) => todo.user_id === userId));
   }
 
   /**
@@ -170,7 +170,7 @@ export class TodoStore {
   /**
    * Set selected todo ID
    */
-  selectTodo(todoId: string | null): void {
+  selectTodo(todo_id?: string | null): void {
     this.state.update((state) => ({ ...state, selectedTodoId: todoId }));
   }
 
@@ -288,20 +288,20 @@ export class TodoStore {
    * Restore todo (mark as not deleted)
    */
   restoreTodo(id: string): void {
-    this.updateTodo(id, { deletedAt: null });
+    this.updateTodo(id, { deleted_at: null });
   }
 
   /**
    * Restore todo with cascade data
    */
   restoreTodoWithCascade(todo: Todo): void {
-    this.addTodo({ ...todo, deletedAt: null });
+    this.addTodo({ ...todo, deleted_at: null });
   }
 
   /**
    * Move todo from private to shared (or vice versa)
    */
-  moveTodoToShared(todoId: string): void {
+  moveTodoToShared(todo_id?: string): void {
     const todo = this.todoById(todoId);
     if (!todo) return;
 
@@ -312,7 +312,7 @@ export class TodoStore {
     }));
   }
 
-  moveTodoToPrivate(todoId: string): void {
+  moveTodoToPrivate(todo_id?: string): void {
     const todo = this.todoById(todoId);
     if (!todo) return;
 

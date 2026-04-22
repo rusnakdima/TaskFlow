@@ -56,10 +56,10 @@ export class CreateProfileView implements OnInit {
       _id: [""],
       id: [""],
       name: ["", Validators.required],
-      lastName: ["", Validators.required],
+      last_name: ["", Validators.required],
       bio: [""],
-      imageUrl: [""],
-      userId: ["", Validators.required],
+      image_url: [""],
+      user_id: ["", Validators.required],
     });
   }
 
@@ -74,7 +74,7 @@ export class CreateProfileView implements OnInit {
     },
     {
       label: "Last Name",
-      name: "lastName",
+      name: "last_name",
       type: TypeField.text,
       isShow: (param) => true,
     },
@@ -86,7 +86,7 @@ export class CreateProfileView implements OnInit {
     },
     {
       label: "Image Profile",
-      name: "imageUrl",
+      name: "image_url",
       type: TypeField.image,
       isShow: (param) => true,
     },
@@ -98,15 +98,15 @@ export class CreateProfileView implements OnInit {
       userId = localStorage.getItem("userId");
     }
     if (userId && userId !== "") {
-      this.form.controls["userId"].setValue(userId);
+this.form.controls["user_id"].setValue(userId);
 
       const cachedProfile = this.storageService.profile();
-      if (cachedProfile && cachedProfile.userId === userId) {
+      if (cachedProfile && cachedProfile.user_id === userId) {
         this.form.patchValue({
           name: cachedProfile.name ?? "",
-          lastName: cachedProfile.lastName ?? "",
+          last_name: cachedProfile.last_name ?? "",
           bio: cachedProfile.bio ?? "",
-          imageUrl: cachedProfile.imageUrl ?? "",
+          image_url: cachedProfile.image_url ?? "",
         });
       } else {
         const userProfileId = this.authService.getValueByKey("profile_id");

@@ -10,9 +10,9 @@ export class ChatHandler extends EntityHandler<Chat> {
   add(data: Chat): void {
     this.signal.update((map) => {
       const newMap = new Map(map);
-      const chats = newMap.get(data.todoId) || [];
+      const chats = newMap.get(data.todo_id) || [];
       if (!chats.some((c) => c.id === data.id)) {
-        newMap.set(data.todoId, [data, ...chats]);
+        newMap.set(data.todo_id, [data, ...chats]);
       }
       return newMap;
     });
@@ -34,10 +34,11 @@ export class ChatHandler extends EntityHandler<Chat> {
     });
   }
 
-  setByTodoId(todoId: string, chats: Chat[]): void {
+  setByTodoId(chats: Chat[], todo_id?: string): void {
+    if (!todo_id) return;
     this.signal.update((map) => {
       const newMap = new Map(map);
-      newMap.set(todoId, chats);
+      newMap.set(todo_id, chats);
       return newMap;
     });
   }

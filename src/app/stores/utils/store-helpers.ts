@@ -17,8 +17,8 @@ export function deduplicateById<T extends { id: string; updatedAt?: string }>(en
       entityMap.set(entity.id, entity);
     } else {
       const existing = entityMap.get(entity.id)!;
-      if (entity.updatedAt && existing.updatedAt) {
-        if (new Date(entity.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
+      if (entity.updated_at && existing.updated_at) {
+        if (new Date(entity.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
           entityMap.set(entity.id, entity);
         }
       }
@@ -32,7 +32,7 @@ export function deduplicateById<T extends { id: string; updatedAt?: string }>(en
  * Filter out deleted entities
  */
 export function filterDeleted<T extends { deletedAt?: string | null }>(entities: T[]): T[] {
-  return entities.filter((entity) => !entity.deletedAt);
+  return entities.filter((entity) => !entity.deleted_at);
 }
 
 /**
@@ -98,8 +98,8 @@ export function removeEntityFromArray<T extends { id: string }>(entities: T[], i
  */
 export function sortByNewest<T extends { createdAt?: string }>(entities: T[]): T[] {
   return [...entities].sort((a, b) => {
-    const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
     return bDate - aDate;
   });
 }

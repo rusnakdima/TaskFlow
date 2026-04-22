@@ -41,7 +41,7 @@ export class ChatStore {
   /**
    * Get chats for a specific todo
    */
-  chatsByTodoId(todoId: string): Signal<Chat[]> {
+  chatsByTodoId(todo_id?: string): Signal<Chat[]> {
     return computed(() => this.state().chatsByTodo.get(todoId) || []);
   }
 
@@ -82,7 +82,7 @@ export class ChatStore {
   /**
    * Set all chats for a todo
    */
-  setChatsByTodoId(todoId: string, chats: Chat[]): void {
+  setChatsByTodoId(todo_id?: string, chats: Chat[]): void {
     this.state.update((state) => {
       const newMap = new Map(state.chatsByTodo);
       newMap.set(todoId, chats);
@@ -96,8 +96,8 @@ export class ChatStore {
   addChat(chat: Chat): void {
     this.state.update((state) => {
       const newMap = new Map(state.chatsByTodo);
-      const chats = newMap.get(chat.todoId) || [];
-      newMap.set(chat.todoId, addEntityToArray(chats, chat));
+      const chats = newMap.get(chat.todo_id) || [];
+      newMap.set(chat.todo_id, addEntityToArray(chats, chat));
       return { ...state, chatsByTodo: newMap };
     });
   }
@@ -141,7 +141,7 @@ export class ChatStore {
   /**
    * Clear chats for a specific todo
    */
-  clearChatsByTodoId(todoId: string): void {
+  clearChatsByTodoId(todo_id?: string): void {
     this.state.update((state) => {
       const newMap = new Map(state.chatsByTodo);
       newMap.delete(todoId);

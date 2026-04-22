@@ -139,7 +139,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return this.storageService.getTodoReactive(tid)() || null;
   });
 
-  isOwner = computed(() => this.todo()?.userId === this.userId);
+  isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
   // Computed signals for data flow - Always use storage as the single source of truth
@@ -203,7 +203,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     for (const subtask of task.subtasks) {
       if (!subtask.comments || subtask.comments.length === 0) continue;
       count += subtask.comments.filter((c: any) => {
-        if (c.deletedAt) return false;
+        if (c.deleted_at) return false;
         // Skip if user is the author (they've read their own comment)
         if (c.author_id === userId) return false;
         if (c.read_by && c.read_by.includes(userId)) return false;
@@ -300,8 +300,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.loading.set(false);
   }
 
-  private ensureTaskTreeLoaded(todoId: string): void {
-    if (this.loadingRelations().has(todoId)) return;
+  private ensureTaskTreeLoaded(todoId?: string): void {
+    if (!todoId || this.loadingRelations().has(todoId)) return;
 
     const todo = this.storageService.getById("todos", todoId);
     const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
@@ -352,7 +352,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     if (
       task.status === TaskStatus.PENDING &&
-      !this.checkDependenciesCompleted(task.dependsOn || [])
+      !this.checkDependenciesCompleted(task.depends_on || [])
     ) {
       this.notifyService.showError("Cannot complete task: waiting for dependencies");
       return;
@@ -382,8 +382,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  isTaskExpanded(taskId: string): boolean {
-    return this.expandedTasks().has(taskId);
+  isTaskExpanded(taskId?: string): boolean {
+    return taskId ? this.expandedTasks().has(taskId) : false;
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
@@ -436,12 +436,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     delete (nextTask as any)._id;
     nextTask.id = "";
     nextTask.status = TaskStatus.PENDING;
-    nextTask.createdAt = new Date().toISOString();
-    nextTask.updatedAt = nextTask.createdAt;
+    nextTask.created_at = new Date().toISOString();
+    nextTask.updated_at = nextTask.created_at;
 
-    if (task.startDate) {
-      const nextStart = new Date(task.startDate);
-      const nextEnd = task.endDate ? new Date(task.endDate) : null;
+    if (task.start_date) {
+      const nextStart = new Date(task.start_date);
+      const nextEnd = task.end_date ? new Date(task.end_date) : null;
       switch (task.repeat) {
         case RepeatInterval.DAILY:
           nextStart.setDate(nextStart.getDate() + 1);
@@ -456,8 +456,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           if (nextEnd) nextEnd.setMonth(nextEnd.getMonth() + 1);
           break;
       }
-      nextTask.startDate = nextStart.toISOString();
-      if (nextEnd) nextTask.endDate = nextEnd.toISOString();
+      nextTask.start_date = nextStart.toISOString();
+      if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
     this.dataSyncProvider
@@ -482,7 +482,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
     const chats = this.chats();
-    return chats.filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
+    return chats.filter((c) => !c.read_by || !c.read_by.includes(currentUserId)).length;
   }
 
   updateTaskInline(event: { task: Task; field: string; value: any }) {
@@ -499,13 +499,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .subscribe();
   }
 
-  deleteTask(taskId: string) {
+  deleteTask(taskId?: string) {
     const todoId = this.todo()?.id;
-    if (!todoId) return;
+    if (!todoId || !taskId) return;
 
     if (!confirm("Are you sure?")) return;
 
-    // Delete task via ApiProvider (storage updated automatically)
     this.dataSyncProvider.crud("delete", "tasks", { id: taskId, parentTodoId: todoId }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");

@@ -74,7 +74,7 @@ export class KanbanView implements OnInit, OnDestroy {
   TaskStatus = TaskStatus;
 
   // Use storage signals directly for source data — both private and team todos
-  todos = computed(() => this.storageService.todos().filter((todo) => !todo.deletedAt));
+  todos = computed(() => this.storageService.todos().filter((todo) => !todo.deleted_at));
 
   selectedTodo = computed(() => {
     const todoId = this.selectedTodoId();
@@ -86,7 +86,7 @@ export class KanbanView implements OnInit, OnDestroy {
     const currentUserId = this.authService.getValueByKey("id");
     return {
       isPrivate: todo?.visibility === "private",
-      isOwner: todo?.userId === currentUserId,
+      isOwner: todo?.user_id === currentUserId,
     };
   });
 
@@ -114,7 +114,7 @@ export class KanbanView implements OnInit, OnDestroy {
     const tasks = todo?.tasks || [];
 
     // Filter out deleted tasks
-    const filteredTasks = tasks.filter((task) => !task.deletedAt);
+    const filteredTasks = tasks.filter((task) => !task.deleted_at);
 
     // Remove duplicates by ID, keeping the first occurrence
     const uniqueTaskMap = new Map<string, Task>();
@@ -175,8 +175,8 @@ export class KanbanView implements OnInit, OnDestroy {
     });
   }
 
-  isTaskExpanded(taskId: string): boolean {
-    return this.expandedTasks().has(taskId);
+  isTaskExpanded(taskId?: string): boolean {
+    return taskId ? this.expandedTasks().has(taskId) : false;
   }
 
   onToggleExpand(task: Task): void {
@@ -184,7 +184,9 @@ export class KanbanView implements OnInit, OnDestroy {
   }
 
   onMoveTask(event: { taskId: string; newStatus: TaskStatus }): void {
-    this.moveTaskToStatus(event.taskId, event.newStatus);
+    if (event.taskId) {
+      this.moveTaskToStatus(event.taskId, event.newStatus);
+    }
   }
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
@@ -225,24 +227,26 @@ export class KanbanView implements OnInit, OnDestroy {
       });
   }
 
-  getSubtasksForTask(taskId: string): Subtask[] {
+  getSubtasksForTask(taskId?: string): Subtask[] {
     return this.storageService.getSubtasksByTaskId(taskId);
   }
 
-  getCompletedSubtasksCount(taskId: string): number {
+  getCompletedSubtasksCount(taskId?: string): number {
     const subtasks = this.getSubtasksForTask(taskId);
     return subtasks.filter(
       (s) => s.status === TaskStatus.COMPLETED || s.status === TaskStatus.SKIPPED
     ).length;
   }
 
-  getTotalSubtasksCount(taskId: string): number {
+  getTotalSubtasksCount(taskId?: string): number {
     return this.getSubtasksForTask(taskId).length;
   }
 
-  onTodoChange(todoId: string) {
-    this.selectedTodoId.set(todoId);
-    this.expandedTasks.set(new Set()); // Reset expanded tasks
+  onTodoChange(todoId?: string) {
+    if (todoId) {
+      this.selectedTodoId.set(todoId);
+      this.expandedTasks.set(new Set());
+    }
   }
 
   getTasksByStatus(status: string): Task[] {
@@ -280,7 +284,11 @@ export class KanbanView implements OnInit, OnDestroy {
       event,
       targetStatus,
       this.isUpdatingOrder(),
-      (taskId, newStatus) => this.moveTaskToStatus(taskId, newStatus)
+      (newStatus, taskId) => {
+        if (taskId) {
+          this.moveTaskToStatus(taskId, newStatus);
+        }
+      }
     );
 
     // Note: Notification will be shown in moveTaskToStatus after API response
@@ -292,7 +300,7 @@ export class KanbanView implements OnInit, OnDestroy {
 
   moveTaskToStatus(taskId: string, newStatus: TaskStatus) {
     const todoId = this.selectedTodoId();
-    if (!todoId) return;
+    if (!todoId || !taskId) return;
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
     const task = this.projectTasks().find((t) => t.id === taskId);

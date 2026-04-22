@@ -88,7 +88,7 @@ export class ProfileView implements OnInit, OnDestroy {
 
   isMyProfile(): boolean {
     const profile = this.profile();
-    return profile !== null && profile.userId === this.authService.getValueByKey("id");
+    return profile !== null && profile.user_id === this.authService.getValueByKey("id");
   }
 
   getProfile(userId: string) {

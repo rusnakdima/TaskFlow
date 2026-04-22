@@ -77,15 +77,15 @@ export class TaskStore {
   /**
    * Get tasks by todo ID
    */
-  tasksByTodoId(todoId: string): Signal<Task[]> {
-    return computed(() => this.tasks().filter((task) => task.todoId === todoId));
+  tasksByTodoId(todo_id?: string): Signal<Task[]> {
+    return computed(() => this.tasks().filter((task) => task.todo_id === todoId));
   }
 
   /**
    * Get task count by todo ID
    */
-  taskCountByTodoId(todoId: string): Signal<number> {
-    return computed(() => this.tasks().filter((task) => task.todoId === todoId).length);
+  taskCountByTodoId(todo_id?: string): Signal<number> {
+    return computed(() => this.tasks().filter((task) => task.todo_id === todoId).length);
   }
 
   /**
@@ -93,7 +93,7 @@ export class TaskStore {
    */
   readonly tasksGroupedByTodo: Signal<Map<string, Task[]>> = computed(() => {
     const tasks = this.tasks();
-    return groupByKey(tasks, (task) => task.todoId);
+    return groupByKey(tasks, (task) => task.todo_id);
   });
 
   // ==================== COMMAND METHODS ====================
@@ -136,7 +136,7 @@ export class TaskStore {
   }
 
   restoreTask(id: string): void {
-    this.updateTask(id, { deletedAt: null });
+    this.updateTask(id, { deleted_at: null });
   }
 
   clear(): void {

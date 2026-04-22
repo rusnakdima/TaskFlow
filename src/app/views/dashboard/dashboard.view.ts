@@ -24,9 +24,9 @@ interface DisplayTask {
   description: string;
   status: TaskStatus;
   dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-  todoId: string;
+  created_at: string;
+  updated_at: string;
+  todo_id?: string;
   isPrivate: boolean;
   isOwner: boolean;
 }
@@ -94,7 +94,7 @@ export class DashboardView implements OnInit {
 
   processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
     // Filter out deleted tasks and deleted todos
-    const activeTaskData = taskData.filter((item) => !item.task.deletedAt && !item.todo.deletedAt);
+    const activeTaskData = taskData.filter((item) => !item.task.deleted_at && !item.todo.deleted_at);
     const tasks = activeTaskData.map((item) => item.task);
     this.totalTasks.set(tasks.length);
 
@@ -108,15 +108,15 @@ export class DashboardView implements OnInit {
     this.inProgressTasks.set(
       tasks.filter((task) => {
         if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-        const start = task.startDate ? new Date(task.startDate) : null;
-        const end = task.endDate ? new Date(task.endDate) : null;
+        const start = task.start_date ? new Date(task.start_date) : null;
+        const end = task.end_date ? new Date(task.end_date) : null;
         return start && end && start <= now && now <= end;
       }).length
     );
     this.overdueTasks.set(
       tasks.filter((task) => {
         if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-        const end = task.endDate ? new Date(task.endDate) : null;
+        const end = task.end_date ? new Date(task.end_date) : null;
         return end && end < now;
       }).length
     );
@@ -127,23 +127,23 @@ export class DashboardView implements OnInit {
         title: item.task.title,
         description: item.task.description,
         status: item.task.status,
-        dueDate: item.task.endDate,
-        createdAt: item.task.createdAt,
-        updatedAt: item.task.updatedAt,
-        todoId: item.todo.id,
+        dueDate: item.task.end_date,
+        created_at: item.task.created_at,
+        updated_at: item.task.updated_at,
+        todo_id: item.todo.id,
         isPrivate: item.todo.visibility === "private",
-        isOwner: item.todo.userId === this.userId,
+        isOwner: item.todo.user_id === this.userId,
       }))
       .sort((a, b) => {
-        const aTime = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime());
-        const bTime = Math.max(new Date(b.createdAt).getTime(), new Date(b.updatedAt).getTime());
+        const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
+        const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
         return bTime - aTime;
       });
 
     this.allTasks.set(newAllTasks);
 
     const sortedTasks = [...tasks].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     this.recentActivities.set(
       sortedTasks.slice(0, 4).map((task) => {
@@ -194,7 +194,7 @@ export class DashboardView implements OnInit {
 
   getLastTime(task: DisplayTask): string {
     const latestDate = new Date(
-      Math.max(new Date(task.createdAt).getTime(), new Date(task.updatedAt).getTime())
+      Math.max(new Date(task.created_at).getTime(), new Date(task.updated_at).getTime())
     );
     return this.formatDate(latestDate.toISOString());
   }
@@ -204,7 +204,7 @@ export class DashboardView implements OnInit {
   }
 
   navigateToTasks(task: DisplayTask): void {
-    this.router.navigate(["/todos", task.todoId, "tasks"], {
+    this.router.navigate(["/todos", task.todo_id, "tasks"], {
       queryParams: {
         highlightTaskId: task.id,
       },

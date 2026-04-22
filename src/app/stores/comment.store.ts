@@ -61,25 +61,25 @@ export class CommentStore {
   /**
    * Get comments by task ID
    */
-  commentsByTaskId(taskId: string): Signal<Comment[]> {
-    return computed(() => this.comments().filter((comment) => comment.taskId === taskId));
+  commentsByTaskId(task_id?: string): Signal<Comment[]> {
+    return computed(() => this.comments().filter((comment) => comment.task_id === taskId));
   }
 
   /**
    * Get comments by subtask ID
    */
-  commentsBySubtaskId(subtaskId: string): Signal<Comment[]> {
-    return computed(() => this.comments().filter((comment) => comment.subtaskId === subtaskId));
+  commentsBySubtaskId(subtask_id?: string): Signal<Comment[]> {
+    return computed(() => this.comments().filter((comment) => comment.subtask_id === subtaskId));
   }
 
   /**
    * Get all comments for a task (including subtask comments)
    */
-  allCommentsByTaskId(taskId: string): Signal<Comment[]> {
+  allCommentsByTaskId(task_id?: string): Signal<Comment[]> {
     return computed(() => {
       const taskComments = this.commentsByTaskId(taskId)();
       const subtaskComments = this.comments().filter(
-        (comment) => comment.subtaskId && this.isSubtaskOfTask(comment.subtaskId, taskId)
+        (comment) => comment.subtask_id && this.isSubtaskOfTask(comment.subtask_id, taskId)
       );
       return [...taskComments, ...subtaskComments];
     });
@@ -90,7 +90,7 @@ export class CommentStore {
    */
   readonly commentsGroupedByTask: Signal<Map<string, Comment[]>> = computed(() => {
     const comments = this.comments();
-    return groupByKey(comments, (comment) => comment.taskId || "unknown");
+    return groupByKey(comments, (comment) => comment.task_id || "unknown");
   });
 
   // ==================== COMMAND METHODS ====================
@@ -133,7 +133,7 @@ export class CommentStore {
   }
 
   restoreComment(id: string): void {
-    this.updateComment(id, { deletedAt: null });
+    this.updateComment(id, { deleted_at: null });
   }
 
   clear(): void {
@@ -164,11 +164,11 @@ export class CommentStore {
    * Check if a subtask belongs to a specific task using the subtask's taskId (fixes M-3).
    * Falls back to true when subtask is not found (e.g. not loaded yet) to avoid hiding comments.
    */
-  private isSubtaskOfTask(subtaskId: string, taskId: string): boolean {
+  private isSubtaskOfTask(subtask_id?: string, task_id?: string): boolean {
     const subtask = this.subtaskStore.subtaskById(subtaskId);
     if (!subtask) {
       return true; // permissive: don't hide comments when subtask not yet loaded
     }
-    return subtask.taskId === taskId;
+    return subtask.task_id === taskId;
   }
 }

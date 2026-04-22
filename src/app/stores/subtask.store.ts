@@ -59,15 +59,15 @@ export class SubtaskStore {
   /**
    * Get subtasks by task ID
    */
-  subtasksByTaskId(taskId: string): Signal<Subtask[]> {
-    return computed(() => this.subtasks().filter((subtask) => subtask.taskId === taskId));
+  subtasksByTaskId(task_id?: string): Signal<Subtask[]> {
+    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === taskId));
   }
 
   /**
    * Get subtask count by task ID
    */
-  subtaskCountByTaskId(taskId: string): Signal<number> {
-    return computed(() => this.subtasks().filter((subtask) => subtask.taskId === taskId).length);
+  subtaskCountByTaskId(task_id?: string): Signal<number> {
+    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === taskId).length);
   }
 
   /**
@@ -75,7 +75,7 @@ export class SubtaskStore {
    */
   readonly subtasksGroupedByTask: Signal<Map<string, Subtask[]>> = computed(() => {
     const subtasks = this.subtasks();
-    return groupByKey(subtasks, (subtask) => subtask.taskId);
+    return groupByKey(subtasks, (subtask) => subtask.task_id);
   });
 
   // ==================== COMMAND METHODS ====================
@@ -118,7 +118,7 @@ export class SubtaskStore {
   }
 
   restoreSubtask(id: string): void {
-    this.updateSubtask(id, { deletedAt: null });
+    this.updateSubtask(id, { deleted_at: null });
   }
 
   clear(): void {

@@ -126,7 +126,7 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between">
             <label class="textNormal block text-sm font-medium">Time periods</label>
-            @if (form.get("startDate")?.value || form.get("endDate")?.value) {
+            @if (form.get("start_date")?.value || form.get("end_date")?.value) {
               <button
                 type="button"
                 class="rounded-md px-2 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
@@ -142,7 +142,7 @@
             <input
               matInput
               [matDatepicker]="startPicker"
-              formControlName="startDate"
+              formControlName="start_date"
               readonly
               (click)="startPicker.open()"
             />
@@ -150,13 +150,13 @@
             <mat-datepicker #startPicker [startAt]="today" [dateClass]="dateClass"></mat-datepicker>
           </mat-form-field>
 
-          @if (form.get("startDate")?.value) {
+          @if (form.get("start_date")?.value) {
             <mat-form-field class="w-full">
               <mat-label>End Date</mat-label>
               <input
                 matInput
                 [matDatepicker]="endPicker"
-                formControlName="endDate"
+                formControlName="end_date"
                 [matDatepickerFilter]="endDateFilter"
                 readonly
                 (click)="endPicker.open()"
@@ -164,8 +164,8 @@
               <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
               <mat-datepicker
                 #endPicker
-                [startAt]="form.get('startDate')?.value"
-                [disabled]="!form.get('startDate')?.value"
+                [startAt]="form.get('start_date')?.value"
+                [disabled]="!form.get('start_date')?.value"
               ></mat-datepicker>
             </mat-form-field>
           }

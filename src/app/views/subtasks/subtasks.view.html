@@ -40,7 +40,7 @@
 
     <app-task-information
       [task]="task()!"
-      [todoId]="todoId()"
+      [todo_id]="todoId()"
       [projectTitle]="projectTitle()"
       [listSubtasks]="listSubtasks()"
       [isOwner]="isOwner()"
@@ -115,7 +115,7 @@
         @for (subtask of listSubtasks(); track subtask.id) {
           <app-subtask
             [subtask]="subtask"
-            [todoId]="todoId()"
+            [todo_id]="todoId()"
             [index]="$index"
             [isOwner]="isOwner()"
             [isPrivate]="isPrivate()"
@@ -154,7 +154,7 @@
 
 <!-- Chat Window -->
 @if (showChat() && todoId()) {
-  <app-chat-window [todoId]="todoId()" (close)="toggleChat()" />
+  <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
 }
 
 <app-filter-bar

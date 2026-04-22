@@ -25,7 +25,7 @@ export class KanbanDragDropService {
     event: CdkDragDrop<Task[]>,
     targetStatus: TaskStatus,
     isUpdatingOrder: boolean,
-    onMoveTask: (taskId: string, newStatus: TaskStatus) => void
+    onMoveTask: (newStatus: TaskStatus, task_id?: string) => void
   ): {
     moved: boolean;
     task?: Task;
@@ -45,7 +45,7 @@ export class KanbanDragDropService {
       // Moving to a different column
       // Don't use transferArrayItem here because the data comes from a computed signal
       // The UI will update automatically when the API response updates the storage
-      onMoveTask(task.id, targetStatus);
+      onMoveTask(targetStatus, task.id);
       return { moved: true, task, newStatus: targetStatus };
     }
   }

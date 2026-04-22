@@ -83,7 +83,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragSource: CdkDropList | null = null;
   private dragSourceIndex = 0;
   private dragRef: DragRef | null = null;
-  // Services
+
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
@@ -116,15 +116,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   listTodos = computed(() => {
     // Filter only private visibility todos
     let filtered = this.storageService.privateTodos();
+    console.log(filtered)
 
     // Filter out todos from deleted users
     const deletedUserIds = new Set(
       this.adminStorageService
         .users()
-        .filter((u) => u.deletedAt)
+        .filter((u) => u.deleted_at)
         .map((u) => u.id)
     );
-    filtered = filtered.filter((todo) => !deletedUserIds.has(todo.userId));
+    filtered = filtered.filter((todo) => !deletedUserIds.has(todo.user_id));
 
     const filter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
@@ -166,13 +167,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (!task.comments || task.comments.length === 0) continue;
       count += task.comments.filter((c: any) => {
         // Skip deleted comments
-        if (c.deletedAt) return false;
+        if (c.deleted_at) return false;
         // Skip if user is the author (they've read their own comment)
-        if (c.authorId === userId) return false;
+        if (c.author_id === userId) return false;
         // Skip if user has read the comment
-        if (c.readBy && c.readBy.includes(userId)) return false;
+        if (c.read_by && c.read_by.includes(userId)) return false;
         // Only count task comments (not subtask comments)
-        if (c.subtaskId) return false;
+        if (c.subtask_id) return false;
         return true;
       }).length;
     }
@@ -287,7 +288,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  deleteTodoById(todoId: string): void {
+  deleteTodoById(todoId?: string): void {
     if (confirm("Are you sure you want to delete this project?")) {
       this.dataSyncProvider
         .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: true })

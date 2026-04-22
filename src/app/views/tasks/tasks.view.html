@@ -100,7 +100,7 @@
             <app-task
               [id]="'task-' + task.id"
               [task]="task"
-              [todoId]="todo()?.id || null"
+              [todo_id]="todo()?.id || null"
               [index]="$index"
               [isOwner]="isOwner()"
               [isPrivate]="isPrivate()"
@@ -143,7 +143,7 @@
 
 <!-- Chat Window -->
 @if (openChat()) {
-  <app-chat-window [todoId]="todo()?.id || ''" (close)="toggleChat()" />
+  <app-chat-window [todo_id]="todo()?.id || ''" (close)="toggleChat()" />
 }
 
 <app-filter-bar

@@ -78,21 +78,20 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private relationLoader: RelationLoadingService
   ) {
     this.form = fb.group({
-      _id: [""],
       id: [""],
-      userId: ["", Validators.required],
+      user_id: ["", Validators.required],
       title: ["", Validators.required],
       description: ["", Validators.required],
-      startDate: [""],
-      endDate: [""],
+      start_date: [""],
+      end_date: [""],
       priority: ["medium"],
       visibility: ["private"],
       categories: [[]],
       assignees: [[]],
       order: [0],
-      deletedAt: [false],
-      createdAt: [""],
-      updatedAt: [""],
+      created_at: [""],
+      updated_at: [""],
+      deleted_at: [false],
     });
 
     this.dateClass = DateHelper.createDateClass(this.form);
@@ -146,14 +145,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
     this.userId.set(this.authService.getValueByKey("id"));
 
     if (this.userId() && this.userId() !== "") {
-      this.form.controls["userId"].setValue(this.userId());
+      this.form.controls["user_id"].setValue(this.userId());
       this.fetchProfiles(); // Storage-first, no await — form opens immediately
       this.fetchCategories();
     }
 
     this.route.params.subscribe((params: any) => {
-      if (params.todoId) {
-        this.getTodoInfo(params.todoId);
+      if (params.todo_id) {
+        this.getTodoInfo(params.todo_id);
         this.isEdit.set(true);
       }
     });
@@ -177,7 +176,13 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
     // Todo not in storage — fetch once with relations
     this.relationLoader
-      .load<Todo>(this.dataSyncProvider, "todos", todoId, ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories"])
+      .load<Todo>(this.dataSyncProvider, "todos", todoId, [
+        "user",
+        "tasks",
+        "tasks.subtasks",
+        "tasks.comments",
+        "categories",
+      ])
       .subscribe({
         next: (todo: Todo) => {
           this.storageService.updateItem("todos", todo.id, todo);
@@ -193,7 +198,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
    */
   private applyTodoToForm(todo: Todo): void {
     const localDates = DateHelper.convertDatesFromUtcToLocal(todo);
-    this.isOwner = todo.userId === this.userId();
+    this.isOwner = todo.user_id === this.userId();
     this.isPrivate = todo.visibility === "private";
 
     // Resolve categories: IDs -> full objects from storage if needed
@@ -251,8 +256,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     // First try to get profiles from storage using assignees_profiles
     const storedProfiles = this.storageService
       .todos()
-      .flatMap((todo) => todo.assigneesProfiles || [])
-      .filter((p) => userIds.includes(p.userId));
+      .flatMap((todo) => todo.assignees_profiles || [])
+      .filter((p) => userIds.includes(p.user_id));
 
     // Check if all stored profiles have user relation loaded
     const allHaveUser = storedProfiles.every((p) => p.user);
@@ -272,10 +277,10 @@ export class ManageTodoView implements OnInit, OnDestroy {
             return storedProfiles;
           }
           // Filter profiles by user IDs and merge with stored profiles
-          const fetchedProfiles = profiles.filter((p) => userIds.includes(p.userId));
+          const fetchedProfiles = profiles.filter((p) => userIds.includes(p.user_id));
           const profileMap = new Map<string, Profile>();
-          storedProfiles.forEach((p) => profileMap.set(p.userId, p));
-          fetchedProfiles.forEach((p) => profileMap.set(p.userId, p));
+          storedProfiles.forEach((p) => profileMap.set(p.user_id, p));
+          fetchedProfiles.forEach((p) => profileMap.set(p.user_id, p));
           return Array.from(profileMap.values());
         }),
         catchError(() => {
@@ -301,11 +306,11 @@ export class ManageTodoView implements OnInit, OnDestroy {
     const currentProfile = this.storageService.profile();
     const profileMap = new Map<string, Profile>();
     if (currentProfile) {
-      profileMap.set(currentProfile.userId, currentProfile);
+      profileMap.set(currentProfile.user_id, currentProfile);
     }
     this.storageService.sharedTodos().forEach((todo) => {
-      todo.assigneesProfiles?.forEach((profile) => {
-        if (profile?.userId) profileMap.set(profile.userId, profile);
+      todo.assignees_profiles?.forEach((profile: any) => {
+        if (profile?.user_id) profileMap.set(profile.user_id, profile);
       });
     });
     const fromStorage = Array.from(profileMap.values());
@@ -329,10 +334,10 @@ export class ManageTodoView implements OnInit, OnDestroy {
         next: (fetchedProfiles) => {
           if (!fetchedProfiles?.length) return;
           const merged = new Map<string, Profile>();
-          fromStorage.forEach((p) => merged.set(p.userId, p));
-          fetchedProfiles.forEach((p) => merged.set(p.userId, p));
+          fromStorage.forEach((p) => merged.set(p.user_id, p));
+          fetchedProfiles.forEach((p) => merged.set(p.user_id, p));
           this.availableProfiles.set(Array.from(merged.values()));
-          const myProfile = fetchedProfiles.find((p) => p.userId === this.userId());
+          const myProfile = fetchedProfiles.find((p) => p.user_id === this.userId());
           if (myProfile) {
             this.storageService.setCollection("profiles", myProfile);
           }
@@ -344,7 +349,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   getFilteredUsers() {
     if (!this.userSearchQuery()) return this.availableProfiles();
     return this.availableProfiles().filter((p) =>
-      `${p.name} ${p.lastName} ${p.user?.email || ""}`
+      `${p.name} ${p.last_name} ${p.user?.email || ""}`
         .toLowerCase()
         .includes(this.userSearchQuery().toLowerCase())
     );
@@ -352,7 +357,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   addProfile(profile: Profile) {
     const currentAssignees = this.form.get("assignees")?.value || [];
-    if (!currentAssignees.some((p: Profile) => p.userId === profile.userId)) {
+    if (!currentAssignees.some((p: Profile) => p.user_id === profile.user_id)) {
       this.form.patchValue({ assignees: [...currentAssignees, profile] });
     }
   }
@@ -360,17 +365,17 @@ export class ManageTodoView implements OnInit, OnDestroy {
   removeProfile(profile: Profile) {
     const currentAssignees = this.form.get("assignees")?.value || [];
     this.form.patchValue({
-      assignees: currentAssignees.filter((p: Profile) => p.userId !== profile.userId),
+      assignees: currentAssignees.filter((p: Profile) => p.user_id !== profile.user_id),
     });
   }
 
   getMemberInitialsFromProfile(profile: Profile): string {
-    return (profile.name.charAt(0) + profile.lastName.charAt(0)).toUpperCase();
+    return (profile.name.charAt(0) + profile.last_name.charAt(0)).toUpperCase();
   }
 
   getSelectedUsersText(): string {
     const assignees = this.form.get("assignees")?.value || [];
-    return assignees.map((p: Profile) => `${p.name} ${p.lastName}`).join(", ");
+    return assignees.map((p: Profile) => `${p.name} ${p.last_name}`).join(", ");
   }
 
   fetchCategories() {
@@ -380,7 +385,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     } else {
       // If no categories in storage, fetch from backend
       this.dataSyncProvider
-        .crud<Category[]>("getAll", "categories", { filter: { deletedAt: null } }, true)
+        .crud<Category[]>("getAll", "categories", { filter: { deleted_at: null } }, true)
         .subscribe({
           next: (cats) => {
             if (cats && cats.length > 0) {
@@ -470,24 +475,24 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
       // Only send fields that TodoCreateModel expects
       const body = {
-        userId: convertedDates.userId,
+        user_id: convertedDates.user_id,
         title: convertedDates.title,
         description: convertedDates.description,
-        startDate: convertedDates.startDate,
-        endDate: convertedDates.endDate,
+        start_date: convertedDates.start_date,
+        end_date: convertedDates.end_date,
         priority: formValue.priority || "medium",
         visibility: formValue.visibility || "private",
         categories: Array.isArray(categories)
           ? categories.map((c: Category) => c?.id).filter(Boolean)
           : [],
         assignees: Array.isArray(assignees)
-          ? assignees.map((p: Profile) => p?.userId).filter(Boolean)
+          ? assignees.map((p: Profile) => p?.user_id).filter(Boolean)
           : [],
         order: formValue.order || 0,
       };
 
       this.dataSyncProvider
-        .crud<Todo>("create", "todos", { data: body, parentTodoId: body.userId })
+        .crud<Todo>("create", "todos", { data: body, parentTodoId: body.user_id })
         .subscribe({
           next: (result: Todo) => {
             this.isSubmitting.set(false);
@@ -516,9 +521,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
         categories: Array.isArray(categories)
           ? categories.map((c: Category) => c?.id).filter(Boolean)
           : [],
-assignees: Array.isArray(assignees)
-           ? assignees.map((p: Profile) => p?.userId).filter(Boolean)
-           : [],
+        assignees: Array.isArray(assignees)
+          ? assignees.map((p: Profile) => p?.user_id).filter(Boolean)
+          : [],
         visibility: formValue.visibility as "private" | "team",
       };
 
@@ -527,7 +532,7 @@ assignees: Array.isArray(assignees)
       const todoId = body.id;
 
       // Determine sync metadata based on ownership
-      const isOwner = formValue.userId === this.userId();
+      const isOwner = formValue.user_id === this.userId();
       const syncMetadata = { isOwner, isPrivate: newVisibility === "private" };
 
       // ✅ MongoDB sync FIRST - update local storage only on success

@@ -14,25 +14,25 @@ export class CommentHandler extends EntityHandler<Comment> {
   /**
    * Update a todo in both private and shared signals
    */
-  private updateTodo(todoId: string | null, updater: (todo: Todo) => Todo): void {
-    if (!todoId) {
+  private updateTodo(updater: (todo: Todo) => Todo, todo_id?: string | null): void {
+    if (!todo_id) {
       // Update all todos
       this.updateAll(updater);
       return;
     }
-    this.updateSignal(this.privateSignal, todoId, updater);
-    this.updateSignal(this.sharedSignal, todoId, updater);
+    this.updateSignal(this.privateSignal, updater, todo_id);
+    this.updateSignal(this.sharedSignal, updater, todo_id);
   }
 
   private updateSignal(
     signal: WritableSignal<Todo[]>,
-    todoId: string,
-    updater: (todo: Todo) => Todo
+    updater: (todo: Todo) => Todo,
+    todo_id?: string
   ): void {
     signal.update((todos) => {
-      const hasTodo = todos.some((todo) => todo.id === todoId);
+      const hasTodo = todos.some((todo) => todo.id === todo_id);
       if (!hasTodo) return todos;
-      return todos.map((todo) => (todo.id === todoId ? updater(todo) : todo));
+      return todos.map((todo) => (todo.id === todo_id ? updater(todo) : todo));
     });
   }
 
@@ -44,15 +44,15 @@ export class CommentHandler extends EntityHandler<Comment> {
   add(data: Comment): void {
     if (!data.id) return;
 
-    if (data.taskId) {
-      this.addCommentToEntity(data.taskId, data, "tasks");
-    } else if (data.subtaskId) {
-      this.addCommentToEntity(data.subtaskId, data, "subtasks");
+    if (data.task_id) {
+      this.addCommentToEntity(data.task_id, data, "tasks");
+    } else if (data.subtask_id) {
+      this.addCommentToEntity(data.subtask_id, data, "subtasks");
     }
   }
 
   update(id: string, updates: Partial<Comment>, _resolvers?: Record<string, any>): void {
-    this.updateTodo(null, (todo) => ({
+    this.updateTodo((todo) => ({
       ...todo,
       tasks: todo.tasks?.map((task) => ({
         ...task,
@@ -63,11 +63,11 @@ export class CommentHandler extends EntityHandler<Comment> {
         })),
       })),
       updatedAt: new Date().toISOString(),
-    }));
+    }), null);
   }
 
-  remove(id: string): void {
-    this.updateTodo(null, (todo) => ({
+remove(id: string): void {
+    this.updateTodo((todo) => ({
       ...todo,
       tasks: todo.tasks?.map((task) => ({
         ...task,
@@ -78,7 +78,7 @@ export class CommentHandler extends EntityHandler<Comment> {
         })),
       })),
       updatedAt: new Date().toISOString(),
-    }));
+    }), null);
   }
 
   getById(id: string): Comment | undefined {
@@ -104,7 +104,7 @@ export class CommentHandler extends EntityHandler<Comment> {
     const todoId = this.resolveTodoId(entityId, entityType);
     if (!todoId) return;
 
-    this.updateTodo(todoId, (todo) => {
+    this.updateTodo((todo) => {
       if (entityType === "tasks") {
         const updatedTasks = todo.tasks?.map((task) => {
           if (task.id !== entityId) return task;
@@ -127,7 +127,7 @@ export class CommentHandler extends EntityHandler<Comment> {
         });
         return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
-    });
+    }, todoId);
   }
 
   private resolveTodoId(entityId: string, entityType: "tasks" | "subtasks"): string | null {
