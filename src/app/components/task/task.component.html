@@ -118,10 +118,10 @@
         }
 
         <div class="textMuted mb-4 flex items-center gap-4 text-sm">
-          @if (task.endDate) {
+          @if (task.end_date) {
             <div class="flex items-center gap-1">
               <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="schedule" />
-              <span>Due {{ formatDate(task.endDate) }}</span>
+              <span>Due {{ formatDate(task.end_date) }}</span>
             </div>
           }
           <div class="flex items-center gap-1">
@@ -191,7 +191,7 @@
           <app-comments
             title="Task comments"
             [comments]="taskOnlyCommentsForPanel()"
-            [taskId]="task.id"
+            [task_id]="task.id"
             [isOwner]="isOwner"
             [isPrivate]="isPrivate"
             [highlightCommentId]="highlightCommentId || undefined"
@@ -217,12 +217,12 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              @for (group of subtaskCommentGroups(); track group.subtaskId) {
+              @for (group of subtaskCommentGroups(); track group.subtask_id) {
                 <div
                   class="rounded-xl border border-gray-200 bg-white/60 dark:border-zinc-700 dark:bg-zinc-800/30"
                   [ngClass]="{
                     'animate-pulse ring-2 ring-purple-500': shouldHighlightExpandedSubtask(
-                      group.subtaskId
+                      group.subtask_id
                     ),
                   }"
                 >
@@ -230,14 +230,14 @@
                     <button
                       class="textNormal flex items-center gap-2 text-sm font-semibold transition-colors hover:text-purple-600 dark:hover:text-purple-400"
                       (click)="
-                        $event.stopPropagation(); toggleInlineSubtaskComments(group.subtaskId)
+                        $event.stopPropagation(); toggleInlineSubtaskComments(group.subtask_id)
                       "
                       title="Expand/collapse this subtask's comments"
                     >
                       <mat-icon
                         class="h-4! w-4! min-w-4 text-lg!"
                         [fontIcon]="
-                          isSubtaskExpanded(group.subtaskId) ? 'expand_less' : 'expand_more'
+                          isSubtaskExpanded(group.subtask_id) ? 'expand_less' : 'expand_more'
                         "
                       />
                       <span class="truncate">{{ group.title }}</span>
@@ -252,25 +252,24 @@
 
                     <button
                       class="rounded-lg p-1.5 text-purple-600 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
-                      (click)="$event.stopPropagation(); navigateToSubtaskComments(group.subtaskId)"
+                      (click)="$event.stopPropagation(); navigateToSubtaskComments(group.subtask_id)"
                       title="Open in Subtasks view"
                     >
                       <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="open_in_new" />
                     </button>
                   </div>
 
-                  @if (isSubtaskExpanded(group.subtaskId)) {
+                  @if (isSubtaskExpanded(group.subtask_id)) {
                     <div class="px-3 pb-3">
                       <app-comments
                         [title]="'Subtask: ' + group.title"
                         [comments]="group.comments"
-                        [taskId]="task.id"
-                        [subtaskId]="group.subtaskId"
+                        [subtask_id]="group.subtask_id"
                         [isOwner]="isOwner"
                         [isPrivate]="isPrivate"
-                        (addCommentEvent)="onAddSubtaskComment(group.subtaskId, $event)"
+                        (addCommentEvent)="onAddSubtaskComment(group.subtask_id, $event)"
                         (deleteCommentEvent)="onDeleteComment($event)"
-                        (markAsReadEvent)="onMarkSubtaskCommentsAsRead(group.subtaskId, $event)"
+                        (markAsReadEvent)="onMarkSubtaskCommentsAsRead($event, group.subtask_id)"
                         (click)="$event.stopPropagation()"
                       />
                     </div>

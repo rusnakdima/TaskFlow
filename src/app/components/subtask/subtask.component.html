@@ -187,7 +187,7 @@
     @if (showComments()) {
       <app-comments
         [comments]="getActiveComments(subtask.comments)"
-        [subtaskId]="subtask.id"
+        [subtask_id]="subtask.id"
         [isOwner]="true"
         [isPrivate]="isPrivate"
         (addCommentEvent)="onAddComment($event)"

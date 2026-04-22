@@ -40,8 +40,8 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   @Input() comments: Comment[] = [];
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
-  @Input() taskId?: string;
-  @Input() subtaskId?: string;
+  @Input() task_id?: string;
+  @Input() subtask_id?: string;
   @Input() highlightCommentId?: string;
   @Input() autoOpen?: boolean = false;
 
@@ -63,7 +63,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
       this.shouldScroll = true;
       setTimeout(() => this.initIntersectionObserver(), 100);
     }
-    if ((changes["taskId"] || changes["subtaskId"]) && !changes["taskId"]?.isFirstChange()) {
+    if ((changes["task_id"] || changes["subtaskId"]) && !changes["task_id"]?.isFirstChange()) {
       this.isFirstLoad = true;
       this.processedCommentIds.clear(); // Reset processed comments when task/subtask changes
     }
@@ -182,8 +182,8 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   isUnread(comment: Comment): boolean {
     const userId = this.currentUserId;
     if (!userId) return false;
-    if (comment.authorId === userId) return false;
-    return !comment.readBy || !comment.readBy.includes(userId);
+    if (comment.author_id === userId) return false;
+    return !comment.read_by || !comment.read_by.includes(userId);
   }
 
   addComment() {

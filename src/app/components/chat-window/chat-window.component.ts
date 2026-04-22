@@ -38,7 +38,7 @@ import { ApiProvider } from "@providers/api.provider";
   templateUrl: "./chat-window.component.html",
 })
 export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy, OnChanges {
-  @Input({ required: true }) todoId!: string;
+  @Input({ required: true }) todo_id!: string;
   @Output() close = new EventEmitter<void>();
   @ViewChild("scrollContainer") private scrollContainer!: ElementRef;
   @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
@@ -50,7 +50,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   chats = signal<Chat[]>([]);
 
   private chatReactiveEffect = effect(() => {
-    const reactiveChats = this.storageService.getChatsByTodoReactive(this.todoId)();
+    const reactiveChats = this.storageService.getChatsByTodoReactive(this.todo_id)();
     this.chats.set(reactiveChats);
   });
 
@@ -68,7 +68,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private chatClearedListener: any;
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes["todoId"] && !changes["todoId"].isFirstChange()) {
+    if (changes["todo_id"] && !changes["todo_id"].isFirstChange()) {
       this.isFirstLoad = true;
       this.processedChatIds.clear(); // Reset processed chats when todo changes
     }
@@ -76,7 +76,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   ngOnInit() {
     this.initWebSocketListeners();
-    this.loadChats(this.todoId).subscribe({
+    this.loadChats(this.todo_id).subscribe({
       next: () => {
         this.shouldScroll = true;
         setTimeout(() => this.initIntersectionObserver(), 500);
@@ -111,27 +111,27 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   private onChatCreated(chat: Chat): void {
-    this.storageService.addChatToTodo(chat.todoId, chat);
+    this.storageService.addChatToTodo(chat, chat.todo_id);
   }
 
   private onChatUpdated(chat: Chat): void {
-    this.storageService.updateChatInTodo(chat.todoId, chat);
+    this.storageService.updateChatInTodo(chat, chat.todo_id);
   }
 
-  private onChatDeleted(chat: { id: string; todoId: string }): void {
-    const isDeleted = (chat as any).deletedAt !== null;
+  private onChatDeleted(chat: { id: string; todo_id?: string }): void {
+    const isDeleted = (chat as any).deleted_at !== null;
     if (isDeleted) {
-      this.storageService.updateChatInTodo(chat.todoId, {
+      this.storageService.updateChatInTodo({
         ...(chat as any),
-        deletedAt: new Date().toISOString(),
-      });
+        deleted_at: new Date().toISOString(),
+      }, chat.todo_id);
     } else {
-      this.storageService.deleteChatFromTodo(chat.todoId, chat.id);
+      this.storageService.deleteChatFromTodo(chat.id, chat.todo_id);
     }
   }
 
-  private onChatCleared(todoId: string): void {
-    this.storageService.clearChatsByTodo(todoId);
+  private onChatCleared(todo_id?: string): void {
+    this.storageService.clearChatsByTodo(todo_id);
   }
 
   ngAfterViewChecked() {
@@ -211,11 +211,11 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private markSpecificAsRead(ids: string[]) {
     const currentUserId = this.authService.getValueByKey("id");
     const unreadInList = this.chats().filter(
-      (c: Chat) => ids.includes(c.id) && (!c.readBy || !c.readBy.includes(currentUserId))
+      (c: Chat) => ids.includes(c.id) && (!c.read_by || !c.read_by.includes(currentUserId))
     );
 
     if (unreadInList.length > 0) {
-      this.markAsRead(this.todoId, ids).subscribe();
+      this.markAsRead(this.todo_id, ids).subscribe();
     }
   }
 
@@ -247,36 +247,36 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   isMyMessage(chat: Chat): boolean {
-    return chat.userId === this.authService.getValueByKey("id");
+    return chat.user_id === this.authService.getValueByKey("id");
   }
 
   isRead(chat: Chat): boolean {
     const userId = this.authService.getValueByKey("id");
-    return !!chat.readBy && chat.readBy.includes(userId);
+    return !!chat.read_by && chat.read_by.includes(userId);
   }
 
   getUnreadCount(): number {
     const currentUserId = this.authService.getValueByKey("id");
-    return this.chats().filter((c) => !c.readBy || !c.readBy.includes(currentUserId)).length;
+    return this.chats().filter((c) => !c.read_by || !c.read_by.includes(currentUserId)).length;
   }
 
   isOwner(): boolean {
     const currentUserId = this.authService.getValueByKey("id");
-    const todo = this.storageService.getById("todos", this.todoId);
-    return todo?.userId === currentUserId;
+    const todo = this.storageService.getById("todos", this.todo_id);
+    return todo?.user_id === currentUserId;
   }
 
   // --- Chat Actions (previously in ChatService) ---
 
-  getChats(todoId: string): Chat[] {
+  getChats(todo_id?: string): Chat[] {
     return this.chats();
   }
 
-  loadChats(todoId: string) {
+  loadChats(todo_id?: string) {
     return this.dataSync.crud<Chat[]>(
       "getAll",
       "chats",
-      { filter: { todoId: todoId, deletedAt: null }, parentTodoId: todoId },
+      { filter: { todo_id: todo_id, deleted_at: null }, parentTodoId: todo_id },
       true
     );
   }
@@ -288,14 +288,14 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     const username = this.authService.getValueByKey("username") || "User";
 
     const chatForBackend: ChatCreate = {
-      todoId: this.todoId,
-      userId: currentUserId,
-      authorName: username,
+      todo_id: this.todo_id,
+      user_id: currentUserId,
+      author_name: username,
       content: this.newMessage,
     };
 
     this.dataSync
-      .crud<Chat>("create", "chats", { data: chatForBackend, parentTodoId: this.todoId })
+      .crud<Chat>("create", "chats", { data: chatForBackend, parentTodoId: this.todo_id })
       .subscribe(() => {
         this.newMessage = "";
         this.shouldScroll = true;
@@ -305,21 +305,21 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   deleteMessage(chatId: string) {
-    this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todoId }).subscribe();
+    this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todo_id }).subscribe();
   }
 
-  markAsRead(todoId: string, ids?: string[]) {
+  markAsRead(todo_id?: string, ids?: string[]) {
     const currentUserId = this.authService.getValueByKey("id") || "";
     const chats = this.chats();
 
     const unreadChats = chats
       .filter(
         (chat) =>
-          (!ids || ids.includes(chat.id)) && (!chat.readBy || !chat.readBy.includes(currentUserId))
+          (!ids || ids.includes(chat.id)) && (!chat.read_by || !chat.read_by.includes(currentUserId))
       )
       .map((chat) => ({
         ...chat,
-        readBy: [...(chat.readBy || []), currentUserId],
+        readBy: [...(chat.read_by || []), currentUserId],
       }));
 
     if (unreadChats.length === 0) return of([]);
@@ -327,7 +327,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     return this.dataSync.crud<Chat[]>(
       "updateAll",
       "chats",
-      { data: unreadChats, parentTodoId: todoId },
+      { data: unreadChats, parentTodoId: todo_id },
       true
     );
   }
@@ -338,16 +338,16 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     const chats = this.chats();
     if (!chats || chats.length === 0) return;
 
-    const chatsToDelete = chats.map((chat) => ({ ...chat, deletedAt: new Date().toISOString() }));
+    const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
     this.dataSync
-      .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todoId }, true)
+      .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todo_id }, true)
       .subscribe();
   }
 
   canDelete(chat: Chat): boolean {
     const currentUserId = this.authService.getValueByKey("id");
-    const todo = this.storageService.getById("todos", chat.todoId);
-    if (todo && todo.userId === currentUserId) return true;
-    return chat.userId === currentUserId;
+    const todo = this.storageService.getById("todos", chat.todo_id);
+    if (todo && todo.user_id === currentUserId) return true;
+    return chat.user_id === currentUserId;
   }
 }

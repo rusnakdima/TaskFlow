@@ -77,10 +77,10 @@
     </div>
 
     <div class="textMuted mb-3 flex items-center gap-4 text-xs">
-      @if (task.endDate) {
+      @if (task.end_date) {
         <div class="flex items-center gap-1">
           <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
-          <span>{{ formatDate(task.endDate) }}</span>
+          <span>{{ formatDate(task.end_date) }}</span>
         </div>
       }
       <div class="flex items-center gap-1">
@@ -129,11 +129,11 @@
         </button>
         <button
           class="rounded p-1.5 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-          [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks']"
+          [routerLink]="['/todos', todo_id, 'tasks', task.id, 'subtasks']"
           [queryParams]="{
             isPrivate: true,
             fromKanban: true,
-            todoId: todoId,
+            todoId: todo_id,
           }"
           (click)="$event.stopPropagation()"
           title="View subtasks"
@@ -155,11 +155,11 @@
         </h5>
         <button
           class="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
-          [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks']"
+          [routerLink]="['/todos', todo_id, 'tasks', task.id, 'subtasks']"
           [queryParams]="{
             isPrivate: true,
             fromKanban: true,
-            todoId: todoId,
+            todoId: todo_id,
           }"
           (click)="$event.stopPropagation()"
         >
@@ -173,11 +173,11 @@
           <p>No subtasks yet</p>
           <button
             class="mt-2 rounded bg-green-100 px-3 py-1 text-xs font-medium text-green-600 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
-            [routerLink]="['/todos', todoId, 'tasks', task.id, 'subtasks', 'create_subtask']"
+            [routerLink]="['/todos', todo_id, 'tasks', task.id, 'subtasks', 'create_subtask']"
             [queryParams]="{
               isPrivate: true,
               fromKanban: true,
-              todoId: todoId,
+              todoId: todo_id,
             }"
             (click)="$event.stopPropagation()"
           >
@@ -191,7 +191,7 @@
               class="flex cursor-pointer items-center gap-2 rounded-lg bg-white p-2 transition-colors hover:bg-gray-50 dark:bg-zinc-800 dark:hover:bg-zinc-700"
               [routerLink]="[
                 '/todos',
-                todoId,
+                todo_id,
                 'tasks',
                 task.id,
                 'subtasks',
@@ -201,7 +201,7 @@
               [queryParams]="{
                 isPrivate: true,
                 fromKanban: true,
-                todoId: todoId,
+                todoId: todo_id,
               }"
               (click)="$event.stopPropagation()"
             >

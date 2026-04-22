@@ -27,7 +27,7 @@ export class KanbanTaskCardComponent {
   @Input() columns: { id: string; label: string; icon: string }[] = [];
   @Input() subtasks: Subtask[] = [];
   @Input() isExpanded = false;
-  @Input() todoId = "";
+  @Input() todo_id = "";
 
   @Output() toggleExpand = new EventEmitter<Task>();
   @Output() moveTaskEvent = new EventEmitter<{ taskId: string; newStatus: TaskStatus }>();

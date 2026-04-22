@@ -13,16 +13,16 @@
         <p class="mb-4 break-words text-blue-100">{{ todo.description }}</p>
 
         <div class="mb-4 flex flex-wrap gap-4 text-sm">
-          @if (todo.startDate) {
+          @if (todo.start_date) {
             <div class="flex items-center gap-1 text-blue-100">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="event" />
-              <span>Start: {{ formatDate(todo.startDate) }}</span>
+              <span>Start: {{ formatDate(todo.start_date) }}</span>
             </div>
           }
-          @if (todo.endDate) {
+          @if (todo.end_date) {
             <div class="flex items-center gap-1 text-blue-100">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
-              <span>End: {{ formatDate(todo.endDate) }}</span>
+              <span>End: {{ formatDate(todo.end_date) }}</span>
             </div>
           }
         </div>
