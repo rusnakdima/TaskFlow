@@ -190,7 +190,7 @@ impl CrudHandlers {
   async fn handle_chat_update_broadcast(&self, data: &Value) {
     let is_clear = data
       .as_array()
-      .and_then(|arr| arr.get(0))
+      .and_then(|arr| arr.first())
       .and_then(|first| first.get("isDeleted"))
       .and_then(|v| v.as_bool())
       .unwrap_or(false);
@@ -198,7 +198,7 @@ impl CrudHandlers {
     if is_clear {
       let todo_id = data
         .as_array()
-        .and_then(|arr| arr.get(0))
+        .and_then(|arr| arr.first())
         .and_then(|first| first.get("todo_id"))
         .and_then(|v| v.as_str())
         .unwrap_or_default();
@@ -333,64 +333,7 @@ impl CrudHandlers {
     }
   }
 
-  /// Handle restore with cascade
-  pub async fn handle_restore_cascade(
-    &self,
-    request: WsRequest,
-    sync_metadata: SyncMetadata,
-  ) -> ResponseModel {
-    if let Some(id) = request.id {
-      let res = self
-        .repository_service
-        .execute(
-          "restore-cascade".to_string(),
-          request.entity.clone(),
-          Some(id.clone()),
-          None,
-          None,
-          None,
-          None,
-          Some(sync_metadata.clone()),
-        )
-        .await
-        .unwrap_or_else(|e| e);
-
-      if res.status == ResponseStatus::Success {
-        let restored = self
-          .repository_service
-          .execute(
-            "get".to_string(),
-            request.entity.clone(),
-            Some(id.clone()),
-            None,
-            None,
-            None,
-            None,
-            Some(sync_metadata),
-          )
-          .await
-          .ok();
-
-        let broadcast_data = if let Some(r) = restored {
-          match r.data {
-            DataValue::Object(obj) => obj,
-            _ => json!({ "id": id }),
-          }
-        } else {
-          json!({ "id": id })
-        };
-
-        self
-          .broadcast
-          .broadcast_restored(&request.entity, broadcast_data)
-          .await;
-      }
-      res
-    } else {
-      ResponseModel::from("Missing id for restore-cascade action".to_string())
-    }
-  }
-
+  #[allow(dead_code)]
   /// Handle sync to provider
   pub async fn handle_sync_to_provider(
     &self,

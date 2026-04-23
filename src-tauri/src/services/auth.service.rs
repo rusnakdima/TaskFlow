@@ -28,268 +28,278 @@ use webauthn_rs::prelude::Url;
 
 #[derive(Clone)]
 pub struct AuthService {
-  pub tokenService: Arc<AuthTokenService>,
-  pub loginService: AuthLoginService,
-  pub registerService: AuthRegisterService,
-  pub passwordService: AuthPasswordService,
-  pub totpService: AuthTotpService,
-  pub passkeyService: AuthPasskeyService,
-  pub biometricService: AuthBiometricService,
-  pub qrAuthService: QrAuthService,
-  pub webauthnState: Arc<WebAuthnState>,
+  pub token_service: Arc<AuthTokenService>,
+  pub login_service: AuthLoginService,
+  pub register_service: AuthRegisterService,
+  pub password_service: AuthPasswordService,
+  pub totp_service: AuthTotpService,
+  pub passkey_service: AuthPasskeyService,
+  pub biometric_service: AuthBiometricService,
+  pub qr_auth_service: QrAuthService,
+  pub webauthn_state: Arc<WebAuthnState>,
 }
 
 impl AuthService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    jwtSecret: String,
-    rpDomain: String,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    jwt_secret: String,
+    rp_domain: String,
   ) -> Self {
-    let mongoProvider = mongodbProvider.expect("MongoDB provider required for auth initialization");
+    let mongo_provider =
+      mongodb_provider.expect("MongoDB provider required for auth initialization");
 
-    let tokenService = Arc::new(AuthTokenService::new(
-      jsonProvider.clone(),
-      Some(Arc::clone(&mongoProvider)),
-      jwtSecret,
+    let token_service = Arc::new(AuthTokenService::new(
+      json_provider.clone(),
+      Some(Arc::clone(&mongo_provider)),
+      jwt_secret,
     ));
-    let loginService = AuthLoginService::new(
-      jsonProvider.clone(),
-      Some(Arc::clone(&mongoProvider)),
-      Arc::clone(&tokenService),
+    let login_service = AuthLoginService::new(
+      json_provider.clone(),
+      Some(Arc::clone(&mongo_provider)),
+      Arc::clone(&token_service),
     );
-    let registerService = AuthRegisterService::new(
-      jsonProvider.clone(),
-      Some(Arc::clone(&mongoProvider)),
-      Arc::clone(&tokenService),
+    let register_service = AuthRegisterService::new(
+      json_provider.clone(),
+      Some(Arc::clone(&mongo_provider)),
+      Arc::clone(&token_service),
     );
-    let passwordService =
-      AuthPasswordService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
-    let totpService = AuthTotpService::new(
-      jsonProvider.clone(),
-      Some(mongoProvider.clone()),
-      Some(Arc::clone(&tokenService)),
+    let password_service =
+      AuthPasswordService::new(json_provider.clone(), Some(mongo_provider.clone()));
+    let totp_service = AuthTotpService::new(
+      json_provider.clone(),
+      Some(mongo_provider.clone()),
+      Some(Arc::clone(&token_service)),
     );
 
-    let rp_origin = Url::parse(&format!("https://{}", rpDomain)).expect("Invalid RP origin URL");
-    let webauthnState = Arc::new(WebAuthnState::new(&rpDomain, &rp_origin));
+    let rp_origin = Url::parse(&format!("https://{}", rp_domain)).expect("Invalid RP origin URL");
+    let webauthn_state = Arc::new(WebAuthnState::new(&rp_domain, &rp_origin));
 
-    let passkeyService = AuthPasskeyService::new(
-      jsonProvider.clone(),
-      Some(mongoProvider.clone()),
-      Arc::clone(&webauthnState),
+    let passkey_service = AuthPasskeyService::new(
+      json_provider.clone(),
+      Some(mongo_provider.clone()),
+      Arc::clone(&webauthn_state),
     );
-    let biometricService =
-      AuthBiometricService::new(jsonProvider.clone(), Some(mongoProvider.clone()));
-    let qrAuthService = QrAuthService::new(
-      jsonProvider.clone(),
-      Some(mongoProvider.clone()),
-      Arc::clone(&tokenService),
+    let biometric_service =
+      AuthBiometricService::new(json_provider.clone(), Some(mongo_provider.clone()));
+    let qr_auth_service = QrAuthService::new(
+      json_provider.clone(),
+      Some(mongo_provider.clone()),
+      Arc::clone(&token_service),
     );
 
     Self {
-      tokenService,
-      loginService,
-      registerService,
-      passwordService,
-      totpService,
-      passkeyService,
-      biometricService,
-      qrAuthService,
-      webauthnState,
+      token_service,
+      login_service,
+      register_service,
+      password_service,
+      totp_service,
+      passkey_service,
+      biometric_service,
+      qr_auth_service,
+      webauthn_state,
     }
   }
 
-  pub async fn login(&self, loginData: LoginForm) -> Result<ResponseModel, ResponseModel> {
-    self.loginService.login(loginData).await
+  pub async fn login(&self, login_data: LoginForm) -> Result<ResponseModel, ResponseModel> {
+    self.login_service.login(login_data).await
   }
 
-  pub async fn register(&self, signupData: SignupForm) -> Result<ResponseModel, ResponseModel> {
-    self.registerService.register(signupData).await
+  pub async fn register(&self, signup_data: SignupForm) -> Result<ResponseModel, ResponseModel> {
+    self.register_service.register(signup_data).await
   }
 
-  pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    self.tokenService.checkToken(token).await
+  pub async fn check_token(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    self.token_service.check_token(token).await
   }
 
-  pub async fn requestPasswordReset(
+  pub async fn request_password_reset(
     &self,
     email: String,
     config: &ConfigHelper,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .passwordService
-      .requestPasswordReset(email, config)
+      .password_service
+      .request_password_reset(email, config)
       .await
   }
 
-  pub async fn verifyCode(
+  pub async fn verify_code(
     &self,
     email: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.passwordService.verifyCode(email, code).await
+    self.password_service.verify_code(email, code).await
   }
 
-  pub async fn resetPassword(
+  pub async fn reset_password(
     &self,
-    resetData: PasswordReset,
+    reset_data: PasswordReset,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.passwordService.resetPassword(resetData).await
+    self.password_service.reset_password(reset_data).await
   }
 
-  pub async fn setupTotp(&self, username: String) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.setupTotp(&username).await
+  pub async fn setup_totp(&self, username: String) -> Result<ResponseModel, ResponseModel> {
+    self.totp_service.setup_totp(&username).await
   }
 
-  pub async fn enableTotp(
+  pub async fn enable_totp(
     &self,
     username: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.enableTotp(&username, &code).await
+    self.totp_service.enable_totp(&username, &code).await
   }
 
-  pub async fn verifyLoginTotp(
+  pub async fn verify_login_totp(
     &self,
     username: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.verifyLoginTotp(&username, &code).await
+    self.totp_service.verify_login_totp(&username, &code).await
   }
 
-  pub async fn disableTotp(
+  pub async fn disable_totp(
     &self,
     username: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.disableTotp(&username, &code).await
+    self.totp_service.disable_totp(&username, &code).await
   }
 
-  pub async fn useRecoveryCode(
+  pub async fn use_recovery_code(
     &self,
     username: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.useRecoveryCode(&username, &code).await
+    self.totp_service.use_recovery_code(&username, &code).await
   }
 
-  pub async fn initPasskeyRegistration(
+  pub async fn init_passkey_registration(
     &self,
     username: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.passkeyService.initRegistration(&username).await
+    self.passkey_service.init_registration(&username).await
   }
 
-  pub async fn completePasskeyRegistration(
+  pub async fn complete_passkey_registration(
     &self,
     username: String,
-    responseJson: String,
+    response_json: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .passkeyService
-      .completeRegistration(&username, &responseJson)
+      .passkey_service
+      .complete_registration(&username, &response_json)
       .await
   }
 
-  pub async fn initPasskeyAuthentication(
+  pub async fn init_passkey_authentication(
     &self,
     username: Option<&str>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.passkeyService.initAuthentication(username).await
+    self.passkey_service.init_authentication(username).await
   }
 
-  pub async fn completePasskeyAuthentication(
+  pub async fn complete_passkey_authentication(
     &self,
     username: String,
-    responseJson: String,
+    response_json: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .passkeyService
-      .completeAuthentication(&username, &responseJson)
+      .passkey_service
+      .complete_authentication(&username, &response_json)
       .await
   }
 
-  pub async fn disablePasskey(&self, username: String) -> Result<ResponseModel, ResponseModel> {
-    self.passkeyService.disablePasskey(&username).await
+  pub async fn disable_passkey(&self, username: String) -> Result<ResponseModel, ResponseModel> {
+    self.passkey_service.disable_passkey(&username).await
   }
 
-  pub async fn enableBiometric(
+  pub async fn enable_biometric(
     &self,
     username: String,
-    credentialId: String,
-    publicKey: String,
+    credential_id: String,
+    public_key: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .biometricService
-      .enableBiometric(&username, &credentialId, &publicKey)
+      .biometric_service
+      .enable_biometric(&username, &credential_id, &public_key)
       .await
   }
 
-  pub async fn initBiometricAuth(
+  pub async fn init_biometric_auth(
     &self,
     username: Option<&str>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.biometricService.initBiometricAuth(username).await
+    self.biometric_service.init_biometric_auth(username).await
   }
 
-  pub async fn completeBiometricAuth(
+  pub async fn complete_biometric_auth(
     &self,
     username: String,
     signature: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .biometricService
-      .completeBiometricAuth(&username, &signature)
+      .biometric_service
+      .complete_biometric_auth(&username, &signature)
       .await
   }
 
-  pub async fn disableBiometric(&self, username: String) -> Result<ResponseModel, ResponseModel> {
-    self.biometricService.disableBiometric(&username).await
+  pub async fn disable_biometric(&self, username: String) -> Result<ResponseModel, ResponseModel> {
+    self.biometric_service.disable_biometric(&username).await
   }
 
-  pub async fn initTotpQrLogin(&self, username: String) -> Result<ResponseModel, ResponseModel> {
-    self.totpService.initTotpQrLogin(&username).await
+  pub async fn init_totp_qr_login(&self, username: String) -> Result<ResponseModel, ResponseModel> {
+    self.totp_service.init_totp_qr_login(&username).await
   }
 
-  pub async fn qrGenerate(&self, username: Option<String>) -> Result<ResponseModel, ResponseModel> {
+  pub async fn qr_generate(
+    &self,
+    username: Option<String>,
+  ) -> Result<ResponseModel, ResponseModel> {
     self
-      .qrAuthService
-      .generateQrToken(username.as_deref())
+      .qr_auth_service
+      .generate_qr_token(username.as_deref())
       .await
   }
 
-  pub async fn qrGenerateForDesktop(
+  pub async fn qr_generate_for_desktop(
     &self,
     username: String,
   ) -> Result<ResponseModel, ResponseModel> {
     self
-      .qrAuthService
-      .generateQrTokenForDesktopLogin(&username)
+      .qr_auth_service
+      .generate_qr_token_for_desktop_login(&username)
       .await
   }
 
-  pub async fn qrApprove(
+  pub async fn qr_approve(
     &self,
     token: String,
     username: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.qrAuthService.approveQrToken(&token, &username).await
+    self
+      .qr_auth_service
+      .approve_qr_token(&token, &username)
+      .await
   }
 
-  pub async fn qrStatus(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    self.qrAuthService.getQrStatus(&token).await
+  pub async fn qr_status(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    self.qr_auth_service.get_qr_status(&token).await
   }
 
-  pub async fn qrToggle(
+  pub async fn qr_toggle(
     &self,
     username: String,
     enabled: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.qrAuthService.toggleQrLogin(&username, enabled).await
+    self
+      .qr_auth_service
+      .toggle_qr_login(&username, enabled)
+      .await
   }
 
-  pub async fn qrLoginComplete(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    self.qrAuthService.completeQrLogin(&token).await
+  pub async fn qr_login_complete(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    self.qr_auth_service.complete_qr_login(&token).await
   }
 }

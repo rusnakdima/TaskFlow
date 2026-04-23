@@ -20,64 +20,64 @@ use crate::entities::{
 
 /* statistics modules */
 use crate::services::statistics::{
-  category_statistics::CategoryStatistics, chart_generator::ChartGenerator,
-  date_calculator::DateCalculator, task_analytics::TaskAnalytics,
+  category_statistics::CategoryStatistics, chart_generator::chart_generator,
+  date_calculator::DateCalculator, task_analytics::task_analytics,
 };
 
 #[derive(Clone)]
 pub struct StatisticsService {
-  pub jsonProvider: JsonProvider,
-  pub activityLogHelper: Arc<ActivityLogHelper>,
+  pub json_provider: JsonProvider,
+  pub activity_log_helper: Arc<ActivityLogHelper>,
 }
 
 impl StatisticsService {
-  pub fn new(jsonProvider: JsonProvider, activityLogHelper: Arc<ActivityLogHelper>) -> Self {
+  pub fn new(json_provider: JsonProvider, activity_log_helper: Arc<ActivityLogHelper>) -> Self {
     Self {
-      jsonProvider,
-      activityLogHelper,
+      json_provider,
+      activity_log_helper,
     }
   }
 
-  pub async fn getStatistics(
+  pub async fn get_statistics(
     &self,
-    userId: String,
-    timeRange: String,
-    _syncMetadata: SyncMetadata,
+    user_id: String,
+    time_range: String,
+    _sync_metadata: SyncMetadata,
   ) -> Result<ResponseModel, ResponseModel> {
-    let (startDate, endDate) = DateCalculator::calculateDateRange(&timeRange);
-    let startDateNaive = startDate.date_naive();
-    let endDateNaive = endDate.date_naive();
+    let (start_date, end_date) = DateCalculator::calculate_date_range(&time_range);
+    let start_date_naive = start_date.date_naive();
+    let end_date_naive = end_date.date_naive();
 
-    let previousStartDate = startDate - (endDate - startDate);
-    let previousEndDate = startDate;
-    let prevStartNaive = previousStartDate.date_naive();
-    let prevEndNaive = previousEndDate.date_naive();
+    let previous_start_date = start_date - (end_date - start_date);
+    let previous_end_date = start_date;
+    let prev_start_naive = previous_start_date.date_naive();
+    let prev_end_naive = previous_end_date.date_naive();
 
     // Fetch data using nosql_orm with filters
-    let userIdFilter = Filter::Eq("user_id".to_string(), json!(userId));
-    let startDateFilter = Filter::Gte("created_at".to_string(), json!(startDate.to_rfc3339()));
-    let endDateFilter = Filter::Lte("created_at".to_string(), json!(endDate.to_rfc3339()));
-    let prevStartDateFilter = Filter::Gte(
+    let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let start_date_filter = Filter::Gte("created_at".to_string(), json!(start_date.to_rfc3339()));
+    let end_date_filter = Filter::Lte("created_at".to_string(), json!(end_date.to_rfc3339()));
+    let prev_start_date_filter = Filter::Gte(
       "created_at".to_string(),
-      json!(previousStartDate.to_rfc3339()),
+      json!(previous_start_date.to_rfc3339()),
     );
-    let prevEndDateFilter = Filter::Lt("created_at".to_string(), json!(startDate.to_rfc3339()));
+    let prev_end_date_filter = Filter::Lt("created_at".to_string(), json!(start_date.to_rfc3339()));
 
-    let dailyActivities = self
-      .getDailyActivitiesFiltered(&userId, &startDateNaive, &endDateNaive)
+    let daily_activities = self
+      .get_daily_activities_filtered(&user_id, &start_date_naive, &end_date_naive)
       .await;
-    let previousDailyActivities = self
-      .getDailyActivitiesFiltered(&userId, &prevStartNaive, &prevEndNaive)
+    let previous_daily_activities = self
+      .get_daily_activities_filtered(&user_id, &prev_start_naive, &prev_end_naive)
       .await;
 
-    let currentTasks: Vec<Value> = self
-      .jsonProvider
+    let current_tasks: Vec<Value> = self
+      .json_provider
       .find_many(
         "tasks",
         Some(&Filter::And(vec![
-          userIdFilter.clone(),
-          startDateFilter,
-          endDateFilter,
+          user_id_filter.clone(),
+          start_date_filter,
+          end_date_filter,
         ])),
         None,
         None,
@@ -87,14 +87,14 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    let previousTasks: Vec<Value> = self
-      .jsonProvider
+    let previous_tasks: Vec<Value> = self
+      .json_provider
       .find_many(
         "tasks",
         Some(&Filter::And(vec![
-          userIdFilter.clone(),
-          prevStartDateFilter,
-          prevEndDateFilter,
+          user_id_filter.clone(),
+          prev_start_date_filter,
+          prev_end_date_filter,
         ])),
         None,
         None,
@@ -105,43 +105,43 @@ impl StatisticsService {
       .unwrap_or_default();
 
     let categories: Vec<Value> = self
-      .jsonProvider
-      .find_many("categories", Some(&userIdFilter), None, None, None, true)
+      .json_provider
+      .find_many("categories", Some(&user_id_filter), None, None, None, true)
       .await
       .unwrap_or_default();
 
     let todos: Vec<Value> = self
-      .jsonProvider
-      .find_many("todos", Some(&userIdFilter), None, None, None, true)
+      .json_provider
+      .find_many("todos", Some(&user_id_filter), None, None, None, true)
       .await
       .unwrap_or_default();
 
     // Compute metrics
-    let statistics = TaskAnalytics::computeStatistics(
-      &dailyActivities,
-      &previousDailyActivities,
-      &currentTasks,
-      &previousTasks,
+    let statistics = task_analytics::compute_statistics(
+      &daily_activities,
+      &previous_daily_activities,
+      &current_tasks,
+      &previous_tasks,
     );
 
-    let categoriesWithCounts = CategoryStatistics::calculateCategoryTasks(
+    let categories_with_counts = CategoryStatistics::calculate_category_tasks(
       &categories,
       &todos,
-      &currentTasks,
-      &startDateNaive,
-      &endDateNaive,
+      &current_tasks,
+      &start_date_naive,
+      &end_date_naive,
     );
 
-    let chartData = ChartGenerator::computeChartData(
-      &currentTasks,
-      &categoriesWithCounts,
-      &dailyActivities,
-      &startDateNaive,
-      &endDateNaive,
+    let chart_data = chart_generator::compute_chart_data(
+      &current_tasks,
+      &categories_with_counts,
+      &daily_activities,
+      &start_date_naive,
+      &end_date_naive,
     );
 
-    let detailedMetrics =
-      TaskAnalytics::computeDetailedMetrics(&dailyActivities, &previousDailyActivities);
+    let detailed_metrics =
+      TaskAnalytics::compute_detailed_metrics(&daily_activities, &previous_daily_activities);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -149,23 +149,23 @@ impl StatisticsService {
       data: DataValue::Object(
         serde_json::to_value(StatisticsResponseModel {
           statistics,
-          chartData,
-          detailedMetrics,
+          chart_data,
+          detailed_metrics,
         })
         .unwrap(),
       ),
     })
   }
 
-  async fn getDailyActivitiesFiltered(
+  async fn get_daily_activities_filtered(
     &self,
-    userId: &str,
-    startDate: &NaiveDate,
-    endDate: &NaiveDate,
+    user_id: &str,
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
   ) -> Vec<Value> {
     let activities = self
-      .activityLogHelper
-      .getAll(json!({"user_id": userId.to_string()}))
+      .activity_log_helper
+      .get_all(json!({"user_id": user_id.to_string()}))
       .await;
 
     let docs = match activities {
@@ -180,14 +180,14 @@ impl StatisticsService {
     };
 
     // Filter by date range and deduplicate by date (keep latest)
-    let mut dateMap: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+    let mut date_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
 
     for activity in docs {
-      if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
-        if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
-          if date >= *startDate && date <= *endDate {
+      if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
+        if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+          if date >= *start_date && date <= *end_date {
             // Keep the latest record for each date (based on updated_at)
-            let should_insert = match dateMap.get(dateStr) {
+            let should_insert = match date_map.get(date_str) {
               Some(existing) => {
                 let existing_updated = existing
                   .get("updated_at")
@@ -203,7 +203,7 @@ impl StatisticsService {
             };
 
             if should_insert {
-              dateMap.insert(dateStr.to_string(), activity);
+              date_map.insert(date_str.to_string(), activity);
             }
           }
         }
@@ -211,6 +211,6 @@ impl StatisticsService {
     }
 
     // Convert map to vector
-    dateMap.into_values().collect()
+    date_map.into_values().collect()
   }
 }

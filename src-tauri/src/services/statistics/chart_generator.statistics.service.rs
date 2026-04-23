@@ -5,24 +5,24 @@ use chrono::{DateTime, Datelike, NaiveDate, Weekday};
 use serde_json::Value;
 use std::collections::HashMap;
 
-pub struct ChartGenerator;
+pub struct chart_generator;
 
-impl ChartGenerator {
-  pub fn computeChartData(
-    tasks: &Vec<Value>,
-    categories: &Vec<Value>,
-    dailyActivities: &Vec<Value>,
-    _startDate: &NaiveDate,
-    _endDate: &NaiveDate,
+impl chart_generator {
+  pub fn compute_chart_data(
+    tasks: &[Value],
+    categories: &[Value],
+    daily_activities: &[Value],
+    _start_date: &NaiveDate,
+    _end_date: &NaiveDate,
   ) -> ChartDataModel {
-    let mut completionByWeekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
+    let mut completion_by_weekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
 
     for task in tasks {
-      if let Some(updatedAt) = task.get("updated_at").and_then(|v| v.as_str()) {
+      if let Some(updated_at) = task.get("updated_at").and_then(|v| v.as_str()) {
         if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
-          if let Ok(dtUpdated) = DateTime::parse_from_rfc3339(updatedAt) {
-            let weekday = dtUpdated.weekday();
-            let entry = completionByWeekday.entry(weekday).or_insert((0, 0));
+          if let Ok(dt_updated) = DateTime::parse_from_rfc3339(updated_at) {
+            let weekday = dt_updated.weekday();
+            let entry = completion_by_weekday.entry(weekday).or_insert((0, 0));
             entry.1 += 1;
             if status == "completed" || status == "skipped" {
               entry.0 += 1;
@@ -32,7 +32,7 @@ impl ChartGenerator {
       }
     }
 
-    let mut completionTrend = Vec::new();
+    let mut completion_trend = Vec::new();
     let weekdays = [
       Weekday::Mon,
       Weekday::Tue,
@@ -44,7 +44,7 @@ impl ChartGenerator {
     ];
 
     for &weekday in &weekdays {
-      let dayName = match weekday {
+      let day_name = match weekday {
         Weekday::Mon => "Monday",
         Weekday::Tue => "Tuesday",
         Weekday::Wed => "Wednesday",
@@ -55,32 +55,35 @@ impl ChartGenerator {
       }
       .to_string();
 
-      let (completed, total) = completionByWeekday.get(&weekday).copied().unwrap_or((0, 0));
+      let (completed, total) = completion_by_weekday
+        .get(&weekday)
+        .copied()
+        .unwrap_or((0, 0));
       let percentage = if total > 0 {
         (completed as f32 / total as f32 * 100.0) as i32
       } else {
         0
       };
 
-      completionTrend.push(CompletionTrendItem {
-        label: dayName,
+      completion_trend.push(CompletionTrendItem {
+        label: day_name,
         value: percentage,
       });
     }
 
-    let mut dailyActivityMap: HashMap<String, i32> = HashMap::new();
+    let mut daily_activity_map: HashMap<String, i32> = HashMap::new();
 
-    let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    for day in &dayNames {
-      dailyActivityMap.insert(day.to_string(), 0);
+    let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    for day in &day_names {
+      daily_activity_map.insert(day.to_string(), 0);
     }
 
-    for activity in dailyActivities {
-      if let Some(dateStr) = activity.get("date").and_then(|v| v.as_str()) {
-        if let Some(totalActivity) = activity.get("total_activity").and_then(|v| v.as_i64()) {
-          if let Ok(date) = NaiveDate::parse_from_str(dateStr, "%Y-%m-%d") {
+    for activity in daily_activities {
+      if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
+        if let Some(total_activity) = activity.get("total_activity").and_then(|v| v.as_i64()) {
+          if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
             let weekday = date.weekday();
-            let dayIndex = match weekday {
+            let day_index = match weekday {
               Weekday::Mon => 0,
               Weekday::Tue => 1,
               Weekday::Wed => 2,
@@ -89,59 +92,59 @@ impl ChartGenerator {
               Weekday::Sat => 5,
               Weekday::Sun => 6,
             };
-            let dayName = dayNames[dayIndex];
-            if let Some(count) = dailyActivityMap.get_mut(dayName) {
-              *count += totalActivity as i32;
+            let day_name = day_names[day_index];
+            if let Some(count) = daily_activity_map.get_mut(day_name) {
+              *count += total_activity as i32;
             }
           }
         }
       }
     }
 
-    let dailyActivity: Vec<DailyActivityItem> = dayNames
+    let daily_activity: Vec<DailyActivityItem> = day_names
       .iter()
       .map(|day| DailyActivityItem {
-        dayName: day.to_string(),
-        activity: *dailyActivityMap.get(*day).unwrap_or(&0),
+        day_name: day.to_string(),
+        activity: *daily_activity_map.get(*day).unwrap_or(&0),
       })
       .collect();
 
-    let categoryColors = [
+    let category_colors = [
       "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4",
     ];
-    let mut categoryItems = Vec::new();
+    let mut category_items = Vec::new();
 
     for (index, category) in categories.iter().enumerate() {
-      if let Some(categoryTitle) = category.get("title").and_then(|v| v.as_str()) {
-        let totalTasks = category
-          .get("taskCount")
+      if let Some(category_title) = category.get("title").and_then(|v| v.as_str()) {
+        let total_tasks = category
+          .get("task_count")
           .and_then(|v| v.as_i64())
           .unwrap_or(0) as i32;
 
-        let completedTasks = category
-          .get("completedTaskCount")
+        let completed_tasks = category
+          .get("completed_task_count")
           .and_then(|v| v.as_i64())
           .unwrap_or(0) as i32;
 
-        let percentage = if totalTasks > 0 {
-          ((completedTasks as f32 / totalTasks as f32) * 100.0) as i32
+        let percentage = if total_tasks > 0 {
+          ((completed_tasks as f32 / total_tasks as f32) * 100.0) as i32
         } else {
           0
         };
 
-        categoryItems.push(CategoryItem {
-          name: categoryTitle.to_string(),
-          count: totalTasks,
+        category_items.push(CategoryItem {
+          name: category_title.to_string(),
+          count: total_tasks,
           percentage,
-          color: categoryColors[index % categoryColors.len()].to_string(),
+          color: category_colors[index % category_colors.len()].to_string(),
         });
       }
     }
 
     ChartDataModel {
-      completionTrend,
-      categories: categoryItems,
-      dailyActivity,
+      completion_trend,
+      categories: category_items,
+      daily_activity,
     }
   }
 }

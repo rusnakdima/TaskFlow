@@ -22,37 +22,37 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::errResponse;
+use crate::helpers::{profile_helper::check_profile_exists, response_helper::err_response};
 
 #[derive(Clone)]
 pub struct AuthRegisterService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
-  pub tokenService: Arc<AuthTokenService>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
+  pub token_service: Arc<AuthTokenService>,
 }
 
 impl AuthRegisterService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    tokenService: Arc<AuthTokenService>,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    token_service: Arc<AuthTokenService>,
   ) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
-      tokenService,
+      json_provider,
+      mongodb_provider,
+      token_service,
     }
   }
 
-  pub async fn register(&self, signupData: SignupForm) -> Result<ResponseModel, ResponseModel> {
-    let email = signupData.email;
-    let username = signupData.username;
-    let password = signupData.password;
+  pub async fn register(&self, signup_data: SignupForm) -> Result<ResponseModel, ResponseModel> {
+    let email = signup_data.email;
+    let username = signup_data.username;
+    let password = signup_data.password;
 
     let mongo = self
-      .mongodbProvider
+      .mongodb_provider
       .as_ref()
-      .ok_or_else(|| errResponse("Registration unavailable: MongoDB offline"))?;
+      .ok_or_else(|| err_response("Registration unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Or(vec![
@@ -63,22 +63,22 @@ impl AuthRegisterService {
     let existing = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| errResponse(&format!("Error checking user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error checking user: {}", e)))?;
 
     if !existing.is_empty() {
-      return Err(errResponse("User already exists"));
+      return Err(err_response("User already exists"));
     }
 
-    let hashedPassword = hash(password, DEFAULT_COST)
-      .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
+    let hashed_password = hash(password, DEFAULT_COST)
+      .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
 
     let now = chrono::Utc::now();
 
-    let newUser = UserEntity {
+    let new_user = UserEntity {
       id: Some(Uuid::new_v4().to_string()),
       email,
       username,
-      password: hashedPassword,
+      password: hashed_password,
       role: "user".to_string(),
       temporary_code: "".to_string(),
       code_expires_at: "".to_string(),
@@ -98,20 +98,20 @@ impl AuthRegisterService {
       recovery_codes: Vec::new(),
     };
 
-    let userVal = serde_json::to_value(&newUser)
-      .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
+    let user_val = serde_json::to_value(&new_user)
+      .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
     mongo
-      .insert(table_name, userVal.clone())
+      .insert(table_name, user_val.clone())
       .await
-      .map_err(|e| errResponse(&format!("Error creating user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error creating user: {}", e)))?;
 
-    let _ = self.jsonProvider.insert(table_name, userVal).await;
+    let _ = self.json_provider.insert(table_name, user_val).await;
 
-    let userId = newUser.get_id();
+    let user_id = new_user.get_id();
     let token = self
-      .tokenService
-      .generateToken(&userId, &newUser.username, &newUser.role)?;
+      .token_service
+      .generate_token(user_id, &new_user.username, &new_user.role)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -120,43 +120,20 @@ impl AuthRegisterService {
         "token": token,
         "needsProfile": true,
         "profile": null,
-        "userId": userId
+        "user_id": user_id
       })),
     })
   }
 
-  pub async fn checkProfileExists(
+  pub async fn check_profile_exists(
     &self,
     user_id: &str,
   ) -> Result<Option<ProfileEntity>, ResponseModel> {
-    let table_name = "profiles";
-    let filter = Filter::Eq("userId".to_string(), serde_json::json!(user_id));
-
-    if let Ok(mut profiles) = self
-      .jsonProvider
-      .find_many(table_name, Some(&filter), None, None, None, true)
-      .await
-    {
-      if let Some(profile_val) = profiles.pop() {
-        let profile: ProfileEntity = serde_json::from_value(profile_val)
-          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
-        return Ok(Some(profile));
-      }
-    }
-
-    if let Some(mongo) = &self.mongodbProvider {
-      if let Ok(mut profiles) = mongo
-        .find_many(table_name, Some(&filter), None, None, None, true)
-        .await
-      {
-        if let Some(profile_val) = profiles.pop() {
-          let profile: ProfileEntity = serde_json::from_value(profile_val)
-            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
-          return Ok(Some(profile));
-        }
-      }
-    }
-
-    Ok(None)
+    check_profile_exists(
+      &self.json_provider,
+      self.mongodb_provider.as_deref(),
+      user_id,
+    )
+    .await
   }
 }

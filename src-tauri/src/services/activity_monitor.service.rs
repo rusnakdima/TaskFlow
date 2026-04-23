@@ -8,51 +8,51 @@ use crate::services::entity_resolution_service::EntityResolutionService;
 
 #[derive(Clone)]
 pub struct ActivityMonitorService {
-  pub activityLogHelper: Arc<ActivityLogHelper>,
-  pub entityResolution: Arc<EntityResolutionService>,
+  pub activity_log_helper: Arc<ActivityLogHelper>,
+  pub entity_resolution: Arc<EntityResolutionService>,
 }
 
 impl ActivityMonitorService {
   pub fn new(
-    activityLogHelper: Arc<ActivityLogHelper>,
-    entityResolution: Arc<EntityResolutionService>,
+    activity_log_helper: Arc<ActivityLogHelper>,
+    entity_resolution: Arc<EntityResolutionService>,
   ) -> Self {
     Self {
-      activityLogHelper,
-      entityResolution,
+      activity_log_helper,
+      entity_resolution,
     }
   }
 
   /// Log activity based on table and operation
-  pub async fn logAction(
+  pub async fn log_action(
     &self,
     table: &str,
     operation: &str,
     data: &Value,
     original: Option<&Value>,
   ) {
-    let sourceData = original.unwrap_or(data);
-    let userId = match self
-      .entityResolution
-      .getUserIdForEntity(table, sourceData)
+    let source_data = original.unwrap_or(data);
+    let user_id = match self
+      .entity_resolution
+      .get_user_id_for_entity(table, source_data)
       .await
     {
       Some(id) => id,
       None => return,
     };
 
-    let activityType = match (table, operation) {
+    let activity_type = match (table, operation) {
       ("todos", "create") => "todo_created",
       ("todos", "update") => "todo_updated",
       ("todos", "delete") => "todo_deleted",
       ("tasks", "create") => "task_created",
       ("tasks", "delete") => "task_deleted",
       ("tasks", "update") => {
-        let origStatus = original
+        let orig_status = original
           .and_then(|o| o.get("status"))
           .and_then(|v| v.as_str());
-        let newStatus = data.get("status").and_then(|v| v.as_str());
-        if newStatus == Some("completed") && origStatus != Some("completed") {
+        let new_status = data.get("status").and_then(|v| v.as_str());
+        if new_status == Some("completed") && orig_status != Some("completed") {
           "task_completed"
         } else {
           "task_updated"
@@ -61,11 +61,11 @@ impl ActivityMonitorService {
       ("subtasks", "create") => "subtask_created",
       ("subtasks", "delete") => "subtask_deleted",
       ("subtasks", "update") => {
-        let origStatus = original
+        let orig_status = original
           .and_then(|o| o.get("status"))
           .and_then(|v| v.as_str());
-        let newStatus = data.get("status").and_then(|v| v.as_str());
-        if newStatus == Some("completed") && origStatus != Some("completed") {
+        let new_status = data.get("status").and_then(|v| v.as_str());
+        if new_status == Some("completed") && orig_status != Some("completed") {
           "subtask_completed"
         } else {
           "subtask_updated"
@@ -74,10 +74,10 @@ impl ActivityMonitorService {
       _ => "",
     };
 
-    if !activityType.is_empty() {
+    if !activity_type.is_empty() {
       let _ = self
-        .activityLogHelper
-        .logActivity(userId, activityType, 1)
+        .activity_log_helper
+        .log_activity(user_id, activity_type, 1)
         .await;
     }
   }
