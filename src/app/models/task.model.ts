@@ -24,7 +24,6 @@ export enum RepeatInterval {
 
 export interface Task {
   id: string;
-  todo: Todo;
   todo_id: string;
   title: string;
   description: string;
@@ -35,12 +34,12 @@ export interface Task {
   end_date: string | null;
   repeat?: RepeatInterval;
   order: number;
-  assignees: string[];
-  depends_on: string[];
+  depends_on?: string[];
   comments: Array<Comment>;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  todo?: Todo;
 }
 
 export interface PriorityOption {
