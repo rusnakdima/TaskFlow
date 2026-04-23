@@ -60,6 +60,9 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
+import { TableField } from "@components/table-view/table-field.model";
 
 @Component({
   selector: "app-subtasks",
@@ -77,6 +80,8 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
     ChatWindowComponent,
     CheckboxComponent,
     BulkActionsComponent,
+    TableViewComponent,
+    ViewModeSwitcherComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -213,8 +218,21 @@ export class SubtasksView extends BaseListView implements OnInit {
     { key: "high", label: "High Priority" },
   ];
 
+  subtaskTableFields: TableField[] = [
+    { key: "title", label: "Subtask", type: "text", sortable: true },
+    { key: "priority", label: "Priority", type: "priority", sortable: true },
+    { key: "status", label: "Status", type: "status" },
+    { key: "start_date", label: "Start Date", type: "date", sortable: true },
+    { key: "end_date", label: "Due Date", type: "date", sortable: true },
+    { key: "created_at", label: "Created", type: "datetime", sortable: true },
+  ];
+
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+    this.pageKey = "subtasks";
+
+    // Load view mode preference
+    this.viewMode.set(this.loadViewModePreference());
 
     // Initialize bulk action service
     this.bulkService.setMode("subtasks");
@@ -309,6 +327,13 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  onRowClick(subtask: any): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { highlightSubtask: subtask.id, openComments: "true" },
+    });
   }
 
   toggleChat() {

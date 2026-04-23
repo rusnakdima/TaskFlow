@@ -62,6 +62,9 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
+import { TableField } from "@components/table-view/table-field.model";
 
 @Component({
   selector: "app-tasks",
@@ -81,6 +84,8 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
     DragDropModule,
     CheckboxComponent,
     BulkActionsComponent,
+    TableViewComponent,
+    ViewModeSwitcherComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -235,8 +240,22 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     { key: "high", label: "High Priority" },
   ];
 
+  taskTableFields: TableField[] = [
+    { key: "title", label: "Task", type: "text", sortable: true },
+    { key: "priority", label: "Priority", type: "priority", sortable: true },
+    { key: "status", label: "Status", type: "status" },
+    { key: "subtasks", label: "Subtasks", type: "array-count" },
+    { key: "start_date", label: "Start Date", type: "date", sortable: true },
+    { key: "end_date", label: "Due Date", type: "date", sortable: true },
+    { key: "created_at", label: "Created", type: "datetime", sortable: true },
+  ];
+
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+    this.pageKey = "tasks";
+
+    // Load view mode preference
+    this.viewMode.set(this.loadViewModePreference());
 
     // Initialize bulk action service
     this.bulkService.setMode("tasks");
@@ -319,7 +338,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.dataSyncProvider
       .crud<Todo>("get", "todos", {
         id: todoId,
-        load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
+        load: [
+          "user",
+          "user.profile",
+          "tasks",
+          "tasks.subtasks",
+          "tasks.subtasks.comments",
+          "tasks.comments",
+          "categories",
+          "assigneesProfiles",
+          "assigneesProfiles.user",
+        ],
         isOwner: this.isOwner(),
         isPrivate: this.isPrivate(),
       })
@@ -497,6 +526,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         parentTodoId: todoId,
       })
       .subscribe();
+  }
+
+  onRowClick(task: any): void {
+    this.router.navigate([task.id], { relativeTo: this.route });
   }
 
   deleteTask(taskId?: string) {

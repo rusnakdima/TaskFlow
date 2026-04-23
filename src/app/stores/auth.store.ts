@@ -64,19 +64,6 @@ export class AuthStore {
   readonly requiresTotp: Signal<boolean> = computed(() => this.state().requiresTotp);
   readonly pendingUsername: Signal<string | null> = computed(() => this.state().pendingUsername);
 
-  // Feature availability checks
-  readonly isPasskeyAvailable: Signal<boolean> = computed(() => {
-    return this.state().securityFeatures?.passkeyEnabled ?? false;
-  });
-
-  readonly isBiometricAvailable: Signal<boolean> = computed(() => {
-    return this.state().securityFeatures?.biometricEnabled ?? false;
-  });
-
-  readonly isTotpEnabled: Signal<boolean> = computed(() => {
-    return this.state().securityFeatures?.totpEnabled ?? false;
-  });
-
   // Actions
   setLoading(loading: boolean): void {
     this.state.update((state) => ({ ...state, loading }));

@@ -35,6 +35,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
+import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -75,7 +76,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private shortcutService: ShortcutService,
     private dataSyncService: DataLoaderService,
     private cdr: ChangeDetectorRef,
-    private relationLoader: RelationLoadingService
+    private relationLoader: RelationLoadingService,
+    private visibilitySyncService: VisibilitySyncService
   ) {
     this.form = fb.group({
       id: [""],
@@ -553,7 +555,10 @@ export class ManageTodoView implements OnInit, OnDestroy {
               try {
                 // Sync visibility change to local storage
                 // This imports the updated todo from cloud and TodoHandler auto-moves it
-                await this.dataSyncProvider.syncSingleTodoVisibilityChange(todoId, newVisibility);
+                await this.visibilitySyncService.syncSingleTodoVisibilityChange(
+                  todoId,
+                  newVisibility
+                );
               } catch (err) {
                 this.notifyService.showWarning("Todo updated, but sync may not have completed.");
               }

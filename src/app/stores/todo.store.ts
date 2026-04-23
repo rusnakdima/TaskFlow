@@ -133,20 +133,6 @@ export class TodoStore {
     return visibility === "private" ? this.privateTodos : this.sharedTodos;
   }
 
-  /**
-   * Get todos with tasks
-   */
-  readonly todosWithTasks: Signal<Todo[]> = computed(() =>
-    this.todos().filter((todo) => todo.tasks && todo.tasks.length > 0)
-  );
-
-  /**
-   * Get todos without tasks
-   */
-  readonly todosWithoutTasks: Signal<Todo[]> = computed(() =>
-    this.todos().filter((todo) => !todo.tasks || todo.tasks.length === 0)
-  );
-
   // ==================== COMMAND METHODS ====================
 
   /**
@@ -171,7 +157,7 @@ export class TodoStore {
    * Set selected todo ID
    */
   selectTodo(todo_id?: string | null): void {
-    this.state.update((state) => ({ ...state, selectedTodoId: todoId }));
+    this.state.update((state) => ({ ...state, selectedTodoId: todo_id }));
   }
 
   /**
@@ -302,23 +288,23 @@ export class TodoStore {
    * Move todo from private to shared (or vice versa)
    */
   moveTodoToShared(todo_id?: string): void {
-    const todo = this.todoById(todoId);
+    const todo = this.todoById(todo_id);
     if (!todo) return;
 
     this.state.update((state) => ({
       ...state,
-      privateTodos: removeEntityFromArray(state.privateTodos, todoId),
+      privateTodos: removeEntityFromArray(state.privateTodos, todo_id),
       sharedTodos: addEntityToArray(state.sharedTodos, { ...todo, visibility: "team" }),
     }));
   }
 
   moveTodoToPrivate(todo_id?: string): void {
-    const todo = this.todoById(todoId);
+    const todo = this.todoById(todo_id);
     if (!todo) return;
 
     this.state.update((state) => ({
       ...state,
-      sharedTodos: removeEntityFromArray(state.sharedTodos, todoId),
+      sharedTodos: removeEntityFromArray(state.sharedTodos, todo_id),
       privateTodos: addEntityToArray(state.privateTodos, { ...todo, visibility: "private" }),
     }));
   }

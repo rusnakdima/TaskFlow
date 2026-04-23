@@ -207,8 +207,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
         this.isOwner = todo.user_id === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: () => {
-      },
+      error: () => {},
     });
   }
 
@@ -222,8 +221,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
     this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
       next: (task: Task) => this.taskInfo.set(task),
-      error: () => {
-      },
+      error: () => {},
     });
   }
 

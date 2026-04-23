@@ -94,6 +94,11 @@
           <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
           New Subtask
         </button>
+        <app-view-mode-switcher
+          [mode]="viewMode()"
+          [pageKey]="'subtasks'"
+          (modeChange)="setViewMode($event)"
+        />
       </div>
     </div>
 
@@ -105,34 +110,60 @@
         <h3 class="textNormal mb-2 text-xl font-semibold">No subtasks found</h3>
       </div>
     } @else {
-      <div
-        class="flex flex-col space-y-2"
-        cdkDropList
-        [cdkDropListData]="listSubtasks()"
-        cdkDropListOrientation="vertical"
-        (cdkDropListDropped)="onSubtaskDrop($event)"
-      >
-        @for (subtask of listSubtasks(); track subtask.id) {
-          <app-subtask
-            [subtask]="subtask"
-            [todo_id]="todoId()"
-            [index]="$index"
-            [isOwner]="isOwner()"
-            [isPrivate]="isPrivate()"
-            [highlight]="highlightSubtask() === subtask.id"
-            [highlightComment]="highlightComment()"
-            [openComments]="
-              openCommentsForSubtaskId() === '*' || openCommentsForSubtaskId() === subtask.id
-            "
-            [isSelected]="selectedSubtasks().has(subtask.id)"
-            (deleteSubtaskEvent)="deleteSubtask($event)"
-            (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
-            (updateSubtaskEvent)="updateSubtaskInline($event)"
-            (selectionChangeEvent)="toggleSubtaskSelection($event)"
-          >
-          </app-subtask>
-        }
-      </div>
+      @if (viewMode() === "table") {
+        <app-table-view
+          [data]="listSubtasks()"
+          [fields]="subtaskTableFields"
+          [selectedIds]="selectedSubtasks()"
+          [showSelection]="true"
+          (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
+          (rowClick)="onRowClick($event)"
+        />
+      } @else if (viewMode() === "grid") {
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          @for (subtask of listSubtasks(); track subtask.id) {
+            <app-subtask
+              [subtask]="subtask"
+              [todo_id]="todoId()"
+              [index]="$index"
+              [isOwner]="isOwner()"
+              [isPrivate]="isPrivate()"
+              [highlight]="highlightSubtask() === subtask.id"
+              [highlightComment]="highlightComment()"
+              [openComments]="
+                openCommentsForSubtaskId() === '*' || openCommentsForSubtaskId() === subtask.id
+              "
+              [isSelected]="selectedSubtasks().has(subtask.id)"
+              (deleteSubtaskEvent)="deleteSubtask($event)"
+              (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
+              (updateSubtaskEvent)="updateSubtaskInline($event)"
+              (selectionChangeEvent)="toggleSubtaskSelection($event)"
+            />
+          }
+        </div>
+      } @else {
+        <div class="w-full">
+          @for (subtask of listSubtasks(); track subtask.id) {
+            <app-subtask
+              [subtask]="subtask"
+              [todo_id]="todoId()"
+              [index]="$index"
+              [isOwner]="isOwner()"
+              [isPrivate]="isPrivate()"
+              [highlight]="highlightSubtask() === subtask.id"
+              [highlightComment]="highlightComment()"
+              [openComments]="
+                openCommentsForSubtaskId() === '*' || openCommentsForSubtaskId() === subtask.id
+              "
+              [isSelected]="selectedSubtasks().has(subtask.id)"
+              (deleteSubtaskEvent)="deleteSubtask($event)"
+              (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
+              (updateSubtaskEvent)="updateSubtaskInline($event)"
+              (selectionChangeEvent)="toggleSubtaskSelection($event)"
+            />
+          }
+        </div>
+      }
     }
   }
 </div>

@@ -223,8 +223,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
         this.isOwner = todo.user_id === this.userId;
         this.isPrivate = todo.visibility === "private";
       },
-      error: (err: unknown) => {
-      },
+      error: (err: unknown) => {},
     });
   }
 

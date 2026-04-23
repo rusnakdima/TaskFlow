@@ -72,6 +72,11 @@
           <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
           New Task
         </button>
+        <app-view-mode-switcher
+          [mode]="viewMode()"
+          [pageKey]="'tasks'"
+          (modeChange)="setViewMode($event)"
+        />
       </div>
     </div>
 
@@ -87,82 +92,110 @@
           }
         </p>
       </div>
-    } @else {
-      <div class="tasks-drop-list" cdkDropListGroup>
-        <div #taskPlaceholder cdkDropList class="tasks-drop-list-placeholder"></div>
+    } @else if (viewMode() === "table") {
+      <app-table-view
+        [data]="listTasks()"
+        [fields]="taskTableFields"
+        [selectedIds]="selectedTasks()"
+        [showSelection]="true"
+        (selectionChange)="toggleTaskSelection({ id: $event.id, selected: $event.selected })"
+        (rowClick)="onRowClick($event)"
+      />
+    } @else if (viewMode() === "grid") {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         @for (task of listTasks(); track task.id) {
-          <div
-            class="tasks-drop-list-item"
-            cdkDropList
-            (cdkDropListEntered)="onTaskListEntered($event)"
-            (cdkDropListDropped)="onTaskListDropped()"
-          >
-            <app-task
-              [id]="'task-' + task.id"
-              [task]="task"
-              [todo_id]="todo()?.id || null"
-              [index]="$index"
-              [isOwner]="isOwner()"
-              [isPrivate]="isPrivate()"
-              [highlight]="highlightTaskId() === task.id"
-              [isSelected]="selectedTasks().has(task.id)"
-              [allTasks]="todo()?.tasks || []"
-              [isExpanded]="isTaskExpanded(task.id)"
-              [showExpandButton]="task.subtasks && task.subtasks.length > 0"
-              [highlightCommentId]="highlightCommentId()"
-              [autoOpenComments]="openComments()"
-              [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
-              (deleteTaskEvent)="deleteTask($event)"
-              (toggleCompletionEvent)="toggleTaskCompletion($event)"
-              (updateTaskEvent)="updateTaskInline($event)"
-              (toggleSubtasksEvent)="toggleExpandTask($event)"
-              (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
-              (selectionChangeEvent)="toggleTaskSelection($event)"
-            />
-          </div>
+          <app-task
+            [id]="'task-' + task.id"
+            [task]="task"
+            [todo_id]="todo()?.id || null"
+            [index]="$index"
+            [isOwner]="isOwner()"
+            [isPrivate]="isPrivate()"
+            [highlight]="highlightTaskId() === task.id"
+            [isSelected]="selectedTasks().has(task.id)"
+            [allTasks]="todo()?.tasks || []"
+            [isExpanded]="isTaskExpanded(task.id)"
+            [showExpandButton]="task.subtasks && task.subtasks.length > 0"
+            [highlightCommentId]="highlightCommentId()"
+            [autoOpenComments]="openComments()"
+            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
+            (deleteTaskEvent)="deleteTask($event)"
+            (toggleCompletionEvent)="toggleTaskCompletion($event)"
+            (updateTaskEvent)="updateTaskInline($event)"
+            (toggleSubtasksEvent)="toggleExpandTask($event)"
+            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+            (selectionChangeEvent)="toggleTaskSelection($event)"
+          />
+        }
+      </div>
+    } @else {
+      <div class="w-full">
+        @for (task of listTasks(); track task.id) {
+          <app-task
+            [id]="'task-' + task.id"
+            [task]="task"
+            [todo_id]="todo()?.id || null"
+            [index]="$index"
+            [isOwner]="isOwner()"
+            [isPrivate]="isPrivate()"
+            [highlight]="highlightTaskId() === task.id"
+            [isSelected]="selectedTasks().has(task.id)"
+            [allTasks]="todo()?.tasks || []"
+            [isExpanded]="isTaskExpanded(task.id)"
+            [showExpandButton]="task.subtasks && task.subtasks.length > 0"
+            [highlightCommentId]="highlightCommentId()"
+            [autoOpenComments]="openComments()"
+            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
+            (deleteTaskEvent)="deleteTask($event)"
+            (toggleCompletionEvent)="toggleTaskCompletion($event)"
+            (updateTaskEvent)="updateTaskInline($event)"
+            (toggleSubtasksEvent)="toggleExpandTask($event)"
+            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+            (selectionChangeEvent)="toggleTaskSelection($event)"
+          />
         }
       </div>
     }
   }
-</div>
 
-<!-- Floating Chat Button -->
-<button
-  (click)="toggleChat()"
-  class="fixed right-6 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700"
->
-  <mat-icon class="h-8 w-8 min-w-8 text-2xl!" [fontIcon]="openChat() ? 'close' : 'chat'" />
-  @if (getUnreadCount() > 0) {
-    <span
-      class="absolute -top-1 -right-1 rounded-full border-2 border-white bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white dark:border-zinc-800"
-    >
-      {{ getUnreadCount() }}
-    </span>
+  <!-- Floating Chat Button -->
+  <button
+    (click)="toggleChat()"
+    class="fixed right-6 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700"
+  >
+    <mat-icon class="h-8 w-8 min-w-8 text-2xl!" [fontIcon]="openChat() ? 'close' : 'chat'" />
+    @if (getUnreadCount() > 0) {
+      <span
+        class="absolute -top-1 -right-1 rounded-full border-2 border-white bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white dark:border-zinc-800"
+      >
+        {{ getUnreadCount() }}
+      </span>
+    }
+  </button>
+
+  <!-- Chat Window -->
+  @if (openChat()) {
+    <app-chat-window [todo_id]="todo()?.id || ''" (close)="toggleChat()" />
   }
-</button>
 
-<!-- Chat Window -->
-@if (openChat()) {
-  <app-chat-window [todo_id]="todo()?.id || ''" (close)="toggleChat()" />
-}
+  <app-filter-bar
+    [filterOptions]="filterOptions"
+    [activeFilter]="activeFilter()"
+    [showFilter]="showFilter()"
+    filterLabel="Status"
+    filterGroupName="task-filter"
+    (filterToggle)="toggleFilter()"
+    (filterChange)="changeFilter($any($event))"
+    (searchChange)="onSearchChange($any($event))"
+  />
 
-<app-filter-bar
-  [filterOptions]="filterOptions"
-  [activeFilter]="activeFilter()"
-  [showFilter]="showFilter()"
-  filterLabel="Status"
-  filterGroupName="task-filter"
-  (filterToggle)="toggleFilter()"
-  (filterChange)="changeFilter($any($event))"
-  (searchChange)="onSearchChange($any($event))"
-/>
-
-<app-bulk-actions
-  [selectedCount]="selectedTasks().size"
-  [isAllSelected]="isAllSelected()"
-  mode="tasks"
-  (selectAllEvent)="toggleSelectAll()"
-  (setStatusEvent)="bulkUpdateStatus($event)"
-  (softDeleteEvent)="bulkArchive()"
-  (cancelEvent)="clearSelection()"
-/>
+  <app-bulk-actions
+    [selectedCount]="selectedTasks().size"
+    [isAllSelected]="isAllSelected()"
+    mode="tasks"
+    (selectAllEvent)="toggleSelectAll()"
+    (setStatusEvent)="bulkUpdateStatus($event)"
+    (softDeleteEvent)="bulkArchive()"
+    (cancelEvent)="clearSelection()"
+  />
+</div>
