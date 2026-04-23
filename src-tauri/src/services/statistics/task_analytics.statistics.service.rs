@@ -2,9 +2,9 @@ use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
 use chrono::DateTime;
 use serde_json::Value;
 
-pub struct task_analytics;
+pub struct TaskAnalytics;
 
-impl task_analytics {
+impl TaskAnalytics {
   pub fn calculate_average_task_time(tasks: &[Value]) -> i32 {
     let completed_tasks: Vec<_> = tasks
       .iter()
