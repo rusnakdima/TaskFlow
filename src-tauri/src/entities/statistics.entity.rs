@@ -2,34 +2,34 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct StatisticsModel {
-  pub totalTasks: i32,
-  pub completionRate: i32,
-  pub averageTaskTime: i32,
-  pub productivityScore: i32,
-  pub previousTotalTasks: i32,
-  pub previousCompletionRate: i32,
-  pub previousAverageTime: i32,
-  pub previousProductivityScore: i32,
+  pub total_tasks: i32,
+  pub completion_rate: i32,
+  pub average_task_time: i32,
+  pub productivity_score: i32,
+  pub previous_total_tasks: i32,
+  pub previous_completion_rate: i32,
+  pub previous_average_time: i32,
+  pub previous_productivity_score: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CompletionTrendItem {
   pub label: String,
   pub value: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DailyActivityItem {
-  pub dayName: String,
+  pub day_name: String,
   pub activity: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct CategoryItem {
   pub name: String,
   pub count: i32,
@@ -38,15 +38,15 @@ pub struct CategoryItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct ChartDataModel {
-  pub completionTrend: Vec<CompletionTrendItem>,
+  pub completion_trend: Vec<CompletionTrendItem>,
   pub categories: Vec<CategoryItem>,
-  pub dailyActivity: Vec<DailyActivityItem>,
+  pub daily_activity: Vec<DailyActivityItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DetailedMetricModel {
   pub name: String,
   pub current: String,
@@ -55,9 +55,9 @@ pub struct DetailedMetricModel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct StatisticsResponseModel {
   pub statistics: StatisticsModel,
-  pub chartData: ChartDataModel,
-  pub detailedMetrics: Vec<DetailedMetricModel>,
+  pub chart_data: ChartDataModel,
+  pub detailed_metrics: Vec<DetailedMetricModel>,
 }

@@ -1,5 +1,5 @@
 use nosql_orm::query::Projection;
-use nosql_orm::relations::RelationDef;
+use nosql_orm::relations::{register_collection_relations, RelationDef, RelationType};
 
 pub struct RelationConfig;
 
@@ -101,10 +101,12 @@ impl RelationConfig {
     )]
   }
 
+  #[allow(dead_code)]
   pub fn categories_relations() -> Vec<(&'static str, RelationDef)> {
     vec![]
   }
 
+  #[allow(dead_code)]
   pub fn get_relations_for_table(table: &str) -> Vec<(&'static str, RelationDef)> {
     match table {
       "todos" => Self::todos_relations(),
@@ -118,6 +120,7 @@ impl RelationConfig {
     }
   }
 
+  #[allow(dead_code)]
   pub fn get_relation_def(table: &str, path: &str) -> Option<RelationDef> {
     let relations = Self::get_relations_for_table(table);
     for (name, def) in relations {
@@ -128,6 +131,7 @@ impl RelationConfig {
     None
   }
 
+  #[allow(dead_code)]
   pub fn needs_user_projection(table: &str, path: &str) -> bool {
     matches!(
       (table, path),
@@ -138,6 +142,63 @@ impl RelationConfig {
         | ("subtasks", "assignees")
         | ("comments", "author")
     )
+  }
+
+  #[allow(dead_code)]
+  pub fn get_relation_type(table: &str, path: &str) -> RelationType {
+    let relations = Self::get_relations_for_table(table);
+    for (name, def) in relations {
+      if name == path {
+        return def.relation_type;
+      }
+    }
+    RelationType::ManyToOne
+  }
+
+  pub fn register_all_relations() {
+    register_collection_relations(
+      "todos",
+      Self::todos_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations(
+      "tasks",
+      Self::tasks_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations(
+      "subtasks",
+      Self::subtasks_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations(
+      "comments",
+      Self::comments_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations(
+      "profiles",
+      Self::profiles_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations(
+      "users",
+      Self::users_relations()
+        .into_iter()
+        .map(|(_n, d)| d)
+        .collect(),
+    );
+    register_collection_relations("categories", vec![]);
   }
 }
 

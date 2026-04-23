@@ -2,11 +2,11 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct PasswordReset {
   pub email: String,
   pub code: String,
-  pub newPassword: String,
+  pub new_password: String,
 }
 
 impl PasswordReset {
@@ -17,8 +17,8 @@ impl PasswordReset {
     if self.code.is_empty() {
       return Err("code cannot be empty".to_string());
     }
-    if self.newPassword.is_empty() {
-      return Err("newPassword cannot be empty".to_string());
+    if self.new_password.is_empty() {
+      return Err("new_password cannot be empty".to_string());
     }
     Ok(())
   }
