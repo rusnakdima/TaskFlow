@@ -1,4 +1,4 @@
-import { WritableSignal } from "@angular/core";
+import { WritableSignal, Signal } from "@angular/core";
 import { EntityHandler } from "./entity-handler.base";
 import { AddOperation, UpdateOperation, RemoveOperation } from "../operations/operation.interface";
 import { Task } from "@models/task.model";
@@ -11,7 +11,11 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   constructor(
     private privateSignal: WritableSignal<Todo[]>,
     private sharedSignal: WritableSignal<Todo[]>,
-    private entityType: "tasks" | "subtasks"
+    private entityType: "tasks" | "subtasks",
+    private storageService?: {
+      getTodoIdForTask: (taskId: string) => string | null;
+      getTaskIdForSubtask: (subtaskId: string) => string | null;
+    }
   ) {
     super();
   }
@@ -25,8 +29,15 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
       this.updateSignal(this.sharedSignal, updater);
       return;
     }
-    this.updateSignal(this.privateSignal, updater, todo_id);
-    this.updateSignal(this.sharedSignal, updater, todo_id);
+    const privateHasTodo = this.privateSignal().some((t) => t.id === todo_id);
+    const sharedHasTodo = this.sharedSignal().some((t) => t.id === todo_id);
+
+    if (privateHasTodo) {
+      this.updateSignal(this.privateSignal, updater, todo_id);
+    }
+    if (sharedHasTodo) {
+      this.updateSignal(this.sharedSignal, updater, todo_id);
+    }
   }
 
   private updateSignal(
@@ -81,71 +92,96 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         ? (updates as any).todo_id || this.lookupTodoId(id)
         : (updates as any).task_id || this.lookupTaskId(id);
 
-    // For subtasks, resolve taskId to todoId
     let todo_id: string | null = entityId;
     if (this.entityType === "subtasks") {
       todo_id = entityId ? this.lookupTodoId(entityId) : null;
     }
 
-    // If we still can't locate the parent, scan all todos and apply the update wherever
-    // the entity is found (M-2: handles the case where the signal hasn't propagated yet)
     if (!todo_id) {
-      const todos = [...this.privateSignal(), ...this.sharedSignal()];
-      for (const todo of todos) {
-        if (this.entityType === "tasks" && todo.tasks?.some((t) => t.id === id)) {
-          this.updateSignal(this.privateSignal, (t) => ({
-            ...t,
-            tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
-            updatedAt: new Date().toISOString(),
-          }), todo.id);
-          this.updateSignal(this.sharedSignal, (t) => ({
-            ...t,
-            tasks: t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [],
-            updatedAt: new Date().toISOString(),
-          }), todo.id);
-          return;
-        }
-        if (this.entityType === "subtasks") {
-          for (const task of todo.tasks || []) {
-            if (task.subtasks?.some((s) => s.id === id)) {
-              this.updateSignal(this.privateSignal, (t) => ({
-                ...t,
-                tasks:
-                  t.tasks?.map((tk) =>
-                    tk.id === task.id
-                      ? {
-                          ...tk,
-                          subtasks: tk.subtasks?.map((s) =>
-                            s.id === id ? { ...s, ...updates } : s
-                          ),
-                        }
-                      : tk
-                  ) ?? [],
-                updatedAt: new Date().toISOString(),
-              }), todo.id);
-              this.updateSignal(this.sharedSignal, (t) => ({
-                ...t,
-                tasks:
-                  t.tasks?.map((tk) =>
-                    tk.id === task.id
-                      ? {
-                          ...tk,
-                          subtasks: tk.subtasks?.map((s) =>
-                            s.id === id ? { ...s, ...updates } : s
-                          ),
-                        }
-                      : tk
-                  ) ?? [],
-                updatedAt: new Date().toISOString(),
-              }));
-              return;
-            }
-          }
-        }
-      }
+      this.applyUpdateByScanning(id, updates);
       return;
     }
 
+    this.updateTodoAtId(id, updates, todo_id, entityId);
+  }
+
+  private applyUpdateByScanning(id: string, updates: Partial<T>): void {
+    const privateResult = this.scanForEntityInSignal(this.privateSignal(), id);
+    if (privateResult.found && privateResult.todoId) {
+      this.applyUpdateToSignal(
+        this.privateSignal,
+        id,
+        updates,
+        privateResult.todoId,
+        privateResult.taskId || undefined
+      );
+    }
+
+    const sharedResult = this.scanForEntityInSignal(this.sharedSignal(), id);
+    if (sharedResult.found && sharedResult.todoId) {
+      this.applyUpdateToSignal(
+        this.sharedSignal,
+        id,
+        updates,
+        sharedResult.todoId,
+        sharedResult.taskId || undefined
+      );
+    }
+  }
+
+  private scanForEntityInSignal(
+    todos: Todo[],
+    id: string
+  ): { found: boolean; todoId: string | null; taskId: string | null } {
+    for (const todo of todos) {
+      if (this.entityType === "tasks" && todo.tasks?.some((t) => t.id === id)) {
+        return { found: true, todoId: todo.id, taskId: null };
+      }
+      if (this.entityType === "subtasks") {
+        for (const task of todo.tasks || []) {
+          if (task.subtasks?.some((s) => s.id === id)) {
+            return { found: true, todoId: todo.id, taskId: task.id };
+          }
+        }
+      }
+    }
+    return { found: false, todoId: null, taskId: null };
+  }
+
+  private applyUpdateToSignal(
+    signal: WritableSignal<Todo[]>,
+    id: string,
+    updates: Partial<T>,
+    todoId: string,
+    taskId?: string
+  ): void {
+    this.updateSignal(
+      signal,
+      (t) => ({
+        ...t,
+        tasks:
+          this.entityType === "tasks"
+            ? (t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [])
+            : (t.tasks?.map((tk) =>
+                tk.id === taskId
+                  ? {
+                      ...tk,
+                      subtasks: tk.subtasks?.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+                    }
+                  : tk
+              ) ?? []),
+        updatedAt: new Date().toISOString(),
+      }),
+      todoId
+    );
+  }
+
+  private updateTodoAtId(
+    id: string,
+    updates: Partial<T>,
+    todoId: string,
+    entityId: string | null
+  ): void {
     this.updateTodo((todo) => {
       if (this.entityType === "tasks") {
         const operation = new UpdateOperation<Task>(id, updates);
@@ -162,7 +198,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         });
         return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
-    }, todo_id);
+    }, todoId);
   }
 
   remove(id: string, parentId?: string): void {
@@ -198,18 +234,24 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   }
 
   getById(id: string): T | undefined {
-    const todos = [...this.privateSignal(), ...this.sharedSignal()];
-    const uniqueTodos = new Map(todos.map((t) => [t.id, t]));
+    for (const todo of this.privateSignal()) {
+      const found = this.findEntityInTodo(todo, id);
+      if (found) return found;
+    }
+    for (const todo of this.sharedSignal()) {
+      const found = this.findEntityInTodo(todo, id);
+      if (found) return found;
+    }
+    return undefined;
+  }
 
-    for (const todo of uniqueTodos.values()) {
-      if (this.entityType === "tasks") {
-        const entity = todo.tasks?.find((t: Task) => t.id === id) as T;
-        if (entity) return entity;
-      } else {
-        for (const task of todo.tasks || []) {
-          const entity = task.subtasks?.find((s: Subtask) => s.id === id) as T;
-          if (entity) return entity;
-        }
+  private findEntityInTodo(todo: Todo, id: string): T | undefined {
+    if (this.entityType === "tasks") {
+      return todo.tasks?.find((t) => t.id === id) as T;
+    } else {
+      for (const task of todo.tasks || []) {
+        const found = task.subtasks?.find((s) => s.id === id) as T;
+        if (found) return found;
       }
     }
     return undefined;
@@ -224,6 +266,9 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   }
 
   private lookupTodoId(task_id?: string): string | null {
+    if (this.storageService && task_id) {
+      return this.storageService.getTodoIdForTask(task_id);
+    }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
       if (todo.tasks?.some((t: Task) => t.id === task_id)) {
@@ -234,6 +279,9 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   }
 
   private lookupTaskId(subtask_id?: string): string | null {
+    if (this.storageService && subtask_id) {
+      return this.storageService.getTaskIdForSubtask(subtask_id);
+    }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
       for (const task of todo.tasks || []) {

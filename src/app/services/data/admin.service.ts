@@ -16,26 +16,26 @@ export class AdminService {
   constructor(private authService: AuthService) {}
 
   getAllDataForAdmin<R>(): Observable<Response<R>> {
-    return from(invoke<Response<R>>("getAllDataForAdmin"));
+    return from(invoke<Response<R>>("get_all_data_for_admin"));
   }
 
   getAllDataForArchive<R>(): Observable<Response<R>> {
-    return from(invoke<Response<R>>("getAllDataForArchive"));
+    return from(invoke<Response<R>>("get_all_data_for_archive"));
   }
 
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("permanentlyDeleteRecord", { table, id });
+    return await invoke<Response<void>>("permanently_delete_record", { table, id });
   }
 
   async permanentlyDeleteRecordLocal(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("permanentlyDeleteRecordLocal", { table, id });
+    return await invoke<Response<void>>("permanently_delete_record_local", { table, id });
   }
 
   async toggleDeleteStatus(table: string, id: string): Promise<Response<boolean>> {
-    return await invoke<Response<boolean>>("toggleDeleteStatus", { table, id });
+    return await invoke<Response<boolean>>("toggle_delete_status", { table, id });
   }
 
   async toggleDeleteStatusLocal(table: string, id: string): Promise<Response<boolean>> {
-    return await invoke<Response<boolean>>("toggleDeleteStatusLocal", { table, id });
+    return await invoke<Response<boolean>>("toggle_delete_status_local", { table, id });
   }
 }

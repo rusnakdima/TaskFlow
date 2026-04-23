@@ -95,17 +95,7 @@ export class DataLoaderService {
           filter,
           isOwner: true,
           isPrivate: true,
-          load: [
-            "user",
-            "user.profile",
-            "tasks",
-            "tasks.subtasks",
-            "tasks.subtasks.comments",
-            "tasks.comments",
-            "categories",
-            "assigneesProfiles",
-            "assigneesProfiles.user",
-          ],
+          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -138,17 +128,7 @@ export class DataLoaderService {
           filter: { user_id: userId, visibility: "team", deleted_at: null },
           isOwner: true,
           isPrivate: false,
-          load: [
-            "user",
-            "user.profile",
-            "tasks",
-            "tasks.subtasks",
-            "tasks.subtasks.comments",
-            "tasks.comments",
-            "categories",
-            "assigneesProfiles",
-            "assigneesProfiles.user",
-          ],
+          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -182,17 +162,7 @@ export class DataLoaderService {
           filter: { assignees: userId, visibility: "team", deleted_at: null },
           isOwner: false,
           isPrivate: false,
-          load: [
-            "user",
-            "user.profile",
-            "tasks",
-            "tasks.subtasks",
-            "tasks.subtasks.comments",
-            "tasks.comments",
-            "categories",
-            "assigneesProfiles",
-            "assigneesProfiles.user",
-          ],
+          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -295,8 +265,8 @@ export class DataLoaderService {
         "getAll",
         "profiles",
         {
-          filter: { userId: userId },
-          load: ["user"],
+          filter: { user_id: userId },
+          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
           isPrivate: true,
           isOwner: true,
         },

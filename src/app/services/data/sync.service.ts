@@ -1,7 +1,7 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, DestroyRef, OnDestroy } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject, Observable, Subscription } from "rxjs";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -24,7 +24,7 @@ export interface SyncProgress {
 @Injectable({
   providedIn: "root",
 })
-export class SyncService {
+export class SyncService implements OnDestroy {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
   private progressSubject = new BehaviorSubject<SyncProgress>({
     isSyncing: false,
@@ -32,6 +32,7 @@ export class SyncService {
     progress: 0,
     message: "Ready to sync",
   });
+  private dataSubscription: Subscription | null = null;
 
   constructor(
     private jwtTokenService: JwtTokenService,
@@ -78,11 +79,12 @@ export class SyncService {
 
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
 
-      const result = await invoke<Response<R>>("importToLocal", { userId });
+      const result = await invoke<Response<R>>("import_to_local", { user_id: userId });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 90, message: "Updating local data..." });
-        this.dataSyncService.loadAllData(true).subscribe();
+        this.unsubscribeData();
+        this.dataSubscription = this.dataSyncService.loadAllData(true).subscribe();
         this.updateProgress({ progress: 100, message: "Import complete" });
         this.notifyService.showSuccess("Data imported successfully from cloud");
       } else {
@@ -118,7 +120,7 @@ export class SyncService {
 
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
 
-      const result = await invoke<Response<R>>("exportToCloud", { userId });
+      const result = await invoke<Response<R>>("export_to_cloud", { user_id: userId });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 100, message: "Export complete" });
@@ -234,5 +236,16 @@ export class SyncService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private unsubscribeData(): void {
+    if (this.dataSubscription) {
+      this.dataSubscription.unsubscribe();
+      this.dataSubscription = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.unsubscribeData();
   }
 }

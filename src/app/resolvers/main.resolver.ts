@@ -94,14 +94,28 @@ export class MainResolver implements Resolve<any> {
   /**
    * Fire-and-forget: Load todo in background
    */
-  private loadTodoInBackground(isPrivate: boolean, todo_id?: string, isOwner: boolean = true): void {
+  private loadTodoInBackground(
+    isPrivate: boolean,
+    todo_id?: string,
+    isOwner: boolean = true
+  ): void {
     if (!todo_id) return;
     this.dataSyncProvider
       .crud<Todo>("get", "todos", {
         id: todo_id,
         isOwner,
         isPrivate,
-        load: ["user", "user.profile", "tasks", "tasks.subtasks", "tasks.subtasks.comments", "tasks.comments", "categories", "assigneesProfiles", "assigneesProfiles.user"],
+        load: [
+          "user",
+          "user.profile",
+          "tasks",
+          "tasks.subtasks",
+          "tasks.subtasks.comments",
+          "tasks.comments",
+          "categories",
+          "assigneesProfiles",
+          "assigneesProfiles.user",
+        ],
       })
       .pipe(
         catchError(() => {
@@ -118,7 +132,11 @@ export class MainResolver implements Resolve<any> {
   /**
    * Fire-and-forget: Load task in background
    */
-  private loadTaskInBackground(isPrivate: boolean, task_id?: string, isOwner: boolean = true): void {
+  private loadTaskInBackground(
+    isPrivate: boolean,
+    task_id?: string,
+    isOwner: boolean = true
+  ): void {
     if (!task_id) return;
     this.dataSyncProvider
       .crud<Task>("get", "tasks", {

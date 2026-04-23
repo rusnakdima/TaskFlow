@@ -41,7 +41,7 @@ export class AuthService {
    * Check if token is valid on backend
    */
   checkToken<R>(token: string): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("checkToken", { token });
+    return this.dataSyncProvider.invokeCommand<R>("check_token", { token });
   }
 
   /**
@@ -369,11 +369,13 @@ export class AuthService {
           }
         },
         error: (err: Error) => {
-          const isNetworkError = err.message.includes("Failed to fetch") ||
-                                 err.message.includes("NetworkError") ||
-                                 err.message.includes("net::");
-          const isBackendUnavailable = err.message.includes("Backend unavailable") ||
-                                      err.message.includes("Connection refused");
+          const isNetworkError =
+            err.message.includes("Failed to fetch") ||
+            err.message.includes("NetworkError") ||
+            err.message.includes("net::");
+          const isBackendUnavailable =
+            err.message.includes("Backend unavailable") ||
+            err.message.includes("Connection refused");
 
           if (isNetworkError || isBackendUnavailable) {
             console.warn("User validation skipped: MongoDB unavailable", err.message);
@@ -381,7 +383,7 @@ export class AuthService {
             console.warn("User not found in MongoDB, invalidating session for user:", userId);
             this.invalidateUserSession();
           }
-        }
+        },
       });
   }
 

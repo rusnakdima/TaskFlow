@@ -16,7 +16,6 @@ import { CommentHandler } from "./entity-handlers/comment.handler";
 import { CategoryHandler } from "./entity-handlers/category.handler";
 import { ProfileHandler } from "./entity-handlers/profile.handler";
 import { ChatHandler } from "./entity-handlers/chat.handler";
-import { ApiProvider } from "@providers/api.provider";
 
 export type StorageEntity = keyof EntityMap;
 
@@ -34,10 +33,6 @@ interface EntityMap {
 export class StorageService extends BaseStorageService {
   private injector = inject(Injector);
 
-  private get dataSyncProvider(): ApiProvider {
-    return this.injector.get(ApiProvider);
-  }
-
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
   private readonly sharedTodosSignal = signal<Todo[]>([]);
@@ -45,14 +40,25 @@ export class StorageService extends BaseStorageService {
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
 
+  // ==================== INDEX MAPS ====================
+  private readonly taskToTodoIndex = new Map<string, string>();
+  private readonly subtaskToTaskIndex = new Map<string, string>();
+
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
     todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal),
-    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks"),
+    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks", {
+      getTodoIdForTask: (id: string) => this.getTodoIdForTask(id),
+      getTaskIdForSubtask: (id: string) => this.getTaskIdForSubtask(id),
+    }),
     subtasks: new NestedEntityHandler<Subtask>(
       this.privateTodosSignal,
       this.sharedTodosSignal,
-      "subtasks"
+      "subtasks",
+      {
+        getTodoIdForTask: (id: string) => this.getTodoIdForTask(id),
+        getTaskIdForSubtask: (id: string) => this.getTaskIdForSubtask(id),
+      }
     ),
     categories: new CategoryHandler(this.categoriesSignal),
     profiles: new ProfileHandler(this.profileSignal),
@@ -123,11 +129,46 @@ export class StorageService extends BaseStorageService {
   readonly profile = this.profileSignal.asReadonly();
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
 
+  // ==================== INDEX LOOKUPS ====================
+  getTodoIdForTask(taskId: string): string | null {
+    return this.taskToTodoIndex.get(taskId) ?? null;
+  }
+
+  getTodoIdForSubtask(subtaskId: string): string | null {
+    const taskId = this.subtaskToTaskIndex.get(subtaskId);
+    return taskId ? (this.taskToTodoIndex.get(taskId) ?? null) : null;
+  }
+
+  getTaskIdForSubtask(subtaskId: string): string | null {
+    return this.subtaskToTaskIndex.get(subtaskId) ?? null;
+  }
+
+  private rebuildIndexes(): void {
+    this.taskToTodoIndex.clear();
+    this.subtaskToTaskIndex.clear();
+    const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
+    for (const todo of allTodos) {
+      for (const task of todo.tasks || []) {
+        if (task.id) {
+          this.taskToTodoIndex.set(task.id, todo.id);
+          for (const subtask of task.subtasks || []) {
+            if (subtask.id) {
+              this.subtaskToTaskIndex.set(subtask.id, task.id);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // ==================== GENERIC CRUD ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
+    if (type === "tasks" && data.id && data.todo_id) {
+      this.taskToTodoIndex.set(data.id, data.todo_id);
+    } else if (type === "subtasks" && data.id && data.task_id) {
+      this.subtaskToTaskIndex.set(data.id, data.task_id);
+    }
     this.handlers[type]?.add(data);
-    // Note: Local JSON persistence is now handled by ApiProvider
-    // isPrivate option kept for backward compatibility but not used here
   }
 
   updateItem(
@@ -149,14 +190,15 @@ export class StorageService extends BaseStorageService {
     } else {
       this.handlers[type]?.update(id, updates);
     }
-    // Note: Local JSON persistence is now handled by ApiProvider
-    // isPrivate option kept for backward compatibility but not used here
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
+    if (type === "tasks") {
+      this.taskToTodoIndex.delete(id);
+    } else if (type === "subtasks") {
+      this.subtaskToTaskIndex.delete(id);
+    }
     this.handlers[type]?.remove(id, parentId);
-    // Note: Local JSON persistence is now handled by ApiProvider
-    // isTeam parameter kept for backward compatibility but not used here
   }
 
   // ==================== PUBLIC GETTERS ====================
@@ -375,6 +417,8 @@ export class StorageService extends BaseStorageService {
     this.profileSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
+    this.taskToTodoIndex.clear();
+    this.subtaskToTaskIndex.clear();
   }
 
   setCollection<T extends "categories" | "profiles" | "privateTodos" | "sharedTodos">(
@@ -394,9 +438,11 @@ export class StorageService extends BaseStorageService {
         break;
       case "privateTodos":
         this.privateTodosSignal.set(items as Todo[]);
+        this.rebuildIndexes();
         break;
       case "sharedTodos":
         this.sharedTodosSignal.set(items as Todo[]);
+        this.rebuildIndexes();
         break;
     }
   }
