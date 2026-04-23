@@ -19,18 +19,32 @@
             </label>
             <div class="min-w-0 flex-1">
               <div class="mb-1 flex items-center gap-3">
-                <h3
-                  class="textNormal truncate text-lg font-semibold transition-colors group-hover:text-green-600 dark:group-hover:text-green-400"
-                  [ngClass]="
-                    task.status === 'completed' ||
-                    task.status === 'skipped' ||
-                    task.status === 'failed'
-                      ? 'text-gray-500 line-through dark:text-gray-400'
-                      : ''
-                  "
-                >
-                  {{ task.title }}
-                </h3>
+                @if (editingField() === "title") {
+                  <input
+                    [ngModel]="editingValue()"
+                    (ngModelChange)="editingValue.set($event)"
+                    (blur)="saveInlineEdit()"
+                    (keyup.enter)="saveInlineEdit()"
+                    (keyup.escape)="cancelInlineEdit()"
+                    class="textNormal w-full rounded border border-green-500 bg-transparent px-2 py-1 text-lg font-semibold focus:outline-none"
+                    (click)="$event.stopPropagation()"
+                  />
+                } @else {
+                  <h3
+                    class="textNormal truncate text-lg font-semibold transition-colors group-hover:text-green-600 dark:group-hover:text-green-400"
+                    [ngClass]="
+                      task.status === 'completed' ||
+                      task.status === 'skipped' ||
+                      task.status === 'failed'
+                        ? 'text-gray-500 line-through dark:text-gray-400'
+                        : ''
+                    "
+                    (dblclick)="isOwner && startInlineEdit('title', task.title)"
+                    title="Double-click to edit title"
+                  >
+                    {{ task.title }}
+                  </h3>
+                }
                 @if (unreadCommentsCount > 0) {
                   <div
                     class="flex shrink-0 animate-pulse items-center gap-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"

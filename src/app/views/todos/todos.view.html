@@ -193,6 +193,7 @@
             (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
             (saveAsBlueprintEvent)="saveAsBlueprint($event)"
             (selectionChangeEvent)="toggleTodoSelection($event)"
+            (updateTodoEvent)="onUpdateTodo(todo, $event)"
           />
         }
       </div>
@@ -210,6 +211,7 @@
             (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
             (saveAsBlueprintEvent)="saveAsBlueprint($event)"
             (selectionChangeEvent)="toggleTodoSelection($event)"
+            (updateTodoEvent)="onUpdateTodo(todo, $event)"
           />
         }
       </div>
