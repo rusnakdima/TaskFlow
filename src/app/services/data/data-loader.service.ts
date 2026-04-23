@@ -84,7 +84,7 @@ export class DataLoaderService {
    * Fire-and-forget: Load private todos
    */
   private loadPrivateTodos(userId: string): void {
-    const filter = { user_id: userId, visibility: "private", deleted_at: null };
+    const filter = { user_id: userId };
     console.log("[DataLoader] loadPrivateTodos called with filter:", JSON.stringify(filter));
 
     this.apiProvider
@@ -125,7 +125,7 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { user_id: userId, visibility: "team", deleted_at: null },
+          filter: { user_id: userId },
           isOwner: true,
           isPrivate: false,
           load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
@@ -159,7 +159,7 @@ export class DataLoaderService {
         "getAll",
         "todos",
         {
-          filter: { assignees: userId, visibility: "team", deleted_at: null },
+          filter: { assignees: userId },
           isOwner: false,
           isPrivate: false,
           load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
@@ -266,9 +266,9 @@ export class DataLoaderService {
         "profiles",
         {
           filter: { user_id: userId },
-          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
           isPrivate: true,
           isOwner: true,
+          load: ["user"],
         },
         true
       )
@@ -283,7 +283,10 @@ export class DataLoaderService {
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
             if (profileObj?.user_id) {
-              console.log("[DataLoader] Profile found, updating storage:", profileObj);
+              console.log(
+                "[DataLoader] Profile found with user relation, updating storage:",
+                profileObj
+              );
               this.storageService.setCollection("profiles", profileObj);
               return profileObj;
             }
