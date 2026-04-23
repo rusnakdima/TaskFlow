@@ -170,21 +170,24 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   getTodoInfo(todoId: string) {
     // Use storage first — no network call when todo is already cached
-    const todoFromStorage = this.storageService.getById("todos", todoId);
+    const todoFromStorage = this.storageService.getById("todos", todoId) as Todo | undefined;
     if (todoFromStorage) {
       this.applyTodoToForm(todoFromStorage);
       return;
     }
 
+    // Determine sync_metadata - default to team visibility (MongoDB) since todo is not in storage
+    const syncMetadata = { is_owner: true, is_private: false };
+
     // Todo not in storage — fetch once with relations
     this.relationLoader
-      .load<Todo>(this.dataSyncProvider, "todos", todoId, [
-        "user",
-        "tasks",
-        "tasks.subtasks",
-        "tasks.comments",
-        "categories",
-      ])
+      .load<Todo>(
+        this.dataSyncProvider,
+        "todos",
+        todoId,
+        ["user", "tasks", "categories"],
+        syncMetadata
+      )
       .subscribe({
         next: (todo: Todo) => {
           this.storageService.updateItem("todos", todo.id, todo);
@@ -269,27 +272,25 @@ export class ManageTodoView implements OnInit, OnDestroy {
       return of(storedProfiles);
     }
 
-    // Otherwise, fetch all profiles with user relation and filter
-    return this.dataSyncProvider
-      .crud<Profile[]>("getAll", "profiles", { filter: {}, load: ["user"] }, true)
-      .pipe(
-        map((profiles) => {
-          if (!profiles || profiles.length === 0) {
-            // Return what we found in storage
-            return storedProfiles;
-          }
-          // Filter profiles by user IDs and merge with stored profiles
-          const fetchedProfiles = profiles.filter((p) => userIds.includes(p.user_id));
-          const profileMap = new Map<string, Profile>();
-          storedProfiles.forEach((p) => profileMap.set(p.user_id, p));
-          fetchedProfiles.forEach((p) => profileMap.set(p.user_id, p));
-          return Array.from(profileMap.values());
-        }),
-        catchError(() => {
-          // On error, return what we found in storage
-          return of(storedProfiles);
-        })
-      );
+    // Otherwise, fetch all profiles and filter
+    return this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: {} }, true).pipe(
+      map((profiles) => {
+        if (!profiles || profiles.length === 0) {
+          // Return what we found in storage
+          return storedProfiles;
+        }
+        // Filter profiles by user IDs and merge with stored profiles
+        const fetchedProfiles = profiles.filter((p) => userIds.includes(p.user_id));
+        const profileMap = new Map<string, Profile>();
+        storedProfiles.forEach((p) => profileMap.set(p.user_id, p));
+        fetchedProfiles.forEach((p) => profileMap.set(p.user_id, p));
+        return Array.from(profileMap.values());
+      }),
+      catchError(() => {
+        // On error, return what we found in storage
+        return of(storedProfiles);
+      })
+    );
   }
 
   back() {
@@ -318,7 +319,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     const fromStorage = Array.from(profileMap.values());
     this.availableProfiles.set(fromStorage);
 
-    // 2. Load all profiles with user relation from backend/JSON in background;
+    // 2. Load all profiles from backend/JSON in background;
     //    update storage with current user's profile so header gets profile with user
     this.dataSyncProvider
       .crud<Profile[]>(
@@ -326,7 +327,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
         "profiles",
         {
           filter: {},
-          load: ["user"],
           isPrivate: false,
           isOwner: false,
         },

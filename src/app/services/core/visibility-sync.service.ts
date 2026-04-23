@@ -267,8 +267,19 @@ export class VisibilitySyncService {
 
   private async importTodoToLocalDb(todo_id?: string): Promise<void> {
     if (!todo_id) return;
+
+    // Determine correct sync_metadata based on the todo's current visibility
+    const todo = this.storageService.getById("todos", todo_id);
+    const isPrivate = todo?.visibility === "private";
+
     const cloudTodo = await firstValueFrom(
-      this.apiProvider.crud<Todo>("get", "todos", { id: todo_id }).pipe(catchError(() => of(null)))
+      this.apiProvider
+        .crud<Todo>("get", "todos", {
+          id: todo_id,
+          isOwner: !isPrivate, // team todos are owned but not private
+          isPrivate,
+        })
+        .pipe(catchError(() => of(null)))
     );
 
     if (!cloudTodo) {

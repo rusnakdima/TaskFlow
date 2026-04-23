@@ -24,7 +24,7 @@ export class AdminDataService {
   }
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
-    const { showDeleted = false, isOwner = true, isPrivate = false } = options;
+    const { showDeleted = false, isOwner = false, isPrivate = false } = options;
 
     const tables = [
       { key: "todos", load: ["user"] },
