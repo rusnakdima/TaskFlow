@@ -64,6 +64,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
+  @Output() toggleInfoBlockEvent: EventEmitter<boolean> = new EventEmitter();
 
   themeVal = signal("");
   title = signal("");
@@ -79,6 +80,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   isBack = signal(false);
   isSyncing = signal(false);
+  showInfoBlock = signal(false);
 
   notifications = this.notifyService.notifications;
   unreadCount = this.notifyService.unreadCount;
@@ -199,6 +201,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     return breadcrumbs;
+  }
+
+  toggleInfoBlock() {
+    const newState = !this.showInfoBlock();
+    this.showInfoBlock.set(newState);
+    this.toggleInfoBlockEvent.emit(newState);
   }
 
   goBack() {
