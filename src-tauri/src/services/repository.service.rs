@@ -130,9 +130,13 @@ impl RepositoryService {
         segments
       );
 
-      // For multi-segment paths (e.g., "tasks.subtasks"), load one level at a time
+      // For multi-segment paths, we process segment by segment
+      // Each segment builds on the previous one's results
       let mut docs_to_process = current_docs.clone();
-      let mut accumulated_docs = Vec::new();
+
+      // Build a mapping of segment to its parent IDs
+      let mut parent_ids_by_segment: Vec<Vec<String>> = Vec::new();
+      parent_ids_by_segment.push(Vec::new()); // Initialize for first segment
 
       for (idx, segment) in segments.iter().enumerate() {
         tracing::info!(
@@ -144,9 +148,35 @@ impl RepositoryService {
 
         let loader = RelationLoader::new(self.json_provider.clone());
 
+        // Determine which table to use for this segment
+        let current_table = if idx == 0 { table } else { segment };
+
+        // Extract parent IDs from the current docs (from previous segment's results)
+        if idx > 0 {
+          let parent_ids: Vec<String> = docs_to_process
+            .iter()
+            .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
+          tracing::info!(
+            "[REPO] Extracted {} parent IDs for segment '{}': {:?}",
+            parent_ids.len(),
+            segment,
+            parent_ids.iter().take(3).collect::<Vec<_>>()
+          );
+          if parent_ids_by_segment.len() <= idx {
+            parent_ids_by_segment.push(parent_ids);
+          } else {
+            parent_ids_by_segment[idx] = parent_ids;
+          }
+        }
+
+        // Prepare docs with collection metadata
         for doc in docs_to_process.iter_mut() {
           if let Some(obj) = doc.as_object_mut() {
-            obj.insert("_collection".to_string(), Value::String(table.to_string()));
+            obj.insert(
+              "_collection".to_string(),
+              Value::String(current_table.to_string()),
+            );
           }
         }
 
@@ -161,6 +191,14 @@ impl RepositoryService {
               segment,
               loaded_docs.len()
             );
+            // Show first loaded doc structure for debugging
+            if let Some(first) = loaded_docs.first() {
+              tracing::debug!(
+                "[REPO] First loaded doc keys: {:?}",
+                first.as_object().map(|o| o.keys().collect::<Vec<_>>())
+              );
+              tracing::debug!("[REPO] First loaded doc: {}", first);
+            }
             docs_to_process = loaded_docs;
           }
           Err(e) => {
@@ -189,22 +227,107 @@ impl RepositoryService {
       let final_docs = if !docs_to_process.is_empty() {
         docs_to_process.clone()
       } else {
-        accumulated_docs.clone()
+        Vec::new()
       };
 
       // If this was a single-segment path, use result directly
       if segments.len() == 1 {
         current_docs = docs_to_process;
       } else {
-        // For multi-segment, we need to attach back to original docs
-        // This is a simplified approach - attach loaded relations to parent
+        // For multi-segment, we need to properly merge results back
+        // The loaded docs contain all nested relations - need to attach to parents
         if !final_docs.is_empty() {
-          current_docs = final_docs;
+          // For multi-segment loading like tasks.subtasks, the result contains subtasks
+          // We need to group them by their parent and attach to tasks
+          let merged = self.merge_nested_results(current_docs.clone(), final_docs, &segments);
+          current_docs = merged;
         }
       }
     }
 
     Ok(current_docs)
+  }
+
+  /// Merge nested results back into parent documents
+  /// For "tasks.subtasks", this attaches subtasks to their parent tasks
+  fn merge_nested_results(
+    &self,
+    parents: Vec<Value>,
+    nested_results: Vec<Value>,
+    segments: &[&str],
+  ) -> Vec<Value> {
+    if segments.len() < 2 {
+      return nested_results;
+    }
+
+    let parent_segment = segments[0]; // e.g., "tasks"
+    let child_segment = segments[1]; // e.g., "subtasks"
+
+    tracing::info!(
+      "[REPO] merge_nested_results: parent_segment={}, child_segment={}, parents={}, nested={}",
+      parent_segment,
+      child_segment,
+      parents.len(),
+      nested_results.len()
+    );
+
+    // Determine the foreign key field on the child that references the parent
+    // For subtasks, it's "task_id"; for comments it might be "task_id" or "subtask_id"
+    let foreign_key = match child_segment {
+      "subtasks" => "task_id",
+      "comments" => "task_id",
+      "tasks" => "todo_id",
+      _ => "id",
+    };
+
+    tracing::info!("[REPO] Using foreign_key='{}' for grouping", foreign_key);
+
+    // Group nested results by their foreign key
+    let mut grouped: std::collections::HashMap<String, Vec<Value>> =
+      std::collections::HashMap::new();
+    for doc in nested_results.iter() {
+      if let Some(fk_value) = doc.get(foreign_key).and_then(|v| v.as_str()) {
+        let key = fk_value.to_string();
+        grouped
+          .entry(key)
+          .or_insert_with(Vec::new)
+          .push(doc.clone());
+      }
+    }
+
+    tracing::info!("[REPO] Grouped {} parent keys", grouped.len());
+
+    // Attach nested results to parent documents
+    let mut result: Vec<Value> = Vec::new();
+    for parent in parents.iter() {
+      if let Some(parent_obj) = parent.as_object() {
+        let mut parent_clone = parent_obj.clone();
+
+        // Get parent ID
+        if let Some(parent_id) = parent_obj.get("id").and_then(|v| v.as_str()) {
+          // Check if there are children grouped under this parent
+          if let Some(children) = grouped.get(parent_id) {
+            parent_clone.insert(child_segment.to_string(), Value::Array(children.clone()));
+            tracing::debug!(
+              "[REPO] Attached {} {} to parent {}",
+              children.len(),
+              child_segment,
+              parent_id
+            );
+          }
+        }
+
+        result.push(Value::Object(parent_clone));
+      } else {
+        result.push(parent.clone());
+      }
+    }
+
+    tracing::info!(
+      "[REPO] merge_nested_results returning {} docs",
+      result.len()
+    );
+    result
   }
 
   /// Recursively filter sensitive fields from all user objects at any nesting level
