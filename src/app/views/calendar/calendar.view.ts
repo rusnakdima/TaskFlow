@@ -90,8 +90,9 @@ export class CalendarView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     tasks.forEach((task) => {
-      const isPrivate = task.todo.visibility === "private";
-      const isOwner = task.todo.user_id === userId;
+      const taskTodo = task.todo;
+      const isPrivate = taskTodo?.visibility === "private";
+      const isOwner = taskTodo?.user_id === userId;
 
       if (task.start_date) {
         newEvents.push({
@@ -101,7 +102,7 @@ export class CalendarView implements OnInit {
           type: "task",
           status: "start",
           description: task.description,
-          todo_id: task.todo.id,
+          todo_id: taskTodo?.id || task.todo_id,
           isPrivate,
           isOwner,
         });
@@ -125,7 +126,7 @@ export class CalendarView implements OnInit {
           type: "task",
           status,
           description: task.description,
-          todo_id: task.todo.id,
+          todo_id: taskTodo?.id || task.todo_id,
           isPrivate,
           isOwner,
         });
