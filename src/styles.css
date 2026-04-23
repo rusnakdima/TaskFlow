@@ -439,6 +439,19 @@ mat-checkbox.no-check-icon .mdc-checkbox__checkmark {
   display: none !important;
 }
 
+mat-checkbox {
+  @apply -top-[10px]! -left-[10px]!
+}
+
+/* Remove margins from checkbox */
+mat-checkbox.no-check-icon,
+mat-checkbox.no-check-icon .mdc-checkbox,
+mat-checkbox.no-check-icon .mdc-checkbox__native-control {
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+}
+
 /* Custom checkbox styling for no-check-icon */
 mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
   background-color: #2563eb !important;
