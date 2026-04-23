@@ -10,7 +10,9 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  HostListener,
 } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 
 /* base */
 import { BaseItemComponent } from "@components/base-item.component";
@@ -48,6 +50,7 @@ import { TaskStatus } from "@models/task.model";
     DragDropModule,
     ProgressBarComponent,
     CheckboxComponent,
+    FormsModule,
   ],
   templateUrl: "./todo.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,15 +71,25 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
 
   @Output() deleteTodoEvent: EventEmitter<string> = new EventEmitter();
   @Output() saveAsBlueprintEvent: EventEmitter<Todo> = new EventEmitter();
+  @Output() updateTodoEvent: EventEmitter<{ field: string; value: any }> = new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
 
   isExpandedDetails = signal(false);
   isDragging = signal(false);
+  isMenuOpen = signal(false);
 
   ngOnInit() {
     // Force change detection when component initializes to ensure relation data is displayed
     this.cdr.markForCheck();
+  }
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (this.isMenuOpen() && !target.closest(".todo-menu")) {
+      this.closeMenu();
+    }
   }
 
   truncateString = Common.truncateString;
@@ -85,6 +98,19 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     event.stopPropagation();
     this.isExpandedDetails.update((v) => !v);
     this.cdr.markForCheck();
+  }
+
+  toggleMenu(event: any) {
+    event.stopPropagation();
+    this.isMenuOpen.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  closeMenu() {
+    if (this.isMenuOpen()) {
+      this.isMenuOpen.set(false);
+      this.cdr.markForCheck();
+    }
   }
 
   getAssigneeImageUrl(assignee: any): string {
@@ -126,6 +152,20 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     if (this.todo) {
       this.deleteTodoEvent.emit(this.todo.id);
     }
+  }
+
+  saveInlineEdit() {
+    if (this.editingValue().trim() && this.editingField() && this.todo) {
+      const originalValue =
+        this.editingField() === "title" ? this.todo.title : this.todo.description;
+      if (this.editingValue().trim() !== originalValue) {
+        this.updateTodoEvent.emit({
+          field: this.editingField()!,
+          value: this.editingValue().trim(),
+        });
+      }
+    }
+    this.cancelInlineEdit();
   }
 
   onSaveAsBlueprint(event: any) {

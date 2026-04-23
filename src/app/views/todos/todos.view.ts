@@ -338,6 +338,25 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
+  onUpdateTodo(todo: any, event: { field: string; value: any }): void {
+    const { field, value } = event;
+    this.dataSyncProvider
+      .crud("update", "todos", {
+        id: todo.id,
+        data: { [field]: value },
+        isOwner: todo.user_id === this.userId(),
+        isPrivate: !this.isSharedMode(),
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Project updated successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update project");
+        },
+      });
+  }
+
   onRowClick(todo: any): void {
     this.router.navigate(["/todos", todo.id, "tasks"]);
   }
