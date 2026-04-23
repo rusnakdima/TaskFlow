@@ -10,8 +10,9 @@ use crate::entities::sync_metadata_entity::SyncMetadata;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
-pub async fn manageData(
+pub async fn manage_data(
   state: State<'_, AppState>,
   operation: String,
   table: String,
@@ -20,10 +21,10 @@ pub async fn manageData(
   filter: Option<Value>,
   relations: Option<Vec<RelationObj>>,
   load: Option<Vec<String>>,
-  syncMetadata: Option<SyncMetadata>,
+  sync_metadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .repositoryService
+    .repository_service
     .execute(
       operation,
       table,
@@ -32,7 +33,7 @@ pub async fn manageData(
       filter,
       relations,
       load,
-      syncMetadata,
+      sync_metadata,
     )
     .await
 }
@@ -40,106 +41,109 @@ pub async fn manageData(
 // ==================== SYNC OPERATIONS ====================
 
 #[tauri::command]
-pub async fn importToLocal(
+pub async fn import_to_local(
   state: State<'_, AppState>,
-  userId: String,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.importToLocal(userId).await
+  state.manage_db_service.import_to_local(user_id).await
 }
 
 #[tauri::command]
-pub async fn exportToCloud(
+pub async fn export_to_cloud(
   state: State<'_, AppState>,
-  userId: String,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.exportToCloud(userId).await
+  state.manage_db_service.export_to_cloud(user_id).await
 }
 
 // ==================== ADMIN MANAGEMENT ENDPOINTS ====================
 
 /// Get all data from local JSON for Archive page (all users, includes deleted)
 #[tauri::command]
-pub async fn getAllDataForArchive(
+pub async fn get_all_data_for_archive(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.getAllDataForArchive().await
+  state.manage_db_service.get_all_data_for_archive().await
 }
 
 /// Get all data for admin from MongoDB (global view with all users' data)
 #[tauri::command]
-pub async fn getAllDataForAdmin(
+pub async fn get_all_data_for_admin(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.getAllDataForAdmin().await
+  state.manage_db_service.get_all_data_for_admin().await
 }
 
 #[tauri::command]
-pub async fn permanentlyDeleteRecord(
+pub async fn permanently_delete_record(
   state: State<'_, AppState>,
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .manageDbService
-    .permanentlyDeleteRecord(table, id)
+    .manage_db_service
+    .permanently_delete_record(table, id)
     .await
 }
 
 #[tauri::command]
-pub async fn toggleDeleteStatus(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.manageDbService.toggleDeleteStatus(table, id).await
-}
-
-#[tauri::command]
-pub async fn toggleDeleteStatusLocal(
+pub async fn toggle_delete_status(
   state: State<'_, AppState>,
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .manageDbService
-    .toggleDeleteStatusLocal(table, id)
+    .manage_db_service
+    .toggle_delete_status(table, id)
     .await
 }
 
 #[tauri::command]
-pub async fn permanentlyDeleteRecordLocal(
+pub async fn toggle_delete_status_local(
   state: State<'_, AppState>,
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .manageDbService
-    .permanentlyDeleteRecordLocal(table, id)
+    .manage_db_service
+    .toggle_delete_status_local(table, id)
     .await
 }
 
 #[tauri::command]
-pub async fn syncVisibilityToProvider(
+pub async fn permanently_delete_record_local(
   state: State<'_, AppState>,
-  todoId: String,
-  sourceProvider: String,
-  targetProvider: String,
+  table: String,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .permanently_delete_record_local(table, id)
+    .await
+}
+
+#[tauri::command]
+pub async fn sync_visibility_to_provider(
+  state: State<'_, AppState>,
+  todo_id: String,
+  source_provider: String,
+  target_provider: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::provider_type_entity::ProviderType;
 
-  let source = if sourceProvider == "Mongo" {
+  let source = if source_provider == "Mongo" {
     ProviderType::Mongo
   } else {
     ProviderType::Json
   };
-  let target = if targetProvider == "Mongo" {
+  let target = if target_provider == "Mongo" {
     ProviderType::Mongo
   } else {
     ProviderType::Json
   };
 
   state
-    .repositoryService
-    .handle_sync_visibility_to_provider(todoId, source, target)
+    .repository_service
+    .handle_sync_visibility_to_provider(todo_id, source, target)
     .await
 }

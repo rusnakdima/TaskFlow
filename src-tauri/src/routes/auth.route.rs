@@ -10,244 +10,246 @@ use crate::entities::{
 };
 
 #[tauri::command]
-pub async fn checkToken(
+pub async fn check_token(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.checkToken(token).await
+  state.auth_service.check_token(token).await
 }
 
 #[tauri::command]
 pub async fn login(
   state: State<'_, AppState>,
-  loginForm: LoginForm,
+  login_form: LoginForm,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.login(loginForm).await
+  state.auth_service.login(login_form).await
 }
 
 #[tauri::command]
 pub async fn register(
   state: State<'_, AppState>,
-  signupForm: SignupForm,
+  signup_form: SignupForm,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.register(signupForm).await
+  state.auth_service.register(signup_form).await
 }
 
 #[tauri::command]
-pub async fn requestPasswordReset(
+pub async fn request_password_reset(
   state: State<'_, AppState>,
   email: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .requestPasswordReset(email, &state.configHelper)
+    .auth_service
+    .request_password_reset(email, &state.config_helper)
     .await
 }
 
 #[tauri::command]
-pub async fn verifyCode(
+pub async fn verify_code(
   state: State<'_, AppState>,
   email: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.verifyCode(email, code).await
+  state.auth_service.verify_code(email, code).await
 }
 
 #[tauri::command]
-pub async fn resetPassword(
+pub async fn reset_password(
   state: State<'_, AppState>,
-  resetData: PasswordReset,
+  reset_data: PasswordReset,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.resetPassword(resetData).await
+  state.auth_service.reset_password(reset_data).await
 }
 
 #[tauri::command]
-pub async fn setupTotp(
-  state: State<'_, AppState>,
-  username: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.authService.setupTotp(username).await
-}
-
-#[tauri::command]
-pub async fn enableTotp(
+pub async fn setup_totp(
   state: State<'_, AppState>,
   username: String,
-  code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.enableTotp(username, code).await
+  state.auth_service.setup_totp(username).await
 }
 
 #[tauri::command]
-pub async fn verifyLoginTotp(
+pub async fn enable_totp(
   state: State<'_, AppState>,
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.verifyLoginTotp(username, code).await
+  state.auth_service.enable_totp(username, code).await
 }
 
 #[tauri::command]
-pub async fn disableTotp(
+pub async fn verify_login_totp(
   state: State<'_, AppState>,
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.disableTotp(username, code).await
+  state.auth_service.verify_login_totp(username, code).await
 }
 
 #[tauri::command]
-pub async fn useRecoveryCode(
+pub async fn disable_totp(
   state: State<'_, AppState>,
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.useRecoveryCode(username, code).await
+  state.auth_service.disable_totp(username, code).await
 }
 
 #[tauri::command]
-pub async fn initPasskeyRegistration(
+pub async fn use_recovery_code(
+  state: State<'_, AppState>,
+  username: String,
+  code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.auth_service.use_recovery_code(username, code).await
+}
+
+#[tauri::command]
+pub async fn init_passkey_registration(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.initPasskeyRegistration(username).await
+  state.auth_service.init_passkey_registration(username).await
 }
 
 #[tauri::command]
-pub async fn completePasskeyRegistration(
+pub async fn complete_passkey_registration(
   state: State<'_, AppState>,
   username: String,
-  responseJson: String,
+  response_json: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .completePasskeyRegistration(username, responseJson)
+    .auth_service
+    .complete_passkey_registration(username, response_json)
     .await
 }
 
 #[tauri::command]
-pub async fn initPasskeyAuthentication(
+pub async fn init_passkey_authentication(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .initPasskeyAuthentication(username.as_ref().map(|s| s.as_str()))
+    .auth_service
+    .init_passkey_authentication(username.as_deref())
     .await
 }
 
 #[tauri::command]
-pub async fn completePasskeyAuthentication(
+pub async fn complete_passkey_authentication(
   state: State<'_, AppState>,
   username: String,
-  responseJson: String,
+  response_json: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .completePasskeyAuthentication(username, responseJson)
+    .auth_service
+    .complete_passkey_authentication(username, response_json)
     .await
 }
 
 #[tauri::command]
-pub async fn disablePasskey(
+pub async fn disable_passkey(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.disablePasskey(username).await
+  state.auth_service.disable_passkey(username).await
 }
 
 #[tauri::command]
-pub async fn enableBiometric(
+pub async fn enable_biometric(
   state: State<'_, AppState>,
   username: String,
-  credentialId: String,
-  publicKey: String,
+  credential_id: String,
+  public_key: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .enableBiometric(username, credentialId, publicKey)
+    .auth_service
+    .enable_biometric(username, credential_id, public_key)
     .await
 }
 
 #[tauri::command]
-pub async fn initBiometricAuth(
+pub async fn init_biometric_auth(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .initBiometricAuth(username.as_ref().map(|s| s.as_str()))
+    .auth_service
+    .init_biometric_auth(username.as_deref())
     .await
 }
 
 #[tauri::command]
-pub async fn completeBiometricAuth(
+pub async fn complete_biometric_auth(
   state: State<'_, AppState>,
   username: String,
   signature: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .authService
-    .completeBiometricAuth(username, signature)
+    .auth_service
+    .complete_biometric_auth(username, signature)
     .await
 }
 
 #[tauri::command]
-pub async fn disableBiometric(
+pub async fn disable_biometric(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.disableBiometric(username).await
+  state.auth_service.disable_biometric(username).await
 }
 
 #[tauri::command]
-pub async fn initTotpQrLogin(
+pub async fn init_totp_qr_login(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.initTotpQrLogin(username).await
+  state.auth_service.init_totp_qr_login(username).await
 }
 
 #[tauri::command]
-pub async fn getUserSecurityStatus(
+pub async fn get_user_security_status(
   state: State<'_, AppState>,
   _username: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
   use crate::entities::user_entity::UserEntity;
-  use crate::helpers::response_helper::errResponse;
+  use crate::helpers::response_helper::err_response;
   use nosql_orm::provider::DatabaseProvider;
 
-  // Try JSON provider first
-  let user_result: Option<UserEntity> =
-    match state.repositoryService.jsonProvider.find_all("users").await {
-      Ok(users) => {
-        if let Some(user_val) = users.first() {
-          serde_json::from_value(user_val.clone()).ok()
-        } else {
-          None
-        }
+  let user_result: Option<UserEntity> = match state
+    .repository_service
+    .json_provider
+    .find_all("users")
+    .await
+  {
+    Ok(users) => {
+      if let Some(user_val) = users.first() {
+        serde_json::from_value(user_val.clone()).ok()
+      } else {
+        None
       }
-      Err(_) => None,
-    };
+    }
+    Err(_) => None,
+  };
 
-  // Fall back to MongoDB
   let user = if let Some(user) = user_result {
     user
-  } else if let Some(ref mongo) = state.repositoryService.mongodbProvider {
+  } else if let Some(ref mongo) = state.repository_service.mongodb_provider {
     match mongo.find_all("users").await {
       Ok(users) => {
         if let Some(user_val) = users.first() {
           serde_json::from_value(user_val.clone())
-            .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?
+            .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?
         } else {
-          return Err(errResponse("User not found"));
+          return Err(err_response("User not found"));
         }
       }
-      Err(e) => return Err(errResponse(&format!("Database error: {}", e))),
+      Err(e) => return Err(err_response(&format!("Database error: {}", e))),
     }
   } else {
-    return Err(errResponse("User not found"));
+    return Err(err_response("User not found"));
   };
 
   Ok(ResponseModel {
@@ -263,58 +265,58 @@ pub async fn getUserSecurityStatus(
 }
 
 #[tauri::command]
-pub async fn qrGenerate(
+pub async fn qr_generate(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrGenerate(username).await
+  state.auth_service.qr_generate(username).await
 }
 
 #[tauri::command]
-pub async fn qrGenerateForDesktop(
+pub async fn qr_generate_for_desktop(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrGenerateForDesktop(username).await
+  state.auth_service.qr_generate_for_desktop(username).await
 }
 
 #[tauri::command]
-pub async fn qrApprove(
+pub async fn qr_approve(
   state: State<'_, AppState>,
   token: String,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrApprove(token, username).await
+  state.auth_service.qr_approve(token, username).await
 }
 
 #[tauri::command]
-pub async fn qrStatus(
+pub async fn qr_status(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrStatus(token).await
+  state.auth_service.qr_status(token).await
 }
 
 #[tauri::command]
-pub async fn qrToggle(
+pub async fn qr_toggle(
   state: State<'_, AppState>,
   username: String,
   enabled: bool,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrToggle(username, enabled).await
+  state.auth_service.qr_toggle(username, enabled).await
 }
 
 #[tauri::command]
-pub async fn qrLoginComplete(
+pub async fn qr_login_complete(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.authService.qrLoginComplete(token).await
+  state.auth_service.qr_login_complete(token).await
 }
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
+pub fn check_android_biometric() -> Result<ResponseModel, ResponseModel> {
   match crate::services::auth::android_biometric::check_biometric_available() {
     Ok(available) => Ok(ResponseModel {
       status: crate::entities::response_entity::ResponseStatus::Success,
@@ -336,7 +338,7 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-pub fn authenticateAndroidBiometric(
+pub fn authenticate_android_biometric(
   title: String,
   subtitle: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -361,7 +363,7 @@ pub fn authenticateAndroidBiometric(
 
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
-pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
+pub fn check_android_biometric() -> Result<ResponseModel, ResponseModel> {
   Ok(ResponseModel {
     status: crate::entities::response_entity::ResponseStatus::Success,
     message: "Not Android".to_string(),
@@ -371,7 +373,7 @@ pub fn checkAndroidBiometric() -> Result<ResponseModel, ResponseModel> {
 
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
-pub fn authenticateAndroidBiometric(
+pub fn authenticate_android_biometric(
   _title: String,
   _subtitle: String,
 ) -> Result<ResponseModel, ResponseModel> {

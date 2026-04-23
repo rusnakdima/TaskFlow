@@ -23,21 +23,21 @@ impl EmailProvider {
     Self { config }
   }
 
-  pub fn fromConfig(config: &ConfigHelper) -> Result<Self, ResponseModel> {
-    let emailConfig = EmailConfig {
-      smtp_username: config.smtpUsername.clone(),
-      smtp_password: config.smtpPassword.clone(),
-      smtp_server: config.smtpServer.clone(),
-      smtp_port: config.smtpPort,
-      reset_token_expiry_hours: config.resetTokenExpiryHours,
+  pub fn from_config(config: &ConfigHelper) -> Result<Self, ResponseModel> {
+    let email_config = EmailConfig {
+      smtp_username: config.smtp_username.clone(),
+      smtp_password: config.smtp_password.clone(),
+      smtp_server: config.smtp_server.clone(),
+      smtp_port: config.smtp_port,
+      reset_token_expiry_hours: config.reset_token_expiry_hours,
     };
 
-    Ok(Self::new(emailConfig))
+    Ok(Self::new(email_config))
   }
 
-  pub async fn sendPasswordResetCode(
+  pub async fn send_password_reset_code(
     &self,
-    toEmail: &str,
+    to_email: &str,
     code: &str,
   ) -> Result<(), ResponseModel> {
     let email = Message::builder()
@@ -50,7 +50,7 @@ impl EmailProvider {
             data: DataValue::String("".to_string()),
           })?,
       )
-      .to(toEmail.parse().map_err(|_| ResponseModel {
+      .to(to_email.parse().map_err(|_| ResponseModel {
         status: ResponseStatus::Error,
         message: "Invalid to email address".to_string(),
         data: DataValue::String("".to_string()),

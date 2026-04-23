@@ -6,31 +6,31 @@ use tauri::State;
 use crate::entities::response_entity::ResponseModel;
 
 #[tauri::command]
-pub async fn downloadUpdate(
+pub async fn download_update(
   window: tauri::Window,
   state: State<'_, AppState>,
-  appHandle: tauri::AppHandle,
+  app_handle: tauri::AppHandle,
   url: String,
-  fileName: String,
+  file_name: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .aboutService
-    .downloadFile(&window, appHandle, url, fileName)
+    .about_service
+    .download_file(&window, app_handle, url, file_name)
     .await
 }
 
 #[tauri::command]
-pub async fn getBinaryNameFile(
+pub async fn get_binary_name_file(
   state: State<'_, AppState>,
   version: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.aboutService.getBinaryNameFile(version).await
+  state.about_service.get_binary_name_file(version).await
 }
 
 #[tauri::command]
-pub async fn openFile(
+pub async fn open_file(
   state: State<'_, AppState>,
   path: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.aboutService.openFile(path).await
+  state.about_service.open_file(path).await
 }
