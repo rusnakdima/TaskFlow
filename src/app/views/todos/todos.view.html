@@ -182,9 +182,17 @@
         (actionClick)="onTableAction($event)"
       />
     } @else if (viewMode() === "grid") {
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        cdkDropList
+        [cdkDropListData]="listTodos()"
+        (cdkDropListDropped)="onTodoDrop($event)"
+      >
         @for (todo of listTodos(); track todo.id) {
           <app-todo
+            cdkDrag
+            [cdkDragData]="todo"
+            cdkDragPreviewContainer="global"
             [todo]="todo"
             [index]="$index"
             [isOwner]="todo.user_id === userId()"
@@ -196,13 +204,23 @@
             (saveAsBlueprintEvent)="saveAsBlueprint($event)"
             (selectionChangeEvent)="toggleTodoSelection($event)"
             (updateTodoEvent)="onUpdateTodo(todo, $event)"
-          />
+          >
+            <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+          </app-todo>
         }
       </div>
     } @else {
-      <div class="w-full">
+      <div
+        class="w-full"
+        cdkDropList
+        [cdkDropListData]="listTodos()"
+        (cdkDropListDropped)="onTodoDrop($event)"
+      >
         @for (todo of listTodos(); track todo.id) {
           <app-todo
+            cdkDrag
+            [cdkDragData]="todo"
+            cdkDragPreviewContainer="global"
             [todo]="todo"
             [index]="$index"
             [isOwner]="todo.user_id === userId()"
@@ -214,7 +232,9 @@
             (saveAsBlueprintEvent)="saveAsBlueprint($event)"
             (selectionChangeEvent)="toggleTodoSelection($event)"
             (updateTodoEvent)="onUpdateTodo(todo, $event)"
-          />
+          >
+            <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+          </app-todo>
         }
       </div>
     }

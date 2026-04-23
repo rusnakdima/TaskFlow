@@ -117,7 +117,12 @@
         (rowClick)="onRowClick($event)"
       />
     } @else if (viewMode() === "grid") {
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        cdkDropList
+        [cdkDropListData]="listTasks()"
+        (cdkDropListDropped)="onTaskDrop($event)"
+      >
         @for (task of listTasks(); track task.id) {
           <app-task
             [id]="'task-' + task.id"
@@ -144,7 +149,12 @@
         }
       </div>
     } @else {
-      <div class="w-full">
+      <div
+        class="w-full"
+        cdkDropList
+        [cdkDropListData]="listTasks()"
+        (cdkDropListDropped)="onTaskDrop($event)"
+      >
         @for (task of listTasks(); track task.id) {
           <app-task
             [id]="'task-' + task.id"
