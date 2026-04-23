@@ -148,7 +148,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
             this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
           if (effectiveTodoId) {
             const commentsToUpdate = updatedComments.filter(
-              (c: any) => !c.deleted_at && c.subtask_id === this.subtask?.id && c.author_id !== userId
+              (c: any) =>
+                !c.deleted_at && c.subtask_id === this.subtask?.id && c.author_id !== userId
             );
 
             if (commentsToUpdate.length > 0) {

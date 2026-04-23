@@ -18,37 +18,32 @@ export class StorageUpdateHelper {
     table: string,
     result: any,
     id?: string,
-    parentTodoId?: string,
-    isTeamEntityFn?: (table: string, id?: string, parentTodoId?: string) => boolean
+    parentTodoId?: string
   ): void {
     try {
       if (operation !== "get" && operation !== "getAll") {
         this.notifyService.handleLocalAction(table, operation, result || { id });
       }
 
-      const isTeam = isTeamEntityFn ? isTeamEntityFn(table, id, parentTodoId) : false;
+      const isTeam = result?.visibility === "team";
 
       switch (operation) {
         case "create":
-          this.handleCreate(table, result, isTeam);
+          this.storageService.addItem(table as any, result, { isPrivate: !isTeam });
           break;
         case "update":
           this.handleUpdate(table, result, isTeam);
           break;
         case "delete":
-          this.handleDelete(table, id, parentTodoId, isTeam);
+          this.handleDelete(table, id, parentTodoId);
           break;
         case "updateAll":
           this.handleUpdateAll(table, result, parentTodoId);
           break;
       }
-    } catch {
-      // Error silently ignored
+    } catch (error) {
+      console.error("Operation " + operation + " failed for " + table + ":", error);
     }
-  }
-
-  private handleCreate(table: string, result: any, isTeam: boolean): void {
-    this.storageService.addItem(table as any, result, { isPrivate: !isTeam });
   }
 
   private handleUpdate(table: string, result: any, isTeam: boolean): void {
@@ -81,15 +76,13 @@ export class StorageUpdateHelper {
     this.storageService.updateItem(table as any, result.id, result, options);
   }
 
-  private handleDelete(table: string, id?: string, parentTodoId?: string, isTeam?: boolean): void {
+  private handleDelete(table: string, id?: string, parentTodoId?: string): void {
     if (table === "todos" && id) {
-      this.archiveTodoWithCascade(id, isTeam || false);
+      this.storageService.removeItem("todos", id);
     } else if (table === "tasks" || table === "subtasks") {
-      // Use removeRecordWithCascade for proper cascade removal from nested structure
       this.storageService.removeRecordWithCascade(table, id!);
     } else {
-      // For other tables (comments, chats, categories)
-      this.storageService.removeItem(table as any, id!, undefined, isTeam);
+      this.storageService.removeItem(table as any, id!);
     }
   }
 
@@ -106,11 +99,6 @@ export class StorageUpdateHelper {
         }
       });
     }
-  }
-
-  private archiveTodoWithCascade(todo_id?: string, isTeam: boolean = false): void {
-    if (!todo_id) return;
-    this.storageService.removeItem("todos", todo_id, undefined, isTeam);
   }
 
   preserveFields<T extends Record<string, any>>(

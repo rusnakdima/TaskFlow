@@ -121,10 +121,13 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private onChatDeleted(chat: { id: string; todo_id?: string }): void {
     const isDeleted = (chat as any).deleted_at !== null;
     if (isDeleted) {
-      this.storageService.updateChatInTodo({
-        ...(chat as any),
-        deleted_at: new Date().toISOString(),
-      }, chat.todo_id);
+      this.storageService.updateChatInTodo(
+        {
+          ...(chat as any),
+          deleted_at: new Date().toISOString(),
+        },
+        chat.todo_id
+      );
     } else {
       this.storageService.deleteChatFromTodo(chat.id, chat.todo_id);
     }
@@ -315,7 +318,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     const unreadChats = chats
       .filter(
         (chat) =>
-          (!ids || ids.includes(chat.id)) && (!chat.read_by || !chat.read_by.includes(currentUserId))
+          (!ids || ids.includes(chat.id)) &&
+          (!chat.read_by || !chat.read_by.includes(currentUserId))
       )
       .map((chat) => ({
         ...chat,
