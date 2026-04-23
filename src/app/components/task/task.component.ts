@@ -356,7 +356,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           const readBy = c.read_by || [];
           if (!readBy.includes(userId)) {
             changed = true;
-return { ...c, readBy: [...readBy, userId] };
+            return { ...c, readBy: [...readBy, userId] };
           }
         }
         return c;
