@@ -356,15 +356,6 @@
           }
 
           <button
-            class="rounded-lg p-2 text-green-600 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30"
-            [routerLink]="task.id + '/subtasks'"
-            [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
-            title="View subtasks"
-            (click)="$event.stopPropagation()"
-          >
-            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="list" />
-          </button>
-          <button
             class="rounded-lg p-2 transition-colors"
             [ngClass]="
               showComments()
