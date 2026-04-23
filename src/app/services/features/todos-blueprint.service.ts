@@ -1,8 +1,9 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
 import { StorageService } from "@services/core/storage.service";
+import { ApiProvider } from "@providers/api.provider";
 import { Todo } from "@models/todo.model";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
 
 @Injectable({
   providedIn: "root",
@@ -10,6 +11,7 @@ import { Observable } from "rxjs";
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
+  private apiProvider = inject(ApiProvider);
 
   showBlueprintDialog = signal(false);
   showCreateBlueprintDialog = signal(false);
@@ -17,6 +19,7 @@ export class TodosBlueprintService {
   newBlueprintDescription = signal("");
   showApplyBlueprintDialog = signal(false);
   applyBlueprintTitle = signal("");
+  selectedTemplateForApply = signal<ProjectTemplate | null>(null);
 
   getTodosFromBlueprint(template: ProjectTemplate, userId: string): Todo[] {
     const todos: Todo[] = [];
@@ -33,10 +36,25 @@ export class TodosBlueprintService {
   }
 
   saveAsBlueprint(todo: Todo): void {
-    // TODO: Implement save as blueprint
+    this.newBlueprintName.set(todo.title || "");
+    this.newBlueprintDescription.set(todo.description || "");
+    this.showCreateBlueprintDialog.set(true);
   }
 
   confirmSaveAsBlueprint(): void {
+    const name = this.newBlueprintName();
+    const description = this.newBlueprintDescription();
+    if (!name.trim()) return;
+
+    const todos = this.storageService.todos();
+    const privateTodos = this.storageService.privateTodos();
+    const allTodos = [...todos, ...privateTodos];
+    const todo = allTodos.find((t) => t.title === name && t.description === (description || ""));
+
+    if (todo) {
+      this.templateService.createTemplate(name, description || "", todo);
+    }
+
     this.showCreateBlueprintDialog.set(false);
     this.newBlueprintName.set("");
     this.newBlueprintDescription.set("");
@@ -49,19 +67,61 @@ export class TodosBlueprintService {
   }
 
   confirmCreateFromBlueprint(userId: string): Observable<Todo[]> {
+    const template = this.selectedTemplateForApply();
+    const title = this.applyBlueprintTitle();
+
+    if (!template) {
+      return of([]);
+    }
+
+    const todoData: Partial<Todo> = {
+      title: title || template.name,
+      description: template.description || "",
+      visibility: "private",
+      priority: "medium",
+      user_id: userId,
+    };
+
     return new Observable((subscriber) => {
-      subscriber.next([]);
-      subscriber.complete();
+      this.apiProvider
+        .crud<Todo>("create", "todos", {
+          data: todoData,
+          isOwner: true,
+          isPrivate: true,
+        })
+        .subscribe({
+          next: (createdTodo) => {
+            if (createdTodo) {
+              this.storageService.addItem("todos", createdTodo);
+
+              const tasks = this.templateService.applyTemplate(template, userId, createdTodo.id);
+              tasks.forEach((task) => {
+                this.storageService.addItem("tasks", task);
+              });
+
+              subscriber.next([createdTodo]);
+              subscriber.complete();
+
+              this.showApplyBlueprintDialog.set(false);
+              this.selectedTemplateForApply.set(null);
+              this.applyBlueprintTitle.set("");
+            }
+          },
+          error: (err) => {
+            subscriber.error(err);
+          },
+        });
     });
   }
 
   openApplyBlueprint(template: ProjectTemplate): void {
+    this.selectedTemplateForApply.set(template);
     this.showApplyBlueprintDialog.set(true);
     this.applyBlueprintTitle.set(template.name || "");
   }
 
   removeBlueprint(templateId: string): void {
-    // Blueprint removal not yet implemented
+    this.templateService.deleteTemplate(templateId);
   }
 
   getSubtasksCount(template: ProjectTemplate): number {

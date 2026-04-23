@@ -2,6 +2,9 @@ import { Injectable } from "@angular/core";
 import { Observable, of, firstValueFrom } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 
+/* models */
+import { SyncMetadata } from "@models/sync-metadata";
+
 /* services */
 import { ApiProvider } from "@providers/api.provider";
 
@@ -10,14 +13,14 @@ export type ViewContext = "list" | "detail" | "kanban" | "calendar" | "minimal";
 const VIEW_RELATIONS: Record<string, Record<ViewContext, string[]>> = {
   todos: {
     list: ["user", "categories"],
-    detail: ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories"],
-    kanban: ["tasks", "tasks.subtasks", "categories"],
+    detail: ["user", "tasks", "categories"],
+    kanban: ["tasks", "categories"],
     calendar: ["user", "categories"],
     minimal: ["user", "categories"],
   },
   tasks: {
     list: ["subtasks"],
-    detail: ["todo", "subtasks", "subtasks.comments", "comments"],
+    detail: ["todo"],
     kanban: ["subtasks"],
     calendar: ["todo"],
     minimal: ["subtasks"],
@@ -153,17 +156,25 @@ export class RelationLoadingService {
    * );
    * ```
    */
-  load<T>(provider: ApiProvider, table: string, id: string, load: string[]): Observable<T> {
+  load<T>(
+    provider: ApiProvider,
+    table: string,
+    id: string,
+    load: string[],
+    syncMetadata?: SyncMetadata
+  ): Observable<T> {
     const startTime = Date.now();
 
-    // Use MongoDB provider (isOwner: false, isPrivate: false) for complete relation data
-    // JSON provider may not have all related entities (users, categories) in local storage
+    // Use caller-provided sync_metadata if available, otherwise default to MongoDB
+    const isOwner = syncMetadata?.is_owner ?? false;
+    const isPrivate = syncMetadata?.is_private ?? false;
+
     return provider
       .crud<T>("get", table, {
         id,
         load,
-        isOwner: false,
-        isPrivate: false,
+        isOwner,
+        isPrivate,
       })
       .pipe(
         tap(() => {
@@ -242,18 +253,21 @@ export class RelationLoadingService {
     provider: ApiProvider,
     table: string,
     filter: { [key: string]: any },
-    load: string[]
+    load: string[],
+    syncMetadata?: SyncMetadata
   ): Observable<T[]> {
     const startTime = Date.now();
 
-    // Use MongoDB provider (isOwner: false, isPrivate: false) for complete relation data
-    // JSON provider may not have all related entities (users, categories) in local storage
+    // Use caller-provided sync_metadata if available, otherwise default to MongoDB
+    const isOwner = syncMetadata?.is_owner ?? false;
+    const isPrivate = syncMetadata?.is_private ?? false;
+
     return provider
       .crud<T[]>("getAll", table, {
         filter,
         load,
-        isOwner: false,
-        isPrivate: false,
+        isOwner,
+        isPrivate,
       })
       .pipe(
         tap(() => {

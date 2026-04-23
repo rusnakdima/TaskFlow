@@ -77,9 +77,9 @@ export class StatsView implements OnInit {
 
     if (userId && userId !== "") {
       this.dataSyncProvider
-        .invokeCommand<StatisticsResponse>("statisticsGet", {
-          userId,
-          timeRange: this.selectedTimeRange(),
+        .invokeCommand<StatisticsResponse>("statistics_get", {
+          user_id: userId,
+          time_range: this.selectedTimeRange(),
         })
         .subscribe({
           next: (response: StatisticsResponse) => {

@@ -282,6 +282,18 @@ export class ManageTaskView implements OnInit, OnDestroy {
           .subscribe({
             next: (result: Task) => {
               this.isSubmitting.set(false);
+              this.storageService.addItem("tasks", result);
+              const todoId = this.projectInfo()?.id;
+              if (todoId) {
+                const todo = this.storageService.getById("todos", todoId);
+                if (todo && todo.tasks) {
+                  const updatedTodo = {
+                    ...todo,
+                    tasks: [...(todo.tasks || []), result],
+                  };
+                  this.storageService.updateItem("todos", todoId, updatedTodo);
+                }
+              }
               this.notifyService.showSuccess("Task created successfully");
               this.back();
             },
