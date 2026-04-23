@@ -1,0 +1,47 @@
+<div class="inline-flex items-center rounded-lg border border-gray-300 p-1 dark:border-zinc-600">
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-blue-600]="mode === 'card'"
+    [class.text-white]="mode === 'card'"
+    [class.text-gray-700]="mode !== 'card'"
+    [class.dark:text-gray-300]="mode !== 'card'"
+    [class.hover:bg-gray-100]="mode !== 'card'"
+    [class.dark:hover:bg-zinc-700]="mode !== 'card'"
+    (click)="setMode('card')"
+    title="One column"
+  >
+    <mat-icon class="!h-4 !w-4" fontIcon="view_agenda" />
+    <span class="hidden sm:inline">List</span>
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-blue-600]="mode === 'grid'"
+    [class.text-white]="mode === 'grid'"
+    [class.text-gray-700]="mode !== 'grid'"
+    [class.dark:text-gray-300]="mode !== 'grid'"
+    [class.hover:bg-gray-100]="mode !== 'grid'"
+    [class.dark:hover:bg-zinc-700]="mode !== 'grid'"
+    (click)="setMode('grid')"
+    title="Multi column"
+  >
+    <mat-icon class="!h-4 !w-4" fontIcon="grid_view" />
+    <span class="hidden sm:inline">Grid</span>
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-blue-600]="mode === 'table'"
+    [class.text-white]="mode === 'table'"
+    [class.text-gray-700]="mode !== 'table'"
+    [class.dark:text-gray-300]="mode !== 'table'"
+    [class.hover:bg-gray-100]="mode !== 'table'"
+    [class.dark:hover:bg-zinc-700]="mode !== 'table'"
+    (click)="setMode('table')"
+    title="Table view"
+  >
+    <mat-icon class="!h-4 !w-4" fontIcon="table_rows" />
+    <span class="hidden sm:inline">Table</span>
+  </button>
+</div>
