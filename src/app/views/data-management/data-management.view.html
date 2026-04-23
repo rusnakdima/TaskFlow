@@ -90,17 +90,17 @@
                 [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
               />
             </button>
-            <button class="styleButInfo" (click)="loadData(true)" [disabled]="loading()">
+            <button class="styleButInfo gap-2" (click)="loadData(true)" [disabled]="loading()">
               <mat-icon
-                class="mr-2 h-5! w-5! min-w-5 text-xl!"
+                class="h-5! w-5! min-w-5 text-xl!"
                 [ngClass]="loading() ? 'animate-spin' : ''"
                 fontIcon="sync"
               />
-              Refresh
+              <span class="hidden sm:inline">Refresh</span>
             </button>
-            <button class="styleButInfo" (click)="showFilters.set(!showFilters())">
-              <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="filter_alt" />
-              Filters
+            <button class="styleButInfo gap-2" (click)="showFilters.set(!showFilters())">
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="filter_alt" />
+              <span class="hidden sm:inline">Filters</span>
             </button>
           </div>
         </div>
