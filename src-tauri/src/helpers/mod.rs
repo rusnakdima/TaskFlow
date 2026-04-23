@@ -9,8 +9,8 @@ pub mod config;
 pub mod crypto_helper;
 #[path = "filter.helper.rs"]
 pub mod filter_helper;
-#[path = "projection.helper.rs"]
-pub mod projection_helper;
+#[path = "profile.helper.rs"]
+pub mod profile_helper;
 #[path = "qr.helper.rs"]
 pub mod qr_helper;
 #[path = "response.helper.rs"]

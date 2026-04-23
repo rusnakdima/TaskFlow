@@ -3,7 +3,7 @@ use crate::entities::daily_activity_entity::DailyActivityModel;
 pub struct ActivityFormatter;
 
 impl ActivityFormatter {
-  pub fn calculateTotalActivity(activity: &DailyActivityModel) -> i32 {
+  pub fn calculate_total_activity(activity: &DailyActivityModel) -> i32 {
     activity.todos_created
       + activity.todos_updated
       + activity.todos_deleted
@@ -17,7 +17,7 @@ impl ActivityFormatter {
       + activity.subtasks_deleted
   }
 
-  pub fn calculateProductivityScore(activity: &DailyActivityModel) -> i32 {
+  pub fn calculate_productivity_score(activity: &DailyActivityModel) -> i32 {
     if activity.total_tasks > 0 {
       ((activity.completed_tasks as f32 / activity.total_tasks as f32) * 100.0) as i32
     } else {

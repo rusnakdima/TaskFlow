@@ -75,7 +75,7 @@ impl FilterBuilder {
       {
         return None;
       }
-      let values: Vec<serde_json::Value> = arr.iter().cloned().collect();
+      let values: Vec<serde_json::Value> = arr.to_vec();
       Some(Filter::In(key.to_string(), values))
     } else if let Some(obj) = value.as_object() {
       Self::build_operators_filter(key, obj)
@@ -98,48 +98,24 @@ impl FilterBuilder {
         "$gte" => Some(Filter::Gte(key.to_string(), op_value.clone())),
         "$lt" => Some(Filter::Lt(key.to_string(), op_value.clone())),
         "$lte" => Some(Filter::Lte(key.to_string(), op_value.clone())),
-        "$in" => {
-          if let Some(arr) = op_value.as_array() {
-            Some(Filter::In(key.to_string(), arr.clone()))
-          } else {
-            None
-          }
-        }
-        "$notIn" => {
-          if let Some(arr) = op_value.as_array() {
-            Some(Filter::NotIn(key.to_string(), arr.clone()))
-          } else {
-            None
-          }
-        }
-        "$contains" => {
-          if let Some(s) = op_value.as_str() {
-            Some(Filter::Contains(key.to_string(), s.to_string()))
-          } else {
-            None
-          }
-        }
-        "$startsWith" => {
-          if let Some(s) = op_value.as_str() {
-            Some(Filter::StartsWith(key.to_string(), s.to_string()))
-          } else {
-            None
-          }
-        }
-        "$endsWith" => {
-          if let Some(s) = op_value.as_str() {
-            Some(Filter::EndsWith(key.to_string(), s.to_string()))
-          } else {
-            None
-          }
-        }
-        "$like" => {
-          if let Some(s) = op_value.as_str() {
-            Some(Filter::Like(key.to_string(), s.to_string()))
-          } else {
-            None
-          }
-        }
+        "$in" => op_value
+          .as_array()
+          .map(|arr| Filter::In(key.to_string(), arr.clone())),
+        "$notIn" => op_value
+          .as_array()
+          .map(|arr| Filter::NotIn(key.to_string(), arr.clone())),
+        "$contains" => op_value
+          .as_str()
+          .map(|s| Filter::Contains(key.to_string(), s.to_string())),
+        "$startsWith" => op_value
+          .as_str()
+          .map(|s| Filter::StartsWith(key.to_string(), s.to_string())),
+        "$endsWith" => op_value
+          .as_str()
+          .map(|s| Filter::EndsWith(key.to_string(), s.to_string())),
+        "$like" => op_value
+          .as_str()
+          .map(|s| Filter::Like(key.to_string(), s.to_string())),
         "$exists" => {
           if let Some(b) = op_value.as_bool() {
             if b {
@@ -164,33 +140,6 @@ impl FilterBuilder {
       Some(filters.remove(0))
     } else {
       Some(Filter::And(filters))
-    }
-  }
-
-  #[allow(dead_code)]
-  pub fn from_filter_group(filter_value: &Value) -> Option<Filter> {
-    if let Some(obj) = filter_value.as_object() {
-      if let Some(or_arr) = obj.get("$or").and_then(|v| v.as_array()) {
-        let or_filters: Vec<Filter> = or_arr.iter().filter_map(|v| Self::from_json(v)).collect();
-        if !or_filters.is_empty() {
-          return Some(Filter::Or(or_filters));
-        }
-      }
-      if let Some(and_arr) = obj.get("$and").and_then(|v| v.as_array()) {
-        let and_filters: Vec<Filter> = and_arr.iter().filter_map(|v| Self::from_json(v)).collect();
-        if !and_filters.is_empty() {
-          return Some(Filter::And(and_filters));
-        }
-      }
-      if let Some(not_obj) = obj.get("$not").and_then(|v| v.as_object()) {
-        let inner = Self::from_json(&Value::Object(not_obj.clone()));
-        if let Some(f) = inner {
-          return Some(Filter::Not(Box::new(f)));
-        }
-      }
-      Self::from_json(filter_value)
-    } else {
-      None
     }
   }
 }

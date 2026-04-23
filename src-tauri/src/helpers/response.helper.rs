@@ -1,7 +1,7 @@
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /// Creates an error response with the given message
-pub fn errResponse(message: &str) -> ResponseModel {
+pub fn err_response(message: &str) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Error,
     message: message.to_string(),
@@ -10,7 +10,7 @@ pub fn errResponse(message: &str) -> ResponseModel {
 }
 
 /// Creates an error response with a formatted message
-pub fn errResponseFormatted(prefix: &str, error: &str) -> ResponseModel {
+pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Error,
     message: format!("{}: {}", prefix, error),
@@ -19,7 +19,7 @@ pub fn errResponseFormatted(prefix: &str, error: &str) -> ResponseModel {
 }
 
 /// Creates a success response with data
-pub fn successResponse<T: Into<DataValue>>(data: T) -> ResponseModel {
+pub fn success_response<T: Into<DataValue>>(data: T) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Success,
     message: "Operation successful".to_string(),

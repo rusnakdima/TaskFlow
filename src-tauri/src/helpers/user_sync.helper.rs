@@ -12,60 +12,24 @@ use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus}
 /* providers */
 use nosql_orm::providers::JsonProvider;
 
-/// Helper method to update user's profileId in JSON storage only
-#[allow(dead_code)]
-pub async fn updateUserProfileIdJson(
-  jsonProvider: &JsonProvider,
-  userId: &str,
-  profileId: &str,
-) -> Result<(), ResponseModel> {
-  let now = timestamp_helper::getCurrentTimestamp();
-
-  match jsonProvider.find_by_id("users", userId).await {
-    Ok(Some(user_value)) => {
-      let mut updatedUser = user_value.clone();
-      if let Some(obj) = updatedUser.as_object_mut() {
-        obj.insert(
-          "profile_id".to_string(),
-          Value::String(profileId.to_string()),
-        );
-        obj.insert("updated_at".to_string(), Value::String(now.clone()));
-      }
-
-      let _ = jsonProvider.update("users", userId, updatedUser).await;
-      Ok(())
-    }
-    Ok(None) => Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: format!("User {} not found", userId),
-      data: DataValue::String("".to_string()),
-    }),
-    Err(e) => Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: format!("Failed to get user: {}", e),
-      data: DataValue::String("".to_string()),
-    }),
-  }
-}
-
-/// Helper method to update user's profileId in BOTH JSON and MongoDB
+/// Helper method
 /// Fails if MongoDB is not available
-pub async fn updateUserProfileIdBoth(
-  jsonProvider: &JsonProvider,
-  mongoProvider: Option<&std::sync::Arc<MongoProvider>>,
-  userId: &str,
-  profileId: &str,
+pub async fn update_user_profile_id_both(
+  json_provider: &JsonProvider,
+  mongo_provider: Option<&std::sync::Arc<MongoProvider>>,
+  user_id: &str,
+  profile_id: &str,
 ) -> Result<(), ResponseModel> {
-  let now = timestamp_helper::getCurrentTimestamp();
+  let now = timestamp_helper::get_current_timestamp();
 
   // Step 1: Update JSON
   eprintln!(
-    "[user_sync_helper] Updating user.profileId in JSON for user: {}",
-    userId
+    "[user_sync_helper] Updating user.profile_id in JSON for user: {}",
+    user_id
   );
 
-  let user_value = jsonProvider
-    .find_by_id("users", userId)
+  let user_value = json_provider
+    .find_by_id("users", user_id)
     .await
     .map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
@@ -74,7 +38,7 @@ pub async fn updateUserProfileIdBoth(
     })?
     .ok_or_else(|| ResponseModel {
       status: ResponseStatus::Error,
-      message: format!("User {} not found in JSON", userId),
+      message: format!("User {} not found in JSON", user_id),
       data: DataValue::String("".to_string()),
     })?;
 
@@ -82,13 +46,13 @@ pub async fn updateUserProfileIdBoth(
   if let Some(obj) = updated_user.as_object_mut() {
     obj.insert(
       "profile_id".to_string(),
-      Value::String(profileId.to_string()),
+      Value::String(profile_id.to_string()),
     );
     obj.insert("updated_at".to_string(), Value::String(now.clone()));
   }
 
-  jsonProvider
-    .update("users", userId, updated_user)
+  json_provider
+    .update("users", user_id, updated_user)
     .await
     .map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
@@ -101,7 +65,7 @@ pub async fn updateUserProfileIdBoth(
   // Step 2: FAIL if MongoDB not available
   eprintln!("[user_sync_helper] Checking MongoDB availability...");
 
-  let mongo = mongoProvider.ok_or_else(|| ResponseModel {
+  let mongo = mongo_provider.ok_or_else(|| ResponseModel {
     status: ResponseStatus::Error,
     message: "MongoDB not available".to_string(),
     data: DataValue::String("".to_string()),
@@ -112,9 +76,9 @@ pub async fn updateUserProfileIdBoth(
   // Step 3: Update MongoDB with last-write-wins
   eprintln!("[user_sync_helper] Checking user in MongoDB...");
 
-  let now_str = timestamp_helper::getCurrentTimestamp();
+  let now_str = timestamp_helper::get_current_timestamp();
 
-  match mongo.find_by_id("users", userId).await {
+  match mongo.find_by_id("users", user_id).await {
     Ok(Some(existing_mongo_user)) => {
       // Compare updated_at timestamps - local wins if newer
       let local_time = chrono::DateTime::parse_from_rfc3339(&now_str).ok();
@@ -137,12 +101,12 @@ pub async fn updateUserProfileIdBoth(
         if let Some(obj) = updated.as_object_mut() {
           obj.insert(
             "profile_id".to_string(),
-            Value::String(profileId.to_string()),
+            Value::String(profile_id.to_string()),
           );
           obj.insert("updated_at".to_string(), Value::String(now_str));
         }
         mongo
-          .update("users", userId, updated)
+          .update("users", user_id, updated)
           .await
           .map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
@@ -157,8 +121,8 @@ pub async fn updateUserProfileIdBoth(
     Ok(None) => {
       // User doesn't exist in MongoDB, fetch from JSON and insert
       eprintln!("[user_sync_helper] User not in MongoDB, creating...");
-      let mut new_user = jsonProvider
-        .find_by_id("users", userId)
+      let mut new_user = json_provider
+        .find_by_id("users", user_id)
         .await
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
@@ -174,7 +138,7 @@ pub async fn updateUserProfileIdBoth(
       if let Some(obj) = new_user.as_object_mut() {
         obj.insert(
           "profile_id".to_string(),
-          Value::String(profileId.to_string()),
+          Value::String(profile_id.to_string()),
         );
         obj.insert("updated_at".to_string(), Value::String(now_str));
       }

@@ -3,7 +3,7 @@ use nosql_orm::provider::DatabaseProvider;
 use serde_json::{to_value, Value};
 
 /* helpers */
-use crate::helpers::common::convertDataToArray;
+use crate::helpers::common::convert_data_to_array;
 use crate::helpers::filter_helper::FilterBuilder;
 
 /* providers */
@@ -17,19 +17,19 @@ use crate::entities::{
 
 #[derive(Clone)]
 pub struct ActivityStorage {
-  pub jsonProvider: JsonProvider,
+  pub json_provider: JsonProvider,
 }
 
 impl ActivityStorage {
-  pub fn new(jsonProvider: JsonProvider) -> Self {
-    Self { jsonProvider }
+  pub fn new(json_provider: JsonProvider) -> Self {
+    Self { json_provider }
   }
 
-  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+  pub async fn get_all(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = FilterBuilder::from_json(&filter);
 
-    let listDailyActivities = self
-      .jsonProvider
+    let list_daily_activities = self
+      .json_provider
       .find_many(
         "daily_activities",
         orm_filter.as_ref(),
@@ -40,72 +40,68 @@ impl ActivityStorage {
       )
       .await;
 
-    match listDailyActivities {
-      Ok(dailyActivities) => Ok(ResponseModel {
+    match list_daily_activities {
+      Ok(daily_activities) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "".to_string(),
-        data: convertDataToArray(&dailyActivities),
+        data: convert_data_to_array(&daily_activities),
       }),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!(
-          "Couldn't get a list of daily activities! {}",
-          error.to_string()
-        ),
+        message: format!("Couldn't get a list of daily activities! {}", error),
         data: DataValue::String("".to_string()),
       }),
     }
   }
 
-  pub async fn getOrCreateDailyActivity(
+  pub async fn get_or_create_daily_activity(
     &self,
-    userId: String,
+    user_id: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
     use nosql_orm::query::Filter;
 
-    // Filter by both userId and date to get the correct activity record
     let filter = Filter::And(vec![
-      Filter::Eq("user_id".to_string(), serde_json::json!(userId)),
+      Filter::Eq("user_id".to_string(), serde_json::json!(user_id)),
       Filter::Eq("date".to_string(), serde_json::json!(date)),
     ]);
 
     let existing = self
-      .jsonProvider
+      .json_provider
       .find_many("daily_activities", Some(&filter), None, None, None, false)
       .await;
 
     if let Ok(activities) = existing {
-      if let Some(activityValue) = activities.first() {
-        if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activityValue.clone()) {
+      if let Some(activity_value) = activities.first() {
+        if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activity_value.clone()) {
           return Ok(activity);
         }
       }
     }
 
-    let createModel = DailyActivityCreateModel {
-      user_id: userId.clone(),
+    let create_model = DailyActivityCreateModel {
+      user_id: user_id.clone(),
       date: date.clone(),
     };
-    let model: DailyActivityModel = createModel.into();
+    let model: DailyActivityModel = create_model.into();
     let record: Value = to_value(&model).unwrap();
 
-    match self.jsonProvider.insert("daily_activities", record).await {
+    match self.json_provider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Couldn't create daily activity! {}", error.to_string()),
+        message: format!("Couldn't create daily activity! {}", error),
         data: DataValue::String("".to_string()),
       }),
     }
   }
 
-  pub async fn updateDailyActivity(
+  pub async fn update_daily_activity(
     &self,
     activity: DailyActivityModel,
   ) -> Result<(), ResponseModel> {
-    let activityId = activity.id.clone();
-    let updateModel = DailyActivityUpdateModel {
+    let activity_id = activity.id.clone();
+    let update_model = DailyActivityUpdateModel {
       id: activity.id,
       user_id: activity.user_id,
       date: activity.date,
@@ -128,17 +124,17 @@ impl ActivityStorage {
       updated_at: activity.updated_at,
     };
 
-    let record: Value = to_value(&updateModel).unwrap();
+    let record: Value = to_value(&update_model).unwrap();
 
     match self
-      .jsonProvider
-      .update("daily_activities", &activityId, record)
+      .json_provider
+      .update("daily_activities", &activity_id, record)
       .await
     {
       Ok(_) => Ok(()),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Couldn't update daily activity! {}", error.to_string()),
+        message: format!("Couldn't update daily activity! {}", error),
         data: DataValue::String("".to_string()),
       }),
     }
