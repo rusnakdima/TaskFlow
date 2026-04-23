@@ -4,15 +4,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct WsRequest {
   pub action: String,
   pub entity: String,
   pub filter: Option<Value>,
   pub data: Option<Value>,
   pub id: Option<String>,
-  pub requestId: Option<String>,
-  pub syncMetadata: Option<SyncMetadata>,
+  pub request_id: Option<String>,
+  pub sync_metadata: Option<SyncMetadata>,
   pub relations: Option<Vec<RelationObj>>,
   pub load: Option<Vec<String>>,
   #[serde(default)]
@@ -22,15 +22,15 @@ pub struct WsRequest {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct WsResponse {
-  pub requestId: Option<String>,
+  pub request_id: Option<String>,
   #[serde(flatten)]
   pub response: crate::entities::response_entity::ResponseModel,
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct WsBroadcast {
   pub event: String,
   pub entity: String,

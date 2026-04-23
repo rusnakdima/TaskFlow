@@ -54,7 +54,7 @@ pub struct ProfileCreateModel {
 
 impl Validatable for ProfileCreateModel {
   fn validate(&self) -> Result<(), String> {
-    if self.name.as_ref().map_or(true, |s| s.is_empty()) {
+    if self.name.as_ref().is_none_or(|s| s.is_empty()) {
       return Err("name cannot be empty".to_string());
     }
     if self.user_id.is_empty() {

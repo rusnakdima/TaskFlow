@@ -46,8 +46,9 @@ fn to_snake_case(s: &str) -> String {
   result
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum TableModelType {
+  #[default]
   Todo,
   Task,
   Subtask,
@@ -85,14 +86,8 @@ impl TableModelType {
   }
 }
 
-impl Default for TableModelType {
-  fn default() -> Self {
-    TableModelType::Todo
-  }
-}
-
-pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
-  match tableName {
+pub fn validate_table(table_name: &str) -> Result<TableModelType, String> {
+  match table_name {
     "todos" => Ok(TableModelType::Todo),
     "tasks" => Ok(TableModelType::Task),
     "subtasks" => Ok(TableModelType::Subtask),
@@ -104,15 +99,15 @@ pub fn validateTable(tableName: &str) -> Result<TableModelType, String> {
     "comments" => Ok(TableModelType::Comment),
     _ => Err(format!(
       "Table '{}' is not supported. Allowed tables: todos, tasks, subtasks, categories, users, profiles, daily_activities, chats, comments",
-      tableName
+      table_name
     )),
   }
 }
 
 /// Validate data for create or update operation
 /// Returns validated data ready for database operation
-pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Value, String> {
-  let modelType = validateTable(tableName)?;
+pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result<Value, String> {
+  let model_type = validate_table(table_name)?;
 
   if !data.is_object() {
     return Err("Data must be a JSON object".to_string());
@@ -121,115 +116,115 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
   // Convert camelCase keys to snake_case before deserializing
   let data = convert_camel_to_snake(data.clone());
 
-  match modelType {
+  match model_type {
     TableModelType::Chat => {
-      if isCreate {
-        let createModel: ChatCreateModel =
+      if is_create {
+        let create_model: ChatCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
-        createModel.validate()?;
-        let model: ChatEntity = createModel.into();
+        create_model.validate()?;
+        let model: ChatEntity = create_model.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize chat model: {}", e))
       } else {
-        let updateModel: ChatUpdateModel = serde_json::from_value(data.clone())
+        let update_model: ChatUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid chat update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::Todo => {
-      if isCreate {
-        let createModel: TodoCreateModel =
+      if is_create {
+        let create_model: TodoCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid todo data: {}", e))?;
-        createModel.validate()?;
-        let model: TodoEntity = createModel.into();
+        create_model.validate()?;
+        let model: TodoEntity = create_model.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize todo model: {}", e))
       } else {
-        let updateModel: TodoUpdateModel = serde_json::from_value(data.clone())
+        let update_model: TodoUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid todo update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::Task => {
-      if isCreate {
-        let createModel: TaskCreateModel =
+      if is_create {
+        let create_model: TaskCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid task data: {}", e))?;
-        createModel.validate()?;
-        let model: TaskEntity = createModel.into();
+        create_model.validate()?;
+        let model: TaskEntity = create_model.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize task model: {}", e))
       } else {
-        let updateModel: TaskUpdateModel = serde_json::from_value(data.clone())
+        let update_model: TaskUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid task update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::Subtask => {
-      if isCreate {
-        let createModel: SubtaskCreateModel = serde_json::from_value(data.clone())
+      if is_create {
+        let create_model: SubtaskCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid subtask data: {}", e))?;
-        createModel.validate()?;
-        let model: SubtaskEntity = createModel.into();
+        create_model.validate()?;
+        let model: SubtaskEntity = create_model.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize subtask model: {}", e))
       } else {
-        let updateModel: SubtaskUpdateModel = serde_json::from_value(data.clone())
+        let update_model: SubtaskUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid subtask update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::Category => {
-      if isCreate {
-        let createModel: CategoryCreateModel = serde_json::from_value(data.clone())
+      if is_create {
+        let create_model: CategoryCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category data: {}", e))?;
-        createModel.validate()?;
-        let model: CategoryEntity = createModel.into();
+        create_model.validate()?;
+        let model: CategoryEntity = create_model.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize category model: {}", e))
       } else {
-        let updateModel: CategoryUpdateModel = serde_json::from_value(data.clone())
+        let update_model: CategoryUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::User => {
-      if isCreate {
-        let createModel: UserCreateModel =
+      if is_create {
+        let create_model: UserCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid user data: {}", e))?;
-        createModel.validate()?;
-        let model: UserEntity = createModel.into();
+        create_model.validate()?;
+        let model: UserEntity = create_model.into();
         serde_json::to_value(&model).map_err(|e| format!("Failed to serialize user model: {}", e))
       } else {
-        let updateModel: UserUpdateModel = serde_json::from_value(data.clone())
+        let update_model: UserUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid user update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::Profile => {
-      if isCreate {
-        let filteredData = filter_empty_fields(data.clone());
-        let createModel: ProfileCreateModel = serde_json::from_value(filteredData)
+      if is_create {
+        let filtered_data = filter_empty_fields(data.clone());
+        let create_model: ProfileCreateModel = serde_json::from_value(filtered_data)
           .map_err(|e| format!("Invalid profile data: {}", e))?;
-        createModel.validate()?;
-        let model: ProfileEntity = createModel.into();
+        create_model.validate()?;
+        let model: ProfileEntity = create_model.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize profile model: {}", e))
       } else {
-        let updateModel: ProfileUpdateModel = serde_json::from_value(data.clone())
+        let update_model: ProfileUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid profile update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
     TableModelType::DailyActivity => {
-      if isCreate {
-        let createModel: DailyActivityCreateModel = serde_json::from_value(data.clone())
+      if is_create {
+        let create_model: DailyActivityCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid daily activity data: {}", e))?;
-        createModel.validate()?;
-        let model: DailyActivityModel = createModel.into();
+        create_model.validate()?;
+        let model: DailyActivityModel = create_model.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize daily activity model: {}", e))
       } else {
@@ -238,17 +233,17 @@ pub fn validateModel(tableName: &str, data: &Value, isCreate: bool) -> Result<Va
       }
     }
     TableModelType::Comment => {
-      if isCreate {
-        let createModel: CommentCreateModel = serde_json::from_value(data.clone())
+      if is_create {
+        let create_model: CommentCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid comment data: {}", e))?;
-        createModel.validate()?;
-        let model: CommentEntity = createModel.into();
+        create_model.validate()?;
+        let model: CommentEntity = create_model.into();
         serde_json::to_value(&model)
           .map_err(|e| format!("Failed to serialize comment model: {}", e))
       } else {
-        let updateModel: CommentUpdateModel = serde_json::from_value(data.clone())
+        let update_model: CommentUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid comment update data: {}", e))?;
-        updateModel.validate()?;
+        update_model.validate()?;
         Ok(data.clone())
       }
     }
