@@ -17,27 +17,30 @@ pub struct ActivityLogHelper {
 }
 
 impl ActivityLogHelper {
-  pub fn new(jsonProvider: JsonProvider) -> Self {
+  pub fn new(json_provider: JsonProvider) -> Self {
     Self {
-      storage: ActivityStorage::new(jsonProvider),
+      storage: ActivityStorage::new(json_provider),
     }
   }
 
-  pub async fn getAll(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    self.storage.getAll(filter).await
+  pub async fn get_all(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
+    self.storage.get_all(filter).await
   }
 
-  pub async fn logActivity(
+  pub async fn log_activity(
     &self,
-    userId: String,
-    activityType: &str,
+    user_id: String,
+    activity_type: &str,
     count: i32,
   ) -> Result<(), ResponseModel> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
-    let mut activity = self.storage.getOrCreateDailyActivity(userId, today).await?;
+    let mut activity = self
+      .storage
+      .get_or_create_daily_activity(user_id, today)
+      .await?;
 
-    match activityType {
+    match activity_type {
       "todo_created" => activity.todos_created += count,
       "todo_updated" => activity.todos_updated += count,
       "todo_deleted" => activity.todos_deleted += count,
@@ -64,9 +67,9 @@ impl ActivityLogHelper {
       _ => {}
     }
 
-    activity.total_activity = ActivityFormatter::calculateTotalActivity(&activity);
-    activity.productivity_score = ActivityFormatter::calculateProductivityScore(&activity);
+    activity.total_activity = ActivityFormatter::calculate_total_activity(&activity);
+    activity.productivity_score = ActivityFormatter::calculate_productivity_score(&activity);
 
-    self.storage.updateDailyActivity(activity).await
+    self.storage.update_daily_activity(activity).await
   }
 }
