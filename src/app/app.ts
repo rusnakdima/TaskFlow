@@ -24,6 +24,7 @@ import { StorageService } from "@services/core/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
+import { AppStateService } from "@services/core/app-state.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -63,6 +64,7 @@ export class App implements OnInit {
   private dataSyncService = inject(DataLoaderService);
   private dataSyncProvider = inject(ApiProvider);
   private localAuthService = inject(LocalAuthService);
+  private appStateService = inject(AppStateService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -73,7 +75,7 @@ export class App implements OnInit {
   showShell = computed(
     () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
   );
-  showInfoBlock = signal(false);
+  showInfoBlock = this.appStateService.showInfoBlock;
   private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
@@ -141,10 +143,6 @@ export class App implements OnInit {
     const currentPath = this.router.url.split("?")[0];
     const isAuthPage = this.authRoutes.some((route) => currentPath.startsWith(route));
     this.showComponents.set(!isAuthPage);
-  }
-
-  onToggleInfoBlock(show: boolean) {
-    this.showInfoBlock.set(show);
   }
 
   /**

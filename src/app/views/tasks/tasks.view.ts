@@ -42,6 +42,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
+import { AppStateService } from "@services/core/app-state.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -109,8 +110,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropService = inject(DragDropOrderService);
   private bulkActionHelper = new BulkActionHelper();
   public bulkService = inject(BulkActionService);
+  private appStateService = inject(AppStateService);
 
   // State signals
+  showInfoBlock = computed(() => this.appStateService.showInfoBlock());
+  showMobileInfo = signal(false);
   highlightTaskId = signal<string | null>(null);
   highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
@@ -501,6 +505,14 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   toggleChat() {
     this.openChat.update((v) => !v);
+  }
+
+  toggleMobileInfo() {
+    this.showMobileInfo.update((v) => !v);
+  }
+
+  toggleInfoBlock() {
+    this.appStateService.toggleInfoBlock();
   }
 
   getUnreadCount(): number {

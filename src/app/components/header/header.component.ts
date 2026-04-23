@@ -10,6 +10,7 @@ import {
   inject,
   ChangeDetectorRef,
   computed,
+  Input,
 } from "@angular/core";
 import { Subscription } from "rxjs";
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
@@ -33,6 +34,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SyncService } from "@services/data/sync.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
+import { AppStateService } from "@services/core/app-state.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -60,11 +62,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private syncService: SyncService,
     private cdr: ChangeDetectorRef,
-    private location: Location
+    private location: Location,
+    private appStateService: AppStateService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
-  @Output() toggleInfoBlockEvent: EventEmitter<boolean> = new EventEmitter();
 
   themeVal = signal("");
   title = signal("");
@@ -80,7 +82,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   isBack = signal(false);
   isSyncing = signal(false);
-  showInfoBlock = signal(false);
+
+  showInfoBlock = this.appStateService.showInfoBlock;
 
   notifications = this.notifyService.notifications;
   unreadCount = this.notifyService.unreadCount;
@@ -204,9 +207,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   toggleInfoBlock() {
-    const newState = !this.showInfoBlock();
-    this.showInfoBlock.set(newState);
-    this.toggleInfoBlockEvent.emit(newState);
+    this.appStateService.toggleInfoBlock();
   }
 
   goBack() {

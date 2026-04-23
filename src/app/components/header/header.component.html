@@ -14,18 +14,7 @@
 
       <div class="flex min-w-0 flex-1 flex-col">
         <div class="flex items-center gap-2">
-          <button
-            class="flex items-center gap-2 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-            (click)="toggleInfoBlock()"
-            title="Toggle info panel"
-          >
-            <mat-icon
-              class="textMuted transition-transform"
-              [class.rotate-180]="showInfoBlock()"
-              fontIcon="expand_more"
-            />
-            <h1 class="textNormal truncate text-lg font-semibold">{{ title() }}</h1>
-          </button>
+          <h1 class="textNormal truncate text-lg font-semibold">{{ title() }}</h1>
           @if (unreadCount() > 0) {
             <div
               class="flex animate-pulse items-center gap-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
