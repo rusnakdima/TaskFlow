@@ -16,16 +16,14 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { ApiProvider } from "@providers/api.provider";
 import { BaseStorageService } from "./base-storage.service";
-
-interface AdminDataWithRelations {
-  [key: string]: any[];
-}
+import { AdminDataService, AdminDataWithRelations } from "@services/core/admin-data.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminStorageService extends BaseStorageService {
   private apiProvider = inject(ApiProvider);
+  private adminDataService = inject(AdminDataService);
 
   // Admin data signals
   private todosSignal = signal<Todo[]>([]);
@@ -123,7 +121,7 @@ export class AdminStorageService extends BaseStorageService {
 
     this.loadingSignal.set(true);
 
-    return this.apiProvider.loadAllAdminData().pipe(
+    return this.adminDataService.loadAllAdminData().pipe(
       tap((data: AdminDataWithRelations) => {
         this.todosSignal.set(data["todos"] || []);
         this.tasksSignal.set(data["tasks"] || []);
@@ -316,7 +314,9 @@ export class AdminStorageService extends BaseStorageService {
     if (table === "todos") {
       this.tasksSignal.update((tasks) => tasks.filter((task) => task.todo_id !== id));
     } else if (table === "tasks") {
-      this.subtasksSignal.update((subtasks) => subtasks.filter((subtask) => subtask.task_id !== id));
+      this.subtasksSignal.update((subtasks) =>
+        subtasks.filter((subtask) => subtask.task_id !== id)
+      );
     }
   }
 
@@ -420,14 +420,14 @@ export class AdminStorageService extends BaseStorageService {
       // Update subtask
       this.updateRecordDeleteStatus(table, id, deletedAt);
 
-        // Update subtask comments
-        this.commentsSignal.update((comments) =>
-          comments.map((comment) =>
-            comment.subtask_id === id
-              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
-              : comment
-          )
-        );
+      // Update subtask comments
+      this.commentsSignal.update((comments) =>
+        comments.map((comment) =>
+          comment.subtask_id === id
+            ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+            : comment
+        )
+      );
     } else {
       // Update single record
       this.updateRecordDeleteStatus(table, id, deletedAt);

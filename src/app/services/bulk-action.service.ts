@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, signal, computed } from "@angular/core";
 
-export type BulkActionMode = "admin" | "archive" | "todos" | "tasks" | "subtasks";
+export type BulkActionMode = "admin" | "archive" | "todos" | "tasks" | "subtasks" | "shared";
 
 export interface BulkActionState {
   selectedIds: Set<string>;

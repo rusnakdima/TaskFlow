@@ -52,33 +52,39 @@ export class CommentHandler extends EntityHandler<Comment> {
   }
 
   update(id: string, updates: Partial<Comment>, _resolvers?: Record<string, any>): void {
-    this.updateTodo((todo) => ({
-      ...todo,
-      tasks: todo.tasks?.map((task) => ({
-        ...task,
-        comments: task.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-        subtasks: task.subtasks?.map((subtask) => ({
-          ...subtask,
-          comments: subtask.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    this.updateTodo(
+      (todo) => ({
+        ...todo,
+        tasks: todo.tasks?.map((task) => ({
+          ...task,
+          comments: task.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+          subtasks: task.subtasks?.map((subtask) => ({
+            ...subtask,
+            comments: subtask.comments?.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+          })),
         })),
-      })),
-      updatedAt: new Date().toISOString(),
-    }), null);
+        updatedAt: new Date().toISOString(),
+      }),
+      null
+    );
   }
 
-remove(id: string): void {
-    this.updateTodo((todo) => ({
-      ...todo,
-      tasks: todo.tasks?.map((task) => ({
-        ...task,
-        comments: task.comments?.filter((c) => c.id !== id),
-        subtasks: task.subtasks?.map((subtask) => ({
-          ...subtask,
-          comments: subtask.comments?.filter((c) => c.id !== id),
+  remove(id: string): void {
+    this.updateTodo(
+      (todo) => ({
+        ...todo,
+        tasks: todo.tasks?.map((task) => ({
+          ...task,
+          comments: task.comments?.filter((c) => c.id !== id),
+          subtasks: task.subtasks?.map((subtask) => ({
+            ...subtask,
+            comments: subtask.comments?.filter((c) => c.id !== id),
+          })),
         })),
-      })),
-      updatedAt: new Date().toISOString(),
-    }), null);
+        updatedAt: new Date().toISOString(),
+      }),
+      null
+    );
   }
 
   getById(id: string): Comment | undefined {
