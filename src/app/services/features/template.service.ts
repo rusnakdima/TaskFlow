@@ -62,7 +62,7 @@ export class TemplateService {
       name,
       description,
       tasks: templateTasks,
-      categories: todo.categories.map((cat) => cat.id),
+      categories: todo.categories?.map((cat) => cat.id) || [],
       createdAt: new Date().toISOString(),
     };
 

@@ -96,13 +96,25 @@ impl RepositoryService {
     docs: Vec<Value>,
     table: &str,
     load_paths: &[String],
+    _use_mongo: bool,
   ) -> Result<Vec<Value>, ResponseModel> {
     if load_paths.is_empty() {
-      return Ok(docs);
+      // Apply projection to docs even when no relations requested
+      let projection = user_projection();
+      let projected: Vec<Value> = docs.iter().map(|d| projection.apply(d)).collect();
+      return Ok(projected);
     }
 
     let mut current_docs = docs;
     let base_table = table.to_string();
+    let projection = user_projection();
+
+    // First apply projection to the main documents
+    let mut projected_docs: Vec<Value> = Vec::new();
+    for doc in current_docs.iter() {
+      projected_docs.push(projection.apply(doc));
+    }
+    current_docs = projected_docs;
 
     for path in load_paths {
       let segments: Vec<&str> = path.split('.').collect();
@@ -110,36 +122,91 @@ impl RepositoryService {
         continue;
       }
 
+      tracing::info!(
+        "[REPO] Loading relations for table={}, path={:?}, segments={:?}",
+        table,
+        path,
+        segments
+      );
+
       let loader = RelationLoader::new(self.json_provider.clone());
 
       for doc in current_docs.iter_mut() {
         if let Some(obj) = doc.as_object_mut() {
           obj.insert("_collection".to_string(), Value::String(base_table.clone()));
-          let current_col = obj
-            .get("_collection")
-            .and_then(|v| v.as_str())
-            .unwrap_or("MISSING");
+        }
+      }
+
+      match loader
+        .load_nested(current_docs.clone(), &segments, true)
+        .await
+      {
+        Ok(loaded_docs) => {
+          current_docs = loaded_docs;
           tracing::info!(
-            "[REPO] Set _collection={} for segment {:?}",
-            current_col,
-            path
+            "[REPO] Relations loaded successfully, count={}",
+            current_docs.len()
+          );
+        }
+        Err(e) => {
+          let error_msg = e.to_string();
+          tracing::warn!(
+            "[REPO] Relation loading warning: {} - continuing without relations",
+            error_msg
           );
         }
       }
 
-      current_docs = loader
-        .load_nested(current_docs, &segments, true)
-        .await
-        .map_err(|e| err_response_formatted("Relation load failed", &e.to_string()))?;
-
-      for doc in current_docs.iter_mut() {
-        if let Some(obj) = doc.as_object_mut() {
-          obj.remove("_collection");
+      // Apply projection to all documents after each relation load
+      let mut projected_docs: Vec<Value> = Vec::new();
+      for doc in current_docs.iter() {
+        if let Some(obj) = doc.as_object() {
+          let mut obj_clone = obj.clone();
+          obj_clone.remove("_collection");
+          let projected = projection.apply(&Value::Object(obj_clone));
+          projected_docs.push(projected);
+        } else {
+          projected_docs.push(doc.clone());
         }
       }
+      current_docs = projected_docs;
     }
 
     Ok(current_docs)
+  }
+
+  /// Recursively filter sensitive fields from all user objects at any nesting level
+  fn filter_sensitive_fields_recursive(&self, value: &mut Value) {
+    use crate::entities::relation_config::FRONTEND_EXCLUDED_FIELDS;
+
+    if let Some(obj) = value.as_object_mut() {
+      // Apply projection to user field if present
+      if let Some(user_val) = obj.get("user") {
+        if let Some(user) = user_val.as_object() {
+          let mut filtered = user.clone();
+          for field in FRONTEND_EXCLUDED_FIELDS {
+            filtered.remove(*field);
+          }
+          obj.insert("user".to_string(), Value::Object(filtered));
+        }
+      }
+
+      // Recursively handle all nested values
+      for (_key, val) in obj.iter_mut() {
+        self.filter_sensitive_fields_recursive(val);
+      }
+    } else if let Some(arr) = value.as_array_mut() {
+      for item in arr.iter_mut() {
+        self.filter_sensitive_fields_recursive(item);
+      }
+    }
+  }
+
+  /// Ensure all user objects in documents have sensitive fields removed
+  fn ensure_user_projection(&self, docs: &mut Vec<Value>) {
+    for doc in docs.iter_mut() {
+      self.filter_sensitive_fields_recursive(doc);
+    }
   }
 
   fn apply_frontend_projection(&self, doc: Value, _table: &str) -> Value {
@@ -251,7 +318,10 @@ impl RepositoryService {
         tracing::debug!("[CACHE] Cache hit for query: {}", key);
         let mut docs = cached_docs;
         if let Some(ref load_paths) = load {
-          docs = self.load_relations_json(docs, &table, load_paths).await?;
+          let use_mongo = !self.use_json_provider(sync_metadata.as_ref());
+          docs = self
+            .load_relations_json(docs, &table, load_paths, use_mongo)
+            .await?;
         }
         docs = self.apply_projection_to_docs(docs, &table);
         return Ok(success_response(DataValue::Array(docs)));
@@ -305,8 +375,19 @@ impl RepositoryService {
     }
 
     if let Some(ref load_paths) = load {
-      docs = self.load_relations_json(docs, &table, load_paths).await?;
+      tracing::info!(
+        "[REPO] Loading relations for table={}, paths={:?}",
+        table,
+        load_paths
+      );
+      let use_mongo = !self.use_json_provider(sync_metadata.as_ref());
+      docs = self
+        .load_relations_json(docs, &table, load_paths, use_mongo)
+        .await?;
     }
+
+    // CRITICAL: Ensure sensitive user fields are removed from ALL nested objects
+    self.ensure_user_projection(&mut docs);
 
     if !docs.is_empty() {
       tracing::warn!(
@@ -350,14 +431,26 @@ impl RepositoryService {
       Some(d) => {
         let mut entity_with_relations = if let Some(ref load_paths) = load {
           let entities = vec![d.clone()];
-          match self.load_relations_json(entities, &table, load_paths).await {
+          let use_mongo = !self.use_json_provider(sync_metadata.as_ref());
+          match self
+            .load_relations_json(entities, &table, load_paths, use_mongo)
+            .await
+          {
             Ok(loaded) => loaded.into_iter().next().unwrap_or(d),
             Err(_) => d,
           }
         } else {
           d
         };
+
+        // Apply frontend projection for top-level fields
         entity_with_relations = self.apply_frontend_projection(entity_with_relations, &table);
+
+        // CRITICAL: Ensure sensitive user fields are removed from ALL nested objects
+        let mut docs = vec![entity_with_relations.clone()];
+        self.ensure_user_projection(&mut docs);
+        entity_with_relations = docs.into_iter().next().unwrap_or(entity_with_relations);
+
         Ok(success_response(DataValue::Object(entity_with_relations)))
       }
       None => Err(err_response(&format!("{} not found", id_str))),

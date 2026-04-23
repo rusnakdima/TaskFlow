@@ -8,6 +8,9 @@ use crate::entities::relation_obj::RelationObj;
 use crate::entities::response_entity::ResponseModel;
 use crate::entities::sync_metadata_entity::SyncMetadata;
 
+/* helpers */
+use crate::helpers::response_helper::err_response;
+
 // ==================== GENERIC CRUD ENDPOINT ====================
 
 #[allow(clippy::too_many_arguments)]
@@ -22,7 +25,22 @@ pub async fn manage_data(
   relations: Option<Vec<RelationObj>>,
   load: Option<Vec<String>>,
   sync_metadata: Option<SyncMetadata>,
+  // Accept is_owner and is_private directly as fallback
+  is_owner: Option<bool>,
+  is_private: Option<bool>,
 ) -> Result<ResponseModel, ResponseModel> {
+  // Construct sync_metadata from individual fields if not provided as object
+  let final_sync_metadata = if let Some(sm) = sync_metadata {
+    Some(sm)
+  } else if is_owner.is_some() || is_private.is_some() {
+    Some(SyncMetadata {
+      is_owner: is_owner.unwrap_or(true),
+      is_private: is_private.unwrap_or(true),
+    })
+  } else {
+    None
+  };
+
   state
     .repository_service
     .execute(
@@ -33,7 +51,7 @@ pub async fn manage_data(
       filter,
       relations,
       load,
-      sync_metadata,
+      final_sync_metadata,
     )
     .await
 }
@@ -51,9 +69,14 @@ pub async fn import_to_local(
 #[tauri::command]
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
-  user_id: String,
+  user_id: Option<String>,
+  userId: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.export_to_cloud(user_id).await
+  // Accept both user_id and userId (camelCase fallback)
+  let uid = user_id
+    .or(userId)
+    .ok_or_else(|| err_response("Missing required parameter: user_id or userId"))?;
+  state.manage_db_service.export_to_cloud(uid).await
 }
 
 // ==================== ADMIN MANAGEMENT ENDPOINTS ====================
