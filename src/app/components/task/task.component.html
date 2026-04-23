@@ -39,7 +39,9 @@
                         ? 'text-gray-500 line-through dark:text-gray-400'
                         : ''
                     "
-                    (dblclick)="isOwner && startInlineEdit('title', task.title)"
+                    (dblclick)="
+                      $event.stopPropagation(); isOwner && startInlineEdit('title', task.title)
+                    "
                     title="Double-click to edit title"
                   >
                     {{ task.title }}
@@ -123,7 +125,9 @@
         } @else if (task.description && task.description != "") {
           <p
             class="textMuted mb-2 line-clamp-2 text-sm transition-colors"
-            (dblclick)="startInlineEdit('description', task.description)"
+            (dblclick)="
+              $event.stopPropagation(); isOwner && startInlineEdit('description', task.description)
+            "
             title="Double-click to edit description"
             (click)="$event.stopPropagation()"
           >
@@ -359,6 +363,7 @@
             [routerLink]="task.id + '/subtasks'"
             [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
             title="View subtasks"
+            (click)="$event.stopPropagation()"
           >
             <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="list" />
           </button>
@@ -384,21 +389,42 @@
               }
             </div>
           </button>
-          <button
-            class="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-            [routerLink]="task.id + '/edit_task'"
-            [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
-            title="Edit task"
-          >
-            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
-          </button>
-          <button
-            class="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
-            (click)="deleteTask(); $event.stopPropagation()"
-            title="Delete task"
-          >
-            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
-          </button>
+          <div class="relative">
+            <button
+              (click)="toggleMenu($event); $event.stopPropagation()"
+              class="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
+              title="More options"
+            >
+              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
+            </button>
+            @if (isMenuOpen()) {
+              <div
+                class="task-menu absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+                (click)="$event.stopPropagation()"
+              >
+                @if (isOwner) {
+                  <button
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-zinc-700"
+                    [routerLink]="task.id + '/edit_task'"
+                    [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
+                    (click)="closeMenu()"
+                  >
+                    <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="edit" />
+                    Edit
+                  </button>
+                }
+                @if (isOwner) {
+                  <button
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                    (click)="deleteTask(); closeMenu()"
+                  >
+                    <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="delete" />
+                    Delete
+                  </button>
+                }
+              </div>
+            }
+          </div>
         </div>
       </div>
       <div *cdkDragPlaceholder class="min-h-[200px] w-full"></div>

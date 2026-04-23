@@ -13,6 +13,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   computed,
+  HostListener,
 } from "@angular/core";
 
 /* base */
@@ -94,6 +95,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     new EventEmitter();
 
   showComments = signal(false);
+  isMenuOpen = signal(false);
   /** Inline expanded subtask comment blocks (by subtaskId) */
   expandedSubtaskCommentIds = signal<Set<string>>(new Set());
   private highlightedExpandedSubtaskId = signal<string | null>(null);
@@ -132,6 +134,27 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   });
 
   ngOnInit() {}
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (this.isMenuOpen() && !target.closest(".task-menu")) {
+      this.closeMenu();
+    }
+  }
+
+  toggleMenu(event: any) {
+    event.stopPropagation();
+    this.isMenuOpen.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  closeMenu() {
+    if (this.isMenuOpen()) {
+      this.isMenuOpen.set(false);
+      this.cdr.markForCheck();
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["task"]) {

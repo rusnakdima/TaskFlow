@@ -185,7 +185,16 @@ export class ManageTodoView implements OnInit, OnDestroy {
         this.dataSyncProvider,
         "todos",
         todoId,
-        ["user", "tasks", "categories"],
+        [
+          "user",
+          "user.profile",
+          "tasks",
+          "tasks.subtasks",
+          "tasks.comments",
+          "categories",
+          "assignees_profiles",
+          "assignees_profiles.user",
+        ],
         syncMetadata
       )
       .subscribe({

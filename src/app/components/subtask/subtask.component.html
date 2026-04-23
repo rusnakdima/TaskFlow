@@ -27,7 +27,7 @@
                 ? 'text-gray-500 line-through dark:text-gray-400'
                 : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
             "
-            (dblclick)="startInlineEdit('title', subtask.title || '')"
+            (dblclick)="$event.stopPropagation(); startInlineEdit('title', subtask.title || '')"
             title="Double-click to edit title"
           >
             {{ subtask.title }}
@@ -99,7 +99,7 @@
     } @else if (subtask.description && subtask.description != "") {
       <p
         class="textMuted mt-1 mb-2 text-sm transition-colors"
-        (dblclick)="startInlineEdit('description', subtask.description)"
+        (dblclick)="$event.stopPropagation(); startInlineEdit('description', subtask.description)"
         title="Double-click to edit description"
         (click)="$event.stopPropagation()"
       >
