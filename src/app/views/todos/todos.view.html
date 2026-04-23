@@ -1,8 +1,16 @@
 <div class="flex flex-col gap-6">
   <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="textNormal text-2xl font-bold sm:text-3xl">My Projects</h1>
-      <p class="textMuted mt-1">Organize and track your personal and work projects.</p>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
+        {{ isSharedMode() ? "Team Projects" : "My Projects" }}
+      </h1>
+      <p class="textMuted mt-1">
+        {{
+          isSharedMode()
+            ? "Collaborate on projects and manage shared workloads."
+            : "Organize and track your personal and work projects."
+        }}
+      </p>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -53,59 +61,93 @@
         <mat-icon class="mr-2 h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
         New Project
       </button>
+      <app-view-mode-switcher
+        [mode]="viewMode()"
+        [pageKey]="isSharedMode() ? 'shared-tasks' : 'todos'"
+        (modeChange)="setViewMode($event)"
+      />
     </div>
   </div>
 
-  <!-- Stats Cards -->
-  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-    <div
-      class="rounded-xl bg-linear-to-r from-blue-500 to-blue-600 p-4 text-white shadow-sm dark:from-blue-600 dark:to-blue-700"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium tracking-wide text-blue-100 uppercase">Total Projects</p>
-          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("all") }}</p>
-        </div>
-        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="assignment" />
-      </div>
-    </div>
+  <button
+    class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+    (click)="showStats.set(!showStats())"
+  >
+    <mat-icon
+      class="!h-4 !w-4 transition-transform"
+      [class.rotate-180]="!showStats()"
+      fontIcon="expand_more"
+    />
+    {{ showStats() ? "Hide Stats" : "Show Stats" }}
+  </button>
 
-    <div
-      class="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 p-4 text-white shadow-sm dark:from-orange-600 dark:to-orange-700"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium tracking-wide text-orange-100 uppercase">Active</p>
-          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("active") }}</p>
+  @if (showStats()) {
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div
+        class="rounded-xl bg-linear-to-r from-blue-500 to-blue-600 p-4 text-white shadow-sm dark:from-blue-600 dark:to-blue-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium tracking-wide text-blue-100 uppercase">Total Projects</p>
+            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("all") }}</p>
+          </div>
+          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="assignment" />
         </div>
-        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="play_circle" />
       </div>
-    </div>
 
-    <div
-      class="rounded-xl bg-linear-to-r from-green-500 to-green-600 p-4 text-white shadow-sm dark:from-green-600 dark:to-green-700"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium tracking-wide text-green-100 uppercase">Completed</p>
-          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("completed") }}</p>
+      <div
+        class="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 p-4 text-white shadow-sm dark:from-orange-600 dark:to-orange-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium tracking-wide text-orange-100 uppercase">Active</p>
+            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("active") }}</p>
+          </div>
+          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="play_circle" />
         </div>
-        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="check_circle" />
       </div>
-    </div>
 
-    <div
-      class="rounded-xl bg-linear-to-r from-purple-500 to-purple-600 p-4 text-white shadow-sm dark:from-purple-600 dark:to-purple-700"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium tracking-wide text-purple-100 uppercase">This Week</p>
-          <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("week") }}</p>
+      <div
+        class="rounded-xl bg-linear-to-r from-green-500 to-green-600 p-4 text-white shadow-sm dark:from-green-600 dark:to-green-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium tracking-wide text-green-100 uppercase">Completed</p>
+            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("completed") }}</p>
+          </div>
+          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="check_circle" />
         </div>
-        <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="calendar_today" />
+      </div>
+
+      <div
+        class="rounded-xl bg-linear-to-r from-purple-500 to-purple-600 p-4 text-white shadow-sm dark:from-purple-600 dark:to-purple-700"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium tracking-wide text-purple-100 uppercase">This Week</p>
+            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("week") }}</p>
+          </div>
+          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="calendar_today" />
+        </div>
       </div>
     </div>
-  </div>
+  }
+
+  <!-- Offline indicator for shared mode -->
+  @if (isSharedMode() && isOffline()) {
+    <div
+      class="flex items-center gap-3 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-700 dark:bg-amber-600/10 dark:text-amber-400"
+    >
+      <mat-icon fontIcon="cloud_off" class="!h-6 !w-6 !min-w-[24px]" />
+      <div>
+        <p class="font-medium">You are offline</p>
+        <p class="text-sm opacity-90">
+          Shared projects are read from cache. Changes will sync when you're back online.
+        </p>
+      </div>
+    </div>
+  }
 
   @if (listTodos().length === 0) {
     <div
@@ -122,31 +164,56 @@
       </p>
     </div>
   } @else {
-    <div class="todos-drop-list" cdkDropListGroup>
-      <div #todoPlaceholder cdkDropList class="todos-drop-list-placeholder"></div>
-      @for (todo of listTodos(); track todo.id) {
-        <div
-          class="todos-drop-list-item"
-          cdkDropList
-          (cdkDropListEntered)="onTodoListEntered($event)"
-          (cdkDropListDropped)="onTodoListDropped()"
-        >
+    @if (viewMode() === "table") {
+      <app-table-view
+        [data]="listTodos()"
+        [fields]="todoTableFields"
+        [selectedIds]="selectedTodos()"
+        [showSelection]="true"
+        [actions]="[
+          { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+          { key: 'edit', icon: 'edit', label: 'Edit' },
+          { key: 'delete', icon: 'delete', label: 'Delete' },
+        ]"
+        (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+        (rowClick)="onRowClick($event)"
+        (actionClick)="onTableAction($event)"
+      />
+    } @else if (viewMode() === "grid") {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        @for (todo of listTodos(); track todo.id) {
           <app-todo
             [todo]="todo"
             [index]="$index"
-            [isOwner]="true"
-            [isPrivate]="true"
+            [isOwner]="todo.user_id === userId()"
+            [isPrivate]="!isSharedMode()"
             [highlight]="highlightTodoId() === todo.id"
             [isSelected]="selectedTodos().has(todo.id)"
             [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-            (deleteTodoEvent)="deleteTodoById($any($event))"
-            (saveAsBlueprintEvent)="saveAsBlueprint($any($event))"
+            (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+            (saveAsBlueprintEvent)="saveAsBlueprint($event)"
             (selectionChangeEvent)="toggleTodoSelection($event)"
-          >
-          </app-todo>
-        </div>
-      }
-    </div>
+          />
+        }
+      </div>
+    } @else {
+      <div class="w-full">
+        @for (todo of listTodos(); track todo.id) {
+          <app-todo
+            [todo]="todo"
+            [index]="$index"
+            [isOwner]="todo.user_id === userId()"
+            [isPrivate]="!isSharedMode()"
+            [highlight]="highlightTodoId() === todo.id"
+            [isSelected]="selectedTodos().has(todo.id)"
+            [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+            (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+            (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+            (selectionChangeEvent)="toggleTodoSelection($event)"
+          />
+        }
+      </div>
+    }
   }
 
   <!-- Create Blueprint Dialog -->
@@ -279,26 +346,26 @@
       </div>
     </div>
   }
+
+  <app-filter-bar
+    [filterOptions]="filterOptionsWithCounts"
+    [activeFilter]="activeFilter()"
+    [showFilter]="showFilter()"
+    [showBlueprintButton]="true"
+    filterLabel="Status"
+    filterGroupName="todo-filter"
+    (filterToggle)="toggleFilter()"
+    (filterChange)="changeFilter($any($event))"
+    (searchChange)="onSearchChange($any($event))"
+    (openBlueprints)="blueprintService.showBlueprintDialog.set(true)"
+  />
+
+  <app-bulk-actions
+    [selectedCount]="selectedTodos().size"
+    [isAllSelected]="isAllSelected()"
+    mode="todos"
+    (selectAllEvent)="toggleSelectAll()"
+    (softDeleteEvent)="bulkArchive()"
+    (cancelEvent)="clearSelection()"
+  />
 </div>
-
-<app-filter-bar
-  [filterOptions]="filterOptionsWithCounts"
-  [activeFilter]="activeFilter()"
-  [showFilter]="showFilter()"
-  [showBlueprintButton]="true"
-  filterLabel="Status"
-  filterGroupName="todo-filter"
-  (filterToggle)="toggleFilter()"
-  (filterChange)="changeFilter($any($event))"
-  (searchChange)="onSearchChange($any($event))"
-  (openBlueprints)="blueprintService.showBlueprintDialog.set(true)"
-/>
-
-<app-bulk-actions
-  [selectedCount]="selectedTodos().size"
-  [isAllSelected]="isAllSelected()"
-  mode="todos"
-  (selectAllEvent)="toggleSelectAll()"
-  (softDeleteEvent)="bulkArchive()"
-  (cancelEvent)="clearSelection()"
-/>

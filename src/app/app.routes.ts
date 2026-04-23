@@ -64,9 +64,9 @@ export const routes: Routes = [
       },
       {
         path: "shared-tasks",
-        component: SharedTasksView,
+        component: TodosView,
         title: "Shared Projects",
-        data: { breadcrumb: "Shared Projects" },
+        data: { breadcrumb: "Shared Projects", mode: "shared" },
       },
       {
         path: "kanban",

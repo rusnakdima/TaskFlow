@@ -98,7 +98,7 @@ export class CreateProfileView implements OnInit {
       userId = localStorage.getItem("userId");
     }
     if (userId && userId !== "") {
-this.form.controls["user_id"].setValue(userId);
+      this.form.controls["user_id"].setValue(userId);
 
       const cachedProfile = this.storageService.profile();
       if (cachedProfile && cachedProfile.user_id === userId) {

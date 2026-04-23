@@ -57,6 +57,9 @@ import { TodoComponent } from "@components/todo/todo.component";
 import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
+import { TableField } from "@components/table-view/table-field.model";
 
 @Component({
   selector: "app-todos",
@@ -72,6 +75,8 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
     DragDropModule,
     CheckboxComponent,
     BulkActionsComponent,
+    TableViewComponent,
+    ViewModeSwitcherComponent,
   ],
   templateUrl: "./todos.view.html",
 })
@@ -106,6 +111,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   todos = this.storageService.todos;
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
+  isOffline = signal(false);
+  showStats = signal(false);
+  private onOnline = () => this.isOffline.set(false);
+  private onOffline = () => this.isOffline.set(true);
   private routeSub?: Subscription;
   private subscriptions = new Subscription();
 
@@ -113,10 +122,15 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   selectedTodos = signal<Set<string>>(new Set());
 
   // Computed signals
+  isSharedMode = computed(() => {
+    return this.route.snapshot.url[0]?.path === "shared-tasks";
+  });
+
   listTodos = computed(() => {
-    // Filter only private visibility todos
-    let filtered = this.storageService.privateTodos();
-    console.log(filtered)
+    // Filter based on mode - private vs team visibility todos
+    let filtered = this.isSharedMode()
+      ? this.storageService.sharedTodos()
+      : this.storageService.privateTodos();
 
     // Filter out todos from deleted users
     const deletedUserIds = new Set(
@@ -191,6 +205,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     { key: "urgent", label: "Urgent Priority" },
   ];
 
+  todoTableFields: TableField[] = [
+    { key: "title", label: "Project", type: "text", sortable: true },
+    { key: "priority", label: "Priority", type: "priority", sortable: true },
+    { key: "status", label: "Status", type: "status" },
+    { key: "tasks", label: "Tasks", type: "array-count" },
+    { key: "start_date", label: "Start Date", type: "date", sortable: true },
+    { key: "end_date", label: "Due Date", type: "date", sortable: true },
+    { key: "created_at", label: "Created", type: "datetime", sortable: true },
+  ];
+
   get filterOptionsWithCounts(): FilterOption[] {
     return this.filterOptions.map((option) => ({
       ...option,
@@ -200,10 +224,25 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
+    this.pageKey = this.isSharedMode() ? "shared-tasks" : "todos";
+
+    // Load view mode preference
+    this.viewMode.set(this.loadViewModePreference());
+
+    // Online/offline detection for shared mode
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", this.onOnline);
+      window.addEventListener("offline", this.onOffline);
+      this.isOffline.set(!navigator.onLine);
+    }
 
     // Initialize bulk action service
-    this.bulkService.setMode("todos");
-    this.bulkService.updateTotalCount(this.storageService.privateTodos().length);
+    this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
+    this.bulkService.updateTotalCount(
+      this.isSharedMode()
+        ? this.storageService.sharedTodos().length
+        : this.storageService.privateTodos().length
+    );
 
     // Subscribe to refresh shortcut (Ctrl+R)
     this.subscriptions.add(
@@ -253,10 +292,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
-
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.ctrlKey && event.key === "f") {
@@ -288,20 +323,37 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  deleteTodoById(todoId?: string): void {
+  deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
       this.dataSyncProvider
-        .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: true })
+        .crud("delete", "todos", { id: todoId, isOwner: isOwner, isPrivate: !this.isSharedMode() })
         .subscribe({
           next: () => {
             this.notifyService.showSuccess("Todo deleted successfully");
-            // No need to reload - storage is already updated by archiveTodoWithCascade()
-            // The deleted todo will be filtered out by the computed signal
           },
           error: (err) => {
             this.notifyService.showError(err.message || "Failed to delete todo");
           },
         });
+    }
+  }
+
+  onRowClick(todo: any): void {
+    this.router.navigate(["/todos", todo.id, "tasks"]);
+  }
+
+  onTableAction(event: { action: string; item: any }): void {
+    const { action, item } = event;
+    switch (action) {
+      case "blueprint":
+        this.saveAsBlueprint(item);
+        break;
+      case "edit":
+        this.router.navigate(["/todos", item.id, "edit_todo"]);
+        break;
+      case "delete":
+        this.deleteTodoById(item.id, item.user_id === this.userId());
+        break;
     }
   }
 

@@ -94,7 +94,9 @@ export class DashboardView implements OnInit {
 
   processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
     // Filter out deleted tasks and deleted todos
-    const activeTaskData = taskData.filter((item) => !item.task.deleted_at && !item.todo.deleted_at);
+    const activeTaskData = taskData.filter(
+      (item) => !item.task.deleted_at && !item.todo.deleted_at
+    );
     const tasks = activeTaskData.map((item) => item.task);
     this.totalTasks.set(tasks.length);
 
