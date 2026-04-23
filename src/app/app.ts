@@ -73,6 +73,7 @@ export class App implements OnInit {
   showShell = computed(
     () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
   );
+  showInfoBlock = signal(false);
   private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
@@ -140,6 +141,10 @@ export class App implements OnInit {
     const currentPath = this.router.url.split("?")[0];
     const isAuthPage = this.authRoutes.some((route) => currentPath.startsWith(route));
     this.showComponents.set(!isAuthPage);
+  }
+
+  onToggleInfoBlock(show: boolean) {
+    this.showInfoBlock.set(show);
   }
 
   /**

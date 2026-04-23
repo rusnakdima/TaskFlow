@@ -39,9 +39,8 @@
                         ? 'text-gray-500 line-through dark:text-gray-400'
                         : ''
                     "
-                    (dblclick)="
-                      $event.stopPropagation(); isOwner && startInlineEdit('title', task.title)
-                    "
+                    (click)="$event.preventDefault()"
+                    (dblclick)="isOwner && startInlineEdit('title', task.title)"
                     title="Double-click to edit title"
                   >
                     {{ task.title }}
@@ -125,11 +124,9 @@
         } @else if (task.description && task.description != "") {
           <p
             class="textMuted mb-2 line-clamp-2 text-sm transition-colors"
-            (dblclick)="
-              $event.stopPropagation(); isOwner && startInlineEdit('description', task.description)
-            "
+            (click)="$event.preventDefault()"
+            (dblclick)="isOwner && startInlineEdit('description', task.description)"
             title="Double-click to edit description"
-            (click)="$event.stopPropagation()"
           >
             {{ truncateString(task.description, 100) }}
           </p>

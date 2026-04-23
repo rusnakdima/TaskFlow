@@ -45,9 +45,8 @@
                 } @else {
                   <h3
                     class="textNormal truncate text-lg font-semibold transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                    (dblclick)="
-                      $event.stopPropagation(); isOwner && startInlineEdit('title', todo.title)
-                    "
+                    (click)="$event.preventDefault(); $event.stopPropagation()"
+                    (dblclick)="isOwner && startInlineEdit('title', todo.title)"
                     title="Double-click to edit title"
                   >
                     {{ todo.title }}
@@ -110,10 +109,8 @@
           } @else {
             <p
               class="textMuted mb-2 line-clamp-2 text-sm transition-colors"
-              (dblclick)="
-                $event.stopPropagation();
-                isOwner && startInlineEdit('description', todo.description)
-              "
+              (click)="$event.preventDefault()"
+              (dblclick)="isOwner && startInlineEdit('description', todo.description)"
               title="Double-click to edit description"
             >
               {{ truncateString(todo.description, 100) }}
