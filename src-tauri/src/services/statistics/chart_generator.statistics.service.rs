@@ -5,9 +5,9 @@ use chrono::{DateTime, Datelike, NaiveDate, Weekday};
 use serde_json::Value;
 use std::collections::HashMap;
 
-pub struct chart_generator;
+pub struct ChartGenerator;
 
-impl chart_generator {
+impl ChartGenerator {
   pub fn compute_chart_data(
     tasks: &[Value],
     categories: &[Value],

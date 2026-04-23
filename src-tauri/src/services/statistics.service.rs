@@ -20,8 +20,8 @@ use crate::entities::{
 
 /* statistics modules */
 use crate::services::statistics::{
-  category_statistics::CategoryStatistics, chart_generator::chart_generator,
-  date_calculator::DateCalculator, task_analytics::task_analytics,
+  category_statistics::CategoryStatistics, chart_generator::ChartGenerator,
+  date_calculator::DateCalculator, task_analytics::TaskAnalytics,
 };
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ impl StatisticsService {
       .unwrap_or_default();
 
     // Compute metrics
-    let statistics = task_analytics::compute_statistics(
+    let statistics = TaskAnalytics::compute_statistics(
       &daily_activities,
       &previous_daily_activities,
       &current_tasks,
@@ -132,7 +132,7 @@ impl StatisticsService {
       &end_date_naive,
     );
 
-    let chart_data = chart_generator::compute_chart_data(
+    let chart_data = ChartGenerator::compute_chart_data(
       &current_tasks,
       &categories_with_counts,
       &daily_activities,
