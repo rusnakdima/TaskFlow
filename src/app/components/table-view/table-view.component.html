@@ -1,0 +1,169 @@
+<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-700">
+  <table class="w-full min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+    <thead class="bg-gray-50 dark:bg-zinc-800">
+      <tr>
+        @if (showSelection) {
+          <th class="w-12 px-4 py-3 text-left">
+            <app-checkbox
+              [checked]="selectedIds.size > 0 && selectedIds.size === data.length"
+              [indeterminate]="selectedIds.size > 0 && selectedIds.size < data.length"
+              (checkedChange)="onSelectionChange('', $event)"
+            />
+          </th>
+        }
+        @for (field of fields; track field.key) {
+          <th
+            class="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+            [class]="getFieldClass(field)"
+            (click)="toggleSort(field)"
+          >
+            <div class="flex items-center gap-1">
+              {{ field.label }}
+              @if (field.sortable) {
+                <mat-icon
+                  class="h-5! w-5! text-2xl!"
+                  [fontIcon]="
+                    sortField() === field.key
+                      ? sortDirection() === 'asc'
+                        ? 'arrow_upward'
+                        : 'arrow_downward'
+                      : 'unfold_more'
+                  "
+                />
+              }
+            </div>
+          </th>
+        }
+        @if (showActionsColumn) {
+          <th
+            class="w-20 px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+          >
+            Actions
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody
+      class="divide-y divide-gray-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900"
+      [class.opacity-50]="data.length === 0"
+    >
+      @for (item of getSortedData(); track item.id || $index) {
+        <tr
+          class="hover:bg-gray-50 dark:hover:bg-zinc-800"
+          [class.bg-blue-50]="isSelected(item.id)"
+          [class.dark:bg-blue-900/20]="isSelected(item.id)"
+          (click)="onRowClick(item)"
+        >
+          @if (showSelection) {
+            <td class="px-4 py-3 whitespace-nowrap" (click)="$event.stopPropagation()">
+              <app-checkbox
+                [checked]="isSelected(item.id)"
+                (checkedChange)="onSelectionChange(item.id, $event)"
+              />
+            </td>
+          }
+          @for (field of fields; track field.key) {
+            <td
+              class="px-4 py-3 text-sm whitespace-nowrap text-gray-900 dark:text-gray-100"
+              [class]="getFieldClass(field)"
+            >
+              @switch (field.type) {
+                @case ("date") {
+                  {{ formatDate(formatValue(item, field)) }}
+                }
+                @case ("datetime") {
+                  {{ formatDateTime(formatValue(item, field)) }}
+                }
+                @case ("number") {
+                  {{ formatValue(item, field) }}
+                }
+                @case ("boolean") {
+                  @if (formatValue(item, field)) {
+                    <mat-icon class="h-5! w-5! text-2xl! text-green-600" fontIcon="check_circle" />
+                  } @else {
+                    <mat-icon class="h-5! w-5! text-2xl! text-gray-400" fontIcon="cancel" />
+                  }
+                }
+                @case ("chip") {
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [class]="
+                      field.getChipColor
+                        ? field.getChipColor(formatValue(item, field))
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    "
+                  >
+                    {{
+                      field.getChipText
+                        ? field.getChipText(formatValue(item, field))
+                        : formatValue(item, field)
+                    }}
+                  </span>
+                }
+                @case ("priority") {
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [class]="getPriorityClass(formatValue(item, field))"
+                  >
+                    {{ formatValue(item, field) }}
+                  </span>
+                }
+                @case ("status") {
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [class]="getStatusClass(formatValue(item, field))"
+                  >
+                    {{ formatValue(item, field) }}
+                  </span>
+                }
+                @case ("user") {
+                  {{ formatValue(item, field)?.name || formatValue(item, field)?.email || "-" }}
+                }
+                @case ("array-count") {
+                  {{ formatValue(item, field)?.length || 0 }}
+                }
+                @case ("select") {
+                  @if (field.options) {
+                    {{ field.options[formatValue(item, field)]?.label || formatValue(item, field) }}
+                  } @else {
+                    {{ formatValue(item, field) }}
+                  }
+                }
+                @default {
+                  {{ formatValue(item, field) }}
+                }
+              }
+            </td>
+          }
+          @if (showActionsColumn) {
+            <td class="px-4 py-3 text-right whitespace-nowrap" (click)="$event.stopPropagation()">
+              @for (action of actions; track action.key) {
+                <button
+                  class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                  [class.text-gray-500]="action.key !== 'delete'"
+                  [class.text-red-500]="action.key === 'delete'"
+                  [class.hover:text-gray-700]="action.key !== 'delete'"
+                  [class.dark:hover:text-gray-300]="action.key !== 'delete'"
+                  [class.hover:text-red-700]="action.key === 'delete'"
+                  [class.dark:hover:text-red-400]="action.key === 'delete'"
+                  (click)="onActionClick(action.key, item)"
+                >
+                  <mat-icon class="h-5! w-5! text-2xl!" [fontIcon]="action.icon" />
+                </button>
+              }
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr>
+          <td
+            [attr.colspan]="fields.length + (showSelection ? 1 : 0) + (showActionsColumn ? 1 : 0)"
+            class="px-4 py-8 text-center text-gray-500"
+          >
+            {{ emptyMessage }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
