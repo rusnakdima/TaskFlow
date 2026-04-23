@@ -15,33 +15,36 @@ use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus}
 /// This service only handles profile-specific cloud sync operations
 #[derive(Clone)]
 pub struct ProfileService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
 }
 
 impl ProfileService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
+  pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
+      json_provider,
+      mongodb_provider,
     }
   }
 
   /// Sync a single profile to MongoDB (create or update)
   /// Call this after creating/updating via manageData endpoint
-  pub async fn syncProfileToCloud(
+  pub async fn sync_profile_to_cloud(
     &self,
-    profileId: String,
+    profile_id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
-      status: ResponseStatus::Error,
-      message: "MongoDB not available".to_string(),
-      data: DataValue::String("".to_string()),
-    })?;
+    let mongodb_provider = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
 
-    let profileData = self
-      .jsonProvider
-      .find_by_id("profiles", &profileId)
+    let profile_data = self
+      .json_provider
+      .find_by_id("profiles", &profile_id)
       .await
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
@@ -55,12 +58,12 @@ impl ProfileService {
       })?;
 
     // Check if profile exists in MongoDB
-    match mongodbProvider.find_by_id("profiles", &profileId).await {
-      Ok(Some(existingVal)) => {
+    match mongodb_provider.find_by_id("profiles", &profile_id).await {
+      Ok(Some(existing_val)) => {
         // Update if cloud profile is older
-        if shouldUpdateCloud(&profileData, &existingVal) {
-          mongodbProvider
-            .update("profiles", &profileId, profileData)
+        if should_update_cloud(&profile_data, &existing_val) {
+          mongodb_provider
+            .update("profiles", &profile_id, profile_data)
             .await
             .map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
@@ -83,8 +86,8 @@ impl ProfileService {
       }
       Ok(None) => {
         // Create new in cloud
-        mongodbProvider
-          .insert("profiles", profileData)
+        mongodb_provider
+          .insert("profiles", profile_data)
           .await
           .map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
@@ -107,18 +110,21 @@ impl ProfileService {
   }
 
   /// Sync all profiles for a user to MongoDB
-  pub async fn syncAllProfilesForUser(
+  pub async fn sync_all_profiles_for_user(
     &self,
-    userId: String,
+    user_id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mongodbProvider = self.mongodbProvider.as_ref().ok_or_else(|| ResponseModel {
-      status: ResponseStatus::Error,
-      message: "MongoDB not available".to_string(),
-      data: DataValue::String("".to_string()),
-    })?;
+    let mongodb_provider = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
 
     let profiles = self
-      .jsonProvider
+      .json_provider
       .find_all("profiles")
       .await
       .map_err(|e| ResponseModel {
@@ -127,11 +133,11 @@ impl ProfileService {
         data: DataValue::String("".to_string()),
       })?;
 
-    for profileData in profiles {
-      if let Some(userIdField) = profileData.get("user_id").and_then(|v| v.as_str()) {
-        if userIdField == userId {
-          let _ = mongodbProvider
-            .insert("profiles", profileData.clone())
+    for profile_data in profiles {
+      if let Some(user_id_field) = profile_data.get("user_id").and_then(|v| v.as_str()) {
+        if user_id_field == user_id {
+          let _ = mongodb_provider
+            .insert("profiles", profile_data.clone())
             .await;
         }
       }
@@ -146,7 +152,7 @@ impl ProfileService {
 }
 
 /// Compare timestamps to determine if cloud should be updated
-fn shouldUpdateCloud(local: &Value, cloud: &Value) -> bool {
+fn should_update_cloud(local: &Value, cloud: &Value) -> bool {
   let local_updated = local
     .get("updated_at")
     .and_then(|v| v.as_str())

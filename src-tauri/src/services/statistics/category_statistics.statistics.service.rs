@@ -5,107 +5,109 @@ use std::collections::HashMap;
 pub struct CategoryStatistics;
 
 impl CategoryStatistics {
-  pub fn calculateCategoryTasks(
+  pub fn calculate_category_tasks(
     categories: &Vec<Value>,
     todos: &Vec<Value>,
     tasks: &Vec<Value>,
-    startDate: &NaiveDate,
-    endDate: &NaiveDate,
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
   ) -> Vec<Value> {
-    let mut categoriesWithCounts = Vec::new();
+    let mut categories_with_counts = Vec::new();
 
-    // Group tasks by todoId for efficient lookup
-    let mut tasksByTodo: HashMap<String, Vec<Value>> = HashMap::new();
+    let mut tasks_by_todo: HashMap<String, Vec<Value>> = HashMap::new();
     for task in tasks {
-      if let Some(todoId) = task.get("todo_id").and_then(|v| v.as_str()) {
-        tasksByTodo
-          .entry(todoId.to_string())
+      if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
+        tasks_by_todo
+          .entry(todo_id.to_string())
           .or_default()
           .push(task.clone());
       }
     }
 
     for category in categories {
-      let mut categoryClone = category.clone();
-      let mut categoryTodos = Vec::new();
-      let mut categoryTaskCount = 0;
-      let mut categoryCompletedTaskCount = 0;
+      let mut category_clone = category.clone();
+      let mut category_todos = Vec::new();
+      let mut category_task_count = 0;
+      let mut category_completed_task_count = 0;
 
-      let categoryId = category.get("id").and_then(|v| v.as_str()).unwrap_or("");
+      let category_id = category.get("id").and_then(|v| v.as_str()).unwrap_or("");
 
       for todo in todos {
-        let mut hasCategory = false;
-        if let Some(todoCategories) = todo.get("categories").and_then(|v| v.as_array()) {
-          hasCategory = todoCategories.iter().any(|cat| {
-            if let Some(catId) = cat.get("id").and_then(|v| v.as_str()) {
-              return catId == categoryId;
+        let mut has_category = false;
+        if let Some(todo_categories) = todo.get("categories").and_then(|v| v.as_array()) {
+          has_category = todo_categories.iter().any(|cat| {
+            if let Some(cat_id) = cat.get("id").and_then(|v| v.as_str()) {
+              return cat_id == category_id;
             }
-            if let Some(catId) = cat.as_str() {
-              return catId == categoryId;
+            if let Some(cat_id) = cat.as_str() {
+              return cat_id == category_id;
             }
             false
           });
         }
 
-        if hasCategory {
-          let mut todoHasRelevantTasks = false;
-          let todoId = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        if has_category {
+          let mut todo_has_relevant_tasks = false;
+          let todo_id = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
 
-          if let Some(todoTasks) = tasksByTodo.get(todoId) {
-            for task in todoTasks {
-              let mut isTaskInRange = false;
-              if let Some(createdAtStr) = task.get("created_at").and_then(|v| v.as_str()) {
-                if let Ok(dt) = DateTime::parse_from_rfc3339(createdAtStr) {
+          if let Some(todo_tasks) = tasks_by_todo.get(todo_id) {
+            for task in todo_tasks {
+              let mut is_task_in_range = false;
+              if let Some(created_at_str) = task.get("created_at").and_then(|v| v.as_str()) {
+                if let Ok(dt) = DateTime::parse_from_rfc3339(created_at_str) {
                   let date = dt.date_naive();
-                  if date >= *startDate && date <= *endDate {
-                    isTaskInRange = true;
+                  if date >= *start_date && date <= *end_date {
+                    is_task_in_range = true;
                   }
                 }
               }
 
-              if !isTaskInRange {
-                if let Some(updatedAtStr) = task.get("updated_at").and_then(|v| v.as_str()) {
-                  if let Ok(dt) = DateTime::parse_from_rfc3339(updatedAtStr) {
+              if !is_task_in_range {
+                if let Some(updated_at_str) = task.get("updated_at").and_then(|v| v.as_str()) {
+                  if let Ok(dt) = DateTime::parse_from_rfc3339(updated_at_str) {
                     let date = dt.date_naive();
-                    if date >= *startDate && date <= *endDate {
-                      isTaskInRange = true;
+                    if date >= *start_date && date <= *end_date {
+                      is_task_in_range = true;
                     }
                   }
                 }
               }
 
-              if isTaskInRange {
-                categoryTaskCount += 1;
-                todoHasRelevantTasks = true;
+              if is_task_in_range {
+                category_task_count += 1;
+                todo_has_relevant_tasks = true;
                 if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
                   if status == "completed" || status == "skipped" {
-                    categoryCompletedTaskCount += 1;
+                    category_completed_task_count += 1;
                   }
                 }
               }
             }
           }
 
-          if todoHasRelevantTasks {
-            categoryTodos.push(todo.clone());
+          if todo_has_relevant_tasks {
+            category_todos.push(todo.clone());
           }
         }
       }
 
-      if let Some(obj) = categoryClone.as_object_mut() {
-        obj.insert("todos".to_string(), serde_json::Value::Array(categoryTodos));
+      if let Some(obj) = category_clone.as_object_mut() {
         obj.insert(
-          "taskCount".to_string(),
-          serde_json::Value::Number(categoryTaskCount.into()),
+          "todos".to_string(),
+          serde_json::Value::Array(category_todos),
         );
         obj.insert(
-          "completedTaskCount".to_string(),
-          serde_json::Value::Number(categoryCompletedTaskCount.into()),
+          "task_count".to_string(),
+          serde_json::Value::Number(category_task_count.into()),
+        );
+        obj.insert(
+          "completed_task_count".to_string(),
+          serde_json::Value::Number(category_completed_task_count.into()),
         );
       }
-      categoriesWithCounts.push(categoryClone);
+      categories_with_counts.push(category_clone);
     }
 
-    categoriesWithCounts
+    categories_with_counts
   }
 }

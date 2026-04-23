@@ -21,37 +21,37 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{errResponse, successResponse};
+use crate::helpers::response_helper::{err_response, success_response};
 
 /* services */
 use super::auth_token::AuthTokenService;
 
 #[derive(Clone)]
 pub struct AuthTotpService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
-  tokenService: Option<Arc<AuthTokenService>>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
+  token_service: Option<Arc<AuthTokenService>>,
 }
 
 impl AuthTotpService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    tokenService: Option<Arc<AuthTokenService>>,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    token_service: Option<Arc<AuthTokenService>>,
   ) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
-      tokenService,
+      json_provider,
+      mongodb_provider,
+      token_service,
     }
   }
 
-  pub fn generateSecret(&self) -> String {
+  pub fn generate_secret(&self) -> String {
     let secret: [u8; 20] = rand::thread_rng().gen();
     base32::encode(Alphabet::Rfc4648 { padding: false }, &secret).to_ascii_lowercase()
   }
 
-  pub fn generateQrCode(&self, secret: &str, email: &str) -> String {
+  pub fn generate_qr_code(&self, secret: &str, email: &str) -> String {
     let otpauth = format!(
       "otpauth://totp/TaskFlow:{}?secret={}&issuer=TaskFlow",
       email, secret
@@ -79,7 +79,7 @@ impl AuthTotpService {
     }
   }
 
-  pub fn generateRecoveryCodes(&self) -> Vec<String> {
+  pub fn generate_recovery_codes(&self) -> Vec<String> {
     let mut codes = Vec::new();
     for _ in 0..8 {
       let code: u32 = rand::thread_rng().gen();
@@ -88,7 +88,7 @@ impl AuthTotpService {
     codes
   }
 
-  pub async fn verifyTotpCode(&self, secret: &str, code: &str) -> bool {
+  pub async fn verify_totp_code(&self, secret: &str, code: &str) -> bool {
     let code = code.trim();
     tracing::debug!("TOTP code received: length={}", code.len());
 
@@ -164,46 +164,46 @@ impl AuthTotpService {
     false
   }
 
-  pub async fn setupTotp(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+  pub async fn setup_totp(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
+    let user = self.find_user(username).await?;
 
-    let secret = self.generateSecret();
+    let secret = self.generate_secret();
     let secret_lower = secret.to_ascii_lowercase();
-    let recoveryCodes = self.generateRecoveryCodes();
-    let qrCode = self.generateQrCode(&secret_lower, &user.email);
+    let recovery_codes = self.generate_recovery_codes();
+    let qr_code = self.generate_qr_code(&secret_lower, &user.email);
 
     self
-      .updateTotpSettings(username, false, &secret_lower, recoveryCodes.clone())
+      .update_totp_settings(username, false, &secret_lower, recovery_codes.clone())
       .await?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP setup initiated".to_string(),
       data: DataValue::Object(serde_json::json!({
-        "qrCode": qrCode,
+        "qr_code": qr_code,
         "secret": secret_lower,
-        "recoveryCodes": recoveryCodes
+        "recovery_codes": recovery_codes
       })),
     })
   }
 
-  pub async fn enableTotp(
+  pub async fn enable_totp(
     &self,
     username: &str,
     code: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+    let user = self.find_user(username).await?;
 
     if user.totp_secret.is_empty() {
-      return Err(errResponse("TOTP not setup. Please setup TOTP first."));
+      return Err(err_response("TOTP not setup. Please setup TOTP first."));
     }
 
-    if !self.verifyTotpCode(&user.totp_secret, code).await {
-      return Err(errResponse("Invalid TOTP code"));
+    if !self.verify_totp_code(&user.totp_secret, code).await {
+      return Err(err_response("Invalid TOTP code"));
     }
 
     self
-      .updateTotpSettings(
+      .update_totp_settings(
         username,
         true,
         &user.totp_secret,
@@ -211,18 +211,18 @@ impl AuthTotpService {
       )
       .await?;
 
-    Ok(successResponse("TOTP enabled successfully"))
+    Ok(success_response("TOTP enabled successfully"))
   }
 
-  pub async fn verifyLoginTotp(
+  pub async fn verify_login_totp(
     &self,
     username: &str,
     code: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+    let user = self.find_user(username).await?;
 
     tracing::info!(
-      "verifyLoginTotp: username={}, totp_enabled={}, totp_secret.len={}, totp_secret.prefix={}",
+      "verify_login_totp: username={}, totp_enabled={}, totp_secret.len={}, totp_secret.prefix={}",
       username,
       user.totp_enabled,
       user.totp_secret.len(),
@@ -234,31 +234,38 @@ impl AuthTotpService {
     );
 
     if !user.totp_enabled {
-      return Err(errResponse("TOTP not enabled for this user"));
+      return Err(err_response("TOTP not enabled for this user"));
     }
 
     if user.totp_secret.is_empty() {
-      tracing::warn!("verifyLoginTotp: totpSecret is empty for user {}", username);
-      return Err(errResponse(
+      tracing::warn!(
+        "verify_login_totp: totp_secret is empty for user {}",
+        username
+      );
+      return Err(err_response(
         "TOTP secret not found. Please setup TOTP again.",
       ));
     }
 
     tracing::info!(
-      "verifyLoginTotp: calling verifyTotpCode with secret.len={}",
+      "verify_login_totp: calling verify_totp_code with secret.len={}",
       user.totp_secret.len()
     );
-    let verified = self.verifyTotpCode(&user.totp_secret, code).await;
-    tracing::info!("verifyLoginTotp: verifyTotpCode returned {}", verified);
+    let verified = self.verify_totp_code(&user.totp_secret, code).await;
+    tracing::info!("verify_login_totp: verify_totp_code returned {}", verified);
 
     if !verified {
-      return Err(errResponse("Invalid TOTP code"));
+      return Err(err_response("Invalid TOTP code"));
     }
 
-    if let Some(ref ts) = self.tokenService {
-      match ts.generateToken(&user.get_id(), &user.username, &user.role) {
+    if let Some(ref ts) = self.token_service {
+      match ts.generate_token(user.get_id(), &user.username, &user.role) {
         Ok(token) => {
-          let profile = self.checkProfileExists(&user.get_id()).await.ok().flatten();
+          let profile = self
+            .check_profile_exists(user.get_id())
+            .await
+            .ok()
+            .flatten();
           let needs_profile = profile.is_none();
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
@@ -274,88 +281,88 @@ impl AuthTotpService {
       }
     }
 
-    Ok(successResponse("TOTP verified"))
+    Ok(success_response("TOTP verified"))
   }
 
-  pub async fn disableTotp(
+  pub async fn disable_totp(
     &self,
     username: &str,
     code: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+    let user = self.find_user(username).await?;
 
     if !user.totp_enabled || user.totp_secret.is_empty() {
-      return Err(errResponse("TOTP is not enabled or not properly setup"));
+      return Err(err_response("TOTP is not enabled or not properly setup"));
     }
 
-    if !self.verifyTotpCode(&user.totp_secret, code).await {
-      return Err(errResponse("Invalid TOTP code"));
+    if !self.verify_totp_code(&user.totp_secret, code).await {
+      return Err(err_response("Invalid TOTP code"));
     }
 
     self
-      .updateTotpSettings(username, false, "", Vec::new())
+      .update_totp_settings(username, false, "", Vec::new())
       .await?;
 
-    Ok(successResponse("TOTP disabled successfully"))
+    Ok(success_response("TOTP disabled successfully"))
   }
 
-  pub async fn useRecoveryCode(
+  pub async fn use_recovery_code(
     &self,
     username: &str,
     code: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+    let user = self.find_user(username).await?;
 
     if !user.totp_enabled {
-      return Err(errResponse("TOTP is not enabled"));
+      return Err(err_response("TOTP is not enabled"));
     }
 
-    let mut updatedUser = user.clone();
-    if let Some(pos) = updatedUser.recovery_codes.iter().position(|c| c == code) {
-      updatedUser.recovery_codes.remove(pos);
-      updatedUser.updated_at = chrono::Utc::now();
-      self.saveUser(&updatedUser).await?;
-      Ok(successResponse("Recovery code accepted"))
+    let mut updated_user = user.clone();
+    if let Some(pos) = updated_user.recovery_codes.iter().position(|c| c == code) {
+      updated_user.recovery_codes.remove(pos);
+      updated_user.updated_at = chrono::Utc::now();
+      self.save_user(&updated_user).await?;
+      Ok(success_response("Recovery code accepted"))
     } else {
-      Err(errResponse("Invalid recovery code"))
+      Err(err_response("Invalid recovery code"))
     }
   }
 
-  pub async fn initTotpQrLogin(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
-    let user = self.findUser(username).await?;
+  pub async fn init_totp_qr_login(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
+    let user = self.find_user(username).await?;
 
     if !user.totp_enabled {
-      return Err(errResponse(
+      return Err(err_response(
         "TOTP is not enabled for this user. Please enable TOTP in settings first.",
       ));
     }
 
     if user.totp_secret.is_empty() {
-      return Err(errResponse(
+      return Err(err_response(
         "TOTP secret not found. Please setup TOTP first.",
       ));
     }
 
-    let qrCode = self.generateQrCode(&user.totp_secret, &user.email);
+    let qr_code = self.generate_qr_code(&user.totp_secret, &user.email);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP QR code generated".to_string(),
       data: DataValue::Object(serde_json::json!({
-        "qrCode": qrCode,
+        "qr_code": qr_code,
         "secret": user.totp_secret
       })),
     })
   }
 
-  async fn findUser(&self, username: &str) -> Result<UserEntity, ResponseModel> {
+  async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
 
     let user_val = match timeout(
       Duration::from_secs(3),
       self
-        .jsonProvider
+        .json_provider
         .find_many(table_name, Some(&filter), None, None, None, true),
     )
     .await
@@ -378,27 +385,27 @@ impl AuthTotpService {
       Some(v) => v,
       None => {
         let mongo = self
-          .mongodbProvider
+          .mongodb_provider
           .as_ref()
-          .ok_or_else(|| errResponse("User not found and MongoDB unavailable"))?;
+          .ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
         let mut users = timeout(
           Duration::from_secs(5),
           mongo.find_many(table_name, Some(&filter), None, None, None, true),
         )
         .await
-        .map_err(|_| errResponse("Database timeout"))?
-        .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
-        users.pop().ok_or_else(|| errResponse("User not found"))?
+        .map_err(|_| err_response("Database timeout"))?
+        .map_err(|e| err_response(&format!("Database error: {}", e)))?;
+        users.pop().ok_or_else(|| err_response("User not found"))?
       }
     };
 
     serde_json::from_value::<UserEntity>(user_val)
-      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))
   }
 
-  async fn saveUser(&self, user: &UserEntity) -> Result<(), ResponseModel> {
+  async fn save_user(&self, user: &UserEntity) -> Result<(), ResponseModel> {
     let user_val = serde_json::to_value(user)
-      .map_err(|e| errResponse(&format!("Failed to serialize user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
     let user_id = user.get_id();
     let table_name = TableModelType::User.table_name();
@@ -406,8 +413,8 @@ impl AuthTotpService {
     match timeout(
       Duration::from_secs(3),
       self
-        .jsonProvider
-        .update(table_name, &user_id, user_val.clone()),
+        .json_provider
+        .update(table_name, user_id, user_val.clone()),
     )
     .await
     {
@@ -420,16 +427,16 @@ impl AuthTotpService {
       }
     }
 
-    if let Some(mongo) = &self.mongodbProvider {
+    if let Some(mongo) = &self.mongodb_provider {
       match timeout(
         Duration::from_secs(5),
-        mongo.update(table_name, &user_id, user_val),
+        mongo.update(table_name, user_id, user_val),
       )
       .await
       {
         Ok(Ok(_)) => {}
         Ok(Err(e)) => {
-          return Err(errResponse(&format!(
+          return Err(err_response(&format!(
             "Failed to update MongoDB user: {}",
             e
           )));
@@ -443,49 +450,49 @@ impl AuthTotpService {
     Ok(())
   }
 
-  pub async fn updateTotpSettings(
+  pub async fn update_totp_settings(
     &self,
     username: &str,
-    totpEnabled: bool,
-    totpSecret: &str,
-    recoveryCodes: Vec<String>,
+    totp_enabled: bool,
+    totp_secret: &str,
+    recovery_codes: Vec<String>,
   ) -> Result<(), ResponseModel> {
     tracing::info!(
-      "updateTotpSettings: username={}, totpEnabled={}, totpSecret.len={}, totpSecret.prefix={}",
+      "update_totp_settings: username={}, totp_enabled={}, totp_secret.len={}, totp_secret.prefix={}",
       username,
-      totpEnabled,
-      totpSecret.len(),
-      if totpSecret.len() >= 4 {
-        &totpSecret[..4]
+      totp_enabled,
+      totp_secret.len(),
+      if totp_secret.len() >= 4 {
+        &totp_secret[..4]
       } else {
-        totpSecret
+        totp_secret
       }
     );
 
-    let user = self.findUser(username).await?;
-    tracing::info!("updateTotpSettings: found user with id={}", user.get_id());
+    let user = self.find_user(username).await?;
+    tracing::info!("update_totp_settings: found user with id={}", user.get_id());
 
-    let mut updatedUser = user.clone();
-    updatedUser.totp_enabled = totpEnabled;
-    updatedUser.totp_secret = totpSecret.to_string();
-    updatedUser.recovery_codes = recoveryCodes;
-    updatedUser.updated_at = chrono::Utc::now();
+    let mut updated_user = user.clone();
+    updated_user.totp_enabled = totp_enabled;
+    updated_user.totp_secret = totp_secret.to_string();
+    updated_user.recovery_codes = recovery_codes;
+    updated_user.updated_at = chrono::Utc::now();
 
-    self.saveUser(&updatedUser).await?;
+    self.save_user(&updated_user).await?;
 
-    if let Some(mongoProvider) = &self.mongodbProvider {
+    if let Some(mongo_provider) = &self.mongodb_provider {
       match timeout(
         Duration::from_secs(5),
-        mongoProvider.update(
+        mongo_provider.update(
           "users",
-          &updatedUser.get_id(),
-          serde_json::to_value(&updatedUser).unwrap(),
+          updated_user.get_id(),
+          serde_json::to_value(&updated_user).unwrap(),
         ),
       )
       .await
       {
         Ok(Ok(_)) => {
-          tracing::info!("updateTotpSettings: MongoDB update completed");
+          tracing::info!("update_totp_settings: MongoDB update completed");
         }
         Ok(Err(e)) => {
           tracing::warn!("Failed to update MongoDB TOTP settings: {}", e);
@@ -495,13 +502,13 @@ impl AuthTotpService {
         }
       }
     } else {
-      tracing::warn!("updateTotpSettings: no MongoDB provider available");
+      tracing::warn!("update_totp_settings: no MongoDB provider available");
     }
 
     Ok(())
   }
 
-  pub async fn checkProfileExists(
+  pub async fn check_profile_exists(
     &self,
     user_id: &str,
   ) -> Result<Option<ProfileEntity>, ResponseModel> {
@@ -509,25 +516,25 @@ impl AuthTotpService {
     let filter = Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
 
     if let Ok(mut profiles) = self
-      .jsonProvider
+      .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
     {
       if let Some(profile_val) = profiles.pop() {
         let profile: ProfileEntity = serde_json::from_value(profile_val)
-          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+          .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
         return Ok(Some(profile));
       }
     }
 
-    if let Some(mongo) = &self.mongodbProvider {
+    if let Some(mongo) = &self.mongodb_provider {
       if let Ok(mut profiles) = mongo
         .find_many(table_name, Some(&filter), None, None, None, true)
         .await
       {
         if let Some(profile_val) = profiles.pop() {
           let profile: ProfileEntity = serde_json::from_value(profile_val)
-            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
+            .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
           return Ok(Some(profile));
         }
       }

@@ -21,36 +21,36 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::errResponse;
+use crate::helpers::{profile_helper::check_profile_exists, response_helper::err_response};
 
 #[derive(Clone)]
 pub struct AuthLoginService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
-  pub tokenService: Arc<AuthTokenService>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
+  pub token_service: Arc<AuthTokenService>,
 }
 
 impl AuthLoginService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    tokenService: Arc<AuthTokenService>,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    token_service: Arc<AuthTokenService>,
   ) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
-      tokenService,
+      json_provider,
+      mongodb_provider,
+      token_service,
     }
   }
 
-  pub async fn login(&self, loginData: LoginForm) -> Result<ResponseModel, ResponseModel> {
-    let username = loginData.username;
-    let password = loginData.password;
+  pub async fn login(&self, login_data: LoginForm) -> Result<ResponseModel, ResponseModel> {
+    let username = login_data.username;
+    let password = login_data.password;
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
 
     let user_val = match self
-      .jsonProvider
+      .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
     {
@@ -67,39 +67,42 @@ impl AuthLoginService {
     let user_val = match user_val {
       Some(v) => v,
       None => {
-        let mongo = self
-          .mongodbProvider
-          .as_ref()
-          .ok_or_else(|| errResponse("User not found in local database and MongoDB unavailable"))?;
+        let mongo = self.mongodb_provider.as_ref().ok_or_else(|| {
+          err_response("User not found in local database and MongoDB unavailable")
+        })?;
         let mut users = mongo
           .find_many(table_name, Some(&filter), None, None, None, true)
           .await
-          .map_err(|e| errResponse(&format!("Database error: {}", e)))?;
+          .map_err(|e| err_response(&format!("Database error: {}", e)))?;
         users.pop().ok_or_else(|| {
-          errResponse("User not found. Please register first or check your username.")
+          err_response("User not found. Please register first or check your username.")
         })?
       }
     };
 
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
     let valid = verify(password, &user.password)
-      .map_err(|e| errResponse(&format!("Error verifying password: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error verifying password: {}", e)))?;
 
     if !valid {
-      return Err(errResponse("Invalid password"));
+      return Err(err_response("Invalid password"));
     }
 
-    if self.mongodbProvider.is_some() {
-      let _ = self.jsonProvider.insert(table_name, user_val).await;
+    if self.mongodb_provider.is_some() {
+      let _ = self.json_provider.insert(table_name, user_val).await;
     }
 
     let token = self
-      .tokenService
-      .generateToken(&user.get_id(), &user.username, &user.role)?;
+      .token_service
+      .generate_token(user.get_id(), &user.username, &user.role)?;
 
-    let profile = self.checkProfileExists(&user.get_id()).await.ok().flatten();
+    let profile = self
+      .check_profile_exists(user.get_id())
+      .await
+      .ok()
+      .flatten();
 
     let needs_profile = profile.is_none();
 
@@ -115,38 +118,15 @@ impl AuthLoginService {
     })
   }
 
-  pub async fn checkProfileExists(
+  pub async fn check_profile_exists(
     &self,
     user_id: &str,
   ) -> Result<Option<ProfileEntity>, ResponseModel> {
-    let table_name = "profiles";
-    let filter = Filter::Eq("userId".to_string(), serde_json::json!(user_id));
-
-    if let Ok(mut profiles) = self
-      .jsonProvider
-      .find_many(table_name, Some(&filter), None, None, None, true)
-      .await
-    {
-      if let Some(profile_val) = profiles.pop() {
-        let profile: ProfileEntity = serde_json::from_value(profile_val)
-          .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
-        return Ok(Some(profile));
-      }
-    }
-
-    if let Some(mongo) = &self.mongodbProvider {
-      if let Ok(mut profiles) = mongo
-        .find_many(table_name, Some(&filter), None, None, None, true)
-        .await
-      {
-        if let Some(profile_val) = profiles.pop() {
-          let profile: ProfileEntity = serde_json::from_value(profile_val)
-            .map_err(|e| errResponse(&format!("Failed to parse profile: {}", e)))?;
-          return Ok(Some(profile));
-        }
-      }
-    }
-
-    Ok(None)
+    check_profile_exists(
+      &self.json_provider,
+      self.mongodb_provider.as_deref(),
+      user_id,
+    )
+    .await
   }
 }

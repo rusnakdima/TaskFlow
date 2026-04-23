@@ -16,7 +16,7 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::errResponse;
+use crate::helpers::response_helper::err_response;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -28,27 +28,27 @@ pub struct Claims {
 
 #[derive(Clone)]
 pub struct AuthTokenService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
-  pub jwtSecret: String,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
+  pub jwt_secret: String,
 }
 
 impl AuthTokenService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    jwtSecret: String,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    jwt_secret: String,
   ) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
-      jwtSecret,
+      json_provider,
+      mongodb_provider,
+      jwt_secret,
     }
   }
 
-  pub fn generateToken(
+  pub fn generate_token(
     &self,
-    userId: &str,
+    user_id: &str,
     username: &str,
     role: &str,
   ) -> Result<String, ResponseModel> {
@@ -58,7 +58,7 @@ impl AuthTokenService {
       .timestamp() as usize;
 
     let claims = Claims {
-      id: userId.to_owned(),
+      id: user_id.to_owned(),
       username: username.to_owned(),
       role: role.to_owned(),
       exp: expiration,
@@ -67,30 +67,30 @@ impl AuthTokenService {
     encode(
       &Header::default(),
       &claims,
-      &EncodingKey::from_secret(self.jwtSecret.as_ref()),
+      &EncodingKey::from_secret(self.jwt_secret.as_ref()),
     )
-    .map_err(|e| errResponse(&format!("Token generation failed: {}", e)))
+    .map_err(|e| err_response(&format!("Token generation failed: {}", e)))
   }
 
-  pub async fn checkToken(&self, token: String) -> Result<ResponseModel, ResponseModel> {
-    let tokenData = decode::<Claims>(
+  pub async fn check_token(&self, token: String) -> Result<ResponseModel, ResponseModel> {
+    let token_data = decode::<Claims>(
       &token,
-      &DecodingKey::from_secret(self.jwtSecret.as_ref()),
+      &DecodingKey::from_secret(self.jwt_secret.as_ref()),
       &Validation::default(),
     )
-    .map_err(|e| errResponse(&format!("Invalid token: {}", e)))?;
+    .map_err(|e| err_response(&format!("Invalid token: {}", e)))?;
 
-    let userId = tokenData.claims.id;
+    let user_id = token_data.claims.id;
     let table_name = TableModelType::User.table_name();
 
     // STEP 1: Check local JSON database FIRST (works offline)
-    if let Ok(Some(userVal)) = self.jsonProvider.find_by_id(table_name, &userId).await {
-      let user: UserEntity = serde_json::from_value(userVal.clone())
-        .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+    if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
+      let user: UserEntity = serde_json::from_value(user_val.clone())
+        .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
       // Try to sync with MongoDB in background (non-blocking)
-      if self.mongodbProvider.is_some() {
-        let _ = self.syncUserToCloud(userVal.clone()).await;
+      if self.mongodb_provider.is_some() {
+        let _ = self.sync_user_to_cloud(user_val.clone()).await;
       }
 
       return Ok(ResponseModel {
@@ -101,22 +101,22 @@ impl AuthTokenService {
     }
 
     // STEP 2: Local database failed - try MongoDB (if available)
-    let mongoProvider = match &self.mongodbProvider {
+    let mongo_provider = match &self.mongodb_provider {
       Some(provider) => provider,
       None => {
-        return Err(errResponse(
+        return Err(err_response(
           "User not found in local database and MongoDB unavailable",
         ));
       }
     };
 
-    match mongoProvider.find_by_id(table_name, &userId).await {
-      Ok(Some(userVal)) => {
-        let user: UserEntity = serde_json::from_value(userVal.clone())
-          .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+    match mongo_provider.find_by_id(table_name, &user_id).await {
+      Ok(Some(user_val)) => {
+        let user: UserEntity = serde_json::from_value(user_val.clone())
+          .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
         // Sync user to local database for future offline use
-        let _ = self.jsonProvider.insert(table_name, userVal).await;
+        let _ = self.json_provider.insert(table_name, user_val).await;
 
         Ok(ResponseModel {
           status: ResponseStatus::Success,
@@ -124,14 +124,14 @@ impl AuthTokenService {
           data: DataValue::Object(serde_json::to_value(&user).unwrap()),
         })
       }
-      Ok(None) => Err(errResponse("User not found")),
-      Err(e) => Err(errResponse(&format!("User not found: {}", e))),
+      Ok(None) => Err(err_response("User not found")),
+      Err(e) => Err(err_response(&format!("User not found: {}", e))),
     }
   }
 
   /// Sync user data to MongoDB (non-blocking, best effort)
-  async fn syncUserToCloud(&self, user_val: serde_json::Value) -> Result<(), ()> {
-    let mongo = match &self.mongodbProvider {
+  async fn sync_user_to_cloud(&self, user_val: serde_json::Value) -> Result<(), ()> {
+    let mongo = match &self.mongodb_provider {
       Some(provider) => provider,
       None => return Ok(()),
     };

@@ -57,7 +57,7 @@ impl ConnectionManager {
         Ok(Message::Text(text)) => {
           let (response, request_id) = self.process_message(&text).await;
           let ws_response = WsResponse {
-            requestId: request_id,
+            request_id,
             response,
           };
           let response_json = to_string(&ws_response).unwrap_or_default();
@@ -91,8 +91,8 @@ impl ConnectionManager {
       }
     };
 
-    let request_id = request.requestId.clone();
-    let sync_metadata = request.syncMetadata.clone().unwrap_or(SyncMetadata {
+    let request_id = request.request_id.clone();
+    let sync_metadata = request.sync_metadata.clone().unwrap_or(SyncMetadata {
       is_owner: true,
       is_private: false,
     });
@@ -141,19 +141,7 @@ impl ConnectionManager {
           .handle_delete(request, sync_metadata)
           .await
       }
-      "restore-cascade" => {
-        self
-          .crud_handlers
-          .handle_restore_cascade(request, sync_metadata)
-          .await
-      }
-      "sync-to-provider" => {
-        self
-          .crud_handlers
-          .handle_sync_to_provider(request, sync_metadata)
-          .await
-      }
-      "restore" => {
+      "restore-cascade" | "restore" => {
         self
           .crud_handlers
           .handle_restore(request, sync_metadata)

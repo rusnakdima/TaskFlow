@@ -3,10 +3,10 @@ use chrono::{DateTime, Datelike, Duration, Local, Utc};
 pub struct DateCalculator;
 
 impl DateCalculator {
-  pub fn calculateDateRange(timeRange: &str) -> (DateTime<Local>, DateTime<Local>) {
+  pub fn calculate_date_range(time_range: &str) -> (DateTime<Local>, DateTime<Local>) {
     let now = Utc::now().with_timezone(&Local);
 
-    let startDate = match timeRange {
+    let start_date = match time_range {
       "day" => now
         .date_naive()
         .and_hms_opt(0, 0, 0)
@@ -62,8 +62,8 @@ impl DateCalculator {
       _ => now - Duration::days(7),
     };
 
-    let endDate = now;
+    let end_date = now;
 
-    (startDate, endDate)
+    (start_date, end_date)
   }
 }

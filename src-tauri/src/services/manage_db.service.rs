@@ -18,37 +18,37 @@ use crate::services::{
 
 /// ManageDbService - Facade for database management operations
 pub struct ManageDbService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
-  pub adminManager: Option<AdminManager>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
+  pub admin_manager: Option<AdminManager>,
 }
 
 impl ManageDbService {
   pub fn new(
-    jsonProvider: JsonProvider,
-    mongodbProvider: Option<Arc<MongoProvider>>,
-    cascadeService: CascadeService,
-    entityResolution: Arc<EntityResolutionService>,
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    cascade_service: CascadeService,
+    entity_resolution: Arc<EntityResolutionService>,
   ) -> Self {
-    let adminManager = mongodbProvider.clone().map(|mp| {
+    let admin_manager = mongodb_provider.clone().map(|mp| {
       AdminManager::new(
-        jsonProvider.clone(),
+        json_provider.clone(),
         mp,
-        cascadeService,
-        entityResolution.clone(),
+        cascade_service,
+        entity_resolution.clone(),
       )
     });
 
     Self {
-      jsonProvider,
-      mongodbProvider,
-      adminManager,
+      json_provider,
+      mongodb_provider,
+      admin_manager,
     }
   }
 
   /// Import data from cloud MongoDB to local JSON
-  pub async fn importToLocal(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    match self.mongodbProvider.as_ref() {
+  pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
+    match self.mongodb_provider.as_ref() {
       Some(mongo_provider) => {
         let tables = vec![
           "users",
@@ -72,7 +72,7 @@ impl ManageDbService {
 
           if let Ok(items) = cloud_data {
             for item in items {
-              let insert_result = self.jsonProvider.insert(table, item.clone()).await;
+              let insert_result = self.json_provider.insert(table, item.clone()).await;
               if insert_result.is_ok() {
                 imported_count += 1;
               }
@@ -95,8 +95,8 @@ impl ManageDbService {
   }
 
   /// Export data from local JSON to cloud MongoDB
-  pub async fn exportToCloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    match self.mongodbProvider.as_ref() {
+  pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
+    match self.mongodb_provider.as_ref() {
       Some(mongo_provider) => {
         let tables = vec![
           "users",
@@ -115,7 +115,7 @@ impl ManageDbService {
             Filter::IsNull("deleted_at".to_string()),
           ]);
           let local_data = self
-            .jsonProvider
+            .json_provider
             .find_many(table, Some(&user_filter), None, None, None, true)
             .await;
 
@@ -144,9 +144,9 @@ impl ManageDbService {
   }
 
   /// Get all data for admin view (from MongoDB)
-  pub async fn getAllDataForAdmin(&self) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.getAllDataForAdmin().await,
+  pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
+    match &self.admin_manager {
+      Some(manager) => manager.get_all_data_for_admin().await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -156,9 +156,9 @@ impl ManageDbService {
   }
 
   /// Get all data for Archive page from local JSON (all users, includes deleted)
-  pub async fn getAllDataForArchive(&self) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.getAllDataForArchive().await,
+  pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
+    match &self.admin_manager {
+      Some(manager) => manager.get_all_data_for_archive().await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -168,13 +168,13 @@ impl ManageDbService {
   }
 
   /// Permanently delete a record with cascade to children (MongoDB - Admin page)
-  pub async fn permanentlyDeleteRecord(
+  pub async fn permanently_delete_record(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.permanentlyDeleteRecord(table, id).await,
+    match &self.admin_manager {
+      Some(manager) => manager.permanently_delete_record(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -184,13 +184,13 @@ impl ManageDbService {
   }
 
   /// Permanently delete a record with cascade to children (local JSON - Archive page)
-  pub async fn permanentlyDeleteRecordLocal(
+  pub async fn permanently_delete_record_local(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.permanentlyDeleteRecordLocal(table, id).await,
+    match &self.admin_manager {
+      Some(manager) => manager.permanently_delete_record_local(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -200,13 +200,13 @@ impl ManageDbService {
   }
 
   /// Toggle delete status of a record with cascade to children (MongoDB - Admin page)
-  pub async fn toggleDeleteStatus(
+  pub async fn toggle_delete_status(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.toggleDeleteStatus(table, id).await,
+    match &self.admin_manager {
+      Some(manager) => manager.toggle_delete_status(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -216,13 +216,13 @@ impl ManageDbService {
   }
 
   /// Toggle delete status of a record with cascade to children (local JSON - Archive page)
-  pub async fn toggleDeleteStatusLocal(
+  pub async fn toggle_delete_status_local(
     &self,
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.adminManager {
-      Some(manager) => manager.toggleDeleteStatusLocal(table, id).await,
+    match &self.admin_manager {
+      Some(manager) => manager.toggle_delete_status_local(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),

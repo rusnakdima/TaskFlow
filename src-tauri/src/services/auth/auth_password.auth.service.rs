@@ -19,31 +19,31 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
-use crate::helpers::response_helper::errResponse;
+use crate::helpers::response_helper::err_response;
 
 #[derive(Clone)]
 pub struct AuthPasswordService {
-  pub jsonProvider: JsonProvider,
-  pub mongodbProvider: Option<Arc<MongoProvider>>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
 }
 
 impl AuthPasswordService {
-  pub fn new(jsonProvider: JsonProvider, mongodbProvider: Option<Arc<MongoProvider>>) -> Self {
+  pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
     Self {
-      jsonProvider,
-      mongodbProvider,
+      json_provider,
+      mongodb_provider,
     }
   }
 
-  pub async fn requestPasswordReset(
+  pub async fn request_password_reset(
     &self,
     email: String,
     config: &ConfigHelper,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .mongodbProvider
+      .mongodb_provider
       .as_ref()
-      .ok_or_else(|| errResponse("Password reset unavailable: MongoDB offline"))?;
+      .ok_or_else(|| err_response("Password reset unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -51,12 +51,12 @@ impl AuthPasswordService {
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
+      .map_err(|e| err_response(&format!("User not found: {}", e)))?;
 
-    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
 
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
     let code = format!("{:06}", rand::random::<u32>() % 1000000);
     let expiration = chrono::Utc::now()
@@ -71,19 +71,19 @@ impl AuthPasswordService {
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();
 
-    let email_service = EmailProvider::fromConfig(config)?;
+    let email_service = EmailProvider::from_config(config)?;
     email_service
-      .sendPasswordResetCode(&email, &code)
+      .send_password_reset_code(&email, &code)
       .await
-      .map_err(|_| errResponse("Failed to send reset email"))?;
+      .map_err(|_| err_response("Failed to send reset email"))?;
 
     mongo
       .update(table_name, &user_id, user_json.clone())
       .await
-      .map_err(|e| errResponse(&format!("Error updating user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error updating user: {}", e)))?;
 
     let _ = self
-      .jsonProvider
+      .json_provider
       .update(table_name, &user_id, user_json)
       .await;
 
@@ -94,15 +94,15 @@ impl AuthPasswordService {
     })
   }
 
-  pub async fn verifyCode(
+  pub async fn verify_code(
     &self,
     email: String,
     code: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .mongodbProvider
+      .mongodb_provider
       .as_ref()
-      .ok_or_else(|| errResponse("Verification unavailable: MongoDB offline"))?;
+      .ok_or_else(|| err_response("Verification unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -110,12 +110,12 @@ impl AuthPasswordService {
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
+      .map_err(|e| err_response(&format!("User not found: {}", e)))?;
 
-    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
 
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
     if user.temporary_code == code && !user.temporary_code.is_empty() {
       let now = chrono::Utc::now();
@@ -128,22 +128,22 @@ impl AuthPasswordService {
           });
         }
       }
-      return Err(errResponse("Code expired"));
+      return Err(err_response("Code expired"));
     }
-    Err(errResponse("Invalid verification code"))
+    Err(err_response("Invalid verification code"))
   }
 
-  pub async fn resetPassword(
+  pub async fn reset_password(
     &self,
-    resetData: PasswordReset,
+    reset_data: PasswordReset,
   ) -> Result<ResponseModel, ResponseModel> {
-    let email = resetData.email;
-    let password = resetData.newPassword;
+    let email = reset_data.email;
+    let password = reset_data.new_password;
 
     let mongo = self
-      .mongodbProvider
+      .mongodb_provider
       .as_ref()
-      .ok_or_else(|| errResponse("Password reset unavailable: MongoDB offline"))?;
+      .ok_or_else(|| err_response("Password reset unavailable: MongoDB offline"))?;
 
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
@@ -151,17 +151,17 @@ impl AuthPasswordService {
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| errResponse(&format!("User not found: {}", e)))?;
+      .map_err(|e| err_response(&format!("User not found: {}", e)))?;
 
-    let user_val = users.pop().ok_or_else(|| errResponse("User not found"))?;
+    let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
 
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| errResponse(&format!("Failed to parse user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
-    let hashedPassword = hash(password, DEFAULT_COST)
-      .map_err(|e| errResponse(&format!("Error hashing password: {}", e)))?;
+    let hashed_password = hash(password, DEFAULT_COST)
+      .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
 
-    user.password = hashedPassword;
+    user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
     user.updated_at = chrono::Utc::now();
@@ -172,10 +172,10 @@ impl AuthPasswordService {
     mongo
       .update(table_name, &user_id, user_json.clone())
       .await
-      .map_err(|e| errResponse(&format!("Error updating user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error updating user: {}", e)))?;
 
     let _ = self
-      .jsonProvider
+      .json_provider
       .update(table_name, &user_id, user_json)
       .await;
 
