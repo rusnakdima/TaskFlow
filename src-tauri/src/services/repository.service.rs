@@ -116,6 +116,7 @@ impl RepositoryService {
     }
     current_docs = projected_docs;
 
+    // Process each path, handling multi-segment paths by loading level by level
     for path in load_paths {
       let segments: Vec<&str> = path.split('.').collect();
       if segments.is_empty() {
@@ -129,47 +130,78 @@ impl RepositoryService {
         segments
       );
 
-      let loader = RelationLoader::new(self.json_provider.clone());
+      // For multi-segment paths (e.g., "tasks.subtasks"), load one level at a time
+      let mut docs_to_process = current_docs.clone();
+      let mut accumulated_docs = Vec::new();
 
-      for doc in current_docs.iter_mut() {
-        if let Some(obj) = doc.as_object_mut() {
-          obj.insert("_collection".to_string(), Value::String(base_table.clone()));
+      for (idx, segment) in segments.iter().enumerate() {
+        tracing::info!(
+          "[REPO] Loading segment {} of {}: {}",
+          idx + 1,
+          segments.len(),
+          segment
+        );
+
+        let loader = RelationLoader::new(self.json_provider.clone());
+
+        for doc in docs_to_process.iter_mut() {
+          if let Some(obj) = doc.as_object_mut() {
+            obj.insert("_collection".to_string(), Value::String(table.to_string()));
+          }
         }
+
+        // Load this level for all docs
+        match loader
+          .load_nested(docs_to_process.clone(), &[*segment], true)
+          .await
+        {
+          Ok(loaded_docs) => {
+            tracing::info!(
+              "[REPO] Segment '{}' loaded, {} docs returned",
+              segment,
+              loaded_docs.len()
+            );
+            docs_to_process = loaded_docs;
+          }
+          Err(e) => {
+            tracing::warn!("[REPO] Failed to load segment '{}': {}", segment, e);
+            break;
+          }
+        }
+
+        // Apply projection after each segment
+        let mut projected: Vec<Value> = Vec::new();
+        for doc in docs_to_process.iter() {
+          if let Some(obj) = doc.as_object() {
+            let mut obj_clone = obj.clone();
+            obj_clone.remove("_collection");
+            let p = projection.apply(&Value::Object(obj_clone));
+            projected.push(p);
+          } else {
+            projected.push(doc.clone());
+          }
+        }
+        docs_to_process = projected;
       }
 
-      match loader
-        .load_nested(current_docs.clone(), &segments, true)
-        .await
-      {
-        Ok(loaded_docs) => {
-          current_docs = loaded_docs;
-          tracing::info!(
-            "[REPO] Relations loaded successfully, count={}",
-            current_docs.len()
-          );
-        }
-        Err(e) => {
-          let error_msg = e.to_string();
-          tracing::warn!(
-            "[REPO] Relation loading warning: {} - continuing without relations",
-            error_msg
-          );
-        }
-      }
+      // Merge loaded relations back - need to attach them to the parent documents
+      // For now, just use the final result of multi-segment loading
+      let final_docs = if !docs_to_process.is_empty() {
+        docs_to_process.clone()
+      } else {
+        accumulated_docs.clone()
+      };
 
-      // Apply projection to all documents after each relation load
-      let mut projected_docs: Vec<Value> = Vec::new();
-      for doc in current_docs.iter() {
-        if let Some(obj) = doc.as_object() {
-          let mut obj_clone = obj.clone();
-          obj_clone.remove("_collection");
-          let projected = projection.apply(&Value::Object(obj_clone));
-          projected_docs.push(projected);
-        } else {
-          projected_docs.push(doc.clone());
+      // If this was a single-segment path, use result directly
+      if segments.len() == 1 {
+        current_docs = docs_to_process;
+      } else {
+        // For multi-segment, we need to attach back to original docs
+        // This is a simplified approach - attach loaded relations to parent
+        if !final_docs.is_empty() {
+          current_docs = final_docs;
         }
       }
-      current_docs = projected_docs;
     }
 
     Ok(current_docs)

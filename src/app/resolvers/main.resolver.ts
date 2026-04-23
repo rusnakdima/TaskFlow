@@ -109,9 +109,11 @@ export class MainResolver implements Resolve<any> {
           "user",
           "user.profile",
           "tasks",
+          "tasks.subtasks",
+          "tasks.comments",
           "categories",
-          "assigneesProfiles",
-          "assigneesProfiles.user",
+          "assignees_profiles",
+          "assignees_profiles.user",
         ],
       })
       .pipe(
