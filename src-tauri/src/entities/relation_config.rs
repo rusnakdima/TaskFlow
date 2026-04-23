@@ -28,7 +28,7 @@ impl RelationConfig {
     vec![
       (
         "tasks",
-        RelationDef::one_to_many("tasks", "tasks", "task_id"),
+        RelationDef::one_to_many("tasks", "tasks", "todo_id"),
       ),
       ("user", RelationDef::many_to_one("user", "users", "user_id")),
       (
@@ -62,13 +62,13 @@ impl RelationConfig {
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
-      ("todo", RelationDef::many_to_one("todo", "todos", "task_id")),
+      ("todo", RelationDef::many_to_one("todo", "todos", "todo_id")),
     ]
   }
 
   pub fn subtasks_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
+      ("task", RelationDef::many_to_one("task", "tasks", "todo_id")),
       (
         "comments",
         RelationDef::one_to_many("comments", "comments", "subtask_id"),
@@ -82,7 +82,7 @@ impl RelationConfig {
 
   pub fn comments_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
+      ("task", RelationDef::many_to_one("task", "tasks", "todo_id")),
       (
         "subtask",
         RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),

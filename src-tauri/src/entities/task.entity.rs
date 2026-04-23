@@ -37,7 +37,7 @@ impl Display for TaskStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskEntity {
   pub id: Option<String>,
-  pub task_id: String,
+  pub todo_id: String,
   pub title: String,
   pub description: String,
   pub status: TaskStatus,
@@ -45,8 +45,6 @@ pub struct TaskEntity {
   pub start_date: Option<String>,
   pub end_date: Option<String>,
   pub order: i32,
-  pub assignees: Vec<String>,
-  pub depends_on: Vec<String>,
   #[serde(default)]
   pub created_at: DateTime<Utc>,
   #[serde(default)]
@@ -88,7 +86,7 @@ impl WithRelations for TaskEntity {
     vec![
       RelationDef::one_to_many("subtasks", "subtasks", "task_id"),
       RelationDef::one_to_many("comments", "comments", "task_id"),
-      RelationDef::many_to_one("todo", "todos", "task_id"),
+      RelationDef::many_to_one("todo", "todos", "todo_id"),
     ]
   }
 }
@@ -147,7 +145,7 @@ impl From<TaskCreateModel> for TaskEntity {
 
     TaskEntity {
       id: None,
-      task_id: value.todo_id,
+      todo_id: value.todo_id,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: TaskStatus::Pending,
@@ -158,8 +156,6 @@ impl From<TaskCreateModel> for TaskEntity {
       deleted_at: None,
       created_at: now,
       updated_at: now,
-      assignees: vec![],
-      depends_on: vec![],
     }
   }
 }
