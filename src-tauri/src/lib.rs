@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 /* imports */
 mod entities;
 mod errors;
@@ -18,33 +16,36 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
 /* routes */
 use routes::{
-  about_route::{downloadUpdate, getBinaryNameFile, openFile},
+  about_route::{download_update, get_binary_name_file, open_file},
   auth_route::{
-    authenticateAndroidBiometric, checkAndroidBiometric, checkToken, completeBiometricAuth,
-    completePasskeyAuthentication, completePasskeyRegistration, disableBiometric, disablePasskey,
-    disableTotp, enableBiometric, enableTotp, getUserSecurityStatus, initBiometricAuth,
-    initPasskeyAuthentication, initPasskeyRegistration, initTotpQrLogin, login, qrApprove,
-    qrGenerate, qrGenerateForDesktop, qrLoginComplete, qrStatus, qrToggle, register,
-    requestPasswordReset, resetPassword, setupTotp, useRecoveryCode, verifyCode, verifyLoginTotp,
+    authenticate_android_biometric, check_android_biometric, check_token, complete_biometric_auth,
+    complete_passkey_authentication, complete_passkey_registration, disable_biometric,
+    disable_passkey, disable_totp, enable_biometric, enable_totp, get_user_security_status,
+    init_biometric_auth, init_passkey_authentication, init_passkey_registration,
+    init_totp_qr_login, login, qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete,
+    qr_status, qr_toggle, register, request_password_reset, reset_password, setup_totp,
+    use_recovery_code, verify_code, verify_login_totp,
   },
   manage_db_route::{
-    exportToCloud, getAllDataForAdmin, getAllDataForArchive, importToLocal, manageData,
-    permanentlyDeleteRecord, permanentlyDeleteRecordLocal, syncVisibilityToProvider,
-    toggleDeleteStatus, toggleDeleteStatusLocal,
+    export_to_cloud, get_all_data_for_admin, get_all_data_for_archive, import_to_local,
+    manage_data, permanently_delete_record, permanently_delete_record_local,
+    sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
   },
-  profile_route::{profileSyncAllForUser, profileSyncToCloud},
-  statistics_route::statisticsGet,
+  profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
+  statistics_route::statistics_get,
 };
 
 /* services */
 use services::{
   about_service::AboutService, activity_monitor_service::ActivityMonitorService,
   auth_service::AuthService, cascade::CascadeService,
-  entity_resolution_service::EntityResolutionService, live_sync_service::LiveSyncService,
-  manage_db_service::ManageDbService, profile_service::ProfileService,
-  repository_service::RepositoryService, statistics_service::StatisticsService,
-  websocket::WebSocketServerService,
+  entity_resolution_service::EntityResolutionService, manage_db_service::ManageDbService,
+  profile_service::ProfileService, repository_service::RepositoryService,
+  statistics_service::StatisticsService, websocket::WebSocketServerService,
 };
+
+/* entities */
+use crate::entities::relation_config::RelationConfig;
 
 /* nosql_orm */
 use nosql_orm::nosql_index::NosqlIndex;
@@ -52,15 +53,14 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 pub struct AppState {
-  pub configHelper: Arc<ConfigHelper>,
-  pub repositoryService: Arc<RepositoryService>,
-  pub aboutService: Arc<AboutService>,
-  pub authService: Arc<AuthService>,
-  pub liveSyncService: Option<Arc<LiveSyncService>>,
-  pub manageDbService: Arc<ManageDbService>,
-  pub profileService: Arc<ProfileService>,
-  pub statisticsService: Arc<StatisticsService>,
-  pub websocketServerService: Arc<WebSocketServerService>,
+  pub config_helper: Arc<ConfigHelper>,
+  pub repository_service: Arc<RepositoryService>,
+  pub about_service: Arc<AboutService>,
+  pub auth_service: Arc<AuthService>,
+  pub manage_db_service: Arc<ManageDbService>,
+  pub profile_service: Arc<ProfileService>,
+  pub statistics_service: Arc<StatisticsService>,
+  pub websocket_server_service: Arc<WebSocketServerService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -68,7 +68,9 @@ pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
-  // Initialize tracing subscriber - stdout only
+  RelationConfig::register_all_relations();
+  tracing::info!("Relation registry initialized");
+
   let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
   let stdout_layer = fmt::layer()
@@ -94,18 +96,18 @@ pub fn run() {
 
   builder
     .setup(|app| {
-      let configHelper = Arc::new(ConfigHelper::new());
+      let config_helper = Arc::new(ConfigHelper::new());
 
-      let documentDir = app.path().document_dir().unwrap();
-      let jsonDbPath = documentDir
-        .join(&configHelper.appHomeFolder)
-        .join(&configHelper.jsonDbName);
-      std::fs::create_dir_all(&jsonDbPath).ok();
+      let document_dir = app.path().document_dir().unwrap();
+      let json_db_path = document_dir
+        .join(&config_helper.app_home_folder)
+        .join(&config_helper.json_db_name);
+      std::fs::create_dir_all(&json_db_path).ok();
 
-      let jsonProvider = tauri::async_runtime::block_on(JsonProvider::new(&jsonDbPath))
+      let json_provider = tauri::async_runtime::block_on(JsonProvider::new(&json_db_path))
         .expect("Failed to create JSON provider");
 
-      let json_provider_setup = jsonProvider.clone();
+      let json_provider_setup = json_provider.clone();
       tauri::async_runtime::spawn(async move {
         for collection in &["todos", "tasks", "categories"] {
           let basic_indexes = vec![
@@ -121,7 +123,6 @@ pub fn run() {
           }
         }
 
-        // Daily activities indexes
         let daily_indexes = vec![
           NosqlIndex::single("user_id", 1).name("idx_user_id_daily_activities"),
           NosqlIndex::single("date", 1).name("idx_date_daily_activities"),
@@ -140,135 +141,135 @@ pub fn run() {
         tracing::info!("Index setup completed");
       });
 
-      let _json_logged = jsonProvider.clone();
+      let _json_logged = json_provider.clone();
 
-      let mongodbProvider = {
-        let uri = configHelper.mongoDbUri.clone();
-        let dbName = configHelper.mongoDbName.clone();
-        match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &dbName)) {
+      let mongodb_provider = {
+        let uri = config_helper.mongo_db_uri.clone();
+        let db_name = config_helper.mongo_db_name.clone();
+        match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &db_name)) {
           Ok(p) => Some(Arc::new(p)),
           Err(_e) => None,
         }
       };
 
-      let activityLogHelper = Arc::new(ActivityLogHelper::new(jsonProvider.clone()));
+      let activity_log_helper = Arc::new(ActivityLogHelper::new(json_provider.clone()));
 
-      let aboutService = Arc::new(AboutService::new(configHelper.nameApp.clone()));
-      let profileService = Arc::new(ProfileService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
+      let about_service = Arc::new(AboutService::new(config_helper.name_app.clone()));
+      let profile_service = Arc::new(ProfileService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
       ));
 
-      let cascadeService = CascadeService::new(jsonProvider.clone(), mongodbProvider.clone());
-      let entityResolution = Arc::new(EntityResolutionService::new(
-        jsonProvider.clone(),
-        mongodbProvider.clone(),
+      let cascade_service = CascadeService::new(json_provider.clone(), mongodb_provider.clone());
+      let entity_resolution = Arc::new(EntityResolutionService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
       ));
-      let activityMonitor =
-        ActivityMonitorService::new(activityLogHelper.clone(), entityResolution.clone());
+      let activity_monitor =
+        ActivityMonitorService::new(activity_log_helper.clone(), entity_resolution.clone());
 
-      let json_for_repo = jsonProvider.clone();
-      let json_for_auth = jsonProvider.clone();
-      let json_for_stats = jsonProvider.clone();
-      let json_for_mdb = jsonProvider.clone();
-      let mongo_for_repo = mongodbProvider.clone();
-      let mongo_for_auth = mongodbProvider.clone();
-      let mongo_for_mdb = mongodbProvider.clone();
-      let cas_for_repo = cascadeService.clone();
-      let ent_for_repo = entityResolution.clone();
-      let act_for_stats = activityLogHelper.clone();
+      let json_for_repo = json_provider.clone();
+      let json_for_auth = json_provider.clone();
+      let json_for_stats = json_provider.clone();
+      let json_for_mdb = json_provider.clone();
+      let mongo_for_repo = mongodb_provider.clone();
+      let mongo_for_auth = mongodb_provider.clone();
+      let mongo_for_mdb = mongodb_provider.clone();
+      let cas_for_repo = cascade_service.clone();
+      let ent_for_repo = entity_resolution.clone();
+      let act_for_stats = activity_log_helper.clone();
 
-      let repositoryService = Arc::new(RepositoryService::new(
+      let repository_service = Arc::new(RepositoryService::new(
         json_for_repo,
         mongo_for_repo,
         cas_for_repo,
         ent_for_repo,
-        activityMonitor,
+        activity_monitor,
       ));
 
-      let authService = Arc::new(AuthService::new(
+      let auth_service = Arc::new(AuthService::new(
         json_for_auth,
         mongo_for_auth,
-        configHelper.jwtSecret.clone(),
-        configHelper.rpDomain.clone(),
+        config_helper.jwt_secret.clone(),
+        config_helper.rp_domain.clone(),
       ));
 
-      let statisticsService = Arc::new(StatisticsService::new(json_for_stats, act_for_stats));
-      let manageDbService = Arc::new(ManageDbService::new(
+      let statistics_service = Arc::new(StatisticsService::new(json_for_stats, act_for_stats));
+      let manage_db_service = Arc::new(ManageDbService::new(
         json_for_mdb,
         mongo_for_mdb,
-        cascadeService,
-        entityResolution,
+        cascade_service,
+        entity_resolution,
       ));
 
-      let websocketServerService = Arc::new(WebSocketServerService::new(repositoryService.clone()));
+      let websocket_server_service =
+        Arc::new(WebSocketServerService::new(repository_service.clone()));
 
-      let wsServiceClone = websocketServerService.clone();
+      let ws_service_clone = websocket_server_service.clone();
       tauri::async_runtime::spawn(async move {
-        wsServiceClone.start(8766).await;
+        ws_service_clone.start(8766).await;
       });
 
       app.manage(AppState {
-        configHelper,
-        repositoryService,
-        aboutService,
-        authService,
-        liveSyncService: None,
-        manageDbService,
-        profileService,
-        statisticsService,
-        websocketServerService,
+        config_helper,
+        repository_service,
+        about_service,
+        auth_service,
+        manage_db_service,
+        profile_service,
+        statistics_service,
+        websocket_server_service,
       });
 
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      downloadUpdate,
-      getBinaryNameFile,
-      openFile,
-      checkToken,
+      download_update,
+      get_binary_name_file,
+      open_file,
+      check_token,
       login,
       register,
-      requestPasswordReset,
-      resetPassword,
-      verifyCode,
-      setupTotp,
-      enableTotp,
-      verifyLoginTotp,
-      disableTotp,
-      useRecoveryCode,
-      initPasskeyRegistration,
-      completePasskeyRegistration,
-      initPasskeyAuthentication,
-      completePasskeyAuthentication,
-      disablePasskey,
-      enableBiometric,
-      initBiometricAuth,
-      completeBiometricAuth,
-      disableBiometric,
-      getUserSecurityStatus,
-      initTotpQrLogin,
-      qrGenerate,
-      qrGenerateForDesktop,
-      qrApprove,
-      qrStatus,
-      qrToggle,
-      qrLoginComplete,
-      checkAndroidBiometric,
-      authenticateAndroidBiometric,
-      exportToCloud,
-      getAllDataForAdmin,
-      getAllDataForArchive,
-      importToLocal,
-      manageData,
-      permanentlyDeleteRecord,
-      permanentlyDeleteRecordLocal,
-      toggleDeleteStatus,
-      toggleDeleteStatusLocal,
-      syncVisibilityToProvider,
-      profileSyncToCloud,
-      profileSyncAllForUser,
-      statisticsGet
+      request_password_reset,
+      reset_password,
+      verify_code,
+      setup_totp,
+      enable_totp,
+      verify_login_totp,
+      disable_totp,
+      use_recovery_code,
+      init_passkey_registration,
+      complete_passkey_registration,
+      init_passkey_authentication,
+      complete_passkey_authentication,
+      disable_passkey,
+      enable_biometric,
+      init_biometric_auth,
+      complete_biometric_auth,
+      disable_biometric,
+      get_user_security_status,
+      init_totp_qr_login,
+      qr_generate,
+      qr_generate_for_desktop,
+      qr_approve,
+      qr_status,
+      qr_toggle,
+      qr_login_complete,
+      check_android_biometric,
+      authenticate_android_biometric,
+      export_to_cloud,
+      get_all_data_for_admin,
+      get_all_data_for_archive,
+      import_to_local,
+      manage_data,
+      permanently_delete_record,
+      permanently_delete_record_local,
+      toggle_delete_status,
+      toggle_delete_status_local,
+      sync_visibility_to_provider,
+      profile_sync_to_cloud,
+      profile_sync_all_for_user,
+      statistics_get
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
