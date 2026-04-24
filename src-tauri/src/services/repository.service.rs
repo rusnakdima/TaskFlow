@@ -134,6 +134,9 @@ impl RepositoryService {
       // Each segment builds on the previous one's results
       let mut docs_to_process = current_docs.clone();
 
+      // Track parent docs for merge (after first segment, before processing nested segments)
+      let mut parent_docs_for_merge: Option<Vec<Value>> = None;
+
       // Build a mapping of segment to its parent IDs
       let mut parent_ids_by_segment: Vec<Vec<String>> = Vec::new();
       parent_ids_by_segment.push(Vec::new()); // Initialize for first segment
@@ -146,6 +149,11 @@ impl RepositoryService {
           segment
         );
 
+        // Save parent docs before processing nested segments (at idx=1, before loading subtasks/comments)
+        if idx == 1 {
+          parent_docs_for_merge = Some(docs_to_process.clone());
+        }
+
         let loader = RelationLoader::new(self.json_provider.clone());
 
         // Determine which table to use for this segment
@@ -154,11 +162,32 @@ impl RepositoryService {
         let current_table = if idx == 0 { table } else { segments[idx - 1] };
 
         // Extract parent IDs from the current docs (from previous segment's results)
+        // For subsequent segments, extract from the nested segment (previous segment's loaded data)
         if idx > 0 {
-          let parent_ids: Vec<String> = docs_to_process
-            .iter()
-            .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            .collect();
+          let parent_ids: Vec<String> = if segments.len() > 1 && idx == 1 {
+            // For first nested segment (e.g., "subtasks" in "tasks.subtasks"),
+            // extract IDs from the previously loaded segment (e.g., "tasks")
+            docs_to_process
+              .iter()
+              .filter_map(|d| {
+                // Get from the previous segment's nested array
+                d.get(segments[idx - 1])
+                  .and_then(|v| v.as_array())
+                  .map(|arr| {
+                    arr.iter()
+                      .filter_map(|item| item.get("id").and_then(|v| v.as_str()).map(String::from))
+                      .collect::<Vec<String>>()
+                  })
+              })
+              .flatten()
+              .collect()
+          } else {
+            // Default: extract from root document ID
+            docs_to_process
+              .iter()
+              .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+              .collect()
+          };
           tracing::info!(
             "[REPO] Extracted {} parent IDs for segment '{}': {:?}",
             parent_ids.len(),
@@ -239,9 +268,17 @@ impl RepositoryService {
         // For multi-segment, we need to properly merge results back
         // The loaded docs contain all nested relations - need to attach to parents
         if !final_docs.is_empty() {
-          // For multi-segment loading like tasks.subtasks, the result contains subtasks
-          // We need to group them by their parent and attach to tasks
-          let merged = self.merge_nested_results(current_docs.clone(), final_docs, &segments);
+          // Use the saved parent docs (with tasks attached) for merging
+          let parent_docs = parent_docs_for_merge.unwrap_or_else(|| current_docs.clone());
+          
+          // Extract the first segment (tasks) from parent docs
+          let first_segment_docs: Vec<Value> = parent_docs
+            .iter()
+            .filter_map(|d| d.get(segments[0]).and_then(|v| v.as_array()).cloned())
+            .flatten()
+            .collect();
+          
+          let merged = self.merge_nested_results(first_segment_docs, final_docs, &segments);
           current_docs = merged;
         }
       }
@@ -274,11 +311,10 @@ impl RepositoryService {
     );
 
     // Determine the foreign key field on the child that references the parent
-    // For subtasks, it's "task_id"; for comments it might be "task_id" or "subtask_id"
     let foreign_key = match child_segment {
-      "subtasks" => "task_id",
-      "comments" => "task_id",
+      "subtasks" | "comments" => "task_id",
       "tasks" => "todo_id",
+      "profile" => "id",
       _ => "id",
     };
 
@@ -299,7 +335,7 @@ impl RepositoryService {
 
     tracing::info!("[REPO] Grouped {} parent keys", grouped.len());
 
-    // Attach nested results to parent documents
+    // Attach nested results to parent documents (the first segment)
     let mut result: Vec<Value> = Vec::new();
     for parent in parents.iter() {
       if let Some(parent_obj) = parent.as_object() {
@@ -316,6 +352,9 @@ impl RepositoryService {
               child_segment,
               parent_id
             );
+          } else {
+            // No children found, insert empty array
+            parent_clone.insert(child_segment.to_string(), Value::Array(Vec::new()));
           }
         }
 

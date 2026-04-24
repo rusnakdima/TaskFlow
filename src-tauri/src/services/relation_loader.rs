@@ -52,6 +52,7 @@ impl RelationLoaderService {
 
       let mut docs_to_process = current_docs.clone();
 
+      let mut parent_docs_for_merge: Option<Vec<Value>> = None;
       let mut parent_ids_by_segment: Vec<Vec<String>> = Vec::new();
       parent_ids_by_segment.push(Vec::new());
 
@@ -63,15 +64,35 @@ impl RelationLoaderService {
           segment
         );
 
+        if idx == 1 {
+          parent_docs_for_merge = Some(docs_to_process.clone());
+        }
+
         let loader = RelationLoader::new(self.json_provider.clone());
 
         let current_table = if idx == 0 { table.as_str() } else { segments[idx - 1] };
 
         if idx > 0 {
-          let parent_ids: Vec<String> = docs_to_process
-            .iter()
-            .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            .collect();
+          let parent_ids: Vec<String> = if segments.len() > 1 && idx == 1 {
+            docs_to_process
+              .iter()
+              .filter_map(|d| {
+                d.get(segments[idx - 1])
+                  .and_then(|v| v.as_array())
+                  .map(|arr| {
+                    arr.iter()
+                      .filter_map(|item| item.get("id").and_then(|v| v.as_str()).map(String::from))
+                      .collect::<Vec<String>>()
+                  })
+              })
+              .flatten()
+              .collect()
+          } else {
+            docs_to_process
+              .iter()
+              .filter_map(|d| d.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+              .collect()
+          };
           tracing::info!(
             "[REPO] Extracted {} parent IDs for segment '{}': {:?}",
             parent_ids.len(),
@@ -143,7 +164,13 @@ impl RelationLoaderService {
         current_docs = docs_to_process;
       } else {
         if !final_docs.is_empty() {
-          let merged = self.merge_nested_results(current_docs.clone(), final_docs, &segments);
+          let parent_docs = parent_docs_for_merge.unwrap_or_else(|| current_docs.clone());
+          let first_segment_docs: Vec<Value> = parent_docs
+            .iter()
+            .filter_map(|d| d.get(segments[0]).and_then(|v| v.as_array()).cloned())
+            .flatten()
+            .collect();
+          let merged = self.merge_nested_results(first_segment_docs, final_docs, &segments);
           current_docs = merged;
         }
       }
@@ -174,9 +201,9 @@ impl RelationLoaderService {
     );
 
     let foreign_key = match child_segment {
-      "subtasks" => "task_id",
-      "comments" => "task_id",
+      "subtasks" | "comments" => "task_id",
       "tasks" => "todo_id",
+      "profile" => "id",
       _ => "id",
     };
 
@@ -210,6 +237,8 @@ impl RelationLoaderService {
               child_segment,
               parent_id
             );
+          } else {
+            parent_clone.insert(child_segment.to_string(), Value::Array(Vec::new()));
           }
         }
 
