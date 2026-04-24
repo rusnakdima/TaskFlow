@@ -20,7 +20,7 @@ import { ApiProvider } from "@providers/api.provider";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
 /* helpers */
-import { DateHelper } from "@helpers/date-helpers";
+import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-task-information",

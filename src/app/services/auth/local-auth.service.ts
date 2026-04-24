@@ -1,6 +1,9 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { of } from "rxjs";
+
+/* services */
+import { PasswordHashingService } from "./password-hashing.service";
 
 /* models */
 import { LocalUser, OfflineAuthResult } from "@models/local-user.model";
@@ -16,24 +19,14 @@ import { LoginForm, SignupForm } from "@models/auth-forms.model";
 export class LocalAuthService {
   private readonly STORAGE_KEY = "taskflow_local_users";
   private readonly CURRENT_USER_KEY = "taskflow_current_user_id";
+  private readonly passwordHashingService = inject(PasswordHashingService);
 
-  /**
-   * Hash a password using Web Crypto API
-   */
   async hashPassword(password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return this.passwordHashingService.hashPassword(password);
   }
 
-  /**
-   * Verify a password against a stored hash
-   */
   async verifyPassword(password: string, hash: string): Promise<boolean> {
-    const computedHash = await this.hashPassword(password);
-    return computedHash === hash;
+    return this.passwordHashingService.verifyPassword(password, hash);
   }
 
   /**

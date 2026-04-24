@@ -14,7 +14,7 @@ import { provideNativeDateAdapter } from "@angular/material/core";
 import { DatePickerField } from "@models/form-field.model";
 
 /* helpers */
-import { DateHelper } from "@helpers/date-helpers";
+import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-date-picker",
