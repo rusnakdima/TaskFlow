@@ -39,7 +39,7 @@ import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
-import { DateHelper } from "@helpers/date-helpers";
+import { DateHelper } from "@helpers/date.helper";
 import { ValidationHelper } from "@helpers/validation.helper";
 
 @Component({

@@ -31,7 +31,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus, RepeatInterval, PriorityTask } from "@models/task.model";
+import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* services */
@@ -346,6 +346,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           "user",
           "user.profile",
           "tasks",
+          "tasks.subtasks",
+          "tasks.comments",
           "categories",
           "assigneesProfiles",
           "assigneesProfiles.user",
@@ -538,7 +540,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onRowClick(task: any): void {
-    this.router.navigate([task.id], { relativeTo: this.route });
+    this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
   }
 
   deleteTask(taskId?: string) {

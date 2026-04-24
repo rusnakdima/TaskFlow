@@ -335,7 +335,7 @@ export class KanbanView implements OnInit, OnDestroy {
   navigateToTask(task: Task) {
     const todoId = this.selectedTodoId();
     if (todoId && task.id) {
-      this.router.navigate(["/todos", todoId, "tasks", task.id, "subtasks"]);
+      this.router.navigate(["/todos", todoId, "tasks", task.id]);
     }
   }
 }

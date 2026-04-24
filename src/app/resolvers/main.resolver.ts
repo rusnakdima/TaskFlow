@@ -142,6 +142,7 @@ export class MainResolver implements Resolve<any> {
         id: task_id,
         isOwner,
         isPrivate,
+        load: ["subtasks", "comments"],
       })
       .pipe(
         catchError(() => {
