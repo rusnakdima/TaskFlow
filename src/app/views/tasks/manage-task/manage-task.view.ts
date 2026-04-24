@@ -36,7 +36,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
-import { DateHelper } from "@helpers/date-helpers";
+import { DateHelper } from "@helpers/date.helper";
 import { ValidationHelper } from "@helpers/validation.helper";
 
 @Component({
