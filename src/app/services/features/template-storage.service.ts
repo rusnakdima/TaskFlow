@@ -33,8 +33,7 @@ export class TemplateStorageService {
     if (stored) {
       try {
         this.templates.set(JSON.parse(stored));
-      } catch {
-      }
+      } catch {}
     }
   }
 
