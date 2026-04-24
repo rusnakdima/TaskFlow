@@ -126,7 +126,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private loadingRelations = signal<Set<string>>(new Set());
 
   // Bulk selection state (like admin page)
-  selectedTasks = signal<Set<string>>(new Set());
+  selectedTasks = this.selectedItems;
 
   // Reactive route param — updates when navigating between todos without component destroy (H-11)
   private readonly routeTodoId = toSignal(
@@ -671,31 +671,20 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  toggleSelectAll() {
-    const allTasks = this.listTasks();
-    const allSelected = this.isAllSelected();
-
-    this.selectedTasks.update((selected) => {
-      const newSelected = new Set(selected);
-      if (allSelected) {
-        allTasks.forEach((task) => newSelected.delete(task.id));
-      } else {
-        allTasks.forEach((task) => newSelected.add(task.id));
-      }
-      // Sync with bulk service for display
-      this.bulkService.setSelectionState(newSelected.size, !allSelected);
-      return newSelected;
-    });
+  override toggleSelectAll() {
+    super.toggleSelectAll(
+      () => this.listTasks(),
+      () => this.isAllSelected()
+    );
   }
 
-  clearSelection() {
-    this.selectedTasks.set(new Set());
+  override clearSelection() {
+    super.clearSelection();
     this.bulkService.setSelectionState(0, false);
   }
 
-  isAllSelected() {
-    const currentList = this.listTasks();
-    return currentList.length > 0 && currentList.every((task) => this.selectedTasks().has(task.id));
+  override isAllSelected() {
+    return super.isAllSelected(() => this.listTasks());
   }
 
   bulkUpdatePriority(priority: string) {

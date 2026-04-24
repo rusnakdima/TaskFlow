@@ -143,7 +143,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
-  selectedSubtasks = signal<Set<string>>(new Set());
+  selectedSubtasks = this.selectedItems;
 
   // Computed signals for data flow - Always use storage as the single source of truth
   taskSubtasks = computed(() => {
@@ -449,32 +449,18 @@ export class SubtasksView extends BaseListView implements OnInit {
   /**
    * Toggle select all subtasks in current view
    */
-  toggleSelectAll(): void {
-    const allSubtasks = this.listSubtasks();
-    const allSelected = this.isAllSelected();
-
-    this.selectedSubtasks.update((selected) => {
-      const newSelected = new Set(selected);
-      if (allSelected) {
-        allSubtasks.forEach((subtask) => newSelected.delete(subtask.id));
-      } else {
-        allSubtasks.forEach((subtask) => newSelected.add(subtask.id));
-      }
-      // Sync with bulk service for display
-      this.bulkService.setSelectionState(newSelected.size, !allSelected);
-      return newSelected;
-    });
+  override toggleSelectAll(): void {
+    super.toggleSelectAll(
+      () => this.listSubtasks(),
+      () => this.isAllSelected()
+    );
   }
 
   /**
    * Check if all subtasks are selected
    */
-  isAllSelected(): boolean {
-    const currentList = this.listSubtasks();
-    return (
-      currentList.length > 0 &&
-      currentList.every((subtask) => this.selectedSubtasks().has(subtask.id))
-    );
+  override isAllSelected(): boolean {
+    return super.isAllSelected(() => this.listSubtasks());
   }
 
   /**
@@ -560,8 +546,8 @@ export class SubtasksView extends BaseListView implements OnInit {
   /**
    * Clear selection
    */
-  clearSelection(): void {
-    this.selectedSubtasks.set(new Set());
+  override clearSelection(): void {
+    super.clearSelection();
     this.bulkService.setSelectionState(0, false);
   }
 }
