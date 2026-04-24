@@ -65,7 +65,7 @@ impl RelationLoaderService {
 
         let loader = RelationLoader::new(self.json_provider.clone());
 
-        let current_table = if idx == 0 { table.as_str() } else { segment };
+        let current_table = if idx == 0 { table.as_str() } else { segments[idx - 1] };
 
         if idx > 0 {
           let parent_ids: Vec<String> = docs_to_process

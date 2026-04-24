@@ -149,7 +149,9 @@ impl RepositoryService {
         let loader = RelationLoader::new(self.json_provider.clone());
 
         // Determine which table to use for this segment
-        let current_table = if idx == 0 { table } else { segment };
+        // For idx=0, use the root table. For subsequent segments, use the previous segment
+        // (the parent collection where the relation is defined)
+        let current_table = if idx == 0 { table } else { segments[idx - 1] };
 
         // Extract parent IDs from the current docs (from previous segment's results)
         if idx > 0 {
