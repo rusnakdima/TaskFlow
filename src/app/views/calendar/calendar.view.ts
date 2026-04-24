@@ -27,7 +27,8 @@ import {
   generateCalendarDays,
   generateWeekDays,
   getWeeksForMobile,
-} from "@helpers/calendar.helper";
+} from "@helpers/date.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -170,7 +171,7 @@ export class CalendarView implements OnInit {
   }
 
   isSameDay(date1: Date, date2: Date): boolean {
-    return date1.toDateString() === date2.toDateString();
+    return DateHelper.isSameDay(date1, date2);
   }
 
   previous(): void {
