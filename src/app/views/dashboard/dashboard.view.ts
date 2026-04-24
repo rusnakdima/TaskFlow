@@ -18,6 +18,8 @@ import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
+import { DateHelper } from "@helpers/date.helper";
+
 interface DisplayTask {
   id: string;
   title: string;
@@ -186,12 +188,7 @@ export class DashboardView implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    return DateHelper.formatDateShort(dateString);
   }
 
   getLastTime(task: DisplayTask): string {
