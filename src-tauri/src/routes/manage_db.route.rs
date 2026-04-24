@@ -70,12 +70,8 @@ pub async fn import_to_local(
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
   user_id: Option<String>,
-  userId: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  // Accept both user_id and userId (camelCase fallback)
-  let uid = user_id
-    .or(userId)
-    .ok_or_else(|| err_response("Missing required parameter: user_id or userId"))?;
+  let uid = user_id.ok_or_else(|| err_response("Missing required parameter: user_id"))?;
   state.manage_db_service.export_to_cloud(uid).await
 }
 

@@ -2,6 +2,8 @@
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 
+import { StorageUpdateHelper, ArchiveDataMap } from "./storage-update.helper";
+
 /**
  * Bulk operation result interface
  */
@@ -11,16 +13,13 @@ export interface BulkOperationResult {
   errors: Array<{ id: string; error: string }>;
 }
 
-export interface ArchiveDataMap {
-  [table: string]: any[];
-}
-
 /**
  * BulkActionHelper - Centralized bulk operations for all views
  *
  * Provides reusable methods for bulk update, delete, and status changes
  */
 export class BulkActionHelper {
+  private storageUpdateHelper = new StorageUpdateHelper();
   /**
    * Bulk update field for multiple items
    */
@@ -147,88 +146,20 @@ export class BulkActionHelper {
     return selected.size === items.length && items.length > 0;
   }
 
-  /**
-   * Remove record with cascade from data map
-   */
   removeRecordWithCascade(data: ArchiveDataMap, table: string, recordId: string): ArchiveDataMap {
-    const updated = { ...data };
-    const tableData = updated[table] || [];
-    updated[table] = tableData.filter((r: any) => r.id !== recordId);
-
-    if (table === "todos") {
-      const todoTasks = tableData.filter((t: any) => t.todo_id === recordId);
-      const todoTaskIds = todoTasks.map((t: any) => t.id);
-      updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todo_id !== recordId);
-      updated["subtasks"] = (updated["subtasks"] || []).filter(
-        (s: any) => !todoTaskIds.includes(s.task_id)
-      );
-      updated["comments"] = (updated["comments"] || []).filter(
-        (c: any) => c.todo_id !== recordId && !todoTaskIds.includes(c.task_id)
-      );
-      updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todo_id !== recordId);
-    } else if (table === "tasks") {
-      updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.task_id !== recordId);
-      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.task_id !== recordId);
-    } else if (table === "subtasks") {
-      updated["comments"] = (updated["comments"] || []).filter(
-        (c: any) => c.subtask_id !== recordId
-      );
-    }
-
-    return updated;
+    return this.storageUpdateHelper.removeRecordWithCascade(data, table, recordId);
   }
 
-  /**
-   * Get cascade child IDs for restore operation
-   */
   getCascadeChildIds(restoredRecord: any): { taskIds: string[]; subtaskIds: string[] } {
-    const taskIds = restoredRecord.tasks?.map((t: any) => t.id) || [];
-    const subtaskIds =
-      restoredRecord.tasks?.flatMap((t: any) => t.subtasks?.map((s: any) => s.id) || []) || [];
-    return { taskIds, subtaskIds };
+    return this.storageUpdateHelper.getCascadeChildIds(restoredRecord);
   }
 
-  /**
-   * Restore record with cascade in data map
-   */
   restoreRecordWithCascade(
     data: ArchiveDataMap,
     table: string,
     restoredRecord: any,
     recordId: string
   ): ArchiveDataMap {
-    const updated = { ...data };
-    const tableData = updated[table] || [];
-    updated[table] = tableData.map((r: any) => (r.id === recordId ? restoredRecord : r));
-
-    if (table === "todos") {
-      const { taskIds, subtaskIds } = this.getCascadeChildIds(restoredRecord);
-      const existingTasks = data["tasks"] || [];
-      const existingSubtasks = data["subtasks"] || [];
-      const existingComments = data["comments"] || [];
-      const existingChats = data["chats"] || [];
-
-      const newTasks = restoredRecord.tasks || [];
-      const newSubtasks = newTasks.flatMap((t: any) => t.subtasks || []);
-      const newComments = newSubtasks.flatMap((s: any) => s.comments || []);
-
-      updated["tasks"] = [
-        ...existingTasks.filter((t: any) => !taskIds.includes(t.id)),
-        ...newTasks,
-      ];
-      updated["subtasks"] = [
-        ...existingSubtasks.filter((s: any) => !subtaskIds.includes(s.id)),
-        ...newSubtasks,
-      ];
-      updated["comments"] = [
-        ...existingComments.filter(
-          (c: any) => c.todo_id !== recordId && !taskIds.includes(c.task_id)
-        ),
-        ...newComments,
-      ];
-      updated["chats"] = [...existingChats.filter((c: any) => c.todo_id !== recordId)];
-    }
-
-    return updated;
+    return this.storageUpdateHelper.restoreRecordWithCascade(data, table, restoredRecord, recordId);
   }
 }

@@ -106,7 +106,7 @@ impl RepositoryService {
     }
 
     let mut current_docs = docs;
-    let base_table = table.to_string();
+    let _base_table = table.to_string();
     let projection = user_projection();
 
     // First apply projection to the main documents
