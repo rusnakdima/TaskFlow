@@ -16,7 +16,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { DateHelper } from "@helpers/date-helpers";
+import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-todo-information",
