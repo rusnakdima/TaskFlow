@@ -21,6 +21,8 @@ export abstract class BaseListView {
   protected viewMode = signal<ViewMode>("grid");
   protected pageKey = "default";
 
+  protected selectedItems = signal<Set<string>>(new Set());
+
   protected get STORAGE_KEY(): string {
     return `view-mode-${this.pageKey}`;
   }
@@ -60,5 +62,50 @@ export abstract class BaseListView {
   protected saveViewModePreference(mode: ViewMode): void {
     if (typeof window === "undefined") return;
     localStorage.setItem(this.STORAGE_KEY, mode);
+  }
+
+  toggleSelectAll(getItemsFn: () => { id: string }[], isAllSelectedFn: () => boolean): void {
+    const allItems = getItemsFn();
+    const allSelected = isAllSelectedFn();
+
+    this.selectedItems.update((selected) => {
+      const newSelected = new Set(selected);
+      if (allSelected) {
+        allItems.forEach((item) => newSelected.delete(item.id));
+      } else {
+        allItems.forEach((item) => newSelected.add(item.id));
+      }
+      return newSelected;
+    });
+  }
+
+  isAllSelected(getItemsFn: () => { id: string }[]): boolean {
+    const currentList = getItemsFn();
+    return currentList.length > 0 && currentList.every((item) => this.selectedItems().has(item.id));
+  }
+
+  clearSelection(): void {
+    this.selectedItems.set(new Set());
+  }
+
+  handleHighlightQueryParams(
+    queryParams: any,
+    highlightParamName: string,
+    idPrefix: string,
+    colorClass: string
+  ): void {
+    const id = queryParams[highlightParamName];
+    if (!id) return;
+
+    setTimeout(() => {
+      const element = document.getElementById(idPrefix + id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.classList.add("ring-4", colorClass, "animate-pulse");
+        setTimeout(() => {
+          element.classList.remove("ring-4", colorClass, "animate-pulse");
+        }, 2000);
+      }
+    }, 500);
   }
 }

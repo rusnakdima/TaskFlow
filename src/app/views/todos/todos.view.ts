@@ -119,7 +119,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
-  selectedTodos = signal<Set<string>>(new Set());
+  selectedTodos = this.selectedItems;
 
   // Computed signals
   isSharedMode = computed(() => {
@@ -518,14 +518,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
    */
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
-    this.selectedTodos.update((todoIds) => {
+    this.selectedItems.update((todoIds) => {
       const newSelected = new Set(todoIds);
       if (selected) {
         newSelected.add(id);
       } else {
         newSelected.delete(id);
       }
-      // Sync with bulk service for display
       this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
       return newSelected;
     });
@@ -534,38 +533,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   /**
    * Toggle select all todos in current view
    */
-  toggleSelectAll(): void {
-    const allIds = this.listTodos();
-    const allSelected = this.isAllSelected();
-
-    this.selectedTodos.update((selected) => {
-      const newSelected = new Set(selected);
-      if (allSelected) {
-        // Deselect all in current view
-        allIds.forEach((todo) => newSelected.delete(todo.id));
-      } else {
-        // Select all in current view
-        allIds.forEach((todo) => newSelected.add(todo.id));
-      }
-      // Sync with bulk service for display
-      this.bulkService.setSelectionState(newSelected.size, !allSelected);
-      return newSelected;
-    });
+  override toggleSelectAll(): void {
+    super.toggleSelectAll(
+      () => this.listTodos(),
+      () => this.isAllSelected()
+    );
   }
 
-  /**
-   * Check if all todos are selected
-   */
-  isAllSelected(): boolean {
-    const currentList = this.listTodos();
-    return currentList.length > 0 && currentList.every((todo) => this.selectedTodos().has(todo.id));
+  override isAllSelected(): boolean {
+    return super.isAllSelected(() => this.listTodos());
   }
 
-  /**
-   * Clear selection
-   */
-  clearSelection(): void {
-    this.selectedTodos.set(new Set());
+  override clearSelection(): void {
+    super.clearSelection();
     this.bulkService.setSelectionState(0, false);
   }
 
