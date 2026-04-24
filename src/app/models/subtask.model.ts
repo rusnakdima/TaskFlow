@@ -1,4 +1,4 @@
-import { PriorityTask, Task, TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
 import { Comment } from "@models/comment.model";
 
 export interface Subtask {

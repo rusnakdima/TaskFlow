@@ -5,7 +5,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* helpers */
-import { DateHelper } from "./date-helpers";
+import { DateHelper } from "./date.helper";
 
 /**
  * Base helper for item components (Task, Subtask, Todo)
@@ -198,68 +198,6 @@ export class BaseItemHelper {
         !depItem ||
         (depItem.status !== TaskStatus.COMPLETED && depItem.status !== TaskStatus.SKIPPED)
       );
-    });
-  }
-
-  /**
-   * Count unread comments for an entity (task or subtask)
-   * Only counts non-deleted comments that haven't been read by the user
-   */
-  static countUnreadComments(
-    entity: any,
-    userId: string | null,
-    entityType: "task" | "subtask" = "task"
-  ): number {
-    if (!entity || !userId) return 0;
-
-    let count = 0;
-
-    // Count direct comments on this entity
-    if (entity.comments && entity.comments.length > 0) {
-      count += entity.comments.filter((c: any) => {
-        // Skip deleted comments
-        if (c.deleted_at) return false;
-        // Skip if user has read the comment
-        if (c.read_by && c.read_by.includes(userId)) return false;
-        // For tasks, only count task comments (not subtask comments)
-        if (entityType === "task" && c.subtask_id) return false;
-        // For subtasks, only count subtask comments
-        if (entityType === "subtask" && !c.subtask_id) return false;
-        return true;
-      }).length;
-    }
-
-    return count;
-  }
-
-  /**
-   * Mark all comments as read for a task or subtask
-   */
-  static markCommentsAsRead(
-    entity: any,
-    userId: string,
-    entityType: "task" | "subtask" = "task"
-  ): any[] {
-    if (!entity || !entity.comments || !userId) return entity.comments || [];
-    if (entity.comments.length === 0) return entity.comments;
-
-    return entity.comments.map((comment: any) => {
-      // Skip deleted comments
-      if (comment.deleted_at) return comment;
-
-      // For tasks, only mark task comments (not subtask comments)
-      if (entityType === "task" && comment.subtask_id) return comment;
-      // For subtasks, only mark subtask comments
-      if (entityType === "subtask" && !comment.subtask_id) return comment;
-
-      // Mark as read if not already
-      if (!comment.read_by || !comment.read_by.includes(userId)) {
-        return {
-          ...comment,
-          readBy: [...(comment.read_by || []), userId],
-        };
-      }
-      return comment;
     });
   }
 
