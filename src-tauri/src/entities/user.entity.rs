@@ -4,10 +4,15 @@ use serde::{Deserialize, Serialize};
 
 /* crate */
 use crate::entities::profile_entity::ProfileEntity;
-use crate::entities::traits::{EntityRelations, FrontendProjection, Validatable};
+use crate::entities::traits::EntityRelations;
 
 /* nosql_orm */
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
+use nosql_orm::error::{OrmError, OrmResult};
+use nosql_orm::prelude::{
+  Entity, EntityMeta, FrontendProjection, RelationDef, SoftDeletable, WithRelations,
+};
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserEntity {
@@ -49,7 +54,7 @@ pub struct UserEntity {
 }
 
 impl FrontendProjection for UserEntity {
-  fn excluded_fields() -> Vec<&'static str> {
+  fn frontend_excluded_fields() -> Vec<&'static str> {
     vec![
       "password",
       "totp_secret",
@@ -58,6 +63,12 @@ impl FrontendProjection for UserEntity {
       "passkey_device",
       "recovery_codes",
       "reset_token",
+      "temporary_code",
+      "code_expires_at",
+      "biometric_enabled",
+      "passkey_enabled",
+      "totp_enabled",
+      "qr_login_enabled",
     ]
   }
 }
@@ -100,16 +111,29 @@ impl WithRelations for UserEntity {
   }
 }
 
+impl SoftDeletable for UserEntity {
+  fn deleted_at(&self) -> Option<DateTime<Utc>> {
+    self.deleted_at
+  }
+
+  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
+    self.deleted_at = deleted_at;
+  }
+}
+
 impl UserEntity {
   pub fn get_id(&self) -> &str {
     self.id.as_deref().unwrap_or("")
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UserCreateModel {
+  #[validate(email, not_empty)]
   pub email: String,
+  #[validate(not_empty)]
   pub username: String,
+  #[validate(not_empty)]
   pub password: String,
   pub role: String,
   #[serde(default)]
@@ -135,21 +159,6 @@ pub struct UserCreateModel {
   pub qr_login_enabled: bool,
   #[serde(default)]
   pub recovery_codes: Vec<String>,
-}
-
-impl Validatable for UserCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.email.is_empty() {
-      return Err("email cannot be empty".to_string());
-    }
-    if self.username.is_empty() {
-      return Err("username cannot be empty".to_string());
-    }
-    if self.password.is_empty() {
-      return Err("password cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<UserCreateModel> for UserEntity {
@@ -224,16 +233,16 @@ pub struct UserUpdateModel {
   pub recovery_codes: Option<Vec<String>>,
 }
 
-impl Validatable for UserUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for UserUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref email) = self.email {
       if email.is_empty() {
-        return Err("email cannot be empty".to_string());
+        return Err(OrmError::Validation("email cannot be empty".to_string()));
       }
     }
     if let Some(ref username) = self.username {
       if username.is_empty() {
-        return Err("username cannot be empty".to_string());
+        return Err(OrmError::Validation("username cannot be empty".to_string()));
       }
     }
     Ok(())

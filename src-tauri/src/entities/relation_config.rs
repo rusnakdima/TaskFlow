@@ -155,6 +155,16 @@ impl RelationConfig {
     RelationType::ManyToOne
   }
 
+  pub fn get_relation_exclusion_projection(table: &str) -> Projection {
+    let relations = Self::get_relations_for_table(table);
+    let mut fields: Vec<&str> = relations.into_iter().map(|(name, _)| name).collect();
+    // Add some common relation aliases that might not be in the def
+    if table == "todos" {
+      fields.push("assigneesProfiles");
+    }
+    Projection::exclude(&fields)
+  }
+
   pub fn register_all_relations() {
     register_collection_relations(
       "todos",
@@ -205,7 +215,7 @@ impl RelationConfig {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::entities::traits::FrontendProjection;
+  use nosql_orm::prelude::FrontendProjection;
 
   #[test]
   fn test_get_relation_def() {
@@ -219,7 +229,7 @@ mod tests {
   #[test]
   fn test_excluded_fields_for_user() {
     let excluded =
-      <crate::entities::user_entity::UserEntity as FrontendProjection>::excluded_fields();
+      <crate::entities::user_entity::UserEntity as FrontendProjection>::frontend_excluded_fields();
     assert!(excluded.contains(&"password"));
     assert!(excluded.contains(&"totp_secret"));
     assert!(!excluded.contains(&"email"));

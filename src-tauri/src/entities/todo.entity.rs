@@ -4,10 +4,13 @@ use serde::{Deserialize, Serialize};
 
 /* crate */
 use crate::entities::task_entity::TaskEntity;
-use crate::entities::traits::Validatable;
 
 /* nosql_orm */
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
+use nosql_orm::sql::types::SqlOnDelete;
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TodoEntity {
@@ -63,41 +66,31 @@ impl SoftDeletable for TodoEntity {
 impl WithRelations for TodoEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("tasks", "tasks", "todo_id"),
-      RelationDef::one_to_many("chats", "chats", "todo_id"),
+      RelationDef::one_to_many("tasks", "tasks", "todo_id").on_delete(SqlOnDelete::Cascade),
+      RelationDef::one_to_many("chats", "chats", "todo_id").on_delete(SqlOnDelete::Cascade),
       RelationDef::many_to_one("user", "users", "user_id"),
       RelationDef::many_to_many("categories", "categories", "categories"),
+      RelationDef::many_to_one_array("assignees_profiles", "profiles", "assignees")
+        .transform_map("user_id", "profiles", "id"),
     ]
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TodoCreateModel {
+  #[validate(not_empty)]
   pub user_id: String,
+  #[validate(not_empty)]
   pub title: String,
   pub description: String,
   pub start_date: String,
   pub end_date: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  #[validate(not_empty)]
   pub visibility: String,
   pub priority: String,
   pub order: i32,
-}
-
-impl Validatable for TodoCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.user_id.is_empty() {
-      return Err("userId cannot be empty".to_string());
-    }
-    if self.title.is_empty() {
-      return Err("title cannot be empty".to_string());
-    }
-    if self.visibility.is_empty() {
-      return Err("visibility cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<TodoCreateModel> for TodoEntity {
@@ -178,16 +171,18 @@ pub struct TodoUpdateModel {
   pub updated_at: Option<String>,
 }
 
-impl Validatable for TodoUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for TodoUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err("title cannot be empty".to_string());
+        return Err(OrmError::Validation("title cannot be empty".to_string()));
       }
     }
     if let Some(ref visibility) = self.visibility {
       if visibility.is_empty() {
-        return Err("visibility cannot be empty".to_string());
+        return Err(OrmError::Validation(
+          "visibility cannot be empty".to_string(),
+        ));
       }
     }
     Ok(())

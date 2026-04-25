@@ -2,8 +2,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryEntity {
@@ -36,22 +38,12 @@ impl Entity for CategoryEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CategoryCreateModel {
+  #[validate(not_empty)]
   pub title: String,
+  #[validate(not_empty)]
   pub user_id: String,
-}
-
-impl Validatable for CategoryCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.title.is_empty() {
-      return Err("title cannot be empty".to_string());
-    }
-    if self.user_id.is_empty() {
-      return Err("user_id cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<CategoryCreateModel> for CategoryEntity {
@@ -75,11 +67,11 @@ pub struct CategoryUpdateModel {
   pub deleted_at: Option<bool>,
 }
 
-impl Validatable for CategoryUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for CategoryUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err("title cannot be empty".to_string());
+        return Err(OrmError::Validation("title cannot be empty".to_string()));
       }
     }
     Ok(())
