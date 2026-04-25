@@ -1,9 +1,9 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { MatIconModule } from "@angular/material/icon";
 
 @Component({
-  selector: 'app-task-actions',
+  selector: "app-task-actions",
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
       @if (showActions) {
         <button
           type="button"
-          class="p-1 hover:bg-gray-100 rounded"
+          class="rounded p-1 hover:bg-gray-100"
           (click)="onEdit.emit()"
           title="Edit task"
         >
@@ -19,7 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
         </button>
         <button
           type="button"
-          class="p-1 hover:bg-gray-100 rounded"
+          class="rounded p-1 hover:bg-gray-100"
           (click)="onDelete.emit()"
           title="Delete task"
         >
@@ -27,7 +27,7 @@ import { MatIconModule } from '@angular/material/icon';
         </button>
         <button
           type="button"
-          class="p-1 hover:bg-gray-100 rounded"
+          class="rounded p-1 hover:bg-gray-100"
           [class.text-blue-600]="isMenuOpen()"
           (click)="toggleMenu($event)"
           title="More actions"
@@ -38,7 +38,7 @@ import { MatIconModule } from '@angular/material/icon';
     </div>
     @if (isMenuOpen()) {
       <div
-        class="task-menu absolute right-0 top-full mt-1 bg-white shadow-lg rounded z-50 min-w-32"
+        class="task-menu absolute top-full right-0 z-50 mt-1 min-w-32 rounded bg-white shadow-lg"
       >
         <button
           type="button"

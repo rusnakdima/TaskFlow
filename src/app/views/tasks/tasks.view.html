@@ -114,6 +114,7 @@
         [selectedIds]="selectedTasks()"
         [showSelection]="true"
         (selectionChange)="toggleTaskSelection({ id: $event.id, selected: $event.selected })"
+        (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"
       />
     } @else if (viewMode() === "grid") {
@@ -150,7 +151,7 @@
       </div>
     } @else {
       <div
-        class="w-full"
+        class="flex w-full flex-col gap-y-3"
         cdkDropList
         [cdkDropListData]="listTasks()"
         (cdkDropListDropped)="onTaskDrop($event)"

@@ -41,6 +41,7 @@ export class TableViewComponent {
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
+  @Output() selectAll = new EventEmitter<void>();
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
   @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
 
@@ -114,6 +115,10 @@ export class TableViewComponent {
 
   onSelectionChange(id: string, checked: boolean): void {
     this.selectionChange.emit({ id, selected: checked });
+  }
+
+  onSelectAll(): void {
+    this.selectAll.emit();
   }
 
   formatValue(item: any, field: TableField): any {

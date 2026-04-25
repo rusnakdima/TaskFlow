@@ -19,6 +19,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
 import { AdminStorageService } from "@services/core/admin-storage.service";
+import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
@@ -136,6 +137,7 @@ export class DataManagementView implements OnInit {
   private route = inject(ActivatedRoute);
 
   protected adminStorageService = inject(AdminStorageService);
+  protected archiveStorageService = inject(ArchiveStorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
@@ -258,28 +260,27 @@ export class DataManagementView implements OnInit {
     const obs: Observable<any> =
       this.mode === "admin"
         ? this.adminStorageService.loadAdminData(force)
-        : this.adminService.getAllDataForArchive();
+        : this.archiveStorageService.loadArchiveData(force);
 
     obs.subscribe({
       next: (response: any) => {
-        const data = this.mode === "admin" ? response : response.data;
-        this.dataMap.set(data);
+        this.dataMap.set(response);
 
-        const users = data["users"] || [];
+        const users = response["users"] || [];
         this.userList.set(
           users
             .map((u: any) => ({ id: u.id, label: u.username || u.email }))
             .sort((a: any, b: any) => a.label.localeCompare(b.label))
         );
 
-        const categories = data["categories"] || [];
+        const categories = response["categories"] || [];
         this.categoryList.set(
           categories
             .map((c: any) => ({ id: c.id, label: c.title }))
             .sort((a: any, b: any) => a.label.localeCompare(b.label))
         );
 
-        const todos = data["todos"] || [];
+        const todos = response["todos"] || [];
         this.todoList.set(
           todos
             .filter((t: any) => !t.deleted_at)
@@ -287,7 +288,7 @@ export class DataManagementView implements OnInit {
             .sort((a: any, b: any) => a.label.localeCompare(b.label))
         );
 
-        const tasks = data["tasks"] || [];
+        const tasks = response["tasks"] || [];
         this.taskList.set(
           tasks
             .filter((t: any) => !t.deleted_at)
@@ -298,7 +299,7 @@ export class DataManagementView implements OnInit {
             .sort((a: any, b: any) => (a.label || "").localeCompare(b.label || ""))
         );
 
-        const subtasks = data["subtasks"] || [];
+        const subtasks = response["subtasks"] || [];
         this.subtaskList.set(
           subtasks
             .filter((s: any) => !s.deleted_at)
@@ -311,7 +312,7 @@ export class DataManagementView implements OnInit {
 
         // Calculate counts based on ALL data
         this.dataTypes.forEach((type) => {
-          const tableData = data[type.id] || [];
+          const tableData = response[type.id] || [];
           type.count = tableData.length;
         });
 

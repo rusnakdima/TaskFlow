@@ -9,7 +9,7 @@ import { computed, Signal } from "@angular/core";
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
  */
-export function deduplicateById<T extends { id: string; updatedAt?: string }>(entities: T[]): T[] {
+export function deduplicateById<T extends { id: string; updated_at?: string }>(entities: T[]): T[] {
   const entityMap = new Map<string, T>();
 
   for (const entity of entities) {
@@ -31,7 +31,7 @@ export function deduplicateById<T extends { id: string; updatedAt?: string }>(en
 /**
  * Filter out deleted entities
  */
-export function filterDeleted<T extends { deletedAt?: string | null }>(entities: T[]): T[] {
+export function filterDeleted<T extends { deleted_at?: string | null }>(entities: T[]): T[] {
   return entities.filter((entity) => !entity.deleted_at);
 }
 
@@ -41,8 +41,8 @@ export function filterDeleted<T extends { deletedAt?: string | null }>(entities:
 export function deduplicateAndFilterDeleted<
   T extends {
     id: string;
-    deletedAt?: string | null;
-    updatedAt?: string;
+    deleted_at?: string | null;
+    updated_at?: string;
   },
 >(entities: T[]): T[] {
   return filterDeleted(deduplicateById(entities));
@@ -58,11 +58,11 @@ export function findById<T extends { id: string }>(entities: T[], id: string): T
 /**
  * Find entities by parent ID
  */
-export function findByParentId<T extends { parentId: string }>(
+export function findByParentId<T extends { parent_id: string }>(
   entities: T[],
   parentId: string
 ): T[] {
-  return entities.filter((entity) => entity.parentId === parentId);
+  return entities.filter((entity) => entity.parent_id === parentId);
 }
 
 /**
@@ -96,7 +96,7 @@ export function removeEntityFromArray<T extends { id: string }>(entities: T[], i
 /**
  * Sort entities by creation date (newest first)
  */
-export function sortByNewest<T extends { createdAt?: string }>(entities: T[]): T[] {
+export function sortByNewest<T extends { created_at?: string }>(entities: T[]): T[] {
   return [...entities].sort((a, b) => {
     const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
     const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;

@@ -434,33 +434,26 @@ pre {
   @apply h-0!;
 }
 
-/* Hide check icon in checkboxes with no-check-icon class */
-mat-checkbox.no-check-icon .mdc-checkbox__checkmark {
-  display: none !important;
+/* 
+.mat-mdc-checkbox-touch-target */
+/* .mdc-form-field mat-internal-form-field .mdc-checkbox */
+.mat-mdc-checkbox,
+div.mdc-checkbox,
+.mat-mdc-checkbox-touch-target,
+.mdc-checkbox__native-control,
+.mdc-checkbox__ripple,
+.mat-mdc-checkbox-ripple {
+  @apply h-4.5! w-4.5!;
 }
 
-mat-checkbox {
-  @apply -top-[10px]! -left-[10px]!
+.mdc-checkbox__background,
+div.mdc-checkbox {
+  @apply top-0! left-0! m-0! p-0!;
 }
 
-/* Remove margins from checkbox */
-mat-checkbox.no-check-icon,
-mat-checkbox.no-check-icon .mdc-checkbox,
-mat-checkbox.no-check-icon .mdc-checkbox__native-control {
-  margin: 0 !important;
-  padding: 0 !important;
-  position: relative !important;
-}
-
-/* Custom checkbox styling for no-check-icon */
-mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
-  background-color: #2563eb !important;
-  border-color: #2563eb !important;
-}
-
-.dark mat-checkbox.no-check-icon .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
-  background-color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+/* Custom checkbox styling for no-check-icon (Stateful coloring using Tailwind utilities) */
+.mdc-checkbox__native-control.mdc-checkbox--selected:checked ~ .mdc-checkbox--selected {
+  @apply border-blue-600 bg-blue-600 dark:border-blue-700 dark:bg-blue-700;
 }
 
 .mat-mdc-text-field-wrapper {

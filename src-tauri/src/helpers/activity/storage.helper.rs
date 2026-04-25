@@ -1,10 +1,10 @@
 /* sys lib */
 use nosql_orm::provider::DatabaseProvider;
+use nosql_orm::query::Filter;
 use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::common::convert_data_to_array;
-use crate::helpers::filter_helper::FilterBuilder;
 
 /* providers */
 use nosql_orm::providers::JsonProvider;
@@ -26,7 +26,7 @@ impl ActivityStorage {
   }
 
   pub async fn get_all(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
-    let orm_filter = FilterBuilder::from_json(&filter);
+    let orm_filter = Filter::from_json(&filter).ok();
 
     let list_daily_activities = self
       .json_provider
@@ -59,8 +59,6 @@ impl ActivityStorage {
     user_id: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
-    use nosql_orm::query::Filter;
-
     let filter = Filter::And(vec![
       Filter::Eq("user_id".to_string(), serde_json::json!(user_id)),
       Filter::Eq("date".to_string(), serde_json::json!(date)),

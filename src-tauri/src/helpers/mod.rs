@@ -7,8 +7,6 @@ pub mod common;
 pub mod config;
 #[path = "crypto.helper.rs"]
 pub mod crypto_helper;
-#[path = "filter.helper.rs"]
-pub mod filter_helper;
 #[path = "profile.helper.rs"]
 pub mod profile_helper;
 #[path = "qr.helper.rs"]

@@ -1,4 +1,4 @@
-import { CdkDragDrop, CdkDropList, DragRef } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDropList, DragRef } from "@angular/cdk/drag-drop";
 
 export interface DragItem {
   id: string;
@@ -7,7 +7,7 @@ export interface DragItem {
 
 export interface DropZoneConfig {
   dropListId: string;
-  itemType: 'task' | 'subtask' | 'todo' | 'category';
+  itemType: "task" | "subtask" | "todo" | "category";
 }
 
 export class DragDropHelper {
@@ -49,15 +49,12 @@ export class DragDropHelper {
     })) as T[];
   }
 
-  static findContainer(
-    dragRef: DragRef,
-    dropLists: CdkDropList[]
-  ): CdkDropList | null {
+  static findContainer(dragRef: DragRef, dropLists: CdkDropList[]): CdkDropList | null {
     const dragRoot = dragRef.getRootElement();
     if (!dragRoot) return null;
 
     for (const dropList of dropLists) {
-      const dropListElement = dropList.element;
+      const dropListElement = dropList.element.nativeElement;
       if (dropListElement.contains(dragRoot)) {
         return dropList;
       }
@@ -65,16 +62,13 @@ export class DragDropHelper {
     return null;
   }
 
-  static isSameContainer(
-    source: CdkDropList | null,
-    target: CdkDropList | null
-  ): boolean {
+  static isSameContainer(source: CdkDropList | null, target: CdkDropList | null): boolean {
     if (!source || !target) return false;
     return source.id === target.id;
   }
 
   static getContainerType(dropListId: string): string {
     const parsed = this.parseDropListId(dropListId);
-    return parsed?.type || 'unknown';
+    return parsed?.type || "unknown";
   }
 }

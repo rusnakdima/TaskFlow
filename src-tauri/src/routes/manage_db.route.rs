@@ -149,6 +149,7 @@ pub async fn sync_visibility_to_provider(
   target_provider: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::provider_type_entity::ProviderType;
+  use crate::services::cascade::VisibilitySyncService;
 
   let source = if source_provider == "Mongo" {
     ProviderType::Mongo
@@ -161,8 +162,12 @@ pub async fn sync_visibility_to_provider(
     ProviderType::Json
   };
 
-  state
-    .repository_service
-    .handle_sync_visibility_to_provider(todo_id, source, target)
-    .await
+  VisibilitySyncService::sync_todo_visibility(
+    &state.repository_service.json_provider,
+    state.repository_service.mongodb_provider.as_ref(),
+    todo_id,
+    source,
+    target,
+  )
+  .await
 }

@@ -178,6 +178,7 @@
           { key: 'delete', icon: 'delete', label: 'Delete' },
         ]"
         (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+        (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"
         (actionClick)="onTableAction($event)"
       />
@@ -214,7 +215,7 @@
       </div>
     } @else {
       <div
-        class="w-full"
+        class="flex w-full flex-col gap-y-3"
         cdkDropList
         [cdkDropListData]="listTodos()"
         (cdkDropListDropped)="onTodoDrop($event)"
