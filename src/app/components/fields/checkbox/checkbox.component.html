@@ -1,6 +1,6 @@
 @if (form && field) {
-  <div class="flex w-full flex-col" [formGroup]="form">
-    <mat-checkbox class="no-check-icon flex flex-col" [formControlName]="field.name">
+  <div class="flex flex-row items-center gap-2" [formGroup]="form">
+    <mat-checkbox class="inline-flex items-center" [formControlName]="field.name">
       <mat-label>{{ label }}</mat-label>
     </mat-checkbox>
     @if (isInvalid(field.name)) {
@@ -12,7 +12,6 @@
 } @else {
   <div class="flex items-center gap-2">
     <mat-checkbox
-      class="no-check-icon"
       [checked]="checked"
       [indeterminate]="indeterminate"
       [ngClass]="highlight ? 'text-yellow-600 dark:text-yellow-400' : ''"

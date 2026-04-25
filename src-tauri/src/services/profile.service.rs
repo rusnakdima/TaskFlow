@@ -149,6 +149,68 @@ impl ProfileService {
       data: DataValue::String("".to_string()),
     })
   }
+
+  pub async fn create_profile_with_user_update(
+    &self,
+    profile_data: Value,
+  ) -> Result<ResponseModel, ResponseModel> {
+    use crate::entities::table_entity::validate_model;
+    use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
+    use crate::helpers::user_sync_helper;
+
+    let validated_profile = validate_model("profiles", &profile_data, true)
+      .map_err(|e| err_response_formatted("Profile validation failed", &e))?;
+
+    let user_id = validated_profile
+      .get("user_id")
+      .and_then(|v| v.as_str())
+      .unwrap_or_default()
+      .to_string();
+
+    if user_id.is_empty() {
+      return Err(err_response("Invalid profile data: userId is required"));
+    }
+
+    if let Ok(existing_profiles) = self.json_provider.find_all("profiles").await {
+      for profile in existing_profiles {
+        if profile.get("user_id").and_then(|v| v.as_str()) == Some(&user_id) {
+          return Ok(success_response(DataValue::Object(profile)));
+        }
+      }
+    }
+
+    let created_profile = self
+      .json_provider
+      .insert("profiles", validated_profile.clone())
+      .await
+      .map_err(|e| {
+        err_response_formatted("Error creating profile in local store", &e.to_string())
+      })?;
+
+    let profile_id = created_profile
+      .get("id")
+      .and_then(|v| v.as_str())
+      .unwrap_or_default()
+      .to_string();
+
+    if let Err(e) = user_sync_helper::update_user_profile_id_both(
+      &self.json_provider,
+      self.mongodb_provider.as_ref(),
+      &user_id,
+      &profile_id,
+    )
+    .await
+    {
+      return Err(e);
+    }
+
+    // Sync profile to MongoDB if available (non-blocking)
+    if self.mongodb_provider.is_some() {
+      let _ = self.sync_profile_to_cloud(profile_id).await;
+    }
+
+    Ok(success_response(DataValue::Object(created_profile)))
+  }
 }
 
 /// Compare timestamps to determine if cloud should be updated

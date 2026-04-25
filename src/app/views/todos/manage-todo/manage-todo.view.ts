@@ -153,8 +153,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
     }
 
     this.route.params.subscribe((params: any) => {
-      if (params.todo_id) {
-        this.getTodoInfo(params.todo_id);
+      if (params.todoId) {
+        this.getTodoInfo(params.todoId);
         this.isEdit.set(true);
       }
     });

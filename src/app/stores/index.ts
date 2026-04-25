@@ -1,14 +1,9 @@
 /**
- * Store Index - Export all stores for easy importing
+ * Store Index - Export only actively used stores
  */
 
-export { TodoStore } from "./todo.store";
-export { TaskStore } from "./task.store";
 export { SubtaskStore } from "./subtask.store";
-export { CommentStore } from "./comment.store";
-export { CategoryStore } from "./category.store";
-export { ProfileStore } from "./profile.store";
-export { ChatStore } from "./chat.store";
+export { AuthStore } from "./auth.store";
 
 // Export utilities
 export * from "./utils/store-helpers";

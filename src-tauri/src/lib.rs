@@ -185,6 +185,7 @@ pub fn run() {
         cas_for_repo,
         ent_for_repo,
         activity_monitor,
+        profile_service.as_ref().clone(),
       ));
 
       let auth_service = Arc::new(AuthService::new(

@@ -1,7 +1,10 @@
-import { Injectable, Injector, inject } from "@angular/core";
+/* sys lib */
+import { Injectable, inject } from "@angular/core";
 import { Observable, from, of, firstValueFrom } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 import { ApiProvider } from "@providers/api.provider";
+import { AdminService } from "@services/data/admin.service";
+import { ResponseStatus } from "@models/response.model";
 
 export interface AdminDataWithRelations {
   [key: string]: any[];
@@ -17,11 +20,8 @@ export interface LoadDataOptions {
   providedIn: "root",
 })
 export class AdminDataService {
-  private injector = inject(Injector);
-
-  private get apiProvider(): ApiProvider {
-    return this.injector.get(ApiProvider);
-  }
+  private apiProvider = inject(ApiProvider);
+  private adminService = inject(AdminService);
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
     const { showDeleted = false, isOwner = false, isPrivate = false } = options;
@@ -58,7 +58,19 @@ export class AdminDataService {
   }
 
   loadAllAdminData(): Observable<AdminDataWithRelations> {
-    return this.loadAllData({ showDeleted: false });
+    return new Observable<AdminDataWithRelations>((subscriber) => {
+      this.adminService.getAllDataForAdmin<AdminDataWithRelations>().subscribe({
+        next: (response) => {
+          if (response.status === ResponseStatus.SUCCESS && response.data) {
+            subscriber.next(response.data);
+            subscriber.complete();
+          } else {
+            subscriber.error(new Error(response.message || "Failed to load admin data"));
+          }
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
   }
 
   loadAllArchiveData(): Observable<AdminDataWithRelations> {

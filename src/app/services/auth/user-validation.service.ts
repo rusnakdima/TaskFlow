@@ -7,7 +7,6 @@ import { ApiProvider } from "@providers/api.provider";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { SessionService } from "@services/auth/session.service";
 import { LocalAuthService } from "@services/auth/local-auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
@@ -17,7 +16,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 export class UserValidationService {
   private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
-  private sessionService = inject(SessionService);
   private localAuthService = inject(LocalAuthService);
   private notifyService = inject(NotifyService);
 
@@ -52,7 +50,7 @@ export class UserValidationService {
   }
 
   invalidateUserSession(): void {
-    const token = this.sessionService.getToken();
+    const token = this.jwtTokenService.getToken();
     const userId = token ? this.jwtTokenService.getUserId(token) : null;
 
     localStorage.removeItem("token");

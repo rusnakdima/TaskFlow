@@ -95,7 +95,6 @@ export class DataLoaderService {
           filter,
           isOwner: true,
           isPrivate: true,
-          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -128,7 +127,6 @@ export class DataLoaderService {
           filter: { user_id: userId },
           isOwner: true,
           isPrivate: false,
-          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -162,7 +160,6 @@ export class DataLoaderService {
           filter: { assignees: userId },
           isOwner: false,
           isPrivate: false,
-          load: ["user", "tasks", "tasks.subtasks", "tasks.comments"],
         },
         true
       )
@@ -268,7 +265,6 @@ export class DataLoaderService {
           filter: { user_id: userId },
           isPrivate: true,
           isOwner: true,
-          load: ["user"],
         },
         true
       )

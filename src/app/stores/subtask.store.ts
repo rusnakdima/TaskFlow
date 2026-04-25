@@ -60,14 +60,14 @@ export class SubtaskStore {
    * Get subtasks by task ID
    */
   subtasksByTaskId(task_id?: string): Signal<Subtask[]> {
-    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === taskId));
+    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === task_id));
   }
 
   /**
    * Get subtask count by task ID
    */
   subtaskCountByTaskId(task_id?: string): Signal<number> {
-    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === taskId).length);
+    return computed(() => this.subtasks().filter((subtask) => subtask.task_id === task_id).length);
   }
 
   /**

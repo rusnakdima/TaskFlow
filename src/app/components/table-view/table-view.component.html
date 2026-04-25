@@ -7,7 +7,7 @@
             <app-checkbox
               [checked]="selectedIds.size > 0 && selectedIds.size === data.length"
               [indeterminate]="selectedIds.size > 0 && selectedIds.size < data.length"
-              (checkedChange)="onSelectionChange('', $event)"
+              (checkedChange)="onSelectAll()"
             />
           </th>
         }

@@ -163,10 +163,15 @@ impl StatisticsService {
     start_date: &NaiveDate,
     end_date: &NaiveDate,
   ) -> Vec<Value> {
-    let activities = self
-      .activity_log_helper
-      .get_all(json!({"user_id": user_id.to_string()}))
-      .await;
+    let filter = json!({
+      "$and": [
+        {"user_id": user_id},
+        {"date": {"$gte": start_date.format("%Y-%m-%d").to_string()}},
+        {"date": {"$lte": end_date.format("%Y-%m-%d").to_string()}}
+      ]
+    });
+
+    let activities = self.activity_log_helper.get_all(filter).await;
 
     let docs = match activities {
       Ok(resp) => {
@@ -179,33 +184,29 @@ impl StatisticsService {
       Err(_) => Vec::new(),
     };
 
-    // Filter by date range and deduplicate by date (keep latest)
+    // Deduplicate by date (keep latest)
     let mut date_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
 
     for activity in docs {
       if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
-        if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
-          if date >= *start_date && date <= *end_date {
-            // Keep the latest record for each date (based on updated_at)
-            let should_insert = match date_map.get(date_str) {
-              Some(existing) => {
-                let existing_updated = existing
-                  .get("updated_at")
-                  .and_then(|v| v.as_str())
-                  .unwrap_or("");
-                let new_updated = activity
-                  .get("updated_at")
-                  .and_then(|v| v.as_str())
-                  .unwrap_or("");
-                new_updated > existing_updated
-              }
-              None => true,
-            };
-
-            if should_insert {
-              date_map.insert(date_str.to_string(), activity);
-            }
+        // Keep the latest record for each date (based on updated_at)
+        let should_insert = match date_map.get(date_str) {
+          Some(existing) => {
+            let existing_updated = existing
+              .get("updated_at")
+              .and_then(|v| v.as_str())
+              .unwrap_or("");
+            let new_updated = activity
+              .get("updated_at")
+              .and_then(|v| v.as_str())
+              .unwrap_or("");
+            new_updated > existing_updated
           }
+          None => true,
+        };
+
+        if should_insert {
+          date_map.insert(date_str.to_string(), activity);
         }
       }
     }

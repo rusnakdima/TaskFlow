@@ -7,9 +7,6 @@ pub mod manage_db_service;
 // WebSocket server - now modularized
 pub mod websocket;
 
-#[path = "live_sync.service.rs"]
-pub mod live_sync_service;
-
 // Special services (not CRUD)
 pub mod auth;
 

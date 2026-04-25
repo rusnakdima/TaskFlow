@@ -48,99 +48,89 @@ impl ManageDbService {
 
   /// Import data from cloud MongoDB to local JSON
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    match self.mongodb_provider.as_ref() {
-      Some(mongo_provider) => {
-        let tables = vec![
-          "users",
-          "profiles",
-          "todos",
-          "tasks",
-          "subtasks",
-          "categories",
-          "daily_activities",
-        ];
-        let mut imported_count = 0;
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
-        for table in tables {
-          let user_filter = Filter::And(vec![
-            Filter::Eq("user_id".to_string(), json!(user_id)),
-            Filter::IsNull("deleted_at".to_string()),
-          ]);
-          let cloud_data = mongo_provider
-            .find_many(table, Some(&user_filter), None, None, None, true)
-            .await;
+    let tables = vec![
+      "users",
+      "profiles",
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+    let mut imported_count = 0;
 
-          if let Ok(items) = cloud_data {
-            for item in items {
-              let insert_result = self.json_provider.insert(table, item.clone()).await;
-              if insert_result.is_ok() {
-                imported_count += 1;
-              }
-            }
+    for table in tables {
+      let filter = Filter::And(vec![
+        Filter::Eq("user_id".to_string(), json!(user_id)),
+        Filter::IsNull("deleted_at".to_string()),
+      ]);
+
+      if let Ok(items) = mongo
+        .find_many(table, Some(&filter), None, None, None, true)
+        .await
+      {
+        for item in items {
+          if self.json_provider.insert(table, item).await.is_ok() {
+            imported_count += 1;
           }
         }
-
-        Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: format!("Imported {} records to local", imported_count),
-          data: DataValue::String(imported_count.to_string()),
-        })
       }
-      None => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "MongoDB not available for import".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
     }
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Imported {} records", imported_count),
+      data: DataValue::String(imported_count.to_string()),
+    })
   }
 
   /// Export data from local JSON to cloud MongoDB
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    match self.mongodb_provider.as_ref() {
-      Some(mongo_provider) => {
-        let tables = vec![
-          "users",
-          "profiles",
-          "todos",
-          "tasks",
-          "subtasks",
-          "categories",
-          "daily_activities",
-        ];
-        let mut exported_count = 0;
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
-        for table in tables {
-          let user_filter = Filter::And(vec![
-            Filter::Eq("user_id".to_string(), json!(user_id)),
-            Filter::IsNull("deleted_at".to_string()),
-          ]);
-          let local_data = self
-            .json_provider
-            .find_many(table, Some(&user_filter), None, None, None, true)
-            .await;
+    let tables = vec![
+      "users",
+      "profiles",
+      "todos",
+      "tasks",
+      "subtasks",
+      "categories",
+      "daily_activities",
+    ];
+    let mut exported_count = 0;
 
-          if let Ok(items) = local_data {
-            for item in items {
-              let insert_result = mongo_provider.insert(table, item.clone()).await;
-              if insert_result.is_ok() {
-                exported_count += 1;
-              }
-            }
+    for table in tables {
+      let filter = Filter::And(vec![
+        Filter::Eq("user_id".to_string(), json!(user_id)),
+        Filter::IsNull("deleted_at".to_string()),
+      ]);
+
+      if let Ok(items) = self
+        .json_provider
+        .find_many(table, Some(&filter), None, None, None, true)
+        .await
+      {
+        for item in items {
+          if mongo.insert(table, item).await.is_ok() {
+            exported_count += 1;
           }
         }
-
-        Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: format!("Exported {} records to cloud", exported_count),
-          data: DataValue::String(exported_count.to_string()),
-        })
       }
-      None => Err(ResponseModel {
-        status: ResponseStatus::Error,
-        message: "MongoDB not available for export".to_string(),
-        data: DataValue::String("".to_string()),
-      }),
     }
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Exported {} records", exported_count),
+      data: DataValue::String(exported_count.to_string()),
+    })
   }
 
   /// Get all data for admin view (from MongoDB)
