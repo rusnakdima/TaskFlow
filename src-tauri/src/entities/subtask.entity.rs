@@ -2,8 +2,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
+use nosql_orm::sql::types::SqlOnDelete;
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskEntity {
@@ -56,33 +59,22 @@ impl WithRelations for SubtaskEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
       RelationDef::many_to_one("task", "tasks", "task_id"),
-      RelationDef::one_to_many("comments", "comments", "subtask_id"),
+      RelationDef::one_to_many("comments", "comments", "subtask_id")
+        .on_delete(SqlOnDelete::Cascade),
     ]
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct SubtaskCreateModel {
+  #[validate(not_empty)]
   pub task_id: String,
+  #[validate(not_empty)]
   pub title: String,
   pub description: Option<String>,
+  #[validate(not_empty)]
   pub priority: String,
   pub order: i32,
-}
-
-impl Validatable for SubtaskCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.task_id.is_empty() {
-      return Err("task_id cannot be empty".to_string());
-    }
-    if self.title.is_empty() {
-      return Err("title cannot be empty".to_string());
-    }
-    if self.priority.is_empty() {
-      return Err("priority cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<SubtaskCreateModel> for SubtaskEntity {
@@ -135,16 +127,16 @@ pub struct SubtaskUpdateModel {
   pub sync_metadata: Option<crate::entities::sync_metadata_entity::SyncMetadata>,
 }
 
-impl Validatable for SubtaskUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for SubtaskUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err("title cannot be empty".to_string());
+        return Err(OrmError::Validation("title cannot be empty".to_string()));
       }
     }
     if let Some(ref priority) = self.priority {
       if priority.is_empty() {
-        return Err("priority cannot be empty".to_string());
+        return Err(OrmError::Validation("priority cannot be empty".to_string()));
       }
     }
     Ok(())

@@ -2,8 +2,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatEntity {
@@ -56,27 +56,15 @@ impl WithRelations for ChatEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatCreateModel {
+  #[validate(not_empty)]
   pub todo_id: String,
+  #[validate(not_empty)]
   pub user_id: String,
   pub author_name: String,
+  #[validate(not_empty)]
   pub content: String,
-}
-
-impl Validatable for ChatCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.todo_id.is_empty() {
-      return Err("todo_id is required".to_string());
-    }
-    if self.user_id.is_empty() {
-      return Err("user_id is required".to_string());
-    }
-    if self.content.is_empty() {
-      return Err("content is required".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<ChatCreateModel> for ChatEntity {
@@ -96,16 +84,8 @@ impl From<ChatCreateModel> for ChatEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatUpdateModel {
+  #[validate(not_empty)]
   pub content: String,
-}
-
-impl Validatable for ChatUpdateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.content.is_empty() {
-      return Err("content is required".to_string());
-    }
-    Ok(())
-  }
 }

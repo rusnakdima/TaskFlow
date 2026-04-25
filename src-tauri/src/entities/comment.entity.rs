@@ -2,8 +2,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
+use nosql_orm::validators::Validate as OrmValidate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommentEntity {
@@ -71,16 +72,20 @@ pub struct CommentCreateModel {
   pub subtask_id: Option<String>,
 }
 
-impl Validatable for CommentCreateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for CommentCreateModel {
+  fn validate(&self) -> OrmResult<()> {
     if self.author_id.is_empty() {
-      return Err("author_id cannot be empty".to_string());
+      return Err(OrmError::Validation(
+        "author_id cannot be empty".to_string(),
+      ));
     }
     if self.author_name.is_empty() {
-      return Err("author_name cannot be empty".to_string());
+      return Err(OrmError::Validation(
+        "author_name cannot be empty".to_string(),
+      ));
     }
     if self.content.is_empty() {
-      return Err("content cannot be empty".to_string());
+      return Err(OrmError::Validation("content cannot be empty".to_string()));
     }
     let has_task = self
       .task_id
@@ -93,10 +98,14 @@ impl Validatable for CommentCreateModel {
       .map(|s| !s.is_empty())
       .unwrap_or(false);
     if !has_task && !has_subtask {
-      return Err("Comment must belong to either a task or a subtask".to_string());
+      return Err(OrmError::Validation(
+        "Comment must belong to either a task or a subtask".to_string(),
+      ));
     }
     if has_task && has_subtask {
-      return Err("Comment must belong to exactly one of task or subtask, not both".to_string());
+      return Err(OrmError::Validation(
+        "Comment must belong to exactly one of task or subtask, not both".to_string(),
+      ));
     }
     Ok(())
   }
@@ -131,11 +140,11 @@ pub struct CommentUpdateModel {
   pub updated_at: Option<String>,
 }
 
-impl Validatable for CommentUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for CommentUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref content) = self.content {
       if content.is_empty() {
-        return Err("content cannot be empty".to_string());
+        return Err(OrmError::Validation("content cannot be empty".to_string()));
       }
     }
     Ok(())

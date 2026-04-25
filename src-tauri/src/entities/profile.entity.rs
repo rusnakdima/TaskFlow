@@ -2,8 +2,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileEntity {
@@ -39,9 +41,10 @@ impl WithRelations for ProfileEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ProfileCreateModel {
   #[serde(default)]
+  #[validate(not_empty)]
   pub name: Option<String>,
   #[serde(default)]
   pub last_name: Option<String>,
@@ -49,19 +52,8 @@ pub struct ProfileCreateModel {
   pub bio: Option<String>,
   #[serde(default)]
   pub image_url: Option<String>,
+  #[validate(not_empty)]
   pub user_id: String,
-}
-
-impl Validatable for ProfileCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.name.as_ref().is_none_or(|s| s.is_empty()) {
-      return Err("name cannot be empty".to_string());
-    }
-    if self.user_id.is_empty() {
-      return Err("user_id cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<ProfileCreateModel> for ProfileEntity {
@@ -101,11 +93,11 @@ pub struct ProfileUpdateModel {
   pub updated_at: Option<String>,
 }
 
-impl Validatable for ProfileUpdateModel {
-  fn validate(&self) -> Result<(), String> {
+impl OrmValidate for ProfileUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref name) = self.name {
       if name.is_empty() {
-        return Err("name cannot be empty".to_string());
+        return Err(OrmError::Validation("name cannot be empty".to_string()));
       }
     }
     Ok(())

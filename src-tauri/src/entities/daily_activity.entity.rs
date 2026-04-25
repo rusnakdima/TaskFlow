@@ -2,7 +2,8 @@
 use mongodb::bson::Uuid;
 use serde::{Deserialize, Serialize};
 
-use crate::entities::traits::Validatable;
+use nosql_orm::prelude::{Entity, EntityMeta};
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -29,23 +30,27 @@ pub struct DailyActivityModel {
   pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct DailyActivityCreateModel {
-  pub user_id: String,
-  pub date: String,
+impl Entity for DailyActivityModel {
+  fn meta() -> EntityMeta {
+    EntityMeta::new("daily_activities")
+  }
+
+  fn get_id(&self) -> Option<String> {
+    Some(self.id.clone())
+  }
+
+  fn set_id(&mut self, id: String) {
+    self.id = id;
+  }
 }
 
-impl Validatable for DailyActivityCreateModel {
-  fn validate(&self) -> Result<(), String> {
-    if self.user_id.is_empty() {
-      return Err("user_id cannot be empty".to_string());
-    }
-    if self.date.is_empty() {
-      return Err("date cannot be empty".to_string());
-    }
-    Ok(())
-  }
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[serde(rename_all = "snake_case")]
+pub struct DailyActivityCreateModel {
+  #[validate(not_empty)]
+  pub user_id: String,
+  #[validate(not_empty)]
+  pub date: String,
 }
 
 impl From<DailyActivityCreateModel> for DailyActivityModel {

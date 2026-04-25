@@ -11,40 +11,10 @@ use crate::entities::{
   subtask_entity::{SubtaskCreateModel, SubtaskEntity, SubtaskUpdateModel},
   task_entity::{TaskCreateModel, TaskEntity, TaskUpdateModel},
   todo_entity::{TodoCreateModel, TodoEntity, TodoUpdateModel},
-  traits::Validatable,
   user_entity::{UserCreateModel, UserEntity, UserUpdateModel},
 };
-
-/// Convert camelCase keys to snake_case recursively in a JSON value
-fn convert_camel_to_snake(value: Value) -> Value {
-  match value {
-    Value::Object(map) => {
-      let converted: Map<String, Value> = map
-        .into_iter()
-        .map(|(k, v)| {
-          let snake_key = to_snake_case(&k);
-          (snake_key, convert_camel_to_snake(v))
-        })
-        .collect();
-      Value::Object(converted)
-    }
-    Value::Array(arr) => Value::Array(arr.into_iter().map(convert_camel_to_snake).collect()),
-    other => other,
-  }
-}
-
-/// Convert a camelCase string to snake_case
-/// e.g., "userId" -> "user_id", "createdAt" -> "created_at"
-fn to_snake_case(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  for (i, c) in s.chars().enumerate() {
-    if c.is_uppercase() && i > 0 {
-      result.push('_');
-    }
-    result.extend(c.to_lowercase());
-  }
-  result
-}
+use nosql_orm::prelude::apply_timestamps;
+use nosql_orm::validators::Validate as OrmValidate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum TableModelType {
@@ -113,94 +83,89 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
     return Err("Data must be a JSON object".to_string());
   }
 
-  // Convert camelCase keys to snake_case before deserializing
-  let data = convert_camel_to_snake(data.clone());
-
   match model_type {
     TableModelType::Chat => {
       if is_create {
         let create_model: ChatCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: ChatEntity = create_model.into();
-        serde_json::to_value(&model).map_err(|e| format!("Failed to serialize chat model: {}", e))
+        serialize_for_insert(&model, "chat")
       } else {
         let update_model: ChatUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid chat update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Todo => {
       if is_create {
         let create_model: TodoCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid todo data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: TodoEntity = create_model.into();
-        serde_json::to_value(&model).map_err(|e| format!("Failed to serialize todo model: {}", e))
+        serialize_for_insert(&model, "todo")
       } else {
         let update_model: TodoUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid todo update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Task => {
       if is_create {
         let create_model: TaskCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid task data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: TaskEntity = create_model.into();
-        serde_json::to_value(&model).map_err(|e| format!("Failed to serialize task model: {}", e))
+        serialize_for_insert(&model, "task")
       } else {
         let update_model: TaskUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid task update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Subtask => {
       if is_create {
         let create_model: SubtaskCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid subtask data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: SubtaskEntity = create_model.into();
-        serde_json::to_value(&model)
-          .map_err(|e| format!("Failed to serialize subtask model: {}", e))
+        serialize_for_insert(&model, "subtask")
       } else {
         let update_model: SubtaskUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid subtask update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Category => {
       if is_create {
         let create_model: CategoryCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: CategoryEntity = create_model.into();
-        serde_json::to_value(&model)
-          .map_err(|e| format!("Failed to serialize category model: {}", e))
+        serialize_for_insert(&model, "category")
       } else {
         let update_model: CategoryUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::User => {
       if is_create {
         let create_model: UserCreateModel =
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid user data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: UserEntity = create_model.into();
-        serde_json::to_value(&model).map_err(|e| format!("Failed to serialize user model: {}", e))
+        serialize_for_insert(&model, "user")
       } else {
         let update_model: UserUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid user update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Profile => {
@@ -208,45 +173,62 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
         let filtered_data = filter_empty_fields(data.clone());
         let create_model: ProfileCreateModel = serde_json::from_value(filtered_data)
           .map_err(|e| format!("Invalid profile data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: ProfileEntity = create_model.into();
-        serde_json::to_value(&model)
-          .map_err(|e| format!("Failed to serialize profile model: {}", e))
+        serialize_for_insert(&model, "profile")
       } else {
         let update_model: ProfileUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid profile update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::DailyActivity => {
       if is_create {
         let create_model: DailyActivityCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid daily activity data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: DailyActivityModel = create_model.into();
-        serde_json::to_value(&model)
-          .map_err(|e| format!("Failed to serialize daily activity model: {}", e))
+        serialize_for_insert(&model, "daily activity")
       } else {
-        // DailyActivity update - just return data as-is
-        Ok(data.clone())
+        Ok(with_update_timestamp(data.clone()))
       }
     }
     TableModelType::Comment => {
       if is_create {
         let create_model: CommentCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid comment data: {}", e))?;
-        create_model.validate()?;
+        create_model.validate().map_err(|e| e.to_string())?;
         let model: CommentEntity = create_model.into();
-        serde_json::to_value(&model)
-          .map_err(|e| format!("Failed to serialize comment model: {}", e))
+        serialize_for_insert(&model, "comment")
       } else {
         let update_model: CommentUpdateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid comment update data: {}", e))?;
-        update_model.validate()?;
-        Ok(data.clone())
+        update_model.validate().map_err(|e| e.to_string())?;
+        Ok(with_update_timestamp(data.clone()))
       }
     }
+  }
+}
+
+fn serialize_for_insert<T: serde::Serialize>(model: &T, label: &str) -> Result<Value, String> {
+  let mut value = serde_json::to_value(model)
+    .map_err(|e| format!("Failed to serialize {} model: {}", label, e))?;
+  strip_timestamps(&mut value);
+  apply_timestamps(&mut value, true);
+  Ok(value)
+}
+
+fn with_update_timestamp(mut value: Value) -> Value {
+  strip_timestamps(&mut value);
+  apply_timestamps(&mut value, false);
+  value
+}
+
+fn strip_timestamps(value: &mut Value) {
+  if let Some(obj) = value.as_object_mut() {
+    obj.remove("created_at");
+    obj.remove("updated_at");
   }
 }
 

@@ -5,10 +5,13 @@ use std::fmt::{Display, Formatter, Result};
 
 /* crate */
 use crate::entities::comment_entity::CommentEntity;
-use crate::entities::traits::Validatable;
 
 /* nosql_orm */
+use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
+use nosql_orm::sql::types::SqlOnDelete;
+use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
@@ -84,37 +87,25 @@ impl SoftDeletable for TaskEntity {
 impl WithRelations for TaskEntity {
   fn relations() -> Vec<RelationDef> {
     vec![
-      RelationDef::one_to_many("subtasks", "subtasks", "task_id"),
-      RelationDef::one_to_many("comments", "comments", "task_id"),
+      RelationDef::one_to_many("subtasks", "subtasks", "task_id").on_delete(SqlOnDelete::Cascade),
+      RelationDef::one_to_many("comments", "comments", "task_id").on_delete(SqlOnDelete::Cascade),
       RelationDef::many_to_one("todo", "todos", "todo_id"),
     ]
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TaskCreateModel {
+  #[validate(not_empty)]
   pub todo_id: String,
+  #[validate(not_empty)]
   pub title: String,
   pub description: Option<String>,
+  #[validate(not_empty)]
   pub priority: String,
   pub start_date: String,
   pub end_date: String,
   pub order: i32,
-}
-
-impl Validatable for TaskCreateModel {
-  fn validate(&self) -> std::result::Result<(), String> {
-    if self.todo_id.is_empty() {
-      return Err("todoId cannot be empty".to_string());
-    }
-    if self.title.is_empty() {
-      return Err("title cannot be empty".to_string());
-    }
-    if self.priority.is_empty() {
-      return Err("priority cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
 
 impl From<TaskCreateModel> for TaskEntity {
@@ -188,16 +179,16 @@ pub struct TaskUpdateModel {
   pub comments: Option<Vec<CommentEntity>>,
 }
 
-impl Validatable for TaskUpdateModel {
-  fn validate(&self) -> std::result::Result<(), String> {
+impl OrmValidate for TaskUpdateModel {
+  fn validate(&self) -> OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err("title cannot be empty".to_string());
+        return Err(OrmError::Validation("title cannot be empty".to_string()));
       }
     }
     if let Some(ref priority) = self.priority {
       if priority.is_empty() {
-        return Err("priority cannot be empty".to_string());
+        return Err(OrmError::Validation("priority cannot be empty".to_string()));
       }
     }
     Ok(())
