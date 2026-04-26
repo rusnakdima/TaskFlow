@@ -167,12 +167,25 @@ export class StorageService extends BaseStorageService {
 
   // ==================== GENERIC CRUD ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
-    if (type === "tasks" && data.id && data.todo_id) {
+    this.updateIndexesForEntity(type, data);
+    this.handlers[type]?.add(data);
+  }
+
+  private updateIndexesForEntity(type: StorageEntity, data: any): void {
+    if (type === "todos" && data.id) {
+      data.tasks?.forEach((task: Task) => {
+        if (task.id) {
+          this.taskToTodoIndex.set(task.id, data.id);
+          task.subtasks?.forEach((sub: Subtask) => {
+            if (sub.id) this.subtaskToTaskIndex.set(sub.id, task.id);
+          });
+        }
+      });
+    } else if (type === "tasks" && data.id && data.todo_id) {
       this.taskToTodoIndex.set(data.id, data.todo_id);
     } else if (type === "subtasks" && data.id && data.task_id) {
       this.subtaskToTaskIndex.set(data.id, data.task_id);
     }
-    this.handlers[type]?.add(data);
   }
 
   updateItem(
@@ -181,9 +194,14 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    if (updates["deletedAt"] === true) {
+    if (updates["deleted_at"]) {
       const existing: any = this.getById(type, id);
-      if (existing?.["deletedAt"] === true) return;
+      if (existing?.["deleted_at"]) return;
+    }
+
+    // If tasks are being updated/added inside a todo, ensure indexes are maintained
+    if (type === "todos" && updates["tasks"]) {
+      this.updateIndexesForEntity("todos", { id, ...updates });
     }
 
     if (type === "todos") {
@@ -293,7 +311,7 @@ export class StorageService extends BaseStorageService {
     if (!todo) return;
 
     this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
-    if (!this.sharedTodosSignal().some((t) => t.id !== todo_id)) {
+    if (!this.sharedTodosSignal().some((t) => t.id === todo_id)) {
       this.sharedTodosSignal.update((todos) => [
         { ...todo, visibility: "team" },
         ...todos.filter((t) => t.id !== todo_id),
@@ -337,13 +355,15 @@ export class StorageService extends BaseStorageService {
     } else if (table === "tasks") {
       // Remove task from nested structure
       const taskHandler = this.handlers.tasks as NestedEntityHandler<Task>;
-      const todoId = this.todos().find((t) => t.tasks?.some((task) => task.id === id))?.id;
-      taskHandler.remove(id, todoId);
+      const todoId = this.getTodoIdForTask(id);
+      taskHandler.remove(id, todoId ?? undefined);
+      this.taskToTodoIndex.delete(id);
     } else if (table === "subtasks") {
       // Remove subtask from nested structure
       const subtaskHandler = this.handlers.subtasks as NestedEntityHandler<Subtask>;
-      const taskId = this.tasks().find((t) => t.subtasks?.some((s) => s.id === id))?.id;
-      subtaskHandler.remove(id, taskId);
+      const taskId = this.getTaskIdForSubtask(id);
+      subtaskHandler.remove(id, taskId ?? undefined);
+      this.subtaskToTaskIndex.delete(id);
     } else if (table === "comments") {
       this.handlers.comments?.remove(id);
     } else if (table === "chats") {
