@@ -191,13 +191,13 @@ export class ManageTodoView implements OnInit, OnDestroy {
         todoId,
         [
           "user",
-          "user.profile",
           "tasks",
           "tasks.subtasks",
+          "tasks.subtasks.comments",
+          "tasks.subtasks.assignees_profiles",
           "tasks.comments",
           "categories",
           "assignees_profiles",
-          "assignees_profiles.user",
         ],
         syncMetadata
       )
@@ -497,7 +497,11 @@ export class ManageTodoView implements OnInit, OnDestroy {
       };
 
       this.dataSyncProvider
-        .crud<Todo>("create", "todos", { data: body, parentTodoId: body.user_id })
+        .crud<Todo>("create", "todos", {
+          data: body,
+          parentTodoId: body.user_id,
+          load: ["user", "categories", "assignees_profiles", "tasks"],
+        })
         .subscribe({
           next: (result: Todo) => {
             this.isSubmitting.set(false);
@@ -547,6 +551,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
           data: body,
           parentTodoId: body.id,
           ...syncMetadata,
+          load: ["user", "categories", "assignees_profiles", "tasks"],
         })
         .subscribe({
           next: async (result: Todo) => {
