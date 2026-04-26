@@ -100,7 +100,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
   private createCategory() {
     const categoryData = {
       title: this.categoryTitle.trim(),
-      userId: this.userId,
+      user_id: this.userId,
     };
 
     this.dataSyncProvider
