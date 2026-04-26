@@ -22,6 +22,9 @@ export class ShortcutService {
   private refreshSubject = new Subject<void>();
   refresh$ = this.refreshSubject.asObservable();
 
+  private createCategorySubject = new Subject<void>();
+  createCategory$ = this.createCategorySubject.asObservable();
+
   private currentUrl = "";
 
   constructor(
@@ -209,7 +212,21 @@ export class ShortcutService {
       return;
     }
 
-    // 3. Default -> Create new todo
+    // 3. In categories -> Toggle create form
+    if (url === "/categories") {
+      // Emit an event to toggle create form in categories view
+      // Since we can't directly access the component, we'll use a subject
+      this.zone.run(() => {
+        // We'll add a new subject for category create
+        // For now, since it's simple, perhaps navigate or emit
+        // Actually, since the view has toggleCreateForm, we need to emit to it
+        // Add a new subject
+        this.createCategorySubject.next();
+      });
+      return;
+    }
+
+    // 4. Default -> Create new todo
     this.router.navigate(["/todos/create_todo"]);
   }
 }

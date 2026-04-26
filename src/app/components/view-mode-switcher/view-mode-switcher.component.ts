@@ -12,7 +12,7 @@ import {
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
-export type ViewMode = "card" | "grid" | "table";
+export type ViewMode = "card" | "grid" | "table" | "list";
 
 @Component({
   selector: "app-view-mode-switcher",
