@@ -98,9 +98,9 @@ impl ActivityStorage {
     &self,
     activity: DailyActivityModel,
   ) -> Result<(), ResponseModel> {
-    let activity_id = activity.id.clone();
+    let activity_id = activity.id.clone().unwrap_or_default();
     let update_model = DailyActivityUpdateModel {
-      id: activity.id,
+      id: activity.id.unwrap_or_default(),
       user_id: activity.user_id,
       date: activity.date,
       todos_created: activity.todos_created,

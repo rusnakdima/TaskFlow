@@ -3,11 +3,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta};
-use nosql_orm::validators::Validate as OrmValidate;
-use nosql_orm::Validate;
+use nosql_orm::prelude::SoftDeletable;
+use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("categories")]
+#[soft_delete]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
@@ -20,27 +21,20 @@ pub struct CategoryEntity {
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
-impl Entity for CategoryEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("categories")
+impl SoftDeletable for CategoryEntity {
+  fn deleted_at(&self) -> Option<DateTime<Utc>> {
+    self.deleted_at
   }
 
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
+  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
+    self.deleted_at = deleted_at;
   }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CategoryCreateModel {
   #[validate(not_empty)]
+  #[validate(length(min = 1, max = 100))]
   pub title: String,
   #[validate(not_empty)]
   pub user_id: String,
@@ -67,11 +61,16 @@ pub struct CategoryUpdateModel {
   pub deleted_at: Option<bool>,
 }
 
-impl OrmValidate for CategoryUpdateModel {
+impl nosql_orm::validators::Validate for CategoryUpdateModel {
   fn validate(&self) -> OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
         return Err(OrmError::Validation("title cannot be empty".to_string()));
+      }
+      if title.len() > 100 {
+        return Err(OrmError::Validation(
+          "title cannot exceed 100 characters".to_string(),
+        ));
       }
     }
     Ok(())

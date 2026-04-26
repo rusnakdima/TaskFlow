@@ -3,10 +3,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
-use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::prelude::SoftDeletable;
+use nosql_orm::validators::Validate;
+use nosql_orm::Model;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("comments")]
+#[soft_delete]
+#[many_to_one("task", "tasks", "task_id")]
+#[many_to_one("subtask", "subtasks", "subtask_id")]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub author_id: String,
@@ -26,24 +31,6 @@ pub struct CommentEntity {
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
-impl Entity for CommentEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("comments")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
-}
-
 impl SoftDeletable for CommentEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
     self.deleted_at
@@ -51,15 +38,6 @@ impl SoftDeletable for CommentEntity {
 
   fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
     self.deleted_at = deleted_at;
-  }
-}
-
-impl WithRelations for CommentEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![
-      RelationDef::many_to_one("task", "tasks", "task_id"),
-      RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),
-    ]
   }
 }
 
@@ -72,7 +50,7 @@ pub struct CommentCreateModel {
   pub subtask_id: Option<String>,
 }
 
-impl OrmValidate for CommentCreateModel {
+impl Validate for CommentCreateModel {
   fn validate(&self) -> OrmResult<()> {
     if self.author_id.is_empty() {
       return Err(OrmError::Validation(
@@ -86,6 +64,11 @@ impl OrmValidate for CommentCreateModel {
     }
     if self.content.is_empty() {
       return Err(OrmError::Validation("content cannot be empty".to_string()));
+    }
+    if self.content.len() > 5000 {
+      return Err(OrmError::Validation(
+        "content cannot exceed 5000 characters".to_string(),
+      ));
     }
     let has_task = self
       .task_id
@@ -140,11 +123,16 @@ pub struct CommentUpdateModel {
   pub updated_at: Option<String>,
 }
 
-impl OrmValidate for CommentUpdateModel {
+impl nosql_orm::validators::Validate for CommentUpdateModel {
   fn validate(&self) -> OrmResult<()> {
     if let Some(ref content) = self.content {
       if content.is_empty() {
         return Err(OrmError::Validation("content cannot be empty".to_string()));
+      }
+      if content.len() > 5000 {
+        return Err(OrmError::Validation(
+          "content cannot exceed 5000 characters".to_string(),
+        ));
       }
     }
     Ok(())

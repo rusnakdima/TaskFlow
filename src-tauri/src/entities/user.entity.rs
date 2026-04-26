@@ -8,13 +8,12 @@ use crate::entities::traits::EntityRelations;
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{
-  Entity, EntityMeta, FrontendProjection, RelationDef, SoftDeletable, WithRelations,
-};
-use nosql_orm::validators::Validate as OrmValidate;
-use nosql_orm::Validate;
+use nosql_orm::prelude::{FrontendProjection, SoftDeletable};
+use nosql_orm::Model;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("users")]
+#[soft_delete]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -83,34 +82,6 @@ impl EntityRelations for UserEntity {
   }
 }
 
-impl Entity for UserEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("users")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
-}
-
-impl WithRelations for UserEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![RelationDef::many_to_one(
-      "profile",
-      "profiles",
-      "profile_id",
-    )]
-  }
-}
-
 impl SoftDeletable for UserEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
     self.deleted_at
@@ -127,13 +98,16 @@ impl UserEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, nosql_orm::Validate)]
 pub struct UserCreateModel {
-  #[validate(email, not_empty)]
+  #[validate(email)]
+  #[validate(required)]
   pub email: String,
   #[validate(not_empty)]
+  #[validate(length(min = 3, max = 30))]
   pub username: String,
   #[validate(not_empty)]
+  #[validate(length(min = 8, max = 100))]
   pub password: String,
   pub role: String,
   #[serde(default)]
@@ -233,7 +207,7 @@ pub struct UserUpdateModel {
   pub recovery_codes: Option<Vec<String>>,
 }
 
-impl OrmValidate for UserUpdateModel {
+impl nosql_orm::validators::Validate for UserUpdateModel {
   fn validate(&self) -> OrmResult<()> {
     if let Some(ref email) = self.email {
       if email.is_empty() {
@@ -243,6 +217,11 @@ impl OrmValidate for UserUpdateModel {
     if let Some(ref username) = self.username {
       if username.is_empty() {
         return Err(OrmError::Validation("username cannot be empty".to_string()));
+      }
+      if username.len() > 30 {
+        return Err(OrmError::Validation(
+          "username cannot exceed 30 characters".to_string(),
+        ));
       }
     }
     Ok(())

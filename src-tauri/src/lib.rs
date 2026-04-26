@@ -44,9 +44,6 @@ use services::{
   statistics_service::StatisticsService, websocket::WebSocketServerService,
 };
 
-/* entities */
-use crate::entities::relation_config::RelationConfig;
-
 /* nosql_orm */
 use nosql_orm::nosql_index::NosqlIndex;
 use nosql_orm::provider::DatabaseProvider;
@@ -68,8 +65,59 @@ pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
+  println!("DEBUG: Starting relation registration...");
+
+  // Clear relation registry first to avoid conflicts
+  use nosql_orm::relations::clear_relation_registry;
+  clear_relation_registry();
+  println!("DEBUG: Relation registry cleared");
+
+  // Register comprehensive relations from RelationConfig first
+  use crate::entities::relation_config::RelationConfig;
   RelationConfig::register_all_relations();
-  tracing::info!("Relation registry initialized");
+  println!("DEBUG: RelationConfig::register_all_relations() called");
+
+  // Debug: Verify relations are registered
+  use nosql_orm::relations::get_registered_collection_relations;
+  if let Some(todos_rels) = get_registered_collection_relations("todos") {
+    println!(
+      "DEBUG: ✅ Todos relations registered: {:?}",
+      todos_rels
+        .iter()
+        .map(|r| r.name.as_str())
+        .collect::<Vec<_>>()
+    );
+  } else {
+    println!("DEBUG: ❌ No todos relations registered!");
+  }
+
+  if let Some(tasks_rels) = get_registered_collection_relations("tasks") {
+    println!(
+      "DEBUG: ✅ Tasks relations registered: {:?}",
+      tasks_rels
+        .iter()
+        .map(|r| r.name.as_str())
+        .collect::<Vec<_>>()
+    );
+  } else {
+    println!("DEBUG: ❌ No tasks relations registered!");
+  }
+
+  println!("DEBUG: Relation registration completed");
+
+  // Then register relations from entity decorators (these will be ignored if already registered)
+  use crate::entities::comment_entity::CommentEntity;
+  use crate::entities::subtask_entity::SubtaskEntity;
+  use crate::entities::task_entity::TaskEntity;
+  use crate::entities::todo_entity::TodoEntity;
+  use nosql_orm::relations::register_relations_for_entity;
+
+  register_relations_for_entity::<TodoEntity>();
+  register_relations_for_entity::<TaskEntity>();
+  register_relations_for_entity::<SubtaskEntity>();
+  register_relations_for_entity::<CommentEntity>();
+
+  tracing::info!("Entity decorator relations registered (may be ignored if already registered)");
 
   let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -92,6 +140,12 @@ pub fn run() {
   #[cfg(debug_assertions)]
   {
     builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+  }
+
+  // Skip frontend issues for testing - just run backend
+  if std::env::var("SKIP_FRONTEND").is_ok() {
+    tracing::info!("Skipping frontend setup for testing");
+    return;
   }
 
   builder

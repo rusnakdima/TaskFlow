@@ -2,10 +2,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
-use nosql_orm::Validate;
+use nosql_orm::prelude::SoftDeletable;
+use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("chats")]
+#[soft_delete]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,
@@ -22,24 +24,6 @@ pub struct ChatEntity {
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
-impl Entity for ChatEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("chats")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
-}
-
 impl SoftDeletable for ChatEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
     self.deleted_at
@@ -50,20 +34,15 @@ impl SoftDeletable for ChatEntity {
   }
 }
 
-impl WithRelations for ChatEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![RelationDef::many_to_one("todo", "todos", "todo_id")]
-  }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatCreateModel {
-  #[validate(not_empty)]
+  #[validate(required)]
   pub todo_id: String,
-  #[validate(not_empty)]
+  #[validate(required)]
   pub user_id: String,
   pub author_name: String,
-  #[validate(not_empty)]
+  #[validate(required)]
+  #[validate(length(min = 1, max = 5000))]
   pub content: String,
 }
 
@@ -86,6 +65,7 @@ impl From<ChatCreateModel> for ChatEntity {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatUpdateModel {
-  #[validate(not_empty)]
+  #[validate(required)]
+  #[validate(length(min = 1, max = 5000))]
   pub content: String,
 }

@@ -68,7 +68,7 @@ impl RelationConfig {
 
   pub fn subtasks_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "todo_id")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "comments",
         RelationDef::one_to_many("comments", "comments", "subtask_id"),
@@ -82,7 +82,7 @@ impl RelationConfig {
 
   pub fn comments_relations() -> Vec<(&'static str, RelationDef)> {
     vec![
-      ("task", RelationDef::many_to_one("task", "tasks", "todo_id")),
+      ("task", RelationDef::many_to_one("task", "tasks", "task_id")),
       (
         "subtask",
         RelationDef::many_to_one("subtask", "subtasks", "subtask_id"),
@@ -166,13 +166,16 @@ impl RelationConfig {
   }
 
   pub fn register_all_relations() {
-    register_collection_relations(
-      "todos",
-      Self::todos_relations()
-        .into_iter()
-        .map(|(_n, d)| d)
-        .collect(),
+    println!("DEBUG: register_all_relations called");
+
+    let todos_rels = Self::todos_relations();
+    println!(
+      "DEBUG: todos_relations: {:?}",
+      todos_rels.iter().map(|(n, _)| *n).collect::<Vec<_>>()
     );
+
+    register_collection_relations("todos", todos_rels.into_iter().map(|(_n, d)| d).collect());
+    println!("DEBUG: todos relations registered");
     register_collection_relations(
       "tasks",
       Self::tasks_relations()
@@ -223,7 +226,7 @@ mod tests {
     assert!(def.is_some());
     let def = def.unwrap();
     assert_eq!(def.target_collection, "tasks");
-    assert_eq!(def.foreign_key, "task_id");
+    assert_eq!(def.foreign_key, "todo_id");
   }
 
   #[test]
