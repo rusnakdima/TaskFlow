@@ -8,7 +8,7 @@ use nosql_orm::cache::QueryCache;
 use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
-use nosql_orm::relations::RelationLoader;
+use nosql_orm::relations::{get_relation_def, RelationLoader};
 
 /* entities */
 use crate::entities::{
@@ -105,14 +105,23 @@ impl RepositoryService {
     }
 
     async fn load<P: DatabaseProvider + Clone>(
+      repo: &RepositoryService,
       provider: P,
       docs: Vec<Value>,
       load_paths: &[String],
       table: &str,
+      collection_adder: impl Fn(Vec<Value>, &str) -> Vec<Value>,
     ) -> Result<Vec<Value>, ResponseModel> {
       let loader = RelationLoader::new(provider);
       let mut result_docs = docs;
+      tracing::debug!(
+        "[REPO] Loading relations: table={}, paths={:?}",
+        table,
+        load_paths
+      );
       for path in load_paths {
+        // Add collection metadata before loading relations
+        result_docs = collection_adder(result_docs, table);
         let segments: Vec<&str> = path.split('.').collect();
         match loader.load_nested(result_docs, &segments, true).await {
           Ok(loaded) => result_docs = loaded,
@@ -138,9 +147,25 @@ impl RepositoryService {
         .mongodb_provider
         .as_ref()
         .ok_or_else(|| err_response("No MongoDB provider available"))?;
-      load(mongo.as_ref().clone(), docs, load_paths, table).await
+      load(
+        self,
+        mongo.as_ref().clone(),
+        docs,
+        load_paths,
+        table,
+        |docs, collection| self.add_collection_metadata(docs, collection),
+      )
+      .await
     } else {
-      load(self.json_provider.clone(), docs, load_paths, table).await
+      load(
+        self,
+        self.json_provider.clone(),
+        docs,
+        load_paths,
+        table,
+        |docs, collection| self.add_collection_metadata(docs, collection),
+      )
+      .await
     }
   }
 
@@ -150,6 +175,73 @@ impl RepositoryService {
       .into_iter()
       .map(|doc| projection.apply_recursive(&doc))
       .collect()
+  }
+
+  fn add_collection_metadata(&self, mut docs: Vec<Value>, collection: &str) -> Vec<Value> {
+    for doc in &mut docs {
+      if let Some(obj) = doc.as_object_mut() {
+        if !obj.contains_key("_collection") {
+          obj.insert(
+            "_collection".to_string(),
+            Value::String(collection.to_string()),
+          );
+        }
+      }
+    }
+    docs
+  }
+
+  fn add_collection_metadata_to_relations(
+    &self,
+    docs: &mut [Value],
+    source_collection: &str,
+    loaded_path: &str,
+  ) {
+    let segments: Vec<&str> = loaded_path.split('.').collect();
+    if segments.is_empty() {
+      return;
+    }
+
+    let mut current_collection = source_collection.to_string();
+    for &segment in &segments[..segments.len() - 1] {
+      if let Some(rel_def) = get_relation_def(current_collection.as_str(), segment) {
+        current_collection = rel_def.target_collection.clone();
+      } else {
+        return;
+      }
+    }
+
+    let target_relation = segments.last().unwrap();
+    if let Some(rel_def) = get_relation_def(current_collection.as_str(), target_relation) {
+      let target_coll = rel_def.target_collection.as_str();
+      self.add_metadata_at_path(docs, &segments, target_coll);
+    }
+  }
+
+  fn add_metadata_at_path(&self, docs: &mut [Value], path_segments: &[&str], target_coll: &str) {
+    if path_segments.is_empty() {
+      for doc in docs.iter_mut() {
+        if let Some(obj) = doc.as_object_mut() {
+          obj.insert(
+            "_collection".to_string(),
+            Value::String(target_coll.to_string()),
+          );
+        }
+      }
+    } else {
+      let field = path_segments[0];
+      for doc in docs.iter_mut() {
+        if let Some(obj) = doc.as_object_mut() {
+          if let Some(field_val) = obj.get_mut(field) {
+            if let Some(arr) = field_val.as_array_mut() {
+              let mut items = arr.clone();
+              self.add_metadata_at_path(&mut items, &path_segments[1..], target_coll);
+              *arr = items;
+            }
+          }
+        }
+      }
+    }
   }
 
   async fn capture_change(&self, operation: &str, table: &str, id: &str, data: Value) {
@@ -244,9 +336,10 @@ impl RepositoryService {
 
     if let (Some(ref cache), Some(ref key)) = (&self.query_cache, &cache_key) {
       if let Ok(Some(mut docs)) = cache.get::<Vec<Value>>(key).await {
-        if let Some(ref load_paths) = load {
+        let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
+        if !load_paths.is_empty() {
           docs = self
-            .load_relations_via_nosql_orm(docs, &table, load_paths, use_mongo)
+            .load_relations_via_nosql_orm(docs, &table, &load_paths, use_mongo)
             .await?;
         }
         return Ok(success_response(DataValue::Array(
@@ -277,9 +370,10 @@ impl RepositoryService {
       }
     }
 
-    if let Some(ref load_paths) = load {
+    let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
+    if !load_paths.is_empty() {
       docs = self
-        .load_relations_via_nosql_orm(docs, &table, load_paths, use_mongo)
+        .load_relations_via_nosql_orm(docs, &table, &load_paths, use_mongo)
         .await?;
     }
 
@@ -313,11 +407,13 @@ impl RepositoryService {
     match doc {
       Some(d) => {
         let mut docs = vec![d];
-        if let Some(ref load_paths) = load {
+        let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
+        if !load_paths.is_empty() {
           docs = self
-            .load_relations_via_nosql_orm(docs, &table, load_paths, use_mongo)
+            .load_relations_via_nosql_orm(docs, &table, &load_paths, use_mongo)
             .await?;
         }
+
         let response_doc = self
           .apply_projection_recursive(docs)
           .into_iter()
