@@ -157,12 +157,10 @@ export class LoginView implements OnDestroy {
       .crud<any[]>("getAll", "users", { isOwner: true, isPrivate: true }, true)
       .subscribe({
         next: (users) => {
-          console.error(users);
           const activeUsers = (users || []).filter((u) => !u.deleted_at);
           this.hasLocalUsers.set(activeUsers.length > 0);
         },
         error: (err) => {
-          console.error(err);
           this.hasLocalUsers.set(false);
 
           if (NetworkErrorHelper.isNetworkError(err)) {
