@@ -30,6 +30,10 @@ impl RelationConfig {
         "tasks",
         RelationDef::one_to_many("tasks", "tasks", "todo_id"),
       ),
+      (
+        "subtasks",
+        RelationDef::one_to_many("subtasks", "subtasks", "todo_id"), // Added this
+      ),
       ("user", RelationDef::many_to_one("user", "users", "user_id")),
       (
         "categories",
@@ -41,7 +45,7 @@ impl RelationConfig {
       ),
       (
         "assignees_profiles",
-        RelationDef::many_to_one("assignees", "profiles", "assignees")
+        RelationDef::many_to_one("assignees_profiles", "profiles", "assignees")
           .local_key_in_array("assignees")
           .transform_map("user_id", "profiles", "id"),
       ),
@@ -62,6 +66,12 @@ impl RelationConfig {
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
       ),
+      (
+        "assignees_profiles",
+        RelationDef::many_to_one("assignees_profiles", "profiles", "assignees")
+          .local_key_in_array("assignees")
+          .transform_map("user_id", "profiles", "id"),
+      ),
       ("todo", RelationDef::many_to_one("todo", "todos", "todo_id")),
     ]
   }
@@ -76,6 +86,12 @@ impl RelationConfig {
       (
         "assignees",
         RelationDef::many_to_many("assignees", "profiles", "assignees"),
+      ),
+      (
+        "assignees_profiles",
+        RelationDef::many_to_one("assignees_profiles", "profiles", "assignees")
+          .local_key_in_array("assignees")
+          .transform_map("user_id", "profiles", "id"),
       ),
     ]
   }
