@@ -17,7 +17,7 @@ import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { WebSocketService } from "@services/core/websocket.service";
+// import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
@@ -56,13 +56,10 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 export class App implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
-  private ws = inject(WebSocketService);
+  // private ws = inject(WebSocketService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
-  private storageService = inject(StorageService);
   private profileRequiredService = inject(ProfileRequiredService);
-  private dataSyncService = inject(DataLoaderService);
-  private dataSyncProvider = inject(ApiProvider);
   private localAuthService = inject(LocalAuthService);
   private appStateService = inject(AppStateService);
 
@@ -81,7 +78,7 @@ export class App implements OnInit {
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
 
   ngOnInit(): void {
-    this.ws.initStorageListeners();
+    // this.ws.initStorageListeners();
 
     this.shortcutService.help$.subscribe(() => {
       this.shortcutHelp.show();
@@ -127,8 +124,7 @@ export class App implements OnInit {
         // Backend check failed - could be offline
         // Check if it's a network error using centralized helper
         if (NetworkErrorHelper.isNetworkError(err)) {
-          // We're offline - use cached data
-          this.isOfflineMode = true;
+          // this.isOfflineMode = true;
           this.notifyService.showWarning("Working offline - data sync paused");
         } else {
           // Token invalid - redirect to login
