@@ -259,7 +259,7 @@ impl AuthTotpService {
     }
 
     if let Some(ref ts) = self.token_service {
-      match ts.generate_token(user.get_id(), &user.username, &user.role) {
+      match ts.generate_token(user.get_id(), "", "") {
         Ok(token) => {
           let profile = self
             .check_profile_exists(user.get_id())

@@ -10,6 +10,7 @@ import {
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 
 @Injectable({
   providedIn: "root",
@@ -17,7 +18,8 @@ import { AuthService } from "@services/auth/auth.service";
 class AuthGuard {
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private userValidationService: UserValidationService
   ) {}
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
@@ -31,15 +33,11 @@ class AuthGuard {
             return true;
           }
         }
-        this.router.navigate(["/login"], {
-          queryParams: { returnUrl: state.url },
-        });
+        this.userValidationService.redirectToLogin();
         return false;
       }
     } else {
-      this.router.navigate(["/login"], {
-        queryParams: { returnUrl: state.url },
-      });
+      this.userValidationService.redirectToLogin();
       return false;
     }
   }

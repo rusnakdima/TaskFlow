@@ -37,11 +37,20 @@ use routes::{
 
 /* services */
 use services::{
-  about_service::AboutService, activity_monitor_service::ActivityMonitorService,
-  auth_service::AuthService, cascade::CascadeService,
-  entity_resolution_service::EntityResolutionService, manage_db_service::ManageDbService,
-  profile_service::ProfileService, repository_service::RepositoryService,
-  statistics_service::StatisticsService, websocket::WebSocketServerService,
+  about_service::AboutService,
+  activity_monitor_service::ActivityMonitorService,
+  auth::{
+    auth_biometric::AuthBiometricService, auth_passkey::AuthPasskeyService, auth_qr::QrAuthService,
+    auth_totp::AuthTotpService,
+  },
+  auth_service::AuthService,
+  cascade::CascadeService,
+  entity_resolution_service::EntityResolutionService,
+  manage_db_service::ManageDbService,
+  profile_service::ProfileService,
+  repository_service::RepositoryService,
+  statistics_service::StatisticsService,
+  // websocket::WebSocketServerService,
 };
 
 /* nosql_orm */
@@ -57,7 +66,11 @@ pub struct AppState {
   pub manage_db_service: Arc<ManageDbService>,
   pub profile_service: Arc<ProfileService>,
   pub statistics_service: Arc<StatisticsService>,
-  pub websocket_server_service: Arc<WebSocketServerService>,
+  // pub websocket_server_service: Arc<WebSocketServerService>,
+  pub qr_auth_service: Arc<QrAuthService>,
+  pub totp_service: Arc<AuthTotpService>,
+  pub passkey_service: Arc<AuthPasskeyService>,
+  pub biometric_service: Arc<AuthBiometricService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -134,8 +147,9 @@ pub fn run() {
   tracing::info!("Logging initialized (stdout only)");
 
   let mut builder = tauri::Builder::default()
-    .plugin(tauri_plugin_opener::init())
-    .plugin(tauri_plugin_http::init());
+    // .plugin(tauri_plugin_opener::init())
+    // .plugin(tauri_plugin_http::init())
+    ;
 
   #[cfg(debug_assertions)]
   {
@@ -249,6 +263,29 @@ pub fn run() {
         config_helper.rp_domain.clone(),
       ));
 
+      let totp_service = Arc::new(AuthTotpService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+        Some(auth_service.token_service.clone()),
+      ));
+
+      let passkey_service = Arc::new(AuthPasskeyService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+        Arc::clone(&auth_service.webauthn_state),
+      ));
+
+      let biometric_service = Arc::new(AuthBiometricService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
+
+      let qr_auth_service = Arc::new(QrAuthService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+        auth_service.token_service.clone(),
+      ));
+
       let statistics_service = Arc::new(StatisticsService::new(json_for_stats, act_for_stats));
       let manage_db_service = Arc::new(ManageDbService::new(
         json_for_mdb,
@@ -257,13 +294,13 @@ pub fn run() {
         entity_resolution,
       ));
 
-      let websocket_server_service =
-        Arc::new(WebSocketServerService::new(repository_service.clone()));
+      // let websocket_server_service =
+      //   Arc::new(WebSocketServerService::new(repository_service.clone()));
 
-      let ws_service_clone = websocket_server_service.clone();
-      tauri::async_runtime::spawn(async move {
-        ws_service_clone.start(8766).await;
-      });
+      // let ws_service_clone = websocket_server_service.clone();
+      // tauri::async_runtime::spawn(async move {
+      //   ws_service_clone.start(8766).await;
+      // });
 
       app.manage(AppState {
         config_helper,
@@ -273,7 +310,11 @@ pub fn run() {
         manage_db_service,
         profile_service,
         statistics_service,
-        websocket_server_service,
+        // websocket_server_service,
+        qr_auth_service,
+        totp_service,
+        passkey_service,
+        biometric_service,
       });
 
       Ok(())

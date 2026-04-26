@@ -17,11 +17,11 @@ import { isNetworkError } from "@helpers/network-error.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { LocalAuthService } from "@services/auth/local-auth.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
 
 @Injectable({
@@ -30,12 +30,13 @@ import { Router } from "@angular/router";
 export class AuthService {
   private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
-  private localAuthService = inject(LocalAuthService);
+
   private dataSyncService = inject(DataLoaderService);
   private profileRequiredService = inject(ProfileRequiredService);
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
+  private userValidationService = inject(UserValidationService);
 
   /**
    * Check if token is valid on backend
@@ -45,8 +46,7 @@ export class AuthService {
   }
 
   /**
-   * Attempt offline-first authentication
-   * ALWAYS checks local storage first, then tries cloud
+   * Perform online login
    */
   async loginWithOfflineFirst(loginData: LoginForm): Promise<{
     token: string;
@@ -56,18 +56,6 @@ export class AuthService {
     profile: any | null;
     userId?: string;
   }> {
-    const offlineResult = await this.localAuthService.authenticateOffline(loginData);
-
-    if (offlineResult.success && offlineResult.token) {
-      return {
-        token: offlineResult.token,
-        requiresDataSync: true,
-        isOffline: true,
-        needsProfile: false,
-        profile: null,
-      };
-    }
-
     return new Promise((resolve, reject) => {
       this.performOnlineLogin(loginData).subscribe({
         next: (authResponse: AuthResponse) => {
@@ -82,31 +70,7 @@ export class AuthService {
         },
         error: (err: any) => {
           if (isNetworkError(err)) {
-            if (offlineResult.user && offlineResult.user.availableForOffline) {
-              const tokenToUse = offlineResult.user.lastToken || "";
-
-              if (tokenToUse) {
-                resolve({
-                  token: tokenToUse,
-                  requiresDataSync: true,
-                  isOffline: true,
-                  needsProfile: false,
-                  profile: null,
-                });
-              } else {
-                reject(
-                  new Error(
-                    "No internet connection. User data exists but no cached token available."
-                  )
-                );
-              }
-            } else {
-              reject(
-                new Error(
-                  "No internet connection. Please login online first to enable offline access."
-                )
-              );
-            }
+            reject(new Error("No internet connection. Please login online first."));
           } else {
             reject(err);
           }
@@ -116,29 +80,14 @@ export class AuthService {
   }
 
   /**
-   * Perform online login and store user data for future offline auth
+   * Perform online login
    */
   private performOnlineLogin(loginData: LoginForm): Observable<AuthResponse> {
     return this.dataSyncProvider
       .invokeCommand<AuthResponse>("login", { loginForm: loginData })
       .pipe(
         tap((authResponse: AuthResponse) => {
-          const token = authResponse.token;
-          const userId = this.jwtTokenService.getUserId(token);
-          const username = this.jwtTokenService.getValueByKey(token, "username");
-          const email = this.jwtTokenService.getValueByKey(token, "email");
-          const role = this.jwtTokenService.getRole(token);
-
-          if (userId && username && email) {
-            this.localAuthService.storeUserDataAfterAuth(
-              userId,
-              username,
-              email,
-              loginData.password,
-              role || "user",
-              token
-            );
-          }
+          this.loadUserData();
         })
       );
   }
@@ -157,16 +106,8 @@ export class AuthService {
         const email = this.jwtTokenService.getValueByKey(tokenStr, "email");
         const role = this.jwtTokenService.getRole(tokenStr);
 
-        if (userId && username && email) {
-          this.localAuthService.storeUserDataAfterAuth(
-            userId,
-            username,
-            email,
-            signupData.password,
-            role || "user",
-            tokenStr
-          );
-        }
+        // No longer storing user data for offline auth
+        this.loadUserData();
       })
     );
   }
@@ -185,10 +126,6 @@ export class AuthService {
 
   logout() {
     localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    // Keep local user data for future offline auth
-    // Clear only the current session
-    this.localAuthService.clearCurrentUser();
     window.location.reload();
   }
 
@@ -197,149 +134,139 @@ export class AuthService {
    */
   logoutAll() {
     localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    this.localAuthService.clearAllUserData();
     window.location.reload();
   }
 
-  isLoggedIn() {
-    const tokenLS = this.getTokenLS();
-    const tokenSS = this.getTokenSS();
-
-    if (
-      !this.jwtTokenService.isTokenExpired(tokenLS) ||
-      !this.jwtTokenService.isTokenExpired(tokenSS)
-    ) {
-      return true;
-    }
-    if (this.jwtTokenService.isTokenExpired(tokenLS)) {
-      localStorage.removeItem("token");
-      return false;
-    } else if (this.jwtTokenService.isTokenExpired(tokenSS)) {
-      sessionStorage.removeItem("token");
-      return false;
-    }
-    return false;
-  }
-
   /**
-   * Check if user can authenticate offline
+   * Single source of truth for auth status.
    */
-  canAuthenticateOffline(): boolean {
-    return this.localAuthService.hasOfflineUsers();
+  isLoggedIn(): boolean {
+    const token = this.getToken();
+    return !!token && !this.jwtTokenService.isTokenExpired(token);
   }
 
-  /**
-   * Get list of users available for offline auth
-   */
-  getOfflineAvailableUsers(): Array<{ id: string; username: string; email: string }> {
-    return this.localAuthService.getOfflineAvailableUsers();
-  }
-
-  getTokenLS() {
+  getTokenLS(): string | null {
     return localStorage.getItem("token");
   }
 
-  getTokenSS() {
+  getTokenSS(): string | null {
     return sessionStorage.getItem("token");
   }
 
-  getToken() {
+  getToken(): string | null {
     return this.getTokenLS() || this.getTokenSS();
   }
 
-  hasRole(role: string) {
+  hasRole(role: string): boolean {
     const token = this.getToken();
-    return this.jwtTokenService.hasRole(token, role);
+    return token ? this.jwtTokenService.hasRole(token, role) : false;
   }
 
-  getValueByKey(key: string) {
+  getValueByKey(key: string): any {
     const token = this.getToken();
-    return this.jwtTokenService.getValueByKey(token, key);
+    if (key === "username") {
+      return this.jwtTokenService.getUsername(token);
+    }
+    if (key === "role") {
+      return this.jwtTokenService.getRole(token);
+    }
+    return token ? this.jwtTokenService.getValueByKey(token, key) : null;
   }
 
   /**
    * Export current user's data for backup/transfer
+   * Not available in offline-first disabled mode
    */
   exportUserData(): string | null {
-    const userId = this.getValueByKey("id");
-    if (!userId) return null;
-    return this.localAuthService.exportUserData(userId);
+    return null;
   }
 
   /**
    * Import user data for offline authentication
+   * Not available in offline-first disabled mode
    */
   importUserData(userData: string): { success: boolean; error?: string } {
-    return this.localAuthService.importUserData(userData);
+    return { success: false, error: "Offline authentication disabled" };
   }
 
   /**
    * Initialize user session from stored token
    * Handles both valid and expired tokens with offline fallback
+   * This logic no longer navigates; it prepares data for authenticated users.
    */
   initializeSession(
     authRoutes: string[] = ["/login", "/signup", "/reset-password", "/change-password"]
   ): void {
     const token = this.getToken();
+    const isAuthPage = authRoutes.some((route) => this.router.url.startsWith(route));
+    const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
 
-    if (!token) {
-      // No token - check if we can authenticate offline
-      setTimeout(() => {
-        if (!authRoutes.some((route) => this.router.url.startsWith(route))) {
-          if (this.canAuthenticateOffline()) {
-            this.notifyService.showInfo("Offline authentication available - please login");
-          }
-          this.router.navigate(["/login"]);
+    // 1. Handle Missing or Expired Session
+    if (!token || isTokenExpired) {
+      if (!isAuthPage) {
+        if (token) {
+          this.notifyService.showWarning("Session expired - please login again");
         }
-      }, 1000);
+        this.userValidationService.redirectToLogin();
+      }
       return;
     }
 
-    // Token exists - validate it
-    const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
+    // 2. Valid Session Path
+    const userId = this.jwtTokenService.getUserId(token);
 
-    if (!isTokenExpired) {
-      // Token is valid locally - validate user exists in MongoDB
-      const userId = this.jwtTokenService.getUserId(token);
-      if (userId) {
-        this.validateUserExistsInMongoDb(userId);
-      }
+    if (userId) {
+      this.userValidationService.validateUserExistsInMongoDb(userId);
+      this.loadUserData();
+    }
 
-      this.dataSyncService.loadAllData();
+    // Background sync
+    this.dataSyncService.loadAllData();
+    this.checkTokenWithBackend(token);
 
-      const cachedProfile = this.storageService.profile();
-      if (cachedProfile?.user_id) {
-        return;
-      }
-
+    // 3. Profile Requirement Check
+    // Profile check
+    const cachedProfile = this.storageService.profile();
+    if (!cachedProfile?.user_id) {
       this.dataSyncService
         .loadProfile()
         .pipe(take(1))
         .subscribe((profile) => {
           if (!profile) {
             this.profileRequiredService.setProfileRequiredMode(true);
-            if (window.location.pathname !== "/profile/create-profile") {
-              window.location.href = "/profile/create-profile";
+            if (!this.router.url.startsWith("/profile/create-profile")) {
+              this.router.navigate(["/profile/create-profile"]);
             }
           }
         });
-      this.checkTokenWithBackend(token);
-    } else {
-      // Token expired - try offline auth
-      const userId = this.jwtTokenService.getUserId(token);
-      if (userId) {
-        const localUser = this.localAuthService.getUserById(userId);
-        if (localUser && localUser.availableForOffline && localUser.lastToken) {
-          this.notifyService.showWarning("Session expired - please login again");
-          this.router.navigate(["/login"]);
-        } else {
-          this.router.navigate(["/login"]);
-        }
-      } else {
-        this.router.navigate(["/login"]);
-      }
     }
+  }
+
+  /**
+   * Load current user data from backend or cache
+   */
+  loadUserData(): void {
+    const userId = this.getValueByKey("id");
+    if (!userId) return;
+
+    // Check if already loaded
+    const currentUser = this.storageService.user();
+    if (currentUser && currentUser.id === userId) return;
+
+    // Load from backend
+    this.dataSyncProvider
+      .crud<any>("get", "users", { id: userId, isOwner: true, isPrivate: true })
+      .pipe(take(1))
+      .subscribe({
+        next: (user) => {
+          if (user) {
+            this.storageService.setCollection("user", user);
+          }
+        },
+        error: (err) => {
+          console.warn("Failed to load user data:", err);
+        },
+      });
   }
 
   /**
@@ -351,68 +278,5 @@ export class AuthService {
         // Backend check failed - token might be invalid but we already loaded data
       },
     });
-  }
-
-  /**
-   * Validate user exists in MongoDB
-   * If user not found, invalidate session and redirect to login
-   */
-  private validateUserExistsInMongoDb(userId: string): void {
-    this.dataSyncProvider
-      .crud<any>("get", "users", { id: userId, isOwner: true, isPrivate: true })
-      .pipe(take(1))
-      .subscribe({
-        next: (user) => {
-          if (!user || (Array.isArray(user) && user.length === 0)) {
-            console.warn("User not found in MongoDB, invalidating session for user:", userId);
-            this.invalidateUserSession();
-          }
-        },
-        error: (err: Error) => {
-          const isNetworkError =
-            err.message.includes("Failed to fetch") ||
-            err.message.includes("NetworkError") ||
-            err.message.includes("net::");
-          const isBackendUnavailable =
-            err.message.includes("Backend unavailable") ||
-            err.message.includes("Connection refused");
-
-          if (isNetworkError || isBackendUnavailable) {
-            console.warn("User validation skipped: MongoDB unavailable", err.message);
-          } else {
-            console.warn("User not found in MongoDB, invalidating session for user:", userId);
-            this.invalidateUserSession();
-          }
-        },
-      });
-  }
-
-  /**
-   * Invalidate user session when user deleted from MongoDB
-   * Clears token and removes from offline users, then redirects to login
-   */
-  private invalidateUserSession(): void {
-    const token = this.getToken();
-    const userId = token ? this.jwtTokenService.getUserId(token) : null;
-
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-
-    if (userId) {
-      this.removeFromOfflineUsers(userId);
-    }
-
-    this.notifyService.showWarning("Your account was deleted. Please login again.");
-
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 1500);
-  }
-
-  /**
-   * Remove user from offline users list
-   */
-  private removeFromOfflineUsers(userId: string): void {
-    this.localAuthService.removeFromOfflineUsers(userId);
   }
 }

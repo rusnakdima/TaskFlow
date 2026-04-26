@@ -125,7 +125,6 @@ export class SignupView implements OnDestroy {
         localStorage.setItem("token", token);
 
         if (authResponse.userId) {
-          localStorage.setItem("userId", authResponse.userId);
         }
 
         if (authResponse.needsProfile) {

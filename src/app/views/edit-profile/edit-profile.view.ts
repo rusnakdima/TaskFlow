@@ -26,6 +26,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 
 @Component({
   selector: "app-edit-profile",
@@ -48,7 +49,8 @@ export class EditProfileView {
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService,
-    private dataSyncService: DataLoaderService
+    private dataSyncService: DataLoaderService,
+    private userValidationService: UserValidationService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -123,7 +125,7 @@ export class EditProfileView {
         });
       }
     } else {
-      this.router.navigate(["/login"]);
+      this.userValidationService.redirectToLogin();
       this.notifyService.showError("You are not logged in");
     }
   }

@@ -1,13 +1,13 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { take } from "rxjs/operators";
+import { Router } from "@angular/router";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { LocalAuthService } from "@services/auth/local-auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 @Injectable({
@@ -16,8 +16,8 @@ import { NotifyService } from "@services/notifications/notify.service";
 export class UserValidationService {
   private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
-  private localAuthService = inject(LocalAuthService);
   private notifyService = inject(NotifyService);
+  private router = inject(Router);
 
   validateUserExistsInMongoDb(userId: string): void {
     this.dataSyncProvider
@@ -49,6 +49,10 @@ export class UserValidationService {
       });
   }
 
+  redirectToLogin(): void {
+    this.router.navigate(["/login"]);
+  }
+
   invalidateUserSession(): void {
     const token = this.jwtTokenService.getToken();
     const userId = token ? this.jwtTokenService.getUserId(token) : null;
@@ -56,14 +60,10 @@ export class UserValidationService {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
 
-    if (userId) {
-      this.localAuthService.removeFromOfflineUsers(userId);
-    }
-
     this.notifyService.showWarning("Your account was deleted. Please login again.");
 
     setTimeout(() => {
-      window.location.href = "/login";
+      this.redirectToLogin();
     }, 1500);
   }
 }

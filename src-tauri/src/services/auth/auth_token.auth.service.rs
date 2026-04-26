@@ -21,8 +21,6 @@ use crate::helpers::response_helper::err_response;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
   pub id: String,
-  pub username: String,
-  pub role: String,
   pub exp: usize,
 }
 
@@ -49,8 +47,8 @@ impl AuthTokenService {
   pub fn generate_token(
     &self,
     user_id: &str,
-    username: &str,
-    role: &str,
+    _username: &str,
+    _role: &str,
   ) -> Result<String, ResponseModel> {
     let expiration = chrono::Utc::now()
       .checked_add_signed(chrono::Duration::hours(24))
@@ -59,8 +57,6 @@ impl AuthTokenService {
 
     let claims = Claims {
       id: user_id.to_owned(),
-      username: username.to_owned(),
-      role: role.to_owned(),
       exp: expiration,
     };
 

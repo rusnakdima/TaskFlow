@@ -109,9 +109,7 @@ impl AuthRegisterService {
     let _ = self.json_provider.insert(table_name, user_val).await;
 
     let user_id = new_user.get_id();
-    let token = self
-      .token_service
-      .generate_token(user_id, &new_user.username, &new_user.role)?;
+    let token = self.token_service.generate_token(user_id, "", "")?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

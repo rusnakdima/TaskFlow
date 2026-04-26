@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::SoftDeletable;
 use nosql_orm::validators::Validate as OrmValidate;
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -15,6 +14,8 @@ use nosql_orm::Validate;
 #[timestamp]
 #[one_to_many("tasks", "tasks", "todo_id", "Cascade")]
 #[many_to_one("user", "users", "user_id")]
+#[many_to_many("categories", "categories", "categories")]
+#[many_to_many("assignees", "profiles", "assignees")]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,
@@ -30,16 +31,6 @@ pub struct TodoEntity {
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl SoftDeletable for TodoEntity {
-  fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
-  }
-
-  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
-  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]

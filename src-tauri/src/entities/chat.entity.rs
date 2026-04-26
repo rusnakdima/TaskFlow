@@ -2,7 +2,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use nosql_orm::prelude::SoftDeletable;
+/* nosql_orm */
 use nosql_orm::{Model, Validate};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
@@ -22,16 +22,6 @@ pub struct ChatEntity {
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl SoftDeletable for ChatEntity {
-  fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
-  }
-
-  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
-  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]

@@ -94,9 +94,7 @@ impl AuthLoginService {
       let _ = self.json_provider.insert(table_name, user_val).await;
     }
 
-    let token = self
-      .token_service
-      .generate_token(user.get_id(), &user.username, &user.role)?;
+    let token = self.token_service.generate_token(user.get_id(), "", "")?;
 
     let profile = self
       .check_profile_exists(user.get_id())

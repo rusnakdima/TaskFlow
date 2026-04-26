@@ -40,6 +40,7 @@ export class StorageService extends BaseStorageService {
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly profilesSignal = signal<Profile[]>([]);
   private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
+  private readonly userSignal = signal<any | null>(null);
 
   // ==================== INDEX MAPS ====================
   private readonly taskToTodoIndex = new Map<string, string>();
@@ -130,6 +131,7 @@ export class StorageService extends BaseStorageService {
   readonly profile = this.profileSignal.asReadonly();
   readonly profiles = this.profilesSignal.asReadonly();
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
+  readonly user = this.userSignal.asReadonly();
 
   // ==================== INDEX LOOKUPS ====================
   getTodoIdForTask(taskId: string): string | null {
@@ -418,6 +420,7 @@ export class StorageService extends BaseStorageService {
     this.categoriesSignal.set([]);
     this.profileSignal.set(null);
     this.profilesSignal.set([]);
+    this.userSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
     this.taskToTodoIndex.clear();
@@ -425,7 +428,7 @@ export class StorageService extends BaseStorageService {
   }
 
   setCollection<
-    T extends "categories" | "profiles" | "privateTodos" | "sharedTodos" | "allProfiles",
+    T extends "categories" | "profiles" | "privateTodos" | "sharedTodos" | "allProfiles" | "user",
   >(
     type: T,
     items: T extends "profiles"
@@ -434,7 +437,9 @@ export class StorageService extends BaseStorageService {
         ? T extends "allProfiles"
           ? Profile[]
           : Todo[]
-        : Category[]
+        : T extends "user"
+          ? any | null
+          : Category[]
   ): void {
     switch (type) {
       case "categories":
@@ -453,6 +458,9 @@ export class StorageService extends BaseStorageService {
         break;
       case "allProfiles":
         this.profilesSignal.set(items as Profile[]);
+        break;
+      case "user":
+        this.userSignal.set(items as any | null);
         break;
     }
   }

@@ -2,11 +2,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::{Model, Validate};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("profiles")]
+#[many_to_one("user", "users", "user_id")]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,

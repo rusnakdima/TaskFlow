@@ -455,9 +455,7 @@ impl QrAuthService {
     let user_id = user.get_id().to_string();
 
     // Generate JWT token
-    let token = self
-      .token_service
-      .generate_token(&user_id, &user.username, &user.role)?;
+    let token = self.token_service.generate_token(&user_id, "", "")?;
 
     // Cache user locally if from MongoDB
     if self.mongodb_provider.is_some() {

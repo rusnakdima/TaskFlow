@@ -27,16 +27,7 @@ export class DataLoaderService {
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
 
-  private readonly TODO_LOAD_RELATIONS = [
-    "user",
-    "categories",
-    "assignees",
-    "tasks",
-    "tasks.subtasks",
-    "tasks.comments",
-    "tasks.assignees",
-    "tasks.subtasks.comments",
-  ];
+  private readonly TODO_LOAD_RELATIONS = ["user", "categories", "assignees", "tasks"];
 
   private loadInProgress = false;
   private loadSubject = new BehaviorSubject<{ todos: Todo[]; categories: Category[] } | null>(null);
@@ -100,8 +91,9 @@ export class DataLoaderService {
    * Fire-and-forget: Load private todos
    */
   private loadPrivateTodos(userId: string): void {
-    const filter = { user_id: userId };
+    const filter = { user_id: userId, visibility: "private" };
     console.log("[DataLoader] loadPrivateTodos called with filter:", JSON.stringify(filter));
+    console.log("[DataLoader] Requesting private todos data from API");
 
     this.relationLoader
       .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
@@ -129,12 +121,13 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is owner
    */
   private loadTeamTodosOwner(userId: string): void {
+    console.log("[DataLoader] Requesting team todos (owner) data from API");
     this.apiProvider
       .crud<Todo[]>(
         "getAll",
         "todos",
         {
-          filter: { user_id: userId },
+          filter: { user_id: userId, visibility: "team" },
           isOwner: true,
           isPrivate: false,
         },
@@ -142,16 +135,20 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
+        catchError((error) => {
+          console.log("[DataLoader] loadTeamTodosOwner error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
+          console.log("[DataLoader] loadTeamTodosOwner response:", teamTodos);
           if (teamTodos && Array.isArray(teamTodos)) {
             // Merge with existing shared todos
             const existingShared = this.storageService.sharedTodos();
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
+          } else {
+            console.log("[DataLoader] loadTeamTodosOwner: no data or error");
           }
         })
       )
@@ -162,12 +159,13 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is assignee
    */
   private loadTeamTodosAssignee(userId: string): void {
+    console.log("[DataLoader] Requesting team todos (assignee) data from API");
     this.apiProvider
       .crud<Todo[]>(
         "getAll",
         "todos",
         {
-          filter: { assignees: userId },
+          filter: { assignees: userId, visibility: "team" },
           isOwner: false,
           isPrivate: false,
         },
@@ -175,16 +173,20 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
+        catchError((error) => {
+          console.log("[DataLoader] loadTeamTodosAssignee error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
+          console.log("[DataLoader] loadTeamTodosAssignee response:", teamTodos);
           if (teamTodos && Array.isArray(teamTodos)) {
             // Merge with existing shared todos
             const existingShared = this.storageService.sharedTodos();
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
+          } else {
+            console.log("[DataLoader] loadTeamTodosAssignee: no data or error");
           }
         })
       )

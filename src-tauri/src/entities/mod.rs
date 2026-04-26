@@ -36,8 +36,6 @@ pub mod table_entity;
 pub mod task_entity;
 #[path = "todo.entity.rs"]
 pub mod todo_entity;
-#[path = "traits.entity.rs"]
-pub mod traits;
 #[path = "user.entity.rs"]
 pub mod user_entity;
 #[path = "websocket.entity.rs"]

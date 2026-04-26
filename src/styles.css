@@ -434,6 +434,13 @@ pre {
   @apply h-0!;
 }
 
+/* Prevent checkbox label wrapping */
+mat-checkbox mat-label,
+.checkbox-label {
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
 /* 
 .mat-mdc-checkbox-touch-target */
 /* .mdc-form-field mat-internal-form-field .mdc-checkbox */

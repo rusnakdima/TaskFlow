@@ -11,6 +11,7 @@ import { canActivateCreateProfile } from "@guards/profile.guard";
 
 /* components */
 import { LoginView } from "@views/login/login.view";
+import { QrLoginView } from "@views/qr-login/qr-login.view";
 import { SignupView } from "@views/signup/signup.view";
 import { ChangePasswordView } from "@views/change-password/change-password.view";
 import { ResetPasswordView } from "@views/reset-password/reset-password.view";
@@ -209,6 +210,7 @@ export const routes: Routes = [
   },
 
   // Public routes (no auth, no data resolver)
+  { path: "login/qr", component: QrLoginView, title: "QR Login", data: { breadcrumb: "QR Login" } },
   { path: "login", component: LoginView, title: "Login", data: { breadcrumb: "Login" } },
   {
     path: "signup",

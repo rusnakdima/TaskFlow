@@ -15,9 +15,7 @@ import {
   Validators,
   AbstractControl,
 } from "@angular/forms";
-import { RouterModule } from "@angular/router";
-import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
-import { firstValueFrom } from "rxjs";
+import { Router, RouterModule } from "@angular/router";
 
 import { MatIconModule } from "@angular/material/icon";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -32,13 +30,13 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
-import { QrLoginService } from "@services/auth/qr-login.service";
 
 import { AuthStore } from "@stores/auth.store";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-
-import jsQR from "jsqr";
+import { CryptoHelper } from "@helpers/crypto.helper";
+import { LoginCompletionHelper } from "@helpers/login-completion.helper";
+import { LoginErrorHelper } from "@helpers/login-error.helper";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
@@ -46,7 +44,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
   selector: "app-login",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [AuthService, SecurityService, AuthCapabilityService, WebAuthnService, QrLoginService],
+  providers: [AuthService, SecurityService, AuthCapabilityService, WebAuthnService],
   imports: [
     CommonModule,
     FormsModule,
@@ -64,7 +62,7 @@ export class LoginView implements OnDestroy {
   private authStore = inject(AuthStore);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
-  private qrLoginService = inject(QrLoginService);
+  private router = inject(Router);
 
   rememberField: CheckboxField = {
     name: "remember",
@@ -81,7 +79,6 @@ export class LoginView implements OnDestroy {
 
   showTotpInput = signal(false);
   totpCode = signal("");
-  passkeyQrCode = signal<SafeResourceUrl | null>(null);
 
   userSecurityStatus = signal<UserSecurityStatus | null>(null);
 
@@ -101,7 +98,6 @@ export class LoginView implements OnDestroy {
 
   readonly showQrLoginButton = computed(() => {
     const caps = this.capabilities();
-    // Always show QR login on desktop if available (don't require user status check)
     return caps.qrLoginAvailable;
   });
 
@@ -113,25 +109,12 @@ export class LoginView implements OnDestroy {
 
   readonly platformName = computed(() => this.capabilities().platformName);
 
-  readonly isQrLoginActive = signal(false);
-  readonly qrLoginStatus = this.qrLoginService.qrStatus;
-  readonly isQrLoginPolling = this.qrLoginService.isPolling;
-  readonly isQrGenerating = signal(false);
-
-  readonly isMobileScanning = signal(false);
-  readonly isQrScanningLoading = signal(false);
-  mobileQrVideoElement: HTMLVideoElement | null = null;
-  mobileQrStream: MediaStream | null = null;
-  mobileQrCanvasElement: HTMLCanvasElement | null = null;
-  mobileQrAnimationFrameId: number | null = null;
-
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     public securityService: SecurityService,
     private notifyService: NotifyService,
-    private dataSyncProvider: ApiProvider,
-    private sanitizer: DomSanitizer
+    private dataSyncProvider: ApiProvider
   ) {
     this.loginForm = this.fb.group({
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
@@ -170,33 +153,35 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    this.dataSyncProvider.crud<any[]>("getAll", "users", {}, true).subscribe({
-      next: (users) => {
-        const activeUsers = (users || []).filter((u) => !u.deleted_at);
-        this.hasLocalUsers.set(activeUsers.length > 0);
-      },
-      error: (err) => {
-        this.hasLocalUsers.set(false);
+    this.dataSyncProvider
+      .crud<any[]>("getAll", "users", { isOwner: true, isPrivate: true }, true)
+      .subscribe({
+        next: (users) => {
+          console.error(users);
+          const activeUsers = (users || []).filter((u) => !u.deleted_at);
+          this.hasLocalUsers.set(activeUsers.length > 0);
+        },
+        error: (err) => {
+          console.error(err);
+          this.hasLocalUsers.set(false);
 
-        if (NetworkErrorHelper.isNetworkError(err)) {
-          this.notifyService.showWarning(
-            "Cannot connect to database. Please check:\n" +
-              "1. MongoDB server is running\n" +
-              "2. Connection string in .env is correct\n" +
-              "3. Network/firewall allows connection\n\n" +
-              "Check terminal for detailed error message."
-          );
-        }
-      },
-    });
+          if (NetworkErrorHelper.isNetworkError(err)) {
+            this.notifyService.showWarning(
+              "Cannot connect to database. Please check:\n" +
+                "1. MongoDB server is running\n" +
+                "2. Connection string in .env is correct\n" +
+                "3. Network/firewall allows connection\n\n" +
+                "Check terminal for detailed error message."
+            );
+          }
+        },
+      });
   }
 
   ngOnDestroy() {
     if (this.keydownHandler) {
       document.removeEventListener("keydown", this.keydownHandler);
     }
-    this.qrLoginService.clearQrData();
-    this.stopMobileQrScanning();
   }
 
   get f() {
@@ -234,45 +219,21 @@ export class LoginView implements OnDestroy {
         return;
       }
 
-      if (this.f["remember"].value) {
-        localStorage.setItem("token", token);
-        if (userId) {
-          localStorage.setItem("userId", userId);
-        }
-      } else {
-        sessionStorage.setItem("token", token);
-      }
-
-      if (needsProfile) {
-        this.notifyService.showInfo("Please complete your profile setup");
-        window.location.href = "/profile/create-profile";
-        return;
-      }
+      LoginCompletionHelper.completeLogin({
+        token,
+        remember: this.f["remember"].value,
+        needsProfile,
+        profile,
+        userId,
+      });
 
       if (isOffline) {
         this.notifyService.showWarning("Working offline - some features limited");
       } else {
         this.notifyService.showSuccess("Login successful");
       }
-
-      window.location.href = "/";
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (NetworkErrorHelper.isNetworkError(err)) {
-        if (this.hasLocalUsers()) {
-          this.notifyService.showError("No internet connection. Using local database...");
-        } else {
-          this.notifyService.showError(
-            "Cannot connect to database.\n\nPlease check:\n1. Your internet connection\n2. Backend server is running\n3. Database connection is configured\n\nYou must connect to the database at least once to login."
-          );
-        }
-      } else if (errorMessage.includes("User data exists but no cached token")) {
-        this.notifyService.showError(
-          "User found locally but no cached token. Please login online to refresh your session."
-        );
-      } else {
-        this.notifyService.showError(errorMessage);
-      }
+      LoginErrorHelper.handleAuthError(err, this.notifyService, this.hasLocalUsers());
       this.submitted.set(false);
     }
   }
@@ -290,20 +251,12 @@ export class LoginView implements OnDestroy {
       await new Promise<void>((resolve, reject) => {
         this.securityService.completeTotpLogin(username, code).subscribe({
           next: (authResponse) => {
-            const token = authResponse.token;
-            if (this.f["remember"].value) {
-              localStorage.setItem("token", token);
-            } else {
-              sessionStorage.setItem("token", token);
-            }
-
-            if (authResponse.needsProfile) {
-              this.notifyService.showInfo("Please complete your profile setup");
-              window.location.href = "/profile/create-profile";
-            } else {
-              this.notifyService.showSuccess("Login successful");
-              window.location.href = "/";
-            }
+            LoginCompletionHelper.completeLogin({
+              token: authResponse.token,
+              remember: this.f["remember"].value,
+              needsProfile: authResponse.needsProfile,
+              profile: authResponse.profile,
+            });
             resolve();
           },
           error: (err) => reject(err),
@@ -317,7 +270,6 @@ export class LoginView implements OnDestroy {
 
   async loginWithPasskey(): Promise<void> {
     this.submitted.set(true);
-    this.isQrLoginActive.set(false);
 
     try {
       const isWebAuthN = await this.webAuthnService.isWebAuthnSupported();
@@ -370,34 +322,36 @@ export class LoginView implements OnDestroy {
                 }
               },
               error: (err) => {
-                this.notifyService.showError(
-                  "Passkey authentication failed: " + (err.message || err)
+                LoginErrorHelper.handleWebAuthnError(
+                  err,
+                  this.notifyService,
+                  "Passkey authentication"
                 );
                 this.submitted.set(false);
               },
             });
           } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Passkey authentication failed";
-            this.notifyService.showError("Passkey authentication failed: " + message);
+            LoginErrorHelper.handleWebAuthnError(err, this.notifyService, "Passkey authentication");
             this.submitted.set(false);
           }
         },
         error: (err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to initiate passkey";
-          this.notifyService.showError("Failed to initiate passkey: " + message);
+          LoginErrorHelper.handleWebAuthnError(
+            err,
+            this.notifyService,
+            "Failed to initiate passkey"
+          );
           this.submitted.set(false);
         },
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Operation failed";
-      this.notifyService.showError(message);
+      LoginErrorHelper.handleWebAuthnError(err, this.notifyService);
       this.submitted.set(false);
     }
   }
 
   async loginWithBiometric(): Promise<void> {
     this.submitted.set(true);
-    this.isQrLoginActive.set(false);
 
     try {
       const isMobile = this.authCapabilityService.capabilities().isMobile;
@@ -438,12 +392,12 @@ export class LoginView implements OnDestroy {
             try {
               const credential = await navigator.credentials.get({
                 publicKey: {
-                  challenge: this.base64ToArrayBuffer(authOptions.options.challenge),
+                  challenge: CryptoHelper.base64ToArrayBuffer(authOptions.options.challenge),
                   timeout: authOptions.options.timeout,
                   rpId: authOptions.options.rpId,
                   allowCredentials: authOptions.options.allowCredentials.map((cred: any) => ({
                     type: cred.type,
-                    id: this.base64ToArrayBuffer(cred.id),
+                    id: CryptoHelper.base64ToArrayBuffer(cred.id),
                     transports: cred.transports,
                   })),
                   userVerification: "required",
@@ -454,29 +408,30 @@ export class LoginView implements OnDestroy {
                 throw new Error("No credential received");
               }
 
-              const signature = this.arrayBufferToBase64((credential as any).response.signature);
+              const signature = CryptoHelper.arrayBufferToBase64(
+                (credential as any).response.signature
+              );
 
               this.securityService.completeBiometricAuth(signature).subscribe({
                 next: () => {
                   this.completePasswordlessLogin(username, false);
                 },
                 error: (err: unknown) => {
-                  const message =
-                    err instanceof Error ? err.message : "Biometric authentication failed";
-                  this.notifyService.showError("Biometric authentication failed: " + message);
+                  LoginErrorHelper.handleBiometricError(err, this.notifyService);
                   this.submitted.set(false);
                 },
               });
             } catch (err: unknown) {
-              const message =
-                err instanceof Error ? err.message : "Biometric authentication failed";
-              this.notifyService.showError("Biometric authentication failed: " + message);
+              LoginErrorHelper.handleBiometricError(err, this.notifyService);
               this.submitted.set(false);
             }
           },
           error: (err: unknown) => {
-            const message = err instanceof Error ? err.message : "Failed to initiate biometric";
-            this.notifyService.showError("Failed to initiate biometric: " + message);
+            LoginErrorHelper.handleBiometricError(
+              err,
+              this.notifyService,
+              "Failed to initiate biometric"
+            );
             this.submitted.set(false);
           },
         });
@@ -525,9 +480,7 @@ export class LoginView implements OnDestroy {
                   }
                 },
                 error: (err) => {
-                  this.notifyService.showError(
-                    "Biometric authentication failed: " + (err.message || err)
-                  );
+                  LoginErrorHelper.handleBiometricError(err, this.notifyService);
                   this.submitted.set(false);
                 },
               });
@@ -546,289 +499,18 @@ export class LoginView implements OnDestroy {
         });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Biometric authentication failed";
-      this.notifyService.showError("Biometric authentication failed: " + message);
+      LoginErrorHelper.handleBiometricError(err, this.notifyService);
       this.submitted.set(false);
     }
   }
 
-  private base64ToArrayBuffer(base64url: string): ArrayBuffer {
-    let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
-  }
-
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
-
-  async loginWithQrCode(): Promise<void> {
-    if (this.isMobileDevice()) {
-      await this.startMobileQrScanning();
+  goToQrLogin(): void {
+    const username = this.f["username"].value;
+    if (!username) {
+      this.notifyService.showError("Please enter your username first");
       return;
     }
-
-    this.submitted.set(true);
-    this.isQrLoginActive.set(true);
-    this.isQrGenerating.set(true);
-
-    try {
-      const username = this.f["username"].value;
-
-      this.qrLoginService.generateQrCode(username || undefined).subscribe({
-        next: (qrData) => {
-          this.passkeyQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(qrData.qrCode));
-          this.qrLoginService.startPolling(qrData.token, 2000);
-          this.isQrGenerating.set(false);
-
-          this.watchQrApproval(qrData.token);
-
-          this.notifyService.showInfo("Scan the QR code with your mobile device");
-          this.submitted.set(false);
-        },
-        error: (err) => {
-          this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
-          this.submitted.set(false);
-          this.isQrLoginActive.set(false);
-          this.isQrGenerating.set(false);
-        },
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "QR login failed";
-      this.notifyService.showError("QR login failed: " + message);
-      this.submitted.set(false);
-      this.isQrLoginActive.set(false);
-      this.isQrGenerating.set(false);
-    }
-  }
-
-  async startMobileQrScanning(): Promise<void> {
-    if (this.isMobileScanning()) return;
-
-    try {
-      this.isMobileScanning.set(true);
-      this.isQrLoginActive.set(true);
-      this.isQrScanningLoading.set(true);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      this.mobileQrStream = stream;
-      this.isQrScanningLoading.set(false);
-
-      const videoElement = document.createElement("video");
-      videoElement.style.cssText =
-        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:black;object-fit:cover;";
-      videoElement.id = "mobile-qr-scanner-video";
-      videoElement.setAttribute("playsinline", "true");
-      document.body.appendChild(videoElement);
-      this.mobileQrVideoElement = videoElement;
-
-      videoElement.srcObject = stream;
-      await videoElement.play();
-
-      const canvas = document.createElement("canvas");
-      canvas.style.cssText = "display:none";
-      document.body.appendChild(canvas);
-      this.mobileQrCanvasElement = canvas;
-
-      this.notifyService.showInfo("Point camera at QR code to login");
-
-      this.scanMobileQrFrame();
-    } catch (error: any) {
-      this.isQrScanningLoading.set(false);
-      let errorMsg = "Failed to start camera";
-      if (error.name === "NotAllowedError") {
-        errorMsg = "Camera permission denied";
-      } else if (error.name === "NotFoundError") {
-        errorMsg = "No camera found on this device";
-      }
-      this.notifyService.showError(errorMsg + ": " + (error.message || error));
-      this.stopMobileQrScanning();
-    }
-  }
-
-  private scanMobileQrFrame(): void {
-    if (!this.mobileQrVideoElement || !this.mobileQrCanvasElement || !this.isMobileScanning())
-      return;
-
-    const video = this.mobileQrVideoElement;
-    const canvas = this.mobileQrCanvasElement;
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      this.stopMobileQrScanning();
-      return;
-    }
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
-
-      if (code && code.data) {
-        this.handleMobileQrCodeResult(code.data);
-        return;
-      }
-    }
-
-    this.mobileQrAnimationFrameId = requestAnimationFrame(() => this.scanMobileQrFrame());
-  }
-
-  private async handleMobileQrCodeResult(qrData: string): Promise<void> {
-    if (!qrData) return;
-
-    this.stopMobileQrScanning();
-
-    let token: string | null = null;
-    let isDesktopTarget = false;
-
-    try {
-      if (qrData.startsWith("taskflow://qrlogin?data=")) {
-        const dataPart = qrData.replace("taskflow://qrlogin?data=", "");
-        const parsed = JSON.parse(decodeURIComponent(dataPart));
-        token = parsed.t;
-        isDesktopTarget = parsed.d === "desktop";
-      } else if (qrData.includes("t=")) {
-        const params = new URLSearchParams(qrData.replace("taskflow://qrlogin?", ""));
-        token = params.get("t");
-        isDesktopTarget = params.get("d") === "desktop";
-      } else {
-        const parsed = JSON.parse(qrData);
-        token = parsed.t || parsed.token;
-        isDesktopTarget = parsed.d === "desktop";
-      }
-    } catch {
-      try {
-        const params = new URLSearchParams(qrData.split("?")[1] || "");
-        token = params.get("t");
-        isDesktopTarget = params.get("d") === "desktop";
-      } catch {
-        token = null;
-      }
-    }
-
-    if (!token) {
-      this.notifyService.showError("Invalid QR code");
-      this.isQrLoginActive.set(false);
-      return;
-    }
-
-    if (isDesktopTarget) {
-      this.completeQrLogin(token);
-    } else {
-      this.approveMobileQrLogin(token, "mobile");
-    }
-  }
-
-  private approveMobileQrLogin(token: string, username: string): void {
-    this.dataSyncProvider
-      .invokeCommand<{ success: boolean }>("qrApprove", { token, username })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Login approved!");
-          this.completeQrLogin(token);
-        },
-        error: (err: any) => {
-          this.notifyService.showError("Failed to approve: " + (err.message || err));
-          this.isQrLoginActive.set(false);
-        },
-      });
-  }
-
-  stopMobileQrScanning(): void {
-    if (this.mobileQrAnimationFrameId) {
-      cancelAnimationFrame(this.mobileQrAnimationFrameId);
-      this.mobileQrAnimationFrameId = null;
-    }
-
-    if (this.mobileQrStream) {
-      this.mobileQrStream.getTracks().forEach((track) => track.stop());
-      this.mobileQrStream = null;
-    }
-
-    if (this.mobileQrVideoElement) {
-      this.mobileQrVideoElement.srcObject = null;
-      this.mobileQrVideoElement.remove();
-      this.mobileQrVideoElement = null;
-    }
-
-    if (this.mobileQrCanvasElement) {
-      this.mobileQrCanvasElement.remove();
-      this.mobileQrCanvasElement = null;
-    }
-
-    this.isMobileScanning.set(false);
-    this.isQrScanningLoading.set(false);
-    this.isQrLoginActive.set(false);
-  }
-
-  private watchQrApproval(token: string): void {
-    // Watch for status changes to handle approval
-    const checkApproval = () => {
-      const status = this.qrLoginService.qrStatus();
-      const statusData = this.qrLoginService.qrStatusData();
-
-      if (status === "approved") {
-        // QR approved, complete login via qrLoginComplete (generates JWT without password)
-        this.qrLoginService.stopPolling();
-        this.completeQrLogin(token);
-      } else if (status === "expired") {
-        this.notifyService.showError("QR code expired. Please try again.");
-        this.cancelQrLogin();
-      }
-    };
-
-    // Check every 2 seconds (aligned with polling interval)
-    const interval = setInterval(checkApproval, 2000);
-
-    // Store interval reference for cleanup
-    setTimeout(() => clearInterval(interval), 95000); // Clear after token expiry (90s)
-  }
-
-  private async completeQrLogin(token: string): Promise<void> {
-    try {
-      const result = await firstValueFrom(
-        this.dataSyncProvider.invokeCommand<string>("qrLoginComplete", { token })
-      );
-
-      if (result) {
-        if (this.f["remember"].value) {
-          localStorage.setItem("token", result);
-        } else {
-          sessionStorage.setItem("token", result);
-        }
-
-        this.notifyService.showSuccess("Login successful");
-        this.authStore.setAuthenticated(result);
-        this.isQrLoginActive.set(false);
-        window.location.href = "/";
-      } else {
-        this.notifyService.showError("Authentication failed - no token received");
-        this.cancelQrLogin();
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "QR login failed";
-      this.notifyService.showError("QR login failed: " + message);
-      this.cancelQrLogin();
-    } finally {
-      this.submitted.set(false);
-    }
+    this.router.navigate(["/login/qr"], { queryParams: { username } });
   }
 
   private async completePasswordlessLogin(
@@ -843,20 +525,12 @@ export class LoginView implements OnDestroy {
     }
 
     if (authResponse?.token) {
-      if (this.f["remember"].value) {
-        localStorage.setItem("token", authResponse.token);
-      } else {
-        sessionStorage.setItem("token", authResponse.token);
-      }
-
-      if (authResponse.needsProfile) {
-        this.notifyService.showInfo("Please complete your profile setup");
-        window.location.href = "/profile/create-profile";
-      } else {
-        this.notifyService.showSuccess("Login successful");
-        this.authStore.setAuthenticated(authResponse.token);
-        window.location.href = "/";
-      }
+      LoginCompletionHelper.completeLogin({
+        token: authResponse.token,
+        remember: this.f["remember"].value,
+        needsProfile: authResponse.needsProfile,
+        profile: authResponse.profile,
+      });
       return;
     }
 
@@ -870,37 +544,20 @@ export class LoginView implements OnDestroy {
       const loginResult = await this.authService.loginWithOfflineFirst(authData);
 
       if (loginResult.token) {
-        if (this.f["remember"].value) {
-          localStorage.setItem("token", loginResult.token);
-        } else {
-          sessionStorage.setItem("token", loginResult.token);
-        }
-
-        if (loginResult.needsProfile) {
-          this.notifyService.showInfo("Please complete your profile setup");
-          window.location.href = "/profile/create-profile";
-        } else {
-          this.notifyService.showSuccess("Login successful");
-          this.authStore.setAuthenticated(loginResult.token);
-          window.location.href = "/";
-        }
+        LoginCompletionHelper.completeLogin({
+          token: loginResult.token,
+          remember: this.f["remember"].value,
+          needsProfile: loginResult.needsProfile,
+          profile: loginResult.profile,
+          userId: loginResult.userId,
+        });
       } else {
         this.notifyService.showError("Authentication failed - no token received");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed";
-      this.notifyService.showError("Login failed: " + message);
+      LoginErrorHelper.handleAuthError(err, this.notifyService, this.hasLocalUsers());
     } finally {
       this.submitted.set(false);
     }
-  }
-
-  cancelQrLogin(): void {
-    this.qrLoginService.stopPolling();
-    this.qrLoginService.clearQrData();
-    this.passkeyQrCode.set(null);
-    this.isQrLoginActive.set(false);
-    this.isQrGenerating.set(false);
-    this.submitted.set(false);
   }
 }

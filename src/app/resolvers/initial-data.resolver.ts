@@ -9,6 +9,8 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 
 /**
  * Initial Data Resolver - Cache-First, Non-Blocking Architecture
@@ -33,7 +35,9 @@ export class InitialDataResolver implements Resolve<unknown> {
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private dataLoaderService = inject(DataLoaderService);
+  private notifyService = inject(NotifyService);
   private router = inject(Router);
+  private userValidationService = inject(UserValidationService);
 
   private hasCachedData(): boolean {
     return (
@@ -57,7 +61,8 @@ export class InitialDataResolver implements Resolve<unknown> {
 
     const token = this.jwtTokenService.getToken();
     if (!token) {
-      this.router.navigate(["/login"]);
+      this.notifyService.showError("Error: Token not found");
+      this.userValidationService.redirectToLogin();
       return { loaded: false, redirectToLogin: true };
     }
 

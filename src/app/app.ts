@@ -23,7 +23,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { LocalAuthService } from "@services/auth/local-auth.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 import { AppStateService } from "@services/core/app-state.service";
 
 /* providers */
@@ -60,15 +60,14 @@ export class App implements OnInit {
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private profileRequiredService = inject(ProfileRequiredService);
-  private localAuthService = inject(LocalAuthService);
   private appStateService = inject(AppStateService);
+  private userValidationService = inject(UserValidationService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
 
   url = signal<string>("");
   showComponents = signal<boolean>(true);
-  /** Show header and bottom nav only when not on auth page and not locked to create-profile */
   showShell = computed(
     () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
   );
@@ -93,11 +92,7 @@ export class App implements OnInit {
 
     this.updateShowComponents();
 
-    // Initialize session from stored token
     this.authService.initializeSession(this.authRoutes);
-
-    // Data is now loaded via InitialDataResolver in routes
-    // This ensures views don't render until data is available
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
       let lastIndex =
@@ -115,21 +110,15 @@ export class App implements OnInit {
   private checkTokenWithBackend(token: string): void {
     this.authService.checkToken<User>(token).subscribe({
       next: (user: User) => {
-        // Token is valid on backend - update local data if needed
-        this.localAuthService.updateToken(user.id, token);
-        // Data already loaded on init, just trigger sync
         this.triggerSync();
       },
       error: (err: Response<string>) => {
-        // Backend check failed - could be offline
-        // Check if it's a network error using centralized helper
         if (NetworkErrorHelper.isNetworkError(err)) {
           // this.isOfflineMode = true;
           this.notifyService.showWarning("Working offline - data sync paused");
         } else {
-          // Token invalid - redirect to login
           this.notifyService.showError(err.message ?? err.toString());
-          this.router.navigate(["/login"]);
+          this.userValidationService.redirectToLogin();
         }
       },
     });

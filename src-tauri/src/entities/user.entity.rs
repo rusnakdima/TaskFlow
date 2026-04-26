@@ -4,16 +4,17 @@ use serde::{Deserialize, Serialize};
 
 /* crate */
 use crate::entities::profile_entity::ProfileEntity;
-use crate::entities::traits::EntityRelations;
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{FrontendProjection, SoftDeletable};
+use nosql_orm::prelude::FrontendProjection;
 use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("users")]
 #[soft_delete]
+#[timestamp]
+#[many_to_one("profile", "profiles", "profile_id")]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -69,26 +70,6 @@ impl FrontendProjection for UserEntity {
       "totp_enabled",
       "qr_login_enabled",
     ]
-  }
-}
-
-impl EntityRelations for UserEntity {
-  fn relation_paths() -> Vec<&'static str> {
-    vec!["profile"]
-  }
-
-  fn nested_relation_map() -> Vec<(&'static str, Vec<&'static str>)> {
-    vec![]
-  }
-}
-
-impl SoftDeletable for UserEntity {
-  fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
-  }
-
-  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
   }
 }
 
