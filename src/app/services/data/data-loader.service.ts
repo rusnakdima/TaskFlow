@@ -27,7 +27,7 @@ export class DataLoaderService {
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
 
-  private readonly TODO_LOAD_RELATIONS = ["user", "categories", "assignees", "tasks"];
+  private readonly TODO_LOAD_RELATIONS = ["user", "categories", "assignees_profiles", "tasks"];
 
   private loadInProgress = false;
   private loadSubject = new BehaviorSubject<{ todos: Todo[]; categories: Category[] } | null>(null);
@@ -122,17 +122,13 @@ export class DataLoaderService {
    */
   private loadTeamTodosOwner(userId: string): void {
     console.log("[DataLoader] Requesting team todos (owner) data from API");
-    this.apiProvider
-      .crud<Todo[]>(
-        "getAll",
-        "todos",
-        {
-          filter: { user_id: userId, visibility: "team" },
-          isOwner: true,
-          isPrivate: false,
-        },
-        true
-      )
+    const filter = { user_id: userId, visibility: "team" };
+
+    this.relationLoader
+      .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
+        is_owner: true,
+        is_private: false,
+      })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
@@ -160,17 +156,13 @@ export class DataLoaderService {
    */
   private loadTeamTodosAssignee(userId: string): void {
     console.log("[DataLoader] Requesting team todos (assignee) data from API");
-    this.apiProvider
-      .crud<Todo[]>(
-        "getAll",
-        "todos",
-        {
-          filter: { assignees: userId, visibility: "team" },
-          isOwner: false,
-          isPrivate: false,
-        },
-        true
-      )
+    const filter = { assignees: userId, visibility: "team" };
+
+    this.relationLoader
+      .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
+        is_owner: false,
+        is_private: false,
+      })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
