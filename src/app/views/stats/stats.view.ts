@@ -78,15 +78,28 @@ export class StatsView implements OnInit {
     if (userId && userId !== "") {
       this.dataSyncProvider
         .invokeCommand<StatisticsResponse>("statistics_get", {
-          user_id: userId,
-          time_range: this.selectedTimeRange(),
+          userId: userId,
+          timeRange: this.selectedTimeRange(),
         })
         .subscribe({
-          next: (response: StatisticsResponse) => {
-            this.statistics.set(response.statistics);
-            this.chartData.set(response.chartData);
+          next: (response: any) => {
+            this.statistics.set({
+              totalTasks: response.statistics.total_tasks,
+              completionRate: response.statistics.completion_rate,
+              averageTaskTime: response.statistics.average_task_time,
+              productivityScore: response.statistics.productivity_score,
+              previousTotalTasks: response.statistics.previous_total_tasks,
+              previousCompletionRate: response.statistics.previous_completion_rate,
+              previousAverageTime: response.statistics.previous_average_time,
+              previousProductivityScore: response.statistics.previous_productivity_score,
+            });
+            this.chartData.set({
+              completionTrend: response.chart_data.completion_trend,
+              categories: response.chart_data.categories,
+              dailyActivity: response.chart_data.daily_activity,
+            });
             this.achievements.set(response.achievements);
-            this.detailedMetrics.set(response.detailedMetrics);
+            this.detailedMetrics.set(response.detailed_metrics);
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to load statistics";
