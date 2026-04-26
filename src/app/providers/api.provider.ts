@@ -51,12 +51,26 @@ export class ApiProvider {
     } = {},
     _isArray: boolean = false
   ): Observable<T> {
+    console.debug(
+      "CRUD: operation=" +
+        operation +
+        ", table=" +
+        table +
+        ", options=" +
+        JSON.stringify(options) +
+        ", isArray=" +
+        _isArray
+    );
+
     return new Observable<T>((subscriber) => {
+      const syncMetadata = {
+        is_owner: options.isOwner ?? true,
+        is_private: options.isPrivate ?? true,
+      };
       const payload: Record<string, any> = {
         operation,
         table,
-        is_owner: options.isOwner ?? true,
-        is_private: options.isPrivate ?? true,
+        sync_metadata: syncMetadata,
       };
 
       if (options.id) payload["id"] = options.id;
@@ -116,8 +130,7 @@ export class ApiProvider {
           table: payload.table,
           id: item.id,
           data: item,
-          is_owner: payload.is_owner,
-          is_private: payload.is_private,
+          sync_metadata: payload.sync_metadata,
         })
       )
     ).then(

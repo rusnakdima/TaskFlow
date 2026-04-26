@@ -22,7 +22,6 @@ import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { LocalAuthService } from "@services/auth/local-auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
@@ -46,7 +45,6 @@ export class CreateProfileView implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private localAuthService: LocalAuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService,
@@ -94,9 +92,6 @@ export class CreateProfileView implements OnInit {
 
   ngOnInit() {
     let userId = this.authService.getValueByKey("id");
-    if (!userId || userId === "") {
-      userId = localStorage.getItem("userId");
-    }
     if (userId && userId !== "") {
       this.form.controls["user_id"].setValue(userId);
 
@@ -132,9 +127,6 @@ export class CreateProfileView implements OnInit {
 
     let userId = this.authService.getValueByKey("id");
     if (!userId || userId === "") {
-      userId = localStorage.getItem("userId");
-    }
-    if (!userId || userId === "") {
       this.notifyService.showError("User session expired. Please login again.");
       window.location.href = "/login";
       return;
@@ -147,11 +139,6 @@ export class CreateProfileView implements OnInit {
       next: (createdProfile: Profile) => {
         if (createdProfile && createdProfile.id) {
           this.storageService.setCollection("profiles", createdProfile);
-
-          const userId = this.authService.getValueByKey("id");
-          if (userId) {
-            this.localAuthService.updateUserProfileId(userId, createdProfile.id);
-          }
         }
         this.profileRequiredService.setProfileRequiredMode(false);
         this.notifyService.showSuccess("Profile created successfully");

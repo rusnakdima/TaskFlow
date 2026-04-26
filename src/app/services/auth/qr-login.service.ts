@@ -39,7 +39,7 @@ export class QrLoginService {
   generateQrCode(username?: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
       this.dataSyncProvider
-        .invokeCommand<QrGenerationResult>("qrGenerate", { username: username || null })
+        .invokeCommand<QrGenerationResult>("qr_generate", { username: username || null })
         .subscribe({
           next: (data) => {
             this.currentQrData.set({
@@ -59,7 +59,7 @@ export class QrLoginService {
   generateQrCodeForDesktopLogin(username: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
       this.dataSyncProvider
-        .invokeCommand<QrGenerationResult>("qrGenerateForDesktop", { username })
+        .invokeCommand<QrGenerationResult>("qr_generate_for_desktop", { username })
         .subscribe({
           next: (data) => {
             this.currentQrData.set({
@@ -95,7 +95,7 @@ export class QrLoginService {
   }
 
   private checkStatus(token: string): void {
-    this.dataSyncProvider.invokeCommand<QrStatusResult>("qrStatus", { token }).subscribe({
+    this.dataSyncProvider.invokeCommand<QrStatusResult>("qr_status", { token }).subscribe({
       next: (data) => {
         this.qrStatus.set(data.status);
         this.qrStatusData.set(data);
@@ -113,7 +113,7 @@ export class QrLoginService {
 
   approveFromMobile(token: string): Observable<{ success: boolean }> {
     return new Observable((observer) => {
-      this.dataSyncProvider.invokeCommand<{ success: boolean }>("qrApprove", { token }).subscribe({
+      this.dataSyncProvider.invokeCommand<{ success: boolean }>("qr_approve", { token }).subscribe({
         next: (data) => {
           observer.next(data);
           observer.complete();

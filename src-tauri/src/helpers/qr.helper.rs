@@ -1,3 +1,4 @@
+#[tauri::command]
 pub fn generate_qr_code_data_url(data: &str) -> String {
   let qr = qrcode::QrCode::new(data.as_bytes()).unwrap();
   let image = qr.render::<image::Luma<u8>>().build();

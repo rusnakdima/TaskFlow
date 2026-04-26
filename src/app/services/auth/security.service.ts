@@ -50,7 +50,7 @@ export class SecurityService {
 
   getUsername(): string {
     const token = this.jwtTokenService.getToken();
-    return this.jwtTokenService.getValueByKey(token, "username") || "";
+    return this.jwtTokenService.getUsername(token) || "";
   }
 
   getPlatformName(): string {

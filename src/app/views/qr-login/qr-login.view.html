@@ -1,0 +1,105 @@
+<div class="top-0 left-0 m-0 flex h-screen w-full flex-col overflow-x-auto">
+  <div
+    class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
+  >
+    <!-- Back to Login button -->
+    <div class="mb-4 flex justify-start">
+      <button class="styleButInfo" (click)="cancelQrLogin()">
+        <mat-icon class="mr-1">arrow_back</mat-icon>
+        Back to Login
+      </button>
+    </div>
+
+    <!-- Mobile QR Scanning -->
+    @if (isMobileDevice() && isQrLoginActive()) {
+      <div class="flex flex-col gap-y-4">
+        <div class="text-center">
+          <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
+            >qr_code_scanner</mat-icon
+          >
+          <p class="font-medium text-green-800 dark:text-green-200">Scan QR Code to Login</p>
+          <p class="textMuted mt-1 text-sm">
+            Point your camera at the QR code displayed on your desktop
+          </p>
+        </div>
+
+        <!-- Loading overlay -->
+        @if (isQrScanningLoading()) {
+          <div class="flex flex-col items-center gap-3 py-8">
+            <mat-spinner diameter="48"></mat-spinner>
+            <p class="text-sm text-green-600 dark:text-green-400">Opening camera...</p>
+          </div>
+        }
+
+        <!-- Video will be appended dynamically -->
+        <button class="styleButDanger mt-4" (click)="cancelQrLogin()">
+          <mat-icon class="mr-1">close</mat-icon>
+          Cancel
+        </button>
+      </div>
+    }
+
+    <!-- Desktop QR Display -->
+    @if (!isMobileDevice() || !isQrScanningLoading()) {
+      @if (isMobileScanning() === false) {
+        <div class="flex flex-col gap-y-4">
+          <!-- Loading state while generating QR -->
+          @if (isQrGenerating()) {
+            <div class="flex flex-col items-center gap-3 py-8">
+              <mat-spinner diameter="48"></mat-spinner>
+              <p class="text-sm text-green-600 dark:text-green-400">Generating QR code...</p>
+            </div>
+          }
+
+          <!-- QR Code display -->
+          @if (passkeyQrCode() && !isQrGenerating()) {
+            <div class="flex flex-col items-center gap-3">
+              <div class="text-center">
+                <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
+                  >qr_code</mat-icon
+                >
+                <p class="font-medium text-green-800 dark:text-green-200">
+                  Scan with your mobile device
+                </p>
+                <p class="textMuted text-sm">Use TaskFlow mobile app to scan this code</p>
+              </div>
+
+              <img
+                [src]="passkeyQrCode()"
+                alt="QR Code"
+                class="h-48 w-48 rounded-lg border-2 border-green-200 dark:border-green-700"
+              />
+
+              @if (qrLoginStatus() === "pending") {
+                <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
+                  Waiting for mobile approval...
+                </div>
+              }
+
+              @if (qrLoginStatus() === "approved") {
+                <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <mat-icon class="h-4! w-4! text-lg!">check_circle</mat-icon>
+                  Approved! Completing login...
+                </div>
+              }
+
+              @if (qrLoginStatus() === "expired") {
+                <div class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <mat-icon class="h-4! w-4! text-lg!">error</mat-icon>
+                  QR code expired
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Cancel button -->
+          <button class="styleButDanger mt-2" (click)="cancelQrLogin()">
+            <mat-icon class="mr-1">close</mat-icon>
+            Cancel
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

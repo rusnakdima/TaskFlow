@@ -1,29 +1,3 @@
-<!-- Mobile QR Scanner Overlay -->
-@if (isQrLoginActive() && isMobileScanning()) {
-  <div class="styleBorderSolidLite fixed inset-0 z-[9999] flex flex-col bg-black">
-    <!-- Header with Back button -->
-    <div class="flex items-center justify-between bg-black/80 px-4 py-3">
-      <button
-        class="flex items-center justify-center rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
-        (click)="stopMobileQrScanning()"
-      >
-        <mat-icon class="text-white">arrow_back</mat-icon>
-      </button>
-      <span class="font-medium text-white">Scan QR Code</span>
-      <div class="w-10"></div>
-    </div>
-
-    <!-- Loading state -->
-    @if (isQrScanningLoading()) {
-      <div class="flex flex-1 items-center justify-center">
-        <mat-spinner diameter="50"></mat-spinner>
-      </div>
-    }
-
-    <!-- Video will be appended dynamically here -->
-  </div>
-}
-
 <div class="top-0 left-0 m-0 flex h-screen w-full flex-col overflow-x-auto">
   <div
     class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
@@ -75,96 +49,8 @@
       </div>
     }
 
-    <!-- QR Login Modal (Desktop shows QR, Mobile shows scanner) -->
-    @if (isQrLoginActive() && !isMobileDevice()) {
-      <div
-        class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20"
-      >
-        <!-- Loading state while generating QR -->
-        @if (isQrGenerating()) {
-          <div class="flex flex-col items-center gap-3 py-4">
-            <mat-spinner diameter="48"></mat-spinner>
-            <p class="text-sm text-green-600 dark:text-green-400">Generating QR code...</p>
-          </div>
-        }
-
-        <!-- QR Code display -->
-        @if (passkeyQrCode() && !isQrGenerating()) {
-          <div class="mb-3 text-center">
-            <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
-              >qr_code</mat-icon
-            >
-            <p class="font-medium text-green-800 dark:text-green-200">Scan QR Code with Mobile</p>
-          </div>
-
-          <div class="flex flex-col items-center gap-3">
-            <img
-              [src]="passkeyQrCode()"
-              alt="QR Code"
-              class="mx-auto h-48 w-48 rounded-lg border-2 border-green-200 dark:border-green-700"
-            />
-
-            @if (qrLoginStatus() === "pending") {
-              <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
-                Waiting for approval...
-              </div>
-            }
-
-            @if (qrLoginStatus() === "approved") {
-              <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <mat-icon class="h-4! w-4! text-lg!">check_circle</mat-icon>
-                Approved! Redirecting...
-              </div>
-            }
-
-            @if (qrLoginStatus() === "expired") {
-              <div class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                <mat-icon class="h-4! w-4! text-lg!">error</mat-icon>
-                QR code expired
-              </div>
-            }
-          </div>
-        }
-
-        <!-- Cancel button always visible -->
-        <button class="styleButDanger mt-3 w-full" (click)="cancelQrLogin()">
-          <mat-icon class="mr-1">close</mat-icon>
-          Cancel
-        </button>
-      </div>
-    }
-
-    <!-- Mobile QR Scanning Modal -->
-    @if (isMobileScanning()) {
-      <div
-        class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20"
-      >
-        <div class="mb-3 text-center">
-          <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
-            >qr_code_scanner</mat-icon
-          >
-          <p class="font-medium text-green-800 dark:text-green-200">Scan QR Code to Login</p>
-        </div>
-
-        <div class="flex flex-col items-center gap-3">
-          <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
-            Opening camera...
-          </div>
-
-          <button
-            class="styleButDanger flex-1"
-            (click)="stopMobileQrScanning(); isQrLoginActive.set(false)"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    }
-
     <!-- Main Login Form -->
-    @if (!showTotpInput() && !isQrLoginActive()) {
+    @if (!showTotpInput()) {
       <div class="flex flex-col gap-y-3 text-left!" [formGroup]="loginForm">
         <div class="flex flex-col gap-y-1">
           <label class="styleLabel">Username</label>
@@ -258,7 +144,7 @@
               @if (showQrLoginButton()) {
                 <button
                   class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-green-50 px-6 transition-colors hover:border-green-400 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:hover:border-green-600"
-                  (click)="loginWithQrCode()"
+                  (click)="goToQrLogin()"
                   [disabled]="submitted()"
                 >
                   <mat-icon class="mr-1 text-xl! text-green-600 dark:text-green-400"

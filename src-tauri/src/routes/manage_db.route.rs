@@ -25,22 +25,7 @@ pub async fn manage_data(
   relations: Option<Vec<RelationObj>>,
   load: Option<Vec<String>>,
   sync_metadata: Option<SyncMetadata>,
-  // Accept is_owner and is_private directly as fallback
-  is_owner: Option<bool>,
-  is_private: Option<bool>,
 ) -> Result<ResponseModel, ResponseModel> {
-  // Construct sync_metadata from individual fields if not provided as object
-  let final_sync_metadata = if let Some(sm) = sync_metadata {
-    Some(sm)
-  } else if is_owner.is_some() || is_private.is_some() {
-    Some(SyncMetadata {
-      is_owner: is_owner.unwrap_or(true),
-      is_private: is_private.unwrap_or(true),
-    })
-  } else {
-    None
-  };
-
   // Extract id from filter if operation is "get" and id is not provided
   let final_id = if operation == "get" && id.is_none() {
     if let Some(f) = &filter {
@@ -60,6 +45,8 @@ pub async fn manage_data(
     id
   };
 
+  println!("{:?}", final_id.clone());
+
   state
     .repository_service
     .execute(
@@ -70,7 +57,7 @@ pub async fn manage_data(
       filter,
       relations,
       load,
-      final_sync_metadata,
+      sync_metadata,
     )
     .await
 }

@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* nosql_orm */
-use nosql_orm::prelude::SoftDeletable;
 use nosql_orm::{Model, Validate};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +36,7 @@ impl Display for TaskStatus {
 #[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
 #[one_to_many("comments", "comments", "task_id", "Cascade")]
 #[many_to_one("todo", "todos", "todo_id")]
+#[many_to_many("assignees", "profiles", "assignees")]
 pub struct TaskEntity {
   pub id: Option<String>,
   #[validate(required)]
@@ -59,16 +59,6 @@ pub struct TaskEntity {
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl SoftDeletable for TaskEntity {
-  fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
-  }
-
-  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
-  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]

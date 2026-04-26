@@ -375,7 +375,7 @@ export class SettingsView implements OnInit {
     const username = this.securityService.getUsername();
 
     this.dataSyncProvider
-      .invokeCommand<{ success: boolean }>("qrToggle", {
+      .invokeCommand<{ success: boolean }>("qr_toggle", {
         username,
         enabled: newState,
       })

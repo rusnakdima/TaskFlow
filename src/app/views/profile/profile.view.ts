@@ -16,7 +16,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { LocalAuthService } from "@services/auth/local-auth.service";
 
 /* QR Decoder */
 import jsQR from "jsqr";
@@ -29,7 +28,6 @@ import jsQR from "jsqr";
 })
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
-  private localAuthService = inject(LocalAuthService);
   private dataSyncService = inject(DataLoaderService);
 
   constructor(
@@ -317,7 +315,7 @@ export class ProfileView implements OnInit, OnDestroy {
     }
 
     this.dataSyncProvider
-      .invokeCommand<{ success: boolean }>("qrApprove", {
+      .invokeCommand<{ success: boolean }>("qr_approve", {
         token,
         username,
       })
@@ -375,7 +373,7 @@ export class ProfileView implements OnInit, OnDestroy {
           token: string;
           qrCode: string;
           expiresAt: number;
-        }>("qrGenerateForDesktop", { username })
+        }>("qr_generate_for_desktop", { username })
         .subscribe({
           next: (data) => {
             this.myQrCode.set(data.qrCode);
@@ -411,7 +409,7 @@ export class ProfileView implements OnInit, OnDestroy {
       return;
     }
 
-    this.dataSyncProvider.invokeCommand<string>("qrLoginComplete", { token }).subscribe({
+    this.dataSyncProvider.invokeCommand<string>("qr_login_complete", { token }).subscribe({
       next: (jwtToken) => {
         if (jwtToken) {
           localStorage.setItem("token", jwtToken);

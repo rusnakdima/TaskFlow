@@ -2,14 +2,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::SoftDeletable;
 use nosql_orm::validators::Validate;
 use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("comments")]
-#[soft_delete]
 #[many_to_one("task", "tasks", "task_id")]
 #[many_to_one("subtask", "subtasks", "subtask_id")]
 pub struct CommentEntity {
@@ -29,16 +28,6 @@ pub struct CommentEntity {
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl SoftDeletable for CommentEntity {
-  fn deleted_at(&self) -> Option<DateTime<Utc>> {
-    self.deleted_at
-  }
-
-  fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
-    self.deleted_at = deleted_at;
-  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

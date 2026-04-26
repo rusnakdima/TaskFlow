@@ -27,7 +27,6 @@ export class TokenStorageHelper {
 
   static setUserId(userId: string, remember = false): void {
     if (remember) {
-      localStorage.setItem(this.USER_ID_KEY, userId);
     } else {
       sessionStorage.setItem(this.USER_ID_KEY, userId);
     }

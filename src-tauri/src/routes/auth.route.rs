@@ -66,7 +66,7 @@ pub async fn setup_totp(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.setup_totp(username).await
+  state.totp_service.setup_totp(&username).await
 }
 
 #[tauri::command]
@@ -75,7 +75,7 @@ pub async fn enable_totp(
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.enable_totp(username, code).await
+  state.totp_service.enable_totp(&username, &code).await
 }
 
 #[tauri::command]
@@ -84,7 +84,7 @@ pub async fn verify_login_totp(
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.verify_login_totp(username, code).await
+  state.totp_service.verify_login_totp(&username, &code).await
 }
 
 #[tauri::command]
@@ -93,7 +93,7 @@ pub async fn disable_totp(
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.disable_totp(username, code).await
+  state.totp_service.disable_totp(&username, &code).await
 }
 
 #[tauri::command]
@@ -102,7 +102,15 @@ pub async fn use_recovery_code(
   username: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.use_recovery_code(username, code).await
+  state.totp_service.use_recovery_code(&username, &code).await
+}
+
+#[tauri::command]
+pub async fn init_totp_qr_login(
+  state: State<'_, AppState>,
+  username: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.totp_service.init_totp_qr_login(&username).await
 }
 
 #[tauri::command]
@@ -110,7 +118,7 @@ pub async fn init_passkey_registration(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.init_passkey_registration(username).await
+  state.passkey_service.init_registration(&username).await
 }
 
 #[tauri::command]
@@ -120,8 +128,8 @@ pub async fn complete_passkey_registration(
   response_json: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
-    .complete_passkey_registration(username, response_json)
+    .passkey_service
+    .complete_registration(&username, &response_json)
     .await
 }
 
@@ -131,8 +139,8 @@ pub async fn init_passkey_authentication(
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
-    .init_passkey_authentication(username.as_deref())
+    .passkey_service
+    .init_authentication(username.as_deref())
     .await
 }
 
@@ -143,8 +151,8 @@ pub async fn complete_passkey_authentication(
   response_json: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
-    .complete_passkey_authentication(username, response_json)
+    .passkey_service
+    .complete_authentication(&username, &response_json)
     .await
 }
 
@@ -153,7 +161,7 @@ pub async fn disable_passkey(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.disable_passkey(username).await
+  state.passkey_service.disable_passkey(&username).await
 }
 
 #[tauri::command]
@@ -164,8 +172,8 @@ pub async fn enable_biometric(
   public_key: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
-    .enable_biometric(username, credential_id, public_key)
+    .biometric_service
+    .enable_biometric(&username, &credential_id, &public_key)
     .await
 }
 
@@ -175,7 +183,7 @@ pub async fn init_biometric_auth(
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
+    .biometric_service
     .init_biometric_auth(username.as_deref())
     .await
 }
@@ -187,8 +195,8 @@ pub async fn complete_biometric_auth(
   signature: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
-    .auth_service
-    .complete_biometric_auth(username, signature)
+    .biometric_service
+    .complete_biometric_auth(&username, &signature)
     .await
 }
 
@@ -197,15 +205,7 @@ pub async fn disable_biometric(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.disable_biometric(username).await
-}
-
-#[tauri::command]
-pub async fn init_totp_qr_login(
-  state: State<'_, AppState>,
-  username: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.init_totp_qr_login(username).await
+  state.biometric_service.disable_biometric(&username).await
 }
 
 #[tauri::command]
@@ -269,7 +269,10 @@ pub async fn qr_generate(
   state: State<'_, AppState>,
   username: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_generate(username).await
+  state
+    .qr_auth_service
+    .generate_qr_token(username.as_deref())
+    .await
 }
 
 #[tauri::command]
@@ -277,7 +280,10 @@ pub async fn qr_generate_for_desktop(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_generate_for_desktop(username).await
+  state
+    .qr_auth_service
+    .generate_qr_token_for_desktop_login(&username)
+    .await
 }
 
 #[tauri::command]
@@ -286,7 +292,10 @@ pub async fn qr_approve(
   token: String,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_approve(token, username).await
+  state
+    .qr_auth_service
+    .approve_qr_token(&token, &username)
+    .await
 }
 
 #[tauri::command]
@@ -294,7 +303,7 @@ pub async fn qr_status(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_status(token).await
+  state.qr_auth_service.get_qr_status(&token).await
 }
 
 #[tauri::command]
@@ -303,7 +312,10 @@ pub async fn qr_toggle(
   username: String,
   enabled: bool,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_toggle(username, enabled).await
+  state
+    .qr_auth_service
+    .toggle_qr_login(&username, enabled)
+    .await
 }
 
 #[tauri::command]
@@ -311,7 +323,7 @@ pub async fn qr_login_complete(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.auth_service.qr_login_complete(token).await
+  state.qr_auth_service.complete_qr_login(&token).await
 }
 
 #[cfg(target_os = "android")]
