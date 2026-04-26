@@ -38,6 +38,7 @@ export class StorageService extends BaseStorageService {
   private readonly sharedTodosSignal = signal<Todo[]>([]);
   private readonly categoriesSignal = signal<Category[]>([]);
   private readonly profileSignal = signal<Profile | null>(null);
+  private readonly profilesSignal = signal<Profile[]>([]);
   private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
 
   // ==================== INDEX MAPS ====================
@@ -127,6 +128,7 @@ export class StorageService extends BaseStorageService {
   });
   readonly categories = this.categoriesSignal.asReadonly();
   readonly profile = this.profileSignal.asReadonly();
+  readonly profiles = this.profilesSignal.asReadonly();
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
 
   // ==================== INDEX LOOKUPS ====================
@@ -415,18 +417,23 @@ export class StorageService extends BaseStorageService {
     this.sharedTodosSignal.set([]);
     this.categoriesSignal.set([]);
     this.profileSignal.set(null);
+    this.profilesSignal.set([]);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
     this.taskToTodoIndex.clear();
     this.subtaskToTaskIndex.clear();
   }
 
-  setCollection<T extends "categories" | "profiles" | "privateTodos" | "sharedTodos">(
+  setCollection<
+    T extends "categories" | "profiles" | "privateTodos" | "sharedTodos" | "allProfiles",
+  >(
     type: T,
     items: T extends "profiles"
       ? Profile | null
-      : T extends "privateTodos" | "sharedTodos"
-        ? Todo[]
+      : T extends "privateTodos" | "sharedTodos" | "allProfiles"
+        ? T extends "allProfiles"
+          ? Profile[]
+          : Todo[]
         : Category[]
   ): void {
     switch (type) {
@@ -443,6 +450,9 @@ export class StorageService extends BaseStorageService {
       case "sharedTodos":
         this.sharedTodosSignal.set(items as Todo[]);
         this.rebuildIndexes();
+        break;
+      case "allProfiles":
+        this.profilesSignal.set(items as Profile[]);
         break;
     }
   }

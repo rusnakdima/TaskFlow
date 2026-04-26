@@ -13,6 +13,7 @@ import { ApiProvider } from "@providers/api.provider";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/core/storage.service";
+import { RelationLoadingService } from "@services/core/relation-loading.service";
 
 @Injectable({
   providedIn: "root",
@@ -21,9 +22,21 @@ export class DataLoaderService {
   private jwtTokenService = inject(JwtTokenService);
   private apiProvider = inject(ApiProvider);
   private storageService = inject(StorageService);
+  private relationLoader = inject(RelationLoadingService);
 
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
+
+  private readonly TODO_LOAD_RELATIONS = [
+    "user",
+    "categories",
+    "assignees",
+    "tasks",
+    "tasks.subtasks",
+    "tasks.comments",
+    "tasks.assignees",
+    "tasks.subtasks.comments",
+  ];
 
   private loadInProgress = false;
   private loadSubject = new BehaviorSubject<{ todos: Todo[]; categories: Category[] } | null>(null);
@@ -66,6 +79,9 @@ export class DataLoaderService {
     this.loadTeamTodosOwner(userId);
     this.loadTeamTodosAssignee(userId);
     this.loadCategories(userId);
+    this.loadProfiles();
+    this.loadUserProfile(userId);
+    this.loadStats(userId);
 
     // Return current cache state immediately
     const currentTodos = this.storageService.todos();
@@ -87,17 +103,11 @@ export class DataLoaderService {
     const filter = { user_id: userId };
     console.log("[DataLoader] loadPrivateTodos called with filter:", JSON.stringify(filter));
 
-    this.apiProvider
-      .crud<Todo[]>(
-        "getAll",
-        "todos",
-        {
-          filter,
-          isOwner: true,
-          isPrivate: true,
-        },
-        true
-      )
+    this.relationLoader
+      .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
+        is_owner: true,
+        is_private: true,
+      })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {
@@ -218,6 +228,30 @@ export class DataLoaderService {
   }
 
   /**
+   * Fire-and-forget: Load profiles list
+   */
+  private loadProfiles(): void {
+    this.relationLoader
+      .loadMany<Profile>(this.apiProvider, "profiles", {}, ["user"], {
+        is_owner: true,
+        is_private: false,
+      })
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => {
+          return of(null);
+        }),
+        tap((profiles) => {
+          if (profiles && Array.isArray(profiles)) {
+            this.storageService.setCollection("allProfiles", profiles);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
+  }
+
+  /**
    * Emit current state to subscribers
    */
   private emitUpdate(): void {
@@ -230,6 +264,14 @@ export class DataLoaderService {
   }
 
   /**
+   * Fire-and-forget: Load user profile
+   */
+  private loadUserProfile(userId: string): void {
+    if (!userId) return;
+    this.fetchProfileFromApi(userId).subscribe();
+  }
+
+  /**
    * Load user profile
    * Returns cached profile if available, otherwise fetches from API
    */
@@ -237,13 +279,10 @@ export class DataLoaderService {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
     if (!userId) {
-      console.log("[DataLoader] loadProfile: no userId, returning null");
       return of(null);
     }
 
     const cached = this.storageService.profile();
-    console.log("[DataLoader] loadProfile: userId=", userId, "cached=", cached);
-
     if (cached?.user_id) {
       return of(cached);
     }
@@ -255,39 +294,22 @@ export class DataLoaderService {
    * Fetch profile from API and update storage
    */
   private fetchProfileFromApi(userId: string): Observable<Profile | null> {
-    console.log("[DataLoader] fetchProfileFromApi called with userId:", userId);
-
-    return this.apiProvider
-      .crud<Profile[]>(
-        "getAll",
-        "profiles",
-        {
-          filter: { user_id: userId },
-          isPrivate: true,
-          isOwner: true,
-        },
-        true
-      )
+    return this.relationLoader
+      .loadMany<Profile>(this.apiProvider, "profiles", { user_id: userId }, ["user"], {
+        is_private: true,
+        is_owner: true,
+      })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError((err) => {
-          console.error("[DataLoader] fetchProfileFromApi error:", err);
-          return of([] as Profile[]);
-        }),
+        catchError(() => of([] as Profile[])),
         map((profiles: Profile[] | null) => {
-          console.log("[DataLoader] fetchProfileFromApi response:", profiles);
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
             if (profileObj?.user_id) {
-              console.log(
-                "[DataLoader] Profile found with user relation, updating storage:",
-                profileObj
-              );
               this.storageService.setCollection("profiles", profileObj);
               return profileObj;
             }
           }
-          console.log("[DataLoader] No profile found for userId:", userId);
           return null as Profile | null;
         })
       );
@@ -309,6 +331,26 @@ export class DataLoaderService {
    */
   refreshAll(): void {
     this.loadAllData(true).subscribe();
+  }
+
+  /**
+   * Fire-and-forget: Load stats
+   */
+  private loadStats(userId: string): void {
+    if (!userId) return;
+    this.apiProvider
+      .invokeCommand("statistics_get", {
+        userId: userId,
+        timeRange: "month", // default
+      })
+      .subscribe({
+        next: (stats) => {
+          // Perhaps store in storage if needed
+        },
+        error: (err) => {
+          console.error("[DataLoader] loadStats error:", err);
+        },
+      });
   }
 
   /**
