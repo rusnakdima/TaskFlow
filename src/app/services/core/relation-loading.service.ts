@@ -13,14 +13,14 @@ export type ViewContext = "list" | "detail" | "kanban" | "calendar" | "minimal";
 const VIEW_RELATIONS: Record<string, Record<ViewContext, string[]>> = {
   todos: {
     list: ["user", "categories"],
-    detail: ["user", "tasks", "categories"],
-    kanban: ["tasks", "categories"],
+    detail: ["user", "tasks", "tasks.subtasks", "tasks.comments", "categories", "assignees"],
+    kanban: ["tasks", "tasks.subtasks", "categories"],
     calendar: ["user", "categories"],
     minimal: ["user", "categories"],
   },
   tasks: {
     list: ["subtasks"],
-    detail: ["todo"],
+    detail: ["todo", "subtasks", "comments"],
     kanban: ["subtasks"],
     calendar: ["todo"],
     minimal: ["subtasks"],
