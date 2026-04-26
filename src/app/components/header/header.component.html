@@ -72,14 +72,16 @@
       </button>
 
       <button
-        class="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+        class="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
         [matMenuTriggerFor]="userMenu"
       >
-        <img
-          [src]="profile()?.image_url ? profile()!.image_url : 'assets/images/user.png'"
-          class="h-8 w-8 min-w-8 rounded-full"
-          alt=""
-        />
+        <div class="h-8 w-8 rounded-full bg-linear-to-r from-blue-500 to-purple-600 p-0.5">
+          <img
+            [src]="profile()?.image_url ? profile()?.image_url : 'assets/images/user.png'"
+            class="h-full w-full rounded-full bg-white object-cover dark:bg-zinc-800"
+            alt=""
+          />
+        </div>
       </button>
     </div>
   </div>
@@ -87,14 +89,21 @@
 
 <mat-menu #userMenu="matMenu" xPosition="before" class="max-w-[300px]! min-w-[200px]!">
   <div
-    class="border-b border-gray-200 p-3 outline-none dark:border-zinc-700"
+    class="flex flex-col items-center border-b border-gray-200 p-4 outline-none dark:border-zinc-700"
     (click)="$event.stopPropagation()"
   >
-    <p class="textNormal font-medium">
+    <div class="mb-3 h-16 w-16 rounded-full bg-linear-to-r from-blue-500 to-purple-600 p-0.5">
+      <img
+        [src]="profile()?.image_url ? profile()?.image_url : 'assets/images/user.png'"
+        alt="Profile"
+        class="h-full w-full rounded-full bg-white object-cover dark:bg-zinc-800"
+      />
+    </div>
+    <p class="textNormal text-center font-medium">
       {{ profile()?.name || "User" }} {{ profile()?.last_name || "" }}
     </p>
     @if (profile()?.user?.email) {
-      <p class="textMuted text-sm">{{ profile()?.user?.email }}</p>
+      <p class="textMuted text-center text-sm">{{ profile()?.user?.email }}</p>
     }
   </div>
 

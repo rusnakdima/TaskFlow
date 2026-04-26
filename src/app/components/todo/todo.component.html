@@ -134,14 +134,14 @@
 
           <ng-container *ngTemplateOutlet="progressTemplate" />
 
-          @if (todo.assignees && todo.assignees.length > 0) {
+          @if (todo.assignees_profiles && todo.assignees_profiles.length > 0) {
             <div class="mb-4">
               <div class="mb-2 flex items-center gap-2">
                 <mat-icon class="textMuted h-4! w-4! min-w-4 text-base!" fontIcon="group" />
                 <span class="textMuted text-sm">Team</span>
               </div>
               <div class="flex -space-x-2" (click)="$event.stopPropagation()">
-                @for (assignee of todo.assignees.slice(0, 4); track $index) {
+                @for (assignee of todo.assignees_profiles.slice(0, 4); track $index) {
                   <div
                     class="group flex h-8 w-8 cursor-pointer flex-col rounded-full border border-gray-200 bg-white shadow-lg transition-all duration-200 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
                     [routerLink]="['/profile']"
@@ -155,11 +155,11 @@
                     />
                   </div>
                 }
-                @if (todo.assignees.length > 4) {
+                @if (todo.assignees_profiles.length > 4) {
                   <div
                     class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gray-400 text-xs font-medium text-white dark:border-zinc-800"
                   >
-                    +{{ todo.assignees.length - 4 }}
+                    +{{ todo.assignees_profiles.length - 4 }}
                   </div>
                 }
               </div>
