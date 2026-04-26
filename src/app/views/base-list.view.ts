@@ -1,6 +1,6 @@
 import { Directive, signal } from "@angular/core";
 
-export type ViewMode = "card" | "grid" | "table";
+export type ViewMode = "card" | "grid" | "table" | "list";
 
 /**
  * Abstract base class for list views (todos, tasks, subtasks).

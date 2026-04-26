@@ -1,8 +1,9 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, signal, effect, computed } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -15,6 +16,11 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
+import { DataLoaderService } from "@services/data/data-loader.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
+
+/* views */
+import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { SearchComponent } from "@components/fields/search/search.component";
@@ -22,6 +28,9 @@ import { CategoryFormComponent } from "@components/category-form/category-form.c
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
+import { TableField } from "@components/table-view/table-field.model";
 
 @Component({
   selector: "app-categories",
@@ -37,16 +46,22 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
     CategoryCardComponent,
     BulkActionsComponent,
     CheckboxComponent,
+    TableViewComponent,
+    ViewModeSwitcherComponent,
   ],
   templateUrl: "./categories.view.html",
 })
-export class CategoriesView implements OnInit {
+export class CategoriesView extends BaseListView implements OnInit, OnDestroy {
+  private subscriptions: Subscription = new Subscription();
   constructor(
     private authService: AuthService,
     private storageService: StorageService,
     private dataSyncProvider: ApiProvider,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private dataLoaderService: DataLoaderService,
+    private shortcutService: ShortcutService
   ) {
+    super();
     // Watch for categories data changes and load when data is available
     effect(() => {
       const cats = this.storageService.categories();
@@ -74,10 +89,52 @@ export class CategoriesView implements OnInit {
   editingCategory = signal<Category | null>(null);
 
   // Bulk selection state
-  selectedCategories = signal<Set<string>>(new Set());
+  selectedCategories = this.selectedItems;
+
+  // Table fields for categories
+  categoryTableFields: TableField[] = [
+    {
+      key: "title",
+      label: "Title",
+      sortable: true,
+      type: "text",
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      sortable: true,
+      type: "date",
+    },
+    {
+      key: "updated_at",
+      label: "Updated",
+      sortable: true,
+      type: "date",
+    },
+  ];
 
   ngOnInit(): void {
     this.userId.set(this.authService.getValueByKey("id"));
+    this.pageKey = "categories";
+    this.viewMode.set(this.loadViewModePreference());
+
+    // Subscribe to refresh shortcut (Ctrl+R)
+    this.subscriptions.add(
+      this.shortcutService.refresh$.subscribe(() => {
+        this.dataLoaderService.refreshAll();
+      })
+    );
+
+    // Subscribe to create category shortcut (Alt + Shift + N)
+    this.subscriptions.add(
+      this.shortcutService.createCategory$.subscribe(() => {
+        this.toggleCreateForm();
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   loadCategories(): void {
@@ -154,20 +211,18 @@ export class CategoriesView implements OnInit {
   /**
    * Toggle select all categories in current view
    */
-  toggleSelectAll(): void {
-    if (this.isAllSelected()) {
-      this.selectedCategories.set(new Set());
-    } else {
-      this.selectedCategories.set(new Set(this.listCategories().map((cat) => cat.id)));
-    }
+  override toggleSelectAll(): void {
+    super.toggleSelectAll(
+      () => this.listCategories(),
+      () => this.isAllSelected()
+    );
   }
 
   /**
    * Check if all categories are selected
    */
-  isAllSelected(): boolean {
-    const list = this.listCategories();
-    return list.length > 0 && this.selectedCategories().size === list.length;
+  override isAllSelected(): boolean {
+    return super.isAllSelected(() => this.listCategories());
   }
 
   /**
@@ -196,7 +251,33 @@ export class CategoriesView implements OnInit {
   /**
    * Clear selection
    */
-  clearSelection(): void {
-    this.selectedCategories.set(new Set());
+  override clearSelection(): void {
+    super.clearSelection();
+  }
+
+  /**
+   * Handle row click in table view
+   */
+  onRowClick(category: Category): void {
+    this.editCategory(category);
+  }
+
+  /**
+   * Handle table action click
+   */
+  onTableAction(event: { action: string; item: Category }): void {
+    const { action, item } = event;
+    if (action === "edit") {
+      this.editCategory(item);
+    } else if (action === "delete") {
+      this.deleteCategory(item.id);
+    }
+  }
+
+  /**
+   * Handle select all from table
+   */
+  onTableSelectAll(): void {
+    this.toggleSelectAll();
   }
 }
