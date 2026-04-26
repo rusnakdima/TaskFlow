@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnDestroy, OnInit, signal, ChangeDetectorRef } from "@angular/core";
+import { Component, OnDestroy, OnInit, signal, ChangeDetectorRef, computed } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -40,6 +40,9 @@ import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
 
+/* components */
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
 import { ValidationHelper } from "@helpers/validation.helper";
@@ -61,6 +64,7 @@ import { ValidationHelper } from "@helpers/validation.helper";
     MatRadioModule,
     MatMenuModule,
     MatDividerModule,
+    CheckboxComponent,
   ],
   templateUrl: "./manage-todo.view.html",
 })
@@ -134,13 +138,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
     },
   ];
 
-  availableProfiles = signal<Profile[]>([]);
+  availableProfiles = computed(() => this.storageService.profiles());
   localTeamMembers = signal<Profile[]>([]);
   userSearchQuery = signal("");
 
   availableCategories = signal<Category[]>([]);
   newCategoryTitle = signal("");
   isCategoryListExpanded = signal(false);
+  selectedCategories = signal<Set<string>>(new Set());
 
   ngOnInit(): void {
     this.saveSubscription = this.shortcutService.save$.subscribe(() => this.onSubmit());
@@ -148,7 +153,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
     if (this.userId() && this.userId() !== "") {
       this.form.controls["user_id"].setValue(this.userId());
-      this.fetchProfiles(); // Storage-first, no await — form opens immediately
       this.fetchCategories();
     }
 
@@ -313,53 +317,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
     }
   }
 
-  fetchProfiles(): void {
-    // 1. Use storage first — show dropdown immediately (no long load)
-    const currentProfile = this.storageService.profile();
-    const profileMap = new Map<string, Profile>();
-    if (currentProfile) {
-      profileMap.set(currentProfile.user_id, currentProfile);
-    }
-    this.storageService.sharedTodos().forEach((todo) => {
-      todo.assignees_profiles?.forEach((profile: any) => {
-        if (profile?.user_id) profileMap.set(profile.user_id, profile);
-      });
-    });
-    const fromStorage = Array.from(profileMap.values());
-    this.availableProfiles.set(fromStorage);
-
-    // 2. Load all profiles from backend/JSON in background;
-    //    update storage with current user's profile so header gets profile with user
-    this.dataSyncProvider
-      .crud<Profile[]>(
-        "getAll",
-        "profiles",
-        {
-          filter: {},
-          isPrivate: false,
-          isOwner: false,
-        },
-        true
-      )
-      .subscribe({
-        next: (fetchedProfiles) => {
-          if (!fetchedProfiles?.length) return;
-          const merged = new Map<string, Profile>();
-          fromStorage.forEach((p) => merged.set(p.user_id, p));
-          fetchedProfiles.forEach((p) => merged.set(p.user_id, p));
-          this.availableProfiles.set(Array.from(merged.values()));
-          const myProfile = fetchedProfiles.find((p) => p.user_id === this.userId());
-          if (myProfile) {
-            this.storageService.setCollection("profiles", myProfile);
-          }
-        },
-        error: () => {},
-      });
-  }
-
   getFilteredUsers() {
     if (!this.userSearchQuery()) return this.availableProfiles();
-    return this.availableProfiles().filter((p) =>
+    return this.availableProfiles().filter((p: Profile) =>
       `${p.name} ${p.last_name} ${p.user?.email || ""}`
         .toLowerCase()
         .includes(this.userSearchQuery().toLowerCase())
@@ -431,6 +391,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
         ? current.filter((c: Category) => c.id !== category.id)
         : [...current, category],
     });
+    this.toggleCategorySelection(category.id);
   }
 
   getSelectedCategoriesText(): string {
@@ -440,16 +401,19 @@ export class ManageTodoView implements OnInit, OnDestroy {
   addCategory() {
     if (this.newCategoryTitle().trim()) {
       const title = this.newCategoryTitle().trim();
+      const categoryData = {
+        title: title,
+        user_id: this.userId(),
+      };
+
+      console.log("[ManageTodo] Creating category with data:", categoryData);
 
       this.newCategoryTitle.set("");
 
       // Sync with backend
       this.dataSyncProvider
         .crud<Category>("create", "categories", {
-          data: {
-            title: title,
-            user_id: this.userId(),
-          },
+          data: categoryData,
         })
         .subscribe({
           next: (result: Category) => {
@@ -462,6 +426,36 @@ export class ManageTodoView implements OnInit, OnDestroy {
           },
         });
     }
+  }
+
+  toggleCategorySelection(categoryId: string): void {
+    const selected = this.selectedCategories();
+    if (selected.has(categoryId)) {
+      selected.delete(categoryId);
+    } else {
+      selected.add(categoryId);
+    }
+    this.selectedCategories.set(new Set(selected));
+  }
+
+  toggleSelectAllCategories(): void {
+    const allIds = this.availableCategories().map((c) => c.id);
+    const selected = this.selectedCategories();
+    if (selected.size === allIds.length) {
+      this.selectedCategories.set(new Set());
+    } else {
+      this.selectedCategories.set(new Set(allIds));
+    }
+    console.log("Selected categories:", this.selectedCategories().size, "All:", allIds.length);
+  }
+
+  isAllCategoriesSelected = computed(() => {
+    const allIds = this.availableCategories().map((c) => c.id);
+    return allIds.length > 0 && this.selectedCategories().size === allIds.length;
+  });
+
+  isCategorySelectedById(categoryId: string): boolean {
+    return this.selectedCategories().has(categoryId);
   }
 
   onSubmit() {
