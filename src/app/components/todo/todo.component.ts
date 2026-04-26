@@ -114,11 +114,22 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   getAssigneeImageUrl(assignee: any): string {
-    return assignee?.user?.profile?.image_url || "assets/images/user.png";
+    if (!assignee) return "assets/images/user.png";
+    // If it's a profile object
+    if (assignee.image_url) return assignee.image_url;
+    // If it's a user object with a profile
+    if (assignee.user?.profile?.image_url) return assignee.user.profile.image_url;
+    if (assignee.profile?.image_url) return assignee.profile.image_url;
+    return "assets/images/user.png";
   }
 
   getAssigneeUserId(assignee: any): string {
-    return assignee?.user_id || "";
+    if (!assignee) return "";
+    // If it's a profile object
+    if (assignee.user_id) return assignee.user_id;
+    // If it's a user object
+    if (assignee.id) return assignee.id;
+    return "";
   }
 
   getProjectStatusColor(): string {
