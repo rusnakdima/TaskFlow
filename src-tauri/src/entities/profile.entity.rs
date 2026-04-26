@@ -3,11 +3,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, WithRelations};
-use nosql_orm::validators::Validate as OrmValidate;
-use nosql_orm::Validate;
+use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("profiles")]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,
@@ -21,30 +20,9 @@ pub struct ProfileEntity {
   pub updated_at: DateTime<Utc>,
 }
 
-impl Entity for ProfileEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("profiles")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-}
-
-impl WithRelations for ProfileEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![RelationDef::many_to_one("user", "users", "user_id")]
-  }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ProfileCreateModel {
   #[serde(default)]
-  #[validate(not_empty)]
   pub name: Option<String>,
   #[serde(default)]
   pub last_name: Option<String>,
@@ -93,7 +71,7 @@ pub struct ProfileUpdateModel {
   pub updated_at: Option<String>,
 }
 
-impl OrmValidate for ProfileUpdateModel {
+impl nosql_orm::validators::Validate for ProfileUpdateModel {
   fn validate(&self) -> OrmResult<()> {
     if let Some(ref name) = self.name {
       if name.is_empty() {

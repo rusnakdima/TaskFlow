@@ -2,13 +2,13 @@
 use mongodb::bson::Uuid;
 use serde::{Deserialize, Serialize};
 
-use nosql_orm::prelude::{Entity, EntityMeta};
-use nosql_orm::Validate;
+use nosql_orm::Model;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("daily_activities")]
+#[id_field("id")]
 pub struct DailyActivityModel {
-  pub id: String,
+  pub id: Option<String>,
   pub user_id: String,
   pub date: String,
   pub todos_created: i32,
@@ -30,26 +30,12 @@ pub struct DailyActivityModel {
   pub updated_at: String,
 }
 
-impl Entity for DailyActivityModel {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("daily_activities")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    Some(self.id.clone())
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = id;
-  }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, nosql_orm::Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct DailyActivityCreateModel {
-  #[validate(not_empty)]
+  #[validate(required)]
   pub user_id: String,
-  #[validate(not_empty)]
+  #[validate(required)]
   pub date: String,
 }
 
@@ -59,7 +45,7 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
-      id: Uuid::new().to_string(),
+      id: Some(Uuid::new().to_string()),
       user_id: value.user_id,
       date: value.date,
       todos_created: 0,
@@ -114,7 +100,7 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
     let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
-      id: value.id,
+      id: Some(value.id),
       user_id: value.user_id,
       date: value.date,
       todos_created: value.todos_created,

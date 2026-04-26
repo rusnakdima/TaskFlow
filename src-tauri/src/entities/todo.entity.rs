@@ -2,22 +2,24 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* crate */
-use crate::entities::task_entity::TaskEntity;
-
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
-use nosql_orm::sql::types::SqlOnDelete;
+use nosql_orm::prelude::SoftDeletable;
 use nosql_orm::validators::Validate as OrmValidate;
+use nosql_orm::Model;
 use nosql_orm::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[table_name("todos")]
+#[soft_delete]
+#[timestamp]
+#[one_to_many("tasks", "tasks", "todo_id", "Cascade")]
+#[many_to_one("user", "users", "user_id")]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,
   pub title: String,
-  pub description: String,
+  pub description: Option<String>,
   pub start_date: Option<String>,
   pub end_date: Option<String>,
   pub categories: Vec<String>,
@@ -25,32 +27,9 @@ pub struct TodoEntity {
   pub visibility: String,
   pub priority: String,
   pub order: i32,
-  #[serde(skip_deserializing)]
-  pub tasks: Vec<TaskEntity>,
-  #[serde(default)]
   pub created_at: DateTime<Utc>,
-  #[serde(default)]
   pub updated_at: DateTime<Utc>,
-  #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl Entity for TodoEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("todos")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
 }
 
 impl SoftDeletable for TodoEntity {
@@ -60,19 +39,6 @@ impl SoftDeletable for TodoEntity {
 
   fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
     self.deleted_at = deleted_at;
-  }
-}
-
-impl WithRelations for TodoEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![
-      RelationDef::one_to_many("tasks", "tasks", "todo_id").on_delete(SqlOnDelete::Cascade),
-      RelationDef::one_to_many("chats", "chats", "todo_id").on_delete(SqlOnDelete::Cascade),
-      RelationDef::many_to_one("user", "users", "user_id"),
-      RelationDef::many_to_many("categories", "categories", "categories"),
-      RelationDef::many_to_one_array("assignees_profiles", "profiles", "assignees")
-        .transform_map("user_id", "profiles", "id"),
-    ]
   }
 }
 
@@ -123,7 +89,7 @@ impl From<TodoCreateModel> for TodoEntity {
       id: None,
       user_id: value.user_id,
       title: value.title,
-      description: value.description,
+      description: Some(value.description),
       start_date: formatted_start_date,
       end_date: formatted_end_date,
       categories: value.categories,
@@ -131,7 +97,6 @@ impl From<TodoCreateModel> for TodoEntity {
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,
-      tasks: vec![],
       deleted_at: None,
       created_at: now,
       updated_at: now,

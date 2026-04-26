@@ -3,15 +3,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
-/* crate */
-use crate::entities::comment_entity::CommentEntity;
-
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
-use nosql_orm::sql::types::SqlOnDelete;
-use nosql_orm::validators::Validate as OrmValidate;
-use nosql_orm::Validate;
+use nosql_orm::prelude::SoftDeletable;
+use nosql_orm::{Model, Validate};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
@@ -37,13 +31,24 @@ impl Display for TaskStatus {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
+#[table_name("tasks")]
+#[soft_delete]
+#[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
+#[one_to_many("comments", "comments", "task_id", "Cascade")]
+#[many_to_one("todo", "todos", "todo_id")]
 pub struct TaskEntity {
   pub id: Option<String>,
+  #[validate(required)]
   pub todo_id: String,
+  #[validate(not_empty)]
+  #[validate(length(min = 1, max = 200))]
   pub title: String,
+  #[validate(length(max = 5000))]
   pub description: String,
   pub status: TaskStatus,
+  #[validate(not_empty)]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   pub start_date: Option<String>,
   pub end_date: Option<String>,
@@ -56,24 +61,6 @@ pub struct TaskEntity {
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
-impl Entity for TaskEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("tasks")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
-}
-
 impl SoftDeletable for TaskEntity {
   fn deleted_at(&self) -> Option<DateTime<Utc>> {
     self.deleted_at
@@ -84,24 +71,17 @@ impl SoftDeletable for TaskEntity {
   }
 }
 
-impl WithRelations for TaskEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![
-      RelationDef::one_to_many("subtasks", "subtasks", "task_id").on_delete(SqlOnDelete::Cascade),
-      RelationDef::one_to_many("comments", "comments", "task_id").on_delete(SqlOnDelete::Cascade),
-      RelationDef::many_to_one("todo", "todos", "todo_id"),
-    ]
-  }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TaskCreateModel {
+  #[validate(required)]
   #[validate(not_empty)]
   pub todo_id: String,
   #[validate(not_empty)]
+  #[validate(length(min = 1, max = 200))]
   pub title: String,
   pub description: Option<String>,
   #[validate(not_empty)]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   pub start_date: String,
   pub end_date: String,
@@ -176,19 +156,23 @@ pub struct TaskUpdateModel {
   #[serde(default)]
   pub updated_at: Option<String>,
   #[serde(default)]
-  pub comments: Option<Vec<CommentEntity>>,
+  pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
 }
 
-impl OrmValidate for TaskUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
+impl nosql_orm::validators::Validate for TaskUpdateModel {
+  fn validate(&self) -> nosql_orm::error::OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err(OrmError::Validation("title cannot be empty".to_string()));
+        return Err(nosql_orm::error::OrmError::Validation(
+          "title cannot be empty".to_string(),
+        ));
       }
     }
     if let Some(ref priority) = self.priority {
       if priority.is_empty() {
-        return Err(OrmError::Validation("priority cannot be empty".to_string()));
+        return Err(nosql_orm::error::OrmError::Validation(
+          "priority cannot be empty".to_string(),
+        ));
       }
     }
     Ok(())

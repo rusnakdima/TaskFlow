@@ -2,20 +2,28 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::{Entity, EntityMeta, RelationDef, SoftDeletable, WithRelations};
-use nosql_orm::sql::types::SqlOnDelete;
-use nosql_orm::validators::Validate as OrmValidate;
-use nosql_orm::Validate;
+use nosql_orm::prelude::SoftDeletable;
+use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
+#[table_name("subtasks")]
+#[soft_delete]
+#[one_to_many("comments", "comments", "subtask_id", "Cascade")]
+#[many_to_one("task", "tasks", "task_id")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
+  #[validate(required)]
   pub task_id: String,
+  #[validate(not_empty)]
+  #[validate(length(min = 1, max = 200))]
   pub title: String,
+  #[validate(length(max = 3000))]
   pub description: String,
   pub status: crate::entities::task_entity::TaskStatus,
+  #[validate(not_empty)]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
+  #[validate(range(min = 0, max = 9999))]
   pub order: i32,
   pub start_date: Option<String>,
   pub end_date: Option<String>,
@@ -25,24 +33,6 @@ pub struct SubtaskEntity {
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl Entity for SubtaskEntity {
-  fn meta() -> EntityMeta {
-    EntityMeta::new("subtasks")
-  }
-
-  fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
-  fn set_id(&mut self, id: String) {
-    self.id = Some(id);
-  }
-
-  fn is_soft_deletable() -> bool {
-    true
-  }
 }
 
 impl SoftDeletable for SubtaskEntity {
@@ -55,25 +45,19 @@ impl SoftDeletable for SubtaskEntity {
   }
 }
 
-impl WithRelations for SubtaskEntity {
-  fn relations() -> Vec<RelationDef> {
-    vec![
-      RelationDef::many_to_one("task", "tasks", "task_id"),
-      RelationDef::one_to_many("comments", "comments", "subtask_id")
-        .on_delete(SqlOnDelete::Cascade),
-    ]
-  }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct SubtaskCreateModel {
+  #[validate(required)]
   #[validate(not_empty)]
   pub task_id: String,
   #[validate(not_empty)]
+  #[validate(length(min = 1, max = 200))]
   pub title: String,
   pub description: Option<String>,
   #[validate(not_empty)]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
+  #[validate(range(min = 0, max = 9999))]
   pub order: i32,
 }
 
@@ -127,16 +111,20 @@ pub struct SubtaskUpdateModel {
   pub sync_metadata: Option<crate::entities::sync_metadata_entity::SyncMetadata>,
 }
 
-impl OrmValidate for SubtaskUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
+impl nosql_orm::validators::Validate for SubtaskUpdateModel {
+  fn validate(&self) -> nosql_orm::error::OrmResult<()> {
     if let Some(ref title) = self.title {
       if title.is_empty() {
-        return Err(OrmError::Validation("title cannot be empty".to_string()));
+        return Err(nosql_orm::error::OrmError::Validation(
+          "title cannot be empty".to_string(),
+        ));
       }
     }
     if let Some(ref priority) = self.priority {
       if priority.is_empty() {
-        return Err(OrmError::Validation("priority cannot be empty".to_string()));
+        return Err(nosql_orm::error::OrmError::Validation(
+          "priority cannot be empty".to_string(),
+        ));
       }
     }
     Ok(())
