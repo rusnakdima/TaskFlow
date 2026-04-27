@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subscription, firstValueFrom } from "rxjs";
+import { Subscription, Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -154,36 +154,17 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
     return ValidationHelper.createEndDateFilter("start_date", this.form)(date);
   };
 
-  async getSubtaskInfo(subtaskId?: string) {
+  getSubtaskInfo(subtaskId?: string) {
     if (!subtaskId) return;
-    const subtaskFromStorage = this.storageService.getById("subtasks", subtaskId);
-    if (subtaskFromStorage) {
-      const localDates = DateHelper.convertDatesFromUtcToLocal(subtaskFromStorage);
+    const subtask = this.storageService.getById("subtasks", subtaskId);
+    if (subtask) {
+      const localDates = DateHelper.convertDatesFromUtcToLocal(subtask);
       this.form.patchValue(localDates);
       if (localDates.start_date)
         ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
-      return;
-    }
-
-    try {
-      const todoId = this.todoId();
-      const subtasks = await firstValueFrom(
-        this.dataSyncProvider.crud<Subtask[]>(
-          "getAll",
-          "subtasks",
-          { filter: { id: subtaskId }, parentTodoId: todoId },
-          true
-        )
-      );
-      if (subtasks.length > 0) {
-        const localDates = DateHelper.convertDatesFromUtcToLocal(subtasks[0]);
-        this.form.patchValue(localDates);
-        if (localDates.start_date)
-          ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load subtask";
-      this.notifyService.showError(message);
+    } else {
+      this.notifyService.showError("Subtask not found");
+      this.back();
     }
   }
 
@@ -193,36 +174,24 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
 
   loadProjectInfo(todoId?: string) {
     if (!todoId) return;
-    const cachedTodo = this.storageService.getById("todos", todoId);
-    if (cachedTodo) {
-      this.projectInfo.set(cachedTodo);
-      this.isOwner = cachedTodo.user_id === this.userId;
-      this.isPrivate = cachedTodo.visibility === "private";
-      return;
+    const todo = this.storageService.getById("todos", todoId);
+    if (todo) {
+      this.projectInfo.set(todo);
+      this.isOwner = todo.user_id === this.userId;
+      this.isPrivate = todo.visibility === "private";
+    } else {
+      this.notifyService.showError("Todo not found");
     }
-
-    this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
-      next: (todo: Todo) => {
-        this.projectInfo.set(todo);
-        this.isOwner = todo.user_id === this.userId;
-        this.isPrivate = todo.visibility === "private";
-      },
-      error: () => {},
-    });
   }
 
   loadTaskInfo(taskId?: string) {
     if (!taskId) return;
-    const taskFromStorage = this.storageService.getById("tasks", taskId);
-    if (taskFromStorage) {
-      this.taskInfo.set(taskFromStorage);
-      return;
+    const task = this.storageService.getById("tasks", taskId);
+    if (task) {
+      this.taskInfo.set(task);
+    } else {
+      this.notifyService.showError("Task not found");
     }
-
-    this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
-      next: (task: Task) => this.taskInfo.set(task),
-      error: () => {},
-    });
   }
 
   async duplicateSubtask() {
@@ -243,8 +212,16 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           order: subtasks.length,
         };
 
+        const parentTodo = this.storageService.getById("todos", todoId);
+        const isPrivate = parentTodo?.visibility !== "team";
+
         this.dataSyncProvider
-          .crud<Subtask>("create", "subtasks", { data: duplicateData, parentTodoId: todoId })
+          .crud<Subtask>("create", "subtasks", {
+            data: duplicateData,
+            parentTodoId: todoId,
+            isOwner: this.isOwner,
+            isPrivate,
+          })
           .subscribe({
             next: () => {
               this.notifyService.showSuccess("Subtask duplicated successfully");
@@ -305,6 +282,7 @@ export class ManageSubtaskView implements OnInit, OnDestroy {
           .crud<Subtask>("create", "subtasks", {
             data: body,
             parentTodoId: todoId,
+            isOwner: this.isOwner,
             isPrivate: isPrivate,
           })
           .subscribe({

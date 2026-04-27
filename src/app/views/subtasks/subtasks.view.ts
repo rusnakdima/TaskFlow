@@ -13,7 +13,7 @@ import {
 } from "@angular/core";
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
-import { Subscription, firstValueFrom } from "rxjs";
+import { Subscription, Observable, firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
 import { toSignal } from "@angular/core/rxjs-interop";
 
@@ -306,22 +306,20 @@ export class SubtasksView extends BaseListView implements OnInit {
       }
       this.cdr.detectChanges();
     } else {
-      // Fallback: load data first, then resolve task from storage
+      // Fallback: check storage directly
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        this.dataSyncService.loadAllData().subscribe(() => {
-          const taskFromStorage = this.storageService.getById("tasks", taskId);
-          if (taskFromStorage) {
-            const todoFromStorage = this.storageService.getById("todos", taskFromStorage.todo_id);
-            if (todoFromStorage) {
-              this.todoId.set(todoFromStorage.id);
-              this.projectTitle.set(todoFromStorage.title);
-            }
-          } else {
-            this.notifyService.showError("Task not found. Please try again.");
+        const task = this.storageService.getById("tasks", taskId);
+        if (task) {
+          const todo = this.storageService.getById("todos", task.todo_id);
+          if (todo) {
+            this.todoId.set(todo.id);
+            this.projectTitle.set(todo.title);
           }
-          this.loading.set(false);
-        });
+        } else {
+          this.notifyService.showError("Task not found. Please refresh.");
+        }
+        this.loading.set(false);
       } else {
         this.notifyService.showError("Invalid task ID.");
         this.loading.set(false);

@@ -65,11 +65,6 @@ export class QrLoginView implements OnDestroy, OnInit {
   ngOnInit(): void {
     const usernameFromRoute = this.route.snapshot.queryParamMap.get("username") || "";
     this.username.set(usernameFromRoute);
-
-    if (!this.username()) {
-      this.router.navigate(["/login"]);
-      return;
-    }
     this.loginWithQrCode();
   }
 

@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription, firstValueFrom } from "rxjs";
+import { Subscription, Observable, firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -172,35 +172,17 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   getTaskInfo(taskId?: string) {
     if (!taskId) return;
-    const taskFromStorage = this.storageService.getById("tasks", taskId);
-    if (taskFromStorage) {
-      const localDates = DateHelper.convertDatesFromUtcToLocal(taskFromStorage);
+    const task = this.storageService.getById("tasks", taskId);
+    if (task) {
+      const localDates = DateHelper.convertDatesFromUtcToLocal(task);
       this.form.patchValue(localDates);
-
-      const startDate = localDates.start_date;
-      const endDate = localDates.end_date;
-      if (startDate && endDate) {
-        ValidationHelper.updateEndDateValidation(this.form, startDate);
+      if (localDates.start_date && localDates.end_date) {
+        ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
       }
-      return;
+    } else {
+      this.notifyService.showError("Task not found");
+      this.back();
     }
-
-    this.dataSyncProvider.crud<Task>("get", "tasks", { id: taskId }).subscribe({
-      next: (taskData: Task) => {
-        const localDates = DateHelper.convertDatesFromUtcToLocal(taskData);
-        this.form.patchValue(localDates);
-
-        const startDate = localDates.start_date;
-        const endDate = localDates.end_date;
-        if (startDate && endDate) {
-          ValidationHelper.updateEndDateValidation(this.form, startDate);
-        }
-      },
-      error: (err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        this.notifyService.showError(message || "Failed to update task");
-      },
-    });
   }
 
   back() {
@@ -209,22 +191,14 @@ export class ManageTaskView implements OnInit, OnDestroy {
 
   loadProjectInfo(todoId?: string) {
     if (!todoId) return;
-    const cachedTodo = this.storageService.getById("todos", todoId);
-    if (cachedTodo) {
-      this.projectInfo.set(cachedTodo);
-      this.isOwner = cachedTodo.user_id === this.userId;
-      this.isPrivate = cachedTodo.visibility === "private";
-      return;
+    const todo = this.storageService.getById("todos", todoId);
+    if (todo) {
+      this.projectInfo.set(todo);
+      this.isOwner = todo.user_id === this.userId;
+      this.isPrivate = todo.visibility === "private";
+    } else {
+      this.notifyService.showError("Todo not found");
     }
-
-    this.dataSyncProvider.crud<Todo>("get", "todos", { id: todoId }).subscribe({
-      next: (todo: Todo) => {
-        this.projectInfo.set(todo);
-        this.isOwner = todo.user_id === this.userId;
-        this.isPrivate = todo.visibility === "private";
-      },
-      error: (err: unknown) => {},
-    });
   }
 
   onSubmit() {

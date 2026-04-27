@@ -192,9 +192,14 @@ export class DashboardView implements OnInit {
   }
 
   getLastTime(task: DisplayTask): string {
-    const latestDate = new Date(
-      Math.max(new Date(task.created_at).getTime(), new Date(task.updated_at).getTime())
-    );
+    const createdAt = new Date(task.created_at);
+    const updatedAt = new Date(task.updated_at);
+    const createdTime = isNaN(createdAt.getTime()) ? 0 : createdAt.getTime();
+    const updatedTime = isNaN(updatedAt.getTime()) ? 0 : updatedAt.getTime();
+    const latestDate = new Date(Math.max(createdTime, updatedTime));
+    if (isNaN(latestDate.getTime())) {
+      return "-";
+    }
     return this.formatDate(latestDate.toISOString());
   }
 

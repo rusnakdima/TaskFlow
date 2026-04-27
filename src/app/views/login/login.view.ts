@@ -503,12 +503,7 @@ export class LoginView implements OnDestroy {
   }
 
   goToQrLogin(): void {
-    const username = this.f["username"].value;
-    if (!username) {
-      this.notifyService.showError("Please enter your username first");
-      return;
-    }
-    this.router.navigate(["/login/qr"], { queryParams: { username } });
+    this.router.navigate(["/login/qr"]);
   }
 
   private async completePasswordlessLogin(
