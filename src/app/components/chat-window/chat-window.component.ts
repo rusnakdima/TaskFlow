@@ -297,8 +297,16 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
       content: this.newMessage,
     };
 
+    const todo = this.storageService.getById("todos", this.todo_id);
+    const isPrivate = todo?.visibility !== "team";
+
     this.dataSync
-      .crud<Chat>("create", "chats", { data: chatForBackend, parentTodoId: this.todo_id })
+      .crud<Chat>("create", "chats", {
+        data: chatForBackend,
+        parentTodoId: this.todo_id,
+        isOwner: this.isOwner(),
+        isPrivate,
+      })
       .subscribe(() => {
         this.newMessage = "";
         this.shouldScroll = true;

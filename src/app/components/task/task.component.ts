@@ -311,6 +311,8 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         .crud<Comment>("create", "comments", {
           data: commentForBackend,
           parentTodoId: effectiveTodoId,
+          isOwner: this.isOwner,
+          isPrivate: this.isPrivate,
         })
         .subscribe({
           next: () => {
@@ -348,6 +350,8 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       .crud<Comment>("create", "comments", {
         data: commentForBackend,
         parentTodoId: effectiveTodoId,
+        isOwner: this.isOwner,
+        isPrivate: this.isPrivate,
       })
       .subscribe({
         next: () => {

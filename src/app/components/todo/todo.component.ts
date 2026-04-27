@@ -190,6 +190,19 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     return this.todo?.tasks?.length ?? 0;
   }
 
+  getTotalSubtasksCount(): number {
+    if (!this.todo?.tasks) return 0;
+    return this.todo.tasks.reduce((acc, task) => acc + (task.subtasks?.length ?? 0), 0);
+  }
+
+  getCompletedSubtasksCount(): number {
+    if (!this.todo?.tasks) return 0;
+    return this.todo.tasks.reduce(
+      (acc, task) => acc + BaseItemHelper.countCompleted(task.subtasks ?? []),
+      0
+    );
+  }
+
   toggleSelection(checked: boolean): void {
     if (this.todo) {
       this.selectionChangeEvent.emit({ id: this.todo.id, selected: checked });
