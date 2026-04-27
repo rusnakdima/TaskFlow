@@ -77,9 +77,19 @@ export class SyncService implements OnDestroy {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const userId = this.jwtTokenService.getUserId(token);
 
+      if (!userId) {
+        this.notifyService.showError("User not authenticated");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "User not authenticated",
+          data: null as unknown as R,
+        };
+      }
+
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
 
-      const result = await invoke<Response<R>>("import_to_local", { user_id: userId });
+      const result = await invoke<Response<R>>("import_to_local", { userId: userId });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 90, message: "Updating local data..." });
@@ -118,9 +128,19 @@ export class SyncService implements OnDestroy {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const userId = this.jwtTokenService.getUserId(token);
 
+      if (!userId) {
+        this.notifyService.showError("User not authenticated");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "User not authenticated",
+          data: null as unknown as R,
+        };
+      }
+
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
 
-      const result = await invoke<Response<R>>("export_to_cloud", { user_id: userId });
+      const result = await invoke<Response<R>>("export_to_cloud", { userId: userId });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 100, message: "Export complete" });

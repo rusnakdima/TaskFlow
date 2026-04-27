@@ -193,6 +193,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         .crud<Comment>("create", "comments", {
           data: commentForBackend,
           parentTodoId: effectiveTodoId,
+          isOwner: this.isOwner,
+          isPrivate: this.isPrivate,
         })
         .subscribe({
           next: () => {
