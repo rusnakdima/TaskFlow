@@ -1,4 +1,5 @@
 /* sys lib */
+use chrono::{DateTime, Utc};
 use mongodb::bson::Uuid;
 use serde::{Deserialize, Serialize};
 
@@ -26,8 +27,8 @@ pub struct DailyActivityModel {
   pub total_tasks: i32,
   pub completed_tasks: i32,
   pub productivity_score: i32,
-  pub created_at: String,
-  pub updated_at: String,
+  pub created_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, nosql_orm::Validate)]
@@ -42,7 +43,6 @@ pub struct DailyActivityCreateModel {
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
     let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
       id: Some(Uuid::new().to_string()),
@@ -63,8 +63,8 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
       total_tasks: 0,
       completed_tasks: 0,
       productivity_score: 0,
-      created_at: formatted.clone(),
-      updated_at: formatted,
+      created_at: Some(now),
+      updated_at: Some(now),
     }
   }
 }
@@ -97,7 +97,6 @@ pub struct DailyActivityUpdateModel {
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
     let now = chrono::Utc::now();
-    let formatted = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     DailyActivityModel {
       id: Some(value.id),
@@ -118,8 +117,12 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
       total_tasks: value.total_tasks,
       completed_tasks: value.completed_tasks,
       productivity_score: value.productivity_score,
-      created_at: value.created_at,
-      updated_at: formatted,
+      created_at: Some(
+        chrono::DateTime::parse_from_rfc3339(&value.created_at)
+          .map(|dt| dt.with_timezone(&Utc))
+          .unwrap_or_else(|_| now),
+      ),
+      updated_at: Some(now),
     }
   }
 }

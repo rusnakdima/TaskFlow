@@ -14,9 +14,9 @@ pub struct CategoryEntity {
   pub title: String,
   pub user_id: String,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -38,8 +38,8 @@ impl From<CategoryCreateModel> for CategoryEntity {
       title: value.title,
       user_id: value.user_id,
       deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
     }
   }
 }

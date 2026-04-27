@@ -17,9 +17,9 @@ pub struct ProfileEntity {
   pub image_url: String,
   pub user_id: String,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
@@ -47,8 +47,8 @@ impl From<ProfileCreateModel> for ProfileEntity {
       bio: value.bio.unwrap_or_default(),
       image_url: value.image_url.unwrap_or_default(),
       user_id: value.user_id,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
     }
   }
 }

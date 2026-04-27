@@ -28,9 +28,9 @@ pub struct SubtaskEntity {
   pub start_date: Option<String>,
   pub end_date: Option<String>,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -64,8 +64,8 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       priority: value.priority,
       order: value.order,
       deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
       start_date: None,
       end_date: None,
     }

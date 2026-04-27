@@ -23,9 +23,9 @@ pub struct CommentEntity {
   #[serde(default)]
   pub read_by: Vec<String>,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -92,8 +92,8 @@ impl From<CommentCreateModel> for CommentEntity {
       author_id: value.author_id,
       author_name: value.author_name,
       content: value.content,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
       task_id: value.task_id,
       subtask_id: value.subtask_id,
       read_by: vec![],
