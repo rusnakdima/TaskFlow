@@ -20,6 +20,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { AuthStore } from "@stores/auth.store";
+import { StorageService } from "@services/core/storage.service";
 
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
@@ -44,6 +45,7 @@ export class QrLoginView implements OnDestroy, OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authStore = inject(AuthStore);
+  private storageService = inject(StorageService);
 
   readonly isMobileDevice = computed(() => this.authCapabilityService.capabilities().isMobile);
 
@@ -267,16 +269,28 @@ export class QrLoginView implements OnDestroy, OnInit {
 
   private async completeQrLogin(token: string): Promise<void> {
     try {
-      const result = await firstValueFrom(
-        this.dataSyncProvider.invokeCommand<string>("qr_login_complete", { token })
+      const authResponse = await firstValueFrom(
+        this.dataSyncProvider.invokeCommand<{
+          token: string;
+          needsProfile: boolean;
+          profile: any;
+          userId: string;
+        }>("qr_login_complete", { token })
       );
 
-      if (result) {
+      if (authResponse && authResponse.token) {
+        // Store profile if provided
+        if (authResponse.profile && !authResponse.needsProfile) {
+          this.storageService.setCollection("profiles", authResponse.profile);
+        }
+
         LoginCompletionHelper.completeLogin({
-          token: result,
+          token: authResponse.token,
           remember: false,
+          needsProfile: authResponse.needsProfile,
+          userId: authResponse.userId,
         });
-        this.authStore.setAuthenticated(result);
+        this.authStore.setAuthenticated(authResponse.token);
       } else {
         this.notifyService.showError("Authentication failed - no token received");
         this.cancelQrLogin();
