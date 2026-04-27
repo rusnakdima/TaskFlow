@@ -24,16 +24,29 @@ pub async fn check_profile_exists(
   );
 
   // Try JSON first
-  if let Ok(mut profiles) = json_provider
+  match json_provider
     .find_many(table_name, Some(&filter), None, None, None, true)
     .await
   {
-    eprintln!("[Profile Check] JSON found {} profiles", profiles.len());
-    if let Some(profile_val) = profiles.pop() {
-      let profile: ProfileEntity = serde_json::from_value(profile_val)
-        .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
-      eprintln!("[Profile Check] JSON profile found: {:?}", profile.user_id);
-      return Ok(Some(profile));
+    Ok(profiles) => {
+      eprintln!("[Profile Check] JSON found {} profiles", profiles.len());
+      if let Some(profile_val) = profiles.first() {
+        match serde_json::from_value::<ProfileEntity>(profile_val.clone()) {
+          Ok(profile) => {
+            eprintln!(
+              "[Profile Check] JSON profile found: id={:?}, user_id={}",
+              profile.id, profile.user_id
+            );
+            return Ok(Some(profile));
+          }
+          Err(e) => {
+            eprintln!("[Profile Check] JSON parse error: {}", e);
+          }
+        }
+      }
+    }
+    Err(e) => {
+      eprintln!("[Profile Check] JSON error: {}", e);
     }
   }
 
@@ -44,16 +57,21 @@ pub async fn check_profile_exists(
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
     {
-      Ok(mut profiles) => {
+      Ok(profiles) => {
         eprintln!("[Profile Check] MongoDB found {} profiles", profiles.len());
-        if let Some(profile_val) = profiles.pop() {
-          let profile: ProfileEntity = serde_json::from_value(profile_val)
-            .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
-          eprintln!(
-            "[Profile Check] MongoDB profile found: {:?}",
-            profile.user_id
-          );
-          return Ok(Some(profile));
+        if let Some(profile_val) = profiles.first() {
+          match serde_json::from_value::<ProfileEntity>(profile_val.clone()) {
+            Ok(profile) => {
+              eprintln!(
+                "[Profile Check] MongoDB profile found: id={:?}, user_id={}",
+                profile.id, profile.user_id
+              );
+              return Ok(Some(profile));
+            }
+            Err(e) => {
+              eprintln!("[Profile Check] MongoDB parse error: {}", e);
+            }
+          }
         }
       }
       Err(e) => {

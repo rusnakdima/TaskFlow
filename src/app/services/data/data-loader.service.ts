@@ -279,15 +279,21 @@ export class DataLoaderService {
   loadProfile(): Observable<Profile | null> {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
 
+    console.log("[DataLoader] loadProfile called, userId:", userId);
+
     if (!userId) {
+      console.log("[DataLoader] loadProfile: no userId, returning null");
       return of(null);
     }
 
     const cached = this.storageService.profile();
+    console.log("[DataLoader] loadProfile: cached profile:", cached);
     if (cached?.user_id) {
+      console.log("[DataLoader] loadProfile: returning cached profile");
       return of(cached);
     }
 
+    console.log("[DataLoader] loadProfile: fetching from API");
     return this.fetchProfileFromApi(userId);
   }
 

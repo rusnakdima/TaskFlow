@@ -96,11 +96,12 @@ impl AuthLoginService {
 
     let token = self.token_service.generate_token(user.get_id(), "", "")?;
 
-    let profile = self
-      .check_profile_exists(user.get_id())
-      .await
-      .ok()
-      .flatten();
+    let user_id = user.get_id();
+    eprintln!("[Login] User ID: {}", user_id);
+
+    let profile = self.check_profile_exists(user_id).await.ok().flatten();
+
+    eprintln!("[Login] Profile found: {:?}", profile);
 
     let needs_profile = profile.is_none();
 

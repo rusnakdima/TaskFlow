@@ -32,6 +32,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
 import { AuthStore } from "@stores/auth.store";
+import { StorageService } from "@services/core/storage.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { CryptoHelper } from "@helpers/crypto.helper";
@@ -63,6 +64,7 @@ export class LoginView implements OnDestroy {
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);
+  private storageService = inject(StorageService);
 
   rememberField: CheckboxField = {
     name: "remember",
@@ -217,13 +219,18 @@ export class LoginView implements OnDestroy {
         return;
       }
 
-      LoginCompletionHelper.completeLogin({
-        token,
-        remember: this.f["remember"].value,
-        needsProfile,
-        profile,
-        userId,
-      });
+      // Store profile if provided (user logged in on new device with existing profile)
+      console.log(profile);
+      if (profile && !needsProfile) {
+        this.storageService.setCollection("profiles", profile);
+      }
+
+      // LoginCompletionHelper.completeLogin({
+      //   token,
+      //   remember: this.f["remember"].value,
+      //   needsProfile,
+      //   userId,
+      // });
 
       if (isOffline) {
         this.notifyService.showWarning("Working offline - some features limited");
@@ -249,11 +256,15 @@ export class LoginView implements OnDestroy {
       await new Promise<void>((resolve, reject) => {
         this.securityService.completeTotpLogin(username, code).subscribe({
           next: (authResponse) => {
+            // Store profile if provided
+            if (authResponse.profile && !authResponse.needsProfile) {
+              this.storageService.setCollection("profiles", authResponse.profile);
+            }
+
             LoginCompletionHelper.completeLogin({
               token: authResponse.token,
               remember: this.f["remember"].value,
               needsProfile: authResponse.needsProfile,
-              profile: authResponse.profile,
             });
             resolve();
           },
@@ -518,11 +529,15 @@ export class LoginView implements OnDestroy {
     }
 
     if (authResponse?.token) {
+      // Store profile if provided
+      if (authResponse.profile && !authResponse.needsProfile) {
+        this.storageService.setCollection("profiles", authResponse.profile);
+      }
+
       LoginCompletionHelper.completeLogin({
         token: authResponse.token,
         remember: this.f["remember"].value,
         needsProfile: authResponse.needsProfile,
-        profile: authResponse.profile,
       });
       return;
     }
@@ -537,11 +552,15 @@ export class LoginView implements OnDestroy {
       const loginResult = await this.authService.loginWithOfflineFirst(authData);
 
       if (loginResult.token) {
+        // Store profile if provided
+        if (loginResult.profile && !loginResult.needsProfile) {
+          this.storageService.setCollection("profiles", loginResult.profile);
+        }
+
         LoginCompletionHelper.completeLogin({
           token: loginResult.token,
           remember: this.f["remember"].value,
           needsProfile: loginResult.needsProfile,
-          profile: loginResult.profile,
           userId: loginResult.userId,
         });
       } else {
