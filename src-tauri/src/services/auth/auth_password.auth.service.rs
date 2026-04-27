@@ -66,7 +66,7 @@ impl AuthPasswordService {
 
     user.temporary_code = code.clone();
     user.code_expires_at = expiration;
-    user.updated_at = chrono::Utc::now();
+    user.updated_at = Some(chrono::Utc::now());
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();
@@ -164,7 +164,7 @@ impl AuthPasswordService {
     user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
-    user.updated_at = chrono::Utc::now();
+    user.updated_at = Some(chrono::Utc::now());
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();

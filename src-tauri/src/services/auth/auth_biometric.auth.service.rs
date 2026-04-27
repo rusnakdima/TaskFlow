@@ -133,7 +133,7 @@ impl AuthBiometricService {
     updated_user.passkey_public_key = public_key.to_string();
     updated_user.passkey_device = "platform".to_string();
     updated_user.biometric_enabled = true;
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 
@@ -179,7 +179,7 @@ impl AuthBiometricService {
 
     let mut updated_user = user.clone();
     updated_user.biometric_enabled = false;
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 
