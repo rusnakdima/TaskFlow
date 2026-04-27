@@ -6,11 +6,15 @@ use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
 use crate::entities::{
+  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
 };
-use crate::helpers::response_helper::{err_response, success_response};
+use crate::helpers::{
+  profile_helper::check_profile_exists,
+  response_helper::{err_response, success_response},
+};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
@@ -127,7 +131,7 @@ impl QrAuthService {
       message: "QR code generated".to_string(),
       data: DataValue::Object(json!({
           "token": token,
-          "qr_code": qr_code,
+          "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
       })),
     })
@@ -160,6 +164,9 @@ impl QrAuthService {
     updated_token.approved = true;
     updated_token.approved_at = Some(now);
     updated_token.approved_by = Some(approving_username.to_string());
+    if updated_token.username.is_none() {
+      updated_token.username = Some(approving_username.to_string());
+    }
 
     self.save_qr_token(&updated_token).await?;
 
@@ -281,7 +288,7 @@ impl QrAuthService {
       message: "QR code generated for desktop login".to_string(),
       data: DataValue::Object(json!({
           "token": token,
-          "qr_code": qr_code,
+          "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
       })),
     })
@@ -464,12 +471,29 @@ impl QrAuthService {
       }
     }
 
+    // Check if profile exists (JSON first, then MongoDB)
+    let profile = check_profile_exists(
+      &self.json_provider,
+      self.mongodb_provider.as_deref(),
+      &user_id,
+    )
+    .await
+    .ok()
+    .flatten();
+
+    let needs_profile = profile.is_none();
+
     eprintln!("[QR] Generated JWT token for user: {}", user.username);
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR login successful".to_string(),
-      data: DataValue::String(token),
+      data: DataValue::Object(serde_json::json!({
+        "token": token,
+        "needsProfile": needs_profile,
+        "profile": profile,
+        "userId": user_id
+      })),
     })
   }
 }
