@@ -7,7 +7,6 @@ use crate::entities::profile_entity::ProfileEntity;
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::prelude::FrontendProjection;
 use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
@@ -15,6 +14,21 @@ use nosql_orm::Model;
 #[soft_delete]
 #[timestamp]
 #[many_to_one("profile", "profiles", "profile_id")]
+#[frontend_exclude(
+  "password",
+  "totp_secret",
+  "passkey_public_key",
+  "passkey_credential_id",
+  "passkey_device",
+  "recovery_codes",
+  "reset_token",
+  "temporary_code",
+  "code_expires_at",
+  "biometric_enabled",
+  "passkey_enabled",
+  "totp_enabled",
+  "qr_login_enabled"
+)]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -51,26 +65,6 @@ pub struct UserEntity {
   pub updated_at: DateTime<Utc>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
-}
-
-impl FrontendProjection for UserEntity {
-  fn frontend_excluded_fields() -> Vec<&'static str> {
-    vec![
-      "password",
-      "totp_secret",
-      "passkey_public_key",
-      "passkey_credential_id",
-      "passkey_device",
-      "recovery_codes",
-      "reset_token",
-      "temporary_code",
-      "code_expires_at",
-      "biometric_enabled",
-      "passkey_enabled",
-      "totp_enabled",
-      "qr_login_enabled",
-    ]
-  }
 }
 
 impl UserEntity {

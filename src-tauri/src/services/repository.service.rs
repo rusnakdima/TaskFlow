@@ -13,11 +13,11 @@ use nosql_orm::relations::{get_relation_def, RelationLoader};
 /* entities */
 use crate::entities::{
   provider_type_entity::ProviderType,
-  relation_config::{user_projection, RelationConfig},
   relation_obj::RelationObj,
   response_entity::{DataValue, ResponseModel},
   sync_metadata_entity::SyncMetadata,
   table_entity::validate_model,
+  user_entity::UserEntity,
 };
 
 /* helpers */
@@ -115,7 +115,10 @@ impl RepositoryService {
         // Add collection metadata before loading relations
         result_docs = collection_adder(result_docs, table);
         let segments: Vec<&str> = path.split('.').collect();
-        match loader.load_nested(result_docs, &segments, true).await {
+        match loader
+          .load_nested(result_docs, &segments, table, true)
+          .await
+        {
           Ok(loaded) => result_docs = loaded,
           Err(e) => {
             tracing::warn!(
@@ -162,7 +165,18 @@ impl RepositoryService {
   }
 
   fn apply_projection_recursive(&self, docs: Vec<Value>) -> Vec<Value> {
-    let projection = user_projection();
+    let excluded = vec![
+      "password",
+      "totp_secret",
+      "passkey_public_key",
+      "passkey_credential_id",
+      "passkey_device",
+      "recovery_codes",
+      "reset_token",
+      "temporary_code",
+      "code_expires_at",
+    ];
+    let projection = nosql_orm::query::Projection::exclude(&excluded);
     docs
       .into_iter()
       .map(|doc| projection.apply_recursive(&doc))
@@ -479,7 +493,19 @@ impl RepositoryService {
       .log_action(&table, "create", &created_record, None)
       .await;
 
-    let response_doc = user_projection().apply_recursive(&created_record);
+    let excluded = vec![
+      "password",
+      "totp_secret",
+      "passkey_public_key",
+      "passkey_credential_id",
+      "passkey_device",
+      "recovery_codes",
+      "reset_token",
+      "temporary_code",
+      "code_expires_at",
+    ];
+    let projection = nosql_orm::query::Projection::exclude(&excluded);
+    let response_doc = projection.apply_recursive(&created_record);
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -493,8 +519,7 @@ impl RepositoryService {
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
 
-    let data_val =
-      RelationConfig::get_relation_exclusion_projection(&table).apply_recursive(&data_val);
+    let data_val = data_val.clone();
 
     let validated_data = validate_model(&table, &data_val, false)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
@@ -557,7 +582,19 @@ impl RepositoryService {
       .log_action(&table, "update", &updated_record, None)
       .await;
 
-    let response_doc = user_projection().apply_recursive(&updated_record);
+    let excluded = vec![
+      "password",
+      "totp_secret",
+      "passkey_public_key",
+      "passkey_credential_id",
+      "passkey_device",
+      "recovery_codes",
+      "reset_token",
+      "temporary_code",
+      "code_expires_at",
+    ];
+    let projection = nosql_orm::query::Projection::exclude(&excluded);
+    let response_doc = projection.apply_recursive(&updated_record);
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -575,10 +612,8 @@ impl RepositoryService {
       .clone();
 
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
-    let projection = RelationConfig::get_relation_exclusion_projection(&table);
     for record in raw_records {
-      let stripped = projection.apply_recursive(&record);
-      let validated = validate_model(&table, &stripped, false)
+      let validated = validate_model(&table, &record, false)
         .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
       validated_records.push(validated);
     }
