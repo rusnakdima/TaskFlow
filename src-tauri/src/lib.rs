@@ -80,21 +80,47 @@ pub fn run() {
 
   println!("DEBUG: Starting relation registration...");
 
-  // Clear relation registry first to avoid conflicts
-  use nosql_orm::relations::clear_relation_registry;
-  clear_relation_registry();
-  println!("DEBUG: Relation registry cleared");
+  // Import entities to register their relations
+  use crate::entities::comment_entity::CommentEntity;
+  use crate::entities::profile_entity::ProfileEntity;
+  use crate::entities::subtask_entity::SubtaskEntity;
+  use crate::entities::task_entity::TaskEntity;
+  use crate::entities::todo_entity::TodoEntity;
+  use crate::entities::user_entity::UserEntity;
 
-  // Register comprehensive relations from RelationConfig first
-  use crate::entities::relation_config::RelationConfig;
-  RelationConfig::register_all_relations();
-  println!("DEBUG: RelationConfig::register_all_relations() called");
+  println!("DEBUG: Entities imported successfully");
 
-  // Debug: Verify relations are registered
+  // Use nosql_orm macros to auto-register relations from entity definitions
   use nosql_orm::relations::get_registered_collection_relations;
+  use nosql_orm::relations::register_relations_for_entity;
+  use nosql_orm::relations::WithRelations;
+  use nosql_orm::Entity;
+
+  // Debug: Check TodoEntity relations directly
+  let todo_rels_before = TodoEntity::relations();
+  println!(
+    "DEBUG: TodoEntity::relations() returned {} relations: {:?}",
+    todo_rels_before.len(),
+    todo_rels_before
+      .iter()
+      .map(|r| r.name.as_str())
+      .collect::<Vec<_>>()
+  );
+  let todo_meta = TodoEntity::meta();
+  println!("DEBUG: TodoEntity table_name = {:?}", todo_meta.table_name);
+
+  // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
+  register_relations_for_entity::<TodoEntity>();
+  register_relations_for_entity::<TaskEntity>();
+  register_relations_for_entity::<SubtaskEntity>();
+  register_relations_for_entity::<CommentEntity>();
+  register_relations_for_entity::<ProfileEntity>();
+  register_relations_for_entity::<UserEntity>();
+
+  // Debug: Verify relations registered
   if let Some(todos_rels) = get_registered_collection_relations("todos") {
     println!(
-      "DEBUG: ✅ Todos relations registered: {:?}",
+      "DEBUG: ✅ todos relations: {:?}",
       todos_rels
         .iter()
         .map(|r| r.name.as_str())
@@ -103,10 +129,20 @@ pub fn run() {
   } else {
     println!("DEBUG: ❌ No todos relations registered!");
   }
-
+  if let Some(profiles_rels) = get_registered_collection_relations("profiles") {
+    println!(
+      "DEBUG: ✅ profiles relations: {:?}",
+      profiles_rels
+        .iter()
+        .map(|r| r.name.as_str())
+        .collect::<Vec<_>>()
+    );
+  } else {
+    println!("DEBUG: ❌ No profiles relations registered!");
+  }
   if let Some(tasks_rels) = get_registered_collection_relations("tasks") {
     println!(
-      "DEBUG: ✅ Tasks relations registered: {:?}",
+      "DEBUG: ✅ tasks relations: {:?}",
       tasks_rels
         .iter()
         .map(|r| r.name.as_str())
@@ -116,21 +152,7 @@ pub fn run() {
     println!("DEBUG: ❌ No tasks relations registered!");
   }
 
-  println!("DEBUG: Relation registration completed");
-
-  // Then register relations from entity decorators (these will be ignored if already registered)
-  use crate::entities::comment_entity::CommentEntity;
-  use crate::entities::subtask_entity::SubtaskEntity;
-  use crate::entities::task_entity::TaskEntity;
-  use crate::entities::todo_entity::TodoEntity;
-  use nosql_orm::relations::register_relations_for_entity;
-
-  register_relations_for_entity::<TodoEntity>();
-  register_relations_for_entity::<TaskEntity>();
-  register_relations_for_entity::<SubtaskEntity>();
-  register_relations_for_entity::<CommentEntity>();
-
-  tracing::info!("Entity decorator relations registered (may be ignored if already registered)");
+  tracing::info!("Relations auto-registered from entity macros");
 
   let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -177,12 +199,25 @@ pub fn run() {
 
       let json_provider_setup = json_provider.clone();
       tauri::async_runtime::spawn(async move {
-        for collection in &["todos", "tasks", "categories"] {
+        // Core collections: todos, tasks, subtasks, comments
+        for collection in &[
+          "todos",
+          "tasks",
+          "subtasks",
+          "comments",
+          "profiles",
+          "categories",
+        ] {
           let basic_indexes = vec![
             NosqlIndex::single("user_id", 1).name("idx_user_id"),
             NosqlIndex::single("todo_id", 1).name("idx_todo_id"),
+            NosqlIndex::single("task_id", 1).name("idx_task_id"),
+            NosqlIndex::single("subtask_id", 1).name("idx_subtask_id"),
             NosqlIndex::compound(&[("user_id", 1), ("created_at", -1)]).name("idx_user_created"),
             NosqlIndex::single("status", 1).name("idx_status"),
+            NosqlIndex::single("priority", 1).name("idx_priority"),
+            NosqlIndex::single("visibility", 1).name("idx_visibility"),
+            NosqlIndex::single("author_id", 1).name("idx_author_id"),
           ];
           for index in basic_indexes {
             if let Err(e) = json_provider_setup.create_index(collection, &index).await {
