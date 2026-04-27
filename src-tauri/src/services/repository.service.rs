@@ -23,7 +23,9 @@ use crate::entities::{
 /* helpers */
 use crate::helpers::{
   common::get_provider_type,
+  projection_helper::apply_projection_recursive,
   response_helper::{err_response, err_response_formatted, success_response},
+  security_helper::security_projection,
 };
 
 /* services */
@@ -165,18 +167,7 @@ impl RepositoryService {
   }
 
   fn apply_projection_recursive(&self, docs: Vec<Value>) -> Vec<Value> {
-    let excluded = vec![
-      "password",
-      "totp_secret",
-      "passkey_public_key",
-      "passkey_credential_id",
-      "passkey_device",
-      "recovery_codes",
-      "reset_token",
-      "temporary_code",
-      "code_expires_at",
-    ];
-    let projection = nosql_orm::query::Projection::exclude(&excluded);
+    let projection = security_projection();
     docs
       .into_iter()
       .map(|doc| projection.apply_recursive(&doc))
@@ -493,18 +484,7 @@ impl RepositoryService {
       .log_action(&table, "create", &created_record, None)
       .await;
 
-    let excluded = vec![
-      "password",
-      "totp_secret",
-      "passkey_public_key",
-      "passkey_credential_id",
-      "passkey_device",
-      "recovery_codes",
-      "reset_token",
-      "temporary_code",
-      "code_expires_at",
-    ];
-    let projection = nosql_orm::query::Projection::exclude(&excluded);
+    let projection = security_projection();
     let response_doc = projection.apply_recursive(&created_record);
     Ok(success_response(DataValue::Object(response_doc)))
   }
@@ -582,18 +562,7 @@ impl RepositoryService {
       .log_action(&table, "update", &updated_record, None)
       .await;
 
-    let excluded = vec![
-      "password",
-      "totp_secret",
-      "passkey_public_key",
-      "passkey_credential_id",
-      "passkey_device",
-      "recovery_codes",
-      "reset_token",
-      "temporary_code",
-      "code_expires_at",
-    ];
-    let projection = nosql_orm::query::Projection::exclude(&excluded);
+    let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
     Ok(success_response(DataValue::Object(response_doc)))
   }

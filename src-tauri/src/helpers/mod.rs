@@ -9,10 +9,14 @@ pub mod config;
 pub mod crypto_helper;
 #[path = "profile.helper.rs"]
 pub mod profile_helper;
+#[path = "projection.helper.rs"]
+pub mod projection_helper;
 #[path = "qr.helper.rs"]
 pub mod qr_helper;
 #[path = "response.helper.rs"]
 pub mod response_helper;
+#[path = "security.helper.rs"]
+pub mod security_helper;
 #[path = "timestamp.helper.rs"]
 pub mod timestamp_helper;
 #[path = "user_sync.helper.rs"]
