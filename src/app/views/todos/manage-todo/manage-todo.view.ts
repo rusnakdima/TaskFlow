@@ -10,7 +10,7 @@ import {
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { Subscription, Observable, of } from "rxjs";
-import { map, catchError } from "rxjs/operators";
+import { map } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -173,17 +173,17 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   getTodoInfo(todoId: string) {
-    // Use storage first — no network call when todo is already cached
-    const todoFromStorage = this.storageService.getById("todos", todoId) as Todo | undefined;
-    if (todoFromStorage) {
-      this.applyTodoToForm(todoFromStorage);
-      return;
+    const todo = this.storageService.getById("todos", todoId) as Todo | undefined;
+    if (todo) {
+      this.applyTodoToForm(todo);
+    } else {
+      this.loadTodoFromApi(todoId);
     }
+  }
 
-    // Determine sync_metadata - default to team visibility (MongoDB) since todo is not in storage
+  private loadTodoFromApi(todoId: string): void {
     const syncMetadata = { is_owner: true, is_private: false };
 
-    // Todo not in storage — fetch once with relations
     this.relationLoader
       .load<Todo>(
         this.dataSyncProvider,
@@ -259,50 +259,17 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   /**
-   * Resolve assignees to Profile objects
-   * Assignees are user IDs (strings), resolve to Profile objects from assigneesProfiles
+   * Resolve assignees to Profile objects from storage only
    */
   private resolveAssigneesToProfiles(assignees: string[]): Observable<Profile[]> {
-    // Extract user IDs from assignees
     const userIds = assignees.filter((a) => typeof a === "string") as string[];
-
     if (userIds.length === 0) {
       return of([]);
     }
 
-    // First try to get profiles from storage using assignees
-    const storedProfiles = this.storageService
-      .todos()
-      .flatMap((todo) => (todo as any).assignees_profiles || [])
-      .filter((p: Profile) => userIds.includes(p.user_id));
-
-    // Check if all stored profiles have user relation loaded
-    const allHaveUser = storedProfiles.every((p: Profile) => p.user);
-
-    // If we found all profiles in storage and they have user data, return them
-    if (storedProfiles.length === userIds.length && allHaveUser) {
-      return of(storedProfiles);
-    }
-
-    // Otherwise, fetch all profiles and filter
-    return this.dataSyncProvider.crud<Profile[]>("getAll", "profiles", { filter: {} }, true).pipe(
-      map((profiles) => {
-        if (!profiles || profiles.length === 0) {
-          // Return what we found in storage
-          return storedProfiles;
-        }
-        // Filter profiles by user IDs and merge with stored profiles
-        const fetchedProfiles = profiles.filter((p) => userIds.includes(p.user_id));
-        const profileMap = new Map<string, Profile>();
-        storedProfiles.forEach((p) => profileMap.set(p.user_id, p));
-        fetchedProfiles.forEach((p) => profileMap.set(p.user_id, p));
-        return Array.from(profileMap.values());
-      }),
-      catchError(() => {
-        // On error, return what we found in storage
-        return of(storedProfiles);
-      })
-    );
+    const allProfiles = this.storageService.profiles();
+    const matched = allProfiles.filter((p: Profile) => userIds.includes(p.user_id));
+    return of(matched);
   }
 
   back() {
@@ -390,7 +357,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
         ? current.filter((c: Category) => c.id !== category.id)
         : [...current, category],
     });
-    this.toggleCategorySelection(category.id);
   }
 
   getSelectedCategoriesText(): string {
@@ -427,14 +393,16 @@ export class ManageTodoView implements OnInit, OnDestroy {
     }
   }
 
-  toggleCategorySelection(categoryId: string): void {
-    const selected = this.selectedCategories();
-    if (selected.has(categoryId)) {
-      selected.delete(categoryId);
-    } else {
-      selected.add(categoryId);
+  onSubmit() {
+    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
+      return;
     }
-    this.selectedCategories.set(new Set(selected));
+    this.isSubmitting.set(true);
+    if (this.isEdit()) {
+      this.updateTodo();
+    } else {
+      this.createTodo();
+    }
   }
 
   toggleSelectAllCategories(): void {
@@ -448,6 +416,16 @@ export class ManageTodoView implements OnInit, OnDestroy {
     console.log("Selected categories:", this.selectedCategories().size, "All:", allIds.length);
   }
 
+  toggleCategorySelection(categoryId: string): void {
+    const selected = this.selectedCategories();
+    if (selected.has(categoryId)) {
+      selected.delete(categoryId);
+    } else {
+      selected.add(categoryId);
+    }
+    this.selectedCategories.set(new Set(selected));
+  }
+
   isAllCategoriesSelected = computed(() => {
     const allIds = this.availableCategories().map((c) => c.id);
     return allIds.length > 0 && this.selectedCategories().size === allIds.length;
@@ -455,18 +433,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
 
   isCategorySelectedById(categoryId: string): boolean {
     return this.selectedCategories().has(categoryId);
-  }
-
-  onSubmit() {
-    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    if (this.isEdit()) {
-      this.updateTodo();
-    } else {
-      this.createTodo();
-    }
   }
 
   createTodo() {
@@ -495,10 +461,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
         order: formValue.order || 0,
       };
 
+      const isPrivate = body.visibility !== "team";
+
       this.dataSyncProvider
         .crud<Todo>("create", "todos", {
           data: body,
           parentTodoId: body.user_id,
+          isOwner: true,
+          isPrivate,
           load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({

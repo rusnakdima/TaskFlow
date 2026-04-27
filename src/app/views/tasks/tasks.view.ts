@@ -20,7 +20,7 @@ import {
   DragDropModule,
   DragRef,
 } from "@angular/cdk/drag-drop";
-import { Subscription, firstValueFrom } from "rxjs";
+import { Subscription, Observable, firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
 import { toSignal } from "@angular/core/rxjs-interop";
 
@@ -324,54 +324,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private ensureTaskTreeLoaded(todoId?: string): void {
-    if (!todoId || this.loadingRelations().has(todoId)) return;
+    if (!todoId) return;
 
     const todo = this.storageService.getById("todos", todoId);
     const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
     const hasCategories =
       todo?.categories && todo.categories.length > 0 && typeof todo.categories[0] !== "string";
 
-    if (hasSubtasks && hasCategories) return;
-
-    this.loadingRelations.update((set) => {
-      const newSet = new Set(set);
-      newSet.add(todoId);
-      return newSet;
-    });
-
-    this.dataSyncProvider
-      .crud<Todo>("get", "todos", {
-        id: todoId,
-        load: [
-          "user",
-          "tasks",
-          // "tasks.subtasks",
-          // "tasks.subtasks.comments",
-          // "tasks.subtasks.assignees_profiles",
-          // "tasks.comments",
-          "categories",
-          "assignees",
-        ],
-        isOwner: this.isOwner(),
-        isPrivate: this.isPrivate(),
-      })
-      .subscribe({
-        next: (loadedTodo) => {
-          if (loadedTodo) {
-            this.storageService.updateItem("todos", todoId, loadedTodo);
-          }
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to load subtasks");
-        },
-        complete: () => {
-          this.loadingRelations.update((set) => {
-            const newSet = new Set(set);
-            newSet.delete(todoId);
-            return newSet;
-          });
-        },
-      });
+    if (!hasSubtasks || !hasCategories) {
+      this.notifyService.showError("Todo data incomplete. Please refresh.");
+    }
   }
 
   ngOnDestroy(): void {
@@ -464,6 +426,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
+    const todo = this.todo();
+    const isPrivate = todo?.visibility !== "team";
+
     const nextTask = { ...task };
     delete (nextTask as any)._id;
     nextTask.id = "";
@@ -485,7 +450,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           break;
         case RepeatInterval.MONTHLY:
           nextStart.setMonth(nextStart.getMonth() + 1);
-          if (nextEnd) nextEnd.setMonth(nextEnd.getMonth() + 1);
+          if (nextEnd) nextEnd.setDate(nextEnd.getDate() + 1);
           break;
       }
       nextTask.start_date = nextStart.toISOString();
@@ -493,7 +458,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.dataSyncProvider
-      .crud<Task>("create", "tasks", { data: nextTask, parentTodoId: todoId })
+      .crud<Task>("create", "tasks", {
+        data: nextTask,
+        parentTodoId: todoId,
+        isOwner: this.isOwner(),
+        isPrivate,
+      })
       .subscribe({
         next: (result: Task) => {
           // Storage updated automatically by ApiProvider
