@@ -320,7 +320,7 @@ impl AuthTotpService {
     let mut updated_user = user.clone();
     if let Some(pos) = updated_user.recovery_codes.iter().position(|c| c == code) {
       updated_user.recovery_codes.remove(pos);
-      updated_user.updated_at = chrono::Utc::now();
+      updated_user.updated_at = Some(chrono::Utc::now());
       self.save_user(&updated_user).await?;
       Ok(success_response("Recovery code accepted"))
     } else {
@@ -476,7 +476,7 @@ impl AuthTotpService {
     updated_user.totp_enabled = totp_enabled;
     updated_user.totp_secret = totp_secret.to_string();
     updated_user.recovery_codes = recovery_codes;
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 

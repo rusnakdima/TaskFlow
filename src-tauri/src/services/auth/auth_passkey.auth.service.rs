@@ -130,7 +130,7 @@ impl AuthPasskeyService {
       .map_err(|e| err_response(&format!("Failed to serialize credential: {}", e)))?;
     updated_user.passkey_device = "cross-platform".to_string();
     updated_user.passkey_enabled = true;
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 
@@ -227,7 +227,7 @@ impl AuthPasskeyService {
     let user = self.find_user(username).await?;
 
     let mut updated_user = user.clone();
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 
@@ -263,7 +263,7 @@ impl AuthPasskeyService {
     updated_user.passkey_public_key = String::new();
     updated_user.passkey_device = String::new();
     updated_user.passkey_enabled = false;
-    updated_user.updated_at = chrono::Utc::now();
+    updated_user.updated_at = Some(chrono::Utc::now());
 
     self.save_user(&updated_user).await?;
 
