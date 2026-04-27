@@ -27,7 +27,14 @@ export class DataLoaderService {
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
 
-  private readonly TODO_LOAD_RELATIONS = ["user", "categories", "assignees_profiles", "tasks"];
+  private readonly TODO_LOAD_RELATIONS = [
+    "user",
+    "categories",
+    "tasks",
+    "tasks.subtasks",
+    "tasks.comments",
+    "assignees",
+  ];
 
   private loadInProgress = false;
   private loadSubject = new BehaviorSubject<{ todos: Todo[]; categories: Category[] } | null>(null);
