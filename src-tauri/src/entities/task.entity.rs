@@ -53,9 +53,9 @@ pub struct TaskEntity {
   pub end_date: Option<String>,
   pub order: i32,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -114,8 +114,8 @@ impl From<TaskCreateModel> for TaskEntity {
       end_date: formatted_end_date,
       order: value.order,
       deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
     }
   }
 }

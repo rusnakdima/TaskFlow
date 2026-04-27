@@ -17,9 +17,9 @@ pub struct ChatEntity {
   #[serde(default)]
   pub read_by: Vec<String>,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -45,8 +45,8 @@ impl From<ChatCreateModel> for ChatEntity {
       user_id: create.user_id.clone(),
       author_name: create.author_name,
       content: create.content,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
       deleted_at: None,
       read_by: vec![create.user_id],
     }

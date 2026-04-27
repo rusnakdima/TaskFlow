@@ -28,8 +28,8 @@ pub struct TodoEntity {
   pub visibility: String,
   pub priority: String,
   pub order: i32,
-  pub created_at: DateTime<Utc>,
-  pub updated_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -89,8 +89,8 @@ impl From<TodoCreateModel> for TodoEntity {
       priority: value.priority,
       order: value.order,
       deleted_at: None,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
     }
   }
 }

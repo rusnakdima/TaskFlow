@@ -60,9 +60,9 @@ pub struct UserEntity {
   #[serde(default)]
   pub recovery_codes: Vec<String>,
   #[serde(default)]
-  pub created_at: DateTime<Utc>,
+  pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub updated_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -123,8 +123,8 @@ impl From<UserCreateModel> for UserEntity {
       temporary_code: value.temporary_code,
       code_expires_at: value.code_expires_at,
       profile_id: value.profile_id,
-      created_at: now,
-      updated_at: now,
+      created_at: Some(now),
+      updated_at: Some(now),
       deleted_at: None,
       profile: None,
       totp_enabled: value.totp_enabled,
