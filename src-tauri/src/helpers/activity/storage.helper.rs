@@ -99,6 +99,7 @@ impl ActivityStorage {
     activity: DailyActivityModel,
   ) -> Result<(), ResponseModel> {
     let activity_id = activity.id.clone().unwrap_or_default();
+    let now = chrono::Utc::now();
     let update_model = DailyActivityUpdateModel {
       id: activity.id.unwrap_or_default(),
       user_id: activity.user_id,
@@ -118,8 +119,14 @@ impl ActivityStorage {
       total_tasks: activity.total_tasks,
       completed_tasks: activity.completed_tasks,
       productivity_score: activity.productivity_score,
-      created_at: activity.created_at,
-      updated_at: activity.updated_at,
+      created_at: activity
+        .created_at
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_else(|| now.to_rfc3339()),
+      updated_at: activity
+        .updated_at
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_else(|| now.to_rfc3339()),
     };
 
     let record: Value = to_value(&update_model).unwrap();

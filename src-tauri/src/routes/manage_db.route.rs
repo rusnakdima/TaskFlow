@@ -67,17 +67,17 @@ pub async fn manage_data(
 #[tauri::command]
 pub async fn import_to_local(
   state: State<'_, AppState>,
-  user_id: String,
+  userId: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.import_to_local(user_id).await
+  state.manage_db_service.import_to_local(userId).await
 }
 
 #[tauri::command]
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
-  user_id: Option<String>,
+  userId: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let uid = user_id.ok_or_else(|| err_response("Missing required parameter: user_id"))?;
+  let uid = userId.ok_or_else(|| err_response("Missing required parameter: user_id"))?;
   state.manage_db_service.export_to_cloud(uid).await
 }
 
