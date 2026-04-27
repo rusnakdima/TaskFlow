@@ -191,13 +191,12 @@ export class ManageTodoView implements OnInit, OnDestroy {
         todoId,
         [
           "user",
-          "tasks",
-          "tasks.subtasks",
-          "tasks.subtasks.comments",
-          "tasks.subtasks.assignees_profiles",
-          "tasks.comments",
           "categories",
-          "assignees_profiles",
+          "tasks",
+          // "tasks.subtasks",
+          // "tasks.subtasks.comments",
+          // "tasks.comments",
+          "assignees",
         ],
         syncMetadata
       )
@@ -271,14 +270,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
       return of([]);
     }
 
-    // First try to get profiles from storage using assignees_profiles
+    // First try to get profiles from storage using assignees
     const storedProfiles = this.storageService
       .todos()
-      .flatMap((todo) => todo.assignees_profiles || [])
-      .filter((p) => userIds.includes(p.user_id));
+      .flatMap((todo) => (todo as any).assignees_profiles || [])
+      .filter((p: Profile) => userIds.includes(p.user_id));
 
     // Check if all stored profiles have user relation loaded
-    const allHaveUser = storedProfiles.every((p) => p.user);
+    const allHaveUser = storedProfiles.every((p: Profile) => p.user);
 
     // If we found all profiles in storage and they have user data, return them
     if (storedProfiles.length === userIds.length && allHaveUser) {
@@ -500,7 +499,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
         .crud<Todo>("create", "todos", {
           data: body,
           parentTodoId: body.user_id,
-          load: ["user", "categories", "assignees_profiles", "tasks"],
+          load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({
           next: (result: Todo) => {
@@ -551,7 +550,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
           data: body,
           parentTodoId: body.id,
           ...syncMetadata,
-          load: ["user", "categories", "assignees_profiles", "tasks"],
+          load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({
           next: async (result: Todo) => {

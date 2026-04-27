@@ -107,13 +107,12 @@ export class MainResolver implements Resolve<any> {
         isPrivate,
         load: [
           "user",
-          "tasks",
-          "tasks.subtasks",
-          "tasks.subtasks.comments",
-          "tasks.subtasks.assignees_profiles",
-          "tasks.comments",
           "categories",
-          "assignees_profiles",
+          "tasks",
+          // "tasks.subtasks",
+          // "tasks.subtasks.comments",
+          // "tasks.comments",
+          "assignees",
         ],
       })
       .pipe(

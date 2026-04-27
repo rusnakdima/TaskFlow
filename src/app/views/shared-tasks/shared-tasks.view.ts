@@ -60,7 +60,7 @@ export class SharedTasksView implements OnInit, OnDestroy {
 
       const isAssignee =
         todo.assignees?.includes(userId) ||
-        todo.assignees_profiles?.some((profile: any) => profile.user_id === userId);
+        todo.assignees?.some((profile: any) => profile.user_id === userId);
 
       return isNotOwner && isAssignee && !todo.deleted_at;
     });
