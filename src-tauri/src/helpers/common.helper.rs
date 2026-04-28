@@ -54,7 +54,7 @@ fn camel_to_snake(s: &str) -> String {
   result
 }
 
-pub fn get_provider_type(sync_metadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
+pub fn _get_provider_type(sync_metadata: &SyncMetadata) -> Result<ProviderType, ResponseModel> {
   tracing::debug!(
     "[get_provider_type] sync_metadata: is_owner={}, is_private={}",
     sync_metadata.is_owner,
