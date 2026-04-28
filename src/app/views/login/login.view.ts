@@ -59,7 +59,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
   templateUrl: "./login.view.html",
 })
 export class LoginView implements OnDestroy {
-  loginForm: FormGroup<any>;
+  loginForm!: FormGroup<any>;
   private authStore = inject(AuthStore);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);

@@ -28,6 +28,27 @@ import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 
+interface TodoCreateForm {
+  id?: string;
+  user_id: string;
+  title: string;
+  description: string;
+  start_date: string | null;
+  end_date: string | null;
+  priority: string;
+  visibility: string;
+  categories: Category[];
+  assignees: Profile[];
+  order: number;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null | boolean;
+}
+
+interface RouteParams {
+  todoId?: string;
+}
+
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -151,7 +172,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
       this.fetchCategories();
     }
 
-    this.route.params.subscribe((params: any) => {
+    this.route.params.subscribe((params: RouteParams) => {
       if (params.todoId) {
         this.getTodoInfo(params.todoId);
         this.isEdit.set(true);
@@ -200,7 +221,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
           this.storageService.updateItem("todos", todo.id, todo);
           this.applyTodoToForm(todo);
         },
-        error: (err: any) => this.notifyService.showError(err.message || "Failed to load todo"),
+        error: (err: Error) => this.notifyService.showError(err.message || "Failed to load todo"),
       });
   }
 
@@ -228,12 +249,12 @@ export class ManageTodoView implements OnInit, OnDestroy {
       }
     }
 
-    const formValues: any = {
+    const formValues: TodoCreateForm = {
       ...localDates,
       visibility: todo.visibility,
       assignees: [],
       categories: categoriesFormValue,
-    };
+    } as TodoCreateForm;
 
     if (todo.assignees && todo.assignees.length > 0) {
       this.resolveAssigneesToProfiles(todo.assignees).subscribe((profiles) => {
@@ -326,8 +347,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
               this.storageService.setCollection("categories", cats);
             }
           },
-          error: () => {
-            // Silently handle error
+          error: (err: any) => {
+            this.notifyService.showError(err.message || "Failed to load categories");
           },
         });
     }
@@ -366,8 +387,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
         user_id: this.userId(),
       };
 
-      console.log("[ManageTodo] Creating category with data:", categoryData);
-
       this.newCategoryTitle.set("");
 
       // Sync with backend
@@ -381,7 +400,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
             this.fetchCategories();
             this.notifyService.showSuccess("Category added successfully");
           },
-          error: (err: any) => {
+          error: (err: Error) => {
             this.notifyService.showError(err.message || "Failed to add category");
           },
         });
@@ -408,7 +427,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
     } else {
       this.selectedCategories.set(new Set(allIds));
     }
-    console.log("Selected categories:", this.selectedCategories().size, "All:", allIds.length);
   }
 
   toggleCategorySelection(categoryId: string): void {
@@ -472,7 +490,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
             this.notifyService.showSuccess("Todo created successfully");
             this.back();
           },
-          error: (err: any) => {
+          error: (err: Error) => {
             this.isSubmitting.set(false);
             this.notifyService.showError(err.message || "Failed to create todo");
           },

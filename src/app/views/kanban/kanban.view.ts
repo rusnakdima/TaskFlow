@@ -190,21 +190,7 @@ export class KanbanView implements OnInit, OnDestroy {
   }
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
-    let newStatus: TaskStatus;
-    switch (subtask.status) {
-      case TaskStatus.PENDING:
-        newStatus = TaskStatus.COMPLETED;
-        break;
-      case TaskStatus.COMPLETED:
-        newStatus = TaskStatus.SKIPPED;
-        break;
-      case TaskStatus.SKIPPED:
-        newStatus = TaskStatus.FAILED;
-        break;
-      default:
-        newStatus = TaskStatus.PENDING;
-        break;
-    }
+    const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
     const todoId = this.selectedTodoId();
     if (!todoId) return;
