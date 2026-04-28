@@ -22,6 +22,7 @@ interface CrudOptions {
   load?: string[];
   isOwner?: boolean;
   isPrivate?: boolean;
+  visibility?: "private" | "team";
 }
 
 @Injectable({
@@ -58,6 +59,7 @@ export class ApiProvider {
       const syncMetadata = {
         is_owner: options.isOwner ?? true,
         is_private: options.isPrivate ?? true,
+        visibility: options.visibility,
       };
       const payload: Record<string, unknown> = {
         operation,
