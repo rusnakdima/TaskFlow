@@ -458,8 +458,20 @@ impl CascadeService {
 
     for doc in docs {
       if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
-        let _ = self.json_provider.insert(table, doc.clone()).await;
-        let _ = self.json_provider.patch(table, doc_id, doc.clone()).await;
+        if let Err(e) = self.json_provider.insert(table, doc.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to insert {} in sync_entity_to_json: {}",
+            doc_id,
+            e
+          );
+        }
+        if let Err(e) = self.json_provider.patch(table, doc_id, doc.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch {} in sync_entity_to_json: {}",
+            doc_id,
+            e
+          );
+        }
       }
     }
     Ok(cascade_ids)
@@ -479,8 +491,20 @@ impl CascadeService {
     if let Some(ref mongo) = self.mongodb_provider {
       for doc in docs {
         if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
-          let _ = mongo.insert(table, doc.clone()).await;
-          let _ = mongo.patch(table, doc_id, doc.clone()).await;
+          if let Err(e) = mongo.insert(table, doc.clone()).await {
+            tracing::warn!(
+              "[CascadeService] Failed to insert {} in sync_entity_to_mongo: {}",
+              doc_id,
+              e
+            );
+          }
+          if let Err(e) = mongo.patch(table, doc_id, doc.clone()).await {
+            tracing::warn!(
+              "[CascadeService] Failed to patch {} in sync_entity_to_mongo: {}",
+              doc_id,
+              e
+            );
+          }
         }
       }
     }
@@ -496,25 +520,57 @@ impl CascadeService {
     patch: Value,
   ) -> Result<(), ResponseModel> {
     for id in &cascade_ids.todo_ids {
-      let _ = self.json_provider.patch("todos", id, patch.clone()).await;
+      if let Err(e) = self.json_provider.patch("todos", id, patch.clone()).await {
+        tracing::warn!(
+          "[CascadeService] Failed to patch todo {} in apply_cascade_patch_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.task_ids {
-      let _ = self.json_provider.patch("tasks", id, patch.clone()).await;
+      if let Err(e) = self.json_provider.patch("tasks", id, patch.clone()).await {
+        tracing::warn!(
+          "[CascadeService] Failed to patch task {} in apply_cascade_patch_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.subtask_ids {
-      let _ = self
+      if let Err(e) = self
         .json_provider
         .patch("subtasks", id, patch.clone())
-        .await;
+        .await
+      {
+        tracing::warn!(
+          "[CascadeService] Failed to patch subtask {} in apply_cascade_patch_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.comment_ids {
-      let _ = self
+      if let Err(e) = self
         .json_provider
         .patch("comments", id, patch.clone())
-        .await;
+        .await
+      {
+        tracing::warn!(
+          "[CascadeService] Failed to patch comment {} in apply_cascade_patch_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.chat_ids {
-      let _ = self.json_provider.patch("chats", id, patch.clone()).await;
+      if let Err(e) = self.json_provider.patch("chats", id, patch.clone()).await {
+        tracing::warn!(
+          "[CascadeService] Failed to patch chat {} in apply_cascade_patch_json: {}",
+          id,
+          e
+        );
+      }
     }
     Ok(())
   }
@@ -527,19 +583,49 @@ impl CascadeService {
   ) -> Result<(), ResponseModel> {
     if let Some(ref mongo) = self.mongodb_provider {
       for id in &cascade_ids.todo_ids {
-        let _ = mongo.patch("todos", id, patch.clone()).await;
+        if let Err(e) = mongo.patch("todos", id, patch.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch todo {} in apply_cascade_patch_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.task_ids {
-        let _ = mongo.patch("tasks", id, patch.clone()).await;
+        if let Err(e) = mongo.patch("tasks", id, patch.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch task {} in apply_cascade_patch_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.subtask_ids {
-        let _ = mongo.patch("subtasks", id, patch.clone()).await;
+        if let Err(e) = mongo.patch("subtasks", id, patch.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch subtask {} in apply_cascade_patch_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.comment_ids {
-        let _ = mongo.patch("comments", id, patch.clone()).await;
+        if let Err(e) = mongo.patch("comments", id, patch.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch comment {} in apply_cascade_patch_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.chat_ids {
-        let _ = mongo.patch("chats", id, patch.clone()).await;
+        if let Err(e) = mongo.patch("chats", id, patch.clone()).await {
+          tracing::warn!(
+            "[CascadeService] Failed to patch chat {} in apply_cascade_patch_mongo: {}",
+            id,
+            e
+          );
+        }
       }
     }
     Ok(())
@@ -551,19 +637,49 @@ impl CascadeService {
     cascade_ids: &CascadeIds,
   ) -> Result<(), ResponseModel> {
     for id in &cascade_ids.todo_ids {
-      let _ = self.json_provider.delete("todos", id).await;
+      if let Err(e) = self.json_provider.delete("todos", id).await {
+        tracing::warn!(
+          "[CascadeService] Failed to delete todo {} in apply_cascade_delete_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.task_ids {
-      let _ = self.json_provider.delete("tasks", id).await;
+      if let Err(e) = self.json_provider.delete("tasks", id).await {
+        tracing::warn!(
+          "[CascadeService] Failed to delete task {} in apply_cascade_delete_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.subtask_ids {
-      let _ = self.json_provider.delete("subtasks", id).await;
+      if let Err(e) = self.json_provider.delete("subtasks", id).await {
+        tracing::warn!(
+          "[CascadeService] Failed to delete subtask {} in apply_cascade_delete_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.comment_ids {
-      let _ = self.json_provider.delete("comments", id).await;
+      if let Err(e) = self.json_provider.delete("comments", id).await {
+        tracing::warn!(
+          "[CascadeService] Failed to delete comment {} in apply_cascade_delete_json: {}",
+          id,
+          e
+        );
+      }
     }
     for id in &cascade_ids.chat_ids {
-      let _ = self.json_provider.delete("chats", id).await;
+      if let Err(e) = self.json_provider.delete("chats", id).await {
+        tracing::warn!(
+          "[CascadeService] Failed to delete chat {} in apply_cascade_delete_json: {}",
+          id,
+          e
+        );
+      }
     }
     Ok(())
   }
@@ -575,19 +691,49 @@ impl CascadeService {
   ) -> Result<(), ResponseModel> {
     if let Some(ref mongo) = self.mongodb_provider {
       for id in &cascade_ids.todo_ids {
-        let _ = mongo.delete("todos", id).await;
+        if let Err(e) = mongo.delete("todos", id).await {
+          tracing::warn!(
+            "[CascadeService] Failed to delete todo {} in apply_cascade_delete_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.task_ids {
-        let _ = mongo.delete("tasks", id).await;
+        if let Err(e) = mongo.delete("tasks", id).await {
+          tracing::warn!(
+            "[CascadeService] Failed to delete task {} in apply_cascade_delete_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.subtask_ids {
-        let _ = mongo.delete("subtasks", id).await;
+        if let Err(e) = mongo.delete("subtasks", id).await {
+          tracing::warn!(
+            "[CascadeService] Failed to delete subtask {} in apply_cascade_delete_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.comment_ids {
-        let _ = mongo.delete("comments", id).await;
+        if let Err(e) = mongo.delete("comments", id).await {
+          tracing::warn!(
+            "[CascadeService] Failed to delete comment {} in apply_cascade_delete_mongo: {}",
+            id,
+            e
+          );
+        }
       }
       for id in &cascade_ids.chat_ids {
-        let _ = mongo.delete("chats", id).await;
+        if let Err(e) = mongo.delete("chats", id).await {
+          tracing::warn!(
+            "[CascadeService] Failed to delete chat {} in apply_cascade_delete_mongo: {}",
+            id,
+            e
+          );
+        }
       }
     }
     Ok(())

@@ -318,9 +318,12 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    eprintln!(
+    tracing::debug!(
       "[RepositoryService] handle_get_all table={} filter={:?} relations={:?} load={:?}",
-      table, filter, relations, load
+      table,
+      filter,
+      relations,
+      load
     );
 
     let filter_val = filter.unwrap_or(json!({}));
@@ -371,10 +374,6 @@ impl RepositoryService {
       docs
     };
 
-    if table == "todos" {
-      eprintln!("[RepositoryService] getAll todos result: {:?}", docs);
-    }
-
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
     )))
@@ -388,11 +387,6 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    eprintln!(
-      "[RepositoryService] handle_get table={} id={:?} relations={:?} load={:?}",
-      table, id, relations, load
-    );
-
     let id = id.ok_or_else(|| err_response("ID is required for get operation"))?;
     let use_json = self.use_json_provider(sync_metadata.as_ref());
 
@@ -589,9 +583,23 @@ impl RepositoryService {
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
         if use_json {
-          let _ = self.json_provider.update(&table, id, record.clone()).await;
+          if let Err(e) = self.json_provider.update(&table, id, record.clone()).await {
+            tracing::warn!(
+              "[RepositoryService] updateAll failed to update {} in table {}: {}",
+              id,
+              table,
+              e
+            );
+          }
         } else if let Some(ref mongo) = self.mongodb_provider {
-          let _ = mongo.update(&table, id, record.clone()).await;
+          if let Err(e) = mongo.update(&table, id, record.clone()).await {
+            tracing::warn!(
+              "[RepositoryService] updateAll failed to update {} in table {} (MongoDB): {}",
+              id,
+              table,
+              e
+            );
+          }
         } else {
           return Err(err_response("No provider available"));
         }

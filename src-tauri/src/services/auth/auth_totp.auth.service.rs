@@ -131,8 +131,8 @@ impl AuthTotpService {
 
     let current_time = std::time::SystemTime::now()
       .duration_since(std::time::UNIX_EPOCH)
-      .expect("Time went backwards")
-      .as_secs();
+      .map(|d| d.as_secs())
+      .unwrap_or(0);
     tracing::debug!("TOTP current timestamp: {}", current_time);
 
     let generated = totp.generate(current_time);

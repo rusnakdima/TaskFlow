@@ -84,7 +84,10 @@ impl AuthPasskeyService {
       .start_passkey_registration(user_id, &user.username, &user.email, None)
       .map_err(|e| err_response(&format!("WebAuthn registration error: {}", e)))?;
 
-    let mut challenge_store = self.challenge.lock().unwrap();
+    let mut challenge_store = self.challenge.lock().unwrap_or_else(|e| {
+      eprintln!("WARNING: challenge lock poisoned, recovering: {}", e);
+      e.into_inner()
+    });
     *challenge_store = Some((username.to_string(), reg_state));
 
     Ok(ResponseModel {
@@ -103,7 +106,10 @@ impl AuthPasskeyService {
     response_json: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let stored_data = {
-      let mut challenge_store = self.challenge.lock().unwrap();
+      let mut challenge_store = self.challenge.lock().unwrap_or_else(|e| {
+        eprintln!("WARNING: challenge lock poisoned, recovering: {}", e);
+        e.into_inner()
+      });
       challenge_store.take()
     };
     let (stored_user, reg_state) =
@@ -171,7 +177,10 @@ impl AuthPasskeyService {
       .start_passkey_authentication(&[allowed_credential])
       .map_err(|e| err_response(&format!("Auth start failed: {}", e)))?;
 
-    let mut challenge_store = self.auth_challenge.lock().unwrap();
+    let mut challenge_store = self.auth_challenge.lock().unwrap_or_else(|e| {
+      eprintln!("WARNING: auth_challenge lock poisoned, recovering: {}", e);
+      e.into_inner()
+    });
     *challenge_store = Some((username_str.clone(), auth_state));
 
     let qr_payload = format!(
@@ -205,7 +214,10 @@ impl AuthPasskeyService {
     response_json: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let stored_data = {
-      let mut challenge_store = self.auth_challenge.lock().unwrap();
+      let mut challenge_store = self.auth_challenge.lock().unwrap_or_else(|e| {
+        eprintln!("WARNING: auth_challenge lock poisoned, recovering: {}", e);
+        e.into_inner()
+      });
       challenge_store.take()
     };
     let (stored_user, auth_state) =

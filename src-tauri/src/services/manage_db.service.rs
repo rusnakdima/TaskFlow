@@ -54,108 +54,114 @@ impl ManageDbService {
     }
   }
 
-  /// Import data from cloud MongoDB to local JSON
-  pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
-
-    eprintln!("[Import] Starting import for user_id: {}", user_id);
-
-    let mut imported_count = 0;
-
-    // 1. Import user by id
-    let user_filter = Filter::Eq("id".to_string(), json!(user_id));
-    if let Ok(mut users) = mongo
-      .find_many("users", Some(&user_filter), None, None, None, true)
+  async fn import_users(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("id".to_string(), json!(user_id));
+    if let Ok(users) = mongo
+      .find_many("users", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Import] Found {} users", users.len());
+      let count = users.len();
+      tracing::info!("[Import] Found {} users", count);
       for item in users {
-        match self.json_provider.insert("users", item).await {
-          Ok(_) => imported_count += 1,
-          Err(e) => eprintln!("[Import] Failed to insert user: {}", e),
+        if let Err(e) = self.json_provider.insert("users", item).await {
+          tracing::warn!("[Import] Failed to insert user in import_users: {}", e);
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 2. Import profile by user_id
-    let profile_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut profiles) = mongo
-      .find_many("profiles", Some(&profile_filter), None, None, None, true)
+  async fn import_profiles(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(profiles) = mongo
+      .find_many("profiles", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Import] Found {} profiles", profiles.len());
+      let count = profiles.len();
+      tracing::info!("[Import] Found {} profiles", count);
       for item in profiles {
-        match self.json_provider.insert("profiles", item).await {
-          Ok(_) => imported_count += 1,
-          Err(e) => eprintln!("[Import] Failed to insert profile: {}", e),
+        if let Err(e) = self.json_provider.insert("profiles", item).await {
+          tracing::warn!(
+            "[Import] Failed to insert profile in import_profiles: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 3. Import todos by user_id
-    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+  async fn import_todos(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
     if let Ok(todos) = mongo
-      .find_many("todos", Some(&todos_filter), None, None, None, true)
+      .find_many("todos", Some(&filter), None, None, None, true)
       .await
     {
       let todos = filter_not_deleted(todos);
-      eprintln!("[Import] Found {} todos", todos.len());
+      let count = todos.len();
+      tracing::info!("[Import] Found {} todos", count);
       for item in todos {
-        match self.json_provider.insert("todos", item).await {
-          Ok(_) => imported_count += 1,
-          Err(e) => eprintln!("[Import] Failed to insert todo: {}", e),
+        if let Err(e) = self.json_provider.insert("todos", item).await {
+          tracing::warn!("[Import] Failed to insert todo in import_todos: {}", e);
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 4. Import categories by user_id
-    let categories_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut categories) = mongo
-      .find_many(
-        "categories",
-        Some(&categories_filter),
-        None,
-        None,
-        None,
-        true,
-      )
+  async fn import_categories(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(categories) = mongo
+      .find_many("categories", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Import] Found {} categories", categories.len());
+      let count = categories.len();
+      tracing::info!("[Import] Found {} categories", count);
       for item in categories {
-        match self.json_provider.insert("categories", item).await {
-          Ok(_) => imported_count += 1,
-          Err(e) => eprintln!("[Import] Failed to insert category: {}", e),
+        if let Err(e) = self.json_provider.insert("categories", item).await {
+          tracing::warn!(
+            "[Import] Failed to insert category in import_categories: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 5. Import daily_activities by user_id
-    let activities_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut activities) = mongo
-      .find_many(
-        "daily_activities",
-        Some(&activities_filter),
-        None,
-        None,
-        None,
-        true,
-      )
+  async fn import_activities(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(activities) = mongo
+      .find_many("daily_activities", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Import] Found {} activities", activities.len());
+      let count = activities.len();
+      tracing::info!("[Import] Found {} activities", count);
       for item in activities {
-        match self.json_provider.insert("daily_activities", item).await {
-          Ok(_) => imported_count += 1,
-          Err(e) => eprintln!("[Import] Failed to insert activity: {}", e),
+        if let Err(e) = self.json_provider.insert("daily_activities", item).await {
+          tracing::warn!(
+            "[Import] Failed to insert activity in import_activities: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 6. Import tasks - get all tasks and filter client-side by todo_id
+  async fn import_tasks(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
     if let Ok(todos) = mongo
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
@@ -174,16 +180,22 @@ impl ManageDbService {
         {
           let tasks = filter_not_deleted(tasks);
           for item in tasks {
-            match self.json_provider.insert("tasks", item).await {
-              Ok(_) => imported_count += 1,
-              Err(e) => eprintln!("[Import] Failed to insert task: {}", e),
+            if let Err(e) = self.json_provider.insert("tasks", item).await {
+              tracing::warn!("[Import] Failed to insert task in import_tasks: {}", e);
+            } else {
+              count += 1;
             }
           }
         }
       }
     }
+    tracing::info!("[Import] Imported {} tasks", count);
+    count
+  }
 
-    // 7. Import subtasks - get all subtasks and filter client-side by task_id
+  async fn import_subtasks(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
     if let Ok(todos) = mongo
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
@@ -214,9 +226,13 @@ impl ManageDbService {
             {
               let subtasks = filter_not_deleted(subtasks);
               for item in subtasks {
-                match self.json_provider.insert("subtasks", item).await {
-                  Ok(_) => imported_count += 1,
-                  Err(e) => eprintln!("[Import] Failed to insert subtask: {}", e),
+                if let Err(e) = self.json_provider.insert("subtasks", item).await {
+                  tracing::warn!(
+                    "[Import] Failed to insert subtask in import_subtasks: {}",
+                    e
+                  );
+                } else {
+                  count += 1;
                 }
               }
             }
@@ -224,8 +240,52 @@ impl ManageDbService {
         }
       }
     }
+    tracing::info!("[Import] Imported {} subtasks", count);
+    count
+  }
 
-    eprintln!(
+  async fn import_collection<F>(
+    &self,
+    mongo: &MongoProvider,
+    collection: &str,
+    filter: Filter,
+  ) -> usize
+  where
+    F: std::future::Future<Output = Result<Vec<Value>, ()>>,
+  {
+    if let Ok(items) = mongo
+      .find_many(collection, Some(&filter), None, None, None, true)
+      .await
+    {
+      let count = items.len();
+      for item in items {
+        if self.json_provider.insert(collection, item).await.is_ok() {
+          return count;
+        }
+      }
+    }
+    0
+  }
+
+  /// Import data from cloud MongoDB to local JSON
+  pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
+
+    tracing::info!("[Import] Starting import for user_id: {}", user_id);
+
+    let mut imported_count = 0;
+    imported_count += self.import_users(mongo, &user_id).await;
+    imported_count += self.import_profiles(mongo, &user_id).await;
+    imported_count += self.import_todos(mongo, &user_id).await;
+    imported_count += self.import_categories(mongo, &user_id).await;
+    imported_count += self.import_activities(mongo, &user_id).await;
+    imported_count += self.import_tasks(mongo, &user_id).await;
+    imported_count += self.import_subtasks(mongo, &user_id).await;
+
+    tracing::info!(
       "[Import] Completed with {} records imported",
       imported_count
     );
@@ -237,113 +297,119 @@ impl ManageDbService {
     })
   }
 
-  /// Export data from local JSON to cloud MongoDB
-  pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
-
-    eprintln!("[Export] Starting export for user_id: {}", user_id);
-
-    let mut exported_count = 0;
-
-    // 1. Export user by id (NOT user_id - users have id, not user_id)
-    let user_filter = Filter::Eq("id".to_string(), json!(user_id));
-    if let Ok(mut users) = self
+  async fn export_users(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("id".to_string(), json!(user_id));
+    if let Ok(users) = self
       .json_provider
-      .find_many("users", Some(&user_filter), None, None, None, true)
+      .find_many("users", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Export] Found {} users", users.len());
+      let count = users.len();
+      tracing::info!("[Export] Found {} users", count);
       for item in users {
-        match mongo.insert("users", item).await {
-          Ok(_) => exported_count += 1,
-          Err(e) => eprintln!("[Export] Failed to insert user: {}", e),
+        if let Err(e) = mongo.insert("users", item).await {
+          tracing::warn!("[Export] Failed to insert user in export_users: {}", e);
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 2. Export profile by user_id
-    let profile_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut profiles) = self
+  async fn export_profiles(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(profiles) = self
       .json_provider
-      .find_many("profiles", Some(&profile_filter), None, None, None, true)
+      .find_many("profiles", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Export] Found {} profiles", profiles.len());
+      let count = profiles.len();
+      tracing::info!("[Export] Found {} profiles", count);
       for item in profiles {
-        match mongo.insert("profiles", item).await {
-          Ok(_) => exported_count += 1,
-          Err(e) => eprintln!("[Export] Failed to insert profile: {}", e),
+        if let Err(e) = mongo.insert("profiles", item).await {
+          tracing::warn!(
+            "[Export] Failed to insert profile in export_profiles: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 3. Export todos by user_id
-    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+  async fn export_todos(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
     if let Ok(todos) = self
       .json_provider
-      .find_many("todos", Some(&todos_filter), None, None, None, true)
+      .find_many("todos", Some(&filter), None, None, None, true)
       .await
     {
       let todos = filter_not_deleted(todos);
-      eprintln!("[Export] Found {} todos", todos.len());
+      let count = todos.len();
+      tracing::info!("[Export] Found {} todos", count);
       for item in todos {
-        match mongo.insert("todos", item).await {
-          Ok(_) => exported_count += 1,
-          Err(e) => eprintln!("[Export] Failed to insert todo: {}", e),
+        if let Err(e) = mongo.insert("todos", item).await {
+          tracing::warn!("[Export] Failed to insert todo in export_todos: {}", e);
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 4. Export categories by user_id
-    let categories_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut categories) = self
+  async fn export_categories(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(categories) = self
       .json_provider
-      .find_many(
-        "categories",
-        Some(&categories_filter),
-        None,
-        None,
-        None,
-        true,
-      )
+      .find_many("categories", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Export] Found {} categories", categories.len());
+      let count = categories.len();
+      tracing::info!("[Export] Found {} categories", count);
       for item in categories {
-        match mongo.insert("categories", item).await {
-          Ok(_) => exported_count += 1,
-          Err(e) => eprintln!("[Export] Failed to insert category: {}", e),
+        if let Err(e) = mongo.insert("categories", item).await {
+          tracing::warn!(
+            "[Export] Failed to insert category in export_categories: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 5. Export daily_activities by user_id
-    let activities_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut activities) = self
+  async fn export_activities(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    if let Ok(activities) = self
       .json_provider
-      .find_many(
-        "daily_activities",
-        Some(&activities_filter),
-        None,
-        None,
-        None,
-        true,
-      )
+      .find_many("daily_activities", Some(&filter), None, None, None, true)
       .await
     {
-      eprintln!("[Export] Found {} activities", activities.len());
+      let count = activities.len();
+      tracing::info!("[Export] Found {} activities", count);
       for item in activities {
-        match mongo.insert("daily_activities", item).await {
-          Ok(_) => exported_count += 1,
-          Err(e) => eprintln!("[Export] Failed to insert activity: {}", e),
+        if let Err(e) = mongo.insert("daily_activities", item).await {
+          tracing::warn!(
+            "[Export] Failed to insert activity in export_activities: {}",
+            e
+          );
+          return 0;
         }
       }
+      return count;
     }
+    0
+  }
 
-    // 6. Export tasks - get all tasks and filter client-side by todo_id
+  async fn export_tasks(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
     if let Ok(todos) = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
@@ -364,16 +430,22 @@ impl ManageDbService {
         {
           let tasks = filter_not_deleted(tasks);
           for item in tasks {
-            match mongo.insert("tasks", item).await {
-              Ok(_) => exported_count += 1,
-              Err(e) => eprintln!("[Export] Failed to insert task: {}", e),
+            if let Err(e) = mongo.insert("tasks", item).await {
+              tracing::warn!("[Export] Failed to insert task in export_tasks: {}", e);
+            } else {
+              count += 1;
             }
           }
         }
       }
     }
+    tracing::info!("[Export] Exported {} tasks", count);
+    count
+  }
 
-    // 7. Export subtasks - get all subtasks and filter client-side by task_id
+  async fn export_subtasks(&self, mongo: &MongoProvider, user_id: &str) -> usize {
+    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
     if let Ok(todos) = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
@@ -407,9 +479,13 @@ impl ManageDbService {
             {
               let subtasks = filter_not_deleted(subtasks);
               for item in subtasks {
-                match mongo.insert("subtasks", item).await {
-                  Ok(_) => exported_count += 1,
-                  Err(e) => eprintln!("[Export] Failed to insert subtask: {}", e),
+                if let Err(e) = mongo.insert("subtasks", item).await {
+                  tracing::warn!(
+                    "[Export] Failed to insert subtask in export_subtasks: {}",
+                    e
+                  );
+                } else {
+                  count += 1;
                 }
               }
             }
@@ -417,8 +493,29 @@ impl ManageDbService {
         }
       }
     }
+    tracing::info!("[Export] Exported {} subtasks", count);
+    count
+  }
 
-    eprintln!(
+  /// Export data from local JSON to cloud MongoDB
+  pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
+
+    tracing::info!("[Export] Starting export for user_id: {}", user_id);
+
+    let mut exported_count = 0;
+    exported_count += self.export_users(mongo, &user_id).await;
+    exported_count += self.export_profiles(mongo, &user_id).await;
+    exported_count += self.export_todos(mongo, &user_id).await;
+    exported_count += self.export_categories(mongo, &user_id).await;
+    exported_count += self.export_activities(mongo, &user_id).await;
+    exported_count += self.export_tasks(mongo, &user_id).await;
+    exported_count += self.export_subtasks(mongo, &user_id).await;
+
+    tracing::info!(
       "[Export] Completed with {} records exported",
       exported_count
     );
