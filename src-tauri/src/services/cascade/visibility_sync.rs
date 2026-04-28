@@ -24,7 +24,7 @@ impl VisibilitySyncService {
     json_provider: &JsonProvider,
     mongo: &MongoProvider,
     todo: &Value,
-    todo_id: &str,
+    _todo_id: &str,
     new_visibility: &str,
   ) -> bool {
     if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
@@ -140,7 +140,7 @@ impl VisibilitySyncService {
     json_provider: &JsonProvider,
     mongo: &MongoProvider,
     todo: &Value,
-    todo_id: &str,
+    _todo_id: &str,
     new_visibility: &str,
   ) -> bool {
     if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
