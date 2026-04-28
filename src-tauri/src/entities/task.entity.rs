@@ -36,6 +36,7 @@ impl Display for TaskStatus {
 #[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
 #[one_to_many("comments", "comments", "task_id", "Cascade")]
 #[many_to_one("todo", "todos", "todo_id")]
+#[index("todo_id", 1)]
 pub struct TaskEntity {
   pub id: Option<String>,
   #[validate(required)]

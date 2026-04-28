@@ -5,4 +5,5 @@ use serde::{Deserialize, Serialize};
 pub struct SyncMetadata {
   pub is_owner: bool,
   pub is_private: bool,
+  pub visibility: Option<String>,
 }

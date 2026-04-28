@@ -8,6 +8,11 @@ use nosql_orm::{Model, Validate};
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("chats")]
 #[soft_delete]
+#[timestamp]
+#[many_to_one("todo", "todos", "todo_id")]
+#[many_to_one("user", "users", "user_id")]
+#[index("todo_id", 1)]
+#[index("user_id", 1)]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,

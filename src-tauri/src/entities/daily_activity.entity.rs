@@ -7,7 +7,9 @@ use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("daily_activities")]
-#[id_field("id")]
+#[timestamp]
+#[index("user_id", 1)]
+#[index("date", 1)]
 pub struct DailyActivityModel {
   pub id: Option<String>,
   pub user_id: String,

@@ -12,6 +12,8 @@ pub mod email_config;
 pub mod login_form_entity;
 #[path = "password_reset.entity.rs"]
 pub mod password_reset;
+#[path = "pending_request.entity.rs"]
+pub mod pending_request_entity;
 #[path = "profile.entity.rs"]
 pub mod profile_entity;
 #[path = "provider_type.entity.rs"]
