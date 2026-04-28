@@ -389,6 +389,8 @@ export class DataLoaderService {
         }
       }
     }
-    console.log(`[DataLoader] ${source} comment counts: ${taskComments} task-level, ${subtaskComments} subtask-level`);
+    console.log(
+      `[DataLoader] ${source} comment counts: ${taskComments} task-level, ${subtaskComments} subtask-level`
+    );
   }
 }
