@@ -1,13 +1,19 @@
 /* sys lib */
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /* nosql_orm */
-use nosql_orm::error::OrmResult;
+use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::query::Filter;
+use nosql_orm::relations::WithRelations;
 use serde_json::{json, Value};
+
+/* entities */
+use crate::entities::subtask_entity::SubtaskEntity;
+use crate::entities::task_entity::TaskEntity;
+use crate::entities::todo_entity::TodoEntity;
 
 /* helpers */
 use crate::helpers::response_helper::err_response_formatted;
@@ -16,64 +22,39 @@ use crate::helpers::response_helper::err_response_formatted;
 use crate::entities::response_entity::ResponseModel;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct CascadeIds {
-  pub todo_ids: Vec<String>,
-  pub task_ids: Vec<String>,
-  pub subtask_ids: Vec<String>,
-  pub comment_ids: Vec<String>,
-  pub chat_ids: Vec<String>,
+pub struct CascadeResult {
+  pub todo_count: u64,
+  pub task_count: u64,
+  pub subtask_count: u64,
+  pub comment_count: u64,
+  pub chat_count: u64,
 }
 
-impl CascadeIds {
+impl CascadeResult {
   pub fn new() -> Self {
     Self::default()
   }
 
-  pub fn is_empty(&self) -> bool {
-    self.todo_ids.is_empty()
-      && self.task_ids.is_empty()
-      && self.subtask_ids.is_empty()
-      && self.comment_ids.is_empty()
-      && self.chat_ids.is_empty()
+  pub fn total_count(&self) -> u64 {
+    self.todo_count + self.task_count + self.subtask_count + self.comment_count + self.chat_count
   }
 
-  pub fn total_count(&self) -> usize {
-    self.todo_ids.len()
-      + self.task_ids.len()
-      + self.subtask_ids.len()
-      + self.comment_ids.len()
-      + self.chat_ids.len()
-  }
-
-  pub fn add_id(&mut self, collection: &str, id: String) {
-    match collection {
-      "todos" => {
-        if !self.todo_ids.contains(&id) {
-          self.todo_ids.push(id);
-        }
+  pub fn from_deleted_ids(deleted: &HashSet<String>) -> Self {
+    let mut result = Self::new();
+    for id in deleted {
+      if id.starts_with("todo_") {
+        result.todo_count += 1;
+      } else if id.starts_with("task_") {
+        result.task_count += 1;
+      } else if id.starts_with("subtask_") {
+        result.subtask_count += 1;
+      } else if id.starts_with("comment_") {
+        result.comment_count += 1;
+      } else if id.starts_with("chat_") {
+        result.chat_count += 1;
       }
-      "tasks" => {
-        if !self.task_ids.contains(&id) {
-          self.task_ids.push(id);
-        }
-      }
-      "subtasks" => {
-        if !self.subtask_ids.contains(&id) {
-          self.subtask_ids.push(id);
-        }
-      }
-      "comments" => {
-        if !self.comment_ids.contains(&id) {
-          self.comment_ids.push(id);
-        }
-      }
-      "chats" => {
-        if !self.chat_ids.contains(&id) {
-          self.chat_ids.push(id);
-        }
-      }
-      _ => {}
     }
+    result
   }
 }
 
@@ -99,235 +80,338 @@ impl CascadeService {
     }
   }
 
-  async fn collect_cascade_ids_json(
-    &self,
+  async fn delete_chats_related_to_todo(&self, todo_id: &str) -> Result<u64, ResponseModel> {
+    let filter = nosql_orm::query::Filter::Eq("todo_id".to_string(), json!(todo_id));
+    let chats = self
+      .json_provider
+      .find_many("chats", Some(&filter), None, None, None, false)
+      .await
+      .map_err(|e| err_response_formatted("Find chats failed", &e.to_string()))?;
+    let count = chats.len() as u64;
+    for chat in chats {
+      if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
+        let _ = self.json_provider.delete("chats", chat_id).await;
+      }
+    }
+    Ok(count)
+  }
+
+  async fn delete_chats_related_to_todo_mongo(&self, todo_id: &str) -> Result<u64, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    let filter = nosql_orm::query::Filter::Eq("todo_id".to_string(), json!(todo_id));
+    let chats = mongo
+      .find_many("chats", Some(&filter), None, None, None, false)
+      .await
+      .map_err(|e| err_response_formatted("Find chats failed", &e.to_string()))?;
+    let count = chats.len() as u64;
+    for chat in chats {
+      if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
+        let _ = mongo.delete("chats", chat_id).await;
+      }
+    }
+    Ok(count)
+  }
+
+  async fn cascade_delete<P: DatabaseProvider>(
+    provider: &P,
     table: &str,
     id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let mut cascade_ids = CascadeIds::default();
+  ) -> Result<CascadeResult, ResponseModel>
+  where
+    P: Send + Sync,
+  {
+    let mut deleted = HashSet::new();
+    deleted.insert(format!("{}_{}", table, id));
 
     match table {
       "todos" => {
-        cascade_ids.add_id("todos", id.to_string());
-        let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(id));
-        if let Ok(tasks) = self
-          .json_provider
-          .find_many("tasks", Some(&filter), None, None, None, true)
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .hard_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
           .await
-        {
-          for task in tasks {
-            if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
-              cascade_ids.add_id("tasks", task_id.to_string());
-              self.collect_subtasks_json(task_id, &mut cascade_ids).await;
-              self
-                .collect_comments_by_task_json(task_id, &mut cascade_ids)
-                .await;
-            }
-          }
-        }
-        self.collect_chats_by_todo_json(id, &mut cascade_ids).await;
+          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+        let chat_count = deleted.iter().filter(|s| s.starts_with("chat_")).count() as u64;
+        Ok(CascadeResult {
+          todo_count: 1,
+          task_count: deleted.iter().filter(|s| s.starts_with("task_")).count() as u64,
+          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
+          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
+          chat_count,
+        })
       }
       "tasks" => {
-        cascade_ids.add_id("tasks", id.to_string());
-        self.collect_subtasks_json(id, &mut cascade_ids).await;
-        self
-          .collect_comments_by_task_json(id, &mut cascade_ids)
-          .await;
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .hard_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+        Ok(CascadeResult {
+          todo_count: 0,
+          task_count: 1,
+          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
+          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
+          chat_count: 0,
+        })
       }
       "subtasks" => {
-        cascade_ids.add_id("subtasks", id.to_string());
-        self
-          .collect_comments_by_subtask_json(id, &mut cascade_ids)
-          .await;
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .hard_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+        Ok(CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 1,
+          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
+          chat_count: 0,
+        })
       }
       "comments" => {
-        cascade_ids.add_id("comments", id.to_string());
+        provider
+          .delete("comments", id)
+          .await
+          .map_err(|e| err_response_formatted("Delete comment failed", &e.to_string()))?;
+        Ok(CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 0,
+          comment_count: 1,
+          chat_count: 0,
+        })
       }
-      _ => {}
-    }
-
-    Ok(cascade_ids)
-  }
-
-  async fn collect_comments_by_task_json(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-    if let Ok(comments) = self
-      .json_provider
-      .find_many("comments", Some(&filter), None, None, None, true)
-      .await
-    {
-      for comment in comments {
-        if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-          cascade_ids.add_id("comments", comment_id.to_string());
-        }
-      }
+      _ => Err(err_response_formatted(
+        "Unknown table for cascade delete",
+        table,
+      )),
     }
   }
 
-  async fn collect_comments_by_subtask_json(&self, subtask_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("subtask_id".to_string(), serde_json::json!(subtask_id));
-    if let Ok(comments) = self
-      .json_provider
-      .find_many("comments", Some(&filter), None, None, None, true)
-      .await
-    {
-      for comment in comments {
-        if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-          cascade_ids.add_id("comments", comment_id.to_string());
-        }
-      }
-    }
-  }
-
-  async fn collect_chats_by_todo_json(&self, todo_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
-    if let Ok(chats) = self
-      .json_provider
-      .find_many("chats", Some(&filter), None, None, None, true)
-      .await
-    {
-      for chat in chats {
-        if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
-          cascade_ids.add_id("chats", chat_id.to_string());
-        }
-      }
-    }
-  }
-
-  async fn collect_subtasks_json(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-    let result: OrmResult<Vec<Value>> = self
-      .json_provider
-      .find_many("subtasks", Some(&filter), None, None, None, true)
-      .await;
-    if let Ok(subtasks) = result {
-      for subtask in subtasks {
-        let sid = subtask.get("id").and_then(|v| v.as_str()).map(String::from);
-        if let Some(subtask_id) = sid {
-          cascade_ids.add_id("subtasks", subtask_id);
-        }
-      }
-    }
-  }
-
-  async fn collect_cascade_ids_mongo(
-    &self,
+  async fn cascade_update<P: DatabaseProvider>(
+    provider: &P,
     table: &str,
     id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let mut cascade_ids = CascadeIds::default();
+    patch: Value,
+  ) -> Result<CascadeResult, ResponseModel>
+  where
+    P: Send + Sync,
+  {
+    let filter = nosql_orm::query::Filter::Eq("id".to_string(), json!(id));
+    let count = match table {
+      "todos" => {
+        let tasks = provider
+          .find_many("tasks", Some(&filter), None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Find tasks failed", &e.to_string()))?;
+        let mut task_count = 0u64;
+        let mut subtask_count = 0u64;
+        let mut comment_count = 0u64;
+        for task in tasks {
+          if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
+            provider
+              .patch("tasks", task_id, patch.clone())
+              .await
+              .map_err(|e| err_response_formatted("Patch task failed", &e.to_string()))?;
+            task_count += 1;
 
-    if let Some(ref mongo) = self.mongodb_provider {
-      match table {
-        "todos" => {
-          cascade_ids.add_id("todos", id.to_string());
-          let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(id));
-          if let Ok(tasks) = mongo
-            .find_many("tasks", Some(&filter), None, None, None, true)
-            .await
-          {
-            for task in tasks {
-              if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
-                cascade_ids.add_id("tasks", task_id.to_string());
-                self.collect_subtasks_mongo(task_id, &mut cascade_ids).await;
-                self
-                  .collect_comments_by_task_mongo(task_id, &mut cascade_ids)
-                  .await;
+            let sub_filter = nosql_orm::query::Filter::Eq("task_id".to_string(), json!(task_id));
+            let subtasks = provider
+              .find_many("subtasks", Some(&sub_filter), None, None, None, false)
+              .await
+              .map_err(|e| err_response_formatted("Find subtasks failed", &e.to_string()))?;
+            for subtask in subtasks {
+              if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
+                provider
+                  .patch("subtasks", subtask_id, patch.clone())
+                  .await
+                  .map_err(|e| err_response_formatted("Patch subtask failed", &e.to_string()))?;
+                subtask_count += 1;
+              }
+            }
+            let comments = provider
+              .find_many("comments", Some(&sub_filter), None, None, None, false)
+              .await
+              .map_err(|e| err_response_formatted("Find comments failed", &e.to_string()))?;
+            for comment in comments {
+              if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+                provider
+                  .patch("comments", comment_id, patch.clone())
+                  .await
+                  .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
+                comment_count += 1;
               }
             }
           }
-          self.collect_chats_by_todo_mongo(id, &mut cascade_ids).await;
         }
-        "tasks" => {
-          cascade_ids.add_id("tasks", id.to_string());
-          self.collect_subtasks_mongo(id, &mut cascade_ids).await;
-          self
-            .collect_comments_by_task_mongo(id, &mut cascade_ids)
-            .await;
-        }
-        "subtasks" => {
-          cascade_ids.add_id("subtasks", id.to_string());
-          self
-            .collect_comments_by_subtask_mongo(id, &mut cascade_ids)
-            .await;
-        }
-        "comments" => {
-          cascade_ids.add_id("comments", id.to_string());
-        }
-        _ => {}
-      }
-    }
-
-    Ok(cascade_ids)
-  }
-
-  async fn collect_comments_by_task_mongo(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-      if let Ok(comments) = mongo
-        .find_many("comments", Some(&filter), None, None, None, true)
-        .await
-      {
-        for comment in comments {
-          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-            cascade_ids.add_id("comments", comment_id.to_string());
-          }
+        CascadeResult {
+          todo_count: 1,
+          task_count,
+          subtask_count,
+          comment_count,
+          chat_count: 0,
         }
       }
-    }
-  }
-
-  async fn collect_comments_by_subtask_mongo(
-    &self,
-    subtask_id: &str,
-    cascade_ids: &mut CascadeIds,
-  ) {
-    if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("subtask_id".to_string(), serde_json::json!(subtask_id));
-      if let Ok(comments) = mongo
-        .find_many("comments", Some(&filter), None, None, None, true)
-        .await
-      {
-        for comment in comments {
-          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
-            cascade_ids.add_id("comments", comment_id.to_string());
-          }
-        }
-      }
-    }
-  }
-
-  async fn collect_chats_by_todo_mongo(&self, todo_id: &str, cascade_ids: &mut CascadeIds) {
-    if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
-      if let Ok(chats) = mongo
-        .find_many("chats", Some(&filter), None, None, None, true)
-        .await
-      {
-        for chat in chats {
-          if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
-            cascade_ids.add_id("chats", chat_id.to_string());
-          }
-        }
-      }
-    }
-  }
-
-  async fn collect_subtasks_mongo(&self, task_id: &str, cascade_ids: &mut CascadeIds) {
-    if let Some(ref mongo) = self.mongodb_provider {
-      let filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-      let result: OrmResult<Vec<Value>> = mongo
-        .find_many("subtasks", Some(&filter), None, None, None, true)
-        .await;
-      if let Ok(subtasks) = result {
+      "tasks" => {
+        let subtasks = provider
+          .find_many("subtasks", Some(&filter), None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Find subtasks failed", &e.to_string()))?;
+        let mut subtask_count = 0u64;
+        let mut comment_count = 0u64;
         for subtask in subtasks {
-          let sid = subtask.get("id").and_then(|v| v.as_str()).map(String::from);
-          if let Some(subtask_id) = sid {
-            cascade_ids.add_id("subtasks", subtask_id);
+          if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
+            provider
+              .patch("subtasks", subtask_id, patch.clone())
+              .await
+              .map_err(|e| err_response_formatted("Patch subtask failed", &e.to_string()))?;
+            subtask_count += 1;
           }
         }
+        let comments = provider
+          .find_many("comments", Some(&filter), None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Find comments failed", &e.to_string()))?;
+        for comment in comments {
+          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+            provider
+              .patch("comments", comment_id, patch.clone())
+              .await
+              .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
+            comment_count += 1;
+          }
+        }
+        CascadeResult {
+          todo_count: 0,
+          task_count: 1,
+          subtask_count,
+          comment_count,
+          chat_count: 0,
+        }
       }
+      "subtasks" => {
+        let comments = provider
+          .find_many("comments", Some(&filter), None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Find comments failed", &e.to_string()))?;
+        let comment_count = comments.len() as u64;
+        for comment in comments {
+          if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+            provider
+              .patch("comments", comment_id, patch.clone())
+              .await
+              .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
+          }
+        }
+        CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 1,
+          comment_count,
+          chat_count: 0,
+        }
+      }
+      "comments" => CascadeResult {
+        todo_count: 0,
+        task_count: 0,
+        subtask_count: 0,
+        comment_count: 1,
+        chat_count: 0,
+      },
+      _ => {
+        return Err(err_response_formatted(
+          "Unknown table for cascade update",
+          table,
+        ))
+      }
+    };
+    Ok(count)
+  }
+
+  pub async fn soft_delete_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mut result = Self::cascade_update(
+      &self.json_provider,
+      table,
+      id,
+      json!({ "deleted_at": chrono::Utc::now().to_rfc3339() }),
+    )
+    .await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo(id).await?;
     }
+    Ok(result)
+  }
+
+  pub async fn soft_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    let mut result = Self::cascade_update(
+      mongo.as_ref(),
+      table,
+      id,
+      json!({ "deleted_at": chrono::Utc::now().to_rfc3339() }),
+    )
+    .await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo_mongo(id).await?;
+    }
+    Ok(result)
+  }
+
+  pub async fn permanent_delete_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mut result = Self::cascade_delete(&self.json_provider, table, id).await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo(id).await?;
+    }
+    Ok(result)
+  }
+
+  pub async fn permanent_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    let mut result = Self::cascade_delete(mongo.as_ref(), table, id).await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo_mongo(id).await?;
+    }
+    Ok(result)
+  }
+
+  pub async fn restore_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.soft_delete_cascade_json(table, id).await
+  }
+
+  pub async fn restore_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.soft_delete_cascade_mongo(table, id).await
   }
 
   pub async fn handle_json_cascade(
@@ -335,8 +419,13 @@ impl CascadeService {
     table: &str,
     id: &str,
     _is_restore: bool,
-  ) -> Result<CascadeIds, ResponseModel> {
-    self.collect_cascade_ids_json(table, id).await
+  ) -> Result<CascadeResult, ResponseModel> {
+    let patch = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
+    let mut result = Self::cascade_update(&self.json_provider, table, id, patch).await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo(id).await?;
+    }
+    Ok(result)
   }
 
   pub async fn handle_mongo_cascade(
@@ -344,595 +433,32 @@ impl CascadeService {
     table: &str,
     id: &str,
     _is_restore: bool,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if self.mongodb_provider.is_none() {
-      return Err(err_response_formatted("MongoDB not available", ""));
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    let patch = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
+    let mut result = Self::cascade_update(mongo.as_ref(), table, id, patch).await?;
+    if table == "todos" {
+      result.chat_count = self.delete_chats_related_to_todo_mongo(id).await?;
     }
-    self.collect_cascade_ids_mongo(table, id).await
+    Ok(result)
   }
-
-  // ==================== SOFT DELETE CASCADE ====================
-
-  pub async fn soft_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let cascade_ids = self.collect_cascade_ids_json(table, id).await?;
-    let timestamp = chrono::Utc::now().to_rfc3339();
-    let patch = json!({ "deleted_at": timestamp });
-
-    self
-      .apply_cascade_patch_json(table, &cascade_ids, patch.clone())
-      .await?;
-    Ok(cascade_ids)
-  }
-
-  pub async fn soft_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if self.mongodb_provider.is_none() {
-      return Err(err_response_formatted("MongoDB not available", ""));
-    }
-    let cascade_ids = self.collect_cascade_ids_mongo(table, id).await?;
-    let timestamp = chrono::Utc::now().to_rfc3339();
-    let patch = json!({ "deleted_at": timestamp });
-
-    self
-      .apply_cascade_patch_mongo(table, &cascade_ids, patch)
-      .await?;
-    Ok(cascade_ids)
-  }
-
-  // ==================== PERMANENT DELETE CASCADE ====================
-
-  pub async fn permanent_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let cascade_ids = self.collect_cascade_ids_json(table, id).await?;
-
-    self.apply_cascade_delete_json(table, &cascade_ids).await?;
-    Ok(cascade_ids)
-  }
-
-  pub async fn permanent_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if self.mongodb_provider.is_none() {
-      return Err(err_response_formatted("MongoDB not available", ""));
-    }
-    let cascade_ids = self.collect_cascade_ids_mongo(table, id).await?;
-
-    self.apply_cascade_delete_mongo(table, &cascade_ids).await?;
-    Ok(cascade_ids)
-  }
-
-  // ==================== RESTORE CASCADE ====================
-
-  pub async fn restore_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let cascade_ids = self.collect_cascade_ids_json(table, id).await?;
-    let patch = json!({ "deleted_at": serde_json::Value::Null });
-
-    self
-      .apply_cascade_patch_json(table, &cascade_ids, patch)
-      .await?;
-    Ok(cascade_ids)
-  }
-
-  pub async fn restore_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if self.mongodb_provider.is_none() {
-      return Err(err_response_formatted("MongoDB not available", ""));
-    }
-    let cascade_ids = self.collect_cascade_ids_mongo(table, id).await?;
-    let patch = json!({ "deleted_at": serde_json::Value::Null });
-
-    self
-      .apply_cascade_patch_mongo(table, &cascade_ids, patch)
-      .await?;
-    Ok(cascade_ids)
-  }
-
-  // ==================== SYNC TO PROVIDER ====================
 
   pub async fn sync_entity_to_json(
     &self,
     table: &str,
     id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    let cascade_ids = self.collect_cascade_ids_json(table, id).await?;
-    let docs = self.fetch_cascade_docs_json(table, &cascade_ids).await?;
-
-    for doc in docs {
-      if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
-        if let Err(e) = self.json_provider.insert(table, doc.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to insert {} in sync_entity_to_json: {}",
-            doc_id,
-            e
-          );
-        }
-        if let Err(e) = self.json_provider.patch(table, doc_id, doc.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch {} in sync_entity_to_json: {}",
-            doc_id,
-            e
-          );
-        }
-      }
-    }
-    Ok(cascade_ids)
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.permanent_delete_cascade_json(table, id).await
   }
 
   pub async fn sync_entity_to_mongo(
     &self,
     table: &str,
     id: &str,
-  ) -> Result<CascadeIds, ResponseModel> {
-    if self.mongodb_provider.is_none() {
-      return Err(err_response_formatted("MongoDB not available", ""));
-    }
-    let cascade_ids = self.collect_cascade_ids_mongo(table, id).await?;
-    let docs = self.fetch_cascade_docs_mongo(table, &cascade_ids).await?;
-
-    if let Some(ref mongo) = self.mongodb_provider {
-      for doc in docs {
-        if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
-          if let Err(e) = mongo.insert(table, doc.clone()).await {
-            tracing::warn!(
-              "[CascadeService] Failed to insert {} in sync_entity_to_mongo: {}",
-              doc_id,
-              e
-            );
-          }
-          if let Err(e) = mongo.patch(table, doc_id, doc.clone()).await {
-            tracing::warn!(
-              "[CascadeService] Failed to patch {} in sync_entity_to_mongo: {}",
-              doc_id,
-              e
-            );
-          }
-        }
-      }
-    }
-    Ok(cascade_ids)
-  }
-
-  // ==================== PRIVATE HELPERS ====================
-
-  async fn apply_cascade_patch_json(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-    patch: Value,
-  ) -> Result<(), ResponseModel> {
-    for id in &cascade_ids.todo_ids {
-      if let Err(e) = self.json_provider.patch("todos", id, patch.clone()).await {
-        tracing::warn!(
-          "[CascadeService] Failed to patch todo {} in apply_cascade_patch_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.task_ids {
-      if let Err(e) = self.json_provider.patch("tasks", id, patch.clone()).await {
-        tracing::warn!(
-          "[CascadeService] Failed to patch task {} in apply_cascade_patch_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.subtask_ids {
-      if let Err(e) = self
-        .json_provider
-        .patch("subtasks", id, patch.clone())
-        .await
-      {
-        tracing::warn!(
-          "[CascadeService] Failed to patch subtask {} in apply_cascade_patch_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.comment_ids {
-      if let Err(e) = self
-        .json_provider
-        .patch("comments", id, patch.clone())
-        .await
-      {
-        tracing::warn!(
-          "[CascadeService] Failed to patch comment {} in apply_cascade_patch_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.chat_ids {
-      if let Err(e) = self.json_provider.patch("chats", id, patch.clone()).await {
-        tracing::warn!(
-          "[CascadeService] Failed to patch chat {} in apply_cascade_patch_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    Ok(())
-  }
-
-  async fn apply_cascade_patch_mongo(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-    patch: Value,
-  ) -> Result<(), ResponseModel> {
-    if let Some(ref mongo) = self.mongodb_provider {
-      for id in &cascade_ids.todo_ids {
-        if let Err(e) = mongo.patch("todos", id, patch.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch todo {} in apply_cascade_patch_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.task_ids {
-        if let Err(e) = mongo.patch("tasks", id, patch.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch task {} in apply_cascade_patch_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.subtask_ids {
-        if let Err(e) = mongo.patch("subtasks", id, patch.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch subtask {} in apply_cascade_patch_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.comment_ids {
-        if let Err(e) = mongo.patch("comments", id, patch.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch comment {} in apply_cascade_patch_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.chat_ids {
-        if let Err(e) = mongo.patch("chats", id, patch.clone()).await {
-          tracing::warn!(
-            "[CascadeService] Failed to patch chat {} in apply_cascade_patch_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-    }
-    Ok(())
-  }
-
-  async fn apply_cascade_delete_json(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-  ) -> Result<(), ResponseModel> {
-    for id in &cascade_ids.todo_ids {
-      if let Err(e) = self.json_provider.delete("todos", id).await {
-        tracing::warn!(
-          "[CascadeService] Failed to delete todo {} in apply_cascade_delete_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.task_ids {
-      if let Err(e) = self.json_provider.delete("tasks", id).await {
-        tracing::warn!(
-          "[CascadeService] Failed to delete task {} in apply_cascade_delete_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.subtask_ids {
-      if let Err(e) = self.json_provider.delete("subtasks", id).await {
-        tracing::warn!(
-          "[CascadeService] Failed to delete subtask {} in apply_cascade_delete_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.comment_ids {
-      if let Err(e) = self.json_provider.delete("comments", id).await {
-        tracing::warn!(
-          "[CascadeService] Failed to delete comment {} in apply_cascade_delete_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    for id in &cascade_ids.chat_ids {
-      if let Err(e) = self.json_provider.delete("chats", id).await {
-        tracing::warn!(
-          "[CascadeService] Failed to delete chat {} in apply_cascade_delete_json: {}",
-          id,
-          e
-        );
-      }
-    }
-    Ok(())
-  }
-
-  async fn apply_cascade_delete_mongo(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-  ) -> Result<(), ResponseModel> {
-    if let Some(ref mongo) = self.mongodb_provider {
-      for id in &cascade_ids.todo_ids {
-        if let Err(e) = mongo.delete("todos", id).await {
-          tracing::warn!(
-            "[CascadeService] Failed to delete todo {} in apply_cascade_delete_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.task_ids {
-        if let Err(e) = mongo.delete("tasks", id).await {
-          tracing::warn!(
-            "[CascadeService] Failed to delete task {} in apply_cascade_delete_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.subtask_ids {
-        if let Err(e) = mongo.delete("subtasks", id).await {
-          tracing::warn!(
-            "[CascadeService] Failed to delete subtask {} in apply_cascade_delete_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.comment_ids {
-        if let Err(e) = mongo.delete("comments", id).await {
-          tracing::warn!(
-            "[CascadeService] Failed to delete comment {} in apply_cascade_delete_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-      for id in &cascade_ids.chat_ids {
-        if let Err(e) = mongo.delete("chats", id).await {
-          tracing::warn!(
-            "[CascadeService] Failed to delete chat {} in apply_cascade_delete_mongo: {}",
-            id,
-            e
-          );
-        }
-      }
-    }
-    Ok(())
-  }
-
-  async fn fetch_cascade_docs_json(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-  ) -> Result<Vec<Value>, ResponseModel> {
-    let mut docs = Vec::new();
-
-    if !cascade_ids.todo_ids.is_empty() {
-      let filter = Filter::In(
-        "id".to_string(),
-        cascade_ids
-          .todo_ids
-          .iter()
-          .map(|id| serde_json::json!(id))
-          .collect(),
-      );
-      if let Ok(todos) = self
-        .json_provider
-        .find_many("todos", Some(&filter), None, None, None, false)
-        .await
-      {
-        docs.extend(todos);
-      }
-    }
-
-    if !cascade_ids.task_ids.is_empty() {
-      let filter = Filter::In(
-        "id".to_string(),
-        cascade_ids
-          .task_ids
-          .iter()
-          .map(|id| serde_json::json!(id))
-          .collect(),
-      );
-      if let Ok(tasks) = self
-        .json_provider
-        .find_many("tasks", Some(&filter), None, None, None, false)
-        .await
-      {
-        docs.extend(tasks);
-      }
-    }
-
-    if !cascade_ids.subtask_ids.is_empty() {
-      let filter = Filter::In(
-        "id".to_string(),
-        cascade_ids
-          .subtask_ids
-          .iter()
-          .map(|id| serde_json::json!(id))
-          .collect(),
-      );
-      if let Ok(subtasks) = self
-        .json_provider
-        .find_many("subtasks", Some(&filter), None, None, None, false)
-        .await
-      {
-        docs.extend(subtasks);
-      }
-    }
-
-    if !cascade_ids.comment_ids.is_empty() {
-      let filter = Filter::In(
-        "id".to_string(),
-        cascade_ids
-          .comment_ids
-          .iter()
-          .map(|id| serde_json::json!(id))
-          .collect(),
-      );
-      if let Ok(comments) = self
-        .json_provider
-        .find_many("comments", Some(&filter), None, None, None, false)
-        .await
-      {
-        docs.extend(comments);
-      }
-    }
-
-    if !cascade_ids.chat_ids.is_empty() {
-      let filter = Filter::In(
-        "id".to_string(),
-        cascade_ids
-          .chat_ids
-          .iter()
-          .map(|id| serde_json::json!(id))
-          .collect(),
-      );
-      if let Ok(chats) = self
-        .json_provider
-        .find_many("chats", Some(&filter), None, None, None, false)
-        .await
-      {
-        docs.extend(chats);
-      }
-    }
-
-    Ok(docs)
-  }
-
-  async fn fetch_cascade_docs_mongo(
-    &self,
-    _table: &str,
-    cascade_ids: &CascadeIds,
-  ) -> Result<Vec<Value>, ResponseModel> {
-    let mut docs = Vec::new();
-
-    if let Some(ref mongo) = self.mongodb_provider {
-      if !cascade_ids.todo_ids.is_empty() {
-        let filter = Filter::In(
-          "id".to_string(),
-          cascade_ids
-            .todo_ids
-            .iter()
-            .map(|id| serde_json::json!(id))
-            .collect(),
-        );
-        if let Ok(todos) = mongo
-          .find_many("todos", Some(&filter), None, None, None, false)
-          .await
-        {
-          docs.extend(todos);
-        }
-      }
-
-      if !cascade_ids.task_ids.is_empty() {
-        let filter = Filter::In(
-          "id".to_string(),
-          cascade_ids
-            .task_ids
-            .iter()
-            .map(|id| serde_json::json!(id))
-            .collect(),
-        );
-        if let Ok(tasks) = mongo
-          .find_many("tasks", Some(&filter), None, None, None, false)
-          .await
-        {
-          docs.extend(tasks);
-        }
-      }
-
-      if !cascade_ids.subtask_ids.is_empty() {
-        let filter = Filter::In(
-          "id".to_string(),
-          cascade_ids
-            .subtask_ids
-            .iter()
-            .map(|id| serde_json::json!(id))
-            .collect(),
-        );
-        if let Ok(subtasks) = mongo
-          .find_many("subtasks", Some(&filter), None, None, None, false)
-          .await
-        {
-          docs.extend(subtasks);
-        }
-      }
-
-      if !cascade_ids.comment_ids.is_empty() {
-        let filter = Filter::In(
-          "id".to_string(),
-          cascade_ids
-            .comment_ids
-            .iter()
-            .map(|id| serde_json::json!(id))
-            .collect(),
-        );
-        if let Ok(comments) = mongo
-          .find_many("comments", Some(&filter), None, None, None, false)
-          .await
-        {
-          docs.extend(comments);
-        }
-      }
-
-      if !cascade_ids.chat_ids.is_empty() {
-        let filter = Filter::In(
-          "id".to_string(),
-          cascade_ids
-            .chat_ids
-            .iter()
-            .map(|id| serde_json::json!(id))
-            .collect(),
-        );
-        if let Ok(chats) = mongo
-          .find_many("chats", Some(&filter), None, None, None, false)
-          .await
-        {
-          docs.extend(chats);
-        }
-      }
-    }
-
-    Ok(docs)
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.permanent_delete_cascade_mongo(table, id).await
   }
 }
