@@ -23,11 +23,6 @@ pub async fn update_user_profile_id_both(
   let now = timestamp_helper::get_current_timestamp();
 
   // Step 1: Update JSON
-  eprintln!(
-    "[user_sync_helper] Updating user.profile_id in JSON for user: {}",
-    user_id
-  );
-
   let user_value = json_provider
     .find_by_id("users", user_id)
     .await
@@ -60,22 +55,14 @@ pub async fn update_user_profile_id_both(
       data: DataValue::String("".to_string()),
     })?;
 
-  eprintln!("[user_sync_helper] User.profileId updated in JSON successfully");
-
   // Step 2: FAIL if MongoDB not available
-  eprintln!("[user_sync_helper] Checking MongoDB availability...");
-
   let mongo = mongo_provider.ok_or_else(|| ResponseModel {
     status: ResponseStatus::Error,
     message: "MongoDB not available".to_string(),
     data: DataValue::String("".to_string()),
   })?;
 
-  eprintln!("[user_sync_helper] MongoDB available, proceeding with user sync");
-
   // Step 3: Update MongoDB with last-write-wins
-  eprintln!("[user_sync_helper] Checking user in MongoDB...");
-
   let now_str = timestamp_helper::get_current_timestamp();
 
   match mongo.find_by_id("users", user_id).await {
@@ -96,7 +83,6 @@ pub async fn update_user_profile_id_both(
         .unwrap_or(true);
 
       if should_update {
-        eprintln!("[user_sync_helper] Updating user in MongoDB (local is newer)...");
         let mut updated = existing_mongo_user.clone();
         if let Some(obj) = updated.as_object_mut() {
           obj.insert(
@@ -113,14 +99,10 @@ pub async fn update_user_profile_id_both(
             message: format!("Failed to update user in MongoDB: {}", e),
             data: DataValue::String("".to_string()),
           })?;
-        eprintln!("[user_sync_helper] User updated in MongoDB successfully");
-      } else {
-        eprintln!("[user_sync_helper] MongoDB user is newer, skipping update");
       }
     }
     Ok(None) => {
       // User doesn't exist in MongoDB, fetch from JSON and insert
-      eprintln!("[user_sync_helper] User not in MongoDB, creating...");
       let mut new_user = json_provider
         .find_by_id("users", user_id)
         .await
@@ -151,7 +133,6 @@ pub async fn update_user_profile_id_both(
           message: format!("Failed to insert user to MongoDB: {}", e),
           data: DataValue::String("".to_string()),
         })?;
-      eprintln!("[user_sync_helper] User created in MongoDB successfully");
     }
     Err(e) => {
       return Err(ResponseModel {

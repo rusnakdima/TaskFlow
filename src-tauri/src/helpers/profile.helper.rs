@@ -15,68 +15,43 @@ pub async fn check_profile_exists(
   let table_name = "profiles";
   let filter = Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
 
-  eprintln!(
-    "[Profile Check] Looking for profile with user_id: {}",
-    user_id
-  );
-
   // Try JSON first
   match json_provider
     .find_many(table_name, Some(&filter), None, None, None, true)
     .await
   {
     Ok(profiles) => {
-      eprintln!("[Profile Check] JSON found {} profiles", profiles.len());
       if let Some(profile_val) = profiles.first() {
         match serde_json::from_value::<ProfileEntity>(profile_val.clone()) {
           Ok(profile) => {
-            eprintln!(
-              "[Profile Check] JSON profile found: id={:?}, user_id={}",
-              profile.id, profile.user_id
-            );
             return Ok(Some(profile));
           }
-          Err(e) => {
-            eprintln!("[Profile Check] JSON parse error: {}", e);
-          }
+          Err(_) => {}
         }
       }
     }
-    Err(e) => {
-      eprintln!("[Profile Check] JSON error: {}", e);
-    }
+    Err(_) => {}
   }
 
   // Fall back to MongoDB
   if let Some(mongo) = mongodb_provider {
-    eprintln!("[Profile Check] Querying MongoDB...");
     match mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
     {
       Ok(profiles) => {
-        eprintln!("[Profile Check] MongoDB found {} profiles", profiles.len());
         if let Some(profile_val) = profiles.first() {
           match serde_json::from_value::<ProfileEntity>(profile_val.clone()) {
             Ok(profile) => {
-              eprintln!(
-                "[Profile Check] MongoDB profile found: id={:?}, user_id={}",
-                profile.id, profile.user_id
-              );
               return Ok(Some(profile));
             }
-            Err(e) => {
-              eprintln!("[Profile Check] MongoDB parse error: {}", e);
-            }
+            Err(_) => {}
           }
         }
       }
-      Err(e) => {
-        eprintln!("[Profile Check] MongoDB error: {}", e);
-      }
+      Err(_) => {}
     }
   }
 
-  eprintln!("[Profile Check] Profile not found for user_id: {}", user_id);
   Ok(None)
 }

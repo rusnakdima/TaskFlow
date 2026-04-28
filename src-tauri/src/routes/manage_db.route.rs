@@ -12,6 +12,10 @@ use crate::entities::sync_metadata_entity::SyncMetadata;
 use crate::helpers::response_helper::err_response;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
+// TODO [API v2]: ID extraction from filter only happens for "get" operation (lines 29-46).
+// This implicit behavior is confusing. Consider:
+//   - Making ID extraction explicit in all operations, or
+//   - Creating separate endpoints for filtered queries
 
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
@@ -45,8 +49,6 @@ pub async fn manage_data(
     id
   };
 
-  println!("{:?}", final_id.clone());
-
   state
     .repository_service
     .execute(
@@ -67,18 +69,20 @@ pub async fn manage_data(
 #[tauri::command]
 pub async fn import_to_local(
   state: State<'_, AppState>,
-  userId: String,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.import_to_local(userId).await
+  state.manage_db_service.import_to_local(user_id).await
 }
 
 #[tauri::command]
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
-  userId: Option<String>,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let uid = userId.ok_or_else(|| err_response("Missing required parameter: user_id"))?;
-  state.manage_db_service.export_to_cloud(uid).await
+  if user_id.is_empty() {
+    return Err(err_response("Missing required parameter: user_id"));
+  };
+  state.manage_db_service.export_to_cloud(user_id).await
 }
 
 // ==================== ADMIN MANAGEMENT ENDPOINTS ====================

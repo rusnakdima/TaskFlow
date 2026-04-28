@@ -5,6 +5,9 @@ use tauri::State;
 /* models */
 use crate::entities::sync_metadata_entity::SyncMetadata;
 
+// TODO [API v2]: statistics_get returns `Result<serde_json::Value, serde_json::Value>` instead of `Result<ResponseModel, ResponseModel>`.
+// This is inconsistent with other endpoints. Should return ResponseModel for consistency.
+
 #[tauri::command]
 pub async fn statistics_get(
   state: State<'_, AppState>,

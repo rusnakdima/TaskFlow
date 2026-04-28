@@ -78,7 +78,7 @@ pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
-  println!("DEBUG: Starting relation registration...");
+  tracing::debug!("Starting relation registration...");
 
   // Import entities to register their relations
   use crate::entities::comment_entity::CommentEntity;
@@ -88,7 +88,7 @@ pub fn run() {
   use crate::entities::todo_entity::TodoEntity;
   use crate::entities::user_entity::UserEntity;
 
-  println!("DEBUG: Entities imported successfully");
+  tracing::debug!("Entities imported successfully");
 
   // Use nosql_orm macros to auto-register relations from entity definitions
   use nosql_orm::relations::get_registered_collection_relations;
@@ -98,16 +98,12 @@ pub fn run() {
 
   // Debug: Check TodoEntity relations directly
   let todo_rels_before = TodoEntity::relations();
-  println!(
-    "DEBUG: TodoEntity::relations() returned {} relations: {:?}",
-    todo_rels_before.len(),
-    todo_rels_before
-      .iter()
-      .map(|r| r.name.as_str())
-      .collect::<Vec<_>>()
+  tracing::debug!(
+    "TodoEntity::relations() returned {} relations",
+    todo_rels_before.len()
   );
   let todo_meta = TodoEntity::meta();
-  println!("DEBUG: TodoEntity table_name = {:?}", todo_meta.table_name);
+  tracing::debug!("TodoEntity table_name = {:?}", todo_meta.table_name);
 
   // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
   register_relations_for_entity::<TodoEntity>();
@@ -119,37 +115,37 @@ pub fn run() {
 
   // Debug: Verify relations registered
   if let Some(todos_rels) = get_registered_collection_relations("todos") {
-    println!(
-      "DEBUG: ✅ todos relations: {:?}",
+    tracing::debug!(
+      "todos relations: {:?}",
       todos_rels
         .iter()
         .map(|r| r.name.as_str())
         .collect::<Vec<_>>()
     );
   } else {
-    println!("DEBUG: ❌ No todos relations registered!");
+    tracing::warn!("No todos relations registered!");
   }
   if let Some(profiles_rels) = get_registered_collection_relations("profiles") {
-    println!(
-      "DEBUG: ✅ profiles relations: {:?}",
+    tracing::debug!(
+      "profiles relations: {:?}",
       profiles_rels
         .iter()
         .map(|r| r.name.as_str())
         .collect::<Vec<_>>()
     );
   } else {
-    println!("DEBUG: ❌ No profiles relations registered!");
+    tracing::warn!("No profiles relations registered!");
   }
   if let Some(tasks_rels) = get_registered_collection_relations("tasks") {
-    println!(
-      "DEBUG: ✅ tasks relations: {:?}",
+    tracing::debug!(
+      "tasks relations: {:?}",
       tasks_rels
         .iter()
         .map(|r| r.name.as_str())
         .collect::<Vec<_>>()
     );
   } else {
-    println!("DEBUG: ❌ No tasks relations registered!");
+    tracing::warn!("No tasks relations registered!");
   }
 
   tracing::info!("Relations auto-registered from entity macros");
