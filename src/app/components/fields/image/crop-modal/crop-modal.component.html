@@ -1,0 +1,23 @@
+<div class="modal-overlay" (click)="onCancel()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Crop Image</h3>
+      <button class="close-btn" (click)="onCancel()">&times;</button>
+    </div>
+
+    <div class="canvas-container">
+      <canvas
+        #canvas
+        (mousedown)="onMouseDown($event)"
+        (mousemove)="onMouseMove($event)"
+        (mouseup)="onMouseUp()"
+        (mouseleave)="onMouseUp()"
+      ></canvas>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="onCancel()">Cancel</button>
+      <button class="btn-crop" (click)="onCrop()" [disabled]="!imageLoaded">Crop</button>
+    </div>
+  </div>
+</div>

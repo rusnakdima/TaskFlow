@@ -1,0 +1,48 @@
+@reference "tailwindcss";
+
+.modal-overlay {
+  @apply fixed inset-0 z-[1000] flex items-center justify-center bg-black/70;
+}
+
+.modal-content {
+  @apply max-h-[90vh] max-w-[90vw] overflow-auto rounded-xl bg-white p-5 dark:bg-zinc-800;
+}
+
+.modal-header {
+  @apply mb-4 flex items-center justify-between;
+}
+
+.modal-header h3 {
+  @apply m-0 text-lg font-semibold;
+}
+
+.close-btn {
+  @apply cursor-pointer border-none bg-none text-3xl text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100;
+}
+
+.canvas-container {
+  @apply mb-4 flex justify-center;
+  position: relative;
+}
+
+canvas {
+  @apply cursor-move rounded border border-gray-200 dark:border-zinc-600;
+  display: block;
+}
+
+.modal-actions {
+  @apply flex justify-end gap-2.5;
+}
+
+.btn-cancel,
+.btn-crop {
+  @apply cursor-pointer rounded-md border-none px-5 py-2 text-sm font-medium;
+}
+
+.btn-cancel {
+  @apply bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600;
+}
+
+.btn-crop {
+  @apply bg-purple-600 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-purple-400;
+}
