@@ -3,12 +3,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::{Model, Validate};
+use nosql_orm::Model;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("profiles")]
 #[many_to_one("user", "users", "user_id")]
+#[timestamp]
+#[index("user_id", 1)]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,
@@ -53,7 +55,7 @@ impl From<ProfileCreateModel> for ProfileEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ProfileUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
@@ -62,6 +64,7 @@ pub struct ProfileUpdateModel {
   #[serde(default)]
   pub last_name: Option<String>,
   #[serde(default)]
+  #[validate(length(max = 500))]
   pub bio: Option<String>,
   #[serde(default)]
   pub image_url: Option<String>,
@@ -71,15 +74,4 @@ pub struct ProfileUpdateModel {
   pub created_at: Option<String>,
   #[serde(default)]
   pub updated_at: Option<String>,
-}
-
-impl nosql_orm::validators::Validate for ProfileUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if let Some(ref name) = self.name {
-      if name.is_empty() {
-        return Err(OrmError::Validation("name cannot be empty".to_string()));
-      }
-    }
-    Ok(())
-  }
 }

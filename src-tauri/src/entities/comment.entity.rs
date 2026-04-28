@@ -3,14 +3,16 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::validators::Validate;
 use nosql_orm::Model;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("comments")]
 #[many_to_one("task", "tasks", "task_id")]
 #[many_to_one("subtask", "subtasks", "subtask_id")]
+#[timestamp]
+#[soft_delete]
+#[index("author_id", 1)]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub author_id: String,
@@ -30,57 +32,18 @@ pub struct CommentEntity {
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[validate(xor("task_id", "subtask_id"))]
 pub struct CommentCreateModel {
+  #[validate(required)]
   pub author_id: String,
+  #[validate(required)]
   pub author_name: String,
+  #[validate(required)]
+  #[validate(length(max = 5000))]
   pub content: String,
   pub task_id: Option<String>,
   pub subtask_id: Option<String>,
-}
-
-impl Validate for CommentCreateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if self.author_id.is_empty() {
-      return Err(OrmError::Validation(
-        "author_id cannot be empty".to_string(),
-      ));
-    }
-    if self.author_name.is_empty() {
-      return Err(OrmError::Validation(
-        "author_name cannot be empty".to_string(),
-      ));
-    }
-    if self.content.is_empty() {
-      return Err(OrmError::Validation("content cannot be empty".to_string()));
-    }
-    if self.content.len() > 5000 {
-      return Err(OrmError::Validation(
-        "content cannot exceed 5000 characters".to_string(),
-      ));
-    }
-    let has_task = self
-      .task_id
-      .as_deref()
-      .map(|s| !s.is_empty())
-      .unwrap_or(false);
-    let has_subtask = self
-      .subtask_id
-      .as_deref()
-      .map(|s| !s.is_empty())
-      .unwrap_or(false);
-    if !has_task && !has_subtask {
-      return Err(OrmError::Validation(
-        "Comment must belong to either a task or a subtask".to_string(),
-      ));
-    }
-    if has_task && has_subtask {
-      return Err(OrmError::Validation(
-        "Comment must belong to exactly one of task or subtask, not both".to_string(),
-      ));
-    }
-    Ok(())
-  }
 }
 
 impl From<CommentCreateModel> for CommentEntity {
@@ -102,28 +65,13 @@ impl From<CommentCreateModel> for CommentEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CommentUpdateModel {
   #[serde(default)]
+  #[validate(length(max = 5000))]
   pub content: Option<String>,
   #[serde(default)]
   pub read_by: Option<Vec<String>>,
   #[serde(default)]
   pub updated_at: Option<String>,
-}
-
-impl nosql_orm::validators::Validate for CommentUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if let Some(ref content) = self.content {
-      if content.is_empty() {
-        return Err(OrmError::Validation("content cannot be empty".to_string()));
-      }
-      if content.len() > 5000 {
-        return Err(OrmError::Validation(
-          "content cannot exceed 5000 characters".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }

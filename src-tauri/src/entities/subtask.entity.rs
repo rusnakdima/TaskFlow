@@ -10,6 +10,7 @@ use nosql_orm::{Model, Validate};
 #[soft_delete]
 #[one_to_many("comments", "comments", "subtask_id", "Cascade")]
 #[many_to_one("task", "tasks", "task_id")]
+#[index("task_id", 1)]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]

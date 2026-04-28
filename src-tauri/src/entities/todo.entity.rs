@@ -13,9 +13,14 @@ use nosql_orm::Validate;
 #[soft_delete]
 #[timestamp]
 #[one_to_many("tasks", "tasks", "todo_id", "Cascade")]
+#[one_to_many("chats", "chats", "todo_id", "Cascade")]
 #[many_to_one("user", "users", "user_id")]
 #[many_to_many("categories", "categories", "categories")]
 #[many_to_many("assignees", "profiles", "assignees")]
+#[index("user_id", 1)]
+#[index("status", 1)]
+#[index("priority", 1)]
+#[index("visibility", 1)]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,

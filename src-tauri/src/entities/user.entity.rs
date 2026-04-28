@@ -7,7 +7,7 @@ use crate::entities::profile_entity::ProfileEntity;
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::Model;
+use nosql_orm::{Entity, Model};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("users")]
@@ -68,7 +68,11 @@ pub struct UserEntity {
 }
 
 impl UserEntity {
-  pub fn get_id(&self) -> &str {
+  pub fn get_id(&self) -> Option<String> {
+    self.id.clone()
+  }
+
+  pub fn id(&self) -> &str {
     self.id.as_deref().unwrap_or("")
   }
 }

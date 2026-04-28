@@ -3,12 +3,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::{Model, Validate};
+use nosql_orm::Model;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("categories")]
 #[soft_delete]
+#[timestamp]
+#[index("user_id", 1)]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
@@ -44,25 +46,10 @@ impl From<CategoryCreateModel> for CategoryEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CategoryUpdateModel {
+  #[validate(length(max = 100))]
   pub title: Option<String>,
   pub user_id: Option<String>,
   pub deleted_at: Option<bool>,
-}
-
-impl nosql_orm::validators::Validate for CategoryUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if let Some(ref title) = self.title {
-      if title.is_empty() {
-        return Err(OrmError::Validation("title cannot be empty".to_string()));
-      }
-      if title.len() > 100 {
-        return Err(OrmError::Validation(
-          "title cannot exceed 100 characters".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }
