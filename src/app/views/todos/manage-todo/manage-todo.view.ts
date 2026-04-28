@@ -193,9 +193,9 @@ export class ManageTodoView implements OnInit, OnDestroy {
           "user",
           "categories",
           "tasks",
-          // "tasks.subtasks",
-          // "tasks.subtasks.comments",
-          // "tasks.comments",
+          "tasks.subtasks",
+          "tasks.subtasks.comments",
+          "tasks.comments",
           "assignees",
         ],
         syncMetadata

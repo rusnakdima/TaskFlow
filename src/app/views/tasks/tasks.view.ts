@@ -318,22 +318,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const todoId = routeData?.["todo"]?.id || this.route.snapshot.paramMap.get("todoId");
     if (todoId) {
-      this.ensureTaskTreeLoaded(todoId);
     }
     this.loading.set(false);
-  }
-
-  private ensureTaskTreeLoaded(todoId?: string): void {
-    if (!todoId) return;
-
-    const todo = this.storageService.getById("todos", todoId);
-    const hasSubtasks = !!todo?.tasks?.some((task) => (task.subtasks || []).length > 0);
-    const hasCategories =
-      todo?.categories && todo.categories.length > 0 && typeof todo.categories[0] !== "string";
-
-    if (!hasSubtasks || !hasCategories) {
-      this.notifyService.showError("Todo data incomplete. Please refresh.");
-    }
   }
 
   ngOnDestroy(): void {

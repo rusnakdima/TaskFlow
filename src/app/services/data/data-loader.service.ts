@@ -32,6 +32,7 @@ export class DataLoaderService {
     "categories",
     "tasks",
     "tasks.subtasks",
+    "tasks.subtasks.comments",
     "tasks.comments",
     "assignees",
   ];
@@ -118,6 +119,7 @@ export class DataLoaderService {
           if (privateTodos && Array.isArray(privateTodos)) {
             this.storageService.setCollection("privateTodos", privateTodos);
             this.emitUpdate();
+            this.logCommentCounts(privateTodos, "privateTodos");
           }
         })
       )
@@ -150,6 +152,7 @@ export class DataLoaderService {
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
+            this.logCommentCounts(teamTodos, "teamTodosOwner");
           } else {
             console.log("[DataLoader] loadTeamTodosOwner: no data or error");
           }
@@ -184,6 +187,7 @@ export class DataLoaderService {
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
+            this.logCommentCounts(teamTodos, "teamTodosAssignee");
           } else {
             console.log("[DataLoader] loadTeamTodosAssignee: no data or error");
           }
@@ -368,5 +372,23 @@ export class DataLoaderService {
     if (userId) {
       this.fetchProfileFromApi(userId);
     }
+  }
+
+  private logCommentCounts(todos: Todo[], source: string): void {
+    let taskComments = 0;
+    let subtaskComments = 0;
+    for (const todo of todos) {
+      if (todo.tasks) {
+        for (const task of todo.tasks) {
+          if (task.comments) taskComments += task.comments.length;
+          if (task.subtasks) {
+            for (const subtask of task.subtasks) {
+              if (subtask.comments) subtaskComments += subtask.comments.length;
+            }
+          }
+        }
+      }
+    }
+    console.log(`[DataLoader] ${source} comment counts: ${taskComments} task-level, ${subtaskComments} subtask-level`);
   }
 }
