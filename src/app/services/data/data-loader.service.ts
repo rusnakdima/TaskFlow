@@ -88,6 +88,7 @@ export class DataLoaderService {
       .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
         is_owner: true,
         is_private: true,
+        visibility: "private",
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
@@ -115,6 +116,7 @@ export class DataLoaderService {
       .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
         is_owner: true,
         is_private: false,
+        visibility: "team",
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
@@ -144,6 +146,7 @@ export class DataLoaderService {
       .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
         is_owner: false,
         is_private: false,
+        visibility: "team",
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
@@ -186,9 +189,7 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
-          return of(null);
-        }),
+        catchError(() => of(null)),
         tap((categories) => {
           if (categories && Array.isArray(categories)) {
             this.storageService.setCollection("categories", categories);
@@ -197,6 +198,42 @@ export class DataLoaderService {
         })
       )
       .subscribe();
+
+    this.relationLoader
+      .loadMany<Category>(
+        this.apiProvider,
+        "categories",
+        { user_id: userId, deleted_at: null },
+        [],
+        {
+          is_owner: false,
+          is_private: false,
+        }
+      )
+      .pipe(
+        retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
+        catchError(() => of(null)),
+        tap((mongoCategories) => {
+          if (mongoCategories && Array.isArray(mongoCategories)) {
+            const existing = this.storageService.categories();
+            const merged = this.mergeCategories(existing, mongoCategories);
+            this.storageService.setCollection("categories", merged);
+            this.emitUpdate();
+          }
+        })
+      )
+      .subscribe();
+  }
+
+  private mergeCategories(jsonCats: Category[], mongoCats: Category[]): Category[] {
+    const catMap = new Map<string, Category>();
+    jsonCats.forEach((c) => catMap.set(c.id, c));
+    mongoCats.forEach((c) => {
+      if (!catMap.has(c.id)) {
+        catMap.set(c.id, c);
+      }
+    });
+    return Array.from(catMap.values());
   }
 
   /**
