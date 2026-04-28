@@ -111,7 +111,6 @@ impl RepositoryService {
         load_paths
       );
       for path in load_paths {
-        // Add collection metadata before loading relations
         result_docs = collection_adder(result_docs, table);
         let segments: Vec<&str> = path.split('.').collect();
         match loader
@@ -185,7 +184,7 @@ impl RepositoryService {
     docs
   }
 
-  fn add_collection_metadata_to_relations(
+  fn _add_collection_metadata_to_relations(
     &self,
     docs: &mut [Value],
     source_collection: &str,
@@ -208,11 +207,11 @@ impl RepositoryService {
     let target_relation = segments.last().unwrap();
     if let Some(rel_def) = get_relation_def(current_collection.as_str(), target_relation) {
       let target_coll = rel_def.target_collection.as_str();
-      self.add_metadata_at_path(docs, &segments, target_coll);
+      self._add_metadata_at_path(docs, &segments, target_coll);
     }
   }
 
-  fn add_metadata_at_path(&self, docs: &mut [Value], path_segments: &[&str], target_coll: &str) {
+  fn _add_metadata_at_path(&self, docs: &mut [Value], path_segments: &[&str], target_coll: &str) {
     if path_segments.is_empty() {
       for doc in docs.iter_mut() {
         if let Some(obj) = doc.as_object_mut() {
@@ -229,7 +228,7 @@ impl RepositoryService {
           if let Some(field_val) = obj.get_mut(field) {
             if let Some(arr) = field_val.as_array_mut() {
               let mut items = arr.clone();
-              self.add_metadata_at_path(&mut items, &path_segments[1..], target_coll);
+              self._add_metadata_at_path(&mut items, &path_segments[1..], target_coll);
               *arr = items;
             }
           }
@@ -327,12 +326,13 @@ impl RepositoryService {
     );
 
     let filter_val = filter.unwrap_or(json!({}));
+    let filter_opt = self.build_filter(&filter_val);
 
     let use_json = self.use_json_provider(sync_metadata.as_ref());
-    let mut docs = if use_json {
+    let docs = if use_json {
       self
         .json_provider
-        .find_all(&table)
+        .find_many(&table, filter_opt.as_ref(), None, None, None, false)
         .await
         .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
     } else {
@@ -341,30 +341,11 @@ impl RepositoryService {
         .as_ref()
         .ok_or_else(|| err_response("MongoDB not available"))?;
       mongo
-        .find_all(&table)
+        .find_many(&table, filter_opt.as_ref(), None, None, None, false)
         .await
         .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
     };
 
-    // Simple filtering - for now, just return all if no filter, or filter by matching fields
-    if !filter_val.is_null() && filter_val.is_object() {
-      docs = docs
-        .into_iter()
-        .filter(|doc| {
-          if let Some(obj) = doc.as_object() {
-            filter_val
-              .as_object()
-              .unwrap()
-              .iter()
-              .all(|(k, v)| obj.get(k) == Some(v))
-          } else {
-            false
-          }
-        })
-        .collect();
-    }
-
-    // Load relations if requested
     let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
     let docs = if !load_paths.is_empty() {
       self
@@ -383,7 +364,7 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    relations: Option<Vec<RelationObj>>,
+    _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -412,7 +393,6 @@ impl RepositoryService {
       None => return Err(err_response("Document not found")),
     };
 
-    // Load relations if requested
     let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
     let docs = if !load_paths.is_empty() {
       self
@@ -515,13 +495,10 @@ impl RepositoryService {
         .map_err(|e| err_response_formatted("Update failed in MongoDB", &e.to_string()))?
     };
 
-    // Get the new visibility from the data if it was changed
     let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
     if let Some(new_vis) = new_visibility {
-      // Visibility changed - sync to the OTHER provider
       let target_is_json = new_vis == "private";
       if target_is_json != was_in_json {
-        // Need visibility sync to target provider
         let source = if was_in_json {
           ProviderType::Json
         } else {

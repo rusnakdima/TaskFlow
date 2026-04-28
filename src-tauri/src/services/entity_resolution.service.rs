@@ -1,10 +1,12 @@
 /* sys lib */
-use nosql_orm::provider::DatabaseProvider;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::Arc;
 
-/* providers */
+/* nosql_orm */
+use nosql_orm::error::{OrmError, OrmResult};
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
+use nosql_orm::query::Filter;
 
 #[derive(Clone)]
 pub struct EntityResolutionService {
@@ -20,53 +22,79 @@ impl EntityResolutionService {
     }
   }
 
-  /// Helper to get user_id for a given entity in a given table
+  fn get_relation_path(table: &str) -> Option<Vec<&'static str>> {
+    match table {
+      "tasks" => Some(vec!["todo"]),
+      "subtasks" => Some(vec!["task", "todo"]),
+      _ => None,
+    }
+  }
+
+  async fn load_todo_from_provider<P: DatabaseProvider>(
+    provider: &P,
+    table: &str,
+    data: &Value,
+  ) -> OrmResult<Option<Value>>
+  where
+    P: Send + Sync,
+  {
+    let path = Self::get_relation_path(table)
+      .ok_or_else(|| OrmError::InvalidQuery(format!("No relation path for {}", table)))?;
+
+    let mut current_id: String = data
+      .get("id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| OrmError::InvalidInput("No id in data".to_string()))?
+      .to_string();
+    let mut current_table = table;
+
+    for relation in path {
+      let filter = Filter::Eq("id".to_string(), json!(&current_id));
+      let docs: Vec<Value> = provider
+        .find_many(current_table, Some(&filter), None, None, None, false)
+        .await?;
+      let doc: Value = docs
+        .into_iter()
+        .next()
+        .ok_or_else(|| OrmError::NotFound(format!("{} not found", current_table)))?;
+      current_id = match current_table {
+        "tasks" => doc
+          .get("todo_id")
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| OrmError::InvalidInput("Missing todo_id".to_string()))?
+          .to_string(),
+        "subtasks" => doc
+          .get("task_id")
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| OrmError::InvalidInput("Missing task_id".to_string()))?
+          .to_string(),
+        _ => return Ok(None),
+      };
+      current_table = relation;
+    }
+
+    let filter = Filter::Eq("id".to_string(), json!(&current_id));
+    let todos: Vec<Value> = provider
+      .find_many(current_table, Some(&filter), None, None, None, false)
+      .await?;
+    Ok(todos.into_iter().next())
+  }
+
   pub async fn get_user_id_for_entity(&self, table: &str, data: &Value) -> Option<String> {
     if let Some(user_id) = data.get("user_id").and_then(|v| v.as_str()) {
       return Some(user_id.to_string());
     }
 
-    if table == "tasks" {
-      if let Some(todo_id) = data.get("todo_id").and_then(|v| v.as_str()) {
-        if let Ok(Some(todo)) = self.json_provider.find_by_id("todos", todo_id).await {
-          return todo
-            .get("user_id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        }
-        if let Some(ref mongodb) = self.mongodb_provider {
-          if let Ok(Some(task)) = mongodb.find_by_id("tasks", todo_id).await {
-            if let Some(user_id) = task.get("user_id").and_then(|v| v.as_str()) {
-              return Some(user_id.to_string());
-            }
-          }
-        }
+    if let Ok(Some(todo)) = Self::load_todo_from_provider(&self.json_provider, table, data).await {
+      if let Some(user_id) = todo.get("user_id").and_then(|v| v.as_str()) {
+        return Some(user_id.to_string());
       }
     }
 
-    if table == "subtasks" {
-      if let Some(task_id) = data.get("task_id").and_then(|v| v.as_str()) {
-        if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", task_id).await {
-          if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-            if let Ok(Some(todo)) = self.json_provider.find_by_id("todos", todo_id).await {
-              return todo
-                .get("user_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            }
-          }
-        }
-        if let Some(ref mongodb) = self.mongodb_provider {
-          if let Ok(Some(task)) = mongodb.find_by_id("tasks", task_id).await {
-            if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-              if let Ok(Some(todo)) = mongodb.find_by_id("todos", todo_id).await {
-                return todo
-                  .get("user_id")
-                  .and_then(|v| v.as_str())
-                  .map(|s| s.to_string());
-              }
-            }
-          }
+    if let Some(ref mongo) = self.mongodb_provider {
+      if let Ok(Some(todo)) = Self::load_todo_from_provider(mongo.as_ref(), table, data).await {
+        if let Some(user_id) = todo.get("user_id").and_then(|v| v.as_str()) {
+          return Some(user_id.to_string());
         }
       }
     }
