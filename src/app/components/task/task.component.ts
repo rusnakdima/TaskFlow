@@ -46,6 +46,22 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 
+interface CommentAction {
+  author_id: string;
+  author_name: string;
+  content: string;
+  task_id?: string;
+  subtask_id?: string;
+  read_by: string[];
+  deleted_at: string | null;
+}
+
+interface SubtaskCommentGroup {
+  subtask_id: string;
+  title: string;
+  comments: Comment[];
+}
+
 @Component({
   selector: "app-task",
   standalone: true,
@@ -115,10 +131,10 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   /** Subtask rows (always available for list + inline expand) */
   subtaskCommentGroups = computed(() => {
     const task = this.taskForComments();
-    if (!task) return [] as Array<{ subtask_id?: string; title: string; comments: Comment[] }>;
+    if (!task) return [] as SubtaskCommentGroup[];
 
     return (task.subtasks || [])
-      .map((s: any) => ({
+      .map((s: Subtask) => ({
         subtask_id: s.id,
         title: s.title || "Untitled subtask",
         comments: this.getActiveComments(s.comments),
@@ -199,10 +215,10 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         let hasUpdates = false;
 
         // Mark all subtask comments as read
-        const updatedSubtasks = this.task.subtasks.map((subtask: any) => {
+        const updatedSubtasks = this.task.subtasks.map((subtask: Subtask) => {
           if (!subtask.comments || subtask.comments.length === 0) return subtask;
 
-          const updatedComments = subtask.comments.map((c: any) => {
+          const updatedComments = subtask.comments.map((c: Comment) => {
             if (c.deleted_at || !c.subtask_id) return c;
             if (c.author_id === userId) return c;
 
@@ -229,16 +245,16 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           // Send update to backend for subtask comments only
           const effectiveTodoId = this.todo_id || this.task.todo_id;
           if (effectiveTodoId) {
-            const allSubtaskComments = updatedSubtasks.flatMap((s: any) =>
+            const allSubtaskComments = updatedSubtasks.flatMap((s: Subtask) =>
               (s.comments || []).filter(
-                (c: any) => !c.deleted_at && c.subtask_id && c.author_id !== userId
+                (c: Comment) => !c.deleted_at && c.subtask_id && c.author_id !== userId
               )
             );
 
             if (allSubtaskComments.length > 0) {
               this.dataSyncProvider
                 .crud("updateAll", "comments", {
-                  data: allSubtaskComments.map((c: any) => ({ id: c.id, read_by: c.read_by })),
+                  data: allSubtaskComments.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
                   parentTodoId: effectiveTodoId,
                 })
                 .subscribe();
@@ -298,7 +314,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         return;
       }
 
-      const commentForBackend: any = {
+      const commentForBackend: CommentAction = {
         author_id: userId,
         author_name: username || "Unknown",
         content: content,
@@ -319,7 +335,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
             this.showComments.set(true);
             this.cdr.markForCheck();
           },
-          error: (err) => {
+          error: (err: Error) => {
             this.notifyService.showError(err.message || "Failed to add comment");
           },
         });
@@ -337,7 +353,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       return;
     }
 
-    const commentForBackend: any = {
+    const commentForBackend: CommentAction = {
       author_id: userId,
       author_name: username || "Unknown",
       content,
@@ -359,7 +375,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.expandedSubtaskCommentIds.update((set) => new Set(set).add(subtask_id!));
           this.cdr.markForCheck();
         },
-        error: (err) => {
+        error: (err: Error) => {
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -370,7 +386,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (effectiveTodoId) {
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
-        .subscribe({});
+        .subscribe({
+          error: (err) => console.error("Task operation failed:", err),
+        });
     }
   }
 
@@ -405,9 +423,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (!this.task || !userId || !effectiveTodoId || commentIds.length === 0) return;
 
     let changed = false;
-    const updatedSubtasks = (this.task.subtasks || []).map((s: any) => {
+    const updatedSubtasks = (this.task.subtasks || []).map((s: Subtask) => {
       if (s.id !== subtask_id) return s;
-      const updatedComments = (s.comments || []).map((c: any) => {
+      const updatedComments = (s.comments || []).map((c: Comment) => {
         if (!commentIds.includes(c.id)) return c;
         const readBy = c.read_by || [];
         if (!readBy.includes(userId)) {
@@ -427,15 +445,15 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     });
 
     const commentsToUpdate = updatedSubtasks
-      .find((s: any) => s.id === subtask_id)
+      .find((s: Subtask) => s.id === subtask_id)
       ?.comments?.filter(
-        (c: any) => commentIds.includes(c.id) && !c.deleted_at && c.author_id !== userId
+        (c: Comment) => commentIds.includes(c.id) && !c.deleted_at && c.author_id !== userId
       );
 
     if (commentsToUpdate && commentsToUpdate.length > 0) {
       this.dataSyncProvider
         .crud("updateAll", "comments", {
-          data: commentsToUpdate.map((c: any) => ({ id: c.id, read_by: c.read_by })),
+          data: commentsToUpdate.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
           parentTodoId: effectiveTodoId,
         })
         .subscribe();
