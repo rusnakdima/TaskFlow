@@ -28,7 +28,7 @@ export class ProfileLoaderService {
    * Returns cached profile if available, otherwise fetches from API
    */
   loadProfile(): Observable<Profile | null> {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
 
     if (!userId) {
       return of(null);
