@@ -6,6 +6,7 @@ export interface Profile {
   last_name: string;
   bio: string;
   image_url: string;
+  original_image_url?: string;
   user: User;
   user_id: string;
   created_at: string;
