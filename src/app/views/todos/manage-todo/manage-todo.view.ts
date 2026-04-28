@@ -40,9 +40,6 @@ import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
 
-/* components */
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
 import { ValidationHelper } from "@helpers/validation.helper";
@@ -64,7 +61,6 @@ import { ValidationHelper } from "@helpers/validation.helper";
     MatRadioModule,
     MatMenuModule,
     MatDividerModule,
-    CheckboxComponent,
   ],
   templateUrl: "./manage-todo.view.html",
 })
