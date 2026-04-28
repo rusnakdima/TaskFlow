@@ -3,7 +3,11 @@
     <app-header />
   }
 
-  <main class="mx-auto w-full max-w-7xl lg:px-6" [ngClass]="showShell() ? 'p-3' : ''" style="min-height: calc(100vh - 72px - 62px)">
+  <main
+    class="mx-auto w-full max-w-7xl lg:px-6"
+    [ngClass]="showShell() ? 'p-3' : ''"
+    style="min-height: calc(100vh - 72px - 62px)"
+  >
     <router-outlet />
   </main>
 

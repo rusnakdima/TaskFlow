@@ -316,9 +316,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.notifyService.showError("Invalid todo ID.");
     }
 
-    const todoId = routeData?.["todo"]?.id || this.route.snapshot.paramMap.get("todoId");
-    if (todoId) {
-    }
     this.loading.set(false);
   }
 
