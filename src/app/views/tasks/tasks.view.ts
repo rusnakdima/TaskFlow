@@ -367,21 +367,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todo()?.id;
     if (!todoId) return;
 
-    let newStatus: TaskStatus;
-    switch (subtask.status) {
-      case TaskStatus.PENDING:
-        newStatus = TaskStatus.COMPLETED;
-        break;
-      case TaskStatus.COMPLETED:
-        newStatus = TaskStatus.SKIPPED;
-        break;
-      case TaskStatus.SKIPPED:
-        newStatus = TaskStatus.FAILED;
-        break;
-      default:
-        newStatus = TaskStatus.PENDING;
-        break;
-    }
+    const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
     // Update subtask status via ApiProvider (storage updated automatically)
     this.dataSyncProvider
