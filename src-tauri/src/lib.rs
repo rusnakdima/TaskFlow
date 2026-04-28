@@ -11,6 +11,10 @@ use std::sync::Arc;
 use tauri::Manager;
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Layer};
 
+/* global re-export for nosql_orm Entity trait */
+#[allow(unused_imports)]
+use nosql_orm::Entity;
+
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
@@ -47,6 +51,7 @@ use services::{
   cascade::CascadeService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
+  offline_queue_service::OfflineQueueService,
   profile_service::ProfileService,
   repository_service::RepositoryService,
   statistics_service::StatisticsService,
@@ -71,6 +76,7 @@ pub struct AppState {
   pub totp_service: Arc<AuthTotpService>,
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
+  pub offline_queue_service: Arc<OfflineQueueService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -195,47 +201,8 @@ pub fn run() {
 
       let json_provider_setup = json_provider.clone();
       tauri::async_runtime::spawn(async move {
-        // Core collections: todos, tasks, subtasks, comments
-        for collection in &[
-          "todos",
-          "tasks",
-          "subtasks",
-          "comments",
-          "profiles",
-          "categories",
-        ] {
-          let basic_indexes = vec![
-            NosqlIndex::single("user_id", 1).name("idx_user_id"),
-            NosqlIndex::single("todo_id", 1).name("idx_todo_id"),
-            NosqlIndex::single("task_id", 1).name("idx_task_id"),
-            NosqlIndex::single("subtask_id", 1).name("idx_subtask_id"),
-            NosqlIndex::compound(&[("user_id", 1), ("created_at", -1)]).name("idx_user_created"),
-            NosqlIndex::single("status", 1).name("idx_status"),
-            NosqlIndex::single("priority", 1).name("idx_priority"),
-            NosqlIndex::single("visibility", 1).name("idx_visibility"),
-            NosqlIndex::single("author_id", 1).name("idx_author_id"),
-          ];
-          for index in basic_indexes {
-            if let Err(e) = json_provider_setup.create_index(collection, &index).await {
-              tracing::warn!("Failed to create index in {}: {}", collection, e);
-            }
-          }
-        }
-
-        let daily_indexes = vec![
-          NosqlIndex::single("user_id", 1).name("idx_user_id_daily_activities"),
-          NosqlIndex::single("date", 1).name("idx_date_daily_activities"),
-          NosqlIndex::compound(&[("user_id", 1), ("date", 1)])
-            .name("idx_user_date_daily_activities"),
-        ];
-        for index in daily_indexes {
-          if let Err(e) = json_provider_setup
-            .create_index("daily_activities", &index)
-            .await
-          {
-            tracing::warn!("Failed to create index in daily_activities: {}", e);
-          }
-        }
+        // Indexes are defined via #[index] macros on entities
+        // Each entity has its own indexes specified
 
         tracing::info!("Index setup completed");
       });
@@ -278,14 +245,35 @@ pub fn run() {
       let ent_for_repo = entity_resolution.clone();
       let act_for_stats = activity_log_helper.clone();
 
-      let repository_service = Arc::new(RepositoryService::new(
+      let repository_service_initial = RepositoryService::new(
+        json_for_repo.clone(),
+        mongo_for_repo.clone(),
+        cas_for_repo.clone(),
+        ent_for_repo.clone(),
+        activity_monitor.clone(),
+        profile_service.as_ref().clone(),
+        None,
+      );
+
+      let repository_service_arc = Arc::new(repository_service_initial);
+
+      let offline_queue_service = Arc::new(OfflineQueueService::new(
+        json_provider.clone(),
+        repository_service_arc.clone(),
+        3,
+      ));
+
+      let repository_service_with_queue = RepositoryService::new(
         json_for_repo,
         mongo_for_repo,
         cas_for_repo,
         ent_for_repo,
         activity_monitor,
         profile_service.as_ref().clone(),
-      ));
+        Some(offline_queue_service.clone()),
+      );
+
+      let repository_service = Arc::new(repository_service_with_queue);
 
       let auth_service = Arc::new(AuthService::new(
         json_for_auth,
@@ -346,6 +334,7 @@ pub fn run() {
         totp_service,
         passkey_service,
         biometric_service,
+        offline_queue_service,
       });
 
       Ok(())
