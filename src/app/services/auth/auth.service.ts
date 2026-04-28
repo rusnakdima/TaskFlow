@@ -14,6 +14,7 @@ import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { isNetworkError } from "@helpers/network-error.helper";
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
@@ -140,15 +141,15 @@ export class AuthService {
   }
 
   getTokenLS(): string | null {
-    return localStorage.getItem("token");
+    return TokenStorageHelper.getToken();
   }
 
   getTokenSS(): string | null {
-    return sessionStorage.getItem("token");
+    return TokenStorageHelper.getToken();
   }
 
   getToken(): string | null {
-    return this.getTokenLS() || this.getTokenSS();
+    return TokenStorageHelper.getToken();
   }
 
   hasRole(role: string): boolean {
@@ -207,16 +208,7 @@ export class AuthService {
     }
 
     // 2. Valid Session Path
-    const userId = this.jwtTokenService.getUserId(token);
-
-    if (userId) {
-      this.userValidationService.validateUserExistsInMongoDb(userId);
-      this.loadUserData();
-    }
-
-    // Background sync
     this.dataSyncService.loadAllData();
-    this.checkTokenWithBackend(token);
 
     // 3. Profile Requirement Check
     // Profile check
@@ -257,20 +249,7 @@ export class AuthService {
             this.storageService.setCollection("user", user);
           }
         },
-        error: (err) => {
-          console.warn("Failed to load user data:", err);
-        },
+        error: (err) => {},
       });
-  }
-
-  /**
-   * Check token with backend in background (non-blocking)
-   */
-  private checkTokenWithBackend(token: string): void {
-    this.checkToken(token).subscribe({
-      error: () => {
-        // Backend check failed - token might be invalid but we already loaded data
-      },
-    });
   }
 }

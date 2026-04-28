@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable } from "rxjs";
 import { ApiProvider } from "@providers/api.provider";
 
@@ -26,7 +26,7 @@ export interface QrStatusResult {
 @Injectable({
   providedIn: "root",
 })
-export class QrLoginService {
+export class QrLoginService implements OnDestroy {
   private dataSyncProvider = inject(ApiProvider);
 
   private pollSubscription: Subscription | null = null;
@@ -35,6 +35,10 @@ export class QrLoginService {
   readonly qrStatus = signal<QrStatus>("pending");
   readonly qrStatusData = signal<QrStatusResult | null>(null);
   readonly isPolling = signal(false);
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
 
   generateQrCode(username?: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
