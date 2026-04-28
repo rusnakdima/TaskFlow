@@ -279,16 +279,9 @@ export class QrLoginView implements OnDestroy, OnInit {
       );
 
       if (authResponse && authResponse.token) {
-        // Store profile if provided
-        if (authResponse.profile && !authResponse.needsProfile) {
-          this.storageService.setCollection("profiles", authResponse.profile);
-        }
-
         LoginCompletionHelper.completeLogin({
           token: authResponse.token,
           remember: false,
-          needsProfile: authResponse.needsProfile,
-          userId: authResponse.userId,
         });
         this.authStore.setAuthenticated(authResponse.token);
       } else {
