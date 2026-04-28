@@ -7,9 +7,6 @@ use nosql_orm::query::Filter;
 /* models */
 use crate::entities::{profile_entity::ProfileEntity, response_entity::ResponseModel};
 
-/* helpers */
-use crate::helpers::response_helper::err_response;
-
 pub async fn check_profile_exists(
   json_provider: &JsonProvider,
   mongodb_provider: Option<&MongoProvider>,
