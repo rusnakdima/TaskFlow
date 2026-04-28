@@ -1,16 +1,28 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, of } from "rxjs";
+import { Observable, from, of, Subscriber } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
+import { Chat } from "@models/chat.model";
 
 import { StorageUpdateHelper } from "@helpers/storage-update.helper";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+interface CrudOptions {
+  filter?: Record<string, unknown>;
+  data?: unknown;
+  id?: string;
+  parentTodoId?: string;
+  relations?: RelationObj[];
+  load?: string[];
+  isOwner?: boolean;
+  isPrivate?: boolean;
+}
 
 @Injectable({
   providedIn: "root",
@@ -20,7 +32,7 @@ export class ApiProvider {
   private storageService = inject(StorageService);
   private storageUpdateHelper = new StorageUpdateHelper();
 
-  invokeCommand<T>(command: string, args: Record<string, any> = {}): Observable<T> {
+  invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(
       invoke<Response<T>>(command, args).then(
         (response) => {
@@ -39,35 +51,15 @@ export class ApiProvider {
   crud<T>(
     operation: Operation,
     table: string,
-    options: {
-      filter?: Record<string, any>;
-      data?: any;
-      id?: string;
-      parentTodoId?: string;
-      relations?: RelationObj[];
-      load?: string[];
-      isOwner?: boolean;
-      isPrivate?: boolean;
-    } = {},
+    options: CrudOptions = {},
     _isArray: boolean = false
   ): Observable<T> {
-    console.debug(
-      "CRUD: operation=" +
-        operation +
-        ", table=" +
-        table +
-        ", options=" +
-        JSON.stringify(options) +
-        ", isArray=" +
-        _isArray
-    );
-
     return new Observable<T>((subscriber) => {
       const syncMetadata = {
         is_owner: options.isOwner ?? true,
         is_private: options.isPrivate ?? true,
       };
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         operation,
         table,
         sync_metadata: syncMetadata,
@@ -111,10 +103,10 @@ export class ApiProvider {
           );
         }
         if (operation === "getAll" && table === "chats") {
-          this.handleChatsResult(result as any[], options.filter);
+          this.handleChatsResult(result as Chat[], options.filter);
         }
       }),
-      catchError(() => of(null)) as any
+      catchError(() => of(null) as Observable<T>)
     );
   }
 
@@ -122,15 +114,20 @@ export class ApiProvider {
     // Cache removed - no-op for backwards compatibility
   }
 
-  private executeUpdateAll<T>(payload: any, options: any, subscriber: any): void {
+  private executeUpdateAll<T>(
+    payload: Record<string, unknown>,
+    options: CrudOptions,
+    subscriber: Subscriber<T>
+  ): void {
+    const dataItems = options.data as Array<Record<string, unknown>>;
     Promise.all(
-      options.data.map((item: any) =>
+      dataItems.map((item) =>
         invoke<Response<T>>("manage_data", {
-          operation: item.id ? "update" : "create",
-          table: payload.table,
-          id: item.id,
+          operation: item["id"] ? "update" : "create",
+          table: payload["table"] as string,
+          id: item["id"] as string | undefined,
           data: item,
-          sync_metadata: payload.sync_metadata,
+          sync_metadata: payload["sync_metadata"],
         })
       )
     ).then(
@@ -146,17 +143,17 @@ export class ApiProvider {
           subscriber.error(new Error(msg));
         }
       },
-      (err) => {
-        const msg = err?.message || String(err);
+      (err: unknown) => {
+        const msg = (err as Error)?.message || String(err);
         this.notifyService.showError(msg);
         subscriber.error(new Error(msg));
       }
     );
   }
 
-  private handleChatsResult(chats: any[], filter?: Record<string, any>): void {
+  private handleChatsResult(chats: Chat[], filter?: Record<string, unknown>): void {
     if (chats?.length > 0) {
-      const todoId = chats[0]?.todo_id || filter?.["todo_id"];
+      const todoId = (chats[0]?.todo_id || filter?.["todo_id"]) as string | undefined;
       if (todoId) {
         this.storageService.setChatsByTodo(chats, todoId);
       }

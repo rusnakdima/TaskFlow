@@ -82,7 +82,6 @@ export class DropHandlerService {
         catchError((err) => {
           this.updatingOrders.delete(operationKey);
           this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
-          this.dataSyncService.loadAllData(true).subscribe();
           throw err;
         })
       );
