@@ -301,20 +301,54 @@ impl RepositoryService {
       if self.should_queue_for_offline(&operation, &table, sync_metadata.as_ref()) {
         if self.mongodb_provider.is_none() {
           tracing::debug!(
-            "[RepositoryService] MongoDB unavailable, queueing request: operation={}, table={}",
+            "[RepositoryService] MongoDB unavailable, executing against JSON and queueing sync: operation={}, table={}",
             operation,
             table
           );
-          match queue_service
-            .queue_request(operation, table, id, data, filter, sync_metadata)
-            .await
-          {
-            Ok(queue_id) => {
-              return Ok(success_response(DataValue::String(queue_id)));
+          match operation.as_str() {
+            "create" | "update" | "delete" | "soft-delete-cascade" | "restore-cascade" | "restore" => {
+              let sync_meta_for_json = Some(SyncMetadata {
+                is_private: sync_metadata.as_ref().map(|m| m.is_private).unwrap_or(true),
+                is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
+                visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
+              });
+              let exec_result = match operation.as_str() {
+                "create" => self.handle_create(table.clone(), data.clone(), sync_meta_for_json).await,
+                "update" => self.handle_update(table.clone(), id.clone(), data.clone(), sync_meta_for_json).await,
+                "delete" => self.handle_delete(table.clone(), id.clone(), sync_meta_for_json, false).await,
+                "soft-delete-cascade" => self.handle_soft_delete_cascade(table.clone(), id.clone(), sync_meta_for_json).await,
+                "restore-cascade" => self.handle_restore_cascade(table.clone(), id.clone(), sync_meta_for_json).await,
+                "restore" => self.handle_restore(table.clone(), id.clone(), sync_meta_for_json).await,
+                _ => Err(err_response("Unsupported operation")),
+              };
+              if exec_result.is_ok() {
+                let record_id = exec_result.as_ref().ok().and_then(|r| {
+                  if let DataValue::String(id) = &r.data {
+                    Some(id.clone())
+                  } else {
+                    None
+                  }
+                });
+                let _ = queue_service
+                  .queue_request(operation, table, record_id, data, filter, sync_metadata)
+                  .await;
+              }
+              return exec_result;
             }
-            Err(e) => {
-              tracing::error!("[RepositoryService] Failed to queue request: {}", e);
-              return Err(err_response(&format!("Failed to queue request: {}", e)));
+            "updateAll" => {
+              let sync_meta_for_json = Some(SyncMetadata {
+                is_private: sync_metadata.as_ref().map(|m| m.is_private).unwrap_or(true),
+                is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
+                visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
+              });
+              let exec_result = self.handle_update_all(table.clone(), data.clone(), sync_meta_for_json).await;
+              let _ = queue_service
+                .queue_request(operation, table, None, data, filter, sync_metadata)
+                .await;
+              return exec_result;
+            }
+            _ => {
+              return Err(err_response("Operation not supported while offline"));
             }
           }
         }
