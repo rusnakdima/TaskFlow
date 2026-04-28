@@ -20,7 +20,7 @@ import {
   DragDropModule,
   DragRef,
 } from "@angular/cdk/drag-drop";
-import { Subscription, Observable, firstValueFrom } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
 import { toSignal } from "@angular/core/rxjs-interop";
 

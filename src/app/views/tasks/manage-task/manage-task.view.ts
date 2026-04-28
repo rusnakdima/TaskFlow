@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Subscription, Observable, firstValueFrom } from "rxjs";
+import { Subscription, firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -20,7 +20,6 @@ import { MatSelectModule } from "@angular/material/select";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* components */
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* models */
 import { PriorityTask, Task, TaskStatus, RepeatInterval, PriorityOption } from "@models/task.model";
@@ -52,7 +51,6 @@ import { ValidationHelper } from "@helpers/validation.helper";
     MatDatepickerModule,
     MatInputModule,
     MatSelectModule,
-    CheckboxComponent,
   ],
   templateUrl: "./manage-task.view.html",
 })
@@ -108,8 +106,6 @@ export class ManageTaskView implements OnInit, OnDestroy {
   dateClass!: (date: Date) => MatCalendarCellCssClasses;
 
   projectInfo = signal<Todo | null>(null);
-  newSubtaskTitle = signal("");
-  availableTasksForDependency = signal<Task[]>([]);
 
   userId = "";
   isOwner = false;

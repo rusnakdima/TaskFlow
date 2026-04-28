@@ -9,7 +9,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subscription, Observable } from "rxjs";
+import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";

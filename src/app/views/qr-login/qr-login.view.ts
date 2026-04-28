@@ -20,7 +20,6 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { AuthStore } from "@stores/auth.store";
-import { StorageService } from "@services/core/storage.service";
 
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
@@ -45,7 +44,6 @@ export class QrLoginView implements OnDestroy, OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authStore = inject(AuthStore);
-  private storageService = inject(StorageService);
 
   readonly isMobileDevice = computed(() => this.authCapabilityService.capabilities().isMobile);
 
