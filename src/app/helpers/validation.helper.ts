@@ -1,7 +1,6 @@
 /* sys lib */
 import { FormGroup } from "@angular/forms";
-
-import { DateHelper } from "./date.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 export class ValidationHelper {
   static validateForm(form: FormGroup, notifyService: any, isSubmitting: boolean = false): boolean {
