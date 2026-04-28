@@ -144,7 +144,9 @@ export class VisibilitySyncService {
     );
 
     const taskSyncPromises: Promise<void>[] = [];
-    todo.tasks?.forEach((task) => {
+    const syncedCommentIds = new Set<string>();
+
+    todo.tasks?.forEach((task: Task) => {
       const taskWithoutRelations = this.stripTaskRelations(task);
       taskSyncPromises.push(
         firstValueFrom(
@@ -164,7 +166,7 @@ export class VisibilitySyncService {
         }) as Promise<void>
       );
 
-      task.subtasks?.forEach((subtask) => {
+      task.subtasks?.forEach((subtask: Subtask) => {
         const subtaskWithoutRelations = this.stripSubtaskRelations(subtask);
         taskSyncPromises.push(
           firstValueFrom(
@@ -183,8 +185,32 @@ export class VisibilitySyncService {
             );
           }) as Promise<void>
         );
+      });
 
+      task.comments?.forEach((comment: Comment) => {
+        syncedCommentIds.add(comment.id);
+        taskSyncPromises.push(
+          firstValueFrom(
+            this.apiProvider
+              .crud<Comment>("create", "comments", {
+                data: comment,
+                isOwner: true,
+                isPrivate,
+              })
+              .pipe(catchError(() => of(null)))
+          ).then(() => {
+            this.syncProgressService.updateProgress(
+              this.syncProgressService.completedItems() + 1,
+              "Syncing comments..."
+            );
+          }) as Promise<void>
+        );
+      });
+
+      task.subtasks?.forEach((subtask: Subtask) => {
         subtask.comments?.forEach((comment: Comment) => {
+          if (syncedCommentIds.has(comment.id)) return;
+          syncedCommentIds.add(comment.id);
           taskSyncPromises.push(
             firstValueFrom(
               this.apiProvider
@@ -202,25 +228,6 @@ export class VisibilitySyncService {
             }) as Promise<void>
           );
         });
-      });
-
-      task.comments?.forEach((comment: Comment) => {
-        taskSyncPromises.push(
-          firstValueFrom(
-            this.apiProvider
-              .crud<Comment>("create", "comments", {
-                data: comment,
-                isOwner: true,
-                isPrivate,
-              })
-              .pipe(catchError(() => of(null)))
-          ).then(() => {
-            this.syncProgressService.updateProgress(
-              this.syncProgressService.completedItems() + 1,
-              "Syncing comments..."
-            );
-          }) as Promise<void>
-        );
       });
     });
 
@@ -268,7 +275,6 @@ export class VisibilitySyncService {
   private async importTodoToLocalDb(todo_id?: string): Promise<void> {
     if (!todo_id) return;
 
-    // Determine correct sync_metadata based on the todo's current visibility
     const todo = this.storageService.getById("todos", todo_id);
     const isPrivate = todo?.visibility === "private";
 
@@ -276,7 +282,7 @@ export class VisibilitySyncService {
       this.apiProvider
         .crud<Todo>("get", "todos", {
           id: todo_id,
-          isOwner: !isPrivate, // team todos are owned but not private
+          isOwner: !isPrivate,
           isPrivate,
         })
         .pipe(catchError(() => of(null)))

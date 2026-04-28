@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, signal, computed, inject, Injector } from "@angular/core";
+import { Injectable, signal, computed, inject } from "@angular/core";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
@@ -10,14 +10,11 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 
 import { BaseStorageService } from "./base-storage.service";
+import { EntityIndexService } from "./entity-index.service";
+import { StorageCrudService, StorageEntity } from "./storage-crud.service";
 import { TodoHandler } from "./entity-handlers/todo.handler";
-import { NestedEntityHandler } from "./entity-handlers/nested-entity.handler";
-import { CommentHandler } from "./entity-handlers/comment.handler";
-import { CategoryHandler } from "./entity-handlers/category.handler";
-import { ProfileHandler } from "./entity-handlers/profile.handler";
-import { ChatHandler } from "./entity-handlers/chat.handler";
 
-export type StorageEntity = keyof EntityMap;
+export type { StorageEntity };
 
 interface EntityMap {
   todos: Todo;
@@ -31,7 +28,8 @@ interface EntityMap {
 
 @Injectable({ providedIn: "root" })
 export class StorageService extends BaseStorageService {
-  private injector = inject(Injector);
+  private entityIndexService = inject(EntityIndexService);
+  private crudService = inject(StorageCrudService);
 
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
@@ -42,38 +40,11 @@ export class StorageService extends BaseStorageService {
   private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
   private readonly userSignal = signal<any | null>(null);
 
-  // ==================== INDEX MAPS ====================
-  private readonly taskToTodoIndex = new Map<string, string>();
-  private readonly subtaskToTaskIndex = new Map<string, string>();
-
-  // ==================== ENTITY HANDLERS ====================
-  private readonly handlers = {
-    todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal),
-    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks", {
-      getTodoIdForTask: (id: string) => this.getTodoIdForTask(id),
-      getTaskIdForSubtask: (id: string) => this.getTaskIdForSubtask(id),
-    }),
-    subtasks: new NestedEntityHandler<Subtask>(
-      this.privateTodosSignal,
-      this.sharedTodosSignal,
-      "subtasks",
-      {
-        getTodoIdForTask: (id: string) => this.getTodoIdForTask(id),
-        getTaskIdForSubtask: (id: string) => this.getTaskIdForSubtask(id),
-      }
-    ),
-    categories: new CategoryHandler(this.categoriesSignal),
-    profiles: new ProfileHandler(this.profileSignal),
-    chats: new ChatHandler(this.chatsByTodoSignal),
-    comments: new CommentHandler(this.privateTodosSignal, this.sharedTodosSignal),
-  };
-
   // ==================== COMPUTED SIGNALS ====================
   private readonly todosComputed = computed(() => {
     const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
-      // Filter out deleted todos
       if (todo.deleted_at) return;
 
       if (
@@ -113,11 +84,9 @@ export class StorageService extends BaseStorageService {
     const allComments: Comment[] = [];
     todos.forEach((todo) => {
       todo.tasks?.forEach((task) => {
-        // Add task-level comments
         if (task.comments) {
           allComments.push(...task.comments);
         }
-        // Add subtask comments
         task.subtasks?.forEach((subtask) => {
           if (subtask.comments) {
             allComments.push(...subtask.comments);
@@ -133,59 +102,38 @@ export class StorageService extends BaseStorageService {
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
 
-  // ==================== INDEX LOOKUPS ====================
+  constructor() {
+    super();
+    this.crudService.init(
+      this.privateTodosSignal,
+      this.sharedTodosSignal,
+      this.categoriesSignal,
+      this.profileSignal,
+      this.profilesSignal,
+      this.chatsByTodoSignal
+    );
+  }
+
+  // ==================== INDEX LOOKUPS (delegates to EntityIndexService) ====================
   getTodoIdForTask(taskId: string): string | null {
-    return this.taskToTodoIndex.get(taskId) ?? null;
+    return this.entityIndexService.getTodoIdForTask(taskId);
   }
 
   getTodoIdForSubtask(subtaskId: string): string | null {
-    const taskId = this.subtaskToTaskIndex.get(subtaskId);
-    return taskId ? (this.taskToTodoIndex.get(taskId) ?? null) : null;
+    return this.entityIndexService.getTodoIdForSubtask(subtaskId);
   }
 
   getTaskIdForSubtask(subtaskId: string): string | null {
-    return this.subtaskToTaskIndex.get(subtaskId) ?? null;
+    return this.entityIndexService.getTaskIdForSubtask(subtaskId);
   }
 
   private rebuildIndexes(): void {
-    this.taskToTodoIndex.clear();
-    this.subtaskToTaskIndex.clear();
-    const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
-    for (const todo of allTodos) {
-      for (const task of todo.tasks || []) {
-        if (task.id) {
-          this.taskToTodoIndex.set(task.id, todo.id);
-          for (const subtask of task.subtasks || []) {
-            if (subtask.id) {
-              this.subtaskToTaskIndex.set(subtask.id, task.id);
-            }
-          }
-        }
-      }
-    }
+    this.entityIndexService.rebuildIndexes(this.privateTodosSignal(), this.sharedTodosSignal());
   }
 
-  // ==================== GENERIC CRUD ====================
+  // ==================== GENERIC CRUD (delegates to StorageCrudService) ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
-    this.updateIndexesForEntity(type, data);
-    this.handlers[type]?.add(data);
-  }
-
-  private updateIndexesForEntity(type: StorageEntity, data: any): void {
-    if (type === "todos" && data.id) {
-      data.tasks?.forEach((task: Task) => {
-        if (task.id) {
-          this.taskToTodoIndex.set(task.id, data.id);
-          task.subtasks?.forEach((sub: Subtask) => {
-            if (sub.id) this.subtaskToTaskIndex.set(sub.id, task.id);
-          });
-        }
-      });
-    } else if (type === "tasks" && data.id && data.todo_id) {
-      this.taskToTodoIndex.set(data.id, data.todo_id);
-    } else if (type === "subtasks" && data.id && data.task_id) {
-      this.subtaskToTaskIndex.set(data.id, data.task_id);
-    }
+    this.crudService.addItem(type, data, options);
   }
 
   updateItem(
@@ -194,33 +142,19 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    if (updates["deleted_at"]) {
-      const existing: any = this.getById(type, id);
-      if (existing?.["deleted_at"]) return;
-    }
+    this.crudService.updateItem(type, id, updates, options);
+  }
 
-    // If tasks are being updated/added inside a todo, ensure indexes are maintained
-    if (type === "todos" && updates["tasks"]) {
-      this.updateIndexesForEntity("todos", { id, ...updates });
-    }
-
-    if (type === "todos") {
-      const categoriesSignal = this.categoriesSignal;
-      this.handlers[type]?.update(id, updates, {
-        getCategoryById: (catId: string) => categoriesSignal().find((c) => c.id === catId),
-      });
-    } else {
-      this.handlers[type]?.update(id, updates);
-    }
+  batchUpdate(
+    type: StorageEntity,
+    items: { id: string; updates: Partial<any> }[],
+    options?: { isPrivate?: boolean }
+  ): void {
+    this.crudService.batchUpdate(type, items, options);
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
-    if (type === "tasks") {
-      this.taskToTodoIndex.delete(id);
-    } else if (type === "subtasks") {
-      this.subtaskToTaskIndex.delete(id);
-    }
-    this.handlers[type]?.remove(id, parentId);
+    this.crudService.removeItem(type, id, parentId, isTeam);
   }
 
   // ==================== PUBLIC GETTERS ====================
@@ -251,7 +185,7 @@ export class StorageService extends BaseStorageService {
 
   setChatsByTodo(chats: Chat[], todo_id?: string): void {
     if (!todo_id) return;
-    const handler = this.handlers.chats as ChatHandler;
+    const handler = this.crudService.handlersMap.chats;
     handler.setByTodoId(chats, todo_id);
   }
 
@@ -325,7 +259,7 @@ export class StorageService extends BaseStorageService {
     if (!todo) return;
 
     this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
-    if (!this.privateTodosSignal().some((t) => t.id === todo_id)) {
+    if (!this.privateTodosSignal().some((t) => t.id !== todo_id)) {
       this.privateTodosSignal.update((todos) => [
         { ...todo, visibility: "private" },
         ...todos.filter((t) => t.id !== todo_id),
@@ -333,49 +267,38 @@ export class StorageService extends BaseStorageService {
     }
   }
 
-  /**
-   * Remove todo with all related data (tasks, subtasks, comments)
-   */
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
     const todo = this.getById("todos", todo_id);
     if (!todo) return;
 
-    const handler = this.handlers.todos as TodoHandler;
+    const handler = this.crudService.handlersMap.todos as TodoHandler;
     const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
     handler.removeWithCascade(todo_id, allTodos);
   }
 
-  /**
-   * Remove record with cascade for main storage
-   */
   removeRecordWithCascade(table: string, id: string): void {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
     } else if (table === "tasks") {
-      // Remove task from nested structure
-      const taskHandler = this.handlers.tasks as NestedEntityHandler<Task>;
+      const taskHandler = this.crudService.handlersMap.tasks;
       const todoId = this.getTodoIdForTask(id);
       taskHandler.remove(id, todoId ?? undefined);
-      this.taskToTodoIndex.delete(id);
+      this.entityIndexService.deleteTaskIndex(id);
     } else if (table === "subtasks") {
-      // Remove subtask from nested structure
-      const subtaskHandler = this.handlers.subtasks as NestedEntityHandler<Subtask>;
+      const subtaskHandler = this.crudService.handlersMap.subtasks;
       const taskId = this.getTaskIdForSubtask(id);
       subtaskHandler.remove(id, taskId ?? undefined);
-      this.subtaskToTaskIndex.delete(id);
+      this.entityIndexService.deleteSubtaskIndex(id);
     } else if (table === "comments") {
-      this.handlers.comments?.remove(id);
+      this.crudService.handlersMap.comments?.remove(id);
     } else if (table === "chats") {
-      this.handlers.chats?.remove(id);
+      this.crudService.handlersMap.chats?.remove(id);
     } else if (table === "categories") {
-      this.handlers.categories?.remove(id);
+      this.crudService.handlersMap.categories?.remove(id);
     }
   }
 
-  /**
-   * Restore todo with all related data
-   */
   restoreTodoWithCascade(data: {
     todo: Todo;
     tasks: Task[];
@@ -383,25 +306,25 @@ export class StorageService extends BaseStorageService {
     comments: Comment[];
     chats?: Chat[];
   }): void {
-    const handler = this.handlers.todos as TodoHandler;
+    const handler = this.crudService.handlersMap.todos as TodoHandler;
     handler.restoreWithCascade(data);
   }
 
   // ==================== COMMENT OPERATIONS ====================
   addCommentToTask(comment: Comment, task_id?: string): void {
     if (!task_id) return;
-    const handler = this.handlers.comments as CommentHandler;
+    const handler = this.crudService.handlersMap.comments;
     handler.add({ ...comment, task_id: task_id });
   }
 
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
     if (!subtask_id) return;
-    const handler = this.handlers.comments as CommentHandler;
+    const handler = this.crudService.handlersMap.comments;
     handler.add({ ...comment, subtask_id: subtask_id });
   }
 
   removeCommentFromAll(commentId: string): void {
-    this.handlers.comments?.remove(commentId);
+    this.crudService.handlersMap.comments?.remove(commentId);
   }
 
   // ==================== UTILITY METHODS ====================
@@ -431,7 +354,7 @@ export class StorageService extends BaseStorageService {
 
   // ==================== UTILITY METHODS ====================
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
-    return this.handlers[type]?.getById(id) as EntityMap[T] | undefined;
+    return this.crudService.getById(type, id);
   }
 
   clear(): void {
@@ -443,8 +366,7 @@ export class StorageService extends BaseStorageService {
     this.userSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
-    this.taskToTodoIndex.clear();
-    this.subtaskToTaskIndex.clear();
+    this.entityIndexService.clearIndexes();
   }
 
   setCollection<

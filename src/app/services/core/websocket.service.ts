@@ -43,6 +43,7 @@ export class WebSocketService implements OnDestroy {
   private messageSubject = new Subject<any>();
   private eventSubject = new Subject<{ event: string; data: any }>();
   private unlistenFns: UnlistenFn[] = [];
+  private windowEventHandlers: Array<{ event: string; handler: (event: any) => void }> = [];
   // True once Tauri Change Stream listeners are registered.
   // When active, the WS onmessage path skips storage updates to prevent double-processing (H-3).
   private tauriListenersActive = false;
@@ -157,6 +158,10 @@ export class WebSocketService implements OnDestroy {
     }
     this.unlistenFns.forEach((fn) => fn());
     this.unlistenFns = [];
+    this.windowEventHandlers.forEach(({ event, handler }) => {
+      window.removeEventListener(event, handler);
+    });
+    this.windowEventHandlers = [];
     this.tauriListenersActive = false;
   }
 
@@ -410,20 +415,27 @@ export class WebSocketService implements OnDestroy {
     ];
 
     entities.forEach((entity) => {
-      window.addEventListener(`ws-${entity}-created`, (event: any) =>
-        this.storageService.addItem(entity, event.detail)
-      );
-      window.addEventListener(`ws-${entity}-updated`, (event: any) =>
-        this.storageService.updateItem(entity, event.detail.id, event.detail)
-      );
-      window.addEventListener(`ws-${entity}-deleted`, (event: any) => {
+      const createdHandler = (event: any) => this.storageService.addItem(entity, event.detail);
+      const updatedHandler = (event: any) =>
+        this.storageService.updateItem(entity, event.detail.id, event.detail);
+      const deletedHandler = (event: any) => {
         const data = event.detail;
         if (data.deleted_at !== null) {
           this.storageService.updateItem(entity, data.id, data);
         } else {
           this.storageService.removeItem(entity, data.id);
         }
-      });
+      };
+
+      window.addEventListener(`ws-${entity}-created`, createdHandler);
+      window.addEventListener(`ws-${entity}-updated`, updatedHandler);
+      window.addEventListener(`ws-${entity}-deleted`, deletedHandler);
+
+      this.windowEventHandlers.push(
+        { event: `ws-${entity}-created`, handler: createdHandler },
+        { event: `ws-${entity}-updated`, handler: updatedHandler },
+        { event: `ws-${entity}-deleted`, handler: deletedHandler }
+      );
     });
   }
 
