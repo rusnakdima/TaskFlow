@@ -174,19 +174,51 @@ impl OfflineQueueService {
         .get("sync_metadata")
         .and_then(|v| serde_json::from_value::<SyncMetadata>(v.clone()).ok());
 
-      let exec_result = self
-        .repository_service
-        .execute(
-          operation.clone(),
-          table.clone(),
-          id,
-          data,
-          filter_val,
-          None,
-          None,
-          sync_metadata,
-        )
-        .await;
+      let exec_result = if operation == "create" {
+        if let Some(ref record_id) = id {
+          self
+            .repository_service
+            .execute(
+              "sync-to-provider".to_string(),
+              table.clone(),
+              Some(record_id.clone()),
+              None,
+              None,
+              None,
+              None,
+              sync_metadata,
+            )
+            .await
+        } else {
+          self
+            .repository_service
+            .execute(
+              operation.clone(),
+              table.clone(),
+              id,
+              data,
+              filter_val,
+              None,
+              None,
+              sync_metadata,
+            )
+            .await
+        }
+      } else {
+        self
+          .repository_service
+          .execute(
+            operation.clone(),
+            table.clone(),
+            id,
+            data,
+            filter_val,
+            None,
+            None,
+            sync_metadata,
+          )
+          .await
+      };
 
       match exec_result {
         Ok(_) => {
