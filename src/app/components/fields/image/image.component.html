@@ -1,22 +1,64 @@
-<div class="flex w-full flex-col" [formGroup]="form">
-  <mat-form-field class="flex flex-col">
-    <mat-label>{{ label }}</mat-label>
+<div class="flex w-full flex-col gap-y-2" [formGroup]="form">
+  <label class="styleLabel">{{ label }}</label>
+
+  <div class="flex flex-row gap-x-2">
+    <button type="button" class="styleButInfo flex items-center gap-1" (click)="onUploadClick()">
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="upload" />
+      Upload
+    </button>
+
+    @if (form.get(field.name)?.value) {
+      <button
+        type="button"
+        class="styleButInfo flex items-center gap-1"
+        (click)="cropImageSource = form.get(field.name)?.value; showCropModal = true"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="crop" />
+        Crop
+      </button>
+    }
+  </div>
+
+  <div class="flex flex-row gap-x-2">
     <input
-      matInput
       type="text"
-      placeholder="URL to image"
-      formControlName="{{ field.name }}"
-      [readonly]="field.readonly ? true : false"
+      class="styleField flex-1"
+      placeholder="Or enter image URL"
+      [(ngModel)]="urlInput"
+      [ngModelOptions]="{ standalone: true }"
     />
-    @if (isInvalid(field.name)) {
-      @if (form.get(field.name)?.errors?.["required"]) {
-        <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
-      }
+    <button
+      type="button"
+      class="styleButInfo"
+      (click)="onLoadUrlClick()"
+      [disabled]="!urlInput.trim()"
+    >
+      Load & Crop
+    </button>
+  </div>
+
+  @if (isInvalid(field.name)) {
+    @if (form.get(field.name)?.errors?.["required"]) {
+      <span class="text-red-500">Field '{{ field.label }}' should not be empty</span>
     }
-    @if (form.get(field.name)?.value && form.get(field.name)?.value != "") {
-      <div class="my-3"></div>
-      <span>Preview</span>
-      <img class="h-[300px]" [src]="form.get(field.name)?.value" alt="img" />
-    }
-  </mat-form-field>
+  }
+
+  @if (form.get(field.name)?.value && form.get(field.name)?.value != "") {
+    <div class="my-2">
+      <span class="text-sm text-gray-500 dark:text-gray-400">Preview</span>
+      <img
+        class="mt-1 max-h-48 rounded-lg border border-gray-200 object-contain"
+        [src]="form.get(field.name)?.value"
+        alt="img"
+      />
+    </div>
+  }
+
+  @if (showCropModal) {
+    <app-crop-modal
+      [imageSource]="cropImageSource"
+      (cropped)="onCropCompleted($event)"
+      (cancelled)="onCropCancelled()"
+    />
+  }
 </div>
