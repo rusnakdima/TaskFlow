@@ -4,6 +4,7 @@
  * Provides common helper functions used across all entity stores
  */
 
+import { WritableSignal } from "@angular/core";
 import { computed, Signal } from "@angular/core";
 
 /**
@@ -159,6 +160,38 @@ export function mergeAndDeduplicate<T extends { id: string }>(...arrays: T[][]):
  */
 export function existsById<T extends { id: string }>(entities: T[], id: string): boolean {
   return entities.some((entity) => entity.id === id);
+}
+
+/**
+ * Update entity in signal array by ID
+ */
+export function updateEntityInSignal<T extends { id: string }>(
+  signal: WritableSignal<T[]>,
+  id: string,
+  updates: Partial<T>
+): void {
+  signal.update((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+}
+
+/**
+ * Find and update entity in array, returning new array
+ */
+export function findAndUpdateEntity<T extends { id: string }>(
+  entities: T[],
+  id: string,
+  updates: Partial<T>
+): T[] {
+  return entities.map((item) => (item.id === id ? { ...item, ...updates } : item));
+}
+
+/**
+ * Add entity to array if it doesn't already exist (by ID)
+ */
+export function addIfNotExists<T extends { id: string }>(entities: T[], newItem: T): T[] {
+  if (entities.some((e) => e.id === newItem.id)) {
+    return entities;
+  }
+  return [newItem, ...entities];
 }
 
 /**
