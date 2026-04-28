@@ -52,9 +52,6 @@ export class AuthService {
     token: string;
     requiresDataSync: boolean;
     isOffline: boolean;
-    needsProfile: boolean;
-    profile: any | null;
-    userId?: string;
   }> {
     return new Promise((resolve, reject) => {
       this.performOnlineLogin(loginData).subscribe({
@@ -63,9 +60,6 @@ export class AuthService {
             token: authResponse.token,
             requiresDataSync: true,
             isOffline: false,
-            needsProfile: authResponse.needsProfile,
-            profile: authResponse.profile,
-            userId: authResponse.userId,
           });
         },
         error: (err: any) => {
@@ -227,7 +221,7 @@ export class AuthService {
     // 3. Profile Requirement Check
     // Profile check
     const cachedProfile = this.storageService.profile();
-    if (!cachedProfile?.user_id) {
+    if (!cachedProfile) {
       this.dataSyncService
         .loadProfile()
         .pipe(take(1))
