@@ -1,6 +1,9 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
+
+/* helpers */
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
 import { StorageService } from "@services/core/storage.service";
@@ -10,14 +13,20 @@ import { StorageService } from "@services/core/storage.service";
 })
 export class JwtTokenService {
   private jwtHelper = new JwtHelperService();
-  private storageService = inject(StorageService);
+  private storageService = new StorageService();
+  private cachedToken: string | null = null;
+  private cachedDecodedToken: { [key: string]: any } | null = null;
 
   /**
    * Get the decoded JWT token
    */
   decodeToken(token: string): { [key: string]: any } | null {
     if (!token) return null;
-    return this.jwtHelper.decodeToken(token);
+    if (this.cachedToken !== token) {
+      this.cachedToken = token;
+      this.cachedDecodedToken = this.jwtHelper.decodeToken(token);
+    }
+    return this.cachedDecodedToken;
   }
 
   /**
@@ -80,6 +89,13 @@ export class JwtTokenService {
    * Get the current auth token from storage
    */
   getToken(): string | null {
-    return localStorage.getItem("token") || sessionStorage.getItem("token");
+    return TokenStorageHelper.getToken();
+  }
+
+  /**
+   * Get current user ID from the stored token
+   */
+  getCurrentUserId(): string | null {
+    return this.getUserId(this.getToken());
   }
 }

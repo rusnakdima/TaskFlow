@@ -26,7 +26,6 @@ export class UserValidationService {
       .subscribe({
         next: (user) => {
           if (!user || (Array.isArray(user) && user.length === 0)) {
-            console.warn("User not found in MongoDB, invalidating session for user:", userId);
             this.invalidateUserSession();
           }
         },
@@ -40,9 +39,7 @@ export class UserValidationService {
             err.message.includes("Connection refused");
 
           if (isNetworkError || isBackendUnavailable) {
-            console.warn("User validation skipped: MongoDB unavailable", err.message);
           } else {
-            console.warn("User not found in MongoDB, invalidating session for user:", userId);
             this.invalidateUserSession();
           }
         },
