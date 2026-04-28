@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
 use crate::entities::{
-  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,

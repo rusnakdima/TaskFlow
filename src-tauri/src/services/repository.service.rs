@@ -17,13 +17,10 @@ use crate::entities::{
   response_entity::{DataValue, ResponseModel},
   sync_metadata_entity::SyncMetadata,
   table_entity::validate_model,
-  user_entity::UserEntity,
 };
 
 /* helpers */
 use crate::helpers::{
-  common::get_provider_type,
-  projection_helper::apply_projection_recursive,
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
 };

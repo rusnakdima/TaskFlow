@@ -68,7 +68,9 @@ impl AuthLoginService {
       Some(v) => v,
       None => {
         let mongo = self.mongodb_provider.as_ref().ok_or_else(|| {
-          err_response("User not found in local database and MongoDB unavailable")
+          err_response(
+            "First time login requires online connection. Please check your internet connection.",
+          )
         })?;
         let mut users = mongo
           .find_many(table_name, Some(&filter), None, None, None, true)
@@ -103,16 +105,19 @@ impl AuthLoginService {
 
     eprintln!("[Login] Profile found: {:?}", profile);
 
-    let needs_profile = profile.is_none();
+    if let Some(ref profile_val) = profile {
+      if self.mongodb_provider.is_some() {
+        if let Ok(profile_json) = serde_json::to_value(profile_val) {
+          let _ = self.json_provider.insert("profiles", profile_json).await;
+        }
+      }
+    }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Login successful".to_string(),
       data: DataValue::Object(serde_json::json!({
-        "token": token,
-        "needsProfile": needs_profile,
-        "profile": profile,
-        "userId": user.get_id()
+        "token": token
       })),
     })
   }

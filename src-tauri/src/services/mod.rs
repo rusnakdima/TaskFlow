@@ -4,8 +4,8 @@ pub mod repository_service;
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 
-// WebSocket server - now modularized
-pub mod websocket;
+// WebSocket server - REMOVED
+// pub mod websocket;
 
 // Special services (not CRUD)
 pub mod auth;

@@ -114,6 +114,18 @@ impl AuthTokenService {
         // Sync user to local database for future offline use
         let _ = self.json_provider.insert(table_name, user_val).await;
 
+        // Sync profile to local database if it exists in MongoDB
+        let profile_filter =
+          nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
+        if let Ok(profile_val) = mongo_provider
+          .find_many("profiles", Some(&profile_filter), None, None, None, true)
+          .await
+        {
+          if let Some(p) = profile_val.first() {
+            let _ = self.json_provider.insert("profiles", p.clone()).await;
+          }
+        }
+
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Token is valid".to_string(),

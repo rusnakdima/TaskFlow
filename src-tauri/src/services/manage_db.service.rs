@@ -5,7 +5,7 @@ use std::sync::Arc;
 use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use serde_json::json;
+use serde_json::{json, Value};
 
 /* entities */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
@@ -15,6 +15,14 @@ use crate::services::{
   admin_manager::AdminManager, cascade::CascadeService,
   entity_resolution_service::EntityResolutionService,
 };
+
+/// Filter out records where deleted_at is NOT null
+fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
+  records
+    .into_iter()
+    .filter(|r| r.get("deleted_at").map(|v| v.is_null()).unwrap_or(true))
+    .collect()
+}
 
 /// ManageDbService - Facade for database management operations
 pub struct ManageDbService {
@@ -89,10 +97,11 @@ impl ManageDbService {
 
     // 3. Import todos by user_id
     let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut todos) = mongo
+    if let Ok(todos) = mongo
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
+      let todos = filter_not_deleted(todos);
       eprintln!("[Import] Found {} todos", todos.len());
       for item in todos {
         match self.json_provider.insert("todos", item).await {
@@ -147,10 +156,11 @@ impl ManageDbService {
     }
 
     // 6. Import tasks - get all tasks and filter client-side by todo_id
-    if let Ok(mut todos) = mongo
+    if let Ok(todos) = mongo
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
+      let todos = filter_not_deleted(todos);
       let todo_ids: Vec<String> = todos
         .iter()
         .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
@@ -158,10 +168,11 @@ impl ManageDbService {
 
       for todo_id in todo_ids {
         let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id));
-        if let Ok(mut tasks) = mongo
+        if let Ok(tasks) = mongo
           .find_many("tasks", Some(&task_filter), None, None, None, true)
           .await
         {
+          let tasks = filter_not_deleted(tasks);
           for item in tasks {
             match self.json_provider.insert("tasks", item).await {
               Ok(_) => imported_count += 1,
@@ -173,26 +184,41 @@ impl ManageDbService {
     }
 
     // 7. Import subtasks - get all subtasks and filter client-side by task_id
-    if let Ok(mut all_tasks) = self
-      .json_provider
-      .find_many("tasks", None, None, None, None, true)
+    if let Ok(todos) = mongo
+      .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
-      let task_ids: Vec<String> = all_tasks
+      let todos = filter_not_deleted(todos);
+      let todo_ids: Vec<String> = todos
         .iter()
         .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
 
-      for task_id in task_ids {
-        let subtask_filter = Filter::Eq("task_id".to_string(), json!(task_id));
-        if let Ok(mut subtasks) = mongo
-          .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+      for todo_id in todo_ids {
+        let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id));
+        if let Ok(tasks) = mongo
+          .find_many("tasks", Some(&task_filter), None, None, None, true)
           .await
         {
-          for item in subtasks {
-            match self.json_provider.insert("subtasks", item).await {
-              Ok(_) => imported_count += 1,
-              Err(e) => eprintln!("[Import] Failed to insert subtask: {}", e),
+          let tasks = filter_not_deleted(tasks);
+          let task_ids: Vec<String> = tasks
+            .iter()
+            .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
+            .collect();
+
+          for task_id in task_ids {
+            let subtask_filter = Filter::Eq("task_id".to_string(), json!(task_id));
+            if let Ok(subtasks) = mongo
+              .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+              .await
+            {
+              let subtasks = filter_not_deleted(subtasks);
+              for item in subtasks {
+                match self.json_provider.insert("subtasks", item).await {
+                  Ok(_) => imported_count += 1,
+                  Err(e) => eprintln!("[Import] Failed to insert subtask: {}", e),
+                }
+              }
             }
           }
         }
@@ -256,11 +282,12 @@ impl ManageDbService {
 
     // 3. Export todos by user_id
     let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    if let Ok(mut todos) = self
+    if let Ok(todos) = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
+      let todos = filter_not_deleted(todos);
       eprintln!("[Export] Found {} todos", todos.len());
       for item in todos {
         match mongo.insert("todos", item).await {
@@ -317,11 +344,12 @@ impl ManageDbService {
     }
 
     // 6. Export tasks - get all tasks and filter client-side by todo_id
-    if let Ok(mut todos) = self
+    if let Ok(todos) = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
+      let todos = filter_not_deleted(todos);
       let todo_ids: Vec<String> = todos
         .iter()
         .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
@@ -329,11 +357,12 @@ impl ManageDbService {
 
       for todo_id in todo_ids {
         let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id));
-        if let Ok(mut tasks) = self
+        if let Ok(tasks) = self
           .json_provider
           .find_many("tasks", Some(&task_filter), None, None, None, true)
           .await
         {
+          let tasks = filter_not_deleted(tasks);
           for item in tasks {
             match mongo.insert("tasks", item).await {
               Ok(_) => exported_count += 1,
@@ -345,27 +374,44 @@ impl ManageDbService {
     }
 
     // 7. Export subtasks - get all subtasks and filter client-side by task_id
-    if let Ok(mut all_tasks) = self
+    if let Ok(todos) = self
       .json_provider
-      .find_many("tasks", None, None, None, None, true)
+      .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
     {
-      let task_ids: Vec<String> = all_tasks
+      let todos = filter_not_deleted(todos);
+      let todo_ids: Vec<String> = todos
         .iter()
         .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
 
-      for task_id in task_ids {
-        let subtask_filter = Filter::Eq("task_id".to_string(), json!(task_id));
-        if let Ok(mut subtasks) = self
+      for todo_id in todo_ids {
+        let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id));
+        if let Ok(tasks) = self
           .json_provider
-          .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+          .find_many("tasks", Some(&task_filter), None, None, None, true)
           .await
         {
-          for item in subtasks {
-            match mongo.insert("subtasks", item).await {
-              Ok(_) => exported_count += 1,
-              Err(e) => eprintln!("[Export] Failed to insert subtask: {}", e),
+          let tasks = filter_not_deleted(tasks);
+          let task_ids: Vec<String> = tasks
+            .iter()
+            .filter_map(|t| t.get("id").and_then(|v| v.as_str().map(String::from)))
+            .collect();
+
+          for task_id in task_ids {
+            let subtask_filter = Filter::Eq("task_id".to_string(), json!(task_id));
+            if let Ok(subtasks) = self
+              .json_provider
+              .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+              .await
+            {
+              let subtasks = filter_not_deleted(subtasks);
+              for item in subtasks {
+                match mongo.insert("subtasks", item).await {
+                  Ok(_) => exported_count += 1,
+                  Err(e) => eprintln!("[Export] Failed to insert subtask: {}", e),
+                }
+              }
             }
           }
         }
