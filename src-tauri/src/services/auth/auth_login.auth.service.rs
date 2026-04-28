@@ -99,11 +99,7 @@ impl AuthLoginService {
     let token = self.token_service.generate_token(user.get_id(), "", "")?;
 
     let user_id = user.get_id();
-    eprintln!("[Login] User ID: {}", user_id);
-
     let profile = self.check_profile_exists(user_id).await.ok().flatten();
-
-    eprintln!("[Login] Profile found: {:?}", profile);
 
     if let Some(ref profile_val) = profile {
       if self.mongodb_provider.is_some() {

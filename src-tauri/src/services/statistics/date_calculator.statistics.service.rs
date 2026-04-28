@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Duration, Local, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Utc};
 
 pub struct DateCalculator;
 
@@ -10,9 +10,8 @@ impl DateCalculator {
       "day" => now
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(Local)
-        .unwrap(),
+        .and_then(|dt| dt.and_local_timezone(Local))
+        .unwrap_or_else(|| now),
       "week" => {
         let weekday = now.weekday();
         let days_since_monday = weekday.num_days_from_monday() as i64;
@@ -20,18 +19,16 @@ impl DateCalculator {
         start_of_week
           .date_naive()
           .and_hms_opt(0, 0, 0)
-          .unwrap()
-          .and_local_timezone(Local)
-          .unwrap()
+          .and_then(|dt| dt.and_local_timezone(Local))
+          .unwrap_or_else(|| start_of_week)
       }
-      "month" => now
-        .date_naive()
-        .with_day(1)
-        .unwrap()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(Local)
-        .unwrap(),
+      "month" => {
+        let naive = now.date_naive().with_day(1).unwrap_or(now.date_naive());
+        naive
+          .and_hms_opt(0, 0, 0)
+          .and_then(|dt| dt.and_local_timezone(Local))
+          .unwrap_or_else(|| now)
+      }
       "quarter" => {
         let month = now.month();
         let quarter_start_month = match month {
@@ -40,24 +37,23 @@ impl DateCalculator {
           7..=9 => 7,
           _ => 10,
         };
-        now
+        let naive = now
           .date_naive()
           .with_month(quarter_start_month)
-          .unwrap()
+          .unwrap_or(now.date_naive())
           .with_day(1)
-          .unwrap()
+          .unwrap_or(now.date_naive());
+        naive
           .and_hms_opt(0, 0, 0)
-          .unwrap()
-          .and_local_timezone(Local)
-          .unwrap()
+          .and_then(|dt| dt.and_local_timezone(Local))
+          .unwrap_or_else(|| now)
       }
       "year" => {
-        let start_of_year = now.date_naive().with_ordinal(1).unwrap();
-        start_of_year
+        let naive = now.date_naive().with_ordinal(1).unwrap_or(now.date_naive());
+        naive
           .and_hms_opt(0, 0, 0)
-          .unwrap()
-          .and_local_timezone(Local)
-          .unwrap()
+          .and_then(|dt| dt.and_local_timezone(Local))
+          .unwrap_or_else(|| now)
       }
       _ => now - Duration::days(7),
     };

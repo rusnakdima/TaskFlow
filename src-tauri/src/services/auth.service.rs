@@ -38,28 +38,32 @@ impl AuthService {
     jwt_secret: String,
     rp_domain: String,
   ) -> Self {
-    let mongo_provider =
-      mongodb_provider.expect("MongoDB provider required for auth initialization");
+    let mongo_provider = mongodb_provider.clone();
 
     let token_service = Arc::new(AuthTokenService::new(
       json_provider.clone(),
-      Some(Arc::clone(&mongo_provider)),
+      mongo_provider.clone(),
       jwt_secret,
     ));
     let login_service = AuthLoginService::new(
       json_provider.clone(),
-      Some(Arc::clone(&mongo_provider)),
+      mongo_provider.clone(),
       Arc::clone(&token_service),
     );
     let register_service = AuthRegisterService::new(
       json_provider.clone(),
-      Some(Arc::clone(&mongo_provider)),
+      mongo_provider.clone(),
       Arc::clone(&token_service),
     );
-    let password_service =
-      AuthPasswordService::new(json_provider.clone(), Some(mongo_provider.clone()));
+    let password_service = AuthPasswordService::new(json_provider.clone(), mongo_provider.clone());
 
-    let rp_origin = Url::parse(&format!("https://{}", rp_domain)).expect("Invalid RP origin URL");
+    let rp_origin = Url::parse(&format!("https://{}", rp_domain)).unwrap_or_else(|_| {
+      eprintln!(
+        "WARNING: Invalid RP origin URL '{}', using default",
+        rp_domain
+      );
+      Url::parse("https://taskflow.tcs.com").expect("Hardcoded fallback URL is valid")
+    });
     let webauthn_state = Arc::new(WebAuthnState::new(&rp_domain, &rp_origin));
 
     Self {

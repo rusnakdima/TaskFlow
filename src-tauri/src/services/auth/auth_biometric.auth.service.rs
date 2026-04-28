@@ -101,7 +101,10 @@ impl AuthBiometricService {
       "userVerification": "required"
     });
 
-    let mut challenge_store = self.challenge.lock().unwrap();
+    let mut challenge_store = self.challenge.lock().unwrap_or_else(|e| {
+      eprintln!("WARNING: challenge lock poisoned, recovering: {}", e);
+      e.into_inner()
+    });
     let username_str = username.unwrap_or(user.username.as_str());
     *challenge_store = Some((username_str.to_string(), challenge.clone()));
 
@@ -146,7 +149,10 @@ impl AuthBiometricService {
     _signature: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let stored_data = {
-      let mut challenge_store = self.challenge.lock().unwrap();
+      let mut challenge_store = self.challenge.lock().unwrap_or_else(|e| {
+        eprintln!("WARNING: challenge lock poisoned, recovering: {}", e);
+        e.into_inner()
+      });
       challenge_store.take()
     };
     let stored_user = stored_data
