@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, Utc};
 
 pub struct DateCalculator;
 
@@ -10,8 +10,8 @@ impl DateCalculator {
       "day" => now
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .and_then(|dt| dt.and_local_timezone(Local))
-        .unwrap_or_else(|| now),
+        .and_then(|dt| dt.and_local_timezone(Local).single())
+        .unwrap_or(now),
       "week" => {
         let weekday = now.weekday();
         let days_since_monday = weekday.num_days_from_monday() as i64;
@@ -19,15 +19,15 @@ impl DateCalculator {
         start_of_week
           .date_naive()
           .and_hms_opt(0, 0, 0)
-          .and_then(|dt| dt.and_local_timezone(Local))
-          .unwrap_or_else(|| start_of_week)
+          .and_then(|dt| dt.and_local_timezone(Local).single())
+          .unwrap_or(start_of_week)
       }
       "month" => {
         let naive = now.date_naive().with_day(1).unwrap_or(now.date_naive());
         naive
           .and_hms_opt(0, 0, 0)
-          .and_then(|dt| dt.and_local_timezone(Local))
-          .unwrap_or_else(|| now)
+          .and_then(|dt| dt.and_local_timezone(Local).single())
+          .unwrap_or(now)
       }
       "quarter" => {
         let month = now.month();
@@ -45,15 +45,15 @@ impl DateCalculator {
           .unwrap_or(now.date_naive());
         naive
           .and_hms_opt(0, 0, 0)
-          .and_then(|dt| dt.and_local_timezone(Local))
-          .unwrap_or_else(|| now)
+          .and_then(|dt| dt.and_local_timezone(Local).single())
+          .unwrap_or(now)
       }
       "year" => {
         let naive = now.date_naive().with_ordinal(1).unwrap_or(now.date_naive());
         naive
           .and_hms_opt(0, 0, 0)
-          .and_then(|dt| dt.and_local_timezone(Local))
-          .unwrap_or_else(|| now)
+          .and_then(|dt| dt.and_local_timezone(Local).single())
+          .unwrap_or(now)
       }
       _ => now - Duration::days(7),
     };
