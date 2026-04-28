@@ -59,6 +59,7 @@ export class EditProfileView {
       last_name: ["", Validators.required],
       bio: [""],
       image_url: [""],
+      original_image_url: [""],
       user_id: ["", Validators.required],
       created_at: [""],
       updated_at: [""],

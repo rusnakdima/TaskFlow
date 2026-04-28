@@ -211,7 +211,7 @@ export class LoginView implements OnDestroy {
 
     try {
       const result = await this.authService.loginWithOfflineFirst(authData);
-      const { token, requiresDataSync, isOffline, needsProfile, profile, userId } = result;
+      const { token, isOffline } = result;
 
       if (!token) {
         this.notifyService.showError("No authentication token available");
@@ -219,18 +219,10 @@ export class LoginView implements OnDestroy {
         return;
       }
 
-      // Store profile if provided (user logged in on new device with existing profile)
-      console.log(profile);
-      if (profile && !needsProfile) {
-        this.storageService.setCollection("profiles", profile);
-      }
-
-      // LoginCompletionHelper.completeLogin({
-      //   token,
-      //   remember: this.f["remember"].value,
-      //   needsProfile,
-      //   userId,
-      // });
+      LoginCompletionHelper.completeLogin({
+        token,
+        remember: this.f["remember"].value,
+      });
 
       if (isOffline) {
         this.notifyService.showWarning("Working offline - some features limited");
@@ -264,7 +256,6 @@ export class LoginView implements OnDestroy {
             LoginCompletionHelper.completeLogin({
               token: authResponse.token,
               remember: this.f["remember"].value,
-              needsProfile: authResponse.needsProfile,
             });
             resolve();
           },
@@ -537,7 +528,6 @@ export class LoginView implements OnDestroy {
       LoginCompletionHelper.completeLogin({
         token: authResponse.token,
         remember: this.f["remember"].value,
-        needsProfile: authResponse.needsProfile,
       });
       return;
     }
@@ -552,16 +542,9 @@ export class LoginView implements OnDestroy {
       const loginResult = await this.authService.loginWithOfflineFirst(authData);
 
       if (loginResult.token) {
-        // Store profile if provided
-        if (loginResult.profile && !loginResult.needsProfile) {
-          this.storageService.setCollection("profiles", loginResult.profile);
-        }
-
         LoginCompletionHelper.completeLogin({
           token: loginResult.token,
           remember: this.f["remember"].value,
-          needsProfile: loginResult.needsProfile,
-          userId: loginResult.userId,
         });
       } else {
         this.notifyService.showError("Authentication failed - no token received");
