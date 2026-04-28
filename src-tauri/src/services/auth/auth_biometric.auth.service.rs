@@ -292,7 +292,7 @@ impl AuthBiometricService {
     let user_val = serde_json::to_value(user)
       .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
-    let user_id = user.get_id();
+    let user_id = user.id();
     let table_name = TableModelType::User.table_name();
 
     if let Err(e) = self

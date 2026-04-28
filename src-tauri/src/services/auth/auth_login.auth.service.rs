@@ -92,19 +92,27 @@ impl AuthLoginService {
       return Err(err_response("Invalid password"));
     }
 
-    if self.mongodb_provider.is_some() {
-      let _ = self.json_provider.insert(table_name, user_val).await;
+    let token = self.token_service.generate_token(user.id(), "", "")?;
+
+    let user_id = user.id();
+
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      let mongo = mongo.clone();
+      let user_val_for_sync = user_val.clone();
+      tokio::spawn(async move {
+        let _ = mongo.insert(table_name, user_val_for_sync).await;
+      });
     }
 
-    let token = self.token_service.generate_token(user.get_id(), "", "")?;
-
-    let user_id = user.get_id();
     let profile = self.check_profile_exists(user_id).await.ok().flatten();
 
     if let Some(ref profile_val) = profile {
-      if self.mongodb_provider.is_some() {
+      if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Ok(profile_json) = serde_json::to_value(profile_val) {
-          let _ = self.json_provider.insert("profiles", profile_json).await;
+          let mongo = mongo.clone();
+          tokio::spawn(async move {
+            let _ = mongo.insert("profiles", profile_json).await;
+          });
         }
       }
     }

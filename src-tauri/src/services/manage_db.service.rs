@@ -10,6 +10,9 @@ use serde_json::{json, Value};
 /* entities */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
+/* helpers */
+use crate::helpers::response_helper::success_response;
+
 /* services */
 use crate::services::{
   admin_manager::AdminManager, cascade::CascadeService,
@@ -613,5 +616,44 @@ impl ManageDbService {
         data: DataValue::String("".to_string()),
       }),
     }
+  }
+
+  /// Sync a single category to MongoDB (for team todos)
+  pub async fn sync_category_to_mongo(
+    &self,
+    category_id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let filter = Filter::Eq("id".to_string(), json!(category_id));
+    if let Ok(categories) = self
+      .json_provider
+      .find_many("categories", Some(&filter), None, None, None, true)
+      .await
+    {
+      if let Some(cat) = categories.first() {
+        if let Some(mongo) = &self.mongodb_provider {
+          let _ = mongo.insert("categories", cat.clone()).await;
+        }
+      }
+    }
+    Ok(success_response(DataValue::String(category_id)))
+  }
+
+  /// Sync a single category to JSON (for private todos)
+  pub async fn sync_category_to_json(
+    &self,
+    category_id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    if let Some(mongo) = &self.mongodb_provider {
+      let filter = Filter::Eq("id".to_string(), json!(category_id));
+      if let Ok(categories) = mongo
+        .find_many("categories", Some(&filter), None, None, None, true)
+        .await
+      {
+        if let Some(cat) = categories.first() {
+          let _ = self.json_provider.insert("categories", cat.clone()).await;
+        }
+      }
+    }
+    Ok(success_response(DataValue::String(category_id)))
   }
 }

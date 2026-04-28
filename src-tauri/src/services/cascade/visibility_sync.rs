@@ -20,6 +20,37 @@ use crate::helpers::response_helper::success_response;
 pub struct VisibilitySyncService;
 
 impl VisibilitySyncService {
+  fn eq_filter(field: &str, value: &str) -> Filter {
+    Filter::Eq(field.to_string(), json!(value))
+  }
+
+  fn in_filter(field: &str, values: &[String]) -> Filter {
+    Filter::In(
+      field.to_string(),
+      values.iter().map(|id| json!(id)).collect(),
+    )
+  }
+
+  fn comment_filter(task_ids: &[String], subtask_ids: &[String]) -> Filter {
+    if subtask_ids.is_empty() {
+      Filter::In(
+        "task_id".to_string(),
+        task_ids.iter().map(|id| json!(id)).collect(),
+      )
+    } else {
+      Filter::Or(vec![
+        Filter::In(
+          "task_id".to_string(),
+          task_ids.iter().map(|id| json!(id)).collect(),
+        ),
+        Filter::In(
+          "subtask_id".to_string(),
+          subtask_ids.iter().map(|id| json!(id)).collect(),
+        ),
+      ])
+    }
+  }
+
   async fn sync_todo_to_mongo(
     json_provider: &JsonProvider,
     mongo: &MongoProvider,
@@ -50,7 +81,7 @@ impl VisibilitySyncService {
             );
           }
         }
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = chrono::Utc::now();
         if let Err(e) = json_provider
           .patch(
             "todos",
@@ -114,7 +145,7 @@ impl VisibilitySyncService {
             );
           }
         }
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = chrono::Utc::now();
         if let Err(e) = json_provider
           .patch(
             table,
@@ -172,7 +203,7 @@ impl VisibilitySyncService {
             );
           }
         }
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = chrono::Utc::now();
         if let Err(e) = mongo
           .patch(
             "todos",
@@ -242,7 +273,7 @@ impl VisibilitySyncService {
             );
           }
         }
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = chrono::Utc::now();
         if let Err(e) = mongo
           .patch(
             table,
@@ -363,15 +394,27 @@ impl VisibilitySyncService {
     };
 
     if source_provider == ProviderType::Json {
-      let todo_filter = Filter::Eq("id".to_string(), json!(todo_id.clone()));
       let todos = json_provider
-        .find_many("todos", Some(&todo_filter), None, None, None, false)
+        .find_many(
+          "todos",
+          Some(&Self::eq_filter("id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 
-      let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id.clone()));
       let tasks = json_provider
-        .find_many("tasks", Some(&task_filter), None, None, None, false)
+        .find_many(
+          "tasks",
+          Some(&Self::eq_filter("todo_id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 
@@ -380,12 +423,15 @@ impl VisibilitySyncService {
         .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
         .collect();
 
-      let subtask_filter = Filter::In(
-        "task_id".to_string(),
-        task_ids.iter().map(|id| json!(id)).collect(),
-      );
       let subtasks = json_provider
-        .find_many("subtasks", Some(&subtask_filter), None, None, None, false)
+        .find_many(
+          "subtasks",
+          Some(&Self::in_filter("task_id", &task_ids)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 
@@ -394,31 +440,27 @@ impl VisibilitySyncService {
         .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
         .collect();
 
-      let comment_filter = if subtask_ids.is_empty() {
-        Filter::In(
-          "task_id".to_string(),
-          task_ids.iter().map(|id| json!(id)).collect(),
-        )
-      } else {
-        Filter::Or(vec![
-          Filter::In(
-            "task_id".to_string(),
-            task_ids.iter().map(|id| json!(id)).collect(),
-          ),
-          Filter::In(
-            "subtask_id".to_string(),
-            subtask_ids.iter().map(|id| json!(id)).collect(),
-          ),
-        ])
-      };
       let comments = json_provider
-        .find_many("comments", Some(&comment_filter), None, None, None, false)
+        .find_many(
+          "comments",
+          Some(&Self::comment_filter(&task_ids, &subtask_ids)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 
-      let chat_filter = Filter::Eq("todo_id".to_string(), json!(todo_id.clone()));
       let chats = json_provider
-        .find_many("chats", Some(&chat_filter), None, None, None, false)
+        .find_many(
+          "chats",
+          Some(&Self::eq_filter("todo_id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 
@@ -442,57 +484,67 @@ impl VisibilitySyncService {
         synced_count += Self::sync_chats(json_provider, mongo, &chats, new_visibility, true).await;
       }
     } else if let Some(mongo) = mongodb_provider {
-      let todo_filter = Filter::Eq("id".to_string(), json!(todo_id.clone()));
       let todos = mongo
-        .find_many("todos", Some(&todo_filter), None, None, None, false)
+        .find_many(
+          "todos",
+          Some(&Self::eq_filter("id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
-      let task_filter = Filter::Eq("todo_id".to_string(), json!(todo_id.clone()));
       let tasks = mongo
-        .find_many("tasks", Some(&task_filter), None, None, None, false)
+        .find_many(
+          "tasks",
+          Some(&Self::eq_filter("todo_id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
       let task_ids: Vec<String> = tasks
         .iter()
         .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
         .collect();
-      let subtask_filter = Filter::In(
-        "task_id".to_string(),
-        task_ids.iter().map(|id| json!(id)).collect(),
-      );
       let subtasks = mongo
-        .find_many("subtasks", Some(&subtask_filter), None, None, None, false)
+        .find_many(
+          "subtasks",
+          Some(&Self::in_filter("task_id", &task_ids)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
       let subtask_ids: Vec<String> = subtasks
         .iter()
         .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
         .collect();
-
-      let comment_filter = if subtask_ids.is_empty() {
-        Filter::In(
-          "task_id".to_string(),
-          task_ids.iter().map(|id| json!(id)).collect(),
-        )
-      } else {
-        Filter::Or(vec![
-          Filter::In(
-            "task_id".to_string(),
-            task_ids.iter().map(|id| json!(id)).collect(),
-          ),
-          Filter::In(
-            "subtask_id".to_string(),
-            subtask_ids.iter().map(|id| json!(id)).collect(),
-          ),
-        ])
-      };
       let comments = mongo
-        .find_many("comments", Some(&comment_filter), None, None, None, false)
+        .find_many(
+          "comments",
+          Some(&Self::comment_filter(&task_ids, &subtask_ids)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
-      let chat_filter = Filter::Eq("todo_id".to_string(), json!(todo_id.clone()));
       let chats = mongo
-        .find_many("chats", Some(&chat_filter), None, None, None, false)
+        .find_many(
+          "chats",
+          Some(&Self::eq_filter("todo_id", &todo_id)),
+          None,
+          None,
+          None,
+          false,
+        )
         .await
         .unwrap_or_default();
 

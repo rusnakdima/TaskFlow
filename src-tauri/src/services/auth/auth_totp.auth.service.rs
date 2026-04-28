@@ -259,13 +259,9 @@ impl AuthTotpService {
     }
 
     if let Some(ref ts) = self.token_service {
-      match ts.generate_token(user.get_id(), "", "") {
+      match ts.generate_token(user.id(), "", "") {
         Ok(token) => {
-          let profile = self
-            .check_profile_exists(user.get_id())
-            .await
-            .ok()
-            .flatten();
+          let profile = self.check_profile_exists(user.id()).await.ok().flatten();
           let needs_profile = profile.is_none();
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
@@ -407,7 +403,7 @@ impl AuthTotpService {
     let user_val = serde_json::to_value(user)
       .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
-    let user_id = user.get_id();
+    let user_id = user.id();
     let table_name = TableModelType::User.table_name();
 
     match timeout(
@@ -470,7 +466,7 @@ impl AuthTotpService {
     );
 
     let user = self.find_user(username).await?;
-    tracing::info!("update_totp_settings: found user with id={}", user.get_id());
+    tracing::info!("update_totp_settings: found user with id={}", user.id());
 
     let mut updated_user = user.clone();
     updated_user.totp_enabled = totp_enabled;
@@ -485,7 +481,7 @@ impl AuthTotpService {
         Duration::from_secs(5),
         mongo_provider.update(
           "users",
-          updated_user.get_id(),
+          updated_user.id(),
           serde_json::to_value(&updated_user).unwrap(),
         ),
       )

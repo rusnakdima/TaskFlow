@@ -458,7 +458,7 @@ impl QrAuthService {
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
-    let user_id = user.get_id().to_string();
+    let user_id = user.id().to_string();
 
     // Generate JWT token
     let token = self.token_service.generate_token(&user_id, "", "")?;
