@@ -215,7 +215,9 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (effectiveTodoId) {
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
-        .subscribe({});
+        .subscribe({
+          error: (err) => console.error("Subtask operation failed:", err),
+        });
     }
   }
 

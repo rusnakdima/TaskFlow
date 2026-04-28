@@ -62,10 +62,10 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private processedChatIds = new Set<string>(); // Track processed chats to prevent infinite loop
 
   // WebSocket listeners
-  private chatCreatedListener: any;
-  private chatUpdatedListener: any;
-  private chatDeletedListener: any;
-  private chatClearedListener: any;
+  private chatCreatedListener!: (event: Event) => void;
+  private chatUpdatedListener!: (event: Event) => void;
+  private chatDeletedListener!: (event: Event) => void;
+  private chatClearedListener!: (event: Event) => void;
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["todo_id"] && !changes["todo_id"].isFirstChange()) {
@@ -92,10 +92,14 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   private initWebSocketListeners(): void {
-    this.chatCreatedListener = (event: any) => this.onChatCreated(event.detail);
-    this.chatUpdatedListener = (event: any) => this.onChatUpdated(event.detail);
-    this.chatDeletedListener = (event: any) => this.onChatDeleted(event.detail);
-    this.chatClearedListener = (event: any) => this.onChatCleared(event.detail);
+    this.chatCreatedListener = (event: Event) =>
+      this.onChatCreated((event as CustomEvent<Chat>).detail);
+    this.chatUpdatedListener = (event: Event) =>
+      this.onChatUpdated((event as CustomEvent<Chat>).detail);
+    this.chatDeletedListener = (event: Event) =>
+      this.onChatDeleted((event as CustomEvent<{ id: string; todo_id?: string }>).detail);
+    this.chatClearedListener = (event: Event) =>
+      this.onChatCleared((event as CustomEvent<string | undefined>).detail);
 
     window.addEventListener("ws-chat-created", this.chatCreatedListener);
     window.addEventListener("ws-chat-updated", this.chatUpdatedListener);
@@ -244,8 +248,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     try {
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
-    } catch (err) {
-      // Scroll error silently ignored
+    } catch (err: unknown) {
+      console.error("Failed to scroll to bottom:", err);
     }
   }
 
