@@ -1,6 +1,6 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
-import { BehaviorSubject, Observable, fromEvent, merge, of } from "rxjs";
+import { Injectable, inject, OnDestroy } from "@angular/core";
+import { BehaviorSubject, Observable, fromEvent, merge, of, Subscription } from "rxjs";
 import { map, distinctUntilChanged, catchError, tap, take } from "rxjs/operators";
 
 /* services */
@@ -14,6 +14,31 @@ interface QueuedOperation {
   timestamp: number;
   retryCount: number;
 }
+
+@Injectable({
+  providedIn: "root",
+})
+export class OfflineQueueService implements OnDestroy {
+  private apiProvider = inject(ApiProvider);
+
+  private readonly QUEUE_KEY = "offline_queue";
+  private readonly MAX_RETRIES = 3;
+
+  private queueSubject = new BehaviorSubject<QueuedOperation[]>([]);
+  private isProcessingSubject = new BehaviorSubject<boolean>(false);
+  private isOnlineSubject = new BehaviorSubject<boolean>(navigator.onLine);
+  private networkSub: Subscription | null = null;
+
+  constructor() {
+    this.loadQueueFromStorage();
+    this.setupNetworkListeners();
+  }
+
+  ngOnDestroy(): void {
+    if (this.networkSub) {
+      this.networkSub.unsubscribe();
+    }
+  }
 
 @Injectable({
   providedIn: "root",
@@ -58,7 +83,7 @@ export class OfflineQueueService {
     const online$ = fromEvent(window, "online").pipe(map(() => true));
     const offline$ = fromEvent(window, "offline").pipe(map(() => false));
 
-    merge(online$, offline$)
+    this.networkSub = merge(online$, offline$)
       .pipe(
         distinctUntilChanged(),
         tap((isOnline) => {

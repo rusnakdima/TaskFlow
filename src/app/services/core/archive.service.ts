@@ -13,50 +13,27 @@ export class ArchiveService {
     if (!todo) return;
 
     const options = { isPrivate: !isTeam };
-
-    this.storageService.updateItem(
-      "todos",
-      todo_id,
-      { deleted_at: new Date().toISOString() },
-      options
-    );
+    const deletedAt = new Date().toISOString();
+    const itemsToUpdate: { id: string; updates: Partial<any> }[] = [
+      { id: todo_id, updates: { deleted_at: deletedAt } },
+    ];
 
     todo.tasks?.forEach((task) => {
-      this.storageService.updateItem(
-        "tasks",
-        task.id,
-        { deleted_at: new Date().toISOString() },
-        options
-      );
+      itemsToUpdate.push({ id: task.id, updates: { deleted_at: deletedAt } });
 
       task.subtasks?.forEach((subtask) => {
-        this.storageService.updateItem(
-          "subtasks",
-          subtask.id,
-          { deleted_at: new Date().toISOString() },
-          options
-        );
-
+        itemsToUpdate.push({ id: subtask.id, updates: { deleted_at: deletedAt } });
         subtask.comments?.forEach((comment) => {
-          this.storageService.updateItem(
-            "comments",
-            comment.id,
-            { deleted_at: new Date().toISOString() },
-            options
-          );
+          itemsToUpdate.push({ id: comment.id, updates: { deleted_at: deletedAt } });
         });
       });
 
       task.comments?.forEach((comment) => {
-        this.storageService.updateItem(
-          "comments",
-          comment.id,
-          { deleted_at: new Date().toISOString() },
-          options
-        );
+        itemsToUpdate.push({ id: comment.id, updates: { deleted_at: deletedAt } });
       });
     });
 
+    this.storageService.batchUpdate("todos", itemsToUpdate, options);
     this.storageService.clearChatsByTodo(todo_id);
   }
 }

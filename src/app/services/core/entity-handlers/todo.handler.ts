@@ -4,6 +4,12 @@ import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
+import {
+  existsById,
+  updateEntityInSignal,
+  removeEntityFromArray,
+  addIfNotExists,
+} from "@stores/utils/store-helpers";
 
 export interface TodoCascadeData {
   todo: Todo;
@@ -23,10 +29,7 @@ export class TodoHandler extends EntityHandler<Todo> {
   add(data: Todo): void {
     const signal = data.visibility === "private" ? this.privateSignal : this.sharedSignal;
 
-    signal.update((todos) => {
-      if (todos.some((t) => t.id === data.id)) return todos;
-      return [data, ...todos];
-    });
+    signal.update((todos) => addIfNotExists(todos, data));
   }
 
   update(
@@ -36,9 +39,8 @@ export class TodoHandler extends EntityHandler<Todo> {
       getCategoryById?: (id: string) => import("@models/category.model").Category | undefined;
     }
   ): void {
-    // Find which signal contains this todo
-    const existsInPrivate = this.privateSignal().some((t) => t.id === id);
-    const existsInShared = this.sharedSignal().some((t) => t.id === id);
+    const existsInPrivate = existsById(this.privateSignal(), id);
+    const existsInShared = existsById(this.sharedSignal(), id);
 
     // Resolve string category IDs to full objects before merging
     const resolvedUpdates: Partial<Todo> = { ...updates };
@@ -57,14 +59,10 @@ export class TodoHandler extends EntityHandler<Todo> {
 
     // Update only the signal where the todo exists
     if (existsInPrivate) {
-      this.privateSignal.update((todos) =>
-        todos.map((todo) => (todo.id === id ? { ...todo, ...resolvedUpdates } : todo))
-      );
+      updateEntityInSignal(this.privateSignal, id, resolvedUpdates);
     }
     if (existsInShared) {
-      this.sharedSignal.update((todos) =>
-        todos.map((todo) => (todo.id === id ? { ...todo, ...resolvedUpdates } : todo))
-      );
+      updateEntityInSignal(this.sharedSignal, id, resolvedUpdates);
     }
 
     // Handle visibility change if needed
@@ -77,15 +75,11 @@ export class TodoHandler extends EntityHandler<Todo> {
     const privateTodos = this.privateSignal();
     const sharedTodos = this.sharedSignal();
 
-    // Check if todo exists in either signal
-    const existsInPrivate = privateTodos.some((t) => t.id === id);
-    const existsInShared = sharedTodos.some((t) => t.id === id);
-
-    if (existsInPrivate) {
-      this.privateSignal.set(privateTodos.filter((t) => t.id !== id));
+    if (existsById(privateTodos, id)) {
+      this.privateSignal.set(removeEntityFromArray(privateTodos, id));
     }
-    if (existsInShared) {
-      this.sharedSignal.set(sharedTodos.filter((t) => t.id !== id));
+    if (existsById(sharedTodos, id)) {
+      this.sharedSignal.set(removeEntityFromArray(sharedTodos, id));
     }
   }
 
@@ -127,19 +121,15 @@ export class TodoHandler extends EntityHandler<Todo> {
       ? [this.sharedSignal, this.privateSignal]
       : [this.privateSignal, this.sharedSignal];
 
-    // Get the todo from either signal
     const todo =
       this.privateSignal().find((t) => t.id === todo_id) ||
       this.sharedSignal().find((t) => t.id === todo_id);
 
     if (!todo) return;
 
-    // Remove from both signals to ensure clean state
-    from.update((todos) => todos.filter((t) => t.id !== todo_id));
+    from.update((todos) => removeEntityFromArray(todos, todo_id!));
     to.update((todos) => {
-      // Ensure todo doesn't already exist in target signal
-      const exists = todos.some((t) => t.id === todo_id);
-      if (exists) return todos;
+      if (existsById(todos, todo_id!)) return todos;
       return [{ ...todo, visibility: newVisibility }, ...todos];
     });
   }

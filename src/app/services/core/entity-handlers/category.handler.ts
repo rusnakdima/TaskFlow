@@ -1,6 +1,11 @@
 import { WritableSignal } from "@angular/core";
 import { EntityHandler } from "./entity-handler.base";
 import { Category } from "@models/category.model";
+import {
+  addIfNotExists,
+  updateEntityInSignal,
+  removeEntityFromArray,
+} from "@stores/utils/store-helpers";
 
 export class CategoryHandler extends EntityHandler<Category> {
   constructor(private signal: WritableSignal<Category[]>) {
@@ -8,20 +13,15 @@ export class CategoryHandler extends EntityHandler<Category> {
   }
 
   add(data: Category): void {
-    this.signal.update((items) => {
-      if (items.some((i) => i.id === data.id)) return items;
-      return [data, ...items];
-    });
+    this.signal.update((items) => addIfNotExists(items, data));
   }
 
   update(id: string, updates: Partial<Category>, _resolvers?: Record<string, any>): void {
-    this.signal.update((items) =>
-      items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
+    updateEntityInSignal(this.signal, id, updates);
   }
 
   remove(id: string): void {
-    this.signal.update((items) => items.filter((item) => item.id !== id));
+    this.signal.update((items) => removeEntityFromArray(items, id));
   }
 
   getById(id: string): Category | undefined {
