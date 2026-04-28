@@ -18,7 +18,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
-import { BufferHelper } from "@helpers/buffer.helper";
 
 import { ApiProvider } from "@providers/api.provider";
 

@@ -33,7 +33,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 
@@ -74,7 +74,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private dataSyncProvider: ApiProvider,
     private shortcutService: ShortcutService,
-    private dataSyncService: DataLoaderService,
     private cdr: ChangeDetectorRef,
     private relationLoader: RelationLoadingService,
     private visibilitySyncService: VisibilitySyncService

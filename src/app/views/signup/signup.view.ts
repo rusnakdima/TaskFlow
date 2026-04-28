@@ -20,7 +20,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { Common } from "@helpers/common.helper";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
+import { ResponseStatus } from "@models/response.model";
 import { SignupForm, AuthResponse } from "@models/auth-forms.model";
 
 /* services */
@@ -123,9 +123,6 @@ export class SignupView implements OnDestroy {
       next: (authResponse) => {
         const token = authResponse.token;
         localStorage.setItem("token", token);
-
-        if (authResponse.userId) {
-        }
 
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");

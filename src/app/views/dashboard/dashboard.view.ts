@@ -12,10 +12,8 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
-import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
-import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -59,9 +57,7 @@ export class DashboardView implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private notifyService: NotifyService,
     private storageService: StorageService,
-    private dataSyncProvider: ApiProvider,
     private router: Router
   ) {
     // Watch for todos data changes and process when data is loaded

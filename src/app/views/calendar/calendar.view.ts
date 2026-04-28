@@ -13,7 +13,6 @@ import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
 
@@ -31,8 +30,6 @@ import {
 import { DateHelper } from "@helpers/date.helper";
 
 /* providers */
-import { ApiProvider } from "@providers/api.provider";
-
 @Component({
   selector: "app-calendar",
   standalone: true,
@@ -43,8 +40,6 @@ export class CalendarView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private dataSyncProvider = inject(ApiProvider);
-  private notifyService = inject(NotifyService);
 
   constructor() {
     // Watch for todos data changes and process when data is loaded

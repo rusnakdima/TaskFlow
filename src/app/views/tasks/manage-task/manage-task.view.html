@@ -170,47 +170,6 @@
           }
         </div>
       </div>
-
-      @if (availableTasksForDependency().length > 0) {
-        <div class="mt-6 border-t border-gray-200 pt-6 dark:border-zinc-700">
-          <div class="mb-4 flex items-center gap-3">
-            <div
-              class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
-            >
-              <mat-icon
-                class="h-6! w-6! min-w-6 text-xl! text-purple-600 dark:text-purple-400"
-                fontIcon="account_tree"
-              />
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold">Dependencies</h3>
-              <p class="textMuted text-sm">Set tasks that must be completed before this task</p>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <p class="textMuted mb-2 text-sm">This task depends on:</p>
-            @for (task of availableTasksForDependency(); track task.id) {
-              <label
-                class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
-                (click)="$event.stopPropagation()"
-              >
-                <app-checkbox
-                  [checked]="isTaskDependent(task.id)"
-                  (checkedChange)="toggleDependency(task.id)"
-                />
-                <div class="flex-1">
-                  <div class="textNormal font-medium">{{ task.title }}</div>
-                  <div class="textMuted text-xs">{{ task.status }}</div>
-                </div>
-                @if (task.status !== "completed") {
-                  <mat-icon class="h-4! w-4! min-w-4 text-yellow-600" fontIcon="warning" />
-                }
-              </label>
-            }
-          </div>
-        </div>
-      }
     </div>
 
     <div class="flex justify-end gap-3 pt-6">
