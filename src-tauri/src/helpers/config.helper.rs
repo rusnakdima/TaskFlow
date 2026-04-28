@@ -25,52 +25,49 @@ impl ConfigHelper {
     let env_vars = Self::parse_dotenv(dotenv_content);
 
     Self {
-      name_app: env_vars
-        .get("NAME_APP")
-        .expect("NAME_APP not set in .env")
-        .clone(),
-      app_home_folder: env_vars
-        .get("APP_HOME_FOLDER")
-        .expect("APP_HOME_FOLDER not set in .env")
-        .clone(),
-      json_db_name: env_vars
-        .get("JSONDB_NAME")
-        .expect("JSONDB_NAME not set in .env")
-        .clone(),
-      mongo_db_uri: env_vars
-        .get("MONGODB_URI")
-        .expect("MONGODB_URI not set in .env")
-        .clone(),
-      mongo_db_name: env_vars
-        .get("MONGODB_NAME")
-        .expect("MONGODB_NAME not set in .env")
-        .clone(),
-      jwt_secret: env_vars
-        .get("JWT_SECRET")
-        .expect("JWT_SECRET not set in .env")
-        .clone(),
-      smtp_username: env_vars
-        .get("SMTP_USERNAME")
-        .expect("SMTP_USERNAME not set in .env")
-        .clone(),
-      smtp_password: env_vars
-        .get("SMTP_PASSWORD")
-        .expect("SMTP_PASSWORD not set in .env")
-        .clone(),
-      smtp_server: env_vars
-        .get("SMTP_SERVER")
-        .expect("SMTP_SERVER not set in .env")
-        .clone(),
+      name_app: env_vars.get("NAME_APP").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: NAME_APP not set in .env, using default");
+        "TaskFlow".to_string()
+      }),
+      app_home_folder: env_vars.get("APP_HOME_FOLDER").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: APP_HOME_FOLDER not set in .env, using default");
+        ".taskflow".to_string()
+      }),
+      json_db_name: env_vars.get("JSONDB_NAME").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: JSONDB_NAME not set in .env, using default");
+        "taskflow_db.json".to_string()
+      }),
+      mongo_db_uri: env_vars.get("MONGODB_URI").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: MONGODB_URI not set in .env, using default");
+        "mongodb://localhost:27017".to_string()
+      }),
+      mongo_db_name: env_vars.get("MONGODB_NAME").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: MONGODB_NAME not set in .env, using default");
+        "taskflow".to_string()
+      }),
+      jwt_secret: env_vars.get("JWT_SECRET").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: JWT_SECRET not set in .env, using default");
+        "default_secret_change_in_production".to_string()
+      }),
+      smtp_username: env_vars.get("SMTP_USERNAME").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: SMTP_USERNAME not set in .env, using default");
+        "".to_string()
+      }),
+      smtp_password: env_vars.get("SMTP_PASSWORD").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: SMTP_PASSWORD not set in .env, using default");
+        "".to_string()
+      }),
+      smtp_server: env_vars.get("SMTP_SERVER").cloned().unwrap_or_else(|| {
+        eprintln!("WARNING: SMTP_SERVER not set in .env, using default");
+        "smtp.example.com".to_string()
+      }),
       smtp_port: env_vars
         .get("SMTP_PORT")
-        .map(|s| s.parse::<u16>().expect("SMTP_PORT must be a valid number"))
+        .and_then(|s| s.parse::<u16>().ok())
         .unwrap_or(587),
       reset_token_expiry_hours: env_vars
         .get("RESET_TOKEN_EXPIRY_HOURS")
-        .map(|s| {
-          s.parse::<u64>()
-            .expect("RESET_TOKEN_EXPIRY_HOURS must be a valid number")
-        })
+        .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(1),
       rp_domain: env_vars
         .get("RP_DOMAIN")

@@ -208,6 +208,10 @@ pub async fn disable_biometric(
   state.biometric_service.disable_biometric(&username).await
 }
 
+// TODO [API v2]: get_user_security_status takes `_username` parameter that's ignored.
+// The function always retrieves the first user found, ignoring the provided username parameter.
+// Should either use the parameter or remove it (breaking change).
+
 #[tauri::command]
 pub async fn get_user_security_status(
   state: State<'_, AppState>,
