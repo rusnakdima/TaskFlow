@@ -3141,7 +3141,6 @@ dependencies = [
 [[package]]
 name = "nosql_orm"
 version = "0.6.2"
-source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#5ceffe76d8bcde2a6b7577a5fb03c3e0e1fe78c0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3162,7 +3161,6 @@ dependencies = [
 [[package]]
 name = "nosql_orm_derive"
 version = "0.1.0"
-source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#5ceffe76d8bcde2a6b7577a5fb03c3e0e1fe78c0"
 dependencies = [
  "chrono",
  "proc-macro2",
@@ -3170,6 +3168,8 @@ dependencies = [
  "regex",
  "serde_json",
  "syn 2.0.117",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -5515,6 +5515,7 @@ dependencies = [
  "openssl",
  "qrcode",
  "rand 0.8.6",
+ "regex",
  "rustls 0.21.12",
  "serde",
  "serde_json",
