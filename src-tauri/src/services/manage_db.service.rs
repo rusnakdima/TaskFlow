@@ -244,7 +244,7 @@ impl ManageDbService {
     count
   }
 
-  async fn import_collection<F>(
+  async fn _import_collection<F>(
     &self,
     mongo: &MongoProvider,
     collection: &str,
