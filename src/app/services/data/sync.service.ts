@@ -6,6 +6,9 @@ import { BehaviorSubject, Observable, Subscription } from "rxjs";
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
 
+/* helpers */
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
+
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/core/storage.service";
@@ -74,7 +77,7 @@ export class SyncService implements OnDestroy {
     });
 
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
       if (!userId) {
@@ -125,7 +128,7 @@ export class SyncService implements OnDestroy {
     this.updateProgress({ currentStep: "export", progress: 10, message: "Exporting to cloud..." });
 
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
       if (!userId) {

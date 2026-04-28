@@ -52,28 +52,16 @@ export class DataLoaderService {
    * Returns immediately with cached data if available
    */
   loadAllData(force: boolean = false): Observable<{ todos: Todo[]; categories: Category[] }> {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
-    console.log("[DataLoader] loadAllData called", {
-      force,
-      userId,
-      loaded: this.storageService.loaded(),
-    });
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
 
-    // Return cached data immediately if valid
     if (!force && this.storageService.loaded()) {
       const todos = this.storageService.todos();
       const categories = this.storageService.categories();
-      console.log("[DataLoader] Using cache - loaded=true, returning:", {
-        todosCount: todos.length,
-        categoriesCount: categories.length,
-      });
       if (todos.length > 0 || categories.length > 0) {
         return of({ todos, categories });
       }
     }
 
-    console.log("[DataLoader] Fetching fresh data for user:", userId);
-    // Fire independent background loads (no blocking)
     this.loadPrivateTodos(userId);
     this.loadTeamTodosOwner(userId);
     this.loadTeamTodosAssignee(userId);
@@ -82,13 +70,8 @@ export class DataLoaderService {
     this.loadUserProfile(userId);
     this.loadStats(userId);
 
-    // Return current cache state immediately
     const currentTodos = this.storageService.todos();
     const currentCategories = this.storageService.categories();
-    console.log("[DataLoader] Returning current state:", {
-      todosCount: currentTodos.length,
-      categoriesCount: currentCategories.length,
-    });
     return of({
       todos: currentTodos,
       categories: currentCategories,
@@ -100,8 +83,6 @@ export class DataLoaderService {
    */
   private loadPrivateTodos(userId: string): void {
     const filter = { user_id: userId, visibility: "private" };
-    console.log("[DataLoader] loadPrivateTodos called with filter:", JSON.stringify(filter));
-    console.log("[DataLoader] Requesting private todos data from API");
 
     this.relationLoader
       .loadMany<Todo>(this.apiProvider, "todos", filter, this.TODO_LOAD_RELATIONS, {
@@ -111,11 +92,9 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError(() => {
-          console.log("[DataLoader] loadPrivateTodos error, returning null");
           return of(null);
         }),
         tap((privateTodos) => {
-          console.log("[DataLoader] loadPrivateTodos response:", privateTodos);
           if (privateTodos && Array.isArray(privateTodos)) {
             this.storageService.setCollection("privateTodos", privateTodos);
             this.emitUpdate();
@@ -130,7 +109,6 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is owner
    */
   private loadTeamTodosOwner(userId: string): void {
-    console.log("[DataLoader] Requesting team todos (owner) data from API");
     const filter = { user_id: userId, visibility: "team" };
 
     this.relationLoader
@@ -141,20 +119,15 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
-          console.log("[DataLoader] loadTeamTodosOwner error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
-          console.log("[DataLoader] loadTeamTodosOwner response:", teamTodos);
           if (teamTodos && Array.isArray(teamTodos)) {
-            // Merge with existing shared todos
             const existingShared = this.storageService.sharedTodos();
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
             this.logCommentCounts(teamTodos, "teamTodosOwner");
-          } else {
-            console.log("[DataLoader] loadTeamTodosOwner: no data or error");
           }
         })
       )
@@ -165,7 +138,6 @@ export class DataLoaderService {
    * Fire-and-forget: Load team todos where user is assignee
    */
   private loadTeamTodosAssignee(userId: string): void {
-    console.log("[DataLoader] Requesting team todos (assignee) data from API");
     const filter = { assignees: userId, visibility: "team" };
 
     this.relationLoader
@@ -176,20 +148,15 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
-          console.log("[DataLoader] loadTeamTodosAssignee error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
-          console.log("[DataLoader] loadTeamTodosAssignee response:", teamTodos);
           if (teamTodos && Array.isArray(teamTodos)) {
-            // Merge with existing shared todos
             const existingShared = this.storageService.sharedTodos();
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
             this.logCommentCounts(teamTodos, "teamTodosAssignee");
-          } else {
-            console.log("[DataLoader] loadTeamTodosAssignee: no data or error");
           }
         })
       )
@@ -281,23 +248,17 @@ export class DataLoaderService {
    * Returns cached profile if available, otherwise fetches from API
    */
   loadProfile(): Observable<Profile | null> {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
-
-    console.log("[DataLoader] loadProfile called, userId:", userId);
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
 
     if (!userId) {
-      console.log("[DataLoader] loadProfile: no userId, returning null");
       return of(null);
     }
 
     const cached = this.storageService.profile();
-    console.log("[DataLoader] loadProfile: cached profile:", cached);
     if (cached?.user_id) {
-      console.log("[DataLoader] loadProfile: returning cached profile");
       return of(cached);
     }
 
-    console.log("[DataLoader] loadProfile: fetching from API");
     return this.fetchProfileFromApi(userId);
   }
 
@@ -331,7 +292,7 @@ export class DataLoaderService {
    * Fire-and-forget, updates storage, returns observable for compatibility
    */
   loadTeamTodos(): Observable<Todo[]> {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
     this.loadTeamTodosOwner(userId);
     this.loadTeamTodosAssignee(userId);
     return of(this.storageService.sharedTodos());
@@ -368,7 +329,7 @@ export class DataLoaderService {
    * Force refresh profile
    */
   refreshProfile(): void {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
     if (userId) {
       this.fetchProfileFromApi(userId);
     }
@@ -389,8 +350,5 @@ export class DataLoaderService {
         }
       }
     }
-    console.log(
-      `[DataLoader] ${source} comment counts: ${taskComments} task-level, ${subtaskComments} subtask-level`
-    );
   }
 }
