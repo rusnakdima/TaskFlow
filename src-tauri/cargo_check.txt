@@ -1,0 +1,1147 @@
+    Checking taskflow v0.13.1 (C:\Users\D.Rusnak\Projects\TaskFlow\src-tauri)
+error[E0407]: method `delete_index` is not a member of trait `DatabaseProvider`
+  --> src\providers\taskflow_provider.rs:42:5
+   |
+42 |       async fn delete_index(
+   |       ^        ------------ help: there is an associated function with a similar name: `create_index`
+   |  _____|
+   | |
+43 | |         &self,
+44 | |         collection: &str,
+45 | |         index_name: &str,
+46 | |     ) -> Result<(), nosql_orm::error::NosqlError> {
+47 | |         self.get_provider(false).delete_index(collection, index_name).await
+48 | |     }
+   | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `insert_one` is not a member of trait `DatabaseProvider`
+  --> src\providers\taskflow_provider.rs:57:5
+   |
+57 | /     async fn insert_one(
+58 | |         &self,
+59 | |         collection: &str,
+60 | |         document: &nosql_orm::Document,
+...  |
+67 | |         self.get_provider(is_private).insert_one(collection, document).await
+68 | |     }
+   | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `find_one` is not a member of trait `DatabaseProvider`
+  --> src\providers\taskflow_provider.rs:78:5
+   |
+78 | /     async fn find_one(
+79 | |         &self,
+80 | |         collection: &str,
+81 | |         query: &nosql_orm::Query,
+82 | |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+83 | |         self.get_provider(false).find_one(collection, query).await
+84 | |     }
+   | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `update_one` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:94:5
+    |
+ 94 |       async fn update_one(
+    |       ^        ---------- help: there is an associated function with a similar name: `update_many`
+    |  _____|
+    | |
+ 95 | |         &self,
+ 96 | |         collection: &str,
+ 97 | |         id: &nosql_orm::DocumentId,
+...   |
+100 | |         self.get_provider(false).update_one(collection, id, updates).await
+101 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `delete_one` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:112:5
+    |
+112 |       async fn delete_one(
+    |       ^        ---------- help: there is an associated function with a similar name: `delete_many`
+    |  _____|
+    | |
+113 | |         &self,
+114 | |         collection: &str,
+115 | |         id: &nosql_orm::DocumentId,
+116 | |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+117 | |         self.get_provider(false).delete_one(collection, id).await
+118 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `aggregate` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:136:5
+    |
+136 | /     async fn aggregate(
+137 | |         &self,
+138 | |         collection: &str,
+139 | |         pipeline: &[nosql_orm::Document],
+140 | |     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+141 | |         self.get_provider(false).aggregate(collection, pipeline).await
+142 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `drop_collection` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:144:5
+    |
+144 | /     async fn drop_collection(&self, collection: &str) -> Result<(), nosql_orm::error::NosqlError> {
+145 | |         self.get_provider(false).drop_collection(collection).await
+146 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `list_collections` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:148:5
+    |
+148 | /     async fn list_collections(
+149 | |         &self,
+150 | |     ) -> Result<Vec<String>, nosql_orm::error::NosqlError> {
+151 | |         self.get_provider(false).list_collections().await
+152 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0407]: method `health_check` is not a member of trait `DatabaseProvider`
+   --> src\providers\taskflow_provider.rs:154:5
+    |
+154 | /     async fn health_check(&self) -> Result<bool, nosql_orm::error::NosqlError> {
+155 | |         self.get_provider(false).health_check().await
+156 | |     }
+    | |_____^ not a member of trait `DatabaseProvider`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:38:39
+   |
+38 |     ) -> Result<(), nosql_orm::error::NosqlError> {
+   |                                       ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:46:39
+   |
+46 |     ) -> Result<(), nosql_orm::error::NosqlError> {
+   |                                       ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:53:76
+   |
+53 |     ) -> Result<Vec<nosql_orm::nosql_index::NosqlIndex>, nosql_orm::error::NosqlError> {
+   |                                                                            ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:60:31
+   |
+60 |         document: &nosql_orm::Document,
+   |                               ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+60 -         document: &nosql_orm::Document,
+60 +         document: &mongodb::options::UpdateModifications,
+   |
+60 -         document: &nosql_orm::Document,
+60 +         document: &tauri::path::BaseDirectory,
+   |
+
+error[E0425]: cannot find type `DocumentId` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:61:28
+   |
+61 |     ) -> Result<nosql_orm::DocumentId, nosql_orm::error::NosqlError> {
+   |                            ^^^^^^^^^^ not found in `nosql_orm`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:61:58
+   |
+61 |     ) -> Result<nosql_orm::DocumentId, nosql_orm::error::NosqlError> {
+   |                                                          ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `DocumentId` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:73:25
+   |
+73 |         id: &nosql_orm::DocumentId,
+   |                         ^^^^^^^^^^ not found in `nosql_orm`
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:74:35
+   |
+74 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                   ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+74 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+74 +     ) -> Result<Option<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+   |
+74 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+74 +     ) -> Result<Option<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+   |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:74:64
+   |
+74 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                                                ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Query` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:81:28
+   |
+81 |         query: &nosql_orm::Query,
+   |                            ^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `nosql_orm::prelude::OrmError::Query`; try using the variant's enum
+   |
+81 -         query: &nosql_orm::Query,
+81 +         query: &nosql_orm::prelude::OrmError,
+   |
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:82:35
+   |
+82 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                   ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+82 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+82 +     ) -> Result<Option<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+   |
+82 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+82 +     ) -> Result<Option<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+   |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:82:64
+   |
+82 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                                                ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Query` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:89:28
+   |
+89 |         query: &nosql_orm::Query,
+   |                            ^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `nosql_orm::prelude::OrmError::Query`; try using the variant's enum
+   |
+89 -         query: &nosql_orm::Query,
+89 +         query: &nosql_orm::prelude::OrmError,
+   |
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:90:32
+   |
+90 |     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+90 -     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+90 +     ) -> Result<Vec<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+   |
+90 -     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+90 +     ) -> Result<Vec<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+   |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:90:61
+   |
+90 |     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                                             ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `DocumentId` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:97:25
+   |
+97 |         id: &nosql_orm::DocumentId,
+   |                         ^^^^^^^^^^ not found in `nosql_orm`
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:98:30
+   |
+98 |         updates: &nosql_orm::Document,
+   |                              ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+98 -         updates: &nosql_orm::Document,
+98 +         updates: &mongodb::options::UpdateModifications,
+   |
+98 -         updates: &nosql_orm::Document,
+98 +         updates: &tauri::path::BaseDirectory,
+   |
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+  --> src\providers\taskflow_provider.rs:99:35
+   |
+99 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                   ^^^^^^^^ not found in `nosql_orm`
+   |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+   |
+99 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+99 +     ) -> Result<Option<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+   |
+99 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+99 +     ) -> Result<Option<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+   |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+  --> src\providers\taskflow_provider.rs:99:64
+   |
+99 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+   |                                                                ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Query` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:106:28
+    |
+106 |         query: &nosql_orm::Query,
+    |                            ^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `nosql_orm::prelude::OrmError::Query`; try using the variant's enum
+    |
+106 -         query: &nosql_orm::Query,
+106 +         query: &nosql_orm::prelude::OrmError,
+    |
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:107:30
+    |
+107 |         updates: &nosql_orm::Document,
+    |                              ^^^^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+    |
+107 -         updates: &nosql_orm::Document,
+107 +         updates: &mongodb::options::UpdateModifications,
+    |
+107 -         updates: &nosql_orm::Document,
+107 +         updates: &tauri::path::BaseDirectory,
+    |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:108:40
+    |
+108 |     ) -> Result<u64, nosql_orm::error::NosqlError> {
+    |                                        ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `DocumentId` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:115:25
+    |
+115 |         id: &nosql_orm::DocumentId,
+    |                         ^^^^^^^^^^ not found in `nosql_orm`
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:116:35
+    |
+116 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+    |                                   ^^^^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+    |
+116 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+116 +     ) -> Result<Option<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+    |
+116 -     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+116 +     ) -> Result<Option<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+    |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:116:64
+    |
+116 |     ) -> Result<Option<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+    |                                                                ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Query` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:123:28
+    |
+123 |         query: &nosql_orm::Query,
+    |                            ^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `nosql_orm::prelude::OrmError::Query`; try using the variant's enum
+    |
+123 -         query: &nosql_orm::Query,
+123 +         query: &nosql_orm::prelude::OrmError,
+    |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:124:40
+    |
+124 |     ) -> Result<u64, nosql_orm::error::NosqlError> {
+    |                                        ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Query` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:131:28
+    |
+131 |         query: &nosql_orm::Query,
+    |                            ^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `nosql_orm::prelude::OrmError::Query`; try using the variant's enum
+    |
+131 -         query: &nosql_orm::Query,
+131 +         query: &nosql_orm::prelude::OrmError,
+    |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:132:40
+    |
+132 |     ) -> Result<u64, nosql_orm::error::NosqlError> {
+    |                                        ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:139:32
+    |
+139 |         pipeline: &[nosql_orm::Document],
+    |                                ^^^^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+    |
+139 -         pipeline: &[nosql_orm::Document],
+139 +         pipeline: &[mongodb::options::UpdateModifications],
+    |
+139 -         pipeline: &[nosql_orm::Document],
+139 +         pipeline: &[tauri::path::BaseDirectory],
+    |
+
+error[E0425]: cannot find type `Document` in crate `nosql_orm`
+   --> src\providers\taskflow_provider.rs:140:32
+    |
+140 |     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+    |                                ^^^^^^^^ not found in `nosql_orm`
+    |
+help: there is an enum variant `mongodb::options::UpdateModifications::Document` and 1 other; try using the variant's enum
+    |
+140 -     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+140 +     ) -> Result<Vec<mongodb::options::UpdateModifications>, nosql_orm::error::NosqlError> {
+    |
+140 -     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+140 +     ) -> Result<Vec<tauri::path::BaseDirectory>, nosql_orm::error::NosqlError> {
+    |
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:140:61
+    |
+140 |     ) -> Result<Vec<nosql_orm::Document>, nosql_orm::error::NosqlError> {
+    |                                                             ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:144:87
+    |
+144 |     async fn drop_collection(&self, collection: &str) -> Result<(), nosql_orm::error::NosqlError> {
+    |                                                                                       ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:150:48
+    |
+150 |     ) -> Result<Vec<String>, nosql_orm::error::NosqlError> {
+    |                                                ^^^^^^^^^^ not found in `nosql_orm::error`
+
+error[E0425]: cannot find type `NosqlError` in module `nosql_orm::error`
+   --> src\providers\taskflow_provider.rs:154:68
+    |
+154 |     async fn health_check(&self) -> Result<bool, nosql_orm::error::NosqlError> {
+    |                                                                    ^^^^^^^^^^ not found in `nosql_orm::error`
+
+warning: unused import: `TimeZone`
+ --> src\services\statistics\date_calculator.statistics.service.rs:1:51
+  |
+1 | use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Utc};
+  |                                                   ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `OrderBy`
+ --> src\services\query_service.rs:6:32
+  |
+6 | use nosql_orm::query::{Filter, OrderBy};
+  |                                ^^^^^^^
+
+error[E0050]: method `find_many` has 3 parameters but the declaration in trait `find_many` has 7
+  --> src\providers\taskflow_provider.rs:87:9
+   |
+87 | /         &self,
+88 | |         collection: &str,
+89 | |         query: &nosql_orm::Query,
+   | |________________________________^ expected 7 parameters, found 3
+   |
+   = note: `find_many` from trait: `fn(&'life0 Self, &'life1 str, std::option::Option<&'life2 nosql_orm::query::Filter>, std::option::Option<u64>, std::option::Option<u64>, std::option::Option<&'life3 str>, bool) -> Pin<Box<(dyn futures::Future<Output = Result<Vec<serde_json::Value>, OrmError>> + Send + 'async_trait)>>`
+
+error[E0195]: lifetime parameters or bounds on method `update_many` do not match the trait declaration
+   --> src\providers\taskflow_provider.rs:103:14
+    |
+103 |       async fn update_many(
+    |  ______________^
+104 | |         &self,
+105 | |         collection: &str,
+106 | |         query: &nosql_orm::Query,
+107 | |         updates: &nosql_orm::Document,
+108 | |     ) -> Result<u64, nosql_orm::error::NosqlError> {
+    | |_____^ lifetimes do not match method in trait
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:59:3
+    |
+ 59 | /   async fn update_many(
+ 60 | |     &self,
+ 61 | |     collection: &str,
+ 62 | |     filter: Option<Filter>,
+ 63 | |     updates: Value,
+ 64 | |   ) -> OrmResult<usize>;
+    | |________________________- lifetimes in impl do not match this method in trait
+
+error[E0195]: lifetime parameters or bounds on method `delete_many` do not match the trait declaration
+   --> src\providers\taskflow_provider.rs:120:14
+    |
+120 |       async fn delete_many(
+    |  ______________^
+121 | |         &self,
+122 | |         collection: &str,
+123 | |         query: &nosql_orm::Query,
+124 | |     ) -> Result<u64, nosql_orm::error::NosqlError> {
+    | |_____^ lifetimes do not match method in trait
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:57:3
+    |
+ 57 |     async fn delete_many(&self, collection: &str, filter: Option<Filter>) -> OrmResult<usize>;
+    |     ------------------------------------------------------------------------------------------ lifetimes in impl do not match this method in trait
+
+error[E0046]: not all trait items implemented, missing: `insert`, `update`, `patch`, `delete`, `drop_index`
+  --> src\providers\taskflow_provider.rs:33:1
+   |
+33 | impl DatabaseProvider for TaskFlowProvider {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `insert`, `update`, `patch`, `delete`, `drop_index` in implementation
+   |
+   = help: implement the missing item: `fn insert<'life0: 'async_trait, 'life1: 'async_trait, 'async_trait>(&'life0 self, _: &'life1 str, _: serde_json::Value) -> Pin<Box<(dyn futures::Future<Output = Result<serde_json::Value, OrmError>> + Send + 'async_trait)>> { todo!() }`
+   = help: implement the missing item: `fn update<'life0: 'async_trait, 'life1: 'async_trait, 'life2: 'async_trait, 'async_trait>(&'life0 self, _: &'life1 str, _: &'life2 str, _: serde_json::Value) -> Pin<Box<(dyn futures::Future<Output = Result<serde_json::Value, OrmError>> + Send + 'async_trait)>> { todo!() }`
+   = help: implement the missing item: `fn patch<'life0: 'async_trait, 'life1: 'async_trait, 'life2: 'async_trait, 'async_trait>(&'life0 self, _: &'life1 str, _: &'life2 str, _: serde_json::Value) -> Pin<Box<(dyn futures::Future<Output = Result<serde_json::Value, OrmError>> + Send + 'async_trait)>> { todo!() }`
+   = help: implement the missing item: `fn delete<'life0: 'async_trait, 'life1: 'async_trait, 'life2: 'async_trait, 'async_trait>(&'life0 self, _: &'life1 str, _: &'life2 str) -> Pin<Box<(dyn futures::Future<Output = Result<bool, OrmError>> + Send + 'async_trait)>> { todo!() }`
+   = help: implement the missing item: `fn drop_index<'life0: 'async_trait, 'life1: 'async_trait, 'life2: 'async_trait, 'async_trait>(&'life0 self, _: &'life1 str, _: &'life2 str) -> Pin<Box<(dyn futures::Future<Output = Result<(), OrmError>> + Send + 'async_trait)>> { todo!() }`
+
+error[E0277]: the trait bound `TaskFlowProvider: Clone` is not satisfied
+  --> src\providers\taskflow_provider.rs:33:27
+   |
+33 | impl DatabaseProvider for TaskFlowProvider {
+   |                           ^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `TaskFlowProvider`
+   |
+note: required by a bound in `DatabaseProvider`
+  --> C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:36:43
+   |
+36 | pub trait DatabaseProvider: Send + Sync + Clone + 'static {
+   |                                           ^^^^^ required by this bound in `DatabaseProvider`
+help: consider annotating `TaskFlowProvider` with `#[derive(Clone)]`
+   |
+ 6 + #[derive(Clone)]
+ 7 | pub struct TaskFlowProvider {
+   |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:19:54
+   |
+19 |     pub fn get_provider(&self, is_private: bool) -> &dyn DatabaseProvider {
+   |                                                      ^^^^^^^^^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+help: you might have meant to use `Self` to refer to the implementing type
+   |
+19 -     pub fn get_provider(&self, is_private: bool) -> &dyn DatabaseProvider {
+19 +     pub fn get_provider(&self, is_private: bool) -> &Self {
+   |
+
+error[E0277]: `?` couldn't convert the error to `ResponseModel`
+  --> src\routes\manage_db.route.rs:53:66
+   |
+53 |   let filter = filter.as_ref().map(Filter::from_json).transpose()?;
+   |                                                       -----------^ the trait `std::convert::From<OrmError>` is not implemented for `ResponseModel`
+   |                                                       |
+   |                                                       this can't be annotated with `?` because it has type `Result<_, OrmError>`
+   |
+note: `ResponseModel` needs to implement `From<OrmError>`
+  --> src\entities\response.entity.rs:24:1
+   |
+24 | pub struct ResponseModel {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+help: the following other types implement trait `std::convert::From<T>`
+  --> src\entities\response.entity.rs:30:1
+   |
+30 | impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ResponseModel` implements `std::convert::From<Box<dyn StdError + Send + Sync>>`
+...
+40 | impl From<serde_json::Error> for ResponseModel {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ResponseModel` implements `std::convert::From<serde_json::Error>`
+...
+50 | impl From<String> for ResponseModel {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ResponseModel` implements `std::convert::From<std::string::String>`
+   |
+  ::: src\errors\api_error.error.rs:25:1
+   |
+25 | impl From<ApiError> for ResponseModel {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ResponseModel` implements `std::convert::From<ApiError>`
+
+error[E0308]: mismatched types
+   --> src\routes\manage_db.route.rs:62:7
+    |
+ 57 |     .execute(
+    |      ------- arguments to this method are incorrect
+...
+ 62 |       filter,
+    |       ^^^^^^ expected `Option<Value>`, found `Option<Filter>`
+    |
+    = note: expected enum `std::option::Option<serde_json::Value>`
+               found enum `std::option::Option<nosql_orm::query::Filter>`
+note: method defined here
+   --> src\services\repository.service.rs:259:16
+    |
+259 |   pub async fn execute(
+    |                ^^^^^^^
+...
+265 |     filter: Option<Value>,
+    |     ---------------------
+
+warning: variable does not need to be mutable
+   --> src\services\repository.service.rs:332:9
+    |
+332 |     let mut docs = if use_json {
+    |         ----^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `find_many` found for struct `JsonProvider` in the current scope
+  --> src\services\query_service.rs:27:48
+   |
+27 |     let result = self.repository.json_provider.find_many("todos", Some(&filter), None, None, None, false).await?;
+   |                                                ^^^^^^^^^
+   |
+  ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:41:12
+   |
+41 |   async fn find_many(
+   |            --------- the method is available for `JsonProvider` here
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: there is a method `find_all` with a similar name, but with different arguments
+  --> C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:35:1
+   |
+35 | #[async_trait]
+   | ^^^^^^^^^^^^^^
+help: trait `DatabaseProvider` which provides `find_many` is implemented but not in scope; perhaps you want to import it
+   |
+ 2 + use nosql_orm::provider::DatabaseProvider;
+   |
+
+error[E0599]: no method named `find_many` found for struct `JsonProvider` in the current scope
+  --> src\services\query_service.rs:38:48
+   |
+38 |     let result = self.repository.json_provider.find_many("tasks", Some(&filter), None, None, None, false).await?;
+   |                                                ^^^^^^^^^
+   |
+  ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:41:12
+   |
+41 |   async fn find_many(
+   |            --------- the method is available for `JsonProvider` here
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: there is a method `find_all` with a similar name, but with different arguments
+  --> C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:35:1
+   |
+35 | #[async_trait]
+   | ^^^^^^^^^^^^^^
+help: trait `DatabaseProvider` which provides `find_many` is implemented but not in scope; perhaps you want to import it
+   |
+ 2 + use nosql_orm::provider::DatabaseProvider;
+   |
+
+error[E0599]: no method named `find_many` found for struct `JsonProvider` in the current scope
+  --> src\services\query_service.rs:49:48
+   |
+49 |     let result = self.repository.json_provider.find_many("subtasks", Some(&filter), None, None, None, false).await?;
+   |                                                ^^^^^^^^^
+   |
+  ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:41:12
+   |
+41 |   async fn find_many(
+   |            --------- the method is available for `JsonProvider` here
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: there is a method `find_all` with a similar name, but with different arguments
+  --> C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:35:1
+   |
+35 | #[async_trait]
+   | ^^^^^^^^^^^^^^
+help: trait `DatabaseProvider` which provides `find_many` is implemented but not in scope; perhaps you want to import it
+   |
+ 2 + use nosql_orm::provider::DatabaseProvider;
+   |
+
+error[E0599]: no method named `find_many` found for struct `JsonProvider` in the current scope
+   --> src\services\query_service.rs:106:48
+    |
+106 |     let result = self.repository.json_provider.find_many(table, Some(&filter), None, None, None, false).await?;
+    |                                                ^^^^^^^^^
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:41:12
+    |
+ 41 |   async fn find_many(
+    |            --------- the method is available for `JsonProvider` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: there is a method `find_all` with a similar name, but with different arguments
+   --> C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\provider.rs:35:1
+    |
+ 35 | #[async_trait]
+    | ^^^^^^^^^^^^^^
+help: trait `DatabaseProvider` which provides `find_many` is implemented but not in scope; perhaps you want to import it
+    |
+  2 + use nosql_orm::provider::DatabaseProvider;
+    |
+
+error[E0599]: `JsonProvider` is not an iterator
+   --> src\services\query_service.rs:160:48
+    |
+160 |     let result = self.repository.json_provider.count("todos", Some(&filter)).await?;
+    |                                                ^^^^^ `JsonProvider` is not an iterator
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\providers\json.rs:22:1
+    |
+ 22 | pub struct JsonProvider {
+    | ----------------------- doesn't satisfy `JsonProvider: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `JsonProvider: Iterator`
+            which is required by `&mut JsonProvider: Iterator`
+    = help: items from traits can only be used if the trait is in scope
+help: trait `DatabaseProvider` which provides `count` is implemented but not in scope; perhaps you want to import it
+    |
+  2 + use nosql_orm::provider::DatabaseProvider;
+    |
+
+error[E0599]: `JsonProvider` is not an iterator
+   --> src\services\query_service.rs:166:48
+    |
+166 |     let result = self.repository.json_provider.count("tasks", Some(&filter)).await?;
+    |                                                ^^^^^ `JsonProvider` is not an iterator
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\providers\json.rs:22:1
+    |
+ 22 | pub struct JsonProvider {
+    | ----------------------- doesn't satisfy `JsonProvider: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `JsonProvider: Iterator`
+            which is required by `&mut JsonProvider: Iterator`
+    = help: items from traits can only be used if the trait is in scope
+help: trait `DatabaseProvider` which provides `count` is implemented but not in scope; perhaps you want to import it
+    |
+  2 + use nosql_orm::provider::DatabaseProvider;
+    |
+
+error[E0599]: `JsonProvider` is not an iterator
+   --> src\services\query_service.rs:172:48
+    |
+172 |     let result = self.repository.json_provider.count("subtasks", Some(&filter)).await?;
+    |                                                ^^^^^ `JsonProvider` is not an iterator
+    |
+   ::: C:\Users\D.Rusnak\.cargo\git\checkouts\nosql_orm-1d7716c79791e780\5ceffe7\src\providers\json.rs:22:1
+    |
+ 22 | pub struct JsonProvider {
+    | ----------------------- doesn't satisfy `JsonProvider: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `JsonProvider: Iterator`
+            which is required by `&mut JsonProvider: Iterator`
+    = help: items from traits can only be used if the trait is in scope
+help: trait `DatabaseProvider` which provides `count` is implemented but not in scope; perhaps you want to import it
+    |
+  2 + use nosql_orm::provider::DatabaseProvider;
+    |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:21:33
+   |
+21 |             &*self.json as &dyn DatabaseProvider
+   |                                 ^^^^^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:23:53
+   |
+23 |             &**self.mongo.as_ref().unwrap() as &dyn DatabaseProvider
+   |                                                     ^^^^^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:39:14
+   |
+39 |         self.get_provider(false).create_index(collection, index).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:47:14
+   |
+47 |         self.get_provider(false).delete_index(collection, index_name).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `delete_index` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+  --> src\providers\taskflow_provider.rs:47:34
+   |
+47 |         self.get_provider(false).delete_index(collection, index_name).await
+   |                                  ^^^^^^^^^^^^
+   |
+help: there is a method `delete` with a similar name
+   |
+47 -         self.get_provider(false).delete_index(collection, index_name).await
+47 +         self.get_provider(false).delete(collection, index_name).await
+   |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:54:14
+   |
+54 |         self.get_provider(false).list_indexes(collection).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0282]: type annotations needed
+  --> src\providers\taskflow_provider.rs:64:24
+   |
+64 |             .and_then(|v| v.as_str())
+   |                        ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+64 |             .and_then(|v: /* Type */| v.as_str())
+   |                         ++++++++++++
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:67:14
+   |
+67 |         self.get_provider(is_private).insert_one(collection, document).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `insert_one` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+  --> src\providers\taskflow_provider.rs:67:39
+   |
+67 |         self.get_provider(is_private).insert_one(collection, document).await
+   |                                       ^^^^^^^^^^
+   |
+help: there is a method `insert` with a similar name
+   |
+67 -         self.get_provider(is_private).insert_one(collection, document).await
+67 +         self.get_provider(is_private).insert(collection, document).await
+   |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:75:14
+   |
+75 |         self.get_provider(false).find_by_id(collection, id).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:83:14
+   |
+83 |         self.get_provider(false).find_one(collection, query).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `find_one` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+  --> src\providers\taskflow_provider.rs:83:34
+   |
+83 |         self.get_provider(false).find_one(collection, query).await
+   |                                  ^^^^^^^^ method not found in `&(dyn DatabaseProvider + 'static)`
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+  --> src\providers\taskflow_provider.rs:91:14
+   |
+91 |         self.get_provider(false).find_many(collection, query).await
+   |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+   |
+   = note: the trait is not dyn compatible because it requires `Self: Sized`
+   = note: for a trait to be dyn compatible it needs to allow building a vtable
+           for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:100:14
+    |
+100 |         self.get_provider(false).update_one(collection, id, updates).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `update_one` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:100:34
+    |
+100 |         self.get_provider(false).update_one(collection, id, updates).await
+    |                                  ^^^^^^^^^^
+    |
+help: there is a method `update` with a similar name
+    |
+100 -         self.get_provider(false).update_one(collection, id, updates).await
+100 +         self.get_provider(false).update(collection, id, updates).await
+    |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:109:14
+    |
+109 |         self.get_provider(false).update_many(collection, query, updates).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:117:14
+    |
+117 |         self.get_provider(false).delete_one(collection, id).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `delete_one` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:117:34
+    |
+117 |         self.get_provider(false).delete_one(collection, id).await
+    |                                  ^^^^^^^^^^
+    |
+help: there is a method `delete` with a similar name
+    |
+117 -         self.get_provider(false).delete_one(collection, id).await
+117 +         self.get_provider(false).delete(collection, id).await
+    |
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:125:14
+    |
+125 |         self.get_provider(false).delete_many(collection, query).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:133:14
+    |
+133 |         self.get_provider(false).count(collection, query).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:141:14
+    |
+141 |         self.get_provider(false).aggregate(collection, pipeline).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `aggregate` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:141:34
+    |
+141 |         self.get_provider(false).aggregate(collection, pipeline).await
+    |                                  ^^^^^^^^^ method not found in `&(dyn DatabaseProvider + 'static)`
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:145:14
+    |
+145 |         self.get_provider(false).drop_collection(collection).await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `drop_collection` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:145:34
+    |
+145 |         self.get_provider(false).drop_collection(collection).await
+    |                                  ^^^^^^^^^^^^^^^ method not found in `&(dyn DatabaseProvider + 'static)`
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:151:14
+    |
+151 |         self.get_provider(false).list_collections().await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `list_collections` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:151:34
+    |
+151 |         self.get_provider(false).list_collections().await
+    |                                  ^^^^^^^^^^^^^^^^ method not found in `&(dyn DatabaseProvider + 'static)`
+
+error[E0038]: the trait `DatabaseProvider` is not dyn compatible
+   --> src\providers\taskflow_provider.rs:155:14
+    |
+155 |         self.get_provider(false).health_check().await
+    |              ^^^^^^^^^^^^ `DatabaseProvider` is not dyn compatible
+    |
+    = note: the trait is not dyn compatible because it requires `Self: Sized`
+    = note: for a trait to be dyn compatible it needs to allow building a vtable
+            for more information, visit <https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility>
+
+error[E0599]: no method named `health_check` found for reference `&(dyn DatabaseProvider + 'static)` in the current scope
+   --> src\providers\taskflow_provider.rs:155:34
+    |
+155 |         self.get_provider(false).health_check().await
+    |                                  ^^^^^^^^^^^^ method not found in `&(dyn DatabaseProvider + 'static)`
+
+error[E0308]: mismatched types
+  --> src\services\statistics\date_calculator.statistics.service.rs:13:24
+   |
+13 |         .and_then(|dt| dt.and_local_timezone(Local))
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<_>`, found `LocalResult<DateTime<Local>>`
+   |
+   = note: expected enum `std::option::Option<_>`
+              found enum `LocalResult<chrono::DateTime<chrono::Local>>`
+help: try wrapping the expression in `Some`
+   |
+13 |         .and_then(|dt| Some(dt.and_local_timezone(Local)))
+   |                        +++++                            +
+
+error[E0308]: mismatched types
+  --> src\services\statistics\date_calculator.statistics.service.rs:22:26
+   |
+22 |           .and_then(|dt| dt.and_local_timezone(Local))
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<_>`, found `LocalResult<DateTime<Local>>`
+   |
+   = note: expected enum `std::option::Option<_>`
+              found enum `LocalResult<chrono::DateTime<chrono::Local>>`
+help: try wrapping the expression in `Some`
+   |
+22 |           .and_then(|dt| Some(dt.and_local_timezone(Local)))
+   |                          +++++                            +
+
+error[E0308]: mismatched types
+  --> src\services\statistics\date_calculator.statistics.service.rs:29:26
+   |
+29 |           .and_then(|dt| dt.and_local_timezone(Local))
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<_>`, found `LocalResult<DateTime<Local>>`
+   |
+   = note: expected enum `std::option::Option<_>`
+              found enum `LocalResult<chrono::DateTime<chrono::Local>>`
+help: try wrapping the expression in `Some`
+   |
+29 |           .and_then(|dt| Some(dt.and_local_timezone(Local)))
+   |                          +++++                            +
+
+error[E0308]: mismatched types
+  --> src\services\statistics\date_calculator.statistics.service.rs:48:26
+   |
+48 |           .and_then(|dt| dt.and_local_timezone(Local))
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<_>`, found `LocalResult<DateTime<Local>>`
+   |
+   = note: expected enum `std::option::Option<_>`
+              found enum `LocalResult<chrono::DateTime<chrono::Local>>`
+help: try wrapping the expression in `Some`
+   |
+48 |           .and_then(|dt| Some(dt.and_local_timezone(Local)))
+   |                          +++++                            +
+
+error[E0308]: mismatched types
+  --> src\services\statistics\date_calculator.statistics.service.rs:55:26
+   |
+55 |           .and_then(|dt| dt.and_local_timezone(Local))
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<_>`, found `LocalResult<DateTime<Local>>`
+   |
+   = note: expected enum `std::option::Option<_>`
+              found enum `LocalResult<chrono::DateTime<chrono::Local>>`
+help: try wrapping the expression in `Some`
+   |
+55 |           .and_then(|dt| Some(dt.and_local_timezone(Local)))
+   |                          +++++                            +
+
+warning: unused variable: `todo_id`
+  --> src\services\cascade\visibility_sync.rs:27:5
+   |
+27 |     todo_id: &str,
+   |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_todo_id`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `todo_id`
+   --> src\services\cascade\visibility_sync.rs:143:5
+    |
+143 |     todo_id: &str,
+    |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_todo_id`
+
+warning: unused variable: `relations`
+   --> src\services\repository.service.rs:367:5
+    |
+367 |     relations: Option<Vec<RelationObj>>,
+    |     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_relations`
+
+warning: unused variable: `cursor`
+  --> src\services\query_service.rs:67:5
+   |
+67 |     cursor: Option<&str>,
+   |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cursor`
+
+warning: unused variable: `limit`
+  --> src\services\query_service.rs:68:5
+   |
+68 |     limit: usize,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: unused variable: `cursor`
+  --> src\services\query_service.rs:82:5
+   |
+82 |     cursor: Option<&str>,
+   |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cursor`
+
+warning: unused variable: `limit`
+  --> src\services\query_service.rs:83:5
+   |
+83 |     limit: usize,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: unused variable: `cursor`
+  --> src\services\query_service.rs:97:5
+   |
+97 |     cursor: Option<&str>,
+   |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cursor`
+
+warning: unused variable: `limit`
+  --> src\services\query_service.rs:98:5
+   |
+98 |     limit: usize,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+Some errors have detailed explanations: E0038, E0046, E0050, E0195, E0277, E0282, E0308, E0407, E0425...
+For more information about an error, try `rustc --explain E0038`.
+warning: `taskflow` (lib) generated 12 warnings
+error: could not compile `taskflow` (lib) due to 92 previous errors; 12 warnings emitted
