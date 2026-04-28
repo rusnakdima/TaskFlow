@@ -207,25 +207,42 @@ export class AuthService {
       return;
     }
 
-    // 2. Valid Session Path
-    this.dataSyncService.loadAllData();
-
-    // 3. Profile Requirement Check
-    // Profile check
-    const cachedProfile = this.storageService.profile();
-    if (!cachedProfile) {
-      this.dataSyncService
-        .loadProfile()
-        .pipe(take(1))
-        .subscribe((profile) => {
-          if (!profile) {
-            this.profileRequiredService.setProfileRequiredMode(true);
-            if (!this.router.url.startsWith("/profile/create-profile")) {
-              this.router.navigate(["/profile/create-profile"]);
-            }
-          }
-        });
+    // 2. Valid JWT - now verify user exists in backend
+    const userId = this.jwtTokenService.getUserId(token);
+    if (!userId) {
+      this.userValidationService.invalidateUserSession();
+      return;
     }
+
+    // Check token validity against user record in database
+    this.checkToken<any>(token)
+      .pipe(take(1))
+      .subscribe({
+        next: (response: any) => {
+          // Token valid and user exists - proceed with session init
+          this.dataSyncService.loadAllData();
+
+          // 3. Profile Requirement Check
+          const cachedProfile = this.storageService.profile();
+          if (!cachedProfile) {
+            this.dataSyncService
+              .loadProfile()
+              .pipe(take(1))
+              .subscribe((profile) => {
+                if (!profile) {
+                  this.profileRequiredService.setProfileRequiredMode(true);
+                  if (!this.router.url.startsWith("/profile/create-profile")) {
+                    this.router.navigate(["/profile/create-profile"]);
+                  }
+                }
+              });
+          }
+        },
+        error: (err: any) => {
+          // Token invalid or user not found - clear session and redirect
+          this.userValidationService.invalidateUserSession();
+        },
+      });
   }
 
   /**
