@@ -75,8 +75,7 @@ impl AuthPasskeyService {
       ));
     }
 
-    let user_id =
-      Uuid::parse_str(user.get_id()).map_err(|_| err_response("Invalid user ID format"))?;
+    let user_id = Uuid::parse_str(user.id()).map_err(|_| err_response("Invalid user ID format"))?;
 
     let (creation_challenge, reg_state) = self
       .webauthn_state
@@ -243,11 +242,7 @@ impl AuthPasskeyService {
 
     self.save_user(&updated_user).await?;
 
-    let profile = self
-      .check_profile_exists(user.get_id())
-      .await
-      .ok()
-      .flatten();
+    let profile = self.check_profile_exists(user.id()).await.ok().flatten();
     let needs_profile = profile.is_none();
 
     Ok(ResponseModel {
@@ -324,7 +319,7 @@ impl AuthPasskeyService {
     let user_val = serde_json::to_value(user)
       .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
-    let user_id = user.get_id();
+    let user_id = user.id();
     let table_name = TableModelType::User.table_name();
 
     if let Err(e) = self

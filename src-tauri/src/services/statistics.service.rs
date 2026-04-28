@@ -4,8 +4,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* providers */
-use nosql_orm::prelude::Filter;
-use nosql_orm::provider::DatabaseProvider;
+use nosql_orm::prelude::{DatabaseProvider, Filter};
 use nosql_orm::providers::JsonProvider;
 
 /* helpers */
@@ -163,6 +162,39 @@ impl StatisticsService {
     start_date: &NaiveDate,
     end_date: &NaiveDate,
   ) -> Vec<Value> {
+    let pipeline = vec![
+      serde_json::json!({
+        "$match": {
+          "user_id": user_id,
+          "date": {
+            "$gte": start_date.format("%Y-%m-%d").to_string(),
+            "$lte": end_date.format("%Y-%m-%d").to_string()
+          }
+        }
+      }),
+      serde_json::json!({
+        "$sort": { "updated_at": -1 }
+      }),
+      serde_json::json!({
+        "$group": {
+          "_id": "$date",
+          "doc": { "$first": "$$ROOT" }
+        }
+      }),
+      serde_json::json!({
+        "$replaceRoot": { "newRoot": "$doc" }
+      }),
+    ];
+
+    let agg_result = self
+      .json_provider
+      .aggregate("daily_activities", pipeline)
+      .await;
+
+    if let Ok(results) = agg_result {
+      return results;
+    }
+
     let filter = json!({
       "$and": [
         {"user_id": user_id},
@@ -184,12 +216,10 @@ impl StatisticsService {
       Err(_) => Vec::new(),
     };
 
-    // Deduplicate by date (keep latest)
     let mut date_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
 
     for activity in docs {
       if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
-        // Keep the latest record for each date (based on updated_at)
         let should_insert = match date_map.get(date_str) {
           Some(existing) => {
             let existing_updated = existing
@@ -211,7 +241,6 @@ impl StatisticsService {
       }
     }
 
-    // Convert map to vector
     date_map.into_values().collect()
   }
 }

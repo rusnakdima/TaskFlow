@@ -27,8 +27,9 @@ use crate::helpers::{
 
 /* services */
 use crate::services::activity_monitor_service::ActivityMonitorService;
-use crate::services::cascade::{CascadeService, VisibilitySyncService};
+use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
+use crate::services::offline_queue_service::OfflineQueueService;
 use crate::services::profile_service::ProfileService;
 
 pub struct RepositoryService {
@@ -40,9 +41,11 @@ pub struct RepositoryService {
   pub profile_service: ProfileService,
   pub query_cache: Option<Arc<QueryCache>>,
   pub cdc_service: Option<Arc<dyn ChangeCapture>>,
+  pub offline_queue_service: Option<Arc<OfflineQueueService>>,
 }
 
 impl RepositoryService {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
@@ -50,6 +53,7 @@ impl RepositoryService {
     entity_resolution: Arc<EntityResolutionService>,
     activity_monitor: ActivityMonitorService,
     profile_service: ProfileService,
+    offline_queue_service: Option<Arc<OfflineQueueService>>,
   ) -> Self {
     Self {
       json_provider,
@@ -60,6 +64,7 @@ impl RepositoryService {
       profile_service,
       query_cache: None,
       cdc_service: None,
+      offline_queue_service,
     }
   }
 
@@ -73,11 +78,14 @@ impl RepositoryService {
     self
   }
 
-  fn use_json_provider(&self, sync_metadata: Option<&SyncMetadata>) -> bool {
+  fn use_json_provider(&self, table: &str, sync_metadata: Option<&SyncMetadata>) -> bool {
+    if table == "daily_activities" {
+      return true;
+    }
     if self.mongodb_provider.is_none() {
       return true;
     }
-    sync_metadata.map_or(true, |m| m.is_owner && m.is_private)
+    sync_metadata.map_or(true, |m| m.is_private)
   }
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
@@ -255,6 +263,28 @@ impl RepositoryService {
     }
   }
 
+  fn should_queue_for_offline(
+    &self,
+    operation: &str,
+    table: &str,
+    sync_metadata: Option<&SyncMetadata>,
+  ) -> bool {
+    let write_ops = [
+      "create",
+      "update",
+      "delete",
+      "permanent-delete",
+      "soft-delete-cascade",
+      "restore-cascade",
+      "restore",
+      "updateAll",
+    ];
+    if !write_ops.contains(&operation) {
+      return false;
+    }
+    !self.use_json_provider(table, sync_metadata)
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub async fn execute(
     &self,
@@ -267,6 +297,30 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
+    if let Some(ref queue_service) = self.offline_queue_service {
+      if self.should_queue_for_offline(&operation, &table, sync_metadata.as_ref()) {
+        if self.mongodb_provider.is_none() {
+          tracing::debug!(
+            "[RepositoryService] MongoDB unavailable, queueing request: operation={}, table={}",
+            operation,
+            table
+          );
+          match queue_service
+            .queue_request(operation, table, id, data, filter, sync_metadata)
+            .await
+          {
+            Ok(queue_id) => {
+              return Ok(success_response(DataValue::String(queue_id)));
+            }
+            Err(e) => {
+              tracing::error!("[RepositoryService] Failed to queue request: {}", e);
+              return Err(err_response(&format!("Failed to queue request: {}", e)));
+            }
+          }
+        }
+      }
+    }
+
     match operation.as_str() {
       "getAll" => {
         self
@@ -294,7 +348,7 @@ impl RepositoryService {
       }
       "restore-cascade" => self.handle_restore_cascade(table, id, sync_metadata).await,
       "sync-to-provider" => {
-        let target = if self.use_json_provider(sync_metadata.as_ref()) {
+        let target = if self.use_json_provider(&table, sync_metadata.as_ref()) {
           ProviderType::Json
         } else {
           ProviderType::Mongo
@@ -328,7 +382,7 @@ impl RepositoryService {
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt = self.build_filter(&filter_val);
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
     let docs = if use_json {
       self
         .json_provider
@@ -369,7 +423,7 @@ impl RepositoryService {
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id = id.ok_or_else(|| err_response("ID is required for get operation"))?;
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     let doc = if use_json {
       self
@@ -422,7 +476,7 @@ impl RepositoryService {
     let validated_data = validate_model(&table, &data_val, true)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     let created_record = if use_json {
       self
@@ -475,7 +529,7 @@ impl RepositoryService {
     let validated_data = validate_model(&table, &data_val, false)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
     let was_in_json = use_json;
 
     let updated_record = if use_json {
@@ -496,27 +550,21 @@ impl RepositoryService {
     };
 
     let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
-    if let Some(new_vis) = new_visibility {
-      let target_is_json = new_vis == "private";
-      if target_is_json != was_in_json {
-        let source = if was_in_json {
-          ProviderType::Json
+    let old_visibility = updated_record.get("visibility").and_then(|v| v.as_str());
+
+    if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
+      if new_vis != old_vis {
+        if new_vis == "private" {
+          self
+            .cascade_service
+            .import_todo_cascade_to_json(&id_str)
+            .await?;
         } else {
-          ProviderType::Mongo
-        };
-        let target = if target_is_json {
-          ProviderType::Json
-        } else {
-          ProviderType::Mongo
-        };
-        let _ = VisibilitySyncService::sync_todo_visibility(
-          &self.json_provider,
-          self.mongodb_provider.as_ref(),
-          id_str.clone(),
-          source,
-          target,
-        )
-        .await;
+          self
+            .cascade_service
+            .export_todo_cascade_to_mongo(&id_str)
+            .await?;
+        }
       }
     }
 
@@ -555,7 +603,7 @@ impl RepositoryService {
       validated_records.push(validated);
     }
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
@@ -596,7 +644,7 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     let metadata_is_private = sync_metadata
       .as_ref()
@@ -702,7 +750,7 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     if !use_json {
       {
@@ -756,7 +804,7 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
 
-    let use_json = self.use_json_provider(sync_metadata.as_ref());
+    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
     let patch = json!({ "deleted_at": serde_json::Value::Null });
 

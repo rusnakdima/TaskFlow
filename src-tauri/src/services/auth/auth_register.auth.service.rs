@@ -49,18 +49,14 @@ impl AuthRegisterService {
     let username = signup_data.username;
     let password = signup_data.password;
 
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response("Registration unavailable: MongoDB offline"))?;
-
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Or(vec![
       Filter::Eq("email".to_string(), serde_json::json!(email)),
       Filter::Eq("username".to_string(), serde_json::json!(username)),
     ]);
 
-    let existing = mongo
+    let existing = self
+      .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("Error checking user: {}", e)))?;
@@ -101,15 +97,22 @@ impl AuthRegisterService {
     let user_val = serde_json::to_value(&new_user)
       .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
 
-    mongo
+    self
+      .json_provider
       .insert(table_name, user_val.clone())
       .await
-      .map_err(|e| err_response(&format!("Error creating user: {}", e)))?;
+      .map_err(|e| err_response(&format!("Error creating user in JSON: {}", e)))?;
 
-    let _ = self.json_provider.insert(table_name, user_val).await;
-
-    let user_id = new_user.get_id();
+    let user_id = new_user.id();
     let token = self.token_service.generate_token(user_id, "", "")?;
+
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      let mongo = mongo.clone();
+      let user_val_for_sync = user_val.clone();
+      tokio::spawn(async move {
+        let _ = mongo.insert(table_name, user_val_for_sync).await;
+      });
+    }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

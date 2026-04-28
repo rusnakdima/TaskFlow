@@ -1,6 +1,10 @@
 #[path = "repository.service.rs"]
 pub mod repository_service;
 
+/* global re-export Entity trait for services that use entity types */
+#[allow(unused_imports)]
+use nosql_orm::Entity;
+
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 
@@ -39,3 +43,6 @@ pub mod statistics_service;
 
 #[path = "crypto.service.rs"]
 pub mod crypto_service;
+
+#[path = "offline_queue.service.rs"]
+pub mod offline_queue_service;
