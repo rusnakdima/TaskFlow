@@ -36,7 +36,7 @@ export class DatabaseChangeListenerService {
     "task-updated": (data) => this.storageService.updateItem("tasks", data.id, data),
     "task-deleted": (data) => {
       if (data.deleted_at !== null) {
-        this.storageService.updateItem("tasks", data.id, data);
+        this.storageService.removeRecordWithCascade("tasks", data.id, data.deleted_at);
       } else {
         this.storageService.removeRecordWithCascade("tasks", data.id);
       }
@@ -45,7 +45,7 @@ export class DatabaseChangeListenerService {
     "subtask-updated": (data) => this.storageService.updateItem("subtasks", data.id, data),
     "subtask-deleted": (data) => {
       if (data.deleted_at !== null) {
-        this.storageService.updateItem("subtasks", data.id, data);
+        this.storageService.removeRecordWithCascade("subtasks", data.id, data.deleted_at);
       } else {
         this.storageService.removeRecordWithCascade("subtasks", data.id);
       }
@@ -56,9 +56,6 @@ export class DatabaseChangeListenerService {
     "comment-created": (data) => this.handleCommentCreate(data),
     "comment-updated": (data) => this.handleCommentCreate(data),
     "comment-deleted": (data) => this.handleCommentDelete(data),
-    "chat-created": () => {},
-    "chat-updated": () => {},
-    "chat-deleted": () => {},
   };
 
   async initTauriListeners(): Promise<void> {

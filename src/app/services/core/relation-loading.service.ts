@@ -191,9 +191,6 @@ export class RelationLoadingService {
           const elapsed = Date.now() - startTime;
           this.stats.totalQueries++;
           this.stats.loadTimeMs += elapsed;
-        }),
-        catchError((error) => {
-          throw error;
         })
       );
   }
@@ -286,9 +283,6 @@ export class RelationLoadingService {
           const elapsed = Date.now() - startTime;
           this.stats.totalQueries++;
           this.stats.loadTimeMs += elapsed;
-        }),
-        catchError((error) => {
-          throw error;
         })
       );
   }

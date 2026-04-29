@@ -62,7 +62,6 @@ export class ProfileLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((err) => {
-          console.error("[ProfileLoader] fetchProfileFromApi error:", err);
           return of([] as Profile[]);
         }),
         map((profiles: Profile[] | null) => {

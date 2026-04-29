@@ -92,14 +92,14 @@ export class DataLoaderService {
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
+        catchError((error) => {
+          console.error("[DataLoader] Error:", error);
           return of(null);
         }),
         tap((privateTodos) => {
           if (privateTodos && Array.isArray(privateTodos)) {
             this.storageService.setCollection("privateTodos", privateTodos);
             this.emitUpdate();
-            this.logCommentCounts(privateTodos, "privateTodos");
           }
         })
       )
@@ -121,6 +121,7 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
+          console.error("[DataLoader] Error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
@@ -129,7 +130,6 @@ export class DataLoaderService {
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
-            this.logCommentCounts(teamTodos, "teamTodosOwner");
           }
         })
       )
@@ -151,6 +151,7 @@ export class DataLoaderService {
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
         catchError((error) => {
+          console.error("[DataLoader] Error:", error);
           return of(null);
         }),
         tap((teamTodos) => {
@@ -159,7 +160,6 @@ export class DataLoaderService {
             const merged = this.mergeSharedTodos(existingShared, teamTodos);
             this.storageService.setCollection("sharedTodos", merged);
             this.emitUpdate();
-            this.logCommentCounts(teamTodos, "teamTodosAssignee");
           }
         })
       )
@@ -189,7 +189,10 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => of(null)),
+        catchError((error) => {
+          console.error("[DataLoader] Error:", error);
+          return of(null);
+        }),
         tap((categories) => {
           if (categories && Array.isArray(categories)) {
             this.storageService.setCollection("categories", categories);
@@ -212,7 +215,10 @@ export class DataLoaderService {
       )
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => of(null)),
+        catchError((error) => {
+          console.error("[DataLoader] Error:", error);
+          return of(null);
+        }),
         tap((mongoCategories) => {
           if (mongoCategories && Array.isArray(mongoCategories)) {
             const existing = this.storageService.categories();
@@ -247,7 +253,8 @@ export class DataLoaderService {
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => {
+        catchError((error) => {
+          console.error("[DataLoader] Error:", error);
           return of(null);
         }),
         tap((profiles) => {
@@ -310,7 +317,10 @@ export class DataLoaderService {
       })
       .pipe(
         retry({ count: this.RETRY_COUNT, delay: this.RETRY_DELAY_MS }),
-        catchError(() => of([] as Profile[])),
+        catchError((error) => {
+          console.error("[DataLoader] Error:", error);
+          return of([] as Profile[]);
+        }),
         map((profiles: Profile[] | null) => {
           if (Array.isArray(profiles) && profiles.length > 0) {
             const profileObj = profiles[0] as Profile;
@@ -350,14 +360,15 @@ export class DataLoaderService {
     this.apiProvider
       .invokeCommand("statistics_get", {
         userId: userId,
-        timeRange: "month", // default
+        timeRange: "month",
       })
       .subscribe({
         next: (stats) => {
-          // Perhaps store in storage if needed
+          if (stats) {
+          }
         },
         error: (err) => {
-          console.error("[DataLoader] loadStats error:", err);
+          console.error("[DataLoader] Stats error:", err);
         },
       });
   }
@@ -372,20 +383,5 @@ export class DataLoaderService {
     }
   }
 
-  private logCommentCounts(todos: Todo[], source: string): void {
-    let taskComments = 0;
-    let subtaskComments = 0;
-    for (const todo of todos) {
-      if (todo.tasks) {
-        for (const task of todo.tasks) {
-          if (task.comments) taskComments += task.comments.length;
-          if (task.subtasks) {
-            for (const subtask of task.subtasks) {
-              if (subtask.comments) subtaskComments += subtask.comments.length;
-            }
-          }
-        }
-      }
-    }
-  }
+
 }
