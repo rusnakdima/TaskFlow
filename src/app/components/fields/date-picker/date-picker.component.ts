@@ -1,19 +1,17 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MatCalendarCellCssClasses } from "@angular/material/datepicker";
 
-/* materials */
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { provideNativeDateAdapter } from "@angular/material/core";
 
-/* models */
 import { DatePickerField } from "@models/form-field.model";
+import { BaseFieldComponent } from "../base-field.component";
 
-/* helpers */
 import { DateHelper } from "@helpers/date.helper";
 
 @Component({
@@ -30,20 +28,18 @@ import { DateHelper } from "@helpers/date.helper";
   ],
   templateUrl: "./date-picker.component.html",
 })
-export class DatePickerComponent implements OnInit {
-  @Input() label: string = "";
-  @Input() form!: FormGroup;
-  @Input() field!: DatePickerField;
+export class DatePickerComponent extends BaseFieldComponent implements OnInit {
 
   dateClass!: (date: Date) => MatCalendarCellCssClasses;
 
   ngOnInit(): void {
-    this.dateClass = DateHelper.createTodayDateClass();
-  }
-
-  isInvalid(attr: string): boolean {
-    const control = this.form.get(attr);
-    if (!control) return false;
-    return (control.touched || control.dirty) && !!control.errors;
+    this.dateClass = (date: Date): MatCalendarCellCssClasses => {
+      const today = new Date();
+      return date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear()
+        ? "today-marker"
+        : "";
+    };
   }
 }

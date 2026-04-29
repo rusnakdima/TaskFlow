@@ -14,6 +14,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-kanban-task-card",
@@ -47,10 +48,6 @@ export class KanbanTaskCardComponent {
     this.toggleSubtaskCompletion.emit(subtask);
   }
 
-  getSubtasksForTask(): Subtask[] {
-    return this.subtasks;
-  }
-
   getTotalSubtasksCount(): number {
     return this.subtasks.length;
   }
@@ -59,5 +56,5 @@ export class KanbanTaskCardComponent {
     return BaseItemHelper.countCompleted(this.subtasks);
   }
 
-  formatDate = BaseItemHelper.formatDate;
+  formatDate = DateHelper.formatDateShort;
 }
