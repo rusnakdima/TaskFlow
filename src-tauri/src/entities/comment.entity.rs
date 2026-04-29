@@ -8,9 +8,10 @@ use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("comments")]
+#[many_to_one("user", "users", "user_id")]
 #[many_to_one("task", "tasks", "task_id")]
 #[many_to_one("subtask", "subtasks", "subtask_id")]
-#[many_to_one("user", "users", "user_id")]
+#[many_to_one_array("read_by_users", "users", "read_by")]
 #[timestamp]
 #[soft_delete]
 #[index("user_id", 1)]
