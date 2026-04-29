@@ -5,7 +5,10 @@ import {
   inject,
   signal,
   computed,
+  ViewChild,
+  ElementRef,
   ChangeDetectionStrategy,
+  AfterViewInit,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
@@ -34,7 +37,9 @@ import jsQR from "jsqr";
   imports: [MatIconModule, MatProgressSpinnerModule, MatButtonModule],
   templateUrl: "./qr-login.view.html",
 })
-export class QrLoginView implements OnDestroy, OnInit {
+export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild("qrVideo") qrVideoRef!: ElementRef<HTMLVideoElement>;
+
   private qrLoginService = inject(QrLoginService);
   private authCapabilityService = inject(AuthCapabilityService);
   private notifyService = inject(NotifyService);
@@ -54,7 +59,6 @@ export class QrLoginView implements OnDestroy, OnInit {
 
   readonly isMobileScanning = signal(false);
   readonly isQrScanningLoading = signal(false);
-  mobileQrVideoElement: HTMLVideoElement | null = null;
   mobileQrStream: MediaStream | null = null;
   mobileQrCanvasElement: HTMLCanvasElement | null = null;
   mobileQrAnimationFrameId: number | null = null;
@@ -100,6 +104,9 @@ export class QrLoginView implements OnDestroy, OnInit {
   ngOnInit(): void {
     const usernameFromRoute = this.route.snapshot.queryParamMap.get("username") || "";
     this.username.set(usernameFromRoute);
+  }
+
+  ngAfterViewInit(): void {
     this.loginWithQrCode();
   }
 
@@ -150,21 +157,16 @@ export class QrLoginView implements OnDestroy, OnInit {
       this.isQrScanningLoading.set(true);
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: "environment", width: { ideal: 720 }, height: { ideal: 720 } },
       });
       this.mobileQrStream = stream;
       this.isQrScanningLoading.set(false);
 
-      const videoElement = document.createElement("video");
-      videoElement.style.cssText =
-        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:black;object-fit:cover;";
-      videoElement.id = "mobile-qr-scanner-video";
-      videoElement.setAttribute("playsinline", "true");
-      document.body.appendChild(videoElement);
-      this.mobileQrVideoElement = videoElement;
-
-      videoElement.srcObject = stream;
-      await videoElement.play();
+      if (this.qrVideoRef?.nativeElement) {
+        const videoElement = this.qrVideoRef.nativeElement;
+        videoElement.srcObject = stream;
+        await videoElement.play();
+      }
 
       const canvas = document.createElement("canvas");
       canvas.style.cssText = "display:none";
@@ -188,10 +190,10 @@ export class QrLoginView implements OnDestroy, OnInit {
   }
 
   private scanMobileQrFrame(): void {
-    if (!this.mobileQrVideoElement || !this.mobileQrCanvasElement || !this.isMobileScanning())
+    if (!this.qrVideoRef?.nativeElement || !this.mobileQrCanvasElement || !this.isMobileScanning())
       return;
 
-    const video = this.mobileQrVideoElement;
+    const video = this.qrVideoRef.nativeElement;
     const canvas = this.mobileQrCanvasElement;
     const ctx = canvas.getContext("2d");
 
@@ -207,7 +209,7 @@ export class QrLoginView implements OnDestroy, OnInit {
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      const code = jsQR(imageData.data, canvas.width, imageData.height, {
         inversionAttempts: "dontInvert",
       });
 
@@ -264,12 +266,6 @@ export class QrLoginView implements OnDestroy, OnInit {
     if (this.mobileQrStream) {
       this.mobileQrStream.getTracks().forEach((track) => track.stop());
       this.mobileQrStream = null;
-    }
-
-    if (this.mobileQrVideoElement) {
-      this.mobileQrVideoElement.srcObject = null;
-      this.mobileQrVideoElement.remove();
-      this.mobileQrVideoElement = null;
     }
 
     if (this.mobileQrCanvasElement) {
