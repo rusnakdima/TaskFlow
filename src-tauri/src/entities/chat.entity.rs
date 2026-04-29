@@ -17,7 +17,6 @@ pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,
   pub user_id: String,
-  pub author_name: String,
   pub content: String,
   #[serde(default)]
   pub read_by: Vec<String>,
@@ -35,7 +34,6 @@ pub struct ChatCreateModel {
   pub todo_id: String,
   #[validate(required)]
   pub user_id: String,
-  pub author_name: String,
   #[validate(required)]
   #[validate(length(min = 1, max = 5000))]
   pub content: String,
@@ -48,7 +46,6 @@ impl From<ChatCreateModel> for ChatEntity {
       id: None,
       todo_id: create.todo_id,
       user_id: create.user_id.clone(),
-      author_name: create.author_name,
       content: create.content,
       created_at: Some(now),
       updated_at: Some(now),

@@ -48,7 +48,7 @@ pub struct TaskEntity {
   pub description: String,
   pub status: TaskStatus,
   #[validate(not_empty)]
-  // #[validate(pattern("^(low|medium|high)$"))]
+  #[validate(pattern("^(low|medium|high)$"))]
   pub priority: String,
   pub start_date: Option<String>,
   pub end_date: Option<String>,
@@ -71,7 +71,7 @@ pub struct TaskCreateModel {
   pub title: String,
   pub description: Option<String>,
   #[validate(not_empty)]
-  // #[validate(pattern("^(low|medium|high)$"))]
+  #[validate(pattern("^(low|medium|high)$"))]
   pub priority: String,
   pub start_date: String,
   pub end_date: String,
