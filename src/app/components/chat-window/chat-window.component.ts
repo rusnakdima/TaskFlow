@@ -61,12 +61,6 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   private isFirstLoad = true;
   private processedChatIds = new Set<string>(); // Track processed chats to prevent infinite loop
 
-  // WebSocket listeners
-  private chatCreatedListener!: (event: Event) => void;
-  private chatUpdatedListener!: (event: Event) => void;
-  private chatDeletedListener!: (event: Event) => void;
-  private chatClearedListener!: (event: Event) => void;
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes["todo_id"] && !changes["todo_id"].isFirstChange()) {
       this.isFirstLoad = true;
@@ -75,7 +69,6 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   ngOnInit() {
-    this.initWebSocketListeners();
     this.loadChats(this.todo_id).subscribe({
       next: () => {
         this.shouldScroll = true;
@@ -88,57 +81,6 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     if (this.observer) {
       this.observer.disconnect();
     }
-    this.removeWebSocketListeners();
-  }
-
-  private initWebSocketListeners(): void {
-    this.chatCreatedListener = (event: Event) =>
-      this.onChatCreated((event as CustomEvent<Chat>).detail);
-    this.chatUpdatedListener = (event: Event) =>
-      this.onChatUpdated((event as CustomEvent<Chat>).detail);
-    this.chatDeletedListener = (event: Event) =>
-      this.onChatDeleted((event as CustomEvent<{ id: string; todo_id?: string }>).detail);
-    this.chatClearedListener = (event: Event) =>
-      this.onChatCleared((event as CustomEvent<string | undefined>).detail);
-
-    window.addEventListener("ws-chat-created", this.chatCreatedListener);
-    window.addEventListener("ws-chat-updated", this.chatUpdatedListener);
-    window.addEventListener("ws-chat-deleted", this.chatDeletedListener);
-    window.addEventListener("ws-chat-cleared", this.chatClearedListener);
-  }
-
-  private removeWebSocketListeners(): void {
-    window.removeEventListener("ws-chat-created", this.chatCreatedListener);
-    window.removeEventListener("ws-chat-updated", this.chatUpdatedListener);
-    window.removeEventListener("ws-chat-deleted", this.chatDeletedListener);
-    window.removeEventListener("ws-chat-cleared", this.chatClearedListener);
-  }
-
-  private onChatCreated(chat: Chat): void {
-    this.storageService.addChatToTodo(chat, chat.todo_id);
-  }
-
-  private onChatUpdated(chat: Chat): void {
-    this.storageService.updateChatInTodo(chat, chat.todo_id);
-  }
-
-  private onChatDeleted(chat: { id: string; todo_id?: string }): void {
-    const isDeleted = (chat as any).deleted_at !== null;
-    if (isDeleted) {
-      this.storageService.updateChatInTodo(
-        {
-          ...(chat as any),
-          deleted_at: new Date().toISOString(),
-        },
-        chat.todo_id
-      );
-    } else {
-      this.storageService.deleteChatFromTodo(chat.id, chat.todo_id);
-    }
-  }
-
-  private onChatCleared(todo_id?: string): void {
-    this.storageService.clearChatsByTodo(todo_id);
   }
 
   ngAfterViewChecked() {
@@ -275,7 +217,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   // --- Chat Actions (previously in ChatService) ---
 
-  getChats(todo_id?: string): Chat[] {
+  getChats(): Chat[] {
     return this.chats();
   }
 

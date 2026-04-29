@@ -72,7 +72,6 @@ export class App implements OnInit {
     () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
   );
   showInfoBlock = this.appStateService.showInfoBlock;
-  private isOfflineMode = false;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
 
@@ -114,7 +113,7 @@ export class App implements OnInit {
       },
       error: (err: Response<string>) => {
         if (NetworkErrorHelper.isNetworkError(err)) {
-          // this.isOfflineMode = true;
+          
           this.notifyService.showWarning("Working offline - data sync paused");
         } else {
           this.notifyService.showError(err.message ?? err.toString());
