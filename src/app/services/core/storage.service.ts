@@ -133,6 +133,9 @@ export class StorageService extends BaseStorageService {
 
   // ==================== GENERIC CRUD (delegates to StorageCrudService) ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
+    if (!data?.id) {
+      return;
+    }
     this.crudService.addItem(type, data, options);
   }
 
@@ -159,11 +162,19 @@ export class StorageService extends BaseStorageService {
 
   // ==================== PUBLIC GETTERS ====================
   getTasksByTodoId(todo_id?: string): Task[] {
-    return this.todos().find((t) => t.id === todo_id)?.tasks || [];
+    const todo = this.todos().find((t) => t.id === todo_id);
+    return todo?.tasks || [];
   }
 
   getSubtasksByTaskId(task_id?: string): Subtask[] {
-    return this.tasks().find((t) => t.id === task_id)?.subtasks || [];
+    for (const todo of [...this.privateTodosSignal(), ...this.sharedTodosSignal()]) {
+      for (const task of todo.tasks || []) {
+        if (task.id === task_id) {
+          return task.subtasks || [];
+        }
+      }
+    }
+    return [];
   }
 
   get pendingTasksCount(): number {
@@ -195,7 +206,7 @@ export class StorageService extends BaseStorageService {
       const newMap = new Map(map);
       const chats = newMap.get(todo_id) || [];
       if (!chats.some((c) => c.id === chat.id)) {
-        newMap.set(todo_id, [chat, ...chats]);
+        newMap.set(todo_id, [...chats, chat]);
       }
       return newMap;
     });
@@ -277,21 +288,33 @@ export class StorageService extends BaseStorageService {
     handler.removeWithCascade(todo_id, allTodos);
   }
 
-  removeRecordWithCascade(table: string, id: string): void {
+  removeRecordWithCascade(table: string, id: string, deletedAt?: string): void {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
     } else if (table === "tasks") {
       const taskHandler = this.crudService.handlersMap.tasks;
       const todoId = this.getTodoIdForTask(id);
-      taskHandler.remove(id, todoId ?? undefined);
-      this.entityIndexService.deleteTaskIndex(id);
+      if (deletedAt) {
+        (taskHandler as any).softDeleteWithCascade?.(id, deletedAt, todoId ?? undefined);
+      } else {
+        taskHandler.remove(id, todoId ?? undefined);
+        this.entityIndexService.deleteTaskIndex(id);
+      }
     } else if (table === "subtasks") {
       const subtaskHandler = this.crudService.handlersMap.subtasks;
       const taskId = this.getTaskIdForSubtask(id);
-      subtaskHandler.remove(id, taskId ?? undefined);
-      this.entityIndexService.deleteSubtaskIndex(id);
+      if (deletedAt) {
+        (subtaskHandler as any).softDeleteWithCascade?.(id, deletedAt, taskId ?? undefined);
+      } else {
+        subtaskHandler.remove(id, taskId ?? undefined);
+        this.entityIndexService.deleteSubtaskIndex(id);
+      }
     } else if (table === "comments") {
-      this.crudService.handlersMap.comments?.remove(id);
+      if (deletedAt) {
+        this.crudService.handlersMap.comments?.update(id, { deleted_at: deletedAt });
+      } else {
+        this.crudService.handlersMap.comments?.remove(id);
+      }
     } else if (table === "chats") {
       this.crudService.handlersMap.chats?.remove(id);
     } else if (table === "categories") {
@@ -352,7 +375,6 @@ export class StorageService extends BaseStorageService {
     });
   }
 
-  // ==================== UTILITY METHODS ====================
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
     return this.crudService.getById(type, id);
   }
