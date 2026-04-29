@@ -30,7 +30,7 @@
   </div>
 
   <div #scrollContainer class="flex-1 space-y-4 overflow-y-auto p-4">
-    @for (chat of getChats(todo_id); track chat.id) {
+    @for (chat of getChats(); track chat.id) {
       <div
         [id]="'chat-' + chat.id"
         [attr.data-chat-id]="chat.id"
