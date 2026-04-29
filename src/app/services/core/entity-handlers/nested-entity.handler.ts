@@ -233,6 +233,42 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
     }, todo_id);
   }
 
+  softDeleteWithCascade(id: string, deletedAt: string, parentId?: string): void {
+    const entityId = parentId || this.lookupEntityId(id);
+    if (!entityId) return;
+
+    let todo_id: string | null = entityId;
+    if (this.entityType === "subtasks") {
+      todo_id = this.lookupTodoId(entityId);
+      if (!todo_id) return;
+    }
+
+    this.updateTodo((todo) => {
+      if (this.entityType === "tasks") {
+        return {
+          ...todo,
+          tasks: todo.tasks?.map((task) =>
+            task.id === id ? { ...task, deleted_at: deletedAt } : task
+          ),
+        };
+      } else {
+        return {
+          ...todo,
+          tasks: todo.tasks?.map((task) =>
+            task.id === entityId
+              ? {
+                  ...task,
+                  subtasks: task.subtasks?.map((subtask) =>
+                    subtask.id === id ? { ...subtask, deleted_at: deletedAt } : subtask
+                  ),
+                }
+              : task
+          ),
+        };
+      }
+    }, todo_id);
+  }
+
   getById(id: string): T | undefined {
     for (const todo of this.privateSignal()) {
       const found = this.findEntityInTodo(todo, id);
@@ -258,11 +294,13 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   }
 
   private getParentId(data: T): string | null {
-    if (this.entityType === "tasks") {
-      return (data as any).todo_id || null;
-    } else {
-      return (data as any).task_id || null;
+    const id = this.entityType === "tasks"
+      ? (data as any).todo_id
+      : (data as any).task_id;
+
+    if (!id) {
     }
+    return id || null;
   }
 
   private lookupTodoId(task_id?: string): string | null {
