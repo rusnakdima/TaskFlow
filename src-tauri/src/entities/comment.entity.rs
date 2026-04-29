@@ -10,13 +10,13 @@ use nosql_orm::Validate;
 #[table_name("comments")]
 #[many_to_one("task", "tasks", "task_id")]
 #[many_to_one("subtask", "subtasks", "subtask_id")]
+#[many_to_one("user", "users", "user_id")]
 #[timestamp]
 #[soft_delete]
-#[index("author_id", 1)]
+#[index("user_id", 1)]
 pub struct CommentEntity {
   pub id: Option<String>,
-  pub author_id: String,
-  pub author_name: String,
+  pub user_id: String,
   pub content: String,
   #[serde(default)]
   pub task_id: Option<String>,
@@ -36,9 +36,7 @@ pub struct CommentEntity {
 #[validate(xor("task_id", "subtask_id"))]
 pub struct CommentCreateModel {
   #[validate(required)]
-  pub author_id: String,
-  #[validate(required)]
-  pub author_name: String,
+  pub user_id: String,
   #[validate(required)]
   #[validate(length(max = 5000))]
   pub content: String,
@@ -52,8 +50,7 @@ impl From<CommentCreateModel> for CommentEntity {
 
     CommentEntity {
       id: None,
-      author_id: value.author_id,
-      author_name: value.author_name,
+      user_id: value.user_id,
       content: value.content,
       created_at: Some(now),
       updated_at: Some(now),

@@ -1,7 +1,6 @@
 export interface Comment {
   id: string;
-  author_id: string;
-  author_name: string;
+  user_id: string;
   content: string;
   task_id?: string;
   subtask_id?: string;
