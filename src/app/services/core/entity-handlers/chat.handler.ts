@@ -12,7 +12,7 @@ export class ChatHandler extends EntityHandler<Chat> {
       const newMap = new Map(map);
       const chats = newMap.get(data.todo_id) || [];
       if (!chats.some((c) => c.id === data.id)) {
-        newMap.set(data.todo_id, [data, ...chats]);
+        newMap.set(data.todo_id, [...chats, data]);
       }
       return newMap;
     });

@@ -99,15 +99,14 @@ export class StorageCrudService {
   }
 
   private updateIndexesForEntity(type: StorageEntity, data: any): void {
-    if (type === "todos" && data.id) {
-      data.tasks?.forEach((task: Task) => {
+    if (!data || !data.id) return;
+
+    if (type === "todos" && data.id && data.tasks) {
+      for (const task of data.tasks) {
         if (task.id) {
           this.entityIndexService.setTaskToTodoIndex(task.id, data.id);
-          task.subtasks?.forEach((sub: Subtask) => {
-            if (sub.id) this.entityIndexService.setSubtaskToTaskIndex(sub.id, task.id);
-          });
         }
-      });
+      }
     } else if (type === "tasks" && data.id && data.todo_id) {
       this.entityIndexService.setTaskToTodoIndex(data.id, data.todo_id);
     } else if (type === "subtasks" && data.id && data.task_id) {

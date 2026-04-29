@@ -174,27 +174,6 @@ export function updateEntityInSignal<T extends { id: string }>(
 }
 
 /**
- * Find and update entity in array, returning new array
- */
-export function findAndUpdateEntity<T extends { id: string }>(
-  entities: T[],
-  id: string,
-  updates: Partial<T>
-): T[] {
-  return entities.map((item) => (item.id === id ? { ...item, ...updates } : item));
-}
-
-/**
- * Add entity to array if it doesn't already exist (by ID)
- */
-export function addIfNotExists<T extends { id: string }>(entities: T[], newItem: T): T[] {
-  if (entities.some((e) => e.id === newItem.id)) {
-    return entities;
-  }
-  return [newItem, ...entities];
-}
-
-/**
  * Get entity IDs from an array
  */
 export function getEntityIds<T extends { id: string }>(entities: T[]): string[] {

@@ -2,7 +2,7 @@ import { WritableSignal } from "@angular/core";
 import { EntityHandler } from "./entity-handler.base";
 import { Category } from "@models/category.model";
 import {
-  addIfNotExists,
+  addEntityToArray,
   updateEntityInSignal,
   removeEntityFromArray,
 } from "@stores/utils/store-helpers";
@@ -13,7 +13,7 @@ export class CategoryHandler extends EntityHandler<Category> {
   }
 
   add(data: Category): void {
-    this.signal.update((items) => addIfNotExists(items, data));
+    this.signal.update((items) => addEntityToArray(items, data));
   }
 
   update(id: string, updates: Partial<Category>, _resolvers?: Record<string, any>): void {
