@@ -8,6 +8,13 @@ export enum PriorityTask {
   HIGH = "high",
 }
 
+export interface PriorityOption {
+  value: string;
+  label: string;
+  description: string;
+  colorClass: string;
+}
+
 export enum TaskStatus {
   PENDING = "pending",
   COMPLETED = "completed",
@@ -40,11 +47,4 @@ export interface Task {
   updated_at: string;
   deleted_at: string | null;
   todo?: Todo;
-}
-
-export interface PriorityOption {
-  value: PriorityTask;
-  label: string;
-  description?: string;
-  colorClass: string;
 }

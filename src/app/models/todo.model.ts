@@ -11,7 +11,9 @@ export interface Todo {
   start_date: string | null;
   end_date: string | null;
   categories: Array<Category>;
+  category_ids: string[];
   assignees: Array<string>;
+  assignee_ids: string[];
   assignees_profiles: Array<Profile>;
   visibility: string;
   priority: string;

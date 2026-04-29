@@ -8,7 +8,7 @@ import {
   existsById,
   updateEntityInSignal,
   removeEntityFromArray,
-  addIfNotExists,
+  addEntityToArray,
 } from "@stores/utils/store-helpers";
 
 export interface TodoCascadeData {
@@ -29,7 +29,7 @@ export class TodoHandler extends EntityHandler<Todo> {
   add(data: Todo): void {
     const signal = data.visibility === "private" ? this.privateSignal : this.sharedSignal;
 
-    signal.update((todos) => addIfNotExists(todos, data));
+    signal.update((todos) => addEntityToArray(todos, data));
   }
 
   update(
@@ -65,10 +65,37 @@ export class TodoHandler extends EntityHandler<Todo> {
       updateEntityInSignal(this.sharedSignal, id, resolvedUpdates);
     }
 
+    if (updates.deleted_at) {
+      this.cascadeDeleteToNested(id, updates.deleted_at);
+    }
+
     // Handle visibility change if needed
     if (updates.visibility) {
       this.handleVisibilityChange(id, updates.visibility);
     }
+  }
+
+  private cascadeDeleteToNested(todoId: string, deletedAt: string): void {
+    const cascade = (signal: WritableSignal<Todo[]>) => {
+      signal.update((todos) =>
+        todos.map((todo) => {
+          if (todo.id !== todoId) return todo;
+          return {
+            ...todo,
+            tasks: todo.tasks?.map((task) => ({
+              ...task,
+              deleted_at: task.deleted_at || deletedAt,
+              subtasks: task.subtasks?.map((subtask) => ({
+                ...subtask,
+                deleted_at: subtask.deleted_at || deletedAt,
+              })),
+            })),
+          };
+        })
+      );
+    };
+    cascade(this.privateSignal);
+    cascade(this.sharedSignal);
   }
 
   remove(id: string): void {
@@ -84,18 +111,37 @@ export class TodoHandler extends EntityHandler<Todo> {
   }
 
   /**
-   * Remove todo with all related data (tasks, subtasks, comments)
+   * Soft-delete todo with all related data (tasks, subtasks, comments)
+   * Sets deleted_at on todo and all nested entities
    */
   removeWithCascade(id: string, allTodos: Todo[]): void {
     const todo = allTodos.find((t) => t.id === id);
     if (!todo) return;
 
-    // Collect all related entity IDs
-    const taskIds = todo.tasks?.map((t) => t.id) || [];
-    const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+    const now = new Date().toISOString();
 
-    // Remove todo (this will also remove all nested tasks, subtasks, and comments since they're inside the todo)
-    this.remove(id);
+    const softDeleteInSignal = (signal: WritableSignal<Todo[]>) => {
+      signal.update((todos) =>
+        todos.map((t) => {
+          if (t.id !== id) return t;
+          return {
+            ...t,
+            deleted_at: now,
+            tasks: t.tasks?.map((task) => ({
+              ...task,
+              deleted_at: now,
+              subtasks: task.subtasks?.map((subtask) => ({
+                ...subtask,
+                deleted_at: now,
+              })),
+            })),
+          };
+        })
+      );
+    };
+
+    softDeleteInSignal(this.privateSignal);
+    softDeleteInSignal(this.sharedSignal);
   }
 
   /**
