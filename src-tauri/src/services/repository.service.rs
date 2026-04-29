@@ -306,19 +306,48 @@ impl RepositoryService {
             table
           );
           match operation.as_str() {
-            "create" | "update" | "delete" | "soft-delete-cascade" | "restore-cascade" | "restore" => {
+            "create"
+            | "update"
+            | "delete"
+            | "soft-delete-cascade"
+            | "restore-cascade"
+            | "restore" => {
               let sync_meta_for_json = Some(SyncMetadata {
                 is_private: sync_metadata.as_ref().map(|m| m.is_private).unwrap_or(true),
                 is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
                 visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
               });
               let exec_result = match operation.as_str() {
-                "create" => self.handle_create(table.clone(), data.clone(), sync_meta_for_json).await,
-                "update" => self.handle_update(table.clone(), id.clone(), data.clone(), sync_meta_for_json).await,
-                "delete" => self.handle_delete(table.clone(), id.clone(), sync_meta_for_json, false).await,
-                "soft-delete-cascade" => self.handle_soft_delete_cascade(table.clone(), id.clone(), sync_meta_for_json).await,
-                "restore-cascade" => self.handle_restore_cascade(table.clone(), id.clone(), sync_meta_for_json).await,
-                "restore" => self.handle_restore(table.clone(), id.clone(), sync_meta_for_json).await,
+                "create" => {
+                  self
+                    .handle_create(table.clone(), data.clone(), sync_meta_for_json)
+                    .await
+                }
+                "update" => {
+                  self
+                    .handle_update(table.clone(), id.clone(), data.clone(), sync_meta_for_json)
+                    .await
+                }
+                "delete" => {
+                  self
+                    .handle_delete(table.clone(), id.clone(), sync_meta_for_json, false)
+                    .await
+                }
+                "soft-delete-cascade" => {
+                  self
+                    .handle_soft_delete_cascade(table.clone(), id.clone(), sync_meta_for_json)
+                    .await
+                }
+                "restore-cascade" => {
+                  self
+                    .handle_restore_cascade(table.clone(), id.clone(), sync_meta_for_json)
+                    .await
+                }
+                "restore" => {
+                  self
+                    .handle_restore(table.clone(), id.clone(), sync_meta_for_json)
+                    .await
+                }
                 _ => Err(err_response("Unsupported operation")),
               };
               if exec_result.is_ok() {
@@ -341,7 +370,9 @@ impl RepositoryService {
                 is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
                 visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
               });
-              let exec_result = self.handle_update_all(table.clone(), data.clone(), sync_meta_for_json).await;
+              let exec_result = self
+                .handle_update_all(table.clone(), data.clone(), sync_meta_for_json)
+                .await;
               let _ = queue_service
                 .queue_request(operation, table, None, data, filter, sync_metadata)
                 .await;
@@ -534,6 +565,7 @@ impl RepositoryService {
       .get("id")
       .and_then(|v| v.as_str())
       .unwrap_or("");
+
     self
       .capture_change("insert", &table, id_str, created_record.clone())
       .await;
