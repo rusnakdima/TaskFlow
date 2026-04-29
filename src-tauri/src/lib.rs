@@ -87,6 +87,7 @@ pub fn run() {
   tracing::debug!("Starting relation registration...");
 
   // Import entities to register their relations
+  use crate::entities::chat_entity::ChatEntity;
   use crate::entities::comment_entity::CommentEntity;
   use crate::entities::profile_entity::ProfileEntity;
   use crate::entities::subtask_entity::SubtaskEntity;
@@ -116,6 +117,7 @@ pub fn run() {
   register_relations_for_entity::<TaskEntity>();
   register_relations_for_entity::<SubtaskEntity>();
   register_relations_for_entity::<CommentEntity>();
+  register_relations_for_entity::<ChatEntity>();
   register_relations_for_entity::<ProfileEntity>();
   register_relations_for_entity::<UserEntity>();
 
