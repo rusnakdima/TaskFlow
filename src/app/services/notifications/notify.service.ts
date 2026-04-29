@@ -360,8 +360,7 @@ export class NotifyService implements OnDestroy {
     const currentUserId = this.jwtTokenService.getUserId(token);
 
     // Check if this is own action
-    const isOwnAction =
-      isLocalAction || data.user_id === currentUserId;
+    const isOwnAction = isLocalAction || data.user_id === currentUserId;
 
     const [type, action] = event.split("-") as [
       NotificationAction["type"],

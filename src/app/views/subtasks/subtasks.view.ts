@@ -258,7 +258,12 @@ export class SubtasksView extends BaseListView implements OnInit {
           if (queryParams.openComments) {
             this.openCommentsForSubtaskId.set(id);
           }
-          super.handleHighlightQueryParams(queryParams, "highlightSubtask", "subtask-", "ring-purple-500");
+          super.handleHighlightQueryParams(
+            queryParams,
+            "highlightSubtask",
+            "subtask-",
+            "ring-purple-500"
+          );
           this.highlightSubtask.set(null);
         }
         if (queryParams.highlightComment) {

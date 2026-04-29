@@ -15,5 +15,4 @@ import { BaseFieldComponent } from "../base-field.component";
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule],
   templateUrl: "./text.component.html",
 })
-export class TextComponent extends BaseFieldComponent {
-}
+export class TextComponent extends BaseFieldComponent {}

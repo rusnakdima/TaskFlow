@@ -113,7 +113,6 @@ export class App implements OnInit {
       },
       error: (err: Response<string>) => {
         if (NetworkErrorHelper.isNetworkError(err)) {
-          
           this.notifyService.showWarning("Working offline - data sync paused");
         } else {
           this.notifyService.showError(err.message ?? err.toString());
