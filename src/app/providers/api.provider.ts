@@ -7,7 +7,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { Chat } from "@models/chat.model";
 
-import { StorageUpdateHelper } from "@helpers/storage-update.helper";
+import { StorageUpdateService } from "@services/core/storage-update.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
@@ -31,7 +31,7 @@ interface CrudOptions {
 export class ApiProvider {
   private notifyService = inject(NotifyService);
   private storageService = inject(StorageService);
-  private storageUpdateHelper = new StorageUpdateHelper();
+  private storageUpdateService = inject(StorageUpdateService);
 
   invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(
@@ -96,7 +96,7 @@ export class ApiProvider {
     }).pipe(
       tap((result) => {
         if (operation !== "get" && operation !== "getAll") {
-          this.storageUpdateHelper.updateAfterOperation(
+          this.storageUpdateService.updateAfterOperation(
             operation,
             table,
             result,

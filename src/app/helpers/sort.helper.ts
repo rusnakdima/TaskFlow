@@ -61,44 +61,6 @@ export class SortHelper {
   }
 
   /**
-   * Sort by status with custom order
-   */
-  static sortByStatus<T extends { status: string }>(data: T[], order: "asc" | "desc" = "asc"): T[] {
-    const statusOrder = {
-      pending: 0,
-      completed: 1,
-      skipped: 2,
-      failed: 3,
-    };
-
-    return [...data].sort((a, b) => {
-      const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 0;
-      const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 0;
-      return order === "asc" ? aOrder - bOrder : bOrder - aOrder;
-    });
-  }
-
-  /**
-   * Sort by priority with custom order
-   */
-  static sortByPriority<T extends { priority: string }>(
-    data: T[],
-    order: "asc" | "desc" = "asc"
-  ): T[] {
-    const priorityOrder = {
-      low: 0,
-      medium: 1,
-      high: 2,
-    };
-
-    return [...data].sort((a, b) => {
-      const aOrder = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 0;
-      const bOrder = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 0;
-      return order === "asc" ? aOrder - bOrder : bOrder - aOrder;
-    });
-  }
-
-  /**
    * Check if field is a date field
    */
   private static isDateField(field: string): boolean {

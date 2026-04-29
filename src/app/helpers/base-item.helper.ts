@@ -179,11 +179,6 @@ export class BaseItemHelper {
   }
 
   /**
-   * Format date string
-   */
-  static formatDate = DateHelper.formatDateShort;
-
-  /**
    * Check if item is blocked by dependencies
    */
   static isBlockedByDependencies(
