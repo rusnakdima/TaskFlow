@@ -9,7 +9,7 @@
       <button
         class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         [ngClass]="
-          viewMode() === 'month'
+          displayMode() === 'month'
             ? 'bg-blue-500 text-white'
             : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
         "
@@ -20,7 +20,7 @@
       <button
         class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         [ngClass]="
-          viewMode() === 'week'
+          displayMode() === 'week'
             ? 'bg-blue-500 text-white'
             : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
         "
@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      @if (viewMode() === "month") {
+      @if (displayMode() === "month") {
         <!-- Mobile layout for screens < 500px -->
         <div class="block space-y-2 sm:hidden">
           @for (week of getWeeksForMobile(); track $index) {
@@ -152,7 +152,7 @@
         </div>
       }
 
-      @if (viewMode() === "week") {
+      @if (displayMode() === "week") {
         <!-- Mobile layout for screens < 500px -->
         <div class="block space-y-3 sm:hidden">
           @for (day of weekDays(); track day.date.getTime()) {

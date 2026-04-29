@@ -358,9 +358,6 @@
             <div class="flex flex-row items-center justify-between" (click)="addProfile(profile)">
               <div>
                 <div class="font-medium">{{ profile.name }} {{ profile.last_name }}</div>
-                <div class="textMuted text-sm">
-                  {{ (profile.user && profile.user.email) || "" }}
-                </div>
               </div>
               <button (click)="addProfile(profile)">
                 <mat-icon class="h-6! w-6! min-w-6 cursor-pointer text-2xl!" fontIcon="add" />
