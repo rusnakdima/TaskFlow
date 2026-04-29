@@ -361,7 +361,7 @@ export class NotifyService implements OnDestroy {
 
     // Check if this is own action
     const isOwnAction =
-      isLocalAction || data.user_id === currentUserId || data.author_id === currentUserId;
+      isLocalAction || data.user_id === currentUserId;
 
     const [type, action] = event.split("-") as [
       NotificationAction["type"],

@@ -170,7 +170,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         // Skip deleted comments
         if (c.deleted_at) return false;
         // Skip if user is the author (they've read their own comment)
-        if (c.author_id === userId) return false;
+        if (c.user_id === userId) return false;
         // Skip if user has read the comment
         if (c.read_by && c.read_by.includes(userId)) return false;
         // Only count task comments (not subtask comments)
