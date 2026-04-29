@@ -33,6 +33,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 /* helpers */
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -493,7 +494,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   getPriorityColor = BaseItemHelper.getPriorityBadgeClass;
 
-  formatDate = BaseItemHelper.formatDate;
+  formatDate = DateHelper.formatDateShort;
 
   toggleCompletion(event: any) {
     event.stopPropagation();

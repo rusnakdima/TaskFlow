@@ -3,7 +3,7 @@ import { Observable, from, of } from "rxjs";
 import { map, tap } from "rxjs/operators";
 import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { BufferHelper } from "@helpers/buffer.helper";
+import { EncodingHelper } from "@helpers/encoding.helper";
 
 export interface PasskeyRegistrationOptions {
   options: any;
@@ -136,16 +136,16 @@ export class PasskeyService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = BufferHelper.arrayBufferToBase64(
+      const signature = EncodingHelper.arrayBufferToBase64(pkCredential.response.signature);
+      const authenticatorData = EncodingHelper.arrayBufferToBase64(
         pkCredential.response.authenticatorData
       );
       const clientData = btoa(pkCredential.response.clientDataJSON);
 
       return new Promise((resolve, reject) => {
         this.completePasskeyRegistration(
-          BufferHelper.arrayBufferToBase64(pkCredential.credentialId),
-          BufferHelper.arrayBufferToBase64(pkCredential.response.attestationObject),
+          EncodingHelper.arrayBufferToBase64(pkCredential.credentialId),
+          EncodingHelper.arrayBufferToBase64(pkCredential.response.attestationObject),
           "cross-platform"
         ).subscribe({
           next: () => resolve({ success: true }),
@@ -161,10 +161,10 @@ export class PasskeyService {
     try {
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
+          challenge: EncodingHelper.base64ToArrayBuffer(options.challenge),
           rp: options.rp,
           user: {
-            id: BufferHelper.base64ToArrayBuffer(options.user.id),
+            id: EncodingHelper.base64ToArrayBuffer(options.user.id),
             name: options.user.name,
             displayName: options.user.displayName,
           },
@@ -175,7 +175,8 @@ export class PasskeyService {
         },
       });
       return credential;
-    } catch {
+    } catch (err) {
+      console.error("Passkey error:", err);
       return null;
     }
   }
@@ -201,11 +202,11 @@ export class PasskeyService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = BufferHelper.arrayBufferToBase64(
+      const signature = EncodingHelper.arrayBufferToBase64(pkCredential.response.signature);
+      const authenticatorData = EncodingHelper.arrayBufferToBase64(
         pkCredential.response.authenticatorData
       );
-      const clientData = BufferHelper.arrayBufferToBase64(pkCredential.response.clientJSON);
+      const clientData = EncodingHelper.arrayBufferToBase64(pkCredential.response.clientJSON);
 
       return new Promise((resolve, reject) => {
         this.completePasskeyAuthentication(
@@ -233,12 +234,12 @@ export class PasskeyService {
     try {
       const credential = await navigator.credentials.get({
         publicKey: {
-          challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
+          challenge: EncodingHelper.base64ToArrayBuffer(options.challenge),
           timeout: options.timeout,
           rpId: options.rpId,
           allowCredentials: options.allowCredentials.map((cred: any) => ({
             type: cred.type,
-            id: BufferHelper.base64ToArrayBuffer(cred.id),
+            id: EncodingHelper.base64ToArrayBuffer(cred.id),
             transports: cred.transports,
           })),
           userVerification: options.userVerification,
@@ -268,12 +269,12 @@ export class PasskeyService {
 
       const publicKeyCredential = await navigator.credentials.get({
         publicKey: {
-          challenge: BufferHelper.base64ToArrayBuffer(result.options.challenge),
+          challenge: EncodingHelper.base64ToArrayBuffer(result.options.challenge),
           timeout: result.options.timeout,
           rpId: result.options.rpId,
           allowCredentials: result.options.allowCredentials.map((cred: any) => ({
             type: cred.type,
-            id: BufferHelper.base64ToArrayBuffer(cred.id),
+            id: EncodingHelper.base64ToArrayBuffer(cred.id),
             transports: cred.transports,
           })),
           userVerification: result.options.userVerification,
@@ -285,7 +286,7 @@ export class PasskeyService {
       }
 
       const pkCredential = publicKeyCredential as any;
-      const signature = BufferHelper.arrayBufferToBase64(pkCredential.response.signature);
+      const signature = EncodingHelper.arrayBufferToBase64(pkCredential.response.signature);
 
       return new Promise((resolve, reject) => {
         this.completeBiometricAuth(signature).subscribe({

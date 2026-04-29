@@ -23,20 +23,10 @@ export const canActivateCreateProfile: CanActivateFn = async (route, state) => {
   }
 
   const existingProfile = storageService.profile();
-  // NOTE: Profile redirect disabled for testing - re-enable once profile flow is stable
-  // if (existingProfile?.user_id === userId) {
-  //   router.navigate(["/profile"]);
-  //   return false;
-  // }
 
   await firstValueFrom(dataLoaderService.loadProfile());
 
   const profile = storageService.profile();
-  // NOTE: Profile redirect disabled for testing
-  // if (profile?.user_id === userId) {
-  //   router.navigate(["/profile"]);
-  //   return false;
-  // }
 
   return true;
 };

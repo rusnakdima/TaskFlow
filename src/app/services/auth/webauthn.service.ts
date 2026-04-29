@@ -9,7 +9,7 @@ import {
   PasskeyResult,
 } from "@models/webauthn.model";
 import { AuthResponse } from "@models/auth-forms.model";
-import { BufferHelper } from "@helpers/buffer.helper";
+import { EncodingHelper } from "@helpers/encoding.helper";
 
 @Injectable({
   providedIn: "root",
@@ -122,10 +122,10 @@ export class WebAuthnService {
       }
 
       const publicKey = {
-        challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
+        challenge: EncodingHelper.base64ToArrayBuffer(options.challenge),
         rp: options.rp,
         user: {
-          id: BufferHelper.base64ToArrayBuffer(options.user.id),
+          id: EncodingHelper.base64ToArrayBuffer(options.user.id),
           name: options.user.name,
           displayName: options.user.displayName,
         },
@@ -139,7 +139,8 @@ export class WebAuthnService {
         publicKey,
       } as any)) as unknown as PasskeyCredential;
       return credential;
-    } catch {
+    } catch (err) {
+      console.error("WebAuthn error:", err);
       return null;
     }
   }
@@ -147,12 +148,12 @@ export class WebAuthnService {
   async getAssertion(options: WebAuthnAuthOptions): Promise<PasskeyCredential | null> {
     try {
       const publicKey = {
-        challenge: BufferHelper.base64ToArrayBuffer(options.challenge),
+        challenge: EncodingHelper.base64ToArrayBuffer(options.challenge),
         timeout: options.timeout,
         rpId: options.rpId,
         allowCredentials: options.allowCredentials.map((cred) => ({
           type: cred.type,
-          id: BufferHelper.base64ToArrayBuffer(cred.id),
+          id: EncodingHelper.base64ToArrayBuffer(cred.id),
           transports: cred.transports as any,
         })),
         userVerification: options.userVerification as any,
@@ -162,7 +163,8 @@ export class WebAuthnService {
         publicKey,
       } as any)) as unknown as PasskeyCredential;
       return credential;
-    } catch {
+    } catch (err) {
+      console.error("WebAuthn error:", err);
       return null;
     }
   }

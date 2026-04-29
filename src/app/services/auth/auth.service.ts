@@ -13,7 +13,7 @@ import { OfflineAuthResult } from "@models/local-user.model";
 import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
-import { isNetworkError } from "@helpers/network-error.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
@@ -64,7 +64,7 @@ export class AuthService {
           });
         },
         error: (err: any) => {
-          if (isNetworkError(err)) {
+          if (NetworkErrorHelper.isNetworkError(err)) {
             reject(new Error("No internet connection. Please login online first."));
           } else {
             reject(err);
@@ -140,14 +140,6 @@ export class AuthService {
     return !!token && !this.jwtTokenService.isTokenExpired(token);
   }
 
-  getTokenLS(): string | null {
-    return TokenStorageHelper.getToken();
-  }
-
-  getTokenSS(): string | null {
-    return TokenStorageHelper.getToken();
-  }
-
   getToken(): string | null {
     return TokenStorageHelper.getToken();
   }
@@ -168,18 +160,10 @@ export class AuthService {
     return token ? this.jwtTokenService.getValueByKey(token, key) : null;
   }
 
-  /**
-   * Export current user's data for backup/transfer
-   * Not available in offline-first disabled mode
-   */
   exportUserData(): string | null {
     return null;
   }
 
-  /**
-   * Import user data for offline authentication
-   * Not available in offline-first disabled mode
-   */
   importUserData(userData: string): { success: boolean; error?: string } {
     return { success: false, error: "Offline authentication disabled" };
   }
@@ -266,7 +250,9 @@ export class AuthService {
             this.storageService.setCollection("user", user);
           }
         },
-        error: (err) => {},
+        error: (err) => {
+          console.error("Auth error:", err);
+        },
       });
   }
 }
