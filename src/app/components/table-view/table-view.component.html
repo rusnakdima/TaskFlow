@@ -46,12 +46,20 @@
     <tbody
       class="divide-y divide-gray-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900"
       [class.opacity-50]="data.length === 0"
+      cdkDropList
+      [cdkDropListData]="getSortedData()"
+      [cdkDropListDisabled]="!dragEnabled"
+      (cdkDropListDropped)="onDropped($event)"
     >
       @for (item of getSortedData(); track item.id || $index) {
         <tr
+          cdkDrag
+          [cdkDragData]="item"
+          [cdkDragDisabled]="!dragEnabled"
           class="hover:bg-gray-50 dark:hover:bg-zinc-800"
           [class.bg-blue-50]="isSelected(item.id)"
           [class.dark:bg-blue-900/20]="isSelected(item.id)"
+          [class.cursor-move]="dragEnabled"
           (click)="onRowClick(item)"
         >
           @if (showSelection) {

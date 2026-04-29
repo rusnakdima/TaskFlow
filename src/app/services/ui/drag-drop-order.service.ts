@@ -68,9 +68,12 @@ export class DragDropOrderService {
         const todo = item as any;
         return {
           ...todo,
-          categories:
-            todo.categories?.map((cat: any) => (typeof cat === "string" ? cat : cat.id)) || [],
-          assignees: todo.assignees?.map((a: any) => (typeof a === "string" ? a : a.user_id)) || [],
+          categories: Array.isArray(todo.categories)
+            ? todo.categories.map((cat: any) => (typeof cat === "string" ? cat : cat.id))
+            : [],
+          assignees: Array.isArray(todo.assignees)
+            ? todo.assignees.map((a: any) => (typeof a === "string" ? a : a.user_id))
+            : [],
         };
       }
       return item;

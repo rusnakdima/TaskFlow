@@ -131,19 +131,25 @@
           [fields]="subtaskTableFields"
           [selectedIds]="selectedSubtasks()"
           [showSelection]="true"
+          [dragEnabled]="true"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
+          (dropped)="onSubtaskDrop($event)"
         />
       } @else if (viewMode() === "grid") {
         <div
           class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           cdkDropList
+          cdkDropListOrientation="horizontal"
           [cdkDropListData]="listSubtasks()"
           (cdkDropListDropped)="onSubtaskDrop($event)"
         >
           @for (subtask of listSubtasks(); track subtask.id) {
             <app-subtask
+              cdkDrag
+              [cdkDragData]="subtask"
+              cdkDragPreviewContainer="global"
               [subtask]="subtask"
               [todo_id]="todoId()"
               [index]="$index"
@@ -159,7 +165,12 @@
               (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
               (updateSubtaskEvent)="updateSubtaskInline($event)"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
-            />
+            >
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
+            </app-subtask>
           }
         </div>
       } @else {

@@ -160,6 +160,7 @@ export class BaseItemHelper {
    * Count completed items
    */
   static countCompleted<T extends { status: string }>(items: T[]): number {
+    if (!Array.isArray(items)) return 0;
     return items.filter(
       (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
     ).length;
@@ -204,8 +205,8 @@ export class BaseItemHelper {
     percentage: number;
     color: string;
   }> {
-    // Handle undefined or null items
-    if (!items || items.length === 0) {
+    // Handle undefined or null or non-array items
+    if (!Array.isArray(items) || items.length === 0) {
       return [{ status: TaskStatus.PENDING, percentage: 100, color: "bg-gray-400" }];
     }
 

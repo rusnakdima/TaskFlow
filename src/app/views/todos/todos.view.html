@@ -172,6 +172,7 @@
         [fields]="todoTableFields"
         [selectedIds]="selectedTodos()"
         [showSelection]="true"
+        [dragEnabled]="true"
         [actions]="[
           { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
           { key: 'edit', icon: 'edit', label: 'Edit' },
@@ -181,11 +182,13 @@
         (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"
         (actionClick)="onTableAction($event)"
+        (dropped)="onTodoDrop($event)"
       />
     } @else if (viewMode() === "grid") {
       <div
         class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         cdkDropList
+        cdkDropListOrientation="horizontal"
         [cdkDropListData]="listTodos()"
         (cdkDropListDropped)="onTodoDrop($event)"
       >

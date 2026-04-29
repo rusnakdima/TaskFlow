@@ -277,9 +277,19 @@ export class KanbanView extends BaseListView implements OnInit {
     const todoId = this.selectedTodoId();
     if (!todoId || !taskId) return;
 
+    if (this.isUpdatingOrder()) {
+      this.notifyService.showWarning("Please wait for previous operation to complete");
+      return;
+    }
+
+    this.isUpdatingOrder.set(true);
+
     const { isPrivate, isOwner } = this.selectedTodoMeta();
     const task = this.projectTasks().find((t) => t.id === taskId);
-    if (!task) return;
+    if (!task) {
+      this.isUpdatingOrder.set(false);
+      return;
+    }
 
     this.dataSyncProvider
       .crud<Task>("update", "tasks", {
@@ -291,14 +301,14 @@ export class KanbanView extends BaseListView implements OnInit {
       })
       .subscribe({
         next: (updatedTask) => {
-          // Force reload of project tasks from storage to ensure UI is updated
-          // This is needed because the storage update happens in nested arrays
+          this.isUpdatingOrder.set(false);
           setTimeout(() => {
             this.cdr.detectChanges();
           }, 0);
           this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
         },
         error: (err: any) => {
+          this.isUpdatingOrder.set(false);
           this.notifyService.showError(err.message || "Failed to update task");
           setTimeout(() => {
             this.cdr.detectChanges();
