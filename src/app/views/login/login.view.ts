@@ -35,7 +35,7 @@ import { AuthStore } from "@stores/auth.store";
 import { StorageService } from "@services/core/storage.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-import { CryptoHelper } from "@helpers/crypto.helper";
+import { EncodingHelper } from "@helpers/encoding.helper";
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
 
@@ -392,12 +392,12 @@ export class LoginView implements OnDestroy {
             try {
               const credential = await navigator.credentials.get({
                 publicKey: {
-                  challenge: CryptoHelper.base64ToArrayBuffer(authOptions.options.challenge),
+                  challenge: EncodingHelper.base64ToArrayBuffer(authOptions.options.challenge),
                   timeout: authOptions.options.timeout,
                   rpId: authOptions.options.rpId,
                   allowCredentials: authOptions.options.allowCredentials.map((cred: any) => ({
                     type: cred.type,
-                    id: CryptoHelper.base64ToArrayBuffer(cred.id),
+                    id: EncodingHelper.base64ToArrayBuffer(cred.id),
                     transports: cred.transports,
                   })),
                   userVerification: "required",
@@ -408,7 +408,7 @@ export class LoginView implements OnDestroy {
                 throw new Error("No credential received");
               }
 
-              const signature = CryptoHelper.arrayBufferToBase64(
+              const signature = EncodingHelper.arrayBufferToBase64(
                 (credential as any).response.signature
               );
 

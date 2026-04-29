@@ -17,17 +17,11 @@ import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
-import {
-  CalendarEvent,
-  CalendarDay,
-  getEventColor,
-  getCurrentTitle,
-  getTaskEventTitle,
-  generateCalendarDays,
-  generateWeekDays,
-  getWeeksForMobile,
-} from "@helpers/date.helper";
+import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
 import { DateHelper } from "@helpers/date.helper";
+
+/* views */
+import { BaseListView } from "@views/base-list.view";
 
 /* providers */
 @Component({
@@ -36,33 +30,29 @@ import { DateHelper } from "@helpers/date.helper";
   imports: [CommonModule, RouterModule, MatIconModule, MatDatepickerModule, MatNativeDateModule],
   templateUrl: "./calendar.view.html",
 })
-export class CalendarView implements OnInit {
+export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-
-  constructor() {
-    // Watch for todos data changes and process when data is loaded
-    effect(() => {
-      const todos = this.storageService.todos();
-      if (todos.length > 0) {
-        this.processTodosData(todos);
-      }
-    });
-  }
 
   selectedDate = signal<Date>(new Date());
   currentMonth = signal<Date>(new Date());
   events = signal<CalendarEvent[]>([]);
   filteredEvents = signal<CalendarEvent[]>([]);
 
-  viewMode = signal<"month" | "week">("month");
+  displayMode = signal<"month" | "week">("month");
 
   calendarDays = signal<CalendarDay[]>([]);
   weekDays = signal<CalendarDay[]>([]);
 
-  ngOnInit(): void {
-    this.generateCalendarDays();
+  constructor() {
+    super();
+    effect(() => {
+      const todos = this.storageService.todos();
+      if (todos.length > 0) {
+        this.processTodosData(todos);
+      }
+    });
   }
 
   processTodosData(todos: Array<Todo>): void {
@@ -105,7 +95,7 @@ export class CalendarView implements OnInit {
       }
 
       if (task.end_date) {
-        const statusText = getTaskEventTitle(task.status, task.title);
+        const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
         const status =
           task.status === TaskStatus.COMPLETED
             ? "completed"
@@ -136,20 +126,20 @@ export class CalendarView implements OnInit {
   }
 
   regenerateView(): void {
-    if (this.viewMode() === "month") {
+    if (this.displayMode() === "month") {
       this.generateCalendarDays();
-    } else if (this.viewMode() === "week") {
+    } else if (this.displayMode() === "week") {
       this.generateWeekDays();
     }
   }
 
   generateCalendarDays(): void {
-    const days = generateCalendarDays(this.currentMonth(), this.selectedDate(), this.events());
+    const days = DateHelper.generateCalendarDays(this.currentMonth(), this.selectedDate(), this.events());
     this.calendarDays.set(days);
   }
 
   generateWeekDays(): void {
-    const days = generateWeekDays(this.selectedDate(), this.currentMonth(), this.events());
+    const days = DateHelper.generateWeekDays(this.selectedDate(), this.currentMonth(), this.events());
     this.weekDays.set(days);
   }
 
@@ -170,12 +160,12 @@ export class CalendarView implements OnInit {
   }
 
   previous(): void {
-    if (this.viewMode() === "month") {
+    if (this.displayMode() === "month") {
       this.currentMonth.set(
         new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1)
       );
       this.generateCalendarDays();
-    } else if (this.viewMode() === "week") {
+    } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() - 7);
         return date;
@@ -186,12 +176,12 @@ export class CalendarView implements OnInit {
   }
 
   next(): void {
-    if (this.viewMode() === "month") {
+    if (this.displayMode() === "month") {
       this.currentMonth.set(
         new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1)
       );
       this.generateCalendarDays();
-    } else if (this.viewMode() === "week") {
+    } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() + 7);
         return date;
@@ -209,11 +199,11 @@ export class CalendarView implements OnInit {
   }
 
   formatMonthYear(): string {
-    return getCurrentTitle("month", this.currentMonth(), this.selectedDate());
+    return DateHelper.getCurrentTitle("month", this.currentMonth(), this.selectedDate());
   }
 
   formatWeekRange(): string {
-    return getCurrentTitle("week", this.currentMonth(), this.selectedDate());
+    return DateHelper.getCurrentTitle("week", this.currentMonth(), this.selectedDate());
   }
 
   formatSelectedDate(): string {
@@ -226,15 +216,15 @@ export class CalendarView implements OnInit {
   }
 
   getCurrentTitle(): string {
-    return getCurrentTitle(this.viewMode(), this.currentMonth(), this.selectedDate());
+    return DateHelper.getCurrentTitle(this.displayMode(), this.currentMonth(), this.selectedDate());
   }
 
   getEventColor(event: CalendarEvent): string {
-    return getEventColor(event);
+    return DateHelper.getEventColor(event);
   }
 
   changeViewMode(mode: "month" | "week"): void {
-    this.viewMode.set(mode);
+    this.displayMode.set(mode);
     this.regenerateView();
   }
 
@@ -247,7 +237,7 @@ export class CalendarView implements OnInit {
   }
 
   getWeeksForMobile(): CalendarDay[][] {
-    return getWeeksForMobile(this.calendarDays());
+    return DateHelper.getWeeksForMobile(this.calendarDays());
   }
 
   getDayName(date: Date): string {

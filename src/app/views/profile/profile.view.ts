@@ -40,8 +40,9 @@ export class ProfileView implements OnInit, OnDestroy {
 
   userId: string = "";
 
-  // ✅ FIX: Use computed signal from StorageService
   profile = computed(() => this.storageService.profile());
+  currentUsername = computed(() => this.authService.getValueByKey("username"));
+  currentEmail = computed(() => this.authService.getValueByKey("email"));
 
   // Offline auth signals
   canExportData = signal(false);

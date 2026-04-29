@@ -1,9 +1,8 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, OnDestroy, signal, effect, computed } from "@angular/core";
+import { Component, OnInit, signal, effect, computed, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { Subscription } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -13,11 +12,9 @@ import { Category } from "@models/category.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -51,18 +48,14 @@ import { TableField } from "@components/table-view/table-field.model";
   ],
   templateUrl: "./categories.view.html",
 })
-export class CategoriesView extends BaseListView implements OnInit, OnDestroy {
-  private subscriptions: Subscription = new Subscription();
-  constructor(
-    private authService: AuthService,
-    private storageService: StorageService,
-    private dataSyncProvider: ApiProvider,
-    private notifyService: NotifyService,
-    private dataLoaderService: DataLoaderService,
-    private shortcutService: ShortcutService
-  ) {
+export class CategoriesView extends BaseListView implements OnInit {
+  private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private dataSyncProvider = inject(ApiProvider);
+  private dataLoaderService = inject(DataLoaderService);
+
+  constructor() {
     super();
-    // Watch for categories data changes and load when data is available
     effect(() => {
       const cats = this.storageService.categories();
       if (cats.length > 0) {
@@ -113,17 +106,12 @@ export class CategoriesView extends BaseListView implements OnInit, OnDestroy {
     },
   ];
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
+
     this.userId.set(this.authService.getValueByKey("id"));
     this.pageKey = "categories";
     this.viewMode.set(this.loadViewModePreference());
-
-    // Subscribe to refresh shortcut (Ctrl+R)
-    this.subscriptions.add(
-      this.shortcutService.refresh$.subscribe(() => {
-        this.dataLoaderService.refreshAll();
-      })
-    );
 
     // Subscribe to create category shortcut (Alt + Shift + N)
     this.subscriptions.add(
@@ -131,10 +119,6 @@ export class CategoriesView extends BaseListView implements OnInit, OnDestroy {
         this.toggleCreateForm();
       })
     );
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
   }
 
   loadCategories(): void {

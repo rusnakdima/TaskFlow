@@ -36,7 +36,6 @@ import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
-import { ValidationHelper } from "@helpers/validation.helper";
 
 @Component({
   selector: "app-manage-task",
@@ -72,7 +71,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       title: ["", Validators.required],
       description: [""],
       status: [TaskStatus.PENDING],
-      priority: ["", Validators.required],
+      priority: [PriorityTask.MEDIUM, Validators.required],
       start_date: [""],
       end_date: [""],
       repeat: [RepeatInterval.NONE],
@@ -88,7 +87,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       if (!startDate) {
         endDateControl?.setValue("");
       } else {
-        ValidationHelper.updateEndDateValidation(this.form, startDate);
+        DateHelper.updateEndDateValidation(this.form, startDate);
       }
     });
 
@@ -163,7 +162,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean => {
-    return ValidationHelper.createEndDateFilter("start_date", this.form)(date);
+    return DateHelper.createEndDateFilter("start_date", this.form)(date);
   };
 
   getTaskInfo(taskId?: string) {
@@ -173,7 +172,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
       const localDates = DateHelper.convertDatesFromUtcToLocal(task);
       this.form.patchValue(localDates);
       if (localDates.start_date && localDates.end_date) {
-        ValidationHelper.updateEndDateValidation(this.form, localDates.start_date);
+        DateHelper.updateEndDateValidation(this.form, localDates.start_date);
       }
     } else {
       this.notifyService.showError("Task not found");
@@ -198,11 +197,11 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!ValidationHelper.validateDates(this.form, this.notifyService)) {
+    if (!DateHelper.validateDates(this.form, this.notifyService)) {
       return;
     }
 
-    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
+    if (!DateHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
       return;
     }
 
@@ -215,7 +214,7 @@ export class ManageTaskView implements OnInit, OnDestroy {
   }
 
   validateDates(): boolean {
-    return ValidationHelper.validateDates(this.form, this.notifyService);
+    return DateHelper.validateDates(this.form, this.notifyService);
   }
 
   clearDates() {
@@ -237,9 +236,13 @@ export class ManageTaskView implements OnInit, OnDestroy {
         const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
         const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
         const body = {
-          ...convertedDates,
-          order: tasks.length,
           todo_id: todoId,
+          title: convertedDates.title,
+          description: convertedDates.description || "",
+          priority: convertedDates.priority,
+          start_date: convertedDates.start_date || "",
+          end_date: convertedDates.end_date || "",
+          order: tasks.length,
         };
 
         this.dataSyncProvider
@@ -252,17 +255,8 @@ export class ManageTaskView implements OnInit, OnDestroy {
           .subscribe({
             next: (result: Task) => {
               this.isSubmitting.set(false);
-              this.storageService.addItem("tasks", result);
-              const todoId = this.projectInfo()?.id;
-              if (todoId) {
-                const todo = this.storageService.getById("todos", todoId);
-                if (todo && todo.tasks) {
-                  const updatedTodo = {
-                    ...todo,
-                    tasks: [...(todo.tasks || []), result],
-                  };
-                  this.storageService.updateItem("todos", todoId, updatedTodo);
-                }
+              if (result?.id) {
+                this.storageService.addItem("tasks", result);
               }
               this.notifyService.showSuccess("Task created successfully");
               this.back();
@@ -298,12 +292,22 @@ export class ManageTaskView implements OnInit, OnDestroy {
       const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
       const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
 
-      const { _id, ...updateData } = convertedDates;
+      const body = {
+        id: formValue.id,
+        todo_id: this.projectInfo()?.id,
+        title: convertedDates.title,
+        description: convertedDates.description || "",
+        status: convertedDates.status,
+        priority: convertedDates.priority,
+        start_date: convertedDates.start_date || "",
+        end_date: convertedDates.end_date || "",
+        order: convertedDates.order || 0,
+      };
 
       this.dataSyncProvider
         .crud<Task>("update", "tasks", {
           id: formValue.id,
-          data: updateData,
+          data: body,
           parentTodoId: todoId,
           isPrivate: isPrivate,
         })

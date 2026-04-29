@@ -23,7 +23,6 @@ import { AuthStore } from "@stores/auth.store";
 
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
-import { QrParsingHelper } from "@helpers/qr-parsing.helper";
 
 import jsQR from "jsqr";
 
@@ -61,6 +60,42 @@ export class QrLoginView implements OnDestroy, OnInit {
   mobileQrAnimationFrameId: number | null = null;
 
   username = signal<string>("");
+
+  private parseQrData(qrData: string): { token: string | null; isDesktopTarget: boolean } {
+    if (!qrData) {
+      return { token: null, isDesktopTarget: false };
+    }
+
+    let token: string | null = null;
+    let isDesktopTarget = false;
+
+    try {
+      if (qrData.startsWith("taskflow://qrlogin?data=")) {
+        const dataPart = qrData.replace("taskflow://qrlogin?data=", "");
+        const parsed = JSON.parse(decodeURIComponent(dataPart));
+        token = parsed.t;
+        isDesktopTarget = parsed.d === "desktop";
+      } else if (qrData.includes("t=")) {
+        const params = new URLSearchParams(qrData.replace("taskflow://qrlogin?", ""));
+        token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
+      } else {
+        const parsed = JSON.parse(qrData);
+        token = parsed.t || parsed.token;
+        isDesktopTarget = parsed.d === "desktop";
+      }
+    } catch {
+      try {
+        const params = new URLSearchParams(qrData.split("?")[1] || "");
+        token = params.get("t");
+        isDesktopTarget = params.get("d") === "desktop";
+      } catch {
+        token = null;
+      }
+    }
+
+    return { token, isDesktopTarget };
+  }
 
   ngOnInit(): void {
     const usernameFromRoute = this.route.snapshot.queryParamMap.get("username") || "";
@@ -190,7 +225,7 @@ export class QrLoginView implements OnDestroy, OnInit {
 
     this.stopMobileQrScanning();
 
-    const parsed = QrParsingHelper.parseQrData(qrData);
+    const parsed = this.parseQrData(qrData);
 
     if (!parsed.token) {
       this.notifyService.showError("Invalid QR code");

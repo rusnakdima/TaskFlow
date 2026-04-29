@@ -141,7 +141,7 @@ export class DataManagementView implements OnInit {
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
-  protected bulkActionService = new BulkActionHelper();
+  protected bulkActionService = inject(BulkActionHelper);
 
   mode: "admin" | "archive" = "admin";
   dataMap = signal<any>({});

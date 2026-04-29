@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, OnInit, OnDestroy, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
@@ -11,15 +11,17 @@ import { MatIconModule } from "@angular/material/icon";
 import { Todo } from "@models/todo.model";
 
 /* services */
-import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
 import { StorageService } from "@services/core/storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
+
+/* views */
+import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
@@ -30,23 +32,17 @@ import { TodoComponent } from "@components/todo/todo.component";
   imports: [CommonModule, RouterModule, MatIconModule, DragDropModule, TodoComponent],
   templateUrl: "./shared-tasks.view.html",
 })
-export class SharedTasksView implements OnInit, OnDestroy {
+export class SharedTasksView extends BaseListView implements OnInit {
   private authService = inject(AuthService);
-  private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(ApiProvider);
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
-  private dataSyncService = inject(DataLoaderService);
   private dragDropService = inject(DragDropOrderService);
+  private dataSyncProvider = inject(ApiProvider);
 
   userId = signal("");
-  isOffline = signal(false);
-  private onOnline = () => this.isOffline.set(false);
-  private onOffline = () => this.isOffline.set(true);
 
   myProjects = computed(() => {
     const userId = this.userId();
-    // Only show team projects where user is the owner
     return this.storageService
       .sharedTodos()
       .filter((todo) => todo.user_id === userId && !todo.deleted_at);
@@ -54,7 +50,6 @@ export class SharedTasksView implements OnInit, OnDestroy {
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
-    // Only show team projects where user is NOT the owner but is an assignee
     return this.storageService.sharedTodos().filter((todo) => {
       const isNotOwner = todo.user_id !== userId;
 
@@ -66,27 +61,11 @@ export class SharedTasksView implements OnInit, OnDestroy {
     });
   });
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
-    this.bindOfflineListeners();
     this.loadSharedProjects();
-  }
-
-  ngOnDestroy(): void {
-    this.unbindOfflineListeners();
-  }
-
-  private bindOfflineListeners(): void {
-    if (typeof navigator === "undefined") return;
-    window.addEventListener("online", this.onOnline);
-    window.addEventListener("offline", this.onOffline);
-    this.isOffline.set(!navigator.onLine);
-  }
-
-  private unbindOfflineListeners(): void {
-    window.removeEventListener("online", this.onOnline);
-    window.removeEventListener("offline", this.onOffline);
   }
 
   loadSharedProjects() {
@@ -104,9 +83,8 @@ export class SharedTasksView implements OnInit, OnDestroy {
         .subscribe({
           next: () => {
             this.notifyService.showSuccess("Project deleted successfully");
-            // No need to reload - storage is already updated by archiveTodoWithCascade()
           },
-          error: (err) => {
+          error: (err: any) => {
             this.notifyService.showError(err.message || "Failed to delete project");
           },
         });

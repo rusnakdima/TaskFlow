@@ -90,10 +90,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
-  private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
-  private dataSyncService = inject(DataLoaderService);
-  private shortcutService = inject(ShortcutService);
   private cdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
@@ -140,7 +137,6 @@ export class SubtasksView extends BaseListView implements OnInit {
   /** When set, only this subtask should auto-open its comment block */
   openCommentsForSubtaskId = signal<string | null>(null);
   private routeSub?: Subscription;
-  private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
   selectedSubtasks = this.selectedItems;
@@ -231,7 +227,9 @@ export class SubtasksView extends BaseListView implements OnInit {
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
   ];
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
+
     this.userId = this.authService.getValueByKey("id");
     this.pageKey = "subtasks";
 
@@ -241,15 +239,6 @@ export class SubtasksView extends BaseListView implements OnInit {
     // Initialize bulk action service
     this.bulkService.setMode("subtasks");
     this.bulkService.updateTotalCount(0);
-
-    // Subscribe to refresh shortcut (Ctrl+R)
-    this.subscriptions.add(
-      this.shortcutService.refresh$.subscribe(() => {
-        this.dataSyncService.loadAllData(true).subscribe(() => {
-          this.notifyService.showSuccess("Data refreshed");
-        });
-      })
-    );
 
     // Clear selection when navigating away from this view
     this.subscriptions.add(
@@ -269,17 +258,8 @@ export class SubtasksView extends BaseListView implements OnInit {
           if (queryParams.openComments) {
             this.openCommentsForSubtaskId.set(id);
           }
-          setTimeout(() => {
-            const element = document.getElementById("subtask-" + id);
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "center" });
-              element.classList.add("ring-4", "ring-purple-500", "animate-pulse");
-              setTimeout(() => {
-                element.classList.remove("ring-4", "ring-purple-500", "animate-pulse");
-              }, 2000);
-            }
-            this.highlightSubtask.set(null);
-          }, 500);
+          super.handleHighlightQueryParams(queryParams, "highlightSubtask", "subtask-", "ring-purple-500");
+          this.highlightSubtask.set(null);
         }
         if (queryParams.highlightComment) {
           this.highlightComment.set(queryParams.highlightComment);
@@ -325,10 +305,6 @@ export class SubtasksView extends BaseListView implements OnInit {
         this.loading.set(false);
       }
     }
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
   }
 
   onRowClick(subtask: any): void {

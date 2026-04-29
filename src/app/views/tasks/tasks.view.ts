@@ -101,14 +101,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
-  private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
-  private dataSyncService = inject(DataLoaderService);
-  private shortcutService = inject(ShortcutService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
-  private bulkActionHelper = new BulkActionHelper();
+  private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
   private appStateService = inject(AppStateService);
 
@@ -122,7 +119,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   expandedTasks = signal<Set<string>>(new Set());
   chats = signal<any[]>([]);
   private routeSub?: Subscription;
-  private subscriptions = new Subscription();
   private loadingRelations = signal<Set<string>>(new Set());
 
   // Bulk selection state (like admin page)
@@ -254,7 +250,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
   ];
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
+
     this.userId = this.authService.getValueByKey("id");
     this.pageKey = "tasks";
 
@@ -265,15 +263,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkService.setMode("tasks");
     this.bulkService.updateTotalCount(0);
 
-    // Subscribe to refresh shortcut (Ctrl+R)
-    this.subscriptions.add(
-      this.shortcutService.refresh$.subscribe(() => {
-        this.dataSyncService.loadAllData(true).subscribe(() => {
-          this.notifyService.showSuccess("Data refreshed");
-        });
-      })
-    );
-
     // Clear selection when navigating away from this view
     this.subscriptions.add(
       this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
@@ -283,20 +272,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-        if (queryParams.highlightTaskId) {
-          this.highlightTaskId.set(queryParams.highlightTaskId);
-          setTimeout(() => {
-            const element = document.getElementById("task-" + queryParams.highlightTaskId);
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "center" });
-              element.classList.add("ring-4", "ring-green-500", "animate-pulse");
-              setTimeout(() => {
-                element.classList.remove("ring-4", "ring-green-500", "animate-pulse");
-              }, 2000);
-            }
-            this.highlightTaskId.set(null);
-          }, 500);
-        }
+        super.handleHighlightQueryParams(queryParams, "highlightTaskId", "task-", "ring-green-500");
         if (queryParams.highlightCommentId) {
           this.highlightCommentId.set(queryParams.highlightCommentId);
           this.openComments.set(true);
@@ -317,10 +293,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.loading.set(false);
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
   }
 
   toggleTaskCompletion(task: Task) {
