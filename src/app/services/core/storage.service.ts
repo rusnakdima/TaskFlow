@@ -24,6 +24,7 @@ interface EntityMap {
   profiles: Profile;
   chats: Chat;
   comments: Comment;
+  users: any;
 }
 
 @Injectable({ providedIn: "root" })
@@ -376,6 +377,9 @@ export class StorageService extends BaseStorageService {
   }
 
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
+    if (type === "users") {
+      return this.userSignal()?.id === id ? this.userSignal() as EntityMap[T] : undefined;
+    }
     return this.crudService.getById(type, id);
   }
 
