@@ -15,5 +15,4 @@ import { BaseFieldComponent } from "../base-field.component";
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatSliderModule],
   templateUrl: "./slider.component.html",
 })
-export class SliderComponent extends BaseFieldComponent {
-}
+export class SliderComponent extends BaseFieldComponent {}

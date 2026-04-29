@@ -29,7 +29,6 @@ import { DateHelper } from "@helpers/date.helper";
   templateUrl: "./date-picker.component.html",
 })
 export class DatePickerComponent extends BaseFieldComponent implements OnInit {
-
   dateClass!: (date: Date) => MatCalendarCellCssClasses;
 
   ngOnInit(): void {

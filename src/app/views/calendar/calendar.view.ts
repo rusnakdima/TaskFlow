@@ -134,12 +134,20 @@ export class CalendarView extends BaseListView implements OnInit {
   }
 
   generateCalendarDays(): void {
-    const days = DateHelper.generateCalendarDays(this.currentMonth(), this.selectedDate(), this.events());
+    const days = DateHelper.generateCalendarDays(
+      this.currentMonth(),
+      this.selectedDate(),
+      this.events()
+    );
     this.calendarDays.set(days);
   }
 
   generateWeekDays(): void {
-    const days = DateHelper.generateWeekDays(this.selectedDate(), this.currentMonth(), this.events());
+    const days = DateHelper.generateWeekDays(
+      this.selectedDate(),
+      this.currentMonth(),
+      this.events()
+    );
     this.weekDays.set(days);
   }
 

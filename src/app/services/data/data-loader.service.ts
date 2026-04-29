@@ -382,6 +382,4 @@ export class DataLoaderService {
       this.fetchProfileFromApi(userId);
     }
   }
-
-
 }
