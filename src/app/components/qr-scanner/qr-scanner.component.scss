@@ -1,0 +1,12 @@
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: calc(100% - 4px);
+  }
+}
+
+.animate-scan {
+  animation: scan 2s ease-in-out infinite alternate;
+}

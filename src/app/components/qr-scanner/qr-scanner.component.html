@@ -1,0 +1,101 @@
+<div class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
+  <!-- Back button -->
+  <div class="absolute top-6 left-6 z-20">
+    <button
+      class="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+      (click)="close.emit()"
+    >
+      <mat-icon class="text-white">arrow_back</mat-icon>
+      <span class="font-medium">Cancel</span>
+    </button>
+  </div>
+
+  <!-- Scanner Instructions -->
+  <div class="absolute top-6 left-1/2 z-20 -translate-x-1/2 text-center">
+    <h2 class="text-xl font-semibold text-white">{{ title }}</h2>
+    <p class="mt-1 text-sm text-white/70">{{ subtitle }}</p>
+  </div>
+
+  <!-- Square Scanner Container -->
+  <div class="relative z-10 flex items-center justify-center">
+    <div class="relative h-72 w-72">
+      <!-- Dark overlay with cutout (solid, no blur) -->
+      <div
+        class="absolute inset-0 rounded-2xl"
+        style="box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75)"
+      ></div>
+
+      <!-- Animated scan line -->
+      <div
+        class="animate-scan absolute right-2 left-2 z-10 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+      ></div>
+
+      <!-- Corner indicators -->
+      <div
+        class="absolute top-0 left-0 z-20 h-8 w-8 rounded-tl-xl border-t-4 border-l-4 border-emerald-400"
+      ></div>
+      <div
+        class="absolute top-0 right-0 z-20 h-8 w-8 rounded-tr-xl border-t-4 border-r-4 border-emerald-400"
+      ></div>
+      <div
+        class="absolute bottom-0 left-0 z-20 h-8 w-8 rounded-bl-xl border-b-4 border-l-4 border-emerald-400"
+      ></div>
+      <div
+        class="absolute right-0 bottom-0 z-20 h-8 w-8 rounded-br-xl border-r-4 border-b-4 border-emerald-400"
+      ></div>
+
+      <!-- Video element -->
+      <video
+        #qrVideo
+        class="z-0 h-full w-full rounded-2xl object-cover"
+        autoplay
+        playsinline
+        muted
+      ></video>
+
+      <!-- Loading state -->
+      @if (isLoading()) {
+        <div
+          class="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-black/90"
+        >
+          <div
+            class="h-12 w-12 animate-spin rounded-full border-4 border-emerald-400/30 border-t-emerald-400"
+          ></div>
+          <p class="mt-4 text-sm text-white/70">Opening camera...</p>
+        </div>
+      }
+
+      <!-- Success flash -->
+      @if (isApproved()) {
+        <div
+          class="absolute inset-0 z-10 flex animate-pulse items-center justify-center rounded-2xl bg-emerald-500/30"
+        >
+          <mat-icon class="text-6xl text-emerald-400">check_circle</mat-icon>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Status message -->
+  <div class="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 text-center">
+    @if (status() === "pending") {
+      <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+        <div class="h-2 w-2 animate-pulse rounded-full bg-amber-400"></div>
+        <span class="text-sm text-white/90">{{ statusPendingText }}</span>
+      </div>
+    }
+    @if (status() === "approved") {
+      <div
+        class="flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-2 backdrop-blur-sm"
+      >
+        <mat-icon class="text-emerald-400">check_circle</mat-icon>
+        <span class="text-sm text-emerald-300">{{ statusApprovedText }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Bottom hint -->
+  <div class="absolute bottom-8 left-1/2 z-20 -translate-x-1/2">
+    <p class="text-xs text-white/50">Position the QR code within the frame</p>
+  </div>
+</div>
