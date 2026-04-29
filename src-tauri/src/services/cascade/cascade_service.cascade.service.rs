@@ -461,6 +461,19 @@ impl CascadeService {
           chat_count: 0,
         }
       }
+      "chats" => {
+        provider
+          .patch("chats", id, patch.clone())
+          .await
+          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+        CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 0,
+          comment_count: 0,
+          chat_count: 1,
+        }
+      }
       _ => {
         return Err(err_response_formatted(
           "Unknown table for cascade update",
@@ -477,7 +490,12 @@ impl CascadeService {
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
     let patch = serde_json::json!({ "deleted_at": chrono::Utc::now() });
-    let mut result = Self::cascade_update(&self.json_provider, table, id, patch).await?;
+    let mut result = Self::cascade_update(&self.json_provider, table, id, patch.clone()).await?;
+    self
+      .json_provider
+      .patch(table, id, patch)
+      .await
+      .map_err(|e| err_response_formatted("Patch entity failed", &e.to_string()))?;
     if table == "todos" {
       result.chat_count = self.delete_chats_related_to_todo(id).await?;
     }
@@ -494,7 +512,11 @@ impl CascadeService {
       .as_ref()
       .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
     let patch = serde_json::json!({ "deleted_at": chrono::Utc::now() });
-    let mut result = Self::cascade_update(mongo.as_ref(), table, id, patch).await?;
+    let mut result = Self::cascade_update(mongo.as_ref(), table, id, patch.clone()).await?;
+    mongo
+      .patch(table, id, patch)
+      .await
+      .map_err(|e| err_response_formatted("Patch entity failed", &e.to_string()))?;
     if table == "todos" {
       result.chat_count = self.delete_chats_related_to_todo_mongo(id).await?;
     }
@@ -507,7 +529,12 @@ impl CascadeService {
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
     let patch = serde_json::json!({ "deleted_at": serde_json::Value::Null });
-    let mut result = Self::cascade_update(&self.json_provider, table, id, patch).await?;
+    let mut result = Self::cascade_update(&self.json_provider, table, id, patch.clone()).await?;
+    self
+      .json_provider
+      .patch(table, id, patch)
+      .await
+      .map_err(|e| err_response_formatted("Patch entity failed", &e.to_string()))?;
     Ok(result)
   }
 
@@ -521,7 +548,11 @@ impl CascadeService {
       .as_ref()
       .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
     let patch = serde_json::json!({ "deleted_at": serde_json::Value::Null });
-    let mut result = Self::cascade_update(mongo.as_ref(), table, id, patch).await?;
+    let mut result = Self::cascade_update(mongo.as_ref(), table, id, patch.clone()).await?;
+    mongo
+      .patch(table, id, patch)
+      .await
+      .map_err(|e| err_response_formatted("Patch entity failed", &e.to_string()))?;
     Ok(result)
   }
 

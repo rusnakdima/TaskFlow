@@ -10,7 +10,6 @@ use nosql_orm::{Model, Validate};
 #[soft_delete]
 #[one_to_many("comments", "comments", "subtask_id", "Cascade")]
 #[many_to_one("task", "tasks", "task_id")]
-#[index("task_id", 1)]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]
@@ -22,7 +21,7 @@ pub struct SubtaskEntity {
   pub description: String,
   pub status: crate::entities::task_entity::TaskStatus,
   #[validate(not_empty)]
-  #[validate(pattern("^(low|medium|high|urgent)$"))]
+  #[validate(pattern("^(low|medium|high)$"))]
   pub priority: String,
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,
@@ -46,7 +45,7 @@ pub struct SubtaskCreateModel {
   pub title: String,
   pub description: Option<String>,
   #[validate(not_empty)]
-  #[validate(pattern("^(low|medium|high|urgent)$"))]
+  #[validate(pattern("^(low|medium|high)$"))]
   pub priority: String,
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,
