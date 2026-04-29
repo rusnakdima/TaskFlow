@@ -63,7 +63,6 @@ import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
-import { ValidationHelper } from "@helpers/validation.helper";
 
 @Component({
   selector: "app-manage-todo",
@@ -302,9 +301,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   getFilteredUsers() {
     if (!this.userSearchQuery()) return this.availableProfiles();
     return this.availableProfiles().filter((p: Profile) =>
-      `${p.name} ${p.last_name} ${p.user?.email || ""}`
-        .toLowerCase()
-        .includes(this.userSearchQuery().toLowerCase())
+      `${p.name} ${p.last_name}`.toLowerCase().includes(this.userSearchQuery().toLowerCase())
     );
   }
 
@@ -408,7 +405,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!ValidationHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
+    if (!DateHelper.validateForm(this.form, this.notifyService, this.isSubmitting())) {
       return;
     }
     this.isSubmitting.set(true);
@@ -506,8 +503,16 @@ export class ManageTodoView implements OnInit, OnDestroy {
       const formValue = this.form.value;
       const categories = formValue.categories ?? [];
       const assignees = formValue.assignees ?? [];
+      const normalizedFormValue = DateHelper.normalizeDateFields(formValue);
+      const convertedDates = DateHelper.convertDatesToUtc(normalizedFormValue);
+
       const body = {
-        ...DateHelper.convertDatesToUtc(DateHelper.normalizeDateFields(formValue)),
+        id: formValue.id,
+        user_id: convertedDates.user_id,
+        title: convertedDates.title,
+        description: convertedDates.description,
+        start_date: convertedDates.start_date || "",
+        end_date: convertedDates.end_date || "",
         priority: formValue.priority || "medium",
         categories: Array.isArray(categories)
           ? categories.map((c: Category) => c?.id).filter(Boolean)
@@ -516,15 +521,14 @@ export class ManageTodoView implements OnInit, OnDestroy {
           ? assignees.map((p: Profile) => p?.user_id).filter(Boolean)
           : [],
         visibility: formValue.visibility as "private" | "team",
+        order: convertedDates.order || 0,
       };
 
       const newVisibility = formValue.visibility as "private" | "team";
       const visibilityChanged = this.isPrivate !== (newVisibility === "private");
       const todoId = body.id;
-
-      // Determine sync metadata based on ownership
       const isOwner = formValue.user_id === this.userId();
-      const syncMetadata = { isOwner, isPrivate: newVisibility === "private" };
+      const isPrivate = newVisibility === "private";
 
       // ✅ MongoDB sync FIRST - update local storage only on success
       this.dataSyncProvider
@@ -532,7 +536,8 @@ export class ManageTodoView implements OnInit, OnDestroy {
           id: body.id,
           data: body,
           parentTodoId: body.id,
-          ...syncMetadata,
+          isOwner,
+          isPrivate,
           load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({
@@ -570,5 +575,5 @@ export class ManageTodoView implements OnInit, OnDestroy {
   }
 
   endDateFilter = (date: Date | null): boolean =>
-    ValidationHelper.createEndDateFilter("startDate", this.form)(date);
+    DateHelper.createEndDateFilter("startDate", this.form)(date);
 }

@@ -6,7 +6,6 @@ import {
   effect,
   computed,
   inject,
-  OnDestroy,
   ChangeDetectorRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -31,11 +30,14 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { ApiProvider } from "@providers/api.provider";
-import { WebSocketService } from "@services/core/websocket.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { StorageService } from "@services/core/storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
+
+/* views */
+import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
@@ -58,13 +60,11 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
   ],
   templateUrl: "./kanban.view.html",
 })
-export class KanbanView implements OnInit, OnDestroy {
+export class KanbanView extends BaseListView implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private dataSyncProvider = inject(ApiProvider);
-  private ws = inject(WebSocketService);
-  private notifyService = inject(NotifyService);
   private dragDropService = inject(KanbanDragDropService);
   private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
@@ -73,7 +73,6 @@ export class KanbanView implements OnInit, OnDestroy {
 
   TaskStatus = TaskStatus;
 
-  // Use storage signals directly for source data — both private and team todos
   todos = computed(() => this.storageService.todos().filter((todo) => !todo.deleted_at));
 
   selectedTodo = computed(() => {
@@ -91,11 +90,9 @@ export class KanbanView implements OnInit, OnDestroy {
   });
 
   selectedTodoId = signal<string>("");
-  loading = signal<boolean>(false);
   expandedTasks = signal<Set<string>>(new Set());
 
   userId = signal<string>("");
-  searchQuery = signal<string>("");
 
   private isUpdatingOrder = signal<boolean>(false);
 
@@ -135,6 +132,7 @@ export class KanbanView implements OnInit, OnDestroy {
   ];
 
   constructor() {
+    super();
     effect(() => {
       const todos = this.todos();
       if (todos.length > 0 && !this.selectedTodoId()) {
@@ -148,19 +146,15 @@ export class KanbanView implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
     this.userId.set(this.authService.getValueByKey("id"));
 
-    // Handle projectId query param for deep linking
     this.routeSub = this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
       }
     });
-  }
-
-  ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
   }
 
   toggleExpandTask(task: Task) {
@@ -247,19 +241,14 @@ export class KanbanView implements OnInit, OnDestroy {
     });
   }
 
-  onSearchChange(query: string) {
-    this.searchQuery.set(query);
-  }
-
   clearSearch() {
     this.searchQuery.set("");
   }
 
-  // Delegate UI helper methods to BaseItemHelper
   getColumnColorClass = BaseItemHelper.getColumnColorClass;
   getAssigneeColor = BaseItemHelper.getAssigneeColor;
   getInitials = BaseItemHelper.getInitials;
-  formatDate = BaseItemHelper.formatDate;
+  formatDate = DateHelper.formatDateShort;
   getTaskProgressPercentage = BaseItemHelper.getTaskProgressPercentage;
   getProgressSegments = BaseItemHelper.getProgressSegments;
   getConnectedDropLists = (currentColumnId: string) =>

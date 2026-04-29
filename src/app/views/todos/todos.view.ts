@@ -8,7 +8,6 @@ import {
   signal,
   inject,
   computed,
-  OnDestroy,
   HostListener,
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
@@ -20,7 +19,7 @@ import {
   DragDropModule,
   DragRef,
 } from "@angular/cdk/drag-drop";
-import { Subscription, forkJoin } from "rxjs";
+import { forkJoin } from "rxjs";
 import { filter } from "rxjs/operators";
 
 /* materials */
@@ -92,31 +91,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
-  private shortcutService = inject(ShortcutService);
   private dragDropService = inject(DragDropOrderService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
-  private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
-  private dataSyncService = inject(DataLoaderService);
-
-  constructor() {
-    super();
-  }
 
   // State
   todos = this.storageService.todos;
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
-  isOffline = signal(false);
   showStats = signal(false);
-  private onOnline = () => this.isOffline.set(false);
-  private onOffline = () => this.isOffline.set(true);
-  private routeSub?: Subscription;
-  private subscriptions = new Subscription();
 
   // Bulk selection state (like admin page)
   selectedTodos = this.selectedItems;
@@ -222,19 +209,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }));
   }
 
-  ngOnInit(): void {
+  override ngOnInit(): void {
+    super.ngOnInit();
+
     this.userId.set(this.authService.getValueByKey("id"));
     this.pageKey = this.isSharedMode() ? "shared-tasks" : "todos";
 
     // Load view mode preference
     this.viewMode.set(this.loadViewModePreference());
-
-    // Online/offline detection for shared mode
-    if (typeof window !== "undefined") {
-      window.addEventListener("online", this.onOnline);
-      window.addEventListener("offline", this.onOffline);
-      this.isOffline.set(!navigator.onLine);
-    }
 
     // Initialize bulk action service
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
@@ -242,15 +224,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.isSharedMode()
         ? this.storageService.sharedTodos().length
         : this.storageService.privateTodos().length
-    );
-
-    // Subscribe to refresh shortcut (Ctrl+R)
-    this.subscriptions.add(
-      this.shortcutService.refresh$.subscribe(() => {
-        this.dataSyncService.loadAllData(true).subscribe(() => {
-          this.notifyService.showSuccess("Data refreshed");
-        });
-      })
     );
 
     // Clear selection when navigating away from this view
@@ -263,20 +236,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     // Handle highlight from query params
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-        if (queryParams.highlightTodoId) {
-          this.highlightTodoId.set(queryParams.highlightTodoId);
-          setTimeout(() => {
-            const element = document.getElementById("todo-" + queryParams.highlightTodoId);
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "center" });
-              element.classList.add("ring-4", "ring-blue-500", "animate-pulse");
-              setTimeout(() => {
-                element.classList.remove("ring-4", "ring-blue-500", "animate-pulse");
-              }, 2000);
-            }
-            this.highlightTodoId.set(null);
-          }, 500);
-        }
+        super.handleHighlightQueryParams(queryParams, "highlightTodoId", "todo-", "ring-blue-500");
       })
     );
 
