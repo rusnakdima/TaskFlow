@@ -77,6 +77,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   role = signal("");
 
   profile = computed(() => this.storageService.profile());
+  userEmail = computed(() => this.authService.getValueByKey("email"));
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
 

@@ -29,7 +29,7 @@ import { ApiProvider } from "@providers/api.provider";
   imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: "./category-form.component.html",
 })
-export class CategoryFormComponent implements OnInit, OnDestroy, OnChanges {
+export class CategoryFormComponent implements OnInit, OnChanges {
   constructor(
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,

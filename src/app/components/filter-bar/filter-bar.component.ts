@@ -141,11 +141,6 @@ export class FilterBarComponent {
     this.searchChange.emit(query);
   }
 
-  onSearchInputChange(query: string) {
-    this.searchQuery = query;
-    this.searchChange.emit(query);
-  }
-
   closeSidebar() {
     this.showFilter = false;
     this.filterToggle.emit();

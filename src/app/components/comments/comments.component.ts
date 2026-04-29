@@ -25,6 +25,7 @@ import { Comment } from "@models/comment.model";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
 import { AuthService } from "@services/auth/auth.service";
 
 @Component({
@@ -172,7 +173,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   }
 
   formatDate(date: string) {
-    return BaseItemHelper.formatDate(date);
+    return DateHelper.formatDateShort(date);
   }
 
   get currentUserId() {
