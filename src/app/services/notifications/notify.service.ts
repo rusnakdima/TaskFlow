@@ -321,7 +321,7 @@ export class NotifyService implements OnDestroy {
   // ==================== NOTIFICATION EVENT HANDLING ====================
 
   /**
-   * Handle notification events from WebSocketService
+   * Handle notification events
    */
   handleNotificationEvent(event: string, data: any): void {
     this.addNotificationEvent(event, data);

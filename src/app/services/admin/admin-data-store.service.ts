@@ -16,6 +16,7 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { BaseStorageService } from "@services/core/base-storage.service";
 import { AdminDataService, AdminDataWithRelations } from "@services/core/admin-data.service";
+import { StorageSignalMap } from "@models/storage-signal-map.model";
 
 @Injectable({
   providedIn: "root",
@@ -35,7 +36,7 @@ export class AdminDataStoreService extends BaseStorageService {
 
   private readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
 
-  readonly signalMap: Record<string, WritableSignal<any[]>> = {
+  readonly signalMap: StorageSignalMap = {
     todos: this.todosSignal,
     tasks: this.tasksSignal,
     subtasks: this.subtasksSignal,
@@ -75,14 +76,6 @@ export class AdminDataStoreService extends BaseStorageService {
 
   protected override isCacheValid(): boolean {
     return super.isCacheValid(this.CACHE_EXPIRY_MS);
-  }
-
-  private hasData(): boolean {
-    return (
-      this.todosSignal().length > 0 ||
-      this.tasksSignal().length > 0 ||
-      this.categoriesSignal().length > 0
-    );
   }
 
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {

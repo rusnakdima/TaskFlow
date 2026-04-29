@@ -140,7 +140,10 @@ export class VisibilitySyncService {
           isOwner: true,
           isPrivate,
         })
-        .pipe(catchError(() => of(null)))
+        .pipe(catchError((error) => {
+          console.error("[VisibilitySync] Error:", error);
+          return of(null);
+        }))
     );
 
     const taskSyncPromises: Promise<void>[] = [];
@@ -157,7 +160,10 @@ export class VisibilitySyncService {
               isOwner: true,
               isPrivate,
             })
-            .pipe(catchError(() => of(null)))
+            .pipe(catchError((error) => {
+              console.error("[VisibilitySync] Error:", error);
+              return of(null);
+            }))
         ).then(() => {
           this.syncProgressService.updateProgress(
             this.syncProgressService.completedItems() + 1,
@@ -177,7 +183,10 @@ export class VisibilitySyncService {
                 isOwner: true,
                 isPrivate,
               })
-              .pipe(catchError(() => of(null)))
+              .pipe(catchError((error) => {
+                console.error("[VisibilitySync] Error:", error);
+                return of(null);
+              }))
           ).then(() => {
             this.syncProgressService.updateProgress(
               this.syncProgressService.completedItems() + 1,
@@ -197,7 +206,10 @@ export class VisibilitySyncService {
                 isOwner: true,
                 isPrivate,
               })
-              .pipe(catchError(() => of(null)))
+              .pipe(catchError((error) => {
+                console.error("[VisibilitySync] Error:", error);
+                return of(null);
+              }))
           ).then(() => {
             this.syncProgressService.updateProgress(
               this.syncProgressService.completedItems() + 1,
@@ -219,7 +231,10 @@ export class VisibilitySyncService {
                   isOwner: true,
                   isPrivate,
                 })
-                .pipe(catchError(() => of(null)))
+                .pipe(catchError((error) => {
+                  console.error("[VisibilitySync] Error:", error);
+                  return of(null);
+                }))
             ).then(() => {
               this.syncProgressService.updateProgress(
                 this.syncProgressService.completedItems() + 1,
@@ -244,7 +259,10 @@ export class VisibilitySyncService {
               isOwner: true,
               isPrivate,
             })
-            .pipe(catchError(() => of(null)))
+            .pipe(catchError((error) => {
+              console.error("[VisibilitySync] Error:", error);
+              return of(null);
+            }))
         ).then(() => {
           this.syncProgressService.updateProgress(
             this.syncProgressService.completedItems() + 1,
@@ -285,7 +303,10 @@ export class VisibilitySyncService {
           isOwner: !isPrivate,
           isPrivate,
         })
-        .pipe(catchError(() => of(null)))
+        .pipe(catchError((error) => {
+          console.error("[VisibilitySync] Error:", error);
+          return of(null);
+        }))
     );
 
     if (!cloudTodo) {

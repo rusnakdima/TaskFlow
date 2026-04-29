@@ -9,7 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { PasskeyService } from "@services/auth/passkey.service";
-import { BufferHelper } from "@helpers/buffer.helper";
+import { EncodingHelper } from "@helpers/encoding.helper";
 import { AuthResponse } from "@models/auth-forms.model";
 
 export interface TotpSetupResult {
