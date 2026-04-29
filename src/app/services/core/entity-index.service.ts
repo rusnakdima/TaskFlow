@@ -42,10 +42,12 @@ export class EntityIndexService {
     this.subtaskToTaskIndex.clear();
     const allTodos = [...privateTodos, ...sharedTodos];
     for (const todo of allTodos) {
-      for (const task of todo.tasks || []) {
+      const tasks = Array.isArray(todo.tasks) ? todo.tasks : [];
+      for (const task of tasks) {
         if (task.id) {
           this.taskToTodoIndex.set(task.id, todo.id);
-          for (const subtask of task.subtasks || []) {
+          const subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+          for (const subtask of subtasks) {
             if (subtask.id) {
               this.subtaskToTaskIndex.set(subtask.id, task.id);
             }

@@ -28,7 +28,7 @@ export class EntityLookupService {
     }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
-      if (todo.tasks?.some((t: Task) => t.id === task_id)) {
+      if ((Array.isArray(todo.tasks) ? todo.tasks : []).some((t: Task) => t.id === task_id)) {
         return todo.id;
       }
     }
@@ -41,8 +41,12 @@ export class EntityLookupService {
     }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
-      for (const task of todo.tasks || []) {
-        if (task.subtasks?.some((s: Subtask) => s.id === subtask_id)) {
+      for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+        if (
+          (Array.isArray(task.subtasks) ? task.subtasks : []).some(
+            (s: Subtask) => s.id === subtask_id
+          )
+        ) {
           return task.id;
         }
       }
@@ -56,6 +60,28 @@ export class EntityLookupService {
     } else {
       return this.lookupTaskId(id);
     }
+  }
+
+  findEntityInTodos(
+    todos: Todo[],
+    id: string
+  ): { found: boolean; todoId: string | null; taskId: string | null } {
+    for (const todo of todos) {
+      if (
+        this.entityType === "tasks" &&
+        (Array.isArray(todo.tasks) ? todo.tasks : []).some((t) => t.id === id)
+      ) {
+        return { found: true, todoId: todo.id, taskId: null };
+      }
+      if (this.entityType === "subtasks") {
+        for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+          if ((Array.isArray(task.subtasks) ? task.subtasks : []).some((s) => s.id === id)) {
+            return { found: true, todoId: todo.id, taskId: task.id };
+          }
+        }
+      }
+    }
+    return { found: false, todoId: null, taskId: null };
   }
 
   getEntityById(id: string): NestedEntity | undefined {
@@ -72,12 +98,15 @@ export class EntityLookupService {
 
   scanForEntityInSignal(todos: Todo[], id: string): ScanResult {
     for (const todo of todos) {
-      if (this.entityType === "tasks" && todo.tasks?.some((t) => t.id === id)) {
+      if (
+        this.entityType === "tasks" &&
+        (Array.isArray(todo.tasks) ? todo.tasks : []).some((t) => t.id === id)
+      ) {
         return { found: true, todoId: todo.id, taskId: null };
       }
       if (this.entityType === "subtasks") {
-        for (const task of todo.tasks || []) {
-          if (task.subtasks?.some((s) => s.id === id)) {
+        for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+          if ((Array.isArray(task.subtasks) ? task.subtasks : []).some((s) => s.id === id)) {
             return { found: true, todoId: todo.id, taskId: task.id };
           }
         }
@@ -88,10 +117,12 @@ export class EntityLookupService {
 
   private findEntityInTodo(todo: Todo, id: string): NestedEntity | undefined {
     if (this.entityType === "tasks") {
-      return todo.tasks?.find((t) => t.id === id) as NestedEntity;
+      return (Array.isArray(todo.tasks) ? todo.tasks : []).find((t) => t.id === id) as NestedEntity;
     } else {
-      for (const task of todo.tasks || []) {
-        const found = task.subtasks?.find((s) => s.id === id) as NestedEntity;
+      for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+        const found = (Array.isArray(task.subtasks) ? task.subtasks : []).find(
+          (s) => s.id === id
+        ) as NestedEntity;
         if (found) return found;
       }
     }
