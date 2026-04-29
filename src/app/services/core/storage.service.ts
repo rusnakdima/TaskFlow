@@ -75,25 +75,33 @@ export class StorageService extends BaseStorageService {
   readonly sharedTodos = this.sharedTodosComputed;
   readonly todos = this.todosComputed;
   readonly tasks = computed(() =>
-    this.todos().flatMap((todo) => (todo.tasks || []).filter((task) => !task.deleted_at))
+    this.todos().flatMap((todo) =>
+      (Array.isArray(todo.tasks) ? todo.tasks : []).filter((task) => !task.deleted_at)
+    )
   );
   readonly subtasks = computed(() =>
-    this.tasks().flatMap((task) => (task.subtasks || []).filter((subtask) => !subtask.deleted_at))
+    this.tasks().flatMap((task) =>
+      (Array.isArray(task.subtasks) ? task.subtasks : []).filter((subtask) => !subtask.deleted_at)
+    )
   );
   readonly comments = computed(() => {
     const todos = this.todos();
     const allComments: Comment[] = [];
     todos.forEach((todo) => {
-      todo.tasks?.forEach((task) => {
-        if (task.comments) {
-          allComments.push(...task.comments);
-        }
-        task.subtasks?.forEach((subtask) => {
-          if (subtask.comments) {
-            allComments.push(...subtask.comments);
+      if (Array.isArray(todo.tasks)) {
+        todo.tasks.forEach((task) => {
+          if (Array.isArray(task.comments)) {
+            allComments.push(...task.comments);
+          }
+          if (Array.isArray(task.subtasks)) {
+            task.subtasks.forEach((subtask) => {
+              if (Array.isArray(subtask.comments)) {
+                allComments.push(...subtask.comments);
+              }
+            });
           }
         });
-      });
+      }
     });
     return allComments;
   });
@@ -164,14 +172,15 @@ export class StorageService extends BaseStorageService {
   // ==================== PUBLIC GETTERS ====================
   getTasksByTodoId(todo_id?: string): Task[] {
     const todo = this.todos().find((t) => t.id === todo_id);
-    return todo?.tasks || [];
+    return Array.isArray(todo?.tasks) ? todo.tasks : [];
   }
 
   getSubtasksByTaskId(task_id?: string): Subtask[] {
     for (const todo of [...this.privateTodosSignal(), ...this.sharedTodosSignal()]) {
-      for (const task of todo.tasks || []) {
+      const tasks = Array.isArray(todo.tasks) ? todo.tasks : [];
+      for (const task of tasks) {
         if (task.id === task_id) {
-          return task.subtasks || [];
+          return Array.isArray(task.subtasks) ? task.subtasks : [];
         }
       }
     }
@@ -378,7 +387,7 @@ export class StorageService extends BaseStorageService {
 
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
     if (type === "users") {
-      return this.userSignal()?.id === id ? this.userSignal() as EntityMap[T] : undefined;
+      return this.userSignal()?.id === id ? (this.userSignal() as EntityMap[T]) : undefined;
     }
     return this.crudService.getById(type, id);
   }

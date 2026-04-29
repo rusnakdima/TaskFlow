@@ -103,7 +103,7 @@ export class StorageCrudService {
   private updateIndexesForEntity(type: StorageEntity, data: any): void {
     if (!data || !data.id) return;
 
-    if (type === "todos" && data.id && data.tasks) {
+    if (type === "todos" && data.id && Array.isArray(data.tasks)) {
       for (const task of data.tasks) {
         if (task.id) {
           this.entityIndexService.setTaskToTodoIndex(task.id, data.id);
@@ -163,7 +163,9 @@ export class StorageCrudService {
 
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
     if (type === "users") return undefined;
-    return this.handlers[type as keyof typeof this.handlers]?.getById(id) as EntityMap[T] | undefined;
+    return this.handlers[type as keyof typeof this.handlers]?.getById(id) as
+      | EntityMap[T]
+      | undefined;
   }
 
   get handlersMap() {
