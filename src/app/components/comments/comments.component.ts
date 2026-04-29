@@ -22,6 +22,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Comment } from "@models/comment.model";
+import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -36,6 +37,7 @@ import { AuthService } from "@services/auth/auth.service";
 })
 export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked {
   private authService = inject(AuthService);
+  private storageService = inject(StorageService);
 
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
@@ -183,7 +185,7 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
   isUnread(comment: Comment): boolean {
     const userId = this.currentUserId;
     if (!userId) return false;
-    if (comment.author_id === userId) return false;
+    if (comment.user_id === userId) return false;
     return !comment.read_by || !comment.read_by.includes(userId);
   }
 
@@ -198,5 +200,14 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
 
   deleteComment(commentId: string) {
     this.deleteCommentEvent.emit(commentId);
+  }
+
+  getUsername(userId: string): string {
+    const user = this.storageService.getById("users", userId);
+    if (user?.username) return user.username;
+    if (user?.email) return user.email;
+    const currentUser = this.storageService.user();
+    if (currentUser?.id === userId && currentUser?.username) return currentUser.username;
+    return this.authService.getValueByKey("username") || "User";
   }
 }

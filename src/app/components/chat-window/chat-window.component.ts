@@ -234,12 +234,10 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     if (!this.newMessage.trim()) return;
 
     const currentUserId = this.authService.getValueByKey("id") || "";
-    const username = this.authService.getValueByKey("username") || "User";
 
     const chatForBackend: ChatCreate = {
       todo_id: this.todo_id,
       user_id: currentUserId,
-      author_name: username,
       content: this.newMessage,
     };
 
@@ -300,6 +298,15 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     this.dataSync
       .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todo_id }, true)
       .subscribe();
+  }
+
+  getUsername(userId: string): string {
+    const user = this.storageService.getById("users", userId);
+    if (user?.username) return user.username;
+    if (user?.email) return user.email;
+    const currentUser = this.storageService.user();
+    if (currentUser?.id === userId && currentUser?.username) return currentUser.username;
+    return this.authService.getValueByKey("username") || "User";
   }
 
   canDelete(chat: Chat): boolean {

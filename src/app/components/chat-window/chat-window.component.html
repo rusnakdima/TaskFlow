@@ -47,7 +47,7 @@
             (click)="close.emit()"
             class="cursor-pointer text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
           >
-            {{ chat.author_name }}
+            {{ getUsername(chat.user_id) }}
           </a>
           <span class="text-[10px] text-gray-400">
             {{ chat.created_at | date: "shortTime" }}
