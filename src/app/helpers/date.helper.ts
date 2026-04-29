@@ -41,17 +41,6 @@ export class DateHelper {
     };
   }
 
-  static createTodayDateClass(): (date: Date) => MatCalendarCellCssClasses {
-    return (date: Date): MatCalendarCellCssClasses => {
-      const today = new Date();
-      return date.getDate() === today.getDate() &&
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear()
-        ? "today-marker"
-        : "";
-    };
-  }
-
   static convertLocalToUtc(date: Date | string | null | undefined): string {
     if (!date) return "";
 
@@ -383,15 +372,17 @@ export class DateHelper {
       }
     }
   }
-}
 
-export const generateCalendarDays = DateHelper.generateCalendarDays;
-export const generateWeekDays = DateHelper.generateWeekDays;
-export const getWeeksForMobile = DateHelper.getWeeksForMobile;
-export const isSameDay = DateHelper.isSameDay;
-export const getEventColor = DateHelper.getEventColor;
-export const formatMonthYear = DateHelper.formatMonthYear;
-export const formatWeekRange = DateHelper.formatWeekRange;
-export const getCurrentTitle = DateHelper.getCurrentTitle;
-export const getTaskStatusText = DateHelper.getTaskStatusText;
-export const getTaskEventTitle = DateHelper.getTaskEventTitle;
+  static validateForm(form: FormGroup, notifyService: any, isSubmitting: boolean = false): boolean {
+    if (form.invalid || isSubmitting) {
+      Object.values(form.controls).forEach((control) => {
+        control.markAsTouched();
+      });
+      if (form.invalid) {
+        notifyService.showError("Please fill in all required fields");
+      }
+      return false;
+    }
+    return true;
+  }
+}

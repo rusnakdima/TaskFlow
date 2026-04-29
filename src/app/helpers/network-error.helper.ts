@@ -36,7 +36,6 @@ export class NetworkErrorHelper {
       lowerMessage.includes("connection refused") ||
       lowerMessage.includes("connection reset") ||
       lowerMessage.includes("network request failed") ||
-      lowerMessage.includes("websocket") ||
       lowerMessage.includes("timeout") ||
       lowerMessage.includes("load failed") ||
       lowerMessage.includes("err_connection") ||
@@ -157,21 +156,4 @@ export class NetworkErrorHelper {
 
     return baseMessage + "\n\nPlease check:\n" + steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
   }
-}
-
-// Standalone function exports for convenience
-export function isNetworkError(error: unknown): boolean {
-  return NetworkErrorHelper.isNetworkError(error);
-}
-
-export function isMongoConnectionError(error: unknown): boolean {
-  return NetworkErrorHelper.isMongoConnectionError(error);
-}
-
-export function isAuthenticationError(error: unknown): boolean {
-  return NetworkErrorHelper.isAuthenticationError(error);
-}
-
-export function getNetworkErrorMessage(error: unknown): string {
-  return NetworkErrorHelper.getNetworkErrorMessage(error);
 }

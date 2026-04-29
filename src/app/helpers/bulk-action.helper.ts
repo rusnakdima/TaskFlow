@@ -1,8 +1,9 @@
 /* sys lib */
+import { Injectable } from "@angular/core";
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 
-import { StorageUpdateHelper, ArchiveDataMap } from "./storage-update.helper";
+import { StorageUpdateService } from "@services/core/storage-update.service";
 
 /**
  * Bulk operation result interface
@@ -18,8 +19,9 @@ export interface BulkOperationResult {
  *
  * Provides reusable methods for bulk update, delete, and status changes
  */
+@Injectable({ providedIn: "root" })
 export class BulkActionHelper {
-  private storageUpdateHelper = new StorageUpdateHelper();
+  constructor(private storageUpdateService: StorageUpdateService) {}
   /**
    * Bulk update field for multiple items
    */
@@ -144,22 +146,5 @@ export class BulkActionHelper {
    */
   isAllSelected<T extends { id: string }>(selected: Set<string>, items: T[]): boolean {
     return selected.size === items.length && items.length > 0;
-  }
-
-  removeRecordWithCascade(data: ArchiveDataMap, table: string, recordId: string): ArchiveDataMap {
-    return this.storageUpdateHelper.removeRecordWithCascade(data, table, recordId);
-  }
-
-  getCascadeChildIds(restoredRecord: any): { taskIds: string[]; subtaskIds: string[] } {
-    return this.storageUpdateHelper.getCascadeChildIds(restoredRecord);
-  }
-
-  restoreRecordWithCascade(
-    data: ArchiveDataMap,
-    table: string,
-    restoredRecord: any,
-    recordId: string
-  ): ArchiveDataMap {
-    return this.storageUpdateHelper.restoreRecordWithCascade(data, table, restoredRecord, recordId);
   }
 }
