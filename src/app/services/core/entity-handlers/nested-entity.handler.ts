@@ -71,15 +71,18 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         const operation = new AddOperation<Task>(data as Task);
         return {
           ...todo,
-          tasks: operation.execute(todo.tasks || []),
+          tasks: operation.execute(Array.isArray(todo.tasks) ? todo.tasks : []),
           updatedAt: new Date().toISOString(),
         };
       } else {
         // For subtasks, find the task and add to its subtasks
-        const updatedTasks = todo.tasks?.map((task) => {
+        const updatedTasks = (Array.isArray(todo.tasks) ? todo.tasks : [])?.map((task) => {
           if (task.id !== parentId) return task;
           const operation = new AddOperation<Subtask>(data as Subtask);
-          return { ...task, subtasks: operation.execute(task.subtasks || []) };
+          return {
+            ...task,
+            subtasks: operation.execute(Array.isArray(task.subtasks) ? task.subtasks : []),
+          };
         });
         return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
@@ -134,12 +137,15 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
     id: string
   ): { found: boolean; todoId: string | null; taskId: string | null } {
     for (const todo of todos) {
-      if (this.entityType === "tasks" && todo.tasks?.some((t) => t.id === id)) {
+      if (
+        this.entityType === "tasks" &&
+        (Array.isArray(todo.tasks) ? todo.tasks : []).some((t) => t.id === id)
+      ) {
         return { found: true, todoId: todo.id, taskId: null };
       }
       if (this.entityType === "subtasks") {
-        for (const task of todo.tasks || []) {
-          if (task.subtasks?.some((s) => s.id === id)) {
+        for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+          if ((Array.isArray(task.subtasks) ? task.subtasks : []).some((s) => s.id === id)) {
             return { found: true, todoId: todo.id, taskId: task.id };
           }
         }
@@ -161,15 +167,19 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         ...t,
         tasks:
           this.entityType === "tasks"
-            ? (t.tasks?.map((task) => (task.id === id ? { ...task, ...updates } : task)) ?? [])
-            : (t.tasks?.map((tk) =>
+            ? (Array.isArray(t.tasks) ? t.tasks : []).map((task) =>
+                task.id === id ? { ...task, ...updates } : task
+              )
+            : (Array.isArray(t.tasks) ? t.tasks : []).map((tk) =>
                 tk.id === taskId
                   ? {
                       ...tk,
-                      subtasks: tk.subtasks?.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+                      subtasks: (Array.isArray(tk.subtasks) ? tk.subtasks : []).map((s) =>
+                        s.id === id ? { ...s, ...updates } : s
+                      ),
                     }
                   : tk
-              ) ?? []),
+              ),
         updatedAt: new Date().toISOString(),
       }),
       todoId
@@ -187,14 +197,17 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         const operation = new UpdateOperation<Task>(id, updates);
         return {
           ...todo,
-          tasks: operation.execute(todo.tasks || []),
+          tasks: operation.execute(Array.isArray(todo.tasks) ? todo.tasks : []),
           updatedAt: new Date().toISOString(),
         };
       } else {
-        const updatedTasks = todo.tasks?.map((task) => {
+        const updatedTasks = (Array.isArray(todo.tasks) ? todo.tasks : []).map((task) => {
           if (task.id !== entityId) return task;
           const operation = new UpdateOperation<Subtask>(id, updates);
-          return { ...task, subtasks: operation.execute(task.subtasks || []) };
+          return {
+            ...task,
+            subtasks: operation.execute(Array.isArray(task.subtasks) ? task.subtasks : []),
+          };
         });
         return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
@@ -219,14 +232,17 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
         const operation = new RemoveOperation<Task>(id);
         return {
           ...todo,
-          tasks: operation.execute(todo.tasks || []),
+          tasks: operation.execute(Array.isArray(todo.tasks) ? todo.tasks : []),
           updatedAt: new Date().toISOString(),
         };
       } else {
-        const updatedTasks = todo.tasks?.map((task) => {
+        const updatedTasks = (Array.isArray(todo.tasks) ? todo.tasks : []).map((task) => {
           if (task.id !== entityId) return task;
           const operation = new RemoveOperation<Subtask>(id);
-          return { ...task, subtasks: operation.execute(task.subtasks || []) };
+          return {
+            ...task,
+            subtasks: operation.execute(Array.isArray(task.subtasks) ? task.subtasks : []),
+          };
         });
         return { ...todo, tasks: updatedTasks || [], updatedAt: new Date().toISOString() };
       }
@@ -283,10 +299,12 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
 
   private findEntityInTodo(todo: Todo, id: string): T | undefined {
     if (this.entityType === "tasks") {
-      return todo.tasks?.find((t) => t.id === id) as T;
+      return (Array.isArray(todo.tasks) ? todo.tasks : []).find((t) => t.id === id) as T;
     } else {
-      for (const task of todo.tasks || []) {
-        const found = task.subtasks?.find((s) => s.id === id) as T;
+      for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+        const found = (Array.isArray(task.subtasks) ? task.subtasks : []).find(
+          (s) => s.id === id
+        ) as T;
         if (found) return found;
       }
     }
@@ -294,9 +312,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
   }
 
   private getParentId(data: T): string | null {
-    const id = this.entityType === "tasks"
-      ? (data as any).todo_id
-      : (data as any).task_id;
+    const id = this.entityType === "tasks" ? (data as any).todo_id : (data as any).task_id;
 
     if (!id) {
     }
@@ -309,7 +325,7 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
     }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
-      if (todo.tasks?.some((t: Task) => t.id === task_id)) {
+      if ((Array.isArray(todo.tasks) ? todo.tasks : []).some((t: Task) => t.id === task_id)) {
         return todo.id;
       }
     }
@@ -322,8 +338,12 @@ export class NestedEntityHandler<T extends NestedEntity> extends EntityHandler<T
     }
     const todos = [...this.privateSignal(), ...this.sharedSignal()];
     for (const todo of todos) {
-      for (const task of todo.tasks || []) {
-        if (task.subtasks?.some((s: Subtask) => s.id === subtask_id)) {
+      for (const task of Array.isArray(todo.tasks) ? todo.tasks : []) {
+        if (
+          (Array.isArray(task.subtasks) ? task.subtasks : []).some(
+            (s: Subtask) => s.id === subtask_id
+          )
+        ) {
           return task.id;
         }
       }
