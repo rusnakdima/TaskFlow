@@ -48,7 +48,7 @@ impl Reflection {
         Projection::exclude(&fields)
       }
       "profiles" => {
-        let fields = vec!["user"];
+        let fields = vec![];
         Projection::exclude(&fields)
       }
       "users" => {
