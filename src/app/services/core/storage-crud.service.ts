@@ -28,6 +28,7 @@ interface EntityMap {
   profiles: Profile;
   chats: Chat;
   comments: Comment;
+  users: any;
 }
 
 @Injectable({ providedIn: "root" })
@@ -94,8 +95,9 @@ export class StorageCrudService {
   }
 
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
+    if (type === "users") return;
     this.updateIndexesForEntity(type, data);
-    this.handlers[type]?.add(data);
+    this.handlers[type as keyof typeof this.handlers]?.add(data);
   }
 
   private updateIndexesForEntity(type: StorageEntity, data: any): void {
@@ -143,23 +145,25 @@ export class StorageCrudService {
         this.handlers[type]?.update(id, updates, {
           getCategoryById: (catId: string) => categoriesSignal().find((c) => c.id === catId),
         });
-      } else {
-        this.handlers[type]?.update(id, updates);
+      } else if (type !== "users") {
+        this.handlers[type as keyof typeof this.handlers]?.update(id, updates);
       }
     }
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
+    if (type === "users") return;
     if (type === "tasks") {
       this.entityIndexService.deleteTaskIndex(id);
     } else if (type === "subtasks") {
       this.entityIndexService.deleteSubtaskIndex(id);
     }
-    this.handlers[type]?.remove(id, parentId);
+    this.handlers[type as keyof typeof this.handlers]?.remove(id, parentId);
   }
 
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
-    return this.handlers[type]?.getById(id) as EntityMap[T] | undefined;
+    if (type === "users") return undefined;
+    return this.handlers[type as keyof typeof this.handlers]?.getById(id) as EntityMap[T] | undefined;
   }
 
   get handlersMap() {
