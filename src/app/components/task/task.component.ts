@@ -48,8 +48,7 @@ import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 
 interface CommentAction {
-  author_id: string;
-  author_name: string;
+  user_id: string;
   content: string;
   task_id?: string;
   subtask_id?: string;
@@ -221,7 +220,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
           const updatedComments = subtask.comments.map((c: Comment) => {
             if (c.deleted_at || !c.subtask_id) return c;
-            if (c.author_id === userId) return c;
+            if (c.user_id === userId) return c;
 
             if (!c.read_by || !c.read_by.includes(userId)) {
               hasUpdates = true;
@@ -248,7 +247,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           if (effectiveTodoId) {
             const allSubtaskComments = updatedSubtasks.flatMap((s: Subtask) =>
               (s.comments || []).filter(
-                (c: Comment) => !c.deleted_at && c.subtask_id && c.author_id !== userId
+                (c: Comment) => !c.deleted_at && c.subtask_id && c.user_id !== userId
               )
             );
 
@@ -316,8 +315,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       }
 
       const commentForBackend: CommentAction = {
-        author_id: userId,
-        author_name: username || "Unknown",
+        user_id: userId,
         content: content,
         task_id: this.task.id,
         read_by: [userId],
@@ -355,8 +353,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     }
 
     const commentForBackend: CommentAction = {
-      author_id: userId,
-      author_name: username || "Unknown",
+      user_id: userId,
       content,
       subtask_id: subtask_id,
       read_by: [userId],
@@ -448,7 +445,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const commentsToUpdate = updatedSubtasks
       .find((s: Subtask) => s.id === subtask_id)
       ?.comments?.filter(
-        (c: Comment) => commentIds.includes(c.id) && !c.deleted_at && c.author_id !== userId
+        (c: Comment) => commentIds.includes(c.id) && !c.deleted_at && c.user_id !== userId
       );
 
     if (commentsToUpdate && commentsToUpdate.length > 0) {

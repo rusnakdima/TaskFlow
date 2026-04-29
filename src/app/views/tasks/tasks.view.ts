@@ -210,7 +210,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       count += subtask.comments.filter((c: any) => {
         if (c.deleted_at) return false;
         // Skip if user is the author (they've read their own comment)
-        if (c.author_id === userId) return false;
+        if (c.user_id === userId) return false;
         if (c.read_by && c.read_by.includes(userId)) return false;
         // Only count subtask comments (must have subtaskId)
         if (!c.subtask_id) return false;

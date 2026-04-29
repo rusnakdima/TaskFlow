@@ -121,14 +121,14 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
           (c: any) =>
             !c.deleted_at &&
             c.subtask_id &&
-            c.author_id !== userId &&
+            c.user_id !== userId &&
             (!c.read_by || !c.read_by.includes(userId))
         );
 
         if (hasUnread) {
           const updatedComments = this.subtask.comments.map((c: any) => {
             if (c.deleted_at || !c.subtask_id) return c;
-            if (c.author_id === userId) return c;
+            if (c.user_id === userId) return c;
 
             if (!c.read_by || !c.read_by.includes(userId)) {
               return {
@@ -148,8 +148,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
             this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
           if (effectiveTodoId) {
             const commentsToUpdate = updatedComments.filter(
-              (c: any) =>
-                !c.deleted_at && c.subtask_id === this.subtask?.id && c.author_id !== userId
+              (c: any) => !c.deleted_at && c.subtask_id === this.subtask?.id && c.user_id !== userId
             );
 
             if (commentsToUpdate.length > 0) {
@@ -181,8 +180,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       }
 
       const commentForBackend: any = {
-        author_id: userId,
-        author_name: username || "Unknown",
+        user_id: userId,
         content: content,
         subtask_id: this.subtask.id,
         read_by: [userId],
