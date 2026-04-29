@@ -8,6 +8,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from "@angular/core";
+import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -22,7 +23,7 @@ import { TableField } from "./table-field.model";
 @Component({
   selector: "app-table-view",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, MatButtonModule, CheckboxComponent, DragDropModule],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -38,12 +39,14 @@ export class TableViewComponent {
     { key: "delete", icon: "delete", label: "Delete" },
   ];
   @Input() expandColumn = false;
+  @Input() dragEnabled = false;
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() selectAll = new EventEmitter<void>();
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
   @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
+  @Output() dropped = new EventEmitter<CdkDragDrop<any[]>>();
 
   sortField = signal<string>("");
   sortDirection = signal<"asc" | "desc">("asc");
@@ -158,6 +161,11 @@ export class TableViewComponent {
 
   onActionClick(action: string, item: any): void {
     this.actionClick.emit({ action, item });
+  }
+
+  onDropped(event: CdkDragDrop<any[]>): void {
+    if (!this.dragEnabled) return;
+    this.dropped.emit(event);
   }
 
   getPriorityClass(priority: string): string {

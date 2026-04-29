@@ -169,6 +169,7 @@ export class ShortcutService implements OnDestroy {
         }
       }
     };
+    window.addEventListener("keydown", this.keydownHandler);
   }
 
   private handleNewAction() {

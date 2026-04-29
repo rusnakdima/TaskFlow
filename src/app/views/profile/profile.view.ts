@@ -41,8 +41,8 @@ export class ProfileView implements OnInit, OnDestroy {
   userId: string = "";
 
   profile = computed(() => this.storageService.profile());
-  currentUsername = computed(() => this.authService.getValueByKey("username"));
-  currentEmail = computed(() => this.authService.getValueByKey("email"));
+  currentUsername = computed(() => this.storageService.profile()?.user?.username || "");
+  currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
 
   // Offline auth signals
   canExportData = signal(false);
@@ -309,7 +309,7 @@ export class ProfileView implements OnInit, OnDestroy {
    * Approve desktop login via QR code
    */
   private approveQrLogin(token: string): void {
-    const username = this.authService.getValueByKey("username");
+    const username = this.storageService.profile()?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in to approve QR login");
       return;
@@ -362,8 +362,9 @@ export class ProfileView implements OnInit, OnDestroy {
    * Show QR code for mobile login (desktop scans this to login)
    */
   async showMyQrCode(): Promise<void> {
-    const username = this.authService.getValueByKey("username");
-    if (!username) {
+    const username = this.storageService.profile()?.user?.username;
+    const userId = this.authService.getValueByKey("id");
+    if (!username || !userId) {
       this.notifyService.showError("You must be logged in to show QR code");
       return;
     }
@@ -374,7 +375,7 @@ export class ProfileView implements OnInit, OnDestroy {
           token: string;
           qrCode: string;
           expiresAt: number;
-        }>("qr_generate_for_desktop", { username })
+        }>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
           next: (data) => {
             this.myQrCode.set(data.qrCode);
@@ -404,7 +405,7 @@ export class ProfileView implements OnInit, OnDestroy {
    * Complete desktop login when mobile scans desktop's QR
    */
   private completeDesktopLoginFromMobileScan(token: string): void {
-    const username = this.authService.getValueByKey("username");
+    const username = this.storageService.profile()?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in");
       return;

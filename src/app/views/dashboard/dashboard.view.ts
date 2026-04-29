@@ -80,7 +80,7 @@ export class DashboardView implements OnInit {
     // Map tasks from all todos
     const allTasks: { task: Task; todo: Todo }[] = [];
     todos.forEach((todo) => {
-      if (todo.tasks) {
+      if (Array.isArray(todo.tasks)) {
         todo.tasks.forEach((task) => {
           allTasks.push({ task, todo });
         });

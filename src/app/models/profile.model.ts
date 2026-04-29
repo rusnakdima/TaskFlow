@@ -1,3 +1,5 @@
+import { User } from "./user.model";
+
 export interface Profile {
   id: string;
   name: string;
@@ -6,6 +8,7 @@ export interface Profile {
   image_url: string;
   original_image_url?: string;
   user_id: string;
+  user?: User;
   created_at: string;
   updated_at: string;
 }

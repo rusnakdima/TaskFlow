@@ -509,11 +509,11 @@ div.mdc-checkbox {
 
 /* Vertical lists (subtasks) can animate siblings */
 .cdk-drag-animating {
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  transition: none !important;
 }
 
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  transition: none !important;
 }
 
 /* Drag handle */

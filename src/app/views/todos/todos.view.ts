@@ -161,12 +161,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   // Only counts comments where user is NOT the author AND hasn't read
   getTodoUnreadCommentsCount(todo: Todo): number {
     const userId = this.authService.getValueByKey("id");
-    if (!userId || !todo.tasks || todo.tasks.length === 0) return 0;
+    const tasks = Array.isArray(todo.tasks) ? todo.tasks : [];
+    if (!userId || tasks.length === 0) return 0;
 
     let count = 0;
-    for (const task of todo.tasks) {
-      if (!task.comments || task.comments.length === 0) continue;
-      count += task.comments.filter((c: any) => {
+    for (const task of tasks) {
+      const comments = Array.isArray(task.comments) ? task.comments : [];
+      if (comments.length === 0) continue;
+      count += comments.filter((c: any) => {
         // Skip deleted comments
         if (c.deleted_at) return false;
         // Skip if user is the author (they've read their own comment)
@@ -463,7 +465,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
    * Check if todo is completed
    */
   isCompleted(todo: Todo): boolean {
-    const listTasks = todo?.tasks ?? [];
+    const listTasks = Array.isArray(todo?.tasks) ? todo.tasks : [];
     if (listTasks.length === 0) return false;
     const listCompletedTasks = listTasks.filter(
       (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED

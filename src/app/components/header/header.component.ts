@@ -74,10 +74,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   subtitle = signal("");
   iconUrl = signal("");
   userId = signal("");
-  role = signal("");
 
   profile = computed(() => this.storageService.profile());
-  userEmail = computed(() => this.authService.getValueByKey("email"));
+  userEmail = computed(() => this.storageService.profile()?.user?.email || "");
+  role = computed(() => this.storageService.profile()?.user?.role || "");
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
 
@@ -95,7 +95,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.themeVal.set(localStorage.getItem("theme") ?? "");
     this.userId.set(this.authService.getValueByKey("id"));
-    this.role.set(this.authService.getValueByKey("role"));
 
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
