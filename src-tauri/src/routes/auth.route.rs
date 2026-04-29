@@ -279,14 +279,15 @@ pub async fn qr_generate(
     .await
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn qr_generate_for_desktop(
   state: State<'_, AppState>,
   username: String,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .qr_auth_service
-    .generate_qr_token_for_desktop_login(&username)
+    .generate_qr_token_for_desktop_login(&username, &user_id)
     .await
 }
 

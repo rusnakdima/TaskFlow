@@ -27,6 +27,75 @@ fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
     .collect()
 }
 
+impl ManageDbService {
+  async fn upsert_to_json(&self, collection: &str, item: Value) -> bool {
+    let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
+      Some(id) => id,
+      None => {
+        tracing::warn!(
+          "[Import] Missing id field in item for collection {}",
+          collection
+        );
+        return false;
+      }
+    };
+    let existing = self
+      .json_provider
+      .find_by_id(collection, &id)
+      .await
+      .ok()
+      .flatten();
+    let is_update = existing.is_some();
+    let result = if is_update {
+      self.json_provider.update(collection, &id, item).await
+    } else {
+      self.json_provider.insert(collection, item).await
+    };
+    if let Err(e) = result {
+      tracing::warn!(
+        "[Import] Failed to {} {} in import_{}: {}",
+        if is_update { "update" } else { "insert" },
+        id,
+        collection,
+        e
+      );
+      return false;
+    }
+    true
+  }
+
+  async fn upsert_to_mongo(&self, mongo: &MongoProvider, collection: &str, item: Value) -> bool {
+    let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
+      Some(id) => id,
+      None => {
+        tracing::warn!(
+          "[Export] Missing id field in item for collection {}",
+          collection
+        );
+        return false;
+      }
+    };
+    let existing = mongo.find_by_id(collection, &id).await.ok().flatten();
+    let is_update = existing.is_some();
+    let result = if is_update {
+      mongo.update(collection, &id, item).await
+    } else {
+      mongo.insert(collection, item).await
+    };
+    if let Err(e) = result {
+      tracing::warn!(
+        "[Export] Failed to {} {} in export_{}: {}",
+        if is_update { "update" } else { "insert" },
+        id,
+        collection,
+        e
+      );
+      return false;
+    }
+    true
+  }
+}
+
 /// ManageDbService - Facade for database management operations
 pub struct ManageDbService {
   pub json_provider: JsonProvider,
@@ -66,8 +135,7 @@ impl ManageDbService {
       let count = users.len();
       tracing::info!("[Import] Found {} users", count);
       for item in users {
-        if let Err(e) = self.json_provider.insert("users", item).await {
-          tracing::warn!("[Import] Failed to insert user in import_users: {}", e);
+        if !self.upsert_to_json("users", item).await {
           return 0;
         }
       }
@@ -85,11 +153,7 @@ impl ManageDbService {
       let count = profiles.len();
       tracing::info!("[Import] Found {} profiles", count);
       for item in profiles {
-        if let Err(e) = self.json_provider.insert("profiles", item).await {
-          tracing::warn!(
-            "[Import] Failed to insert profile in import_profiles: {}",
-            e
-          );
+        if !self.upsert_to_json("profiles", item).await {
           return 0;
         }
       }
@@ -108,8 +172,7 @@ impl ManageDbService {
       let count = todos.len();
       tracing::info!("[Import] Found {} todos", count);
       for item in todos {
-        if let Err(e) = self.json_provider.insert("todos", item).await {
-          tracing::warn!("[Import] Failed to insert todo in import_todos: {}", e);
+        if !self.upsert_to_json("todos", item).await {
           return 0;
         }
       }
@@ -127,11 +190,7 @@ impl ManageDbService {
       let count = categories.len();
       tracing::info!("[Import] Found {} categories", count);
       for item in categories {
-        if let Err(e) = self.json_provider.insert("categories", item).await {
-          tracing::warn!(
-            "[Import] Failed to insert category in import_categories: {}",
-            e
-          );
+        if !self.upsert_to_json("categories", item).await {
           return 0;
         }
       }
@@ -149,11 +208,7 @@ impl ManageDbService {
       let count = activities.len();
       tracing::info!("[Import] Found {} activities", count);
       for item in activities {
-        if let Err(e) = self.json_provider.insert("daily_activities", item).await {
-          tracing::warn!(
-            "[Import] Failed to insert activity in import_activities: {}",
-            e
-          );
+        if !self.upsert_to_json("daily_activities", item).await {
           return 0;
         }
       }
@@ -183,9 +238,7 @@ impl ManageDbService {
         {
           let tasks = filter_not_deleted(tasks);
           for item in tasks {
-            if let Err(e) = self.json_provider.insert("tasks", item).await {
-              tracing::warn!("[Import] Failed to insert task in import_tasks: {}", e);
-            } else {
+            if self.upsert_to_json("tasks", item).await {
               count += 1;
             }
           }
@@ -229,12 +282,7 @@ impl ManageDbService {
             {
               let subtasks = filter_not_deleted(subtasks);
               for item in subtasks {
-                if let Err(e) = self.json_provider.insert("subtasks", item).await {
-                  tracing::warn!(
-                    "[Import] Failed to insert subtask in import_subtasks: {}",
-                    e
-                  );
-                } else {
+                if self.upsert_to_json("subtasks", item).await {
                   count += 1;
                 }
               }
@@ -262,7 +310,7 @@ impl ManageDbService {
     {
       let count = items.len();
       for item in items {
-        if self.json_provider.insert(collection, item).await.is_ok() {
+        if self.upsert_to_json(collection, item).await {
           return count;
         }
       }
@@ -310,8 +358,7 @@ impl ManageDbService {
       let count = users.len();
       tracing::info!("[Export] Found {} users", count);
       for item in users {
-        if let Err(e) = mongo.insert("users", item).await {
-          tracing::warn!("[Export] Failed to insert user in export_users: {}", e);
+        if !self.upsert_to_mongo(mongo, "users", item).await {
           return 0;
         }
       }
@@ -330,11 +377,7 @@ impl ManageDbService {
       let count = profiles.len();
       tracing::info!("[Export] Found {} profiles", count);
       for item in profiles {
-        if let Err(e) = mongo.insert("profiles", item).await {
-          tracing::warn!(
-            "[Export] Failed to insert profile in export_profiles: {}",
-            e
-          );
+        if !self.upsert_to_mongo(mongo, "profiles", item).await {
           return 0;
         }
       }
@@ -354,8 +397,7 @@ impl ManageDbService {
       let count = todos.len();
       tracing::info!("[Export] Found {} todos", count);
       for item in todos {
-        if let Err(e) = mongo.insert("todos", item).await {
-          tracing::warn!("[Export] Failed to insert todo in export_todos: {}", e);
+        if !self.upsert_to_mongo(mongo, "todos", item).await {
           return 0;
         }
       }
@@ -374,11 +416,7 @@ impl ManageDbService {
       let count = categories.len();
       tracing::info!("[Export] Found {} categories", count);
       for item in categories {
-        if let Err(e) = mongo.insert("categories", item).await {
-          tracing::warn!(
-            "[Export] Failed to insert category in export_categories: {}",
-            e
-          );
+        if !self.upsert_to_mongo(mongo, "categories", item).await {
           return 0;
         }
       }
@@ -397,11 +435,7 @@ impl ManageDbService {
       let count = activities.len();
       tracing::info!("[Export] Found {} activities", count);
       for item in activities {
-        if let Err(e) = mongo.insert("daily_activities", item).await {
-          tracing::warn!(
-            "[Export] Failed to insert activity in export_activities: {}",
-            e
-          );
+        if !self.upsert_to_mongo(mongo, "daily_activities", item).await {
           return 0;
         }
       }
@@ -433,9 +467,7 @@ impl ManageDbService {
         {
           let tasks = filter_not_deleted(tasks);
           for item in tasks {
-            if let Err(e) = mongo.insert("tasks", item).await {
-              tracing::warn!("[Export] Failed to insert task in export_tasks: {}", e);
-            } else {
+            if self.upsert_to_mongo(mongo, "tasks", item).await {
               count += 1;
             }
           }
@@ -482,12 +514,7 @@ impl ManageDbService {
             {
               let subtasks = filter_not_deleted(subtasks);
               for item in subtasks {
-                if let Err(e) = mongo.insert("subtasks", item).await {
-                  tracing::warn!(
-                    "[Export] Failed to insert subtask in export_subtasks: {}",
-                    e
-                  );
-                } else {
+                if self.upsert_to_mongo(mongo, "subtasks", item).await {
                   count += 1;
                 }
               }
@@ -631,7 +658,7 @@ impl ManageDbService {
     {
       if let Some(cat) = categories.first() {
         if let Some(mongo) = &self.mongodb_provider {
-          let _ = mongo.insert("categories", cat.clone()).await;
+          let _ = self.upsert_to_mongo(mongo, "categories", cat.clone()).await;
         }
       }
     }
@@ -650,7 +677,7 @@ impl ManageDbService {
         .await
       {
         if let Some(cat) = categories.first() {
-          let _ = self.json_provider.insert("categories", cat.clone()).await;
+          let _ = self.upsert_to_json("categories", cat.clone()).await;
         }
       }
     }
