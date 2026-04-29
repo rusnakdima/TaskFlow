@@ -25,6 +25,7 @@ const QR_TOKEN_TTL_SECS: i64 = 90;
 pub struct QrToken {
   pub id: String,
   pub username: Option<String>,
+  pub user_id: Option<String>,
   pub created_at: i64,
   pub expires_at: i64,
   pub approved: bool,
@@ -71,6 +72,7 @@ impl QrAuthService {
     let qr_token = QrToken {
       id: token.clone(),
       username: username.map(|s| s.to_string()),
+      user_id: None,
       created_at: now,
       expires_at: now + QR_TOKEN_TTL_SECS,
       approved: false,
@@ -167,6 +169,12 @@ impl QrAuthService {
       updated_token.username = Some(approving_username.to_string());
     }
 
+    if updated_token.user_id.is_none() {
+      if let Some(user_id) = self.find_user_id_by_username(approving_username).await {
+        updated_token.user_id = Some(user_id);
+      }
+    }
+
     self.save_qr_token(&updated_token).await?;
 
     eprintln!(
@@ -175,6 +183,38 @@ impl QrAuthService {
     );
 
     Ok(success_response("QR code approved"))
+  }
+
+  async fn find_user_id_by_username(&self, username: &str) -> Option<String> {
+    let table_name = TableModelType::User.table_name();
+    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
+
+    if let Ok(users) = self
+      .json_provider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+    {
+      if let Some(user) = users.first() {
+        if let Ok(user_entity) = serde_json::from_value::<UserEntity>(user.clone()) {
+          return user_entity.id;
+        }
+      }
+    }
+
+    if let Some(mongo) = &self.mongodb_provider {
+      if let Ok(users) = mongo
+        .find_many(table_name, Some(&filter), None, None, None, true)
+        .await
+      {
+        if let Some(user) = users.first() {
+          if let Ok(user_entity) = serde_json::from_value::<UserEntity>(user.clone()) {
+            return user_entity.id;
+          }
+        }
+      }
+    }
+
+    None
   }
 
   pub async fn get_qr_status(&self, token: &str) -> Result<ResponseModel, ResponseModel> {
@@ -222,6 +262,7 @@ impl QrAuthService {
   pub async fn generate_qr_token_for_desktop_login(
     &self,
     username: &str,
+    user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let token = self.generate_token();
     let now = chrono::Utc::now().timestamp();
@@ -229,6 +270,7 @@ impl QrAuthService {
     let qr_token = QrToken {
       id: token.clone(),
       username: Some(username.to_string()),
+      user_id: Some(user_id.to_string()),
       created_at: now,
       expires_at: now + QR_TOKEN_TTL_SECS,
       approved: true,
@@ -415,30 +457,20 @@ impl QrAuthService {
       return Err(err_response("QR code has expired"));
     }
 
-    let username = qr_token
-      .username
-      .ok_or_else(|| err_response("QR token has no username"))?;
+    let user_id = qr_token
+      .user_id
+      .ok_or_else(|| err_response("QR token has no user_id"))?;
 
-    // Try local JSON database first
+    // Try local JSON database first - find by user_id
     let table_name = TableModelType::User.table_name();
-    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
 
-    let user_val = match self
-      .json_provider
-      .find_many(table_name, Some(&filter), None, None, None, true)
-      .await
-    {
-      Ok(mut users) => {
-        if users.is_empty() {
-          None
-        } else {
-          Some(users.remove(0))
-        }
-      }
+    let user_val = match self.json_provider.find_by_id(table_name, &user_id).await {
+      Ok(Some(user)) => Some(user),
+      Ok(None) => None,
       Err(_) => None,
     };
 
-    // Fall back to MongoDB
+    // Fall back to MongoDB - find by user_id
     let user_val = if let Some(val) = user_val {
       val
     } else {
@@ -446,19 +478,24 @@ impl QrAuthService {
         .mongodb_provider
         .as_ref()
         .ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
-      let mut users = mongo
-        .find_many(table_name, Some(&filter), None, None, None, true)
-        .await
-        .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-      users
-        .pop()
-        .ok_or_else(|| err_response(&format!("User '{}' not found in database", username)))?
+      match mongo.find_by_id(table_name, &user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+          return Err(err_response(&format!(
+            "User '{}' not found in database",
+            user_id
+          )));
+        }
+        Err(e) => {
+          return Err(err_response(&format!("Database error: {}", e)));
+        }
+      }
     };
 
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
-    let user_id = user.id().to_string();
+    let username = user.username.clone();
 
     // Generate JWT token
     let token = self.token_service.generate_token(&user_id, "", "")?;

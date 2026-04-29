@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable } from "rxjs";
 import { ApiProvider } from "@providers/api.provider";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 export type QrStatus = "pending" | "approved" | "expired";
 
@@ -28,6 +29,7 @@ export interface QrStatusResult {
 })
 export class QrLoginService implements OnDestroy {
   private dataSyncProvider = inject(ApiProvider);
+  private jwtTokenService = inject(JwtTokenService);
 
   private pollSubscription: Subscription | null = null;
 
@@ -61,9 +63,10 @@ export class QrLoginService implements OnDestroy {
   }
 
   generateQrCodeForDesktopLogin(username: string): Observable<QrGenerationResult> {
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
     return new Observable((observer) => {
       this.dataSyncProvider
-        .invokeCommand<QrGenerationResult>("qr_generate_for_desktop", { username })
+        .invokeCommand<QrGenerationResult>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
           next: (data) => {
             this.currentQrData.set({
