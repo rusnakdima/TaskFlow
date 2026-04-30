@@ -1,14 +1,13 @@
 /* sys lib */
-use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
 /* nosql_orm */
 use nosql_orm::cache::QueryCache;
 use nosql_orm::cdc::ChangeCapture;
-use nosql_orm::providers::{JsonProvider, MongoProvider};
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
-use nosql_orm::relations::{get_relation_def, RelationLoader};
+use nosql_orm::relations::{get_collection_relations, RelationLoader};
 
 /* entities */
 use crate::entities::{
@@ -26,6 +25,9 @@ use crate::helpers::{
 };
 
 /* services */
+use crate::providers::data_provider::DataProvider;
+use crate::providers::json_provider::JsonProvider;
+use crate::providers::mongodb_provider::MongoProvider;
 use crate::services::activity_monitor_service::ActivityMonitorService;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
@@ -45,6 +47,22 @@ pub struct RepositoryService {
 }
 
 impl RepositoryService {
+  fn get_provider(
+    &self,
+    table: &str,
+    sync_metadata: Option<&SyncMetadata>,
+  ) -> Result<DataProvider, ResponseModel> {
+    if self.use_json_provider(table, sync_metadata) {
+      Ok(DataProvider::Json(&self.json_provider))
+    } else {
+      self
+        .mongodb_provider
+        .as_ref()
+        .ok_or_else(|| err_response("MongoDB not available"))
+        .map(|p| DataProvider::Mongo(p.as_ref()))
+    }
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     json_provider: JsonProvider,
@@ -192,59 +210,6 @@ impl RepositoryService {
     docs
   }
 
-  fn _add_collection_metadata_to_relations(
-    &self,
-    docs: &mut [Value],
-    source_collection: &str,
-    loaded_path: &str,
-  ) {
-    let segments: Vec<&str> = loaded_path.split('.').collect();
-    if segments.is_empty() {
-      return;
-    }
-
-    let mut current_collection = source_collection.to_string();
-    for &segment in &segments[..segments.len() - 1] {
-      if let Some(rel_def) = get_relation_def(current_collection.as_str(), segment) {
-        current_collection = rel_def.target_collection.clone();
-      } else {
-        return;
-      }
-    }
-
-    let target_relation = segments.last().unwrap();
-    if let Some(rel_def) = get_relation_def(current_collection.as_str(), target_relation) {
-      let target_coll = rel_def.target_collection.as_str();
-      self._add_metadata_at_path(docs, &segments, target_coll);
-    }
-  }
-
-  fn _add_metadata_at_path(&self, docs: &mut [Value], path_segments: &[&str], target_coll: &str) {
-    if path_segments.is_empty() {
-      for doc in docs.iter_mut() {
-        if let Some(obj) = doc.as_object_mut() {
-          obj.insert(
-            "_collection".to_string(),
-            Value::String(target_coll.to_string()),
-          );
-        }
-      }
-    } else {
-      let field = path_segments[0];
-      for doc in docs.iter_mut() {
-        if let Some(obj) = doc.as_object_mut() {
-          if let Some(field_val) = obj.get_mut(field) {
-            if let Some(arr) = field_val.as_array_mut() {
-              let mut items = arr.clone();
-              self._add_metadata_at_path(&mut items, &path_segments[1..], target_coll);
-              *arr = items;
-            }
-          }
-        }
-      }
-    }
-  }
-
   async fn capture_change(&self, operation: &str, table: &str, id: &str, data: Value) {
     if let Some(ref cdc) = self.cdc_service {
       let change = match operation {
@@ -269,20 +234,41 @@ impl RepositoryService {
     table: &str,
     sync_metadata: Option<&SyncMetadata>,
   ) -> bool {
-    let write_ops = [
-      "create",
-      "update",
-      "delete",
-      "permanent-delete",
-      "soft-delete-cascade",
-      "restore-cascade",
-      "restore",
-      "updateAll",
-    ];
-    if !write_ops.contains(&operation) {
-      return false;
+    matches!(
+      operation,
+      "create"
+        | "update"
+        | "delete"
+        | "permanent-delete"
+        | "soft-delete-cascade"
+        | "restore-cascade"
+        | "restore"
+        | "updateAll"
+    ) && !self.use_json_provider(table, sync_metadata)
+  }
+
+  fn sync_meta_for_json(sync_metadata: &Option<SyncMetadata>) -> Option<SyncMetadata> {
+    sync_metadata.as_ref().map(|m| SyncMetadata {
+      is_private: m.is_private,
+      is_owner: m.is_owner,
+      visibility: m.visibility.clone(),
+    })
+  }
+
+  async fn queue_offline_sync(
+    &self,
+    operation: String,
+    table: String,
+    record_id: Option<String>,
+    data: Option<Value>,
+    filter: Option<Value>,
+    sync_metadata: Option<SyncMetadata>,
+  ) {
+    if let Some(ref queue_service) = self.offline_queue_service {
+      let _ = queue_service
+        .queue_request(operation, table, record_id, data, filter, sync_metadata)
+        .await;
     }
-    !self.use_json_provider(table, sync_metadata)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -305,6 +291,7 @@ impl RepositoryService {
             operation,
             table
           );
+          let sync_meta_for_json = Self::sync_meta_for_json(&sync_metadata);
           match operation.as_str() {
             "create"
             | "update"
@@ -312,11 +299,6 @@ impl RepositoryService {
             | "soft-delete-cascade"
             | "restore-cascade"
             | "restore" => {
-              let sync_meta_for_json = Some(SyncMetadata {
-                is_private: sync_metadata.as_ref().map(|m| m.is_private).unwrap_or(true),
-                is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
-                visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
-              });
               let exec_result = match operation.as_str() {
                 "create" => {
                   self
@@ -358,29 +340,36 @@ impl RepositoryService {
                     None
                   }
                 });
-                let _ = queue_service
-                  .queue_request(operation, table, record_id, data, filter, sync_metadata)
+                self
+                  .queue_offline_sync(
+                    operation.clone(),
+                    table.clone(),
+                    record_id,
+                    data,
+                    filter,
+                    sync_metadata,
+                  )
                   .await;
               }
               return exec_result;
             }
             "updateAll" => {
-              let sync_meta_for_json = Some(SyncMetadata {
-                is_private: sync_metadata.as_ref().map(|m| m.is_private).unwrap_or(true),
-                is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
-                visibility: sync_metadata.as_ref().and_then(|m| m.visibility.clone()),
-              });
               let exec_result = self
                 .handle_update_all(table.clone(), data.clone(), sync_meta_for_json)
                 .await;
-              let _ = queue_service
-                .queue_request(operation, table, None, data, filter, sync_metadata)
+              self
+                .queue_offline_sync(
+                  operation.clone(),
+                  table.clone(),
+                  None,
+                  data,
+                  filter,
+                  sync_metadata,
+                )
                 .await;
               return exec_result;
             }
-            _ => {
-              return Err(err_response("Operation not supported while offline"));
-            }
+            _ => return Err(err_response("Operation not supported while offline")),
           }
         }
       }
@@ -392,11 +381,7 @@ impl RepositoryService {
           .handle_get_all(table, filter, relations, load, sync_metadata)
           .await
       }
-      "get" => {
-        self
-          .handle_get(table, id, relations, load, sync_metadata)
-          .await
-      }
+      "get" => self.handle_get(table, id, load, sync_metadata).await,
       "create" => self.handle_create(table, data, sync_metadata).await,
       "update" => self.handle_update(table, id, data, sync_metadata).await,
       "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
@@ -411,7 +396,6 @@ impl RepositoryService {
           .handle_soft_delete_cascade(table, id, sync_metadata)
           .await
       }
-      "restore-cascade" => self.handle_restore_cascade(table, id, sync_metadata).await,
       "sync-to-provider" => {
         let target = if self.use_json_provider(&table, sync_metadata.as_ref()) {
           ProviderType::Json
@@ -423,7 +407,6 @@ impl RepositoryService {
           .handle_sync_to_provider(table, id_str, target, sync_metadata)
           .await
       }
-      "restore" => self.handle_restore(table, id, sync_metadata).await,
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
     }
   }
@@ -447,28 +430,20 @@ impl RepositoryService {
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt = self.build_filter(&filter_val);
 
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-    let docs = if use_json {
-      self
-        .json_provider
-        .find_many(&table, filter_opt.as_ref(), None, None, None, false)
-        .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
-    } else {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))?;
-      mongo
-        .find_many(&table, filter_opt.as_ref(), None, None, None, false)
-        .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
-    };
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
 
-    let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
+    let load_paths: Vec<String> = get_collection_relations(&table)
+      .map(|rels| rels.into_iter().map(|r| r.name).collect())
+      .unwrap_or_default();
     let docs = if !load_paths.is_empty() {
       self
-        .load_relations_via_nosql_orm(docs, &table, &load_paths, !use_json)
+        .load_relations_via_nosql_orm(
+          docs,
+          &table,
+          &load_paths,
+          matches!(provider, DataProvider::Mongo(_)),
+        )
         .await?
     } else {
       docs
@@ -483,39 +458,29 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id = id.ok_or_else(|| err_response("ID is required for get operation"))?;
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
 
-    let doc = if use_json {
-      self
-        .json_provider
-        .find_by_id(&table, &id)
-        .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
-    } else {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))?;
-      mongo
-        .find_by_id(&table, &id)
-        .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
-    };
-
+    let doc = provider.find_by_id(&table, &id).await?;
     let doc = match doc {
       Some(d) => d,
       None => return Err(err_response("Document not found")),
     };
 
-    let load_paths = load.as_ref().map(|l| l.clone()).unwrap_or_else(Vec::new);
+    let load_paths: Vec<String> = get_collection_relations(&table)
+      .map(|rels| rels.into_iter().map(|r| r.name).collect())
+      .unwrap_or_default();
     let docs = if !load_paths.is_empty() {
       self
-        .load_relations_via_nosql_orm(vec![doc], &table, &load_paths, !use_json)
+        .load_relations_via_nosql_orm(
+          vec![doc],
+          &table,
+          &load_paths,
+          matches!(provider, DataProvider::Mongo(_)),
+        )
         .await?
     } else {
       vec![doc]
@@ -541,24 +506,8 @@ impl RepositoryService {
     let validated_data = validate_model(&table, &data_val, true)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-
-    let created_record = if use_json {
-      self
-        .json_provider
-        .insert(&table, validated_data)
-        .await
-        .map_err(|e| err_response_formatted("Create failed in JSON", &e.to_string()))?
-    } else {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))?;
-      mongo
-        .insert(&table, validated_data)
-        .await
-        .map_err(|e| err_response_formatted("Create failed in MongoDB", &e.to_string()))?
-    };
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let created_record = provider.insert(&table, validated_data).await?;
 
     self.invalidate_cache(&table).await;
     let id_str = created_record
@@ -590,30 +539,13 @@ impl RepositoryService {
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
 
-    let data_val = data_val.clone();
-
     let validated_data = validate_model(&table, &data_val, false)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-    let was_in_json = use_json;
-
-    let updated_record = if use_json {
-      self
-        .json_provider
-        .update(&table, &id_str, validated_data.clone())
-        .await
-        .map_err(|e| err_response_formatted("Update failed in JSON", &e.to_string()))?
-    } else {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))?;
-      mongo
-        .update(&table, &id_str, validated_data.clone())
-        .await
-        .map_err(|e| err_response_formatted("Update failed in MongoDB", &e.to_string()))?
-    };
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let updated_record = provider
+      .update(&table, &id_str, validated_data.clone())
+      .await?;
 
     let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
     let old_visibility = updated_record.get("visibility").and_then(|v| v.as_str());
@@ -669,30 +601,17 @@ impl RepositoryService {
       validated_records.push(validated);
     }
 
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
-        if use_json {
-          if let Err(e) = self.json_provider.update(&table, id, record.clone()).await {
-            tracing::warn!(
-              "[RepositoryService] updateAll failed to update {} in table {}: {}",
-              id,
-              table,
-              e
-            );
-          }
-        } else if let Some(ref mongo) = self.mongodb_provider {
-          if let Err(e) = mongo.update(&table, id, record.clone()).await {
-            tracing::warn!(
-              "[RepositoryService] updateAll failed to update {} in table {} (MongoDB): {}",
-              id,
-              table,
-              e
-            );
-          }
-        } else {
-          return Err(err_response("No provider available"));
+        if let Err(e) = provider.update(&table, id, record.clone()).await {
+          tracing::warn!(
+            "[RepositoryService] updateAll failed to update {} in table {}: {:?}",
+            id,
+            table,
+            e
+          );
         }
       }
     }
@@ -709,9 +628,7 @@ impl RepositoryService {
     is_permanent: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-
     let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-
     let metadata_is_private = sync_metadata
       .as_ref()
       .map(|m| m.is_private)
@@ -719,60 +636,46 @@ impl RepositoryService {
     let metadata_is_owner = sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true);
 
     if is_permanent {
-      if !use_json {
-        {
-          if let Some(ref mongo) = self.mongodb_provider {
-            let _ = mongo
-              .delete(&table, &id_str)
-              .await
-              .map_err(|e| err_response_formatted("Delete failed", &e.to_string()))?;
-          }
-          self
-            .cascade_service
-            .permanent_delete_cascade_mongo(&table, &id_str)
-            .await?;
-        }
+      if use_json {
+        let _ = self.json_provider.delete(&table, &id_str).await;
+        self
+          .cascade_service
+          .permanent_delete_cascade_json(&table, &id_str)
+          .await?;
       } else {
-        {
-          let _ = self
-            .json_provider
-            .delete(&table, &id_str)
-            .await
-            .map_err(|e| err_response_formatted("Delete failed", &e.to_string()))?;
-          self
-            .cascade_service
-            .permanent_delete_cascade_json(&table, &id_str)
-            .await?;
+        if let Some(ref mongo) = self.mongodb_provider {
+          let _ = mongo.delete(&table, &id_str).await;
         }
+        self
+          .cascade_service
+          .permanent_delete_cascade_mongo(&table, &id_str)
+          .await?;
       }
     } else {
-      if !use_json {
-        {
+      if use_json {
+        self
+          .cascade_service
+          .soft_delete_cascade_json(&table, &id_str)
+          .await?;
+      } else {
+        self
+          .cascade_service
+          .soft_delete_cascade_mongo(&table, &id_str)
+          .await?;
+      }
+      if metadata_is_private && metadata_is_owner {
+        if use_json {
           self
             .cascade_service
             .soft_delete_cascade_mongo(&table, &id_str)
-            .await?;
-          if metadata_is_private && metadata_is_owner {
-            self
-              .cascade_service
-              .soft_delete_cascade_json(&table, &id_str)
-              .await
-              .ok();
-          }
-        }
-      } else {
-        {
+            .await
+            .ok();
+        } else {
           self
             .cascade_service
             .soft_delete_cascade_json(&table, &id_str)
-            .await?;
-          if metadata_is_private && metadata_is_owner {
-            self
-              .cascade_service
-              .soft_delete_cascade_mongo(&table, &id_str)
-              .await
-              .ok();
-          }
+            .await
+            .ok();
         }
       }
     }
@@ -815,23 +718,18 @@ impl RepositoryService {
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
-
     let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
 
-    if !use_json {
-      {
-        self
-          .cascade_service
-          .restore_cascade_mongo(&table, &id_str)
-          .await?;
-      }
+    if use_json {
+      self
+        .cascade_service
+        .restore_cascade_json(&table, &id_str)
+        .await?;
     } else {
-      {
-        self
-          .cascade_service
-          .restore_cascade_json(&table, &id_str)
-          .await?;
-      }
+      self
+        .cascade_service
+        .restore_cascade_mongo(&table, &id_str)
+        .await?;
     }
 
     Ok(success_response(DataValue::String(id_str)))
@@ -841,24 +739,20 @@ impl RepositoryService {
     &self,
     table: String,
     id: String,
-    target_provider: ProviderType,
+    target: ProviderType,
     _sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    match target_provider {
-      ProviderType::Mongo => {
-        self
-          .cascade_service
-          .sync_entity_to_mongo(&table, &id)
-          .await?;
-      }
-      _ => {
-        self
-          .cascade_service
-          .sync_entity_to_json(&table, &id)
-          .await?;
-      }
+    if target == ProviderType::Mongo {
+      self
+        .cascade_service
+        .sync_entity_to_mongo(&table, &id)
+        .await?;
+    } else {
+      self
+        .cascade_service
+        .sync_entity_to_json(&table, &id)
+        .await?;
     }
-
     Ok(success_response(DataValue::String(id)))
   }
 
@@ -869,39 +763,15 @@ impl RepositoryService {
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
-
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-
+    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
     let patch = json!({ "deleted_at": serde_json::Value::Null });
 
-    let _ = if use_json {
-      self
-        .json_provider
-        .patch(&table, &id_str, patch)
-        .await
-        .map_err(|e| err_response_formatted("Restore failed", &e.to_string()))?
-    } else {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))?;
-      mongo
-        .patch(&table, &id_str, patch)
-        .await
-        .map_err(|e| err_response_formatted("Restore failed", &e.to_string()))?
-    };
+    let _ = provider.patch(&table, &id_str, patch).await?;
 
-    if !use_json {
-      self
-        .cascade_service
-        .handle_mongo_cascade(&table, &id_str, true)
-        .await?;
-    } else {
-      self
-        .cascade_service
-        .handle_json_cascade(&table, &id_str, true)
-        .await?;
-    }
+    self
+      .cascade_service
+      .handle_json_cascade(&table, &id_str, true)
+      .await?;
 
     Ok(success_response(DataValue::String(id_str)))
   }

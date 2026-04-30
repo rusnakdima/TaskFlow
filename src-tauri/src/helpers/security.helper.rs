@@ -20,11 +20,3 @@ macro_rules! taskflow_excluded_fields {
 pub fn security_projection() -> nosql_orm::query::Projection {
   nosql_orm::query::Projection::exclude_vec(taskflow_excluded_fields!())
 }
-
-pub fn _apply_security_projection(docs: Vec<Value>) -> Vec<Value> {
-  let projection = security_projection();
-  docs
-    .into_iter()
-    .map(|doc| projection.apply_recursive(&doc))
-    .collect()
-}

@@ -59,8 +59,6 @@ use services::{
 };
 
 /* nosql_orm */
-use nosql_orm::nosql_index::NosqlIndex;
-use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 pub struct AppState {
@@ -87,6 +85,7 @@ pub fn run() {
   tracing::debug!("Starting relation registration...");
 
   // Import entities to register their relations
+  use crate::entities::category_entity::CategoryEntity;
   use crate::entities::chat_entity::ChatEntity;
   use crate::entities::comment_entity::CommentEntity;
   use crate::entities::profile_entity::ProfileEntity;
@@ -113,6 +112,7 @@ pub fn run() {
   tracing::debug!("TodoEntity table_name = {:?}", todo_meta.table_name);
 
   // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
+  register_relations_for_entity::<CategoryEntity>();
   register_relations_for_entity::<TodoEntity>();
   register_relations_for_entity::<TaskEntity>();
   register_relations_for_entity::<SubtaskEntity>();
@@ -314,14 +314,6 @@ pub fn run() {
         cascade_service,
         entity_resolution,
       ));
-
-      // let websocket_server_service =
-      //   Arc::new(WebSocketServerService::new(repository_service.clone()));
-
-      // let ws_service_clone = websocket_server_service.clone();
-      // tauri::async_runtime::spawn(async move {
-      //   ws_service_clone.start(8766).await;
-      // });
 
       app.manage(AppState {
         config_helper,

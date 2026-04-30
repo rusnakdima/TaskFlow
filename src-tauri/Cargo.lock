@@ -5513,6 +5513,7 @@ dependencies = [
  "nosql_orm",
  "open",
  "openssl",
+ "openssl-sys",
  "qrcode",
  "rand 0.8.6",
  "regex",

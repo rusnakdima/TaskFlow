@@ -33,8 +33,8 @@ impl Display for TaskStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("tasks")]
 #[soft_delete]
-#[one_to_many("subtasks", "subtasks", "task_id")]
-#[one_to_many("comments", "comments", "task_id")]
+#[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
+#[one_to_many("comments", "comments", "task_id", "Cascade")]
 #[many_to_one("todo", "todos", "todo_id")]
 #[index("todo_id", 1)]
 pub struct TaskEntity {
