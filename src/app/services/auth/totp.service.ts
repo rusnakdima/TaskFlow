@@ -17,11 +17,6 @@ export class TotpService {
   private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
 
-  private getUsername(): string {
-    const token = this.jwtTokenService.getToken();
-    return this.jwtTokenService.getUsername(token) || "";
-  }
-
   isTotpEnabledForCurrentUser(): boolean {
     const token = this.jwtTokenService.getToken();
     if (!token) return false;
@@ -30,27 +25,27 @@ export class TotpService {
 
   setupTotp(): Observable<TotpSetupResult> {
     return this.dataSyncProvider.invokeCommand<TotpSetupResult>("setupTotp", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableTotp(code: string): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("enableTotp", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   disableTotp(code: string): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("disableTotp", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   useRecoveryCode(code: string): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("useRecoveryCode", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }

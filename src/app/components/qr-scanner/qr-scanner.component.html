@@ -1,17 +1,16 @@
 <div class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
-  <!-- Back button -->
-  <div class="absolute top-6 left-6 z-20">
+  <!-- Back button - moved to right side to avoid overlap with title -->
+  <div class="absolute top-6 right-6 z-20">
     <button
-      class="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+      class="flex items-center gap-2 rounded-full bg-black/50 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
       (click)="close.emit()"
     >
       <mat-icon class="text-white">arrow_back</mat-icon>
-      <span class="font-medium">Cancel</span>
     </button>
   </div>
 
-  <!-- Scanner Instructions -->
-  <div class="absolute top-6 left-1/2 z-20 -translate-x-1/2 text-center">
+  <!-- Scanner Instructions - moved lower to avoid button overlap -->
+  <div class="absolute top-20 left-1/2 z-20 -translate-x-1/2 text-center">
     <h2 class="text-xl font-semibold text-white">{{ title }}</h2>
     <p class="mt-1 text-sm text-white/70">{{ subtitle }}</p>
   </div>

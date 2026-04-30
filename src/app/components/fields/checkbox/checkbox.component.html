@@ -1,29 +1,50 @@
 @if (form && field) {
-  <div class="flex flex-row items-center gap-2" [formGroup]="form">
-    <mat-checkbox class="inline-flex items-center" [formControlName]="field.name">
-      <mat-label class="checkbox-label whitespace-nowrap">{{ label }}</mat-label>
-    </mat-checkbox>
-    @if (isInvalid(field.name)) {
-      @if (form.get(field.name)?.errors?.["required"]) {
-        <mat-error>Field '{{ field.label }}' should not be empty</mat-error>
+  <label class="flex cursor-pointer items-center gap-2" [formGroup]="form">
+    <div
+      class="checkbox"
+      [class.checkbox--checked]="form.get(field.name)?.value"
+      (click)="toggleField(field.name)"
+    >
+      @if (form.get(field.name)?.value) {
+        <svg
+          class="h-3 w-3 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="3"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
       }
-    }
-  </div>
+    </div>
+    <span class="text-sm font-medium whitespace-nowrap select-none">{{ label }}</span>
+  </label>
 } @else {
-  <div class="flex items-center gap-2">
-    <mat-checkbox
-      [checked]="checked"
-      [indeterminate]="indeterminate"
-      [ngClass]="highlight ? 'text-yellow-600 dark:text-yellow-400' : ''"
-      (change)="onToggle($event)"
-    />
+  <label class="flex cursor-pointer items-center gap-2 select-none">
+    <div
+      class="checkbox"
+      [class.checkbox--checked]="checked && !indeterminate"
+      [class.checkbox--indeterminate]="indeterminate"
+      [class.checkbox--highlight]="highlight && (checked || indeterminate)"
+      (click)="toggle()"
+    >
+      @if (checked && !indeterminate) {
+        <svg
+          class="h-3 w-3 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="3"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      }
+      @if (indeterminate) {
+        <div class="h-0.5 w-2.5 bg-white"></div>
+      }
+    </div>
     @if (label) {
-      <label
-        class="textNormal cursor-pointer text-sm font-medium whitespace-nowrap select-none"
-        (click)="onToggle($event)"
-      >
-        {{ label }}
-      </label>
+      <span class="text-sm font-medium whitespace-nowrap">{{ label }}</span>
     }
-  </div>
+  </label>
 }

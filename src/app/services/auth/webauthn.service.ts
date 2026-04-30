@@ -17,6 +17,17 @@ import { EncodingHelper } from "@helpers/encoding.helper";
 export class WebAuthnService {
   private dataSyncProvider = inject(ApiProvider);
 
+  getPlatformName(): string {
+    if (typeof navigator === "undefined") return "Unknown";
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (/windows/.test(userAgent)) return "Windows Hello";
+    if (/macintosh|mac os/.test(userAgent)) return "Touch ID";
+    if (/linux/.test(userAgent)) return "Biometric";
+    if (/android/.test(userAgent)) return "Fingerprint";
+    if (/iphone|ipad/.test(userAgent)) return "Face ID";
+    return "Biometric";
+  }
+
   async isWebAuthnSupported(): Promise<boolean> {
     const androidBiometricAvailable = await this.isAndroidBiometricAvailable();
     if (androidBiometricAvailable) {
@@ -94,10 +105,8 @@ export class WebAuthnService {
     }
   }
 
-  private isAndroidDevice(): boolean {
-    if (typeof navigator === "undefined") return false;
-    const userAgent = navigator.userAgent.toLowerCase();
-    return /android/.test(userAgent);
+  isAndroidDevice(): boolean {
+    return /android/i.test(navigator.userAgent);
   }
 
   async createPasskeyAndroid(requestJson: string): Promise<{ responseJson: string }> {

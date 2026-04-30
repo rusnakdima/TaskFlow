@@ -303,30 +303,6 @@ export class VisibilitySyncService {
   }
 
   private async importTodoToLocalDb(todo_id?: string): Promise<void> {
-    if (!todo_id) return;
-
-    const todo = this.storageService.getById("todos", todo_id);
-    const isPrivate = todo?.visibility === "private";
-
-    const cloudTodo = await firstValueFrom(
-      this.apiProvider
-        .crud<Todo>("get", "todos", {
-          id: todo_id,
-          isOwner: !isPrivate,
-          isPrivate,
-        })
-        .pipe(
-          catchError((error) => {
-            console.error("[VisibilitySync] Error:", error);
-            return of(null);
-          })
-        )
-    );
-
-    if (!cloudTodo) {
-      throw new Error(`Todo with id ${todo_id} not found in cloud`);
-    }
-
-    this.storageService.updateItem("todos", todo_id, cloudTodo);
+    return;
   }
 }

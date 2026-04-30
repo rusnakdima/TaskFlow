@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, OnDestroy, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, OnDestroy } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { Subscription } from "rxjs";
 
@@ -18,7 +18,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 
 @Component({
   selector: "app-profile",
@@ -28,7 +27,6 @@ import { DataLoaderService } from "@services/data/data-loader.service";
 })
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
-  private dataSyncService = inject(DataLoaderService);
 
   constructor(
     private route: ActivatedRoute,
@@ -60,15 +58,6 @@ export class ProfileView implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
 
-    this.routeSub = this.route.queryParams.subscribe((params: any) => {
-      if (params.id && params.id != "") {
-        const cachedProfile = this.storageService.profile();
-        if (!cachedProfile) {
-          this.getProfile(params.id);
-        }
-      }
-    });
-
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
   }
@@ -80,10 +69,6 @@ export class ProfileView implements OnInit, OnDestroy {
   isMyProfile(): boolean {
     const profile = this.profile();
     return profile !== null && profile.user_id === this.authService.getValueByKey("id");
-  }
-
-  getProfile(userId: string) {
-    this.dataSyncService.loadProfile().subscribe();
   }
 
   exportUserData() {

@@ -25,7 +25,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 
 @Component({
@@ -49,7 +48,6 @@ export class EditProfileView {
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private storageService: StorageService,
-    private dataSyncService: DataLoaderService,
     private userValidationService: UserValidationService
   ) {
     this.form = fb.group({
@@ -99,31 +97,9 @@ export class EditProfileView {
     const userId = this.authService.getValueByKey("id");
     if (userId && userId != "") {
       this.form.controls["user_id"].setValue(userId);
-
-      // Use profile from storage first (loaded from JSON on init; works offline)
       const cachedProfile = this.storageService.profile();
       if (cachedProfile && cachedProfile.user_id === userId) {
         this.form.patchValue(cachedProfile);
-      } else {
-        // Not in cache - try to load (e.g. first visit); on failure (e.g. offline) try cache again
-        this.dataSyncService.loadProfile().subscribe({
-          next: (profile) => {
-            if (profile) {
-              this.form.patchValue(profile);
-            } else {
-              const fallback = this.storageService.profile();
-              if (fallback && fallback.user_id === userId) this.form.patchValue(fallback);
-            }
-          },
-          error: () => {
-            const fallback = this.storageService.profile();
-            if (fallback && fallback.user_id === userId) {
-              this.form.patchValue(fallback);
-            } else {
-              this.notifyService.showError("Could not load profile. You may be offline.");
-            }
-          },
-        });
       }
     } else {
       this.userValidationService.redirectToLogin();

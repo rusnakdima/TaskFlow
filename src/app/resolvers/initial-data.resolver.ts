@@ -68,11 +68,6 @@ export class InitialDataResolver implements Resolve<unknown> {
 
     const userId = this.authService.getValueByKey("id") ?? "";
 
-    // IMMEDIATELY fire background loads (non-blocking)
-    // Data will come via cache update + WS
-    this.dataLoaderService.loadAllData();
-    this.dataLoaderService.loadProfile();
-
     // Return immediately with current cache state
     // UI will update when cache changes via signals
     return {

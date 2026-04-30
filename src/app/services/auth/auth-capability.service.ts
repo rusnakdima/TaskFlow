@@ -1,4 +1,5 @@
-import { Injectable, signal, computed } from "@angular/core";
+import { Injectable, signal, computed, inject } from "@angular/core";
+import { WebAuthnService } from "@services/auth/webauthn.service";
 
 export interface AuthCapabilities {
   passkeyAvailable: boolean;
@@ -36,6 +37,8 @@ export class AuthCapabilityService {
   readonly isTauri = computed(() => this._capabilities().isTauri);
   readonly isMobile = computed(() => this._capabilities().isMobile);
 
+  private webauthnService = inject(WebAuthnService);
+
   constructor() {
     this.detectCapabilities();
   }
@@ -43,10 +46,11 @@ export class AuthCapabilityService {
   async detectCapabilities(): Promise<void> {
     const isTauri = this.checkIsTauri();
     const isMobile = this.checkIsMobile();
-    const platformName = this.getPlatformName();
+    const platformName = this.webauthnService.getPlatformName();
 
-    const webAuthnSupported = await this.checkWebAuthnSupport();
-    const platformAuthenticatorAvailable = await this.checkPlatformAuthenticator();
+    const webAuthnSupported = await this.webauthnService.isWebAuthnSupported();
+    const platformAuthenticatorAvailable =
+      await this.webauthnService.isUserVerifyingPlatformAuthenticatorAvailable();
 
     const biometricAvailable = isMobile || (webAuthnSupported && platformAuthenticatorAvailable);
 
@@ -69,53 +73,6 @@ export class AuthCapabilityService {
     if (typeof navigator === "undefined") return false;
     const userAgent = navigator.userAgent.toLowerCase();
     return /android/.test(userAgent) || /iphone|ipad/.test(userAgent);
-  }
-
-  private getPlatformName(): string {
-    if (typeof navigator === "undefined") return "Unknown";
-    const userAgent = navigator.userAgent.toLowerCase();
-    if (/windows/.test(userAgent)) return "Windows Hello";
-    if (/macintosh|mac os/.test(userAgent)) return "Touch ID";
-    if (/linux/.test(userAgent)) return "Biometric";
-    if (/android/.test(userAgent)) return "Fingerprint";
-    if (/iphone|ipad/.test(userAgent)) return "Face ID";
-    return "Biometric";
-  }
-
-  private async checkWebAuthnSupport(): Promise<boolean> {
-    if (typeof navigator === "undefined" || !navigator.credentials) {
-      return false;
-    }
-
-    try {
-      if (
-        typeof (navigator.credentials as any).create !== "function" ||
-        typeof (navigator.credentials as any).get !== "function"
-      ) {
-        return false;
-      }
-
-      if (typeof PublicKeyCredential === "undefined") {
-        return false;
-      }
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async checkPlatformAuthenticator(): Promise<boolean> {
-    if (typeof PublicKeyCredential === "undefined") return false;
-    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== "function") {
-      return false;
-    }
-
-    try {
-      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    } catch {
-      return false;
-    }
   }
 
   isMethodAvailableForUser(
