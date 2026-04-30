@@ -201,7 +201,7 @@ pub fn run() {
       let json_provider = tauri::async_runtime::block_on(JsonProvider::new(&json_db_path))
         .expect("Failed to create JSON provider");
 
-      let json_provider_setup = json_provider.clone();
+      let _json_provider_setup = json_provider.clone();
       tauri::async_runtime::spawn(async move {
         // Indexes are defined via #[index] macros on entities
         // Each entity has its own indexes specified
@@ -272,7 +272,7 @@ pub fn run() {
         ent_for_repo,
         activity_monitor,
         profile_service.as_ref().clone(),
-        Some(offline_queue_service.clone()),
+        None, // Offline queue disabled for testing
       );
 
       let repository_service = Arc::new(repository_service_with_queue);

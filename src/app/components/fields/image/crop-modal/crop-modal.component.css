@@ -26,8 +26,9 @@
 }
 
 canvas {
-  @apply cursor-move rounded border border-gray-200 dark:border-zinc-600;
+  @apply rounded border border-gray-200 dark:border-zinc-600;
   display: block;
+  touch-action: none;
 }
 
 .modal-actions {

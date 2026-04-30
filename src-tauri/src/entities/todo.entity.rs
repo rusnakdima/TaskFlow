@@ -3,8 +3,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::validators::Validate as OrmValidate;
 use nosql_orm::Model;
 use nosql_orm::Validate;
 
@@ -21,6 +19,8 @@ use nosql_orm::Validate;
 #[index("status", 1)]
 #[index("priority", 1)]
 #[index("visibility", 1)]
+#[frontend_exclude("tasks", "user")]
+#[Relations(tasks, categories, assignees_profiles)]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,
@@ -100,13 +100,13 @@ impl From<TodoCreateModel> for TodoEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TodoUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
   pub user_id: Option<String>,
-  #[serde(default)]
+  #[validate(length(min = 1, max = 200))]
   pub title: Option<String>,
   #[serde(default)]
   pub description: Option<String>,
@@ -118,7 +118,7 @@ pub struct TodoUpdateModel {
   pub categories: Option<Vec<String>>,
   #[serde(default)]
   pub assignees: Option<Vec<String>>,
-  #[serde(default)]
+  #[validate(not_empty)]
   pub visibility: Option<String>,
   #[serde(default)]
   pub priority: Option<String>,
@@ -130,22 +130,4 @@ pub struct TodoUpdateModel {
   pub created_at: Option<String>,
   #[serde(default)]
   pub updated_at: Option<String>,
-}
-
-impl OrmValidate for TodoUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if let Some(ref title) = self.title {
-      if title.is_empty() {
-        return Err(OrmError::Validation("title cannot be empty".to_string()));
-      }
-    }
-    if let Some(ref visibility) = self.visibility {
-      if visibility.is_empty() {
-        return Err(OrmError::Validation(
-          "visibility cannot be empty".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }

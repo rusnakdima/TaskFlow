@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* nosql_orm */
-use nosql_orm::{Model, Validate};
+use nosql_orm::Model;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
@@ -33,10 +34,11 @@ impl Display for TaskStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("tasks")]
 #[soft_delete]
+#[many_to_one("todo", "todos", "todo_id")]
 #[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
 #[one_to_many("comments", "comments", "task_id", "Cascade")]
-#[many_to_one("todo", "todos", "todo_id")]
 #[index("todo_id", 1)]
+#[frontend_exclude("todo")]
 pub struct TaskEntity {
   pub id: Option<String>,
   #[validate(required)]
@@ -121,19 +123,19 @@ impl From<TaskCreateModel> for TaskEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
   pub task_id: Option<String>,
-  #[serde(default)]
+  #[validate(length(min = 1, max = 200))]
   pub title: Option<String>,
   #[serde(default)]
   pub description: Option<String>,
   #[serde(default)]
   pub status: Option<TaskStatus>,
-  #[serde(default)]
+  #[validate(not_empty)]
   pub priority: Option<String>,
   #[serde(default)]
   pub start_date: Option<String>,
@@ -147,24 +149,4 @@ pub struct TaskUpdateModel {
   pub updated_at: Option<String>,
   #[serde(default)]
   pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
-}
-
-impl nosql_orm::validators::Validate for TaskUpdateModel {
-  fn validate(&self) -> nosql_orm::error::OrmResult<()> {
-    if let Some(ref title) = self.title {
-      if title.is_empty() {
-        return Err(nosql_orm::error::OrmError::Validation(
-          "title cannot be empty".to_string(),
-        ));
-      }
-    }
-    if let Some(ref priority) = self.priority {
-      if priority.is_empty() {
-        return Err(nosql_orm::error::OrmError::Validation(
-          "priority cannot be empty".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }

@@ -27,7 +27,10 @@ export class DataLoaderService {
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
 
-  loadAllData(force: boolean = false): Observable<{ todos: Todo[]; categories: Category[] }> {
+  loadAllData(
+    force: boolean = false,
+    loadShared: boolean = true
+  ): Observable<{ todos: Todo[]; categories: Category[] }> {
     const currentUserId = this.jwtTokenService.getCurrentUserId() || "";
 
     if (!force && this.storageService.loaded()) {
@@ -38,28 +41,7 @@ export class DataLoaderService {
       }
     }
 
-    const allProfiles$ = this.relationLoader.loadMany<Profile>(
-      this.apiProvider,
-      "profiles",
-      {},
-      ["user"],
-      {
-        is_owner: false,
-        is_private: false,
-      }
-    );
-
-    const userProfile$ = this.relationLoader.loadOne<Profile>(
-      this.apiProvider,
-      "profiles",
-      { user_id: currentUserId },
-      ["user"],
-      {
-        is_private: true,
-        is_owner: true,
-      }
-    );
-
+    // Always load categories from JSON (private, local storage)
     const allCategories$ = this.relationLoader.loadMany<Category>(
       this.apiProvider,
       "categories",
@@ -71,6 +53,7 @@ export class DataLoaderService {
       }
     );
 
+    // Always load private todos from JSON (private, local storage)
     const privateTodos$ = this.relationLoader.loadMany<Todo>(
       this.apiProvider,
       "todos",
@@ -82,43 +65,102 @@ export class DataLoaderService {
       }
     );
 
-    const sharedTodos$ = this.relationLoader.loadMany<Todo>(
-      this.apiProvider,
-      "todos",
-      { assignees: { $in: [currentUserId] } },
-      ["category"],
-      {
-        is_private: false,
-        is_owner: false,
-      }
+    // Load user profile only if user_id is valid
+    let userProfile$: Observable<Profile | null> = of(null);
+    if (currentUserId && currentUserId.trim()) {
+      userProfile$ = this.relationLoader.loadOne<Profile>(
+        this.apiProvider,
+        "profiles",
+        { user_id: currentUserId },
+        ["user"],
+        {
+          is_private: true,
+          is_owner: true,
+        }
+      );
+    }
+
+    // Load profiles and shared todos only if loadShared is true
+    const loadPromises: Observable<any>[] = [];
+    const profileLabels: string[] = [];
+
+    if (loadShared) {
+      const allProfiles$ = this.relationLoader.loadMany<Profile>(
+        this.apiProvider,
+        "profiles",
+        {},
+        ["user"],
+        {
+          is_owner: false,
+          is_private: false,
+        }
+      );
+
+      const sharedTodos$ = this.relationLoader.loadMany<Todo>(
+        this.apiProvider,
+        "todos",
+        { assignees: { $in: [currentUserId] } },
+        ["category"],
+        {
+          is_private: false,
+          is_owner: false,
+        }
+      );
+      loadPromises.push(allProfiles$, sharedTodos$);
+      profileLabels.push("allProfiles", "sharedTodos");
+    }
+
+    // Always run categories, private todos, and user profile first (JSON, fast)
+    const essential$ = forkJoin([allCategories$, privateTodos$, userProfile$]).pipe(
+      catchError((error) => {
+        console.error("[DataLoader] Essential error:", error);
+        return of([null, null, null]);
+      })
     );
 
-    forkJoin([allProfiles$, userProfile$, allCategories$, privateTodos$, sharedTodos$])
-      .pipe(
-        catchError((error) => {
-          console.error("[DataLoader] Error:", error);
-          return of([null, null, null, null, null]);
-        })
-      )
-      .subscribe(([allProfiles, userProfile, allCategories, privateTodos, sharedTodos]) => {
-        if (allProfiles && Array.isArray(allProfiles)) {
-          this.storageService.setCollection("allProfiles", allProfiles);
-        }
-        if (userProfile && typeof userProfile === "object" && "user_id" in userProfile) {
-          this.storageService.setCollection("profiles", userProfile);
-        }
-        if (allCategories && Array.isArray(allCategories)) {
-          this.storageService.setCollection("categories", allCategories);
-        }
-        if (privateTodos && Array.isArray(privateTodos)) {
-          this.storageService.setCollection("privateTodos", privateTodos);
-        }
-        if (sharedTodos && Array.isArray(sharedTodos)) {
-          this.storageService.setCollection("sharedTodos", sharedTodos);
-        }
-        this.storageService.setLoaded(true);
-        this.storageService.setLastLoaded(new Date());
-      });
+    const essentialLabels = ["categories", "privateTodos", "userProfile"];
+
+    essential$.subscribe(([allCategories, privateTodos, userProfile]) => {
+      if (allCategories && Array.isArray(allCategories)) {
+        this.storageService.setCollection("categories", allCategories);
+      }
+      if (privateTodos && Array.isArray(privateTodos)) {
+        this.storageService.setCollection("privateTodos", privateTodos);
+      }
+      if (userProfile && typeof userProfile === "object" && "user_id" in userProfile) {
+        this.storageService.setCollection("profiles", userProfile);
+      }
+      this.storageService.setLoaded(true);
+      this.storageService.setLastLoaded(new Date());
+    });
+
+    // Load profiles and shared todos in background if enabled
+    if (loadShared && loadPromises.length > 0) {
+      forkJoin(loadPromises)
+        .pipe(
+          catchError((error) => {
+            console.error("[DataLoader] Shared error:", error);
+            return of(loadPromises.map(() => null));
+          })
+        )
+        .subscribe((results) => {
+          results.forEach((data, index) => {
+            const label = profileLabels[index];
+            if (label === "allProfiles" && data) {
+              this.storageService.setCollection("allProfiles", data);
+            } else if (
+              label === "userProfile" &&
+              data &&
+              typeof data === "object" &&
+              "user_id" in data
+            ) {
+              this.storageService.setCollection("profiles", data);
+            } else if (label === "sharedTodos" && data) {
+              this.storageService.setCollection("sharedTodos", data);
+            }
+          });
+        });
+    }
 
     const todos = this.storageService.todos();
     const categories = this.storageService.categories();

@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::profile_entity::ProfileEntity;
 
 /* nosql_orm */
-use nosql_orm::error::{OrmError, OrmResult};
-use nosql_orm::{Entity, Model};
+use nosql_orm::{Model, Validate};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("users")]
@@ -29,6 +28,7 @@ use nosql_orm::{Entity, Model};
   "totp_enabled",
   "qr_login_enabled"
 )]
+#[Relations(profile)]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,
@@ -68,6 +68,7 @@ pub struct UserEntity {
 }
 
 impl UserEntity {
+  #[allow(dead_code)]
   pub fn get_id(&self) -> Option<String> {
     self.id.clone()
   }
@@ -144,13 +145,13 @@ impl From<UserCreateModel> for UserEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UserUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
-  #[serde(default)]
+  #[validate(email)]
   pub email: Option<String>,
-  #[serde(default)]
+  #[validate(length(min = 1, max = 30))]
   pub username: Option<String>,
   #[serde(default)]
   pub password: Option<String>,
@@ -184,25 +185,4 @@ pub struct UserUpdateModel {
   pub qr_login_enabled: Option<bool>,
   #[serde(default)]
   pub recovery_codes: Option<Vec<String>>,
-}
-
-impl nosql_orm::validators::Validate for UserUpdateModel {
-  fn validate(&self) -> OrmResult<()> {
-    if let Some(ref email) = self.email {
-      if email.is_empty() {
-        return Err(OrmError::Validation("email cannot be empty".to_string()));
-      }
-    }
-    if let Some(ref username) = self.username {
-      if username.is_empty() {
-        return Err(OrmError::Validation("username cannot be empty".to_string()));
-      }
-      if username.len() > 30 {
-        return Err(OrmError::Validation(
-          "username cannot exceed 30 characters".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }

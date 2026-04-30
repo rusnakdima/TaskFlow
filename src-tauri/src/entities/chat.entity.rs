@@ -15,6 +15,7 @@ use nosql_orm::{Model, Validate};
 #[one_to_one("read_by_users.user", "profiles", "profile_id")]
 #[index("todo_id", 1)]
 #[index("user_id", 1)]
+#[Relations(todo, user)]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,

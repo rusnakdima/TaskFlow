@@ -7,7 +7,6 @@ import { InitialDataResolver } from "@resolvers/initial-data.resolver";
 
 /* guards */
 import { canActivateAuth } from "@guards/auth.guard";
-import { canActivateCreateProfile } from "@guards/profile.guard";
 
 /* components */
 import { LoginView } from "@views/login/login.view";
@@ -30,8 +29,7 @@ import { ManageTaskView } from "@views/tasks/manage-task/manage-task.view";
 import { ManageSubtaskView } from "@views/subtasks/manage-subtask/manage-subtask.view";
 
 import { ProfileView } from "@views/profile/profile.view";
-import { CreateProfileView } from "@views/create-profile/create-profile.view";
-import { EditProfileView } from "@views/edit-profile/edit-profile.view";
+import { ManageProfileView } from "@views/manage-profile/manage-profile.view";
 import { SettingsView } from "@views/settings/settings.view";
 
 import { NotFoundView } from "@views/not-found/not-found.view";
@@ -123,17 +121,10 @@ export const routes: Routes = [
             component: ProfileView,
           },
           {
-            path: "create-profile",
-            component: CreateProfileView,
-            title: "Create Profile",
-            data: { breadcrumb: "Create Profile" },
-            canActivate: [canActivateCreateProfile],
-          },
-          {
-            path: "edit_profile",
-            component: EditProfileView,
-            title: "Create Profile",
-            data: { breadcrumb: "Create Profile" },
+            path: "manage",
+            component: ManageProfileView,
+            title: "Manage Profile",
+            data: { breadcrumb: "Manage Profile" },
           },
         ],
       },

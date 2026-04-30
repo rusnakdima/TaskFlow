@@ -16,6 +16,7 @@ use nosql_orm::Validate;
 #[timestamp]
 #[soft_delete]
 #[index("user_id", 1)]
+#[Relations(user)]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub user_id: String,

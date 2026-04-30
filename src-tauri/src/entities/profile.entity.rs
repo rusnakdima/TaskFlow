@@ -11,6 +11,7 @@ use nosql_orm::Validate;
 #[many_to_one("user", "users", "user_id")]
 #[timestamp]
 #[index("user_id", 1)]
+#[Relations(user)]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,

@@ -148,8 +148,42 @@ export class TodoHandler extends EntityHandler<Todo> {
    * Restore todo with all related data
    */
   restoreWithCascade(data: TodoCascadeData): void {
-    // Restore todo
-    this.add(data.todo);
+    const restoreInSignal = (signal: WritableSignal<Todo[]>) => {
+      signal.update((todos) => {
+        const existingIndex = todos.findIndex((t) => t.id === data.todo.id);
+        if (existingIndex >= 0) {
+          const updatedTodos = [...todos];
+          updatedTodos[existingIndex] = {
+            ...data.todo,
+            tasks: data.tasks.map((task) => ({
+              ...task,
+              deleted_at: null,
+              subtasks: data.subtasks
+                .filter((s) => s.task_id === task.id)
+                .map((subtask) => ({ ...subtask, deleted_at: null })),
+            })),
+          };
+          return updatedTodos;
+        } else {
+          return [
+            ...todos,
+            {
+              ...data.todo,
+              tasks: data.tasks.map((task) => ({
+                ...task,
+                deleted_at: null,
+                subtasks: data.subtasks
+                  .filter((s) => s.task_id === task.id)
+                  .map((subtask) => ({ ...subtask, deleted_at: null })),
+              })),
+            },
+          ];
+        }
+      });
+    };
+
+    restoreInSignal(this.privateSignal);
+    restoreInSignal(this.sharedSignal);
   }
 
   getById(id: string): Todo | undefined {

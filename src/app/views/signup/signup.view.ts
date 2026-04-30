@@ -126,7 +126,7 @@ export class SignupView implements OnDestroy {
 
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");
-          window.location.href = "/profile/create-profile";
+          window.location.href = "/profile/manage";
         } else {
           this.notifyService.showSuccess("Registration successful");
           window.location.href = "/login";

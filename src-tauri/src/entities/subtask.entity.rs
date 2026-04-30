@@ -3,13 +3,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /* nosql_orm */
-use nosql_orm::{Model, Validate};
+use nosql_orm::Model;
+use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("subtasks")]
 #[soft_delete]
-#[one_to_many("comments", "comments", "subtask_id", "Cascade")]
 #[many_to_one("task", "tasks", "task_id")]
+#[one_to_many("comments", "comments", "subtask_id", "Cascade")]
+#[Relations(task, comments)]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]
@@ -72,19 +74,19 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct SubtaskUpdateModel {
   #[serde(default)]
   pub id: Option<String>,
   #[serde(default)]
   pub task_id: Option<String>,
-  #[serde(default)]
+  #[validate(length(min = 1, max = 200))]
   pub title: Option<String>,
   #[serde(default)]
   pub description: Option<String>,
   #[serde(default)]
   pub status: Option<crate::entities::task_entity::TaskStatus>,
-  #[serde(default)]
+  #[validate(not_empty)]
   pub priority: Option<String>,
   #[serde(default)]
   pub order: Option<i32>,
@@ -99,24 +101,4 @@ pub struct SubtaskUpdateModel {
   #[serde(default)]
   #[serde(rename = "_syncMetadata")]
   pub sync_metadata: Option<crate::entities::sync_metadata_entity::SyncMetadata>,
-}
-
-impl nosql_orm::validators::Validate for SubtaskUpdateModel {
-  fn validate(&self) -> nosql_orm::error::OrmResult<()> {
-    if let Some(ref title) = self.title {
-      if title.is_empty() {
-        return Err(nosql_orm::error::OrmError::Validation(
-          "title cannot be empty".to_string(),
-        ));
-      }
-    }
-    if let Some(ref priority) = self.priority {
-      if priority.is_empty() {
-        return Err(nosql_orm::error::OrmError::Validation(
-          "priority cannot be empty".to_string(),
-        ));
-      }
-    }
-    Ok(())
-  }
 }

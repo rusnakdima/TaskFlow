@@ -1,9 +1,14 @@
 @if (form && field) {
-  <label class="flex cursor-pointer items-center gap-2" [formGroup]="form">
+  <label
+    class="flex cursor-pointer items-center gap-2"
+    [formGroup]="form"
+    (click)="toggleField(field.name)"
+  >
     <div
       class="checkbox"
       [class.checkbox--checked]="form.get(field.name)?.value"
-      (click)="toggleField(field.name)"
+      [attr.tabindex]="tabIndex"
+      (keydown)="onKeyDown($event)"
     >
       @if (form.get(field.name)?.value) {
         <svg
@@ -20,13 +25,14 @@
     <span class="text-sm font-medium whitespace-nowrap select-none">{{ label }}</span>
   </label>
 } @else {
-  <label class="flex cursor-pointer items-center gap-2 select-none">
+  <label class="flex cursor-pointer items-center gap-2 select-none" (click)="toggle()">
     <div
       class="checkbox"
       [class.checkbox--checked]="checked && !indeterminate"
       [class.checkbox--indeterminate]="indeterminate"
       [class.checkbox--highlight]="highlight && (checked || indeterminate)"
-      (click)="toggle()"
+      [attr.tabindex]="tabIndex"
+      (keydown)="onKeyDown($event)"
     >
       @if (checked && !indeterminate) {
         <svg

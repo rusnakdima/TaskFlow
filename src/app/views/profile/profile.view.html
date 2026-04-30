@@ -27,7 +27,7 @@
           @if (isMyProfile()) {
             <button
               class="styleButInfo absolute -right-2 -bottom-2 h-9! rounded-full p-2 shadow-lg"
-              routerLink="/profile/edit_profile"
+              routerLink="/profile/manage"
             >
               <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
             </button>
@@ -65,7 +65,7 @@
         @if (isMyProfile()) {
           <button
             class="flex w-full items-center gap-3 rounded-lg bg-blue-50 p-4 text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-            routerLink="/profile/edit_profile"
+            routerLink="/profile/manage"
           >
             <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
             <span class="font-medium">Edit Profile</span>
@@ -84,7 +84,7 @@
             (click)="startQrScanning()"
           >
             <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="qr_code_scanner" />
-            <span class="font-medium">Scan QR (Desktop Login)</span>
+            <span class="font-medium">Scan QR</span>
           </button>
 
           <button
@@ -92,9 +92,7 @@
             (click)="showMyQr() ? closeMyQrCode() : showMyQrCode()"
           >
             <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="qr_code" />
-            <span class="font-medium">{{
-              showMyQr() ? "Hide My QR" : "Show My QR (Desktop Login)"
-            }}</span>
+            <span class="font-medium">{{ showMyQr() ? "Hide My QR" : "Show My QR" }}</span>
           </button>
 
           <button

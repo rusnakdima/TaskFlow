@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, OnDestroy } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
+import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
 
 /* materials */
@@ -30,6 +31,7 @@ export class ProfileView implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private location: Location,
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
@@ -168,6 +170,8 @@ export class ProfileView implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Login approved! Desktop can now continue.");
+          this.stopQrScanning();
+          setTimeout(() => this.location.back(), 500);
         },
         error: (err: any) => {
           this.notifyService.showError("Failed to approve: " + (err.message || err));

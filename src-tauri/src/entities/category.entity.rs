@@ -12,6 +12,7 @@ use nosql_orm::Validate;
 #[soft_delete]
 #[timestamp]
 #[index("user_id", 1)]
+#[Relations(todos)]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,

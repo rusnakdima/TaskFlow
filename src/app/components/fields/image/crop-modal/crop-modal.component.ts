@@ -17,15 +17,14 @@ export class CropModalComponent {
 
   @ViewChild("canvas") canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  // Crop selection (in canvas display coordinates)
   cropX: number = 0;
   cropY: number = 0;
   cropSize: number = 200;
   maxCropSize: number = 100;
 
-  // Drag/resize state
   isDragging: boolean = false;
   isResizing: boolean = false;
+  resizeHandle: string = "";
   dragStartX: number = 0;
   dragStartY: number = 0;
   initialCropX: number = 0;
@@ -51,12 +50,10 @@ export class CropModalComponent {
     img.onload = () => {
       this.img = img;
 
-      // Scale to fit canvas (max 400px)
       const scale = Math.min(1, this.MAX_CANVAS / img.width, this.MAX_CANVAS / img.height);
       this.canvasWidth = Math.round(img.width * scale);
       this.canvasHeight = Math.round(img.height * scale);
 
-      // Initial crop: centered square
       const minDim = Math.min(this.canvasWidth, this.canvasHeight);
       this.maxCropSize = minDim;
       this.cropSize = minDim;
@@ -71,7 +68,6 @@ export class CropModalComponent {
       console.error("Failed to load image for cropping");
     };
 
-    // Try CORS first, fallback to no CORS
     try {
       img.crossOrigin = "anonymous";
       img.src = this.imageSource;
@@ -91,14 +87,11 @@ export class CropModalComponent {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw full scaled image
     ctx.drawImage(this.img, 0, 0, this.canvasWidth, this.canvasHeight);
 
-    // Darken everything
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
     ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 
-    // Redraw image in crop area (clip to crop rectangle)
     ctx.save();
     ctx.beginPath();
     ctx.rect(this.cropX, this.cropY, this.cropSize, this.cropSize);
@@ -106,71 +99,97 @@ export class CropModalComponent {
     ctx.drawImage(this.img, 0, 0, this.canvasWidth, this.canvasHeight);
     ctx.restore();
 
-    // Draw crop border
     ctx.strokeStyle = "white";
     ctx.lineWidth = 2;
     ctx.strokeRect(this.cropX, this.cropY, this.cropSize, this.cropSize);
 
-    // Draw resize handles (4 corners)
-    const handleSize = 10;
+    const handleSize = 16;
     ctx.fillStyle = "white";
-    // Top-left
-    ctx.fillRect(this.cropX - handleSize / 2, this.cropY - handleSize / 2, handleSize, handleSize);
-    // Top-right
-    ctx.fillRect(
-      this.cropX + this.cropSize - handleSize / 2,
-      this.cropY - handleSize / 2,
-      handleSize,
-      handleSize
-    );
-    // Bottom-left
-    ctx.fillRect(
-      this.cropX - handleSize / 2,
-      this.cropY + this.cropSize - handleSize / 2,
-      handleSize,
-      handleSize
-    );
-    // Bottom-right
-    ctx.fillRect(
-      this.cropX + this.cropSize - handleSize / 2,
-      this.cropY + this.cropSize - handleSize / 2,
-      handleSize,
-      handleSize
-    );
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 2;
+
+    const corners = [
+      [this.cropX, this.cropY],
+      [this.cropX + this.cropSize, this.cropY],
+      [this.cropX, this.cropY + this.cropSize],
+      [this.cropX + this.cropSize, this.cropY + this.cropSize],
+    ];
+
+    for (const [cx, cy] of corners) {
+      ctx.fillRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+    }
   }
 
   onMouseDown(event: MouseEvent) {
+    this.handleStart(event.clientX, event.clientY);
+  }
+
+  onTouchStart(event: TouchEvent) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    this.handleStart(touch.clientX, touch.clientY);
+  }
+
+  private handleStart(clientX: number, clientY: number) {
     const canvas = this.canvasRef?.nativeElement;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
-    const cornerThreshold = 15;
-    const rightCorner = this.cropX + this.cropSize;
-    const bottomCorner = this.cropY + this.cropSize;
+    const handleSize = 20;
+    const edgeThreshold = 15;
 
-    // Check bottom-right corner for resize
-    const nearRightCorner =
-      Math.abs(x - rightCorner) < cornerThreshold && y >= this.cropY && y <= bottomCorner;
-    const nearBottomCorner =
-      Math.abs(y - bottomCorner) < cornerThreshold && x >= this.cropX && x <= rightCorner;
+    const minX = this.cropX;
+    const maxX = this.cropX + this.cropSize;
+    const minY = this.cropY;
+    const maxY = this.cropY + this.cropSize;
 
-    if (nearRightCorner && nearBottomCorner) {
+    const onCorner =
+      Math.abs(x - minX) < handleSize && Math.abs(y - minY) < handleSize
+        ? "tl"
+        : Math.abs(x - maxX) < handleSize && Math.abs(y - minY) < handleSize
+          ? "tr"
+          : Math.abs(x - minX) < handleSize && Math.abs(y - maxY) < handleSize
+            ? "bl"
+            : Math.abs(x - maxX) < handleSize && Math.abs(y - maxY) < handleSize
+              ? "br"
+              : "";
+
+    if (onCorner) {
       this.isResizing = true;
+      this.resizeHandle = onCorner;
+      this.initialCropX = this.cropX;
+      this.initialCropY = this.cropY;
       this.initialCropSize = this.cropSize;
       this.dragStartX = x;
       this.dragStartY = y;
       return;
     }
 
-    // Check inside crop area for drag
-    if (
-      x >= this.cropX &&
-      x <= this.cropX + this.cropSize &&
-      y >= this.cropY &&
-      y <= this.cropY + this.cropSize
-    ) {
+    const onEdgeH = Math.abs(y - minY) < edgeThreshold || Math.abs(y - maxY) < edgeThreshold;
+    const onEdgeV = Math.abs(x - minX) < edgeThreshold || Math.abs(x - maxX) < edgeThreshold;
+
+    if (onEdgeH && x > minX && x < maxX) {
+      this.isResizing = true;
+      this.resizeHandle = Math.abs(y - minY) < edgeThreshold ? "top" : "bottom";
+      this.initialCropY = this.cropY;
+      this.initialCropSize = this.cropSize;
+      this.dragStartY = y;
+      return;
+    }
+
+    if (onEdgeV && y > minY && y < maxY) {
+      this.isResizing = true;
+      this.resizeHandle = Math.abs(x - minX) < edgeThreshold ? "left" : "right";
+      this.initialCropX = this.cropX;
+      this.initialCropSize = this.cropSize;
+      this.dragStartX = x;
+      return;
+    }
+
+    if (x > minX && x < maxX && y > minY && y < maxY) {
       this.isDragging = true;
       this.initialCropX = this.cropX;
       this.initialCropY = this.cropY;
@@ -180,13 +199,23 @@ export class CropModalComponent {
   }
 
   onMouseMove(event: MouseEvent) {
+    this.handleMove(event.clientX, event.clientY);
+  }
+
+  onTouchMove(event: TouchEvent) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    this.handleMove(touch.clientX, touch.clientY);
+  }
+
+  private handleMove(clientX: number, clientY: number) {
     if (!this.isDragging && !this.isResizing) return;
 
     const canvas = this.canvasRef?.nativeElement;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     if (this.isDragging) {
       const dx = x - this.dragStartX;
@@ -204,50 +233,103 @@ export class CropModalComponent {
       const dx = x - this.dragStartX;
       const dy = y - this.dragStartY;
 
-      let newSize = this.initialCropSize + Math.max(dx, dy);
-      newSize = Math.max(50, Math.min(newSize, this.maxCropSize));
-
-      // Keep center when resizing
-      const newX = this.cropX - (newSize - this.cropSize) / 2;
-      const newY = this.cropY - (newSize - this.cropSize) / 2;
-
-      if (
-        newX >= 0 &&
-        newX + newSize <= this.canvasWidth &&
-        newY >= 0 &&
-        newY + newSize <= this.canvasHeight
-      ) {
-        this.cropX = newX;
-        this.cropY = newY;
-        this.cropSize = newSize;
+      switch (this.resizeHandle) {
+        case "br":
+          this.resizeFromBR(dx, dy);
+          break;
+        case "bl":
+          this.resizeFromBR(-dx, dy, true);
+          break;
+        case "tr":
+          this.resizeFromBR(dx, -dy, false, true);
+          break;
+        case "tl":
+          this.resizeFromBR(-dx, -dy, true, true);
+          break;
+        case "top":
+          this.resizeFromEdge(0, dy, "top");
+          break;
+        case "bottom":
+          this.resizeFromEdge(0, dy, "bottom");
+          break;
+        case "left":
+          this.resizeFromEdge(dx, 0, "left");
+          break;
+        case "right":
+          this.resizeFromEdge(dx, 0, "right");
+          break;
       }
     }
 
     this.redrawCanvas();
   }
 
+  private resizeFromBR(dx: number, dy: number, flipX = false, flipY = false) {
+    let newSize = this.initialCropSize + Math.max(dx, dy);
+    newSize = Math.max(50, Math.min(newSize, this.maxCropSize));
+
+    this.cropSize = newSize;
+    if (flipX) this.cropX = this.initialCropX - (newSize - this.initialCropSize);
+    if (flipY) this.cropY = this.initialCropY - (newSize - this.initialCropSize);
+  }
+
+  private resizeFromEdge(dx: number, dy: number, edge: string) {
+    const minSize = 50;
+    let newX = this.initialCropX;
+    let newY = this.initialCropY;
+    let newSize = this.initialCropSize;
+
+    if (edge === "left") {
+      newSize = Math.max(
+        minSize,
+        Math.min(this.initialCropSize - dx, this.canvasWidth - this.initialCropX)
+      );
+      newX = this.initialCropX + (this.initialCropSize - newSize);
+    } else if (edge === "right") {
+      newSize = Math.max(
+        minSize,
+        Math.min(this.initialCropSize + dx, this.canvasWidth - this.initialCropX)
+      );
+    } else if (edge === "top") {
+      newSize = Math.max(
+        minSize,
+        Math.min(this.initialCropSize - dy, this.canvasHeight - this.initialCropY)
+      );
+      newY = this.initialCropY + (this.initialCropSize - newSize);
+    } else if (edge === "bottom") {
+      newSize = Math.max(
+        minSize,
+        Math.min(this.initialCropSize + dy, this.canvasHeight - this.initialCropY)
+      );
+    }
+
+    newSize = Math.max(minSize, Math.min(newSize, this.maxCropSize));
+
+    this.cropX = Math.max(0, Math.min(newX, this.canvasWidth - newSize));
+    this.cropY = Math.max(0, Math.min(newY, this.canvasHeight - newSize));
+    this.cropSize = newSize;
+  }
+
   onMouseUp() {
     this.isDragging = false;
     this.isResizing = false;
+    this.resizeHandle = "";
   }
 
   onCrop() {
     if (!this.img) return;
 
-    // Map display coordinates to original image coordinates
     const scaleX = this.img.width / this.canvasWidth;
     const scaleY = this.img.height / this.canvasHeight;
 
     const srcX = Math.round(this.cropX * scaleX);
     const srcY = Math.round(this.cropY * scaleY);
-    const srcSize = Math.round(this.cropSize * scaleX); // square
+    const srcSize = Math.round(this.cropSize * scaleX);
 
-    // Clamp to image bounds
     const safeX = Math.max(0, Math.min(srcX, this.img.width - 1));
     const safeY = Math.max(0, Math.min(srcY, this.img.height - 1));
     const safeSize = Math.min(srcSize, this.img.width - safeX, this.img.height - safeY);
 
-    // Output at max 500px
     const MAX_OUT = 500;
     const outSize = Math.min(safeSize, MAX_OUT);
 
@@ -278,7 +360,6 @@ export class CropModalComponent {
         0.9
       );
     } catch (e) {
-      // CORS issue - return original
       this.cropped.emit(this.imageSource);
     }
   }
