@@ -6,11 +6,6 @@
     </div>
 
     <div class="flex flex-row items-center gap-3">
-      <div class="mr-2 hidden flex-col items-end sm:flex">
-        <span class="textMuted text-[10px] font-bold tracking-wider uppercase">Active Project</span>
-        <span class="textNormal text-sm font-medium">{{ selectedProjectTitle() }}</span>
-      </div>
-
       <button
         [matMenuTriggerFor]="projectMenu"
         class="h-12 rounded-xl border border-zinc-200 bg-zinc-100 px-4 text-inherit dark:border-zinc-700 dark:bg-zinc-800"
