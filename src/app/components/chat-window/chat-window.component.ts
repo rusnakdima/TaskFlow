@@ -260,7 +260,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   deleteMessage(chatId: string) {
-    this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todo_id }).subscribe();
+    this.storageService.deleteChatFromTodo(chatId, this.todo_id);
   }
 
   markAsRead(todo_id?: string, ids?: string[]) {

@@ -30,31 +30,12 @@ pub async fn manage_data(
   load: Option<Vec<String>>,
   sync_metadata: Option<SyncMetadata>,
 ) -> Result<ResponseModel, ResponseModel> {
-  // Extract id from filter if operation is "get" and id is not provided
-  let final_id = if operation == "get" && id.is_none() {
-    if let Some(f) = &filter {
-      if let Some(id_val) = f.get("id") {
-        if let Some(id_str) = id_val.as_str() {
-          Some(id_str.to_string())
-        } else {
-          return Err(err_response("ID must be a string"));
-        }
-      } else {
-        None
-      }
-    } else {
-      None
-    }
-  } else {
-    id
-  };
-
   state
     .repository_service
     .execute(
       operation,
       table,
-      final_id,
+      id,
       data,
       filter,
       relations,

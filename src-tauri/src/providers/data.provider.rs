@@ -43,6 +43,29 @@ impl DataProvider<'_> {
     }
   }
 
+  pub async fn find_one(
+    &self,
+    table: &str,
+    filter: Option<&Filter>,
+  ) -> Result<Option<Value>, ResponseModel> {
+    match self {
+      DataProvider::Json(p) => {
+        let results = p
+          .find_many(table, filter, None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?;
+        Ok(results.into_iter().next())
+      }
+      DataProvider::Mongo(p) => {
+        let results = p
+          .find_many(table, filter, None, None, None, false)
+          .await
+          .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?;
+        Ok(results.into_iter().next())
+      }
+    }
+  }
+
   pub async fn insert(&self, table: &str, data: Value) -> Result<Value, ResponseModel> {
     match self {
       DataProvider::Json(p) => p

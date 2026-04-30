@@ -17,7 +17,6 @@ import { ProfileHandler } from "./entity-handlers/profile.handler";
 import { ChatHandler } from "./entity-handlers/chat.handler";
 
 import { BaseStorageService } from "./base-storage.service";
-import { EntityIndexService } from "./entity-index.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 export type StorageEntity = keyof EntityMap;
@@ -36,9 +35,6 @@ interface EntityMap {
 // ==================== STORAGE SERVICE ====================
 @Injectable({ providedIn: "root" })
 export class StorageService extends BaseStorageService {
-  private entityIndexService = inject(EntityIndexService);
-  private notifyService = inject(NotifyService);
-
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
   private readonly sharedTodosSignal = signal<Todo[]>([]);
@@ -123,18 +119,11 @@ export class StorageService extends BaseStorageService {
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
     todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal),
-    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks", {
-      getTodoIdForTask: (id: string) => this.entityIndexService.getTodoIdForTask(id),
-      getTaskIdForSubtask: (id: string) => this.entityIndexService.getTaskIdForSubtask(id),
-    }),
+    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks"),
     subtasks: new NestedEntityHandler<Subtask>(
       this.privateTodosSignal,
       this.sharedTodosSignal,
-      "subtasks",
-      {
-        getTodoIdForTask: (id: string) => this.entityIndexService.getTodoIdForTask(id),
-        getTaskIdForSubtask: (id: string) => this.entityIndexService.getTaskIdForSubtask(id),
-      }
+      "subtasks"
     ),
     categories: new CategoryHandler(this.categoriesSignal),
     profiles: new ProfileHandler(this.profileSignal),
@@ -142,44 +131,10 @@ export class StorageService extends BaseStorageService {
     comments: new CommentHandler(this.privateTodosSignal, this.sharedTodosSignal),
   };
 
-  // ==================== INDEX LOOKUPS ====================
-  getTodoIdForTask(taskId: string): string | null {
-    return this.entityIndexService.getTodoIdForTask(taskId);
-  }
-
-  getTodoIdForSubtask(subtaskId: string): string | null {
-    return this.entityIndexService.getTodoIdForSubtask(subtaskId);
-  }
-
-  getTaskIdForSubtask(subtaskId: string): string | null {
-    return this.entityIndexService.getTaskIdForSubtask(subtaskId);
-  }
-
-  private rebuildIndexes(): void {
-    this.entityIndexService.rebuildIndexes(this.privateTodosSignal(), this.sharedTodosSignal());
-  }
-
   // ==================== CRUD OPERATIONS ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
     if (type === "users" || !data?.id) return;
-    this.updateIndexesForEntity(type, data);
     this.handlers[type]?.add(data);
-  }
-
-  private updateIndexesForEntity(type: StorageEntity, data: any): void {
-    if (!data || !data.id) return;
-
-    if (type === "todos" && data.id && Array.isArray(data.tasks)) {
-      for (const task of data.tasks) {
-        if (task.id) {
-          this.entityIndexService.setTaskToTodoIndex(task.id, data.id);
-        }
-      }
-    } else if (type === "tasks" && data.id && data.todo_id) {
-      this.entityIndexService.setTaskToTodoIndex(data.id, data.todo_id);
-    } else if (type === "subtasks" && data.id && data.task_id) {
-      this.entityIndexService.setSubtaskToTaskIndex(data.id, data.task_id);
-    }
   }
 
   updateItem(
@@ -202,10 +157,6 @@ export class StorageService extends BaseStorageService {
         if (existing?.["deleted_at"]) continue;
       }
 
-      if (type === "todos" && updates["tasks"]) {
-        this.updateIndexesForEntity("todos", { id, ...updates });
-      }
-
       if (type === "todos") {
         const categoriesSignal = this.categoriesSignal;
         this.handlers[type]?.update(id, updates, {
@@ -219,11 +170,6 @@ export class StorageService extends BaseStorageService {
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
     if (type === "users") return;
-    if (type === "tasks") {
-      this.entityIndexService.deleteTaskIndex(id);
-    } else if (type === "subtasks") {
-      this.entityIndexService.deleteSubtaskIndex(id);
-    }
     this.handlers[type]?.remove(id, parentId);
   }
 
@@ -372,21 +318,21 @@ export class StorageService extends BaseStorageService {
       this.removeTodoWithCascade(id);
     } else if (table === "tasks") {
       const taskHandler = this.handlers.tasks;
-      const todoId = this.getTodoIdForTask(id);
+      const task = this.getById("tasks", id);
+      const todoId = task?.todo_id ?? null;
       if (deletedAt) {
         (taskHandler as any).softDeleteWithCascade?.(id, deletedAt, todoId ?? undefined);
       } else {
         taskHandler.remove(id, todoId ?? undefined);
-        this.entityIndexService.deleteTaskIndex(id);
       }
     } else if (table === "subtasks") {
       const subtaskHandler = this.handlers.subtasks;
-      const taskId = this.getTaskIdForSubtask(id);
+      const subtask = this.getById("subtasks", id);
+      const taskId = subtask?.task_id ?? null;
       if (deletedAt) {
         (subtaskHandler as any).softDeleteWithCascade?.(id, deletedAt, taskId ?? undefined);
       } else {
         subtaskHandler.remove(id, taskId ?? undefined);
-        this.entityIndexService.deleteSubtaskIndex(id);
       }
     } else if (table === "comments") {
       if (deletedAt) {
@@ -463,7 +409,6 @@ export class StorageService extends BaseStorageService {
     this.userSignal.set(null);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
-    this.entityIndexService.clearIndexes();
   }
 
   setCollection<
@@ -489,11 +434,9 @@ export class StorageService extends BaseStorageService {
         break;
       case "privateTodos":
         this.privateTodosSignal.set(items as Todo[]);
-        this.rebuildIndexes();
         break;
       case "sharedTodos":
         this.sharedTodosSignal.set(items as Todo[]);
-        this.rebuildIndexes();
         break;
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);

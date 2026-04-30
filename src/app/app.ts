@@ -62,6 +62,7 @@ export class App implements OnInit {
   private profileRequiredService = inject(ProfileRequiredService);
   private appStateService = inject(AppStateService);
   private userValidationService = inject(UserValidationService);
+  private dataLoaderService = inject(DataLoaderService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -99,6 +100,8 @@ export class App implements OnInit {
       this.url.set(this.router.url.slice(0, lastIndex));
       this.updateShowComponents();
     });
+
+    this.dataLoaderService.loadAllData().subscribe();
   }
 
   /**

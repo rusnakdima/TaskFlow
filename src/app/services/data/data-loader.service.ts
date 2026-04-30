@@ -49,7 +49,7 @@ export class DataLoaderService {
       }
     );
 
-    const userProfile$ = this.relationLoader.loadMany<Profile>(
+    const userProfile$ = this.relationLoader.loadOne<Profile>(
       this.apiProvider,
       "profiles",
       { user_id: currentUserId },
@@ -104,8 +104,8 @@ export class DataLoaderService {
         if (allProfiles && Array.isArray(allProfiles)) {
           this.storageService.setCollection("allProfiles", allProfiles);
         }
-        if (userProfile && Array.isArray(userProfile) && userProfile.length > 0) {
-          this.storageService.setCollection("profiles", userProfile[0]);
+        if (userProfile && typeof userProfile === "object" && "user_id" in userProfile) {
+          this.storageService.setCollection("profiles", userProfile);
         }
         if (allCategories && Array.isArray(allCategories)) {
           this.storageService.setCollection("categories", allCategories);

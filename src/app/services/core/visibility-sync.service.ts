@@ -5,10 +5,6 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { SyncMetadata } from "@models/sync-metadata";
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Chat } from "@models/chat.model";
 import { StorageService } from "@services/core/storage.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { ApiProvider } from "@providers/api.provider";
@@ -147,158 +143,10 @@ export class VisibilitySyncService {
           })
         )
     );
-
-    const taskSyncPromises: Promise<void>[] = [];
-    const syncedCommentIds = new Set<string>();
-
-    todo.tasks?.forEach((task: Task) => {
-      const taskWithoutRelations = this.stripTaskRelations(task);
-      taskSyncPromises.push(
-        firstValueFrom(
-          this.apiProvider
-            .crud<Task>("update", "tasks", {
-              id: task.id,
-              data: taskWithoutRelations,
-              isOwner: true,
-              isPrivate,
-            })
-            .pipe(
-              catchError((error) => {
-                console.error("[VisibilitySync] Error:", error);
-                return of(null);
-              })
-            )
-        ).then(() => {
-          this.syncProgressService.updateProgress(
-            this.syncProgressService.completedItems() + 1,
-            "Syncing tasks..."
-          );
-        }) as Promise<void>
-      );
-
-      task.subtasks?.forEach((subtask: Subtask) => {
-        const subtaskWithoutRelations = this.stripSubtaskRelations(subtask);
-        taskSyncPromises.push(
-          firstValueFrom(
-            this.apiProvider
-              .crud<Subtask>("update", "subtasks", {
-                id: subtask.id,
-                data: subtaskWithoutRelations,
-                isOwner: true,
-                isPrivate,
-              })
-              .pipe(
-                catchError((error) => {
-                  console.error("[VisibilitySync] Error:", error);
-                  return of(null);
-                })
-              )
-          ).then(() => {
-            this.syncProgressService.updateProgress(
-              this.syncProgressService.completedItems() + 1,
-              "Syncing subtasks..."
-            );
-          }) as Promise<void>
-        );
-      });
-
-      task.comments?.forEach((comment: Comment) => {
-        syncedCommentIds.add(comment.id);
-        taskSyncPromises.push(
-          firstValueFrom(
-            this.apiProvider
-              .crud<Comment>("create", "comments", {
-                data: comment,
-                isOwner: true,
-                isPrivate,
-              })
-              .pipe(
-                catchError((error) => {
-                  console.error("[VisibilitySync] Error:", error);
-                  return of(null);
-                })
-              )
-          ).then(() => {
-            this.syncProgressService.updateProgress(
-              this.syncProgressService.completedItems() + 1,
-              "Syncing comments..."
-            );
-          }) as Promise<void>
-        );
-      });
-
-      task.subtasks?.forEach((subtask: Subtask) => {
-        subtask.comments?.forEach((comment: Comment) => {
-          if (syncedCommentIds.has(comment.id)) return;
-          syncedCommentIds.add(comment.id);
-          taskSyncPromises.push(
-            firstValueFrom(
-              this.apiProvider
-                .crud<Comment>("create", "comments", {
-                  data: comment,
-                  isOwner: true,
-                  isPrivate,
-                })
-                .pipe(
-                  catchError((error) => {
-                    console.error("[VisibilitySync] Error:", error);
-                    return of(null);
-                  })
-                )
-            ).then(() => {
-              this.syncProgressService.updateProgress(
-                this.syncProgressService.completedItems() + 1,
-                "Syncing comments..."
-              );
-            }) as Promise<void>
-          );
-        });
-      });
-    });
-
-    await Promise.all(taskSyncPromises);
-
-    const chatSyncPromises: Promise<void>[] = [];
-    const chats = this.storageService.getChatsByTodo(todo.id);
-    chats.forEach((chat: Chat) => {
-      chatSyncPromises.push(
-        firstValueFrom(
-          this.apiProvider
-            .crud<Chat>("create", "chats", {
-              data: chat,
-              isOwner: true,
-              isPrivate,
-            })
-            .pipe(
-              catchError((error) => {
-                console.error("[VisibilitySync] Error:", error);
-                return of(null);
-              })
-            )
-        ).then(() => {
-          this.syncProgressService.updateProgress(
-            this.syncProgressService.completedItems() + 1,
-            "Syncing chats..."
-          );
-        }) as Promise<void>
-      );
-    });
-
-    await Promise.all(chatSyncPromises);
   }
 
   private stripRelations(todo: Todo): Partial<Todo> {
     const { tasks, user, categories, ...rest } = todo;
-    return rest;
-  }
-
-  private stripTaskRelations(task: Task): Partial<Task> {
-    const { subtasks, comments, todo: parentTodo, ...rest } = task;
-    return rest;
-  }
-
-  private stripSubtaskRelations(subtask: Subtask): Partial<Subtask> {
-    const { comments, task: parentTask, ...rest } = subtask;
     return rest;
   }
 

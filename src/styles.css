@@ -539,6 +539,17 @@ div.mdc-checkbox {
   @apply absolute;
 }
 
+/* ── Custom Radio ── */
+.radio {
+  @apply relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-2 border-gray-400 bg-transparent transition-colors duration-150 dark:border-gray-600;
+}
+.radio--checked {
+  @apply border-blue-500 bg-blue-500;
+}
+.radio__dot {
+  @apply h-2 w-2 rounded-full bg-white;
+}
+
 /* ── Todos grid drop list (mixed orientation: one drop list per item) ── */
 .todos-drop-list {
   display: flex;
