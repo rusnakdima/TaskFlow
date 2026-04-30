@@ -301,6 +301,12 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   getUsername(userId: string): string {
+    // First try to get from nested user data in chat responses
+    const chatWithUser = this.chats().find((c) => c.user_id === userId);
+    if (chatWithUser?.user?.username) return chatWithUser.user.username;
+    if (chatWithUser?.user?.email) return chatWithUser.user.email;
+
+    // Then try storage
     const user = this.storageService.getById("users", userId);
     if (user?.username) return user.username;
     if (user?.email) return user.email;

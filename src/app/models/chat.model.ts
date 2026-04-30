@@ -8,6 +8,12 @@ export interface Chat {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  user?: {
+    username?: string;
+    email?: string;
+  };
+  todo?: any;
+  read_by_users?: any[];
 }
 
 export interface ChatCreate {
