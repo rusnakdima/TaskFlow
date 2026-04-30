@@ -23,6 +23,7 @@ import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -142,6 +143,7 @@ export class DataManagementView implements OnInit {
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
+  protected storageService = inject(StorageService);
 
   mode: "admin" | "archive" = "admin";
   dataMap = signal<any>({});
@@ -480,14 +482,31 @@ export class DataManagementView implements OnInit {
 
   async toggleDeleteStatus(record: any) {
     try {
+      const table = this.selectedType();
       const response =
         this.mode === "admin"
-          ? await this.adminService.toggleDeleteStatus(this.selectedType(), record.id)
-          : await this.adminService.toggleDeleteStatusLocal(this.selectedType(), record.id);
+          ? await this.adminService.toggleDeleteStatus(table, record.id)
+          : await this.adminService.toggleDeleteStatusLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
+        const newDeletedAt = response.data;
+        const timestamp = new Date().toISOString();
+
+        if (table === "todos" || table === "tasks" || table === "subtasks") {
+          if (newDeletedAt) {
+            this.storageService.removeRecordWithCascade(table, record.id, timestamp);
+          } else {
+            this.storageService.restoreRecordWithCascade(table, record.id);
+          }
+        } else {
+          this.storageService.updateItem(table as any, record.id, {
+            deleted_at: newDeletedAt ? timestamp : null,
+            updated_at: timestamp,
+          });
+        }
+
         this.notifyService.showSuccess("Record status updated");
-        this.loadData(true); // Force reload to bypass cache
+        this.loadData(true);
       }
     } catch (error) {
       this.notifyService.showError("Error: " + error);
@@ -497,12 +516,26 @@ export class DataManagementView implements OnInit {
   async onBulkSoftDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
+    const timestamp = new Date().toISOString();
+
     const promises = selected.map((id) =>
       this.mode === "admin"
         ? this.adminService.toggleDeleteStatus(table, id)
         : this.adminService.toggleDeleteStatusLocal(table, id)
     );
     await Promise.all(promises);
+
+    for (const id of selected) {
+      if (table === "todos" || table === "tasks" || table === "subtasks") {
+        this.storageService.removeRecordWithCascade(table, id, timestamp);
+      } else {
+        this.storageService.updateItem(table as any, id, {
+          deleted_at: timestamp,
+          updated_at: timestamp,
+        });
+      }
+    }
+
     this.notifyService.showSuccess("Bulk update successful");
     this.clearSelection();
     this.loadData(true);
@@ -511,12 +544,22 @@ export class DataManagementView implements OnInit {
   async onBulkHardDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
+
     const promises = selected.map((id) =>
       this.mode === "admin"
         ? this.adminService.permanentlyDeleteRecord(table, id)
         : this.adminService.permanentlyDeleteRecordLocal(table, id)
     );
     await Promise.all(promises);
+
+    for (const id of selected) {
+      if (table === "todos" || table === "tasks" || table === "subtasks") {
+        this.storageService.removeRecordWithCascade(table, id);
+      } else {
+        this.storageService.removeItem(table as any, id);
+      }
+    }
+
     this.notifyService.showSuccess("Bulk delete successful");
     this.clearSelection();
     this.loadData(true);
