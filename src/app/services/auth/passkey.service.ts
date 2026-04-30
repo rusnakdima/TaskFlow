@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, of } from "rxjs";
-import { map, tap } from "rxjs/operators";
+import { Observable, of } from "rxjs";
+import { tap } from "rxjs/operators";
 import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
@@ -24,11 +24,6 @@ export class PasskeyService {
   private dataSyncProvider = inject(ApiProvider);
   private jwtTokenService = inject(JwtTokenService);
 
-  private getUsername(): string {
-    const token = this.jwtTokenService.getToken();
-    return this.jwtTokenService.getUsername(token) || "";
-  }
-
   isPasskeyEnabledForCurrentUser(): boolean {
     const token = this.jwtTokenService.getToken();
     if (!token) return false;
@@ -44,7 +39,7 @@ export class PasskeyService {
   initPasskeyRegistration(): Observable<PasskeyRegistrationOptions> {
     return this.dataSyncProvider.invokeCommand<PasskeyRegistrationOptions>(
       "initPasskeyRegistration",
-      { username: this.getUsername() }
+      { username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "" }
     );
   }
 
@@ -54,7 +49,7 @@ export class PasskeyService {
     device: string
   ): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("completePasskeyRegistration", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       attestationObject,
       device,
@@ -87,13 +82,13 @@ export class PasskeyService {
 
   disablePasskey(): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("disablePasskey", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableBiometric(credentialId: string, publicKey: string): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("enableBiometric", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       publicKey,
     });
@@ -109,14 +104,14 @@ export class PasskeyService {
 
   completeBiometricAuth(signature: string, username?: string): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("completeBiometricAuth", {
-      username: username || this.getUsername(),
+      username: username || this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       signature,
     });
   }
 
   disableBiometric(): Observable<string> {
     return this.dataSyncProvider.invokeCommand<string>("disableBiometric", {
-      username: this.getUsername(),
+      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 

@@ -1,5 +1,5 @@
 /* sys lib */
-import { Directive, EventEmitter, Output, signal, inject } from "@angular/core";
+import { Directive, signal, inject } from "@angular/core";
 import { ChangeDetectorRef } from "@angular/core";
 
 /**
@@ -10,24 +10,8 @@ import { ChangeDetectorRef } from "@angular/core";
 export abstract class BaseItemComponent {
   protected cdr = inject(ChangeDetectorRef);
 
-  @Output() edit = new EventEmitter<void>();
-  @Output() delete = new EventEmitter<void>();
-  @Output() toggle = new EventEmitter<void>();
-
   editingField = signal<string | null>(null);
   editingValue = signal("");
-
-  onEditClick(): void {
-    this.edit.emit();
-  }
-
-  onDeleteClick(): void {
-    this.delete.emit();
-  }
-
-  onToggleClick(): void {
-    this.toggle.emit();
-  }
 
   startInlineEdit(field: string, currentValue: string) {
     this.editingField.set(field);

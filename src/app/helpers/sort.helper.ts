@@ -23,7 +23,7 @@ export class SortHelper {
   static sortByField<T>(data: T[], config: SortConfig): T[] {
     const { field, order } = config;
 
-    return [...data].sort((a: any, b: any) => {
+    return [...data].sort((a: T, b: T) => {
       let aValue = ObjectHelper.getNestedValue(a, field);
       let bValue = ObjectHelper.getNestedValue(b, field);
 

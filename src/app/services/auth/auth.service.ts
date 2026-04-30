@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap, take, catchError, map } from "rxjs/operators";
+import { tap, take, catchError } from "rxjs/operators";
 
 /* models */
 
@@ -14,7 +14,6 @@ import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
@@ -63,7 +62,7 @@ export class AuthService {
             isOffline: false,
           });
         },
-        error: (err: any) => {
+        error: (err: Error) => {
           if (NetworkErrorHelper.isNetworkError(err)) {
             reject(new Error("No internet connection. Please login online first."));
           } else {
@@ -120,7 +119,7 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem("token");
+    this.jwtTokenService.clearToken();
     window.location.reload();
   }
 
@@ -128,7 +127,7 @@ export class AuthService {
    * Full logout - clear all local user data
    */
   logoutAll() {
-    localStorage.removeItem("token");
+    this.jwtTokenService.clearToken();
     window.location.reload();
   }
 
@@ -136,12 +135,11 @@ export class AuthService {
    * Single source of truth for auth status.
    */
   isLoggedIn(): boolean {
-    const token = this.getToken();
-    return !!token && !this.jwtTokenService.isTokenExpired(token);
+    return this.jwtTokenService.isLoggedIn();
   }
 
   getToken(): string | null {
-    return TokenStorageHelper.getToken();
+    return this.jwtTokenService.getToken();
   }
 
   hasRole(role: string): boolean {
@@ -149,15 +147,15 @@ export class AuthService {
     return token ? this.jwtTokenService.hasRole(token, role) : false;
   }
 
-  getValueByKey(key: string): any {
+  getValueByKey(key: string): string {
     const token = this.getToken();
     if (key === "username") {
-      return this.jwtTokenService.getUsername(token);
+      return this.jwtTokenService.getUsername(token) ?? "";
     }
     if (key === "role") {
-      return this.jwtTokenService.getRole(token);
+      return this.jwtTokenService.getRole(token) ?? "";
     }
-    return token ? this.jwtTokenService.getValueByKey(token, key) : null;
+    return this.jwtTokenService.getValueByKey(token, key) ?? "";
   }
 
   exportUserData(): string | null {
@@ -203,26 +201,10 @@ export class AuthService {
       .pipe(take(1))
       .subscribe({
         next: (response: any) => {
-          // Token valid and user exists - proceed with session init
-          this.dataSyncService.loadAllData();
-
-          // 3. Profile Requirement Check
-          const cachedProfile = this.storageService.profile();
-          if (!cachedProfile) {
-            this.dataSyncService
-              .loadProfile()
-              .pipe(take(1))
-              .subscribe((profile) => {
-                if (!profile) {
-                  this.profileRequiredService.setProfileRequiredMode(true);
-                  if (!this.router.url.startsWith("/profile/create-profile")) {
-                    this.router.navigate(["/profile/create-profile"]);
-                  }
-                }
-              });
-          }
+          // Token valid and user exists - session init complete
+          // Data loading is handled by DataLoaderService on app init
         },
-        error: (err: any) => {
+        error: (err: Error) => {
           // Token invalid or user not found - clear session and redirect
           this.userValidationService.invalidateUserSession();
         },

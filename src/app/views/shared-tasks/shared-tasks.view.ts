@@ -15,7 +15,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -37,7 +36,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
-  private dataSyncProvider = inject(ApiProvider);
+  private apiProvider = inject(ApiProvider);
 
   userId = signal("");
 
@@ -65,11 +64,6 @@ export class SharedTasksView extends BaseListView implements OnInit {
     super.ngOnInit();
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
-    this.loadSharedProjects();
-  }
-
-  loadSharedProjects() {
-    this.dataSyncService.loadTeamTodos().subscribe();
   }
 
   todoIsOwner(todo: Todo): boolean {
@@ -78,7 +72,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.dataSyncProvider
+      this.apiProvider
         .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: false })
         .subscribe({
           next: () => {

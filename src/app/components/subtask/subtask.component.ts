@@ -170,7 +170,6 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   onAddComment(content: string) {
     if (this.subtask) {
       const userId = this.authService.getValueByKey("id");
-      const username = this.authService.getValueByKey("username");
       const effectiveTodoId =
         this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
 

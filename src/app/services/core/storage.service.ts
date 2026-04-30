@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, signal, computed, inject } from "@angular/core";
+import { Injectable, signal, computed, inject, Signal, WritableSignal } from "@angular/core";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
@@ -8,13 +8,19 @@ import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
 import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
+/* handlers */
+import { TodoHandler } from "./entity-handlers/todo.handler";
+import { NestedEntityHandler } from "./entity-handlers/nested-entity.handler";
+import { CommentHandler } from "./entity-handlers/comment.handler";
+import { CategoryHandler } from "./entity-handlers/category.handler";
+import { ProfileHandler } from "./entity-handlers/profile.handler";
+import { ChatHandler } from "./entity-handlers/chat.handler";
 
 import { BaseStorageService } from "./base-storage.service";
 import { EntityIndexService } from "./entity-index.service";
-import { StorageCrudService, StorageEntity } from "./storage-crud.service";
-import { TodoHandler } from "./entity-handlers/todo.handler";
+import { NotifyService } from "@services/notifications/notify.service";
 
-export type { StorageEntity };
+export type StorageEntity = keyof EntityMap;
 
 interface EntityMap {
   todos: Todo;
@@ -27,10 +33,11 @@ interface EntityMap {
   users: any;
 }
 
+// ==================== STORAGE SERVICE ====================
 @Injectable({ providedIn: "root" })
 export class StorageService extends BaseStorageService {
   private entityIndexService = inject(EntityIndexService);
-  private crudService = inject(StorageCrudService);
+  private notifyService = inject(NotifyService);
 
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
@@ -38,6 +45,7 @@ export class StorageService extends BaseStorageService {
   private readonly categoriesSignal = signal<Category[]>([]);
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly profilesSignal = signal<Profile[]>([]);
+  private readonly allProfilesSignal = signal<Profile[]>([]);
   private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
   private readonly userSignal = signal<any | null>(null);
 
@@ -108,22 +116,33 @@ export class StorageService extends BaseStorageService {
   readonly categories = this.categoriesSignal.asReadonly();
   readonly profile = this.profileSignal.asReadonly();
   readonly profiles = this.profilesSignal.asReadonly();
+  readonly allProfiles = this.allProfilesSignal.asReadonly();
   readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
 
-  constructor() {
-    super();
-    this.crudService.init(
+  // ==================== ENTITY HANDLERS ====================
+  private readonly handlers = {
+    todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal),
+    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks", {
+      getTodoIdForTask: (id: string) => this.entityIndexService.getTodoIdForTask(id),
+      getTaskIdForSubtask: (id: string) => this.entityIndexService.getTaskIdForSubtask(id),
+    }),
+    subtasks: new NestedEntityHandler<Subtask>(
       this.privateTodosSignal,
       this.sharedTodosSignal,
-      this.categoriesSignal,
-      this.profileSignal,
-      this.profilesSignal,
-      this.chatsByTodoSignal
-    );
-  }
+      "subtasks",
+      {
+        getTodoIdForTask: (id: string) => this.entityIndexService.getTodoIdForTask(id),
+        getTaskIdForSubtask: (id: string) => this.entityIndexService.getTaskIdForSubtask(id),
+      }
+    ),
+    categories: new CategoryHandler(this.categoriesSignal),
+    profiles: new ProfileHandler(this.profileSignal),
+    chats: new ChatHandler(this.chatsByTodoSignal),
+    comments: new CommentHandler(this.privateTodosSignal, this.sharedTodosSignal),
+  };
 
-  // ==================== INDEX LOOKUPS (delegates to EntityIndexService) ====================
+  // ==================== INDEX LOOKUPS ====================
   getTodoIdForTask(taskId: string): string | null {
     return this.entityIndexService.getTodoIdForTask(taskId);
   }
@@ -140,12 +159,27 @@ export class StorageService extends BaseStorageService {
     this.entityIndexService.rebuildIndexes(this.privateTodosSignal(), this.sharedTodosSignal());
   }
 
-  // ==================== GENERIC CRUD (delegates to StorageCrudService) ====================
+  // ==================== CRUD OPERATIONS ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
-    if (!data?.id) {
-      return;
+    if (type === "users" || !data?.id) return;
+    this.updateIndexesForEntity(type, data);
+    this.handlers[type]?.add(data);
+  }
+
+  private updateIndexesForEntity(type: StorageEntity, data: any): void {
+    if (!data || !data.id) return;
+
+    if (type === "todos" && data.id && Array.isArray(data.tasks)) {
+      for (const task of data.tasks) {
+        if (task.id) {
+          this.entityIndexService.setTaskToTodoIndex(task.id, data.id);
+        }
+      }
+    } else if (type === "tasks" && data.id && data.todo_id) {
+      this.entityIndexService.setTaskToTodoIndex(data.id, data.todo_id);
+    } else if (type === "subtasks" && data.id && data.task_id) {
+      this.entityIndexService.setSubtaskToTaskIndex(data.id, data.task_id);
     }
-    this.crudService.addItem(type, data, options);
   }
 
   updateItem(
@@ -154,7 +188,7 @@ export class StorageService extends BaseStorageService {
     updates: Partial<any>,
     options?: { isPrivate?: boolean }
   ): void {
-    this.crudService.updateItem(type, id, updates, options);
+    this.batchUpdate(type, [{ id, updates }], options);
   }
 
   batchUpdate(
@@ -162,11 +196,45 @@ export class StorageService extends BaseStorageService {
     items: { id: string; updates: Partial<any> }[],
     options?: { isPrivate?: boolean }
   ): void {
-    this.crudService.batchUpdate(type, items, options);
+    for (const { id, updates } of items) {
+      if (updates["deleted_at"]) {
+        const existing: any = this.getById(type, id);
+        if (existing?.["deleted_at"]) continue;
+      }
+
+      if (type === "todos" && updates["tasks"]) {
+        this.updateIndexesForEntity("todos", { id, ...updates });
+      }
+
+      if (type === "todos") {
+        const categoriesSignal = this.categoriesSignal;
+        this.handlers[type]?.update(id, updates, {
+          getCategoryById: (catId: string) => categoriesSignal().find((c) => c.id === catId),
+        });
+      } else if (type !== "users") {
+        this.handlers[type]?.update(id, updates);
+      }
+    }
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
-    this.crudService.removeItem(type, id, parentId, isTeam);
+    if (type === "users") return;
+    if (type === "tasks") {
+      this.entityIndexService.deleteTaskIndex(id);
+    } else if (type === "subtasks") {
+      this.entityIndexService.deleteSubtaskIndex(id);
+    }
+    this.handlers[type]?.remove(id, parentId);
+  }
+
+  getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
+    if (type === "users") return undefined;
+    const handler = this.handlers[type as keyof typeof this.handlers];
+    return handler ? (handler.getById(id) as EntityMap[T] | undefined) : undefined;
+  }
+
+  get handlersMap() {
+    return this.handlers;
   }
 
   // ==================== PUBLIC GETTERS ====================
@@ -206,7 +274,7 @@ export class StorageService extends BaseStorageService {
 
   setChatsByTodo(chats: Chat[], todo_id?: string): void {
     if (!todo_id) return;
-    const handler = this.crudService.handlersMap.chats;
+    const handler = this.handlers.chats;
     handler.setByTodoId(chats, todo_id);
   }
 
@@ -280,7 +348,7 @@ export class StorageService extends BaseStorageService {
     if (!todo) return;
 
     this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
-    if (!this.privateTodosSignal().some((t) => t.id !== todo_id)) {
+    if (!this.privateTodosSignal().some((t) => t.id === todo_id)) {
       this.privateTodosSignal.update((todos) => [
         { ...todo, visibility: "private" },
         ...todos.filter((t) => t.id !== todo_id),
@@ -288,12 +356,13 @@ export class StorageService extends BaseStorageService {
     }
   }
 
+  // ==================== CASCADE OPERATIONS ====================
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
     const todo = this.getById("todos", todo_id);
     if (!todo) return;
 
-    const handler = this.crudService.handlersMap.todos as TodoHandler;
+    const handler = this.handlers.todos as TodoHandler;
     const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
     handler.removeWithCascade(todo_id, allTodos);
   }
@@ -302,7 +371,7 @@ export class StorageService extends BaseStorageService {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
     } else if (table === "tasks") {
-      const taskHandler = this.crudService.handlersMap.tasks;
+      const taskHandler = this.handlers.tasks;
       const todoId = this.getTodoIdForTask(id);
       if (deletedAt) {
         (taskHandler as any).softDeleteWithCascade?.(id, deletedAt, todoId ?? undefined);
@@ -311,7 +380,7 @@ export class StorageService extends BaseStorageService {
         this.entityIndexService.deleteTaskIndex(id);
       }
     } else if (table === "subtasks") {
-      const subtaskHandler = this.crudService.handlersMap.subtasks;
+      const subtaskHandler = this.handlers.subtasks;
       const taskId = this.getTaskIdForSubtask(id);
       if (deletedAt) {
         (subtaskHandler as any).softDeleteWithCascade?.(id, deletedAt, taskId ?? undefined);
@@ -321,14 +390,14 @@ export class StorageService extends BaseStorageService {
       }
     } else if (table === "comments") {
       if (deletedAt) {
-        this.crudService.handlersMap.comments?.update(id, { deleted_at: deletedAt });
+        this.handlers.comments?.update(id, { deleted_at: deletedAt });
       } else {
-        this.crudService.handlersMap.comments?.remove(id);
+        this.handlers.comments?.remove(id);
       }
     } else if (table === "chats") {
-      this.crudService.handlersMap.chats?.remove(id);
+      this.handlers.chats?.remove(id);
     } else if (table === "categories") {
-      this.crudService.handlersMap.categories?.remove(id);
+      this.handlers.categories?.remove(id);
     }
   }
 
@@ -339,25 +408,25 @@ export class StorageService extends BaseStorageService {
     comments: Comment[];
     chats?: Chat[];
   }): void {
-    const handler = this.crudService.handlersMap.todos as TodoHandler;
+    const handler = this.handlers.todos as TodoHandler;
     handler.restoreWithCascade(data);
   }
 
   // ==================== COMMENT OPERATIONS ====================
   addCommentToTask(comment: Comment, task_id?: string): void {
     if (!task_id) return;
-    const handler = this.crudService.handlersMap.comments;
+    const handler = this.handlers.comments;
     handler.add({ ...comment, task_id: task_id });
   }
 
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
     if (!subtask_id) return;
-    const handler = this.crudService.handlersMap.comments;
+    const handler = this.handlers.comments;
     handler.add({ ...comment, subtask_id: subtask_id });
   }
 
   removeCommentFromAll(commentId: string): void {
-    this.crudService.handlersMap.comments?.remove(commentId);
+    this.handlers.comments?.remove(commentId);
   }
 
   // ==================== UTILITY METHODS ====================
@@ -383,13 +452,6 @@ export class StorageService extends BaseStorageService {
       if (!task_id) return undefined;
       return this.tasks().find((t) => t.id === task_id);
     });
-  }
-
-  getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
-    if (type === "users") {
-      return this.userSignal()?.id === id ? (this.userSignal() as EntityMap[T]) : undefined;
-    }
-    return this.crudService.getById(type, id);
   }
 
   clear(): void {
@@ -434,11 +496,209 @@ export class StorageService extends BaseStorageService {
         this.rebuildIndexes();
         break;
       case "allProfiles":
-        this.profilesSignal.set(items as Profile[]);
+        this.allProfilesSignal.set(items as Profile[]);
         break;
       case "user":
         this.userSignal.set(items as any | null);
         break;
     }
+  }
+}
+
+// ==================== UPDATE OPERATIONS ====================
+export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+export interface ArchiveDataMap {
+  [table: string]: any[];
+}
+
+@Injectable({ providedIn: "root" })
+export class StorageUpdateService {
+  constructor(
+    private storageService: StorageService,
+    private notifyService: NotifyService
+  ) {}
+
+  updateAfterOperation(
+    operation: Operation,
+    table: string,
+    result: any,
+    id?: string,
+    parentTodoId?: string
+  ): void {
+    try {
+      if (operation !== "get" && operation !== "getAll") {
+        this.notifyService.handleLocalAction(table, operation, result || { id });
+      }
+
+      const isTeam = result?.visibility === "team";
+
+      switch (operation) {
+        case "create":
+          this.storageService.addItem(table as any, result, { isPrivate: !isTeam });
+          break;
+        case "update":
+          this.handleUpdate(table, result, isTeam);
+          break;
+        case "delete":
+          this.handleDelete(table, id, parentTodoId);
+          break;
+        case "updateAll":
+          this.handleUpdateAll(table, result, parentTodoId);
+          break;
+      }
+    } catch (error) {
+      console.error("Operation " + operation + " failed for " + table + ":", error);
+    }
+  }
+
+  private handleUpdate(table: string, result: any, isTeam: boolean): void {
+    if (!result || !result.id) return;
+
+    const options = { isPrivate: !isTeam };
+
+    if (table === "tasks") {
+      const existing = this.storageService.getById("tasks", result.id);
+      if (existing) {
+        const merged = this.preserveFields(result, existing, ["comments", "subtasks"]);
+        this.storageService.updateItem(table as any, result.id, merged, options);
+      } else {
+        this.storageService.updateItem(table as any, result.id, result, options);
+      }
+      return;
+    }
+
+    if (table === "subtasks") {
+      const existing = this.storageService.getById("subtasks", result.id);
+      if (existing) {
+        const merged = this.preserveFields(result, existing, ["comments"]);
+        this.storageService.updateItem(table as any, result.id, merged, options);
+      } else {
+        this.storageService.updateItem(table as any, result.id, result, options);
+      }
+      return;
+    }
+
+    this.storageService.updateItem(table as any, result.id, result, options);
+  }
+
+  private handleDelete(table: string, id?: string, parentTodoId?: string): void {
+    if (table === "todos" && id) {
+      this.storageService.removeItem("todos", id);
+    } else if (table === "tasks" || table === "subtasks") {
+      this.storageService.removeRecordWithCascade(table, id!);
+    } else {
+      this.storageService.removeItem(table as any, id!);
+    }
+  }
+
+  private handleUpdateAll(table: string, result: any, parentTodoId?: string): void {
+    if (table === "chats" && result && Array.isArray(result)) {
+      const todoId = parentTodoId || (result[0] as any)?.todo_id;
+      if (todoId) {
+        this.storageService.setChatsByTodo(result, todoId);
+      }
+    } else {
+      (result as any[]).forEach((item) => {
+        if (item && item.id) {
+          this.storageService.updateItem(table as any, item.id, item, { isPrivate: true });
+        }
+      });
+    }
+  }
+
+  preserveFields<T extends Record<string, any>>(
+    incoming: T,
+    existing: T,
+    fieldsToPreserve: string[]
+  ): T {
+    const result: any = { ...incoming };
+    for (const field of fieldsToPreserve) {
+      const incomingValue = incoming[field];
+      const existingValue = existing[field];
+
+      if (incomingValue !== undefined && incomingValue !== null) {
+        result[field] = incomingValue;
+      } else if (existingValue) {
+        result[field] = existingValue;
+      }
+    }
+    return result as T;
+  }
+
+  removeRecordWithCascade(data: ArchiveDataMap, table: string, recordId: string): ArchiveDataMap {
+    const updated = { ...data };
+    const tableData = updated[table] || [];
+    updated[table] = tableData.filter((r: any) => r.id !== recordId);
+
+    if (table === "todos") {
+      const todoTasks = tableData.filter((t: any) => t.todo_id === recordId);
+      const todoTaskIds = todoTasks.map((t: any) => t.id);
+      updated["tasks"] = (updated["tasks"] || []).filter((t: any) => t.todo_id !== recordId);
+      updated["subtasks"] = (updated["subtasks"] || []).filter(
+        (s: any) => !todoTaskIds.includes(s.task_id)
+      );
+      updated["comments"] = (updated["comments"] || []).filter(
+        (c: any) => c.todo_id !== recordId && !todoTaskIds.includes(c.task_id)
+      );
+      updated["chats"] = (updated["chats"] || []).filter((c: any) => c.todo_id !== recordId);
+    } else if (table === "tasks") {
+      updated["subtasks"] = (updated["subtasks"] || []).filter((s: any) => s.task_id !== recordId);
+      updated["comments"] = (updated["comments"] || []).filter((c: any) => c.task_id !== recordId);
+    } else if (table === "subtasks") {
+      updated["comments"] = (updated["comments"] || []).filter(
+        (c: any) => c.subtask_id !== recordId
+      );
+    }
+
+    return updated;
+  }
+
+  getCascadeChildIds(restoredRecord: any): { taskIds: string[]; subtaskIds: string[] } {
+    const taskIds = restoredRecord.tasks?.map((t: any) => t.id) || [];
+    const subtaskIds =
+      restoredRecord.tasks?.flatMap((t: any) => t.subtasks?.map((s: any) => s.id) || []) || [];
+    return { taskIds, subtaskIds };
+  }
+
+  restoreRecordWithCascade(
+    data: ArchiveDataMap,
+    table: string,
+    restoredRecord: any,
+    recordId: string
+  ): ArchiveDataMap {
+    const updated = { ...data };
+    const tableData = updated[table] || [];
+    updated[table] = tableData.map((r: any) => (r.id === recordId ? restoredRecord : r));
+
+    if (table === "todos") {
+      const { taskIds, subtaskIds } = this.getCascadeChildIds(restoredRecord);
+      const existingTasks = data["tasks"] || [];
+      const existingSubtasks = data["subtasks"] || [];
+      const existingComments = data["comments"] || [];
+      const existingChats = data["chats"] || [];
+
+      const newTasks = restoredRecord.tasks || [];
+      const newSubtasks = newTasks.flatMap((t: any) => t.subtasks || []);
+      const newComments = newSubtasks.flatMap((s: any) => s.comments || []);
+
+      updated["tasks"] = [
+        ...existingTasks.filter((t: any) => !taskIds.includes(t.id)),
+        ...newTasks,
+      ];
+      updated["subtasks"] = [
+        ...existingSubtasks.filter((s: any) => !subtaskIds.includes(s.id)),
+        ...newSubtasks,
+      ];
+      updated["comments"] = [
+        ...existingComments.filter(
+          (c: any) => c.todo_id !== recordId && !taskIds.includes(c.task_id)
+        ),
+        ...newComments,
+      ];
+      updated["chats"] = [...existingChats.filter((c: any) => c.todo_id !== recordId)];
+    }
+
+    return updated;
   }
 }

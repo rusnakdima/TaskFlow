@@ -3,7 +3,7 @@ import { Injectable } from "@angular/core";
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 
-import { StorageUpdateService } from "@services/core/storage-update.service";
+import { StorageUpdateService } from "@services/core/storage.service";
 
 /**
  * Bulk operation result interface

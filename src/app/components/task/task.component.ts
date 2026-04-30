@@ -306,7 +306,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   onAddComment(content: string) {
     if (this.task) {
       const userId = this.authService.getValueByKey("id");
-      const username = this.authService.getValueByKey("username");
       const effectiveTodoId = this.todo_id || this.task.todo_id;
 
       if (!userId || !effectiveTodoId) {
@@ -344,7 +343,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   onAddSubtaskComment(content: string, subtask_id?: string) {
     if (!this.task) return;
     const userId = this.authService.getValueByKey("id");
-    const username = this.authService.getValueByKey("username");
     const effectiveTodoId = this.todo_id || this.task.todo_id;
 
     if (!userId || !effectiveTodoId) {

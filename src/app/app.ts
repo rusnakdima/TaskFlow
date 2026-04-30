@@ -17,7 +17,7 @@ import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-// import { WebSocketService } from "@services/core/websocket.service";
+
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
@@ -56,7 +56,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 export class App implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
-  // private ws = inject(WebSocketService);
+
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private profileRequiredService = inject(ProfileRequiredService);
@@ -76,8 +76,6 @@ export class App implements OnInit {
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
 
   ngOnInit(): void {
-    // this.ws.initStorageListeners();
-
     this.shortcutService.help$.subscribe(() => {
       this.shortcutHelp.show();
     });

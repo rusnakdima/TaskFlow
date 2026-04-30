@@ -463,7 +463,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     Promise.all(updatePromises)
       .then((results) => {
-        // Storage is updated automatically by ApiProvider via WebSocket/Tauri
+        // Storage is updated automatically by ApiProvider via Tauri
         this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
         this.clearSelection();
       })

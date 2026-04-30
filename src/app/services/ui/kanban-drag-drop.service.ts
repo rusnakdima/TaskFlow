@@ -5,6 +5,12 @@ import { CdkDragDrop, moveItemInArray, transferArrayItem } from "@angular/cdk/dr
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 
+export interface KanbanColumn {
+  id: string;
+  title?: string;
+  status?: TaskStatus;
+}
+
 /**
  * KanbanDragDropService - Handles drag-drop operations for Kanban board
  * Extracted from KanbanView to reduce component complexity
@@ -56,7 +62,7 @@ export class KanbanDragDropService {
    * @param columns - Array of column definitions
    * @returns Array of connected drop list IDs
    */
-  getConnectedDropLists(currentColumnId: string, columns: any[]): string[] {
+  getConnectedDropLists(currentColumnId: string, columns: KanbanColumn[]): string[] {
     return columns
       .filter((col) => col.id !== currentColumnId)
       .map((col) => "cdk-drop-list-" + col.id);

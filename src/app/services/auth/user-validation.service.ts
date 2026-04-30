@@ -52,12 +52,7 @@ export class UserValidationService {
   }
 
   invalidateUserSession(): void {
-    const token = this.jwtTokenService.getToken();
-    const userId = token ? this.jwtTokenService.getUserId(token) : null;
-
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-
+    this.jwtTokenService.clearToken();
     this.notifyService.showWarning("Your account was deleted. Please login again.");
 
     setTimeout(() => {

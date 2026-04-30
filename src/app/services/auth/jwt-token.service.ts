@@ -98,4 +98,46 @@ export class JwtTokenService {
   getCurrentUserId(): string | null {
     return this.getUserId(this.getToken());
   }
+
+  /**
+   * Get email from token
+   */
+  getEmail(token: string | null): string | null {
+    return this.getValueByKey(token, "email");
+  }
+
+  /**
+   * Get current user email from stored token
+   */
+  getCurrentUserEmail(): string | null {
+    return this.getEmail(this.getToken());
+  }
+
+  /**
+   * Store token in storage
+   */
+  setToken(token: string, remember = false): void {
+    TokenStorageHelper.setToken(token, remember);
+  }
+
+  /**
+   * Clear token from storage (logout)
+   */
+  clearToken(): void {
+    TokenStorageHelper.removeToken();
+  }
+
+  /**
+   * Check if token is valid (exists and not expired)
+   */
+  isValidToken(token: string | null): boolean {
+    return !!token && !this.isTokenExpired(token);
+  }
+
+  /**
+   * Check if current user is logged in (has valid token)
+   */
+  isLoggedIn(): boolean {
+    return this.isValidToken(this.getToken());
+  }
 }

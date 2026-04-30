@@ -44,7 +44,7 @@ export class FilterHelper {
       return data;
     }
 
-    return data.filter((item: any) => {
+    return data.filter((item: T) => {
       const itemValue = ObjectHelper.getNestedValue(item, field);
 
       if (operator === "isNull") {

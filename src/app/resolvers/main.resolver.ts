@@ -1,13 +1,10 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { firstValueFrom, of, timeout } from "rxjs";
 
 /* services */
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { RelationLoadingService } from "@services/core/relation-loading.service";
-import { ApiProvider } from "@providers/api.provider";
 
 /**
  * MainResolver - Storage-First with Fallback Loading
@@ -21,18 +18,6 @@ import { ApiProvider } from "@providers/api.provider";
 export class MainResolver implements Resolve<any> {
   private storageService = inject(StorageService);
   private dataLoaderService = inject(DataLoaderService);
-  private relationLoader = inject(RelationLoadingService);
-  private apiProvider = inject(ApiProvider);
-
-  private readonly TODO_LOAD_RELATIONS = [
-    "user",
-    "categories",
-    "tasks",
-    "tasks.subtasks",
-    "tasks.subtasks.comments",
-    "tasks.comments",
-    "assignees",
-  ];
 
   async resolve(
     route: ActivatedRouteSnapshot,
@@ -83,25 +68,6 @@ export class MainResolver implements Resolve<any> {
   }
 
   private async loadTodoDirectly(todoId: string): Promise<any> {
-    try {
-      const todo = await firstValueFrom(
-        this.relationLoader
-          .loadMany<any>(this.apiProvider, "todos", { id: todoId }, this.TODO_LOAD_RELATIONS, {
-            is_owner: true,
-            is_private: true,
-          })
-          .pipe(timeout({ first: 10000 }))
-      );
-
-      if (todo && Array.isArray(todo) && todo.length > 0) {
-        const todoData = todo[0];
-        this.storageService.setCollection("privateTodos", [todoData]);
-        return todoData;
-      }
-      return null;
-    } catch (error) {
-      console.error("[MainResolver] Failed to load todo directly:", error);
-      return null;
-    }
+    return this.storageService.getById("todos", todoId);
   }
 }

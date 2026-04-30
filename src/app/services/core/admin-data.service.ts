@@ -1,9 +1,9 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, of, firstValueFrom } from "rxjs";
+import { Observable, from, of } from "rxjs";
 import { map, catchError } from "rxjs/operators";
-import { ApiProvider } from "@providers/api.provider";
 import { AdminService } from "@services/data/admin.service";
+import { StorageService } from "@services/core/storage.service";
 import { ResponseStatus } from "@models/response.model";
 
 export interface AdminDataWithRelations {
@@ -20,41 +20,22 @@ export interface LoadDataOptions {
   providedIn: "root",
 })
 export class AdminDataService {
-  private apiProvider = inject(ApiProvider);
   private adminService = inject(AdminService);
+  private storageService = inject(StorageService);
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
-    const { showDeleted = false, isOwner = false, isPrivate = false } = options;
+    const { showDeleted = false } = options;
 
-    const tables = [
-      { key: "todos", load: ["user"] },
-      { key: "tasks", load: [] },
-      { key: "subtasks", load: [] },
-      { key: "comments", load: [] },
-      { key: "chats", load: [] },
-      { key: "categories", load: [] },
-    ];
+    const dataMap: AdminDataWithRelations = {
+      todos: this.storageService.privateTodos(),
+      categories: this.storageService.categories(),
+    };
 
-    const filter = showDeleted ? { deleted_at: { $ne: null } } : { deleted_at: null };
+    if (showDeleted) {
+      dataMap["todos"] = dataMap["todos"].filter((t: any) => t.deleted_at != null);
+    }
 
-    const loadPromises = tables.map(async ({ key, load }) => {
-      const data = await firstValueFrom(
-        this.apiProvider
-          .crud<any[]>("getAll", key, { filter, load, isOwner, isPrivate }, true)
-          .pipe(catchError(() => of([])))
-      );
-      return { key, data: data || [] };
-    });
-
-    return from(Promise.all(loadPromises)).pipe(
-      map((results) => {
-        const dataMap: AdminDataWithRelations = {};
-        results.forEach(({ key, data }) => {
-          dataMap[key] = data;
-        });
-        return dataMap;
-      })
-    );
+    return of(dataMap);
   }
 
   loadAllAdminData(): Observable<AdminDataWithRelations> {

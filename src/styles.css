@@ -521,6 +521,24 @@ div.mdc-checkbox {
   @apply flex h-6 w-6 cursor-grab items-center justify-center text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-zinc-600 active:cursor-grabbing dark:text-zinc-500 dark:hover:text-zinc-400;
 }
 
+/* ── Custom Checkbox ── */
+.checkbox {
+  @apply relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded border-2 border-gray-400 bg-transparent transition-colors duration-150 dark:border-gray-600;
+}
+.checkbox--checked {
+  @apply border-blue-500 bg-blue-500;
+}
+.checkbox--indeterminate {
+  @apply border-yellow-500 bg-yellow-500;
+}
+.checkbox--highlight.checkbox--checked,
+.checkbox--highlight.checkbox--indeterminate {
+  @apply ring-2 ring-yellow-400 ring-offset-1 dark:ring-yellow-500 dark:ring-offset-zinc-800;
+}
+.checkbox svg {
+  @apply absolute;
+}
+
 /* ── Todos grid drop list (mixed orientation: one drop list per item) ── */
 .todos-drop-list {
   display: flex;

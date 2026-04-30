@@ -7,7 +7,7 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { Chat } from "@models/chat.model";
 
-import { StorageUpdateService } from "@services/core/storage-update.service";
+import { StorageUpdateService } from "@services/core/storage.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 

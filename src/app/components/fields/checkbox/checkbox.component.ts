@@ -1,5 +1,5 @@
 /* sys lib */
-import { CommonModule, NgClass } from "@angular/common";
+import { CommonModule } from "@angular/common";
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
@@ -13,14 +13,7 @@ import { CheckboxField } from "@models/form-field.model";
 @Component({
   selector: "app-checkbox",
   standalone: true,
-  imports: [
-    CommonModule,
-    NgClass,
-    FormsModule,
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatCheckboxModule,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatCheckboxModule],
   templateUrl: "./checkbox.component.html",
 })
 export class CheckboxComponent {
@@ -35,6 +28,17 @@ export class CheckboxComponent {
   onToggle(event: any) {
     this.checked = event.checked;
     this.checkedChange.emit(this.checked);
+  }
+
+  toggle() {
+    this.checked = !this.checked;
+    this.checkedChange.emit(this.checked);
+  }
+
+  toggleField(fieldName: string) {
+    if (!this.form) return;
+    const currentValue = this.form.get(fieldName)?.value;
+    this.form.get(fieldName)?.setValue(!currentValue);
   }
 
   isInvalid(attr?: string) {
