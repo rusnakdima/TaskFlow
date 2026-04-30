@@ -12,10 +12,9 @@ use nosql_orm::{Model, Validate};
 #[many_to_one("todo", "todos", "todo_id")]
 #[many_to_one("user", "users", "user_id")]
 #[many_to_many("read_by_users", "users", "read_by")]
-#[one_to_one("read_by_users.user", "profiles", "profile_id")]
 #[index("todo_id", 1)]
 #[index("user_id", 1)]
-#[Relations(todo, user)]
+#[Relations(todo)]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,
