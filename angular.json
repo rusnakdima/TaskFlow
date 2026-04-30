@@ -48,7 +48,7 @@
             "tsConfig": "tsconfig.app.json",
             "assets": ["src/assets"],
             "styles": ["src/styles.css"],
-            "scripts": ["node_modules/flowbite/dist/flowbite.min.js"],
+            "scripts": [],
             "allowedCommonJsDependencies": ["progressbar.js"]
           },
           "configurations": {
