@@ -7,11 +7,12 @@ use nosql_orm::provider::DatabaseProvider;
 pub struct CategoryStatistics;
 
 impl CategoryStatistics {
+  #[allow(dead_code)]
   pub async fn calculate_category_tasks_with_aggregation<P: DatabaseProvider>(
     provider: &P,
-    categories: &[Value],
-    todos: &[Value],
-    tasks: &[Value],
+    _categories: &[Value],
+    _todos: &[Value],
+    _tasks: &[Value],
     start_date: &NaiveDate,
     end_date: &NaiveDate,
     user_id: &str,

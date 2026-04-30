@@ -1,14 +1,8 @@
 /* sys lib */
 use serde::Serialize;
-use serde_json::Value;
 
 /* models */
-use crate::entities::{
-  provider_type_entity::ProviderType,
-  response_entity::DataValue,
-  response_entity::{ResponseModel, ResponseStatus},
-  sync_metadata_entity::SyncMetadata,
-};
+use crate::entities::response_entity::DataValue;
 
 pub fn convert_data_to_array<T: Serialize>(data: &[T]) -> DataValue {
   let serialized_array: Vec<serde_json::Value> = data

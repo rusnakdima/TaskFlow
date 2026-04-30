@@ -8,6 +8,7 @@ use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
 use nosql_orm::relations::{get_collection_relations, RelationLoader};
+use nosql_orm::repository::Repository;
 
 /* entities */
 use crate::entities::{
@@ -47,11 +48,12 @@ pub struct RepositoryService {
 }
 
 impl RepositoryService {
+  #[allow(clippy::elided_named_lifetimes)]
   fn get_provider(
     &self,
     table: &str,
     sync_metadata: Option<&SyncMetadata>,
-  ) -> Result<DataProvider, ResponseModel> {
+  ) -> Result<DataProvider<'_>, ResponseModel> {
     if self.use_json_provider(table, sync_metadata) {
       Ok(DataProvider::Json(&self.json_provider))
     } else {
@@ -61,6 +63,13 @@ impl RepositoryService {
         .ok_or_else(|| err_response("MongoDB not available"))
         .map(|p| DataProvider::Mongo(p.as_ref()))
     }
+  }
+
+  #[allow(dead_code)]
+  fn json_repo<E: nosql_orm::entity::Entity + Send + Sync + 'static>(
+    &self,
+  ) -> Repository<E, JsonProvider> {
+    Repository::new(self.json_provider.clone())
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -283,7 +292,7 @@ impl RepositoryService {
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    if let Some(ref queue_service) = self.offline_queue_service {
+    if let Some(ref _queue_service) = self.offline_queue_service {
       if self.should_queue_for_offline(&operation, &table, sync_metadata.as_ref()) {
         if self.mongodb_provider.is_none() {
           tracing::debug!(
@@ -381,7 +390,11 @@ impl RepositoryService {
           .handle_get_all(table, filter, relations, load, sync_metadata)
           .await
       }
-      "get" => self.handle_get(table, id, load, sync_metadata, filter).await,
+      "get" => {
+        self
+          .handle_get(table, id, load, sync_metadata, filter)
+          .await
+      }
       "create" => self.handle_create(table, data, sync_metadata).await,
       "update" => self.handle_update(table, id, data, sync_metadata).await,
       "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
@@ -458,7 +471,7 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    load: Option<Vec<String>>,
+    _load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
     filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {

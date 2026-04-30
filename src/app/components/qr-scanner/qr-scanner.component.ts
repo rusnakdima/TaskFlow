@@ -6,6 +6,7 @@ import {
   ViewChild,
   ElementRef,
   OnDestroy,
+  AfterViewInit,
 } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import jsQR from "jsqr";
@@ -17,7 +18,7 @@ import jsQR from "jsqr";
   templateUrl: "./qr-scanner.component.html",
   styleUrl: "./qr-scanner.component.scss",
 })
-export class QrScannerComponent implements OnDestroy {
+export class QrScannerComponent implements OnDestroy, AfterViewInit {
   @ViewChild("qrVideo") qrVideoRef!: ElementRef<HTMLVideoElement>;
 
   @Output() close = new EventEmitter<void>();
@@ -36,6 +37,10 @@ export class QrScannerComponent implements OnDestroy {
   private stream: MediaStream | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private animationFrameId: number | null = null;
+
+  ngAfterViewInit(): void {
+    this.startScanning();
+  }
 
   async startScanning(): Promise<void> {
     try {

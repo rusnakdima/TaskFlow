@@ -310,7 +310,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
       if (authResponse && authResponse.token) {
         LoginCompletionHelper.completeLogin({
           token: authResponse.token,
-          remember: false,
+          remember: true,
         });
         this.authStore.setAuthenticated(authResponse.token);
       } else {

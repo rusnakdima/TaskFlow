@@ -23,6 +23,7 @@ export class CheckboxComponent {
   @Input() checked: boolean = false;
   @Input() indeterminate: boolean = false;
   @Input() highlight: boolean = false;
+  @Input() tabIndex: number = 0;
   @Output() checkedChange = new EventEmitter<boolean>();
 
   onToggle(event: any) {
@@ -39,6 +40,17 @@ export class CheckboxComponent {
     if (!this.form) return;
     const currentValue = this.form.get(fieldName)?.value;
     this.form.get(fieldName)?.setValue(!currentValue);
+  }
+
+  onKeyDown(event: KeyboardEvent) {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      if (this.form && this.field) {
+        this.toggleField(this.field.name);
+      } else {
+        this.toggle();
+      }
+    }
   }
 
   isInvalid(attr?: string) {

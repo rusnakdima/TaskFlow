@@ -9,11 +9,15 @@
       <div class="mb-4">
         <mat-icon
           class="h-9! w-9! text-5xl! text-purple-600 dark:text-purple-400"
-          fontIcon="edit"
+          [fontIcon]="isEditMode ? 'edit' : 'person_add'"
         />
       </div>
-      <h1 class="textNormal mb-2 text-2xl font-bold">Edit Your Profile</h1>
-      <p class="textMuted">Update your information</p>
+      <h1 class="textNormal mb-2 text-2xl font-bold">
+        {{ isEditMode ? "Edit Your Profile" : "Create Your Profile" }}
+      </h1>
+      <p class="textMuted">
+        {{ isEditMode ? "Update your information" : "Set up your profile" }}
+      </p>
     </div>
 
     <div class="space-y-4">
@@ -26,11 +30,7 @@
     </div>
 
     <div class="mt-6 border-t border-gray-200 pt-4 text-center dark:border-zinc-600">
-      <button
-        [routerLink]="['/profile']"
-        [queryParams]="{ id: form.get('userId')?.value }"
-        class="styleLinkRedir"
-      >
+      <button [routerLink]="['/profile']" class="styleLinkRedir">
         <mat-icon class="mr-1 h-5! w-5! min-w-5 text-xl!" fontIcon="arrow_back" />
         Back to Profile
       </button>

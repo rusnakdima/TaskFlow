@@ -30,7 +30,7 @@ impl EntityResolutionService {
     }
   }
 
-  async fn load_todo_from_provider<P: DatabaseProvider>(
+  async fn get_user_id_via_entity_relations<P: DatabaseProvider>(
     provider: &P,
     table: &str,
     data: &Value,
@@ -38,7 +38,7 @@ impl EntityResolutionService {
   where
     P: Send + Sync,
   {
-    let path = Self::get_relation_path(table)
+    let relation_path = Self::get_relation_path(table)
       .ok_or_else(|| OrmError::InvalidQuery(format!("No relation path for {}", table)))?;
 
     let mut current_id: String = data
@@ -48,7 +48,7 @@ impl EntityResolutionService {
       .to_string();
     let mut current_table = table;
 
-    for relation in path {
+    for relation in relation_path {
       let filter = Filter::Eq("id".to_string(), json!(&current_id));
       let docs: Vec<Value> = provider
         .find_many(current_table, Some(&filter), None, None, None, false)
@@ -57,6 +57,7 @@ impl EntityResolutionService {
         .into_iter()
         .next()
         .ok_or_else(|| OrmError::NotFound(format!("{} not found", current_table)))?;
+
       current_id = match current_table {
         "tasks" => doc
           .get("todo_id")
@@ -85,14 +86,18 @@ impl EntityResolutionService {
       return Some(user_id.to_string());
     }
 
-    if let Ok(Some(todo)) = Self::load_todo_from_provider(&self.json_provider, table, data).await {
+    if let Ok(Some(todo)) =
+      Self::get_user_id_via_entity_relations(&self.json_provider, table, data).await
+    {
       if let Some(user_id) = todo.get("user_id").and_then(|v| v.as_str()) {
         return Some(user_id.to_string());
       }
     }
 
     if let Some(ref mongo) = self.mongodb_provider {
-      if let Ok(Some(todo)) = Self::load_todo_from_provider(mongo.as_ref(), table, data).await {
+      if let Ok(Some(todo)) =
+        Self::get_user_id_via_entity_relations(mongo.as_ref(), table, data).await
+      {
         if let Some(user_id) = todo.get("user_id").and_then(|v| v.as_str()) {
           return Some(user_id.to_string());
         }

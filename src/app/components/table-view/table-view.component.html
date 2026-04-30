@@ -2,6 +2,9 @@
   <table class="w-full min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
     <thead class="bg-gray-50 dark:bg-zinc-800">
       <tr>
+        @if (dragEnabled) {
+          <th class="w-12 px-2 py-3"></th>
+        }
         @if (showSelection) {
           <th class="w-12 px-4 py-3 text-left">
             <app-checkbox
@@ -54,14 +57,21 @@
       @for (item of getSortedData(); track item.id || $index) {
         <tr
           cdkDrag
-          [cdkDragData]="item"
           [cdkDragDisabled]="!dragEnabled"
-          class="hover:bg-gray-50 dark:hover:bg-zinc-800"
+          cdkDragLockAxis="y"
+          class="cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800"
           [class.bg-blue-50]="isSelected(item.id)"
           [class.dark:bg-blue-900/20]="isSelected(item.id)"
-          [class.cursor-move]="dragEnabled"
           (click)="onRowClick(item)"
         >
+          @if (dragEnabled) {
+            <td class="px-2 py-3 text-center" cdkDragHandle (click)="$event.stopPropagation()">
+              <mat-icon
+                class="h-5! w-5! cursor-grab text-2xl! text-gray-400"
+                fontIcon="drag_indicator"
+              />
+            </td>
+          }
           @if (showSelection) {
             <td class="px-4 py-3 whitespace-nowrap" (click)="$event.stopPropagation()">
               <app-checkbox

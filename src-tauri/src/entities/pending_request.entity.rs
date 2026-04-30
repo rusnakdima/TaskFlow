@@ -47,6 +47,7 @@ impl PendingRequestEntity {
     }
   }
 
+  #[allow(dead_code)]
   pub fn is_write_operation(&self) -> bool {
     matches!(
       self.operation.as_str(),

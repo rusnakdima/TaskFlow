@@ -17,7 +17,9 @@
       >
         <div class="flex items-center gap-2">
           <mat-icon class="size-5! min-w-5 text-xl! text-blue-500" fontIcon="folder_open" />
-          <span class="font-semibold">Switch Project</span>
+          <span class="max-w-32 truncate font-semibold">{{
+            selectedProjectTitle() || "Select Project"
+          }}</span>
           <mat-icon class="size-4! min-w-4 text-base!" fontIcon="expand_more" />
         </div>
       </button>

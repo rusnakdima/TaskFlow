@@ -66,6 +66,7 @@ export class ImageComponent {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
+      this.pendingOriginalUrl = base64;
       this.cropImageSource = base64;
       this.showCropModal = true;
     };
@@ -82,15 +83,22 @@ export class ImageComponent {
   onCropCompleted(base64: string) {
     this.showCropModal = false;
     this.form.get(this.field.name)?.setValue(base64);
-    if (this.pendingOriginalUrl) {
-      this.form.get("original_image_url")?.setValue(this.pendingOriginalUrl);
-      this.pendingOriginalUrl = "";
-    }
+    this.form.get("original_image_url")?.setValue(this.pendingOriginalUrl);
+    this.pendingOriginalUrl = "";
     this.imageCropped.emit(base64);
   }
 
   onCropCancelled() {
     this.showCropModal = false;
+  }
+
+  onReCropOriginal() {
+    const originalUrl = this.form.get("original_image_url")?.value;
+    if (originalUrl) {
+      this.pendingOriginalUrl = originalUrl;
+      this.cropImageSource = originalUrl;
+      this.showCropModal = true;
+    }
   }
 
   async fetchImageAsBlob(url: string): Promise<{ base64: string; hasCors: boolean }> {

@@ -92,6 +92,7 @@ impl DataProvider<'_> {
     }
   }
 
+  #[allow(dead_code)]
   pub async fn update_many(
     &self,
     table: &str,
@@ -110,6 +111,7 @@ impl DataProvider<'_> {
     }
   }
 
+  #[allow(dead_code)]
   pub async fn delete(&self, table: &str, id: &str) -> Result<bool, ResponseModel> {
     match self {
       DataProvider::Json(p) => p
@@ -136,6 +138,7 @@ impl DataProvider<'_> {
     }
   }
 
+  #[allow(dead_code)]
   pub fn is_mongo(&self) -> bool {
     matches!(self, DataProvider::Mongo(_))
   }

@@ -148,7 +148,7 @@ export class AdminStorageService extends BaseAdminStorageService {
         this.tasksSignal.update((tasks) =>
           tasks.map((task) =>
             task.todo_id === id
-              ? { ...task, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...task, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : task
           )
         );
@@ -157,7 +157,7 @@ export class AdminStorageService extends BaseAdminStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : subtask
           )
         );
@@ -168,7 +168,7 @@ export class AdminStorageService extends BaseAdminStorageService {
               (comment.task_id && taskIds.includes(comment.task_id)) ||
               (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
             return isRelated
-              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : comment;
           })
         );
@@ -176,14 +176,14 @@ export class AdminStorageService extends BaseAdminStorageService {
         this.chatsSignal.update((chats) =>
           chats.map((chat) =>
             chat.todo_id === id
-              ? { ...chat, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...chat, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : chat
           )
         );
       }
       this.updateRecord(table, id, {
-        deletedAt: deletedAt ? timestamp : null,
-        updatedAt: timestamp,
+        deleted_at: deletedAt ? timestamp : null,
+        updated_at: timestamp,
       });
     } else if (table === "tasks") {
       const task = this.tasksSignal().find((t) => t.id === id);
@@ -193,7 +193,7 @@ export class AdminStorageService extends BaseAdminStorageService {
         this.subtasksSignal.update((subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
-              ? { ...subtask, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : subtask
           )
         );
@@ -204,31 +204,31 @@ export class AdminStorageService extends BaseAdminStorageService {
               comment.task_id === id ||
               (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
             return isRelated
-              ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+              ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
               : comment;
           })
         );
       }
       this.updateRecord(table, id, {
-        deletedAt: deletedAt ? timestamp : null,
-        updatedAt: timestamp,
+        deleted_at: deletedAt ? timestamp : null,
+        updated_at: timestamp,
       });
     } else if (table === "subtasks") {
       this.commentsSignal.update((comments) =>
         comments.map((comment) =>
           comment.subtask_id === id
-            ? { ...comment, deletedAt: deletedAt ? timestamp : null, updatedAt: timestamp }
+            ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
             : comment
         )
       );
       this.updateRecord(table, id, {
-        deletedAt: deletedAt ? timestamp : null,
-        updatedAt: timestamp,
+        deleted_at: deletedAt ? timestamp : null,
+        updated_at: timestamp,
       });
     } else {
       this.updateRecord(table, id, {
-        deletedAt: deletedAt ? timestamp : null,
-        updatedAt: timestamp,
+        deleted_at: deletedAt ? timestamp : null,
+        updated_at: timestamp,
       });
     }
   }
@@ -303,8 +303,8 @@ export class AdminStorageService extends BaseAdminStorageService {
   updateRecordDeleteStatus(table: string, id: string, deletedAt: boolean): void {
     const timestamp = new Date().toISOString();
     this.updateRecord(table, id, {
-      deletedAt: deletedAt ? timestamp : null,
-      updatedAt: timestamp,
+      deleted_at: deletedAt ? timestamp : null,
+      updated_at: timestamp,
     });
   }
 }

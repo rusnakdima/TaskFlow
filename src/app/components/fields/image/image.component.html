@@ -7,11 +7,11 @@
       Upload
     </button>
 
-    @if (form.get(field.name)?.value) {
+    @if (form.get("original_image_url")?.value) {
       <button
         type="button"
         class="styleButInfo flex items-center gap-1"
-        (click)="cropImageSource = form.get(field.name)?.value; showCropModal = true"
+        (click)="onReCropOriginal()"
       >
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="crop" />
         Crop

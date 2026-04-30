@@ -10,11 +10,12 @@ use nosql_orm::provider::DatabaseProvider;
 pub struct ChartGenerator;
 
 impl ChartGenerator {
+  #[allow(dead_code)]
   pub async fn compute_chart_data_with_aggregation<P: DatabaseProvider>(
     provider: &P,
-    tasks: &[Value],
-    categories: &[Value],
-    daily_activities: &[Value],
+    #[allow(unused)] tasks: &[Value],
+    #[allow(unused)] categories: &[Value],
+    #[allow(unused)] daily_activities: &[Value],
     start_date: &NaiveDate,
     end_date: &NaiveDate,
     user_id: &str,

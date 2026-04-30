@@ -133,12 +133,6 @@
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="list" />
               <span>{{ getTotalSubtasksCount() }} subtasks</span>
             </div>
-            @if (getTotalSubtasksCount() > 0) {
-              <div class="flex items-center gap-1">
-                <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="check_circle" />
-                <span>{{ getCompletedSubtasksCount() }}/{{ getTotalSubtasksCount() }}</span>
-              </div>
-            }
           </div>
           <ng-container *ngTemplateOutlet="progressTemplate" />
 
