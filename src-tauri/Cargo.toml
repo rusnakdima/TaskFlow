@@ -22,7 +22,7 @@ dotenv = "0.15.0"
 dotenvy = "0.15.7"
 futures = "0.3.31"
 futures-util = { version = "0.3", features = ["io"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 jsonwebtoken = "9.3.1"
 mongodb = "3.2.4"
 serde = { version = "1", features = ["derive"] }
@@ -55,11 +55,13 @@ data-encoding = "2"
 # Use vendored OpenSSL for all platforms including Android
 rustls = "0.21"
 openssl = { version = "0.10", features = ["vendored"] }
+openssl-sys = { version = "0.9", features = ["vendored"] }
+# reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 keyring = { version = "3", features = [] }
 
 # nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
-nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
-# nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
+# nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
+nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 
 [features]
 default = ["custom-protocol"]

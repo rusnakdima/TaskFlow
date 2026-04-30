@@ -10,3 +10,6 @@ pub mod mongodb_provider {
 
 #[path = "email.provider.rs"]
 pub mod email_provider;
+
+#[path = "data.provider.rs"]
+pub mod data_provider;

@@ -8,6 +8,7 @@ use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("categories")]
+#[many_to_one("user", "users", "user_id")]
 #[soft_delete]
 #[timestamp]
 #[index("user_id", 1)]

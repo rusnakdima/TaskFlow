@@ -295,29 +295,6 @@ impl ManageDbService {
     count
   }
 
-  async fn _import_collection<F>(
-    &self,
-    mongo: &MongoProvider,
-    collection: &str,
-    filter: Filter,
-  ) -> usize
-  where
-    F: std::future::Future<Output = Result<Vec<Value>, ()>>,
-  {
-    if let Ok(items) = mongo
-      .find_many(collection, Some(&filter), None, None, None, true)
-      .await
-    {
-      let count = items.len();
-      for item in items {
-        if self.upsert_to_json(collection, item).await {
-          return count;
-        }
-      }
-    }
-    0
-  }
-
   /// Import data from cloud MongoDB to local JSON
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
