@@ -471,7 +471,7 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    _load: Option<Vec<String>>,
+    load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
     filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -492,9 +492,9 @@ impl RepositoryService {
       None => return Err(err_response("Document not found")),
     };
 
-    let load_paths: Vec<String> = get_collection_relations(&table)
-      .map(|rels| rels.into_iter().map(|r| r.name).collect())
-      .unwrap_or_default();
+    // Only load relations if explicitly requested via load parameter
+    let load_paths: Vec<String> = load.map(|l| l.into_iter().collect()).unwrap_or_default();
+
     let docs = if !load_paths.is_empty() {
       self
         .load_relations_via_nosql_orm(

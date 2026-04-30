@@ -358,6 +358,47 @@ export class StorageService extends BaseStorageService {
     handler.restoreWithCascade(data);
   }
 
+  restoreRecordWithCascade(table: string, id: string): void {
+    const timestamp = new Date().toISOString();
+
+    if (table === "todos") {
+      this.batchUpdate("todos", [{ id, updates: { deleted_at: null, updated_at: timestamp } }]);
+      this.batchUpdate(
+        "tasks",
+        this.getTasksByTodoId(id).map((t) => ({
+          id: t.id,
+          updates: { deleted_at: null, updated_at: timestamp },
+        }))
+      );
+      this.batchUpdate(
+        "subtasks",
+        this.getTasksByTodoId(id).flatMap((t) =>
+          (t.subtasks || []).map((s) => ({
+            id: s.id,
+            updates: { deleted_at: null, updated_at: timestamp },
+          }))
+        )
+      );
+    } else if (table === "tasks") {
+      this.batchUpdate("tasks", [{ id, updates: { deleted_at: null, updated_at: timestamp } }]);
+      this.batchUpdate(
+        "subtasks",
+        this.getSubtasksByTaskId(id).map((s) => ({
+          id: s.id,
+          updates: { deleted_at: null, updated_at: timestamp },
+        }))
+      );
+    } else if (table === "subtasks") {
+      this.updateItem("subtasks", id, { deleted_at: null, updated_at: timestamp });
+    } else if (table === "comments") {
+      this.updateItem("comments", id, { deleted_at: null, updated_at: timestamp });
+    } else if (table === "chats") {
+      this.updateItem("chats", id, { deleted_at: null, updated_at: timestamp });
+    } else if (table === "categories") {
+      this.updateItem("categories", id, { deleted_at: null, updated_at: timestamp });
+    }
+  }
+
   // ==================== COMMENT OPERATIONS ====================
   addCommentToTask(comment: Comment, task_id?: string): void {
     if (!task_id) return;

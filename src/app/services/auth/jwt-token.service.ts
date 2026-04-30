@@ -13,16 +13,9 @@ import { StorageService } from "@services/core/storage.service";
 })
 export class JwtTokenService {
   private jwtHelper = new JwtHelperService();
-  private _storageService: StorageService | null = null;
+  private storageService = inject(StorageService);
   private cachedToken: string | null = null;
   private cachedDecodedToken: { [key: string]: any } | null = null;
-
-  private get storageService(): StorageService {
-    if (!this._storageService) {
-      this._storageService = inject(StorageService);
-    }
-    return this._storageService;
-  }
 
   /**
    * Get the decoded JWT token
