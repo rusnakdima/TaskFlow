@@ -54,27 +54,26 @@ export class NotifyService implements OnDestroy {
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
 
-  // Notification state (from NotificationStorageService)
+  // Notification state
   private notificationsSignal = signal<NotificationAction[]>([]);
   private unreadCountSignal = signal(0);
 
-  // Settings state (from NotificationSettingsService)
+  // Settings state
   private settingsKey = "notification_settings";
   private settingsSignal = signal<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Track recent comment events to suppress duplicate task updates
-  private recentCommentEvents = new Map<string, number>(); // taskId -> timestamp
+  private recentCommentEvents = new Map<string, number>();
 
-  // Audio context for playing notification sounds (reused across calls)
+  // Audio context for playing notification sounds
   private audioContext: AudioContext | null = null;
-
-  // Public signals
-  get notifications() {
-    return this.notificationsSignal.asReadonly();
-  }
 
   get unreadCount() {
     return this.unreadCountSignal.asReadonly();
+  }
+
+  get notifications() {
+    return this.notificationsSignal.asReadonly();
   }
 
   get settings() {

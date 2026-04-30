@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 
 /* helpers */
@@ -13,9 +13,16 @@ import { StorageService } from "@services/core/storage.service";
 })
 export class JwtTokenService {
   private jwtHelper = new JwtHelperService();
-  private storageService = new StorageService();
+  private _storageService: StorageService | null = null;
   private cachedToken: string | null = null;
   private cachedDecodedToken: { [key: string]: any } | null = null;
+
+  private get storageService(): StorageService {
+    if (!this._storageService) {
+      this._storageService = inject(StorageService);
+    }
+    return this._storageService;
+  }
 
   /**
    * Get the decoded JWT token

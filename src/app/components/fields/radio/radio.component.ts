@@ -17,4 +17,12 @@ import { BaseFieldComponent } from "../base-field.component";
 })
 export class RadioComponent extends BaseFieldComponent {
   @Input() parentForm!: FormGroup;
+
+  isOptionSelected(value: any): boolean {
+    return this.form.get(this.field.name)?.value === value;
+  }
+
+  selectOption(value: any): void {
+    this.form.get(this.field.name)?.setValue(value);
+  }
 }

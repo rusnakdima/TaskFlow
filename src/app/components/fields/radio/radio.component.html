@@ -1,9 +1,19 @@
-<div class="flex w-full flex-col" [formGroup]="form">
-  <mat-radio-group class="flex flex-col" formControlName="{{ field.name }}">
-    <mat-label>{{ label }}</mat-label>
+<div class="flex w-full flex-col gap-1" [formGroup]="form">
+  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ label }}</span>
+  <mat-radio-group class="flex flex-col gap-1" formControlName="{{ field.name }}">
     @for (option of field.options; track $index) {
       @if (option.isShow(form)) {
-        <mat-radio-button [value]="option.value">{{ option.label }}</mat-radio-button>
+        <label
+          class="flex cursor-pointer items-center gap-2 select-none"
+          (click)="selectOption(option.value)"
+        >
+          <div class="radio" [class.radio--checked]="isOptionSelected(option.value)">
+            @if (isOptionSelected(option.value)) {
+              <div class="radio__dot"></div>
+            }
+          </div>
+          <span class="text-sm">{{ option.label }}</span>
+        </label>
       }
     }
   </mat-radio-group>

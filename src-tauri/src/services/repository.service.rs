@@ -381,7 +381,7 @@ impl RepositoryService {
           .handle_get_all(table, filter, relations, load, sync_metadata)
           .await
       }
-      "get" => self.handle_get(table, id, load, sync_metadata).await,
+      "get" => self.handle_get(table, id, load, sync_metadata, filter).await,
       "create" => self.handle_create(table, data, sync_metadata).await,
       "update" => self.handle_update(table, id, data, sync_metadata).await,
       "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
@@ -460,11 +460,20 @@ impl RepositoryService {
     id: Option<String>,
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
+    filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let id = id.ok_or_else(|| err_response("ID is required for get operation"))?;
     let provider = self.get_provider(&table, sync_metadata.as_ref())?;
 
-    let doc = provider.find_by_id(&table, &id).await?;
+    let doc = if let Some(id_val) = id {
+      provider.find_by_id(&table, &id_val).await?
+    } else if let Some(f) = &filter {
+      let filter_obj = nosql_orm::query::Filter::from_json(f)
+        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+      provider.find_one(&table, Some(&filter_obj)).await?
+    } else {
+      return Err(err_response("ID or filter is required for get operation"));
+    };
+
     let doc = match doc {
       Some(d) => d,
       None => return Err(err_response("Document not found")),
