@@ -13,7 +13,6 @@ use crate::entities::{
   provider_type_entity::ProviderType,
   relation_obj::RelationObj,
   response_entity::{DataValue, ResponseModel},
-  sync_metadata_entity::SyncMetadata,
   table_entity::validate_model,
 };
 
@@ -47,9 +46,15 @@ impl RepositoryService {
   fn get_provider(
     &self,
     table: &str,
-    sync_metadata: Option<&SyncMetadata>,
+    visibility: Option<&str>,
   ) -> Result<DataProvider<'_>, ResponseModel> {
-    let use_json = self.use_json_provider(table, sync_metadata);
+    let use_json = self.use_json_provider(table, visibility);
+    tracing::info!(
+      "[Repository] get_provider: table={}, use_json={}, visibility={:?}",
+      table,
+      use_json,
+      visibility
+    );
 
     if use_json {
       Ok(DataProvider::Json(&self.json_provider))
@@ -91,15 +96,39 @@ impl RepositoryService {
     self
   }
 
-  fn use_json_provider(&self, table: &str, sync_metadata: Option<&SyncMetadata>) -> bool {
+  fn use_json_provider(&self, table: &str, visibility: Option<&str>) -> bool {
     if table == "daily_activities" {
+      tracing::info!(
+        "[Repository] use_json_provider: table={} always JSON (daily_activities)",
+        table
+      );
       return true;
     }
-    sync_metadata.map_or_else(|| true, |m| m.is_private)
+    let result = visibility.map_or(true, |v| v == "private");
+    tracing::info!(
+      "[Repository] use_json_provider: table={}, visibility={:?}, result={}",
+      table,
+      visibility,
+      result
+    );
+    result
+  }
+
+  fn use_json_provider_for_visibility(visibility: &str) -> bool {
+    let result = visibility == "private";
+    tracing::info!(
+      "[Repository] use_json_provider_for_visibility: visibility={}, result={}",
+      visibility,
+      result
+    );
+    result
   }
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
-    Filter::from_json(filter_value).ok()
+    tracing::info!("[Repository] build_filter: input={}", filter_value);
+    let result = Filter::from_json(filter_value).ok();
+    tracing::info!("[Repository] build_filter: result={:?}", result);
+    result
   }
 
   async fn load_relations_via_nosql_orm(
@@ -213,42 +242,34 @@ impl RepositoryService {
     filter: Option<Value>,
     _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(table, filter, _relations, load, sync_metadata)
+          .handle_get_all(table, filter, _relations, load, visibility)
           .await
       }
-      "get" => {
-        self
-          .handle_get(table, id, load, sync_metadata, filter)
-          .await
-      }
-      "create" => self.handle_create(table, data, sync_metadata).await,
-      "update" => self.handle_update(table, id, data, sync_metadata).await,
-      "updateAll" => self.handle_update_all(table, data, sync_metadata).await,
-      "delete" => self.handle_delete(table, id, sync_metadata, false).await,
+      "get" => self.handle_get(table, id, load, visibility, filter).await,
+      "create" => self.handle_create(table, data, visibility).await,
+      "update" => self.handle_update(table, id, data, visibility).await,
+      "updateAll" => self.handle_update_all(table, data, visibility).await,
+      "delete" => self.handle_delete(table, id, visibility, false).await,
       "permanent-delete" => {
         self
-          .handle_permanent_delete_cascade(table, id, sync_metadata)
+          .handle_permanent_delete_cascade(table, id, visibility)
           .await
       }
-      "soft-delete-cascade" => {
-        self
-          .handle_soft_delete_cascade(table, id, sync_metadata)
-          .await
-      }
+      "soft-delete-cascade" => self.handle_soft_delete_cascade(table, id, visibility).await,
       "sync-to-provider" => {
-        let target = if self.use_json_provider(&table, sync_metadata.as_ref()) {
+        let target = if self.use_json_provider(&table, visibility.as_deref()) {
           ProviderType::Json
         } else {
           ProviderType::Mongo
         };
         let id_str = id.ok_or_else(|| err_response("ID required for sync"))?;
         self
-          .handle_sync_to_provider(table, id_str, target, sync_metadata)
+          .handle_sync_to_provider(table, id_str, target, visibility)
           .await
       }
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
@@ -261,13 +282,34 @@ impl RepositoryService {
     filter: Option<Value>,
     _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_val = filter.unwrap_or(json!({}));
-    let filter_opt = self.build_filter(&filter_val);
+    tracing::info!(
+      "[Repository] handle_get_all: table={}, filter={}, visibility={:?}",
+      table,
+      filter_val,
+      visibility
+    );
 
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let filter_opt = self.build_filter(&filter_val);
+    tracing::info!("[Repository] handle_get_all: built filter={:?}", filter_opt);
+
+    let use_json = self.use_json_provider(&table, visibility.as_deref());
+    tracing::info!(
+      "[Repository] handle_get_all: use_json_provider={} for table={}",
+      use_json,
+      table
+    );
+
+    let provider = self.get_provider(&table, visibility.as_deref())?;
+    tracing::info!("[Repository] handle_get_all: provider selected");
+
     let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
+    tracing::info!(
+      "[Repository] handle_get_all: find_many returned {} docs",
+      docs.len()
+    );
 
     let load_paths: Vec<String> = load.map(|l| l.into_iter().collect()).unwrap_or_default();
 
@@ -339,10 +381,10 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     load: Option<Vec<String>>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
     filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let provider = self.get_provider(&table, visibility.as_deref())?;
 
     let doc = if let Some(id_val) = id {
       provider.find_by_id(&table, &id_val).await?
@@ -356,7 +398,26 @@ impl RepositoryService {
 
     let doc = match doc {
       Some(d) => d,
-      None => return Err(err_response("Document not found")),
+      None => {
+        if table == "profiles" {
+          if let Some(f) = &filter {
+            if let Some(user_id_val) = f.get("user_id") {
+              if let Some(user_id_str) = user_id_val.as_str() {
+                let user_exists = self
+                  .check_user_exists_in_mongodb(user_id_str)
+                  .await
+                  .unwrap_or(false);
+                if user_exists {
+                  return Err(err_response("Profile not found - user exists"));
+                } else {
+                  return Err(err_response("User not found"));
+                }
+              }
+            }
+          }
+        }
+        return Err(err_response("Document not found"));
+      }
     };
 
     // Only load relations if explicitly requested via load parameter
@@ -388,25 +449,16 @@ impl RepositoryService {
     &self,
     table: String,
     data: Option<Value>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
-    let visibility = data_val
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
-    let is_private = visibility != "team";
+    let visibility_str = visibility.unwrap_or_else(|| "private".to_string());
+
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     let validated_data = validate_model(&table, &data_val, true)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
-
-    let effective_sync_metadata = Some(SyncMetadata {
-      is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
-      is_private,
-    });
-
-    let provider = self.get_provider(&table, effective_sync_metadata.as_ref())?;
 
     let created_record = provider.insert(&table, validated_data).await?;
 
@@ -427,7 +479,7 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     data: Option<Value>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
@@ -435,7 +487,8 @@ impl RepositoryService {
     let validated_data = validate_model(&table, &data_val, false)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let visibility_str = visibility.as_deref();
+    let provider = self.get_provider(&table, visibility_str)?;
     let updated_record = provider
       .update(&table, &id_str, validated_data.clone())
       .await?;
@@ -445,7 +498,7 @@ impl RepositoryService {
 
     if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
       if new_vis != old_vis {
-        if new_vis == "private" {
+        if Self::use_json_provider_for_visibility(new_vis) {
           self
             .cascade_service
             .import_todo_cascade_to_json(&id_str)
@@ -475,7 +528,7 @@ impl RepositoryService {
     &self,
     table: String,
     data: Option<Value>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
 
@@ -491,7 +544,7 @@ impl RepositoryService {
       validated_records.push(validated);
     }
 
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let provider = self.get_provider(&table, visibility.as_deref())?;
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
@@ -514,16 +567,11 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
     is_permanent: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-    let metadata_is_private = sync_metadata
-      .as_ref()
-      .map(|m| m.is_private)
-      .unwrap_or(false);
-    let metadata_is_owner = sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true);
+    let use_json = self.use_json_provider(&table, visibility.as_deref());
 
     if is_permanent {
       if use_json {
@@ -553,7 +601,7 @@ impl RepositoryService {
           .soft_delete_cascade_mongo(&table, &id_str)
           .await?;
       }
-      if metadata_is_private && metadata_is_owner {
+      if visibility.as_deref() == Some("private") {
         if use_json {
           self
             .cascade_service
@@ -584,18 +632,18 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, sync_metadata, false).await
+    self.handle_delete(table, id, visibility, false).await
   }
 
   async fn handle_permanent_delete_cascade(
     &self,
     table: String,
     id: Option<String>,
-    sync_metadata: Option<SyncMetadata>,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, sync_metadata, true).await
+    self.handle_delete(table, id, visibility, true).await
   }
 
   async fn handle_sync_to_provider(
@@ -603,7 +651,7 @@ impl RepositoryService {
     table: String,
     id: String,
     target: ProviderType,
-    _sync_metadata: Option<SyncMetadata>,
+    _visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     if target == ProviderType::Mongo {
       self
@@ -617,5 +665,17 @@ impl RepositoryService {
         .await?;
     }
     Ok(success_response(DataValue::String(id)))
+  }
+
+  async fn check_user_exists_in_mongodb(&self, user_id: &str) -> Result<bool, ResponseModel> {
+    if let Some(mongo) = &self.mongodb_provider {
+      let result = mongo
+        .find_by_id("users", user_id)
+        .await
+        .map_err(|e| err_response(&format!("MongoDB query failed: {}", e)))?;
+      Ok(result.is_some())
+    } else {
+      Ok(false)
+    }
   }
 }
