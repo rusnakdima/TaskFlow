@@ -209,17 +209,14 @@ export class ManageItemPage implements OnInit, OnDestroy {
   private async loadParentEntities(): Promise<void> {
     const type = this.itemType();
 
-    // Load todos for all types (needed for task/subtask parent and for todo list)
-    const todosResponse = await firstValueFrom(
-      this.dataSyncProvider.crud<any>("getAll", "todos", { visibility: "team" })
-    );
-    this.todos.set(todosResponse?.data || []);
+    // Get todos from storage (already loaded with correct visibility)
+    const allTodos = this.storageService.todos();
+    this.todos.set(allTodos);
 
     if (type === "task" || type === "subtask") {
-      const tasksResponse = await firstValueFrom(
-        this.dataSyncProvider.crud<any>("getAll", "tasks", { visibility: "team" })
-      );
-      this.tasks.set(tasksResponse?.data || []);
+      // Get tasks from storage
+      const allTasks = this.storageService.tasks();
+      this.tasks.set(allTasks);
     }
   }
 

@@ -38,6 +38,10 @@ import { ResponseStatus } from "@models/response.model";
 import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import {
+  ViewModeSwitcherComponent,
+  ViewMode,
+} from "@components/view-mode-switcher/view-mode-switcher.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -59,6 +63,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
     AdminDataTableComponent,
     BulkActionsComponent,
     CheckboxComponent,
+    ViewModeSwitcherComponent,
   ],
   templateUrl: "./data-management.view.html",
   styles: [
@@ -149,6 +154,7 @@ export class DataManagementView implements OnInit {
   dataMap = signal<any>({});
 
   selectedType = signal<string>("todos");
+  viewMode = signal<ViewMode>("list");
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
