@@ -59,16 +59,12 @@ export class SettingsView implements OnInit {
   biometricSetupInProgress = signal(false);
   biometricRegistered = signal(false);
 
-  qrLoginEnabled = signal(false);
-  qrLoginSetupInProgress = signal(false);
-
   platformName = signal("");
 
   readonly capabilities = this.authCapabilityService.capabilities;
 
   readonly showPasskeySection = computed(() => this.capabilities().passkeyAvailable);
   readonly showBiometricSection = computed(() => this.capabilities().biometricAvailable);
-  readonly showQrLoginSection = computed(() => this.capabilities().qrLoginAvailable);
 
   ngOnInit(): void {
     const settings = this.notifyService.getSettings();
@@ -93,7 +89,6 @@ export class SettingsView implements OnInit {
         this.totpEnabled.set(status.totpEnabled);
         this.passkeyEnabled.set(status.passkeyEnabled);
         this.biometricEnabled.set(status.biometricEnabled);
-        this.qrLoginEnabled.set(status.qrLoginEnabled ?? false);
       },
       error: () => {
         // Silently handle error
@@ -364,31 +359,6 @@ export class SettingsView implements OnInit {
         this.notifyService.showError("Failed to disable biometric: " + (err.message || err));
       },
     });
-  }
-
-  async toggleQrLogin(): Promise<void> {
-    if (this.qrLoginSetupInProgress()) return;
-    this.qrLoginSetupInProgress.set(true);
-
-    const newState = !this.qrLoginEnabled();
-    const username = this.securityService.getUsername();
-
-    this.dataSyncProvider
-      .invokeCommand<{ success: boolean }>("qr_toggle", {
-        username,
-        enabled: newState,
-      })
-      .subscribe({
-        next: () => {
-          this.qrLoginEnabled.set(newState);
-          this.notifyService.showSuccess(newState ? "QR login enabled" : "QR login disabled");
-          this.qrLoginSetupInProgress.set(false);
-        },
-        error: (err) => {
-          this.notifyService.showError("Failed to toggle QR login: " + (err.message || err));
-          this.qrLoginSetupInProgress.set(false);
-        },
-      });
   }
 
   closeQrModal(): void {

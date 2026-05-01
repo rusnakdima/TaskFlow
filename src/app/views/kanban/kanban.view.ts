@@ -95,6 +95,7 @@ export class KanbanView extends BaseListView implements OnInit {
   userId = signal<string>("");
 
   private isUpdatingOrder = signal<boolean>(false);
+  showStats = signal(false);
 
   selectedProjectTitle = computed(() => {
     const todoId = this.selectedTodoId();
