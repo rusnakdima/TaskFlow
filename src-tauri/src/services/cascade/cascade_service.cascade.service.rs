@@ -80,12 +80,12 @@ impl CascadeService {
     }
   }
 
-  async fn delete_chats_related_to_todo<P: DatabaseProvider>(
+  async fn delete_chats_related_to_todo<P>(
     provider: &P,
     todo_id: &str,
   ) -> Result<u64, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let filter = nosql_orm::query::Filter::Eq("todo_id".to_string(), json!(todo_id));
     let chats = provider
@@ -101,13 +101,13 @@ impl CascadeService {
     Ok(count)
   }
 
-  async fn cascade_delete<P: DatabaseProvider>(
+  async fn cascade_delete<P>(
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let mut deleted = HashSet::new();
     deleted.insert(format!("{}_{}", table, id));
@@ -176,13 +176,13 @@ impl CascadeService {
     }
   }
 
-  async fn cascade_soft_delete<P: DatabaseProvider>(
+  async fn cascade_soft_delete<P>(
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let mut deleted = HashSet::new();
 
@@ -244,6 +244,20 @@ impl CascadeService {
           chat_count: 0,
         })
       }
+      "chats" => {
+        let patch = json!({ "deleted_at": chrono::Utc::now() });
+        provider
+          .patch("chats", id, patch)
+          .await
+          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+        Ok(CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 0,
+          comment_count: 0,
+          chat_count: 1,
+        })
+      }
       _ => Err(err_response_formatted(
         "Unknown table for cascade soft delete",
         table,
@@ -251,13 +265,13 @@ impl CascadeService {
     }
   }
 
-  async fn cascade_restore<P: DatabaseProvider>(
+  async fn cascade_restore<P>(
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let mut restored = HashSet::new();
 
@@ -331,6 +345,20 @@ impl CascadeService {
           subtask_count: 0,
           comment_count: 1,
           chat_count: 0,
+        })
+      }
+      "chats" => {
+        let patch = json!({ "deleted_at": serde_json::Value::Null });
+        provider
+          .patch("chats", id, patch)
+          .await
+          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+        Ok(CascadeResult {
+          todo_count: 0,
+          task_count: 0,
+          subtask_count: 0,
+          comment_count: 0,
+          chat_count: 1,
         })
       }
       _ => Err(err_response_formatted(
@@ -477,14 +505,14 @@ impl CascadeService {
     self.restore_cascade_mongo("todos", id).await
   }
 
-  pub async fn soft_delete_cascade<P: DatabaseProvider>(
+  pub async fn soft_delete_cascade<P>(
     &self,
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let mut result = Self::cascade_soft_delete(provider, table, id).await?;
     if table == "todos" {
@@ -493,26 +521,26 @@ impl CascadeService {
     Ok(result)
   }
 
-  pub async fn restore_cascade<P: DatabaseProvider>(
+  pub async fn restore_cascade<P>(
     &self,
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     Self::cascade_restore(provider, table, id).await
   }
 
-  pub async fn permanent_delete_cascade<P: DatabaseProvider>(
+  pub async fn permanent_delete_cascade<P>(
     &self,
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let mut result = Self::cascade_delete(provider, table, id).await?;
     if table == "todos" {
@@ -522,19 +550,19 @@ impl CascadeService {
   }
 
   #[allow(dead_code)]
-  pub async fn sync_entity<P: DatabaseProvider>(
+  pub async fn sync_entity<P>(
     &self,
     provider: &P,
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     self.permanent_delete_cascade(provider, table, id).await
   }
 
-  pub async fn handle_cascade<P: DatabaseProvider>(
+  pub async fn handle_cascade<P>(
     &self,
     provider: &P,
     table: &str,
@@ -542,7 +570,7 @@ impl CascadeService {
     is_restore: bool,
   ) -> Result<CascadeResult, ResponseModel>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     if is_restore {
       self.restore_cascade(provider, table, id).await
