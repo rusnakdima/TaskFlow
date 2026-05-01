@@ -91,42 +91,4 @@ impl DataProvider<'_> {
         .map_err(|e| err_response_formatted("Update failed in MongoDB", &e.to_string())),
     }
   }
-
-  #[allow(dead_code)]
-  pub async fn update_many(
-    &self,
-    table: &str,
-    filter: Filter,
-    data: Value,
-  ) -> Result<usize, ResponseModel> {
-    match self {
-      DataProvider::Json(p) => p
-        .update_many(table, Some(filter), data)
-        .await
-        .map_err(|e| err_response_formatted("Update many failed in JSON", &e.to_string())),
-      DataProvider::Mongo(p) => p
-        .update_many(table, Some(filter), data)
-        .await
-        .map_err(|e| err_response_formatted("Update many failed in MongoDB", &e.to_string())),
-    }
-  }
-
-  #[allow(dead_code)]
-  pub async fn delete(&self, table: &str, id: &str) -> Result<bool, ResponseModel> {
-    match self {
-      DataProvider::Json(p) => p
-        .delete(table, id)
-        .await
-        .map_err(|e| err_response_formatted("Delete failed", &e.to_string())),
-      DataProvider::Mongo(p) => p
-        .delete(table, id)
-        .await
-        .map_err(|e| err_response_formatted("Delete failed", &e.to_string())),
-    }
-  }
-
-  #[allow(dead_code)]
-  pub fn is_mongo(&self) -> bool {
-    matches!(self, DataProvider::Mongo(_))
-  }
 }
