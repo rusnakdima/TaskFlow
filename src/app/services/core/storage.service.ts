@@ -38,6 +38,7 @@ export class StorageService extends BaseStorageService {
   // ==================== SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
   private readonly sharedTodosSignal = signal<Todo[]>([]);
+  private readonly publicTodosSignal = signal<Todo[]>([]);
   private readonly categoriesSignal = signal<Category[]>([]);
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly profilesSignal = signal<Profile[]>([]);
@@ -47,7 +48,11 @@ export class StorageService extends BaseStorageService {
 
   // ==================== COMPUTED SIGNALS ====================
   private readonly todosComputed = computed(() => {
-    const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
+    const allTodos = [
+      ...this.privateTodosSignal(),
+      ...this.sharedTodosSignal(),
+      ...this.publicTodosSignal(),
+    ];
     const uniqueTodoMap = new Map<string, Todo>();
     allTodos.forEach((todo) => {
       if (todo.deleted_at) return;
@@ -74,9 +79,16 @@ export class StorageService extends BaseStorageService {
     );
   });
 
+  private readonly publicTodosComputed = computed(() => {
+    return this.publicTodosSignal().filter(
+      (todo) => !todo.deleted_at && todo.visibility === "public"
+    );
+  });
+
   // ==================== PUBLIC SIGNALS ====================
   readonly privateTodos = this.privateTodosComputed;
   readonly sharedTodos = this.sharedTodosComputed;
+  readonly publicTodos = this.publicTodosComputed;
   readonly todos = this.todosComputed;
   readonly tasks = computed(() =>
     this.todos().flatMap((todo) =>
@@ -118,7 +130,7 @@ export class StorageService extends BaseStorageService {
 
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
-    todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal),
+    todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
     tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks"),
     subtasks: new NestedEntityHandler<Subtask>(
       this.privateTodosSignal,
@@ -501,12 +513,19 @@ export class StorageService extends BaseStorageService {
   }
 
   setCollection<
-    T extends "categories" | "profiles" | "privateTodos" | "sharedTodos" | "allProfiles" | "user",
+    T extends
+      | "categories"
+      | "profiles"
+      | "privateTodos"
+      | "sharedTodos"
+      | "publicTodos"
+      | "allProfiles"
+      | "user",
   >(
     type: T,
     items: T extends "profiles"
       ? Profile | null
-      : T extends "privateTodos" | "sharedTodos" | "allProfiles"
+      : T extends "privateTodos" | "sharedTodos" | "publicTodos" | "allProfiles"
         ? T extends "allProfiles"
           ? Profile[]
           : Todo[]
@@ -531,6 +550,12 @@ export class StorageService extends BaseStorageService {
         const sharedTodos = items as Todo[];
         this.extractChatsFromTodos(sharedTodos);
         this.sharedTodosSignal.set(sharedTodos);
+        break;
+      }
+      case "publicTodos": {
+        const publicTodos = items as Todo[];
+        this.extractChatsFromTodos(publicTodos);
+        this.publicTodosSignal.set(publicTodos);
         break;
       }
       case "allProfiles":

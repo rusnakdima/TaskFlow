@@ -20,8 +20,7 @@ interface CrudOptions {
   relations?: RelationObj[];
   load?: string[];
   filter?: { [key: string]: any };
-  isOwner?: boolean;
-  isPrivate?: boolean;
+  visibility?: string;
 }
 
 @Injectable({
@@ -50,10 +49,7 @@ export class ApiProvider {
 
   crud<T>(operation: Operation, table: string, options: CrudOptions = {}): Observable<T> {
     return new Observable<T>((subscriber) => {
-      const syncMetadata = {
-        is_owner: options.isOwner ?? true,
-        is_private: options.isPrivate ?? true,
-      };
+      const syncMetadata = this.buildSyncMetadata(options.visibility);
       const payload: Record<string, unknown> = {
         operation,
         table,
@@ -107,6 +103,18 @@ export class ApiProvider {
 
   clearCache(): void {
     // Cache removed - no-op for backwards compatibility
+  }
+
+  private buildSyncMetadata(visibility?: string): { is_owner: boolean; is_private: boolean } {
+    switch (visibility) {
+      case "team":
+        return { is_owner: false, is_private: false };
+      case "public":
+        return { is_owner: false, is_private: false };
+      case "private":
+      default:
+        return { is_owner: true, is_private: true };
+    }
   }
 
   private executeUpdateAll<T>(

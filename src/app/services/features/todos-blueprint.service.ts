@@ -86,8 +86,7 @@ export class TodosBlueprintService {
       this.apiProvider
         .crud<Todo>("create", "todos", {
           data: todoData,
-          isOwner: true,
-          isPrivate: true,
+          visibility: "private",
         })
         .subscribe({
           next: (createdTodo) => {

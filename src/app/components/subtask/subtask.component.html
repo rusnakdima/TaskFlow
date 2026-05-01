@@ -189,8 +189,6 @@
       <app-comments
         [comments]="getActiveComments(subtask.comments)"
         [subtask_id]="subtask.id"
-        [isOwner]="true"
-        [isPrivate]="isPrivate"
         (addCommentEvent)="onAddComment($event)"
         (deleteCommentEvent)="onDeleteComment($event)"
         (markAsReadEvent)="onMarkAsRead($event)"

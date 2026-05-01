@@ -29,7 +29,7 @@ export class DragDropOrderService {
     entityType: StorageEntity,
     table: string,
     parentTodoId?: string,
-    syncOptions?: { isOwner?: boolean; isPrivate?: boolean }
+    visibility?: string
   ): Observable<any> {
     const operationKey = `${entityType}-${parentTodoId || "root"}`;
 
@@ -84,7 +84,7 @@ export class DragDropOrderService {
     return this.dataSyncProvider
       .crud<
         T[]
-      >("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, ...syncOptions })
+      >("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, visibility })
       .pipe(
         tap(() => {
           this.updatingOrders.delete(operationKey);

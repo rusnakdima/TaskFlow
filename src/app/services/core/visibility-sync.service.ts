@@ -133,8 +133,7 @@ export class VisibilitySyncService {
         .crud<Todo>("update", "todos", {
           id: todo.id,
           data: { ...todoWithoutRelations, visibility },
-          isOwner: true,
-          isPrivate,
+          visibility,
         })
         .pipe(
           catchError((error) => {

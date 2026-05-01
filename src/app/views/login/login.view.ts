@@ -155,27 +155,25 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    this.dataSyncProvider
-      .crud<any[]>("getAll", "users", { isOwner: true, isPrivate: true })
-      .subscribe({
-        next: (users) => {
-          const activeUsers = (users || []).filter((u) => !u.deleted_at);
-          this.hasLocalUsers.set(activeUsers.length > 0);
-        },
-        error: (err) => {
-          this.hasLocalUsers.set(false);
+    this.dataSyncProvider.crud<any[]>("getAll", "users", { visibility: "private" }).subscribe({
+      next: (users) => {
+        const activeUsers = (users || []).filter((u) => !u.deleted_at);
+        this.hasLocalUsers.set(activeUsers.length > 0);
+      },
+      error: (err) => {
+        this.hasLocalUsers.set(false);
 
-          if (NetworkErrorHelper.isNetworkError(err)) {
-            this.notifyService.showWarning(
-              "Cannot connect to database. Please check:\n" +
-                "1. MongoDB server is running\n" +
-                "2. Connection string in .env is correct\n" +
-                "3. Network/firewall allows connection\n\n" +
-                "Check terminal for detailed error message."
-            );
-          }
-        },
-      });
+        if (NetworkErrorHelper.isNetworkError(err)) {
+          this.notifyService.showWarning(
+            "Cannot connect to database. Please check:\n" +
+              "1. MongoDB server is running\n" +
+              "2. Connection string in .env is correct\n" +
+              "3. Network/firewall allows connection\n\n" +
+              "Check terminal for detailed error message."
+          );
+        }
+      },
+    });
   }
 
   ngOnDestroy() {

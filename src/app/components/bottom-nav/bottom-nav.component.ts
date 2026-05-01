@@ -47,12 +47,6 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/shared-tasks",
-      icon: "group",
-      label: "Shared",
-      query: {},
-    },
-    {
       url: "/stats",
       icon: "bar_chart",
       label: "Stats",

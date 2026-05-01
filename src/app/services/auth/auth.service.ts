@@ -224,7 +224,7 @@ export class AuthService {
 
     // Load from backend
     this.dataSyncProvider
-      .crud<any>("get", "users", { id: userId, isOwner: true, isPrivate: true })
+      .crud<any>("get", "users", { id: userId, visibility: "private" })
       .pipe(take(1))
       .subscribe({
         next: (user) => {

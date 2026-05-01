@@ -25,6 +25,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
   selector: "app-manage-profile",
@@ -48,7 +49,8 @@ export class ManageProfileView implements OnInit {
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private profileRequiredService: ProfileRequiredService
   ) {
     this.form = fb.group({
       _id: [""],
@@ -128,7 +130,9 @@ export class ManageProfileView implements OnInit {
           .subscribe({
             next: () => {
               this.notifyService.showSuccess("Profile updated successfully");
-              this.router.navigate(["/profile"]);
+              // Clear profile required mode to show header/bottom nav
+              this.profileRequiredService.setProfileRequiredMode(false);
+              this.router.navigate(["/home"]);
             },
             error: (err: unknown) => {
               const message = err instanceof Error ? err.message : "Failed to update profile";
@@ -142,7 +146,9 @@ export class ManageProfileView implements OnInit {
               this.storageService.setCollection("profiles", createdProfile);
             }
             this.notifyService.showSuccess("Profile created successfully");
-            this.router.navigate(["/profile"]);
+            // Clear profile required mode to show header/bottom nav
+            this.profileRequiredService.setProfileRequiredMode(false);
+            this.router.navigate(["/home"]);
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to create profile";

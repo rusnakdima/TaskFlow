@@ -74,8 +74,7 @@ export class TaskInformationComponent {
           id: this.task.id,
           data: updatedTask,
           parentTodoId: this.todo_id,
-          isOwner: this.isOwner,
-          isPrivate: this.isPrivate,
+          visibility: this.isPrivate ? "private" : "team",
         })
         .subscribe({
           next: (result: Task) => {
@@ -104,8 +103,7 @@ export class TaskInformationComponent {
       .crud("delete", "tasks", {
         id: this.task?.id ?? "",
         parentTodoId: this.todo_id,
-        isOwner: this.isOwner,
-        isPrivate: this.isPrivate,
+        visibility: this.isPrivate ? "private" : "team",
       })
       .subscribe({
         next: (result: any) => {

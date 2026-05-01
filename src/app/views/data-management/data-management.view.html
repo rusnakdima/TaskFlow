@@ -32,7 +32,7 @@
           </div>
           <div class="flex flex-row flex-wrap items-stretch gap-2">
             <button
-              class="flex h-full items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+              class="flex min-h-full items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
               (click)="onBulkSelectAll()"
               [ngClass]="{
                 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300':
@@ -44,6 +44,7 @@
                 [checked]="isAllSelected()"
                 [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
                 [highlight]="selectedRecords().size > 0 && !isAllSelected()"
+                (click)="$event.stopPropagation()"
               />
               <span
                 class="text-sm font-medium"

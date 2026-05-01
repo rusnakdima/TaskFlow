@@ -33,7 +33,7 @@
             <span class="textMuted text-[10px]">
               {{ formatDate(comment.created_at) }}
             </span>
-            @if (isOwner || comment.user_id === currentUserId) {
+            @if (canEditComment(comment)) {
               <button
                 class="rounded-md p-1 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
                 (click)="deleteComment(comment.id)"

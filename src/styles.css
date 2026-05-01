@@ -39,7 +39,7 @@
   }
 
   .styleBottomNav {
-    @apply sticky right-0 bottom-0 left-0 m-0 grid h-15 w-full grid-cols-6 bg-white text-black dark:bg-zinc-900 dark:text-white;
+    @apply sticky right-0 bottom-0 left-0 m-0 grid h-15 w-full grid-cols-5 bg-white text-black dark:bg-zinc-900 dark:text-white;
   }
 
   .styleBackWind {
