@@ -196,9 +196,9 @@ export class FilterHelper {
 
     // Status filter (active/deleted)
     if (filters.deletedFilter === "not_deleted") {
-      filterConfigs.push({ field: "deletedAt", value: null, operator: "isNull" });
+      filterConfigs.push({ field: "deleted_at", value: null, operator: "isNull" });
     } else if (filters.deletedFilter === "deleted") {
-      filterConfigs.push({ field: "deletedAt", value: null, operator: "isNotNull" });
+      filterConfigs.push({ field: "deleted_at", value: null, operator: "isNotNull" });
     }
 
     // Task/Subtask status filters

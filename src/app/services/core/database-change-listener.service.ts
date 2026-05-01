@@ -56,6 +56,9 @@ export class DatabaseChangeListenerService {
     "comment-created": (data) => this.handleCommentCreate(data),
     "comment-updated": (data) => this.handleCommentCreate(data),
     "comment-deleted": (data) => this.handleCommentDelete(data),
+    "chat-created": (data) => this.storageService.addChatToTodo(data, data.todo_id),
+    "chat-updated": (data) => this.storageService.updateChatInTodo(data, data.todo_id),
+    "chat-deleted": (data) => this.storageService.deleteChatFromTodo(data.id, data.todo_id),
   };
 
   async initTauriListeners(): Promise<void> {

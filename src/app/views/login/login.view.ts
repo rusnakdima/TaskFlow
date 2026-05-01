@@ -156,7 +156,7 @@ export class LoginView implements OnDestroy {
 
   checkDatabaseConnection() {
     this.dataSyncProvider
-      .crud<any[]>("getAll", "users", { isOwner: true, isPrivate: true }, true)
+      .crud<any[]>("getAll", "users", { isOwner: true, isPrivate: true })
       .subscribe({
         next: (users) => {
           const activeUsers = (users || []).filter((u) => !u.deleted_at);

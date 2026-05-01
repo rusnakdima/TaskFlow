@@ -12,11 +12,9 @@ use nosql_orm::Validate;
 #[many_to_one("task", "tasks", "task_id")]
 #[many_to_one("subtask", "subtasks", "subtask_id")]
 #[many_to_many("read_by_users", "users", "read_by")]
-#[one_to_one("read_by_users.user.profile", "profiles", "profile_id")]
 #[timestamp]
 #[soft_delete]
 #[index("user_id", 1)]
-#[Relations(user)]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub user_id: String,

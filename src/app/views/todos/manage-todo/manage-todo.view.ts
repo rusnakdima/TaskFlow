@@ -335,7 +335,7 @@ export class ManageTodoView implements OnInit, OnDestroy {
     } else {
       // If no categories in storage, fetch from backend
       this.dataSyncProvider
-        .crud<Category[]>("getAll", "categories", { filter: { deleted_at: null } }, true)
+        .crud<Category[]>("getAll", "categories", { filter: { deleted_at: null } })
         .subscribe({
           next: (cats) => {
             if (cats && cats.length > 0) {
@@ -479,7 +479,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
           parentTodoId: body.user_id,
           isOwner: true,
           isPrivate,
-          load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({
           next: (result: Todo) => {
@@ -538,7 +537,6 @@ export class ManageTodoView implements OnInit, OnDestroy {
           parentTodoId: body.id,
           isOwner,
           isPrivate,
-          load: ["user", "categories", "tasks", "assignees"],
         })
         .subscribe({
           next: async (result: Todo) => {

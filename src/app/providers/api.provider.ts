@@ -14,15 +14,14 @@ import { NotifyService } from "@services/notifications/notify.service";
 type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
 interface CrudOptions {
-  filter?: Record<string, unknown>;
-  data?: unknown;
   id?: string;
+  data?: unknown;
   parentTodoId?: string;
   relations?: RelationObj[];
   load?: string[];
+  filter?: { [key: string]: any };
   isOwner?: boolean;
   isPrivate?: boolean;
-  visibility?: "private" | "team";
 }
 
 @Injectable({
@@ -49,17 +48,11 @@ export class ApiProvider {
     );
   }
 
-  crud<T>(
-    operation: Operation,
-    table: string,
-    options: CrudOptions = {},
-    _isArray: boolean = false
-  ): Observable<T> {
+  crud<T>(operation: Operation, table: string, options: CrudOptions = {}): Observable<T> {
     return new Observable<T>((subscriber) => {
       const syncMetadata = {
         is_owner: options.isOwner ?? true,
         is_private: options.isPrivate ?? true,
-        visibility: options.visibility,
       };
       const payload: Record<string, unknown> = {
         operation,

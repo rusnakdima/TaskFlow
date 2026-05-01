@@ -69,12 +69,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   ngOnInit() {
-    this.loadChats(this.todo_id).subscribe({
-      next: () => {
-        this.shouldScroll = true;
-        setTimeout(() => this.initIntersectionObserver(), 500);
-      },
-    });
+    this.shouldScroll = true;
+    setTimeout(() => this.initIntersectionObserver(), 500);
   }
 
   ngOnDestroy() {
@@ -221,15 +217,6 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     return this.chats();
   }
 
-  loadChats(todo_id?: string) {
-    return this.dataSync.crud<Chat[]>(
-      "getAll",
-      "chats",
-      { filter: { todo_id: todo_id, deleted_at: null }, parentTodoId: todo_id },
-      true
-    );
-  }
-
   sendMessage() {
     if (!this.newMessage.trim()) return;
 
@@ -260,7 +247,9 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
   }
 
   deleteMessage(chatId: string) {
-    this.storageService.deleteChatFromTodo(chatId, this.todo_id);
+    this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todo_id }).subscribe({
+      error: (err) => console.error("Delete chat failed:", err),
+    });
   }
 
   markAsRead(todo_id?: string, ids?: string[]) {
@@ -280,12 +269,10 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
     if (unreadChats.length === 0) return of([]);
 
-    return this.dataSync.crud<Chat[]>(
-      "updateAll",
-      "chats",
-      { data: unreadChats, parentTodoId: todo_id },
-      true
-    );
+    return this.dataSync.crud<Chat[]>("updateAll", "chats", {
+      data: unreadChats,
+      parentTodoId: todo_id,
+    });
   }
 
   clearChat() {
@@ -296,7 +283,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
     const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
     this.dataSync
-      .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todo_id }, true)
+      .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todo_id })
       .subscribe();
   }
 
@@ -312,6 +299,12 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     if (user?.email) return user.email;
     const currentUser = this.storageService.user();
     if (currentUser?.id === userId && currentUser?.username) return currentUser.username;
+
+    // Try profile which has user relation loaded
+    const profile = this.storageService.profile();
+    if (profile?.user?.username) return profile.user.username;
+    if (profile?.user?.email) return profile.user.email;
+
     return this.authService.getValueByKey("username") || "User";
   }
 

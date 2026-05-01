@@ -43,6 +43,3 @@ pub mod statistics_service;
 
 #[path = "crypto.service.rs"]
 pub mod crypto_service;
-
-#[path = "offline_queue.service.rs"]
-pub mod offline_queue_service;

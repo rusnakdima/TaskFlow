@@ -28,7 +28,6 @@ use nosql_orm::{Model, Validate};
   "totp_enabled",
   "qr_login_enabled"
 )]
-#[Relations(profile)]
 pub struct UserEntity {
   pub id: Option<String>,
   pub email: String,

@@ -1,4 +1,5 @@
 import { Category } from "@models/category.model";
+import { Chat } from "@models/chat.model";
 import { Profile } from "@models/profile.model";
 import { Task } from "@models/task.model";
 import { User } from "@models/user.model";
@@ -20,6 +21,7 @@ export interface Todo {
   order: number;
   user: User;
   tasks: Array<Task>;
+  chats?: Chat[];
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
