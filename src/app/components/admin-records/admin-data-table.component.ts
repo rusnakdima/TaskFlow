@@ -1,13 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  signal,
-  ChangeDetectionStrategy,
-} from "@angular/core";
+import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -33,7 +26,6 @@ import { AdminFieldConfig } from "@models/admin-table.model";
     CheckboxComponent,
   ],
   templateUrl: "./admin-data-table.component.html",
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminDataTableComponent {
   @Input() data: any[] = [];

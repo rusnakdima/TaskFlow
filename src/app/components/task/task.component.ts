@@ -46,6 +46,7 @@ import { Router } from "@angular/router";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
+import { Todo } from "@models/todo.model";
 
 interface CommentAction {
   user_id: string;
@@ -118,6 +119,12 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   /** Task as signal so computed can react to input changes */
   private taskForComments = signal<Task | null>(null);
+
+  todo = computed(() => {
+    const id = this.todo_id || this.task?.todo_id;
+    if (!id) return null;
+    return this.storageService.getById("todos", id) as Todo | null;
+  });
 
   /** Task-only comments for the main comment panel */
   taskOnlyCommentsForPanel = computed(() => {
@@ -325,8 +332,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         .crud<Comment>("create", "comments", {
           data: commentForBackend,
           parentTodoId: effectiveTodoId,
-          isOwner: this.isOwner,
-          isPrivate: this.isPrivate,
+          visibility: this.isPrivate ? "private" : "team",
         })
         .subscribe({
           next: () => {
@@ -362,8 +368,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       .crud<Comment>("create", "comments", {
         data: commentForBackend,
         parentTodoId: effectiveTodoId,
-        isOwner: this.isOwner,
-        isPrivate: this.isPrivate,
+        visibility: this.isPrivate ? "private" : "team",
       })
       .subscribe({
         next: () => {

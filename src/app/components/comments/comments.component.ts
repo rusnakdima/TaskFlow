@@ -22,6 +22,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Comment } from "@models/comment.model";
+import { Todo } from "@models/todo.model";
 import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
@@ -41,12 +42,11 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
 
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
   @Input() task_id?: string;
   @Input() subtask_id?: string;
   @Input() highlightCommentId?: string;
   @Input() autoOpen?: boolean = false;
+  @Input() todo: Todo | null = null;
 
   @Output() addCommentEvent = new EventEmitter<string>();
   @Output() deleteCommentEvent = new EventEmitter<string>();
@@ -215,5 +215,17 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
     if (profile?.user?.email) return profile.user.email;
 
     return this.authService.getValueByKey("username") || "User";
+  }
+
+  canEditComment(comment?: Comment): boolean {
+    if (!comment) return false;
+    if (comment.user_id === this.currentUserId) return true;
+    if (this.todo) {
+      const todoOwnerId = this.todo.user_id;
+      if (todoOwnerId === this.currentUserId && this.todo.visibility !== "private") {
+        return true;
+      }
+    }
+    return false;
   }
 }
