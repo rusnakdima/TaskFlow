@@ -67,11 +67,6 @@ pub struct UserEntity {
 }
 
 impl UserEntity {
-  #[allow(dead_code)]
-  pub fn get_id(&self) -> Option<String> {
-    self.id.clone()
-  }
-
   pub fn id(&self) -> &str {
     self.id.as_deref().unwrap_or("")
   }

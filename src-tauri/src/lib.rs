@@ -54,7 +54,6 @@ use services::{
   profile_service::ProfileService,
   repository_service::RepositoryService,
   statistics_service::StatisticsService,
-  // websocket::WebSocketServerService,
 };
 
 /* nosql_orm */
@@ -68,7 +67,6 @@ pub struct AppState {
   pub manage_db_service: Arc<ManageDbService>,
   pub profile_service: Arc<ProfileService>,
   pub statistics_service: Arc<StatisticsService>,
-  // pub websocket_server_service: Arc<WebSocketServerService>,
   pub qr_auth_service: Arc<QrAuthService>,
   pub totp_service: Arc<AuthTotpService>,
   pub passkey_service: Arc<AuthPasskeyService>,
@@ -136,9 +134,6 @@ pub fn run() {
         .expect("Failed to create JSON provider");
 
       let _json_provider_setup = json_provider.clone();
-      tauri::async_runtime::spawn(async move {});
-
-      let _json_logged = json_provider.clone();
 
       let mongodb_provider = {
         let uri = config_helper.mongo_db_uri.clone();
@@ -231,7 +226,6 @@ pub fn run() {
         manage_db_service,
         profile_service,
         statistics_service,
-        // websocket_server_service,
         qr_auth_service,
         totp_service,
         passkey_service,
