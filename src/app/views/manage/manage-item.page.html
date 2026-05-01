@@ -1,0 +1,247 @@
+<div class="mx-auto flex max-w-4xl flex-col gap-6">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
+        {{ pageTitle() }}
+      </h1>
+      <p class="textMuted mt-1">
+        {{
+          isEdit()
+            ? "Update your " + itemType() + " details and settings"
+            : "Create a new " + itemType() + " to organize your work"
+        }}
+      </p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+    <!-- Basic Information Section -->
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
+        >
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+            fontIcon="info"
+          />
+        </div>
+        <div>
+          <h3 class="textNormal text-lg font-semibold">Basic Information</h3>
+          <p class="textMuted text-sm">Essential details about your {{ itemType() }}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6">
+        <mat-form-field class="w-full">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" placeholder="Enter a descriptive title" />
+          @if (form.get("title")?.invalid && form.get("title")?.touched) {
+            <mat-error>Title is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+          <mat-label>Description</mat-label>
+          <textarea
+            matInput
+            formControlName="description"
+            placeholder="Describe what this {{ itemType() }} is about"
+            rows="4"
+          ></textarea>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Priority Section -->
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
+        >
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
+            fontIcon="flag"
+          />
+        </div>
+        <div>
+          <h3 class="textNormal text-lg font-semibold">Priority</h3>
+          <p class="textMuted text-sm">Set the priority level</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <mat-radio-group formControlName="priority" class="space-y-3">
+          <mat-radio-button
+            value="high"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <div class="h-3 w-3 rounded-full bg-red-500"></div>
+              <div>
+                <div class="textNormal font-medium">High</div>
+                <div class="textMuted text-xs">Critical priority</div>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button
+            value="medium"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
+              <div>
+                <div class="textNormal font-medium">Medium</div>
+                <div class="textMuted text-xs">Normal priority</div>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button
+            value="low"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <div class="h-3 w-3 rounded-full bg-green-500"></div>
+              <div>
+                <div class="textNormal font-medium">Low</div>
+                <div class="textMuted text-xs">When time permits</div>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+    </div>
+
+    <!-- Timeline Section -->
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"
+        >
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl! text-orange-600 dark:text-orange-400"
+            fontIcon="schedule"
+          />
+        </div>
+        <div>
+          <h3 class="textNormal text-lg font-semibold">Timeline</h3>
+          <p class="textMuted text-sm">Set start date, end date, and repeat</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <mat-form-field class="w-full">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="startPicker" formControlName="start_date" />
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker [dateClass]="dateClass"></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="endPicker" formControlName="end_date" />
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker [dateClass]="dateClass"></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field class="w-full" *ngIf="itemType() === 'task'">
+          <mat-label>Repeat</mat-label>
+          <mat-select formControlName="repeat">
+            <mat-option value="none">None</mat-option>
+            <mat-option value="daily">Daily</mat-option>
+            <mat-option value="weekly">Weekly</mat-option>
+            <mat-option value="monthly">Monthly</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+    <div
+      *ngIf="itemType() === 'todo'"
+      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
+        >
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
+            fontIcon="visibility"
+          />
+        </div>
+        <div>
+          <h3 class="textNormal text-lg font-semibold">Visibility</h3>
+          <p class="textMuted text-sm">Control who can see this project</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <mat-radio-group formControlName="visibility" class="space-y-3">
+          <mat-radio-button
+            value="private"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <mat-icon class="text-gray-500 dark:text-gray-400" fontIcon="lock"></mat-icon>
+              <div>
+                <div class="textNormal font-medium">Private</div>
+                <div class="textMuted text-xs">Only you can see this</div>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button
+            value="shared"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <mat-icon class="text-blue-500 dark:text-blue-400" fontIcon="group"></mat-icon>
+              <div>
+                <div class="textNormal font-medium">Shared</div>
+                <div class="textMuted text-xs">Shared with specific people</div>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button
+            value="public"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+          >
+            <div class="flex flex-1 items-center gap-2">
+              <mat-icon class="text-green-500 dark:text-green-400" fontIcon="public"></mat-icon>
+              <div>
+                <div class="textNormal font-medium">Public</div>
+                <div class="textMuted text-xs">Visible to everyone</div>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3 pt-6">
+      <button type="button" class="styleButDanger" (click)="back()">Cancel</button>
+      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
+        @if (isSubmitting()) {
+          <div
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+          ></div>
+        } @else {
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
+        }
+        <span class="flex items-center gap-2">
+          {{ isEdit() ? "Update" : "Create" }}
+          <kbd
+            class="hidden rounded-md border border-blue-800 bg-blue-700 px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 opacity-80 sm:inline-block"
+          >
+            Ctrl+S
+          </kbd>
+        </span>
+      </button>
+    </div>
+  </form>
+</div>
