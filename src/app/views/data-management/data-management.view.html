@@ -145,13 +145,16 @@
         />
       </button>
 
-      <button class="styleButInfo gap-2" (click)="loadData(true)" [disabled]="loading()">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="loadData(true)"
+        [disabled]="loading()"
+      >
         <mat-icon
           class="h-5! w-5! min-w-5 text-xl!"
           [ngClass]="loading() ? 'animate-spin' : ''"
           fontIcon="sync"
         />
-        <span class="hidden sm:inline">Refresh</span>
       </button>
 
       <button
@@ -202,8 +205,88 @@
       (deleteRecord)="deleteRecord($event)"
       (toggleDelete)="toggleDeleteStatus($event)"
     />
-  } @else {
+  } @else if (viewMode() === "grid") {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      @for (item of getCurrentData(); track item.id) {
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+          [ngClass]="{
+            'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
+          }"
+          (click)="toggleSelect(item.id)"
+        >
+          <div class="mb-3 flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <app-checkbox
+                class="pointer-events-none"
+                [checked]="selectedRecords().has(item.id)"
+              />
+              <h4 class="font-semibold">
+                {{ item.title || item.content || item.date || item.id | slice: 0 : 20 }}
+              </h4>
+            </div>
+            <div class="flex gap-1">
+              <button
+                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                (click)="$event.stopPropagation(); toggleDeleteStatus(item.id)"
+                [title]="item.deleted_at ? 'Restore' : 'Soft Delete'"
+              >
+                <mat-icon
+                  class="size-4! text-base!"
+                  [fontIcon]="item.deleted_at ? 'restore' : 'delete'"
+                />
+              </button>
+              <button
+                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                (click)="$event.stopPropagation(); deleteRecord(item.id)"
+                title="Permanent Delete"
+              >
+                <mat-icon class="size-4! text-base! text-red-500" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+          <div class="textMuted flex flex-wrap gap-2 text-xs">
+            @if (item.priority) {
+              <span
+                class="rounded px-2 py-0.5"
+                [ngClass]="{
+                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400':
+                    item.priority === 'high' || item.priority === 'urgent',
+                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400':
+                    item.priority === 'medium',
+                  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400':
+                    item.priority === 'low',
+                }"
+              >
+                {{ item.priority }}
+              </span>
+            }
+            @if (item.status) {
+              <span
+                class="rounded bg-blue-100 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+              >
+                {{ item.status }}
+              </span>
+            }
+            @if (item.visibility) {
+              <span
+                class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+              >
+                {{ item.visibility }}
+              </span>
+            }
+            @if (item.created_at) {
+              <span class="text-gray-500">{{ item.created_at | date: "short" }}</span>
+            }
+          </div>
+          @if (item.description) {
+            <p class="textMuted mt-2 line-clamp-2 text-sm">{{ item.description }}</p>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="flex w-full flex-col gap-y-3">
       @for (item of getCurrentData(); track item.id) {
         <div
           class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
