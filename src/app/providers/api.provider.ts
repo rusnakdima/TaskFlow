@@ -49,11 +49,9 @@ export class ApiProvider {
 
   crud<T>(operation: Operation, table: string, options: CrudOptions = {}): Observable<T> {
     return new Observable<T>((subscriber) => {
-      const syncMetadata = this.buildSyncMetadata(options.visibility);
       const payload: Record<string, unknown> = {
         operation,
         table,
-        sync_metadata: syncMetadata,
       };
 
       if (options.id) payload["id"] = options.id;
@@ -61,6 +59,7 @@ export class ApiProvider {
       if (options.filter) payload["filter"] = options.filter;
       if (options.relations) payload["relations"] = options.relations;
       if (options.load) payload["load"] = options.load;
+      if (options.visibility) payload["visibility"] = options.visibility;
 
       if (operation === "updateAll" && options.data) {
         this.executeUpdateAll(payload, options, subscriber);
@@ -105,18 +104,6 @@ export class ApiProvider {
     // Cache removed - no-op for backwards compatibility
   }
 
-  private buildSyncMetadata(visibility?: string): { is_owner: boolean; is_private: boolean } {
-    switch (visibility) {
-      case "team":
-        return { is_owner: false, is_private: false };
-      case "public":
-        return { is_owner: false, is_private: false };
-      case "private":
-      default:
-        return { is_owner: true, is_private: true };
-    }
-  }
-
   private executeUpdateAll<T>(
     payload: Record<string, unknown>,
     options: CrudOptions,
@@ -130,7 +117,7 @@ export class ApiProvider {
           table: payload["table"] as string,
           id: item["id"] as string | undefined,
           data: item,
-          sync_metadata: payload["sync_metadata"],
+          visibility: options.visibility,
         })
       )
     ).then(
