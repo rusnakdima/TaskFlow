@@ -132,7 +132,7 @@ export class ManageProfileView implements OnInit {
               this.notifyService.showSuccess("Profile updated successfully");
               // Clear profile required mode to show header/bottom nav
               this.profileRequiredService.setProfileRequiredMode(false);
-              this.router.navigate(["/home"]);
+              this.router.navigate(["/profile"]);
             },
             error: (err: unknown) => {
               const message = err instanceof Error ? err.message : "Failed to update profile";
@@ -148,7 +148,7 @@ export class ManageProfileView implements OnInit {
             this.notifyService.showSuccess("Profile created successfully");
             // Clear profile required mode to show header/bottom nav
             this.profileRequiredService.setProfileRequiredMode(false);
-            this.router.navigate(["/home"]);
+            window.location.href = "/";
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to create profile";

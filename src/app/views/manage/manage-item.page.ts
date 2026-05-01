@@ -200,7 +200,14 @@ export class ManageItemPage implements OnInit, OnDestroy {
     await this.loadParentEntities();
 
     // If editing, load the existing item
-    if (params.todoId || params.taskId || params.subtaskId) {
+    // Only check entity's own ID params (taskId for tasks, subtaskId for subtasks, todoId for todos)
+    // Note: todoId is set for create_todo path too, so we check based on itemType
+    const isEntityIdSet =
+      (this.itemType() === "todo" && params.todoId) ||
+      (this.itemType() === "task" && params.taskId) ||
+      (this.itemType() === "subtask" && params.subtaskId);
+
+    if (isEntityIdSet) {
       this.isEdit.set(true);
       await this.loadExistingItem(params);
     }
