@@ -107,11 +107,10 @@ impl AuthRegisterService {
     let token = self.token_service.generate_token(user_id, "", "")?;
 
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let mongo = mongo.clone();
-      let user_val_for_sync = user_val.clone();
-      tokio::spawn(async move {
-        let _ = mongo.insert(table_name, user_val_for_sync).await;
-      });
+      mongo
+        .insert(table_name, user_val.clone())
+        .await
+        .map_err(|e| err_response(&format!("Error creating user in MongoDB: {}", e)))?;
     }
 
     Ok(ResponseModel {
