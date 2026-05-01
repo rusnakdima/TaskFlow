@@ -30,13 +30,14 @@ impl EntityResolutionService {
     }
   }
 
-  async fn get_user_id_via_entity_relations<P: DatabaseProvider>(
+  #[allow(clippy::multiple_bound_locations)]
+  async fn get_user_id_via_entity_relations<P>(
     provider: &P,
     table: &str,
     data: &Value,
   ) -> OrmResult<Option<Value>>
   where
-    P: Send + Sync,
+    P: DatabaseProvider + Send + Sync,
   {
     let relation_path = Self::get_relation_path(table)
       .ok_or_else(|| OrmError::InvalidQuery(format!("No relation path for {}", table)))?;
