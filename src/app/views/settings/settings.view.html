@@ -335,36 +335,6 @@
               }
             </div>
           }
-
-          <!-- QR Login -->
-          @if (showQrLoginSection()) {
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-start gap-3">
-                <div
-                  class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
-                >
-                  <mat-icon class="text-xl! text-green-600 dark:text-green-400">qr_code</mat-icon>
-                </div>
-                <div>
-                  <p class="textNormal font-medium">QR Code Login</p>
-                  <p class="textMuted text-xs">
-                    Sign in by scanning a QR code with your mobile device
-                  </p>
-                </div>
-              </div>
-              <button
-                (click)="toggleQrLogin()"
-                [disabled]="qrLoginSetupInProgress()"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                [class]="qrLoginEnabled() ? 'bg-green-600' : 'bg-gray-300 dark:bg-zinc-600'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  [class]="qrLoginEnabled() ? 'translate-x-6' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
-          }
         </div>
       </div>
 
