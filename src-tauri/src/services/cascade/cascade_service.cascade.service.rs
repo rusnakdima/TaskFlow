@@ -8,9 +8,9 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 use nosql_orm::relations::WithRelations;
-use serde_json::json;
 
 /* entities */
+use crate::entities::comment_entity::CommentEntity;
 use crate::entities::subtask_entity::SubtaskEntity;
 use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
@@ -80,28 +80,132 @@ impl CascadeService {
     }
   }
 
-  async fn delete_chats_related_to_todo<P>(
+  pub async fn soft_delete_cascade_internal<P>(
     provider: &P,
-    todo_id: &str,
-  ) -> Result<u64, ResponseModel>
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel>
   where
     P: DatabaseProvider + Send + Sync,
   {
-    let filter = nosql_orm::query::Filter::Eq("todo_id".to_string(), json!(todo_id));
-    let chats = provider
-      .find_many("chats", Some(&filter), None, None, None, false)
-      .await
-      .map_err(|e| err_response_formatted("Find chats failed", &e.to_string()))?;
-    let count = chats.len() as u64;
-    for chat in chats {
-      if let Some(chat_id) = chat.get("id").and_then(|v| v.as_str()) {
-        let _ = provider.delete("chats", chat_id).await;
+    let mut deleted = HashSet::new();
+    deleted.insert(format!("{}_{}", table, id));
+
+    match table {
+      "todos" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+      }
+      "tasks" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+      }
+      "subtasks" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+      }
+      "comments" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete_cascade::<CommentEntity>(id, &CommentEntity::relations(), &mut deleted)
+          .await
+          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+      }
+      "chats" => {
+        provider
+          .patch(
+            "chats",
+            id,
+            serde_json::json!({ "deleted_at": chrono::Utc::now() }),
+          )
+          .await
+          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+      }
+      _ => {
+        return Err(err_response_formatted(
+          "Unknown table for cascade soft delete",
+          table,
+        ));
       }
     }
-    Ok(count)
+
+    Ok(CascadeResult::from_deleted_ids(&deleted))
   }
 
-  async fn cascade_delete<P>(
+  async fn restore_cascade_internal<P>(
+    provider: &P,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel>
+  where
+    P: DatabaseProvider + Send + Sync,
+  {
+    let mut restored = HashSet::new();
+    restored.insert(format!("{}_{}", table, id));
+
+    match table {
+      "todos" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .restore_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut restored)
+          .await
+          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+      }
+      "tasks" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
+          .await
+          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+      }
+      "subtasks" => {
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
+          .await
+          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+      }
+      "comments" => {
+        provider
+          .patch(
+            "comments",
+            id,
+            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
+          )
+          .await
+          .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
+      }
+      "chats" => {
+        provider
+          .patch(
+            "chats",
+            id,
+            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
+          )
+          .await
+          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+      }
+      _ => {
+        return Err(err_response_formatted(
+          "Unknown table for cascade restore",
+          table,
+        ));
+      }
+    }
+
+    Ok(CascadeResult::from_deleted_ids(&restored))
+  }
+
+  async fn permanent_delete_cascade_internal<P>(
     provider: &P,
     table: &str,
     id: &str,
@@ -119,14 +223,6 @@ impl CascadeService {
           .hard_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
           .await
           .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
-        let chat_count = deleted.iter().filter(|s| s.starts_with("chat_")).count() as u64;
-        Ok(CascadeResult {
-          todo_count: 1,
-          task_count: deleted.iter().filter(|s| s.starts_with("task_")).count() as u64,
-          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count,
-        })
       }
       "tasks" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -134,13 +230,6 @@ impl CascadeService {
           .hard_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
           .await
           .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 1,
-          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count: 0,
-        })
       }
       "subtasks" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -148,361 +237,22 @@ impl CascadeService {
           .hard_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
           .await
           .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 1,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count: 0,
-        })
       }
       "comments" => {
         provider
           .delete("comments", id)
           .await
           .map_err(|e| err_response_formatted("Delete comment failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 0,
-          comment_count: 1,
-          chat_count: 0,
-        })
       }
-      _ => Err(err_response_formatted(
-        "Unknown table for cascade delete",
-        table,
-      )),
+      _ => {
+        return Err(err_response_formatted(
+          "Unknown table for cascade delete",
+          table,
+        ));
+      }
     }
-  }
 
-  async fn cascade_soft_delete<P>(
-    provider: &P,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    let mut deleted = HashSet::new();
-
-    match table {
-      "todos" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .soft_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
-          .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
-        let chat_count = deleted.iter().filter(|s| s.starts_with("chat_")).count() as u64;
-        Ok(CascadeResult {
-          todo_count: 1,
-          task_count: deleted.iter().filter(|s| s.starts_with("task_")).count() as u64,
-          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count,
-        })
-      }
-      "tasks" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .soft_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
-          .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 1,
-          subtask_count: deleted.iter().filter(|s| s.starts_with("subtask_")).count() as u64,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count: 0,
-        })
-      }
-      "subtasks" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .soft_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
-          .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 1,
-          comment_count: deleted.iter().filter(|s| s.starts_with("comment_")).count() as u64,
-          chat_count: 0,
-        })
-      }
-      "comments" => {
-        let patch = json!({ "deleted_at": chrono::Utc::now() });
-        provider
-          .patch("comments", id, patch)
-          .await
-          .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 0,
-          comment_count: 1,
-          chat_count: 0,
-        })
-      }
-      "chats" => {
-        let patch = json!({ "deleted_at": chrono::Utc::now() });
-        provider
-          .patch("chats", id, patch)
-          .await
-          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 0,
-          comment_count: 0,
-          chat_count: 1,
-        })
-      }
-      _ => Err(err_response_formatted(
-        "Unknown table for cascade soft delete",
-        table,
-      )),
-    }
-  }
-
-  async fn cascade_restore<P>(
-    provider: &P,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    let mut restored = HashSet::new();
-
-    match table {
-      "todos" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .restore_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut restored)
-          .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 1,
-          task_count: restored.iter().filter(|s| s.starts_with("task_")).count() as u64,
-          subtask_count: restored
-            .iter()
-            .filter(|s| s.starts_with("subtask_"))
-            .count() as u64,
-          comment_count: restored
-            .iter()
-            .filter(|s| s.starts_with("comment_"))
-            .count() as u64,
-          chat_count: 0,
-        })
-      }
-      "tasks" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
-          .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 1,
-          subtask_count: restored
-            .iter()
-            .filter(|s| s.starts_with("subtask_"))
-            .count() as u64,
-          comment_count: restored
-            .iter()
-            .filter(|s| s.starts_with("comment_"))
-            .count() as u64,
-          chat_count: 0,
-        })
-      }
-      "subtasks" => {
-        let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
-          .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 1,
-          comment_count: restored
-            .iter()
-            .filter(|s| s.starts_with("comment_"))
-            .count() as u64,
-          chat_count: 0,
-        })
-      }
-      "comments" => {
-        let patch = json!({ "deleted_at": serde_json::Value::Null });
-        provider
-          .patch("comments", id, patch)
-          .await
-          .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 0,
-          comment_count: 1,
-          chat_count: 0,
-        })
-      }
-      "chats" => {
-        let patch = json!({ "deleted_at": serde_json::Value::Null });
-        provider
-          .patch("chats", id, patch)
-          .await
-          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
-        Ok(CascadeResult {
-          todo_count: 0,
-          task_count: 0,
-          subtask_count: 0,
-          comment_count: 0,
-          chat_count: 1,
-        })
-      }
-      _ => Err(err_response_formatted(
-        "Unknown table for cascade restore",
-        table,
-      )),
-    }
-  }
-
-  // Legacy wrappers for backward compatibility
-  #[allow(dead_code)]
-  pub async fn soft_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    Self::cascade_soft_delete(&self.json_provider, table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn soft_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    Self::cascade_soft_delete(mongo.as_ref(), table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn restore_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    Self::cascade_restore(&self.json_provider, table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn restore_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    Self::cascade_restore(mongo.as_ref(), table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn permanent_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mut result = Self::cascade_delete(&self.json_provider, table, id).await?;
-    if table == "todos" {
-      result.chat_count = Self::delete_chats_related_to_todo(&self.json_provider, id).await?;
-    }
-    Ok(result)
-  }
-
-  #[allow(dead_code)]
-  pub async fn permanent_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    let mut result = Self::cascade_delete(mongo.as_ref(), table, id).await?;
-    if table == "todos" {
-      result.chat_count = Self::delete_chats_related_to_todo(mongo.as_ref(), id).await?;
-    }
-    Ok(result)
-  }
-
-  #[allow(dead_code)]
-  pub async fn handle_json_cascade(
-    &self,
-    table: &str,
-    id: &str,
-    is_restore: bool,
-  ) -> Result<CascadeResult, ResponseModel> {
-    if is_restore {
-      self.restore_cascade_json(table, id).await
-    } else {
-      self.soft_delete_cascade_json(table, id).await
-    }
-  }
-
-  #[allow(dead_code)]
-  pub async fn handle_mongo_cascade(
-    &self,
-    table: &str,
-    id: &str,
-    is_restore: bool,
-  ) -> Result<CascadeResult, ResponseModel> {
-    if is_restore {
-      self.restore_cascade_mongo(table, id).await
-    } else {
-      self.soft_delete_cascade_mongo(table, id).await
-    }
-  }
-
-  #[allow(dead_code)]
-  pub async fn sync_entity_to_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self.permanent_delete_cascade_json(table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn sync_entity_to_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self.permanent_delete_cascade_mongo(table, id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn import_todo_cascade_to_json(
-    &self,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self.restore_cascade_json("todos", id).await
-  }
-
-  #[allow(dead_code)]
-  pub async fn export_todo_cascade_to_mongo(
-    &self,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self.restore_cascade_mongo("todos", id).await
+    Ok(CascadeResult::from_deleted_ids(&deleted))
   }
 
   pub async fn soft_delete_cascade<P>(
@@ -514,11 +264,7 @@ impl CascadeService {
   where
     P: DatabaseProvider + Send + Sync,
   {
-    let mut result = Self::cascade_soft_delete(provider, table, id).await?;
-    if table == "todos" {
-      result.chat_count = Self::delete_chats_related_to_todo(provider, id).await?;
-    }
-    Ok(result)
+    Self::soft_delete_cascade_internal(provider, table, id).await
   }
 
   pub async fn restore_cascade<P>(
@@ -530,7 +276,7 @@ impl CascadeService {
   where
     P: DatabaseProvider + Send + Sync,
   {
-    Self::cascade_restore(provider, table, id).await
+    Self::restore_cascade_internal(provider, table, id).await
   }
 
   pub async fn permanent_delete_cascade<P>(
@@ -542,24 +288,103 @@ impl CascadeService {
   where
     P: DatabaseProvider + Send + Sync,
   {
-    let mut result = Self::cascade_delete(provider, table, id).await?;
-    if table == "todos" {
-      result.chat_count = Self::delete_chats_related_to_todo(provider, id).await?;
-    }
-    Ok(result)
+    Self::permanent_delete_cascade_internal(provider, table, id).await
   }
 
-  #[allow(dead_code)]
-  pub async fn sync_entity<P>(
+  pub async fn soft_delete_cascade_json(
     &self,
-    provider: &P,
     table: &str,
     id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    self.permanent_delete_cascade(provider, table, id).await
+  ) -> Result<CascadeResult, ResponseModel> {
+    self
+      .soft_delete_cascade(&self.json_provider, table, id)
+      .await
+  }
+
+  pub async fn soft_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self.soft_delete_cascade(mongo.as_ref(), table, id).await
+  }
+
+  pub async fn restore_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.restore_cascade(&self.json_provider, table, id).await
+  }
+
+  pub async fn restore_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self.restore_cascade(mongo.as_ref(), table, id).await
+  }
+
+  pub async fn permanent_delete_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self
+      .permanent_delete_cascade(&self.json_provider, table, id)
+      .await
+  }
+
+  pub async fn permanent_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self
+      .permanent_delete_cascade(mongo.as_ref(), table, id)
+      .await
+  }
+
+  pub async fn import_todo_cascade_to_json(
+    &self,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.restore_cascade_json("todos", id).await
+  }
+
+  pub async fn export_todo_cascade_to_mongo(
+    &self,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.restore_cascade_mongo("todos", id).await
+  }
+
+  pub async fn sync_entity_to_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.permanent_delete_cascade_json(table, id).await
+  }
+
+  pub async fn sync_entity_to_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.permanent_delete_cascade_mongo(table, id).await
   }
 
   pub async fn handle_cascade<P>(
