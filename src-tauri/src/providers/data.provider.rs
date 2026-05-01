@@ -125,19 +125,6 @@ impl DataProvider<'_> {
     }
   }
 
-  pub async fn patch(&self, table: &str, id: &str, data: Value) -> Result<Value, ResponseModel> {
-    match self {
-      DataProvider::Json(p) => p
-        .patch(table, id, data)
-        .await
-        .map_err(|e| err_response_formatted("Patch failed", &e.to_string())),
-      DataProvider::Mongo(p) => p
-        .patch(table, id, data)
-        .await
-        .map_err(|e| err_response_formatted("Patch failed", &e.to_string())),
-    }
-  }
-
   #[allow(dead_code)]
   pub fn is_mongo(&self) -> bool {
     matches!(self, DataProvider::Mongo(_))

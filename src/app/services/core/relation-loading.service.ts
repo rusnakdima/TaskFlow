@@ -79,7 +79,6 @@ export class RelationLoadingService {
 
     const isOwner = syncMetadata?.is_owner ?? false;
     const isPrivate = syncMetadata?.is_private ?? false;
-    const visibility = syncMetadata?.visibility;
 
     return provider
       .crud<T>("get", table, {
@@ -87,7 +86,6 @@ export class RelationLoadingService {
         load,
         isOwner,
         isPrivate,
-        visibility,
       })
       .pipe(
         tap(() => {
@@ -128,7 +126,6 @@ export class RelationLoadingService {
 
     const isOwner = syncMetadata?.is_owner ?? false;
     const isPrivate = syncMetadata?.is_private ?? false;
-    const visibility = syncMetadata?.visibility;
 
     return provider
       .crud<T[]>("getAll", table, {
@@ -136,7 +133,6 @@ export class RelationLoadingService {
         load,
         isOwner,
         isPrivate,
-        visibility,
       })
       .pipe(
         tap(() => {
@@ -167,7 +163,6 @@ export class RelationLoadingService {
 
     const isOwner = syncMetadata?.is_owner ?? false;
     const isPrivate = syncMetadata?.is_private ?? false;
-    const visibility = syncMetadata?.visibility;
 
     return provider
       .crud<T>("get", table, {
@@ -175,7 +170,6 @@ export class RelationLoadingService {
         load,
         isOwner,
         isPrivate,
-        visibility,
       })
       .pipe(
         tap(() => {
