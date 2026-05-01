@@ -6,17 +6,11 @@ use tauri::State;
 /* models */
 use crate::entities::relation_obj::RelationObj;
 use crate::entities::response_entity::ResponseModel;
-use crate::entities::sync_metadata_entity::SyncMetadata;
 
 /* helpers */
 use crate::helpers::response_helper::err_response;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
-// TODO [API v2]: ID extraction from filter only happens for "get" operation (lines 29-46).
-// This implicit behavior is confusing. Consider:
-//   - Making ID extraction explicit in all operations, or
-//   - Creating separate endpoints for filtered queries
-
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn manage_data(
@@ -28,19 +22,12 @@ pub async fn manage_data(
   filter: Option<Value>,
   relations: Option<Vec<RelationObj>>,
   load: Option<Vec<String>>,
-  sync_metadata: Option<SyncMetadata>,
+  visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .repository_service
     .execute(
-      operation,
-      table,
-      id,
-      data,
-      filter,
-      relations,
-      load,
-      sync_metadata,
+      operation, table, id, data, filter, relations, load, visibility,
     )
     .await
 }
