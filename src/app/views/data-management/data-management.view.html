@@ -1,148 +1,288 @@
-<div class="flex flex-col gap-4 lg:gap-8">
-  <div
-    class="flex w-full overflow-x-auto pb-2 [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-  >
-    <div class="flex w-max gap-2">
-      @for (type of dataTypes; track type.id) {
-        <button
-          class="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors"
-          [ngClass]="
-            selectedType() === type.id
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600'
-          "
-          (click)="selectDataType(type.id)"
+<div class="flex flex-col gap-6">
+  <div class="flex flex-row items-center justify-between gap-4">
+    <div class="flex flex-row items-center gap-2">
+      <button
+        [matMenuTriggerFor]="dataTypeMenu"
+        class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="list_alt" />
+        <span class="font-medium">{{ getSelectedTypeLabel() }}</span>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+      </button>
+      <mat-menu
+        #dataTypeMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        <div
+          class="textMuted mb-1 border-b border-gray-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="type.icon" />
-          <span>{{ type.label }} ({{ type.count }})</span>
-        </button>
-      }
+          Select Record Type
+        </div>
+        @for (type of dataTypes; track type.id) {
+          <button
+            mat-menu-item
+            (click)="selectDataType(type.id)"
+            class="flex w-full items-center gap-3"
+            [ngClass]="selectedType() === type.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+          >
+            <mat-icon
+              class="size-5! min-w-5 text-xl!"
+              [ngClass]="selectedType() === type.id ? 'text-blue-500!' : 'text-gray-400!'"
+              [fontIcon]="type.icon"
+            />
+            <span [class.font-bold]="selectedType() === type.id"
+              >{{ type.label }} ({{ type.count }})</span
+            >
+          </button>
+        }
+      </mat-menu>
+      <span class="textMuted text-sm">{{ getCurrentData().length }} records</span>
     </div>
-  </div>
 
-  <div class="overflow-y-auto">
-    <div
-      class="rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-    >
-      <div class="border-b border-gray-200 p-4 lg:p-6 dark:border-zinc-700">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 class="textNormal text-xl font-bold">{{ getSelectedTypeLabel() }}</h2>
-            <p class="textMuted text-sm">{{ getCurrentData().length }} total records</p>
-          </div>
-          <div class="flex flex-row flex-wrap items-stretch gap-2">
-            <button
-              class="flex min-h-full items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-              (click)="onBulkSelectAll()"
-              [ngClass]="{
-                'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300':
-                  isAllSelected(),
-              }"
-            >
-              <app-checkbox
-                class="pointer-events-none"
-                [checked]="isAllSelected()"
-                [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
-                [highlight]="selectedRecords().size > 0 && !isAllSelected()"
-                (click)="$event.stopPropagation()"
-              />
-              <span
-                class="text-sm font-medium"
-                [ngClass]="
-                  selectedRecords().size > 0 && !isAllSelected()
-                    ? 'text-yellow-700 dark:text-yellow-400'
-                    : 'textNormal'
-                "
-              >
-                {{
-                  isAllSelected()
-                    ? "Deselect All"
-                    : selectedRecords().size > 0
-                      ? "Clear Selection"
-                      : "Select All"
-                }}
-              </span>
-            </button>
-            <mat-form-field class="w-32">
-              <mat-label>Sort By</mat-label>
-              <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
-                <mat-option value="createdAt">Created Date</mat-option>
-                <mat-option value="updatedAt">Updated Date</mat-option>
-                <mat-option value="title">Title</mat-option>
-                @if (
-                  selectedType() === "todos" ||
-                  selectedType() === "tasks" ||
-                  selectedType() === "subtasks"
-                ) {
-                  <mat-option value="priority">Priority</mat-option>
-                }
-                @if (selectedType() === "todos" || selectedType() === "tasks") {
-                  <mat-option value="startDate">Start Date</mat-option>
-                  <mat-option value="endDate">End Date</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <button
-              class="styleButInfo"
-              (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc')"
-            >
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="onBulkSelectAll()"
+      >
+        <app-checkbox
+          class="pointer-events-none"
+          [checked]="isAllSelected()"
+          [indeterminate]="selectedRecords().size > 0 && !isAllSelected()"
+          [highlight]="selectedRecords().size > 0 && !isAllSelected()"
+        />
+      </button>
+
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        [matMenuTriggerFor]="sortMenu"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sort" />
+      </button>
+      <mat-menu
+        #sortMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        <div
+          class="textMuted mb-1 border-b border-gray-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
+        >
+          Sort By
+        </div>
+        <button mat-menu-item (click)="sortBy.set('createdAt'); sortOrder.set('desc')">
+          <mat-icon fontIcon="schedule" />
+          <span>Created Date</span>
+          @if (sortBy() === "createdAt") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+        <button mat-menu-item (click)="sortBy.set('updatedAt'); sortOrder.set('desc')">
+          <mat-icon fontIcon="update" />
+          <span>Updated Date</span>
+          @if (sortBy() === "updatedAt") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+        <button mat-menu-item (click)="sortBy.set('title'); sortOrder.set('asc')">
+          <mat-icon fontIcon="sort_by_alpha" />
+          <span>Title</span>
+          @if (sortBy() === "title") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+        @if (
+          selectedType() === "todos" || selectedType() === "tasks" || selectedType() === "subtasks"
+        ) {
+          <button mat-menu-item (click)="sortBy.set('priority'); sortOrder.set('desc')">
+            <mat-icon fontIcon="flag" />
+            <span>Priority</span>
+            @if (sortBy() === "priority") {
               <mat-icon
-                class="h-5! w-5! min-w-5 text-xl!"
+                class="ml-auto"
                 [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
               />
-            </button>
-            <button class="styleButInfo gap-2" (click)="loadData(true)" [disabled]="loading()">
+            }
+          </button>
+        }
+        @if (selectedType() === "todos" || selectedType() === "tasks") {
+          <button mat-menu-item (click)="sortBy.set('startDate'); sortOrder.set('asc')">
+            <mat-icon fontIcon="play_arrow" />
+            <span>Start Date</span>
+            @if (sortBy() === "startDate") {
               <mat-icon
-                class="h-5! w-5! min-w-5 text-xl!"
-                [ngClass]="loading() ? 'animate-spin' : ''"
-                fontIcon="sync"
+                class="ml-auto"
+                [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
               />
-              <span class="hidden sm:inline">Refresh</span>
-            </button>
-            <button class="styleButInfo gap-2" (click)="showFilters.set(!showFilters())">
-              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="filter_alt" />
-              <span class="hidden sm:inline">Filters</span>
-            </button>
-          </div>
-        </div>
-      </div>
+            }
+          </button>
+          <button mat-menu-item (click)="sortBy.set('endDate'); sortOrder.set('asc')">
+            <mat-icon fontIcon="stop" />
+            <span>End Date</span>
+            @if (sortBy() === "endDate") {
+              <mat-icon
+                class="ml-auto"
+                [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+              />
+            }
+          </button>
+        }
+      </mat-menu>
 
-      @if (loading()) {
-        <div class="flex items-center justify-center py-16">
-          <mat-icon
-            class="h-7.5! w-7.5! min-w-[30px] animate-spin text-3xl! text-blue-500"
-            fontIcon="sync"
-          />
-          <span class="textNormal ml-3">Loading data...</span>
-        </div>
-      } @else if (getCurrentData().length === 0) {
-        <div class="py-16 text-center">
-          <mat-icon class="h-16! w-16! min-w-16 text-4xl! text-gray-300" fontIcon="archive" />
-          <h3 class="text-lg font-medium text-gray-500">No records found</h3>
-          <p class="textMuted mt-2 text-sm">
-            No {{ getSelectedTypeLabel().toLowerCase() }} data available
-          </p>
-        </div>
-      } @else {
-        <app-admin-data-table
-          [data]="getCurrentData()"
-          [fields]="getFieldConfig()"
-          [selectedRecords]="selectedRecords()"
-          [titleKey]="
-            selectedType() === 'daily_activities'
-              ? 'date'
-              : selectedType() === 'comments' || selectedType() === 'chats'
-                ? 'content'
-                : 'title'
-          "
-          [showActions]="true"
-          (selectRecord)="toggleSelect($event)"
-          (deleteRecord)="deleteRecord($event)"
-          (toggleDelete)="toggleDeleteStatus($event)"
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc')"
+      >
+        <mat-icon
+          class="h-5! w-5! min-w-5 text-xl!"
+          [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
         />
-      }
+      </button>
+
+      <button class="styleButInfo gap-2" (click)="loadData(true)" [disabled]="loading()">
+        <mat-icon
+          class="h-5! w-5! min-w-5 text-xl!"
+          [ngClass]="loading() ? 'animate-spin' : ''"
+          fontIcon="sync"
+        />
+        <span class="hidden sm:inline">Refresh</span>
+      </button>
+
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="showFilters.set(!showFilters())"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="filter_alt" />
+      </button>
+
+      <app-view-mode-switcher
+        [mode]="viewMode()"
+        pageKey="data-management"
+        (modeChange)="viewMode.set($event)"
+      />
     </div>
   </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <mat-icon
+        class="h-7.5! w-7.5! min-w-[30px] animate-spin text-3xl! text-blue-500"
+        fontIcon="sync"
+      />
+      <span class="textNormal ml-3">Loading data...</span>
+    </div>
+  } @else if (getCurrentData().length === 0) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="archive" />
+      <h3 class="textNormal mb-2 text-xl font-semibold">No records found</h3>
+      <p class="textMuted">No {{ getSelectedTypeLabel().toLowerCase() }} data available</p>
+    </div>
+  } @else if (viewMode() === "table") {
+    <app-admin-data-table
+      [data]="getCurrentData()"
+      [fields]="getFieldConfig()"
+      [selectedRecords]="selectedRecords()"
+      [titleKey]="
+        selectedType() === 'daily_activities'
+          ? 'date'
+          : selectedType() === 'comments' || selectedType() === 'chats'
+            ? 'content'
+            : 'title'
+      "
+      [showActions]="true"
+      (selectRecord)="toggleSelect($event)"
+      (deleteRecord)="deleteRecord($event)"
+      (toggleDelete)="toggleDeleteStatus($event)"
+    />
+  } @else {
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      @for (item of getCurrentData(); track item.id) {
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+          [ngClass]="{
+            'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
+          }"
+          (click)="toggleSelect(item.id)"
+        >
+          <div class="mb-3 flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <app-checkbox
+                class="pointer-events-none"
+                [checked]="selectedRecords().has(item.id)"
+              />
+              <h4 class="font-semibold">
+                {{ item.title || item.content || item.date || item.id | slice: 0 : 20 }}
+              </h4>
+            </div>
+            <div class="flex gap-1">
+              <button
+                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                (click)="$event.stopPropagation(); toggleDeleteStatus(item.id)"
+                [title]="item.deleted_at ? 'Restore' : 'Soft Delete'"
+              >
+                <mat-icon
+                  class="size-4! text-base!"
+                  [fontIcon]="item.deleted_at ? 'restore' : 'delete'"
+                />
+              </button>
+              <button
+                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                (click)="$event.stopPropagation(); deleteRecord(item.id)"
+                title="Permanent Delete"
+              >
+                <mat-icon class="size-4! text-base! text-red-500" fontIcon="delete_forever" />
+              </button>
+            </div>
+          </div>
+          <div class="textMuted flex flex-wrap gap-2 text-xs">
+            @if (item.priority) {
+              <span
+                class="rounded px-2 py-0.5"
+                [ngClass]="{
+                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400':
+                    item.priority === 'high' || item.priority === 'urgent',
+                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400':
+                    item.priority === 'medium',
+                  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400':
+                    item.priority === 'low',
+                }"
+              >
+                {{ item.priority }}
+              </span>
+            }
+            @if (item.status) {
+              <span
+                class="rounded bg-blue-100 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+              >
+                {{ item.status }}
+              </span>
+            }
+            @if (item.visibility) {
+              <span
+                class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+              >
+                {{ item.visibility }}
+              </span>
+            }
+            @if (item.created_at) {
+              <span class="text-gray-500">{{ item.created_at | date: "short" }}</span>
+            }
+          </div>
+          @if (item.description) {
+            <p class="textMuted mt-2 line-clamp-2 text-sm">{{ item.description }}</p>
+          }
+        </div>
+      }
+    </div>
+  }
 
   <app-bulk-actions
     [selectedCount]="selectedRecords().size"
