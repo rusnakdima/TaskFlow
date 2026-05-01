@@ -193,16 +193,13 @@ impl ProfileService {
       .unwrap_or_default()
       .to_string();
 
-    if let Err(e) = user_sync_helper::update_user_profile_id_both(
+    user_sync_helper::update_user_profile_id_both(
       &self.json_provider,
       self.mongodb_provider.as_ref(),
       &user_id,
       &profile_id,
     )
-    .await
-    {
-      return Err(e);
-    }
+    .await?;
 
     // Sync profile to MongoDB if available (non-blocking)
     if self.mongodb_provider.is_some() {

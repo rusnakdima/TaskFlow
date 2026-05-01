@@ -51,7 +51,6 @@ use services::{
   cascade::CascadeService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
-  offline_queue_service::OfflineQueueService,
   profile_service::ProfileService,
   repository_service::RepositoryService,
   statistics_service::StatisticsService,
@@ -74,15 +73,12 @@ pub struct AppState {
   pub totp_service: Arc<AuthTotpService>,
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
-  pub offline_queue_service: Arc<OfflineQueueService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
-
-  tracing::debug!("Starting relation registration...");
 
   // Import entities to register their relations
   use crate::entities::category_entity::CategoryEntity;
@@ -94,22 +90,8 @@ pub fn run() {
   use crate::entities::todo_entity::TodoEntity;
   use crate::entities::user_entity::UserEntity;
 
-  tracing::debug!("Entities imported successfully");
-
   // Use nosql_orm macros to auto-register relations from entity definitions
-  use nosql_orm::relations::get_registered_collection_relations;
   use nosql_orm::relations::register_relations_for_entity;
-  use nosql_orm::relations::WithRelations;
-  use nosql_orm::Entity;
-
-  // Debug: Check TodoEntity relations directly
-  let todo_rels_before = TodoEntity::relations();
-  tracing::debug!(
-    "TodoEntity::relations() returned {} relations",
-    todo_rels_before.len()
-  );
-  let todo_meta = TodoEntity::meta();
-  tracing::debug!("TodoEntity table_name = {:?}", todo_meta.table_name);
 
   // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
   register_relations_for_entity::<CategoryEntity>();
@@ -121,43 +103,6 @@ pub fn run() {
   register_relations_for_entity::<ProfileEntity>();
   register_relations_for_entity::<UserEntity>();
 
-  // Debug: Verify relations registered
-  if let Some(todos_rels) = get_registered_collection_relations("todos") {
-    tracing::debug!(
-      "todos relations: {:?}",
-      todos_rels
-        .iter()
-        .map(|r| r.name.as_str())
-        .collect::<Vec<_>>()
-    );
-  } else {
-    tracing::warn!("No todos relations registered!");
-  }
-  if let Some(profiles_rels) = get_registered_collection_relations("profiles") {
-    tracing::debug!(
-      "profiles relations: {:?}",
-      profiles_rels
-        .iter()
-        .map(|r| r.name.as_str())
-        .collect::<Vec<_>>()
-    );
-  } else {
-    tracing::warn!("No profiles relations registered!");
-  }
-  if let Some(tasks_rels) = get_registered_collection_relations("tasks") {
-    tracing::debug!(
-      "tasks relations: {:?}",
-      tasks_rels
-        .iter()
-        .map(|r| r.name.as_str())
-        .collect::<Vec<_>>()
-    );
-  } else {
-    tracing::warn!("No tasks relations registered!");
-  }
-
-  tracing::info!("Relations auto-registered from entity macros");
-
   let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
   let stdout_layer = fmt::layer()
@@ -167,24 +112,13 @@ pub fn run() {
     .with_ansi(true)
     .with_filter(filter);
 
-  tracing::subscriber::set_global_default(tracing_subscriber::registry().with(stdout_layer))
-    .expect("Failed to set tracing subscriber");
+  let _ =
+    tracing::subscriber::set_global_default(tracing_subscriber::registry().with(stdout_layer));
 
-  tracing::info!("Logging initialized (stdout only)");
-
-  let mut builder = tauri::Builder::default()
-    // .plugin(tauri_plugin_opener::init())
-    // .plugin(tauri_plugin_http::init())
-    ;
-
-  #[cfg(debug_assertions)]
-  {
-    builder = builder.plugin(tauri_plugin_mcp_bridge::init());
-  }
+  let builder = tauri::Builder::default();
 
   // Skip frontend issues for testing - just run backend
   if std::env::var("SKIP_FRONTEND").is_ok() {
-    tracing::info!("Skipping frontend setup for testing");
     return;
   }
 
@@ -202,12 +136,7 @@ pub fn run() {
         .expect("Failed to create JSON provider");
 
       let _json_provider_setup = json_provider.clone();
-      tauri::async_runtime::spawn(async move {
-        // Indexes are defined via #[index] macros on entities
-        // Each entity has its own indexes specified
-
-        tracing::info!("Index setup completed");
-      });
+      tauri::async_runtime::spawn(async move {});
 
       let _json_logged = json_provider.clone();
 
@@ -247,35 +176,14 @@ pub fn run() {
       let ent_for_repo = entity_resolution.clone();
       let act_for_stats = activity_log_helper.clone();
 
-      let repository_service_initial = RepositoryService::new(
-        json_for_repo.clone(),
-        mongo_for_repo.clone(),
-        cas_for_repo.clone(),
-        ent_for_repo.clone(),
-        activity_monitor.clone(),
-        profile_service.as_ref().clone(),
-        None,
-      );
-
-      let repository_service_arc = Arc::new(repository_service_initial);
-
-      let offline_queue_service = Arc::new(OfflineQueueService::new(
-        json_provider.clone(),
-        repository_service_arc.clone(),
-        3,
-      ));
-
-      let repository_service_with_queue = RepositoryService::new(
+      let repository_service = Arc::new(RepositoryService::new(
         json_for_repo,
         mongo_for_repo,
         cas_for_repo,
         ent_for_repo,
         activity_monitor,
         profile_service.as_ref().clone(),
-        None, // Offline queue disabled for testing
-      );
-
-      let repository_service = Arc::new(repository_service_with_queue);
+      ));
 
       let auth_service = Arc::new(AuthService::new(
         json_for_auth,
@@ -328,7 +236,6 @@ pub fn run() {
         totp_service,
         passkey_service,
         biometric_service,
-        offline_queue_service,
       });
 
       Ok(())

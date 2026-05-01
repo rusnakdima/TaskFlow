@@ -115,8 +115,8 @@ impl TaskAnalytics {
   }
 
   pub fn compute_detailed_metrics(
-    daily_activities: &Vec<Value>,
-    previous_daily_activities: &Vec<Value>,
+    daily_activities: &[Value],
+    previous_daily_activities: &[Value],
   ) -> Vec<DetailedMetricModel> {
     let current_tasks_created = daily_activities
       .iter()

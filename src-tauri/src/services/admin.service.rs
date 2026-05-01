@@ -169,10 +169,8 @@ impl AdminManager {
         .cascade_service
         .permanent_delete_cascade_json(&table, &id)
         .await;
-    } else {
-      if let Some(ref mongo) = self.cascade_service.mongodb_provider {
-        let _ = mongo.delete(&table, &id).await;
-      }
+    } else if let Some(ref mongo) = self.cascade_service.mongodb_provider {
+      let _ = mongo.delete(&table, &id).await;
     }
 
     Ok(ResponseModel {
