@@ -1,66 +1,45 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-    <div>
-      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
-        {{ isSharedMode() ? "Team Projects" : "My Projects" }}
-      </h1>
-      <p class="textMuted mt-1">
-        {{
-          isSharedMode()
-            ? "Collaborate on projects and manage shared workloads."
-            : "Organize and track your personal and work projects."
-        }}
-      </p>
+  <div class="flex flex-row items-center justify-between gap-4">
+    <div
+      class="inline-flex items-center rounded-lg border border-gray-300 p-1 dark:border-zinc-600"
+    >
+      @for (option of visibilityOptions; track option.key) {
+        <button
+          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          [class.bg-blue-600]="activeVisibility() === option.key"
+          [class.text-white]="activeVisibility() === option.key"
+          [class.text-gray-700]="activeVisibility() !== option.key"
+          [class.dark:text-gray-300]="activeVisibility() !== option.key"
+          [class.hover:bg-gray-100]="activeVisibility() !== option.key"
+          [class.dark:hover:bg-zinc-700]="activeVisibility() !== option.key"
+          (click)="activeVisibility.set($any(option.key))"
+        >
+          {{ option.label }}
+        </button>
+      }
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-2">
+      @if (viewMode() !== "table") {
+        <button
+          class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+          (click)="toggleSelectAll()"
+        >
+          <app-checkbox
+            [checked]="isAllSelected()"
+            [indeterminate]="selectedTodos().size > 0 && !isAllSelected()"
+            [highlight]="selectedTodos().size > 0 && !isAllSelected()"
+          />
+        </button>
+      }
+
       <button
         class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
         (click)="showStats.set(!showStats())"
       >
-        <mat-icon
-          class="h-5! w-5! min-w-5 text-xl! transition-transform"
-          [class.rotate-180]="showStats()"
-          fontIcon="expand_more"
-        />
-        <span class="textNormal hidden text-sm font-medium sm:inline">{{
-          showStats() ? "Hide Stats" : "Show Stats"
-        }}</span>
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
       </button>
 
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="toggleSelectAll()"
-      >
-        <app-checkbox
-          [checked]="isAllSelected()"
-          [indeterminate]="selectedTodos().size > 0 && !isAllSelected()"
-          [highlight]="selectedTodos().size > 0 && !isAllSelected()"
-        />
-        <span
-          class="hidden text-sm font-medium sm:inline"
-          [ngClass]="
-            selectedTodos().size > 0 && !isAllSelected()
-              ? 'text-yellow-700 dark:text-yellow-400'
-              : 'textNormal'
-          "
-        >
-          {{
-            isAllSelected()
-              ? "Deselect All"
-              : selectedTodos().size > 0
-                ? "Clear Selection"
-                : "Select All"
-          }}
-        </span>
-      </button>
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-purple-300 p-3 text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900/20"
-        (click)="blueprintService.showBlueprintDialog.set(true)"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="account_tree" />
-        <span class="hidden sm:inline">Blueprints</span>
-      </button>
       <button
         class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
         (click)="toggleFilter()"
@@ -69,12 +48,27 @@
           class="h-5! w-5! min-w-5 text-xl!"
           [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
         />
-        <span class="hidden sm:inline">Filter</span>
       </button>
-      <button class="styleButSuccess h-min gap-2 p-3 text-sm" routerLink="/todos/create_todo">
+
+      <button
+        class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        [matMenuTriggerFor]="newProjectMenu"
+      >
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
-        <span class="hidden sm:inline">New Project</span>
+        <span class="hidden sm:inline">New</span>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
       </button>
+      <mat-menu #newProjectMenu="matMenu">
+        <button mat-menu-item routerLink="/todos/create_todo">
+          <mat-icon fontIcon="add" />
+          <span>Blank Project</span>
+        </button>
+        <button mat-menu-item (click)="blueprintService.showBlueprintDialog.set(true)">
+          <mat-icon fontIcon="account_tree" />
+          <span>From Blueprint</span>
+        </button>
+      </mat-menu>
+
       <app-view-mode-switcher
         [mode]="viewMode()"
         [pageKey]="isSharedMode() ? 'shared-tasks' : 'todos'"
@@ -151,102 +145,225 @@
     </div>
   }
 
-  @if (listTodos().length === 0) {
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-    >
-      <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
-      <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
-      <p class="textMuted">
-        @if (activeFilter() !== "all") {
-          No projects match the current filter
-        } @else {
-          Create your first project to get started
-        }
-      </p>
-    </div>
-  } @else {
-    @if (viewMode() === "table") {
-      <app-table-view
-        [data]="listTodos()"
-        [fields]="todoTableFields"
-        [selectedIds]="selectedTodos()"
-        [showSelection]="true"
-        [dragEnabled]="true"
-        [actions]="[
-          { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-          { key: 'edit', icon: 'edit', label: 'Edit' },
-          { key: 'delete', icon: 'delete', label: 'Delete' },
-        ]"
-        (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-        (selectAll)="toggleSelectAll()"
-        (rowClick)="onRowClick($event)"
-        (actionClick)="onTableAction($event)"
-        (dropped)="onTodoDrop($event)"
-      />
-    } @else if (viewMode() === "grid") {
+  @if (activeVisibility() === "all") {
+    @if (
+      groupedTodos().private.length === 0 &&
+      groupedTodos().shared.length === 0 &&
+      groupedTodos().public.length === 0
+    ) {
       <div
-        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        cdkDropList
-        cdkDropListOrientation="horizontal"
-        [cdkDropListData]="listTodos()"
-        (cdkDropListDropped)="onTodoDrop($event)"
+        class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
-        @for (todo of listTodos(); track todo.id) {
-          <app-todo
-            cdkDrag
-            [cdkDragData]="todo"
-            cdkDragPreviewContainer="global"
-            [todo]="todo"
-            [index]="$index"
-            [isOwner]="todo.user_id === userId()"
-            [isPrivate]="!isSharedMode()"
-            [highlight]="highlightTodoId() === todo.id"
-            [isSelected]="selectedTodos().has(todo.id)"
-            [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-            (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
-            (saveAsBlueprintEvent)="saveAsBlueprint($event)"
-            (selectionChangeEvent)="toggleTodoSelection($event)"
-            (updateTodoEvent)="onUpdateTodo(todo, $event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-            ></div>
-          </app-todo>
-        }
+        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
+        <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
+        <p class="textMuted">No projects match the current filter</p>
       </div>
     } @else {
+      @if (viewMode() === "table") {
+        <app-table-view
+          [data]="allTodosFlat()"
+          [fields]="todoTableFields"
+          [selectedIds]="selectedTodos()"
+          [showSelection]="true"
+          [dragEnabled]="true"
+          [actions]="[
+            { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+            { key: 'edit', icon: 'edit', label: 'Edit' },
+            { key: 'delete', icon: 'delete', label: 'Delete' },
+          ]"
+          (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+          (selectAll)="toggleSelectAll()"
+          (rowClick)="onRowClick($event)"
+          (actionClick)="onTableAction($event)"
+          (dropped)="onTodoDrop($event)"
+        />
+      } @else if (viewMode() === "grid") {
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          @if (groupedTodos().private.length > 0) {
+            @for (todo of groupedTodos().private; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="true"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+          @if (groupedTodos().shared.length > 0) {
+            @if (groupedTodos().private.length > 0) {
+              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+            @for (todo of groupedTodos().shared; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+          @if (groupedTodos().public.length > 0) {
+            @if (groupedTodos().private.length > 0 || groupedTodos().shared.length > 0) {
+              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+            @for (todo of groupedTodos().public; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+        </div>
+      } @else {
+        <div class="flex w-full flex-col gap-y-3">
+          @if (groupedTodos().private.length > 0) {
+            @for (todo of groupedTodos().private; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="true"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+          @if (groupedTodos().shared.length > 0) {
+            @if (groupedTodos().private.length > 0) {
+              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+            }
+            @for (todo of groupedTodos().shared; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+          @if (groupedTodos().public.length > 0) {
+            @if (groupedTodos().private.length > 0 || groupedTodos().shared.length > 0) {
+              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+            }
+            @for (todo of groupedTodos().public; track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          }
+        </div>
+      }
+    }
+  } @else {
+    @if (listTodos().length === 0) {
       <div
-        class="flex w-full flex-col gap-y-3"
-        cdkDropList
-        [cdkDropListData]="listTodos()"
-        (cdkDropListDropped)="onTodoDrop($event)"
+        class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
-        @for (todo of listTodos(); track todo.id) {
-          <app-todo
-            cdkDrag
-            [cdkDragData]="todo"
-            cdkDragPreviewContainer="global"
-            [todo]="todo"
-            [index]="$index"
-            [isOwner]="todo.user_id === userId()"
-            [isPrivate]="!isSharedMode()"
-            [highlight]="highlightTodoId() === todo.id"
-            [isSelected]="selectedTodos().has(todo.id)"
-            [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-            (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
-            (saveAsBlueprintEvent)="saveAsBlueprint($event)"
-            (selectionChangeEvent)="toggleTodoSelection($event)"
-            (updateTodoEvent)="onUpdateTodo(todo, $event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-            ></div>
-          </app-todo>
-        }
+        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
+        <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
+        <p class="textMuted">No projects match the current filter</p>
       </div>
+    } @else {
+      @if (viewMode() === "table") {
+        <app-table-view
+          [data]="listTodos()"
+          [fields]="todoTableFields"
+          [selectedIds]="selectedTodos()"
+          [showSelection]="true"
+          [dragEnabled]="true"
+          [actions]="[
+            { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+            { key: 'edit', icon: 'edit', label: 'Edit' },
+            { key: 'delete', icon: 'delete', label: 'Delete' },
+          ]"
+          (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+          (selectAll)="toggleSelectAll()"
+          (rowClick)="onRowClick($event)"
+          (actionClick)="onTableAction($event)"
+          (dropped)="onTodoDrop($event)"
+        />
+      } @else if (viewMode() === "grid") {
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          @for (todo of listTodos(); track todo.id) {
+            <app-todo
+              [todo]="todo"
+              [index]="$index"
+              [isOwner]="todo.user_id === userId()"
+              [isPrivate]="activeVisibility() === 'private'"
+              [highlight]="highlightTodoId() === todo.id"
+              [isSelected]="selectedTodos().has(todo.id)"
+              [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+              (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+              (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+              (selectionChangeEvent)="toggleTodoSelection($event)"
+              (updateTodoEvent)="onUpdateTodo(todo, $event)"
+            />
+          }
+        </div>
+      } @else {
+        <div class="flex w-full flex-col gap-y-3">
+          @for (todo of listTodos(); track todo.id) {
+            <app-todo
+              [todo]="todo"
+              [index]="$index"
+              [isOwner]="todo.user_id === userId()"
+              [isPrivate]="activeVisibility() === 'private'"
+              [highlight]="highlightTodoId() === todo.id"
+              [isSelected]="selectedTodos().has(todo.id)"
+              [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+              (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+              (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+              (selectionChangeEvent)="toggleTodoSelection($event)"
+              (updateTodoEvent)="onUpdateTodo(todo, $event)"
+            />
+          }
+        </div>
+      }
     }
   }
 

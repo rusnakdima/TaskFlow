@@ -72,34 +72,26 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.apiProvider
-        .crud("delete", "todos", { id: todoId, isOwner: true, isPrivate: false })
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Project deleted successfully");
-          },
-          error: (err: any) => {
-            this.notifyService.showError(err.message || "Failed to delete project");
-          },
-        });
+      this.apiProvider.crud("delete", "todos", { id: todoId, visibility: "team" }).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Project deleted successfully");
+        },
+        error: (err: any) => {
+          this.notifyService.showError(err.message || "Failed to delete project");
+        },
+      });
     }
   }
 
   onMyProjectsDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.myProjects(), "todos", "todos", undefined, {
-        isOwner: true,
-        isPrivate: false,
-      })
+      .handleDrop(event, this.myProjects(), "todos", "todos", undefined, "team")
       .subscribe();
   }
 
   onSharedWithMeDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.sharedWithMe(), "todos", "todos", undefined, {
-        isOwner: false,
-        isPrivate: false,
-      })
+      .handleDrop(event, this.sharedWithMe(), "todos", "todos", undefined, "team")
       .subscribe();
   }
 }

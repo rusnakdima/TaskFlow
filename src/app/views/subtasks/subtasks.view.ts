@@ -197,6 +197,12 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   userId: string = "";
 
+  canUserEditSubtask(todo: Todo, subtask: Subtask, userId: string): boolean {
+    if (todo.user_id === userId) return true;
+    if (todo.visibility !== "private") return true;
+    return false;
+  }
+
   isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
@@ -398,10 +404,14 @@ export class SubtasksView extends BaseListView implements OnInit {
     if (!taskId) return;
 
     this.dragDropService
-      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId, {
-        isOwner: this.isOwner(),
-        isPrivate: this.isPrivate(),
-      })
+      .handleDrop(
+        event,
+        this.listSubtasks(),
+        "subtasks",
+        "subtasks",
+        taskId,
+        this.isPrivate() ? "private" : "team"
+      )
       .subscribe();
   }
 

@@ -222,6 +222,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   userId: string = "";
 
+  canUserEditTask(todo: Todo, task: Task, userId: string): boolean {
+    if (todo.user_id === userId) return true;
+    if (todo.visibility !== "private") return true;
+    return false;
+  }
+
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.ctrlKey && event.key === "f") {
@@ -402,8 +408,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .crud<Task>("create", "tasks", {
         data: nextTask,
         parentTodoId: todoId,
-        isOwner: this.isOwner(),
-        isPrivate,
+        visibility: isPrivate ? "private" : "team",
       })
       .subscribe({
         next: (result: Task) => {
@@ -546,10 +551,14 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         currentIndex: curr,
       } as CdkDragDrop<Task[]>;
       this.dragDropService
-        .handleDrop(syntheticEvent, this.listTasks(), "tasks", "tasks", todoId, {
-          isOwner: this.isOwner(),
-          isPrivate: this.isPrivate(),
-        })
+        .handleDrop(
+          syntheticEvent,
+          this.listTasks(),
+          "tasks",
+          "tasks",
+          todoId,
+          this.isPrivate() ? "private" : "team"
+        )
         .subscribe();
     }
   }
@@ -559,10 +568,14 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     this.dragDropService
-      .handleDrop(event, this.listTasks(), "tasks", "tasks", todoId, {
-        isOwner: this.isOwner(),
-        isPrivate: this.isPrivate(),
-      })
+      .handleDrop(
+        event,
+        this.listTasks(),
+        "tasks",
+        "tasks",
+        todoId,
+        this.isPrivate() ? "private" : "team"
+      )
       .subscribe();
   }
 
