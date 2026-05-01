@@ -20,6 +20,7 @@ use crate::entities::{
 use crate::helpers::{
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
+  user_sync_helper,
 };
 
 /* services */
@@ -467,6 +468,34 @@ impl RepositoryService {
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
     let created_record = provider.insert(&table, validated_data).await?;
+
+    if table == "profiles" && self.mongodb_provider.is_some() {
+      let profile_id = created_record
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+      let user_id = created_record
+        .get("user_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+
+      if !profile_id.is_empty() && !user_id.is_empty() {
+        let _ = self
+          .profile_service
+          .sync_profile_to_cloud(profile_id.clone())
+          .await;
+
+        user_sync_helper::update_user_profile_id_both(
+          &self.json_provider,
+          self.mongodb_provider.as_ref(),
+          &user_id,
+          &profile_id,
+        )
+        .await?;
+      }
+    }
 
     self.invalidate_cache(&table).await;
 
