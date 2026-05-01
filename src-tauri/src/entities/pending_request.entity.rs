@@ -22,6 +22,7 @@ pub struct PendingRequestEntity {
 }
 
 impl PendingRequestEntity {
+  #[allow(dead_code)]
   pub fn new(
     operation: String,
     table: String,
@@ -61,19 +62,4 @@ impl PendingRequestEntity {
         | "updateAll"
     )
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProcessQueueResult {
-  pub processed: usize,
-  pub succeeded: usize,
-  pub failed: usize,
-  pub errors: Vec<QueueError>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct QueueError {
-  pub queue_id: String,
-  pub operation: String,
-  pub error: String,
 }

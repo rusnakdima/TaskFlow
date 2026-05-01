@@ -4,11 +4,9 @@ use std::sync::Arc;
 
 /* nosql_orm */
 use nosql_orm::cache::QueryCache;
-use nosql_orm::cdc::ChangeCapture;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
-use nosql_orm::relations::{get_collection_relations, RelationLoader};
-use nosql_orm::repository::Repository;
+use nosql_orm::relations::RelationLoader;
 
 /* entities */
 use crate::entities::{
@@ -32,7 +30,6 @@ use crate::providers::mongodb_provider::MongoProvider;
 use crate::services::activity_monitor_service::ActivityMonitorService;
 use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
-use crate::services::offline_queue_service::OfflineQueueService;
 use crate::services::profile_service::ProfileService;
 
 pub struct RepositoryService {
@@ -43,33 +40,30 @@ pub struct RepositoryService {
   pub activity_monitor: ActivityMonitorService,
   pub profile_service: ProfileService,
   pub query_cache: Option<Arc<QueryCache>>,
-  pub cdc_service: Option<Arc<dyn ChangeCapture>>,
-  pub offline_queue_service: Option<Arc<OfflineQueueService>>,
 }
 
 impl RepositoryService {
-  #[allow(clippy::elided_named_lifetimes)]
+  #[allow(clippy::extra_unused_lifetimes)]
   fn get_provider(
     &self,
     table: &str,
     sync_metadata: Option<&SyncMetadata>,
   ) -> Result<DataProvider<'_>, ResponseModel> {
-    if self.use_json_provider(table, sync_metadata) {
+    let use_json = self.use_json_provider(table, sync_metadata);
+
+    if use_json {
       Ok(DataProvider::Json(&self.json_provider))
     } else {
-      self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("MongoDB not available"))
-        .map(|p| DataProvider::Mongo(p.as_ref()))
+      match self.mongodb_provider.as_ref() {
+        Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
+        None => {
+          tracing::error!("[Repository] MongoDB not available - cannot use for team data");
+          Err(err_response(
+            "MongoDB not available - team data requires cloud connection",
+          ))
+        }
+      }
     }
-  }
-
-  #[allow(dead_code)]
-  fn json_repo<E: nosql_orm::entity::Entity + Send + Sync + 'static>(
-    &self,
-  ) -> Repository<E, JsonProvider> {
-    Repository::new(self.json_provider.clone())
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -80,7 +74,6 @@ impl RepositoryService {
     entity_resolution: Arc<EntityResolutionService>,
     activity_monitor: ActivityMonitorService,
     profile_service: ProfileService,
-    offline_queue_service: Option<Arc<OfflineQueueService>>,
   ) -> Self {
     Self {
       json_provider,
@@ -90,8 +83,6 @@ impl RepositoryService {
       activity_monitor,
       profile_service,
       query_cache: None,
-      cdc_service: None,
-      offline_queue_service,
     }
   }
 
@@ -100,19 +91,11 @@ impl RepositoryService {
     self
   }
 
-  pub fn with_cdc<C: ChangeCapture + 'static>(mut self, cdc: Arc<C>) -> Self {
-    self.cdc_service = Some(cdc as Arc<dyn ChangeCapture>);
-    self
-  }
-
   fn use_json_provider(&self, table: &str, sync_metadata: Option<&SyncMetadata>) -> bool {
     if table == "daily_activities" {
       return true;
     }
-    if self.mongodb_provider.is_none() {
-      return true;
-    }
-    sync_metadata.map_or(true, |m| m.is_private)
+    sync_metadata.map_or_else(|| true, |m| m.is_private)
   }
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
@@ -140,11 +123,6 @@ impl RepositoryService {
     ) -> Result<Vec<Value>, ResponseModel> {
       let loader = RelationLoader::new(provider);
       let mut result_docs = docs;
-      tracing::debug!(
-        "[REPO] Loading relations: table={}, paths={:?}",
-        table,
-        load_paths
-      );
       for path in load_paths {
         result_docs = collection_adder(result_docs, table);
         let segments: Vec<&str> = path.split('.').collect();
@@ -219,64 +197,9 @@ impl RepositoryService {
     docs
   }
 
-  async fn capture_change(&self, operation: &str, table: &str, id: &str, data: Value) {
-    if let Some(ref cdc) = self.cdc_service {
-      let change = match operation {
-        "insert" => nosql_orm::cdc::Change::insert(table, id, data),
-        "update" => nosql_orm::cdc::Change::update(table, id, json!({}), data),
-        "delete" => nosql_orm::cdc::Change::delete(table, id, data),
-        _ => return,
-      };
-      let _ = cdc.capture(change).await;
-    }
-  }
-
   async fn invalidate_cache(&self, table: &str) {
     if let Some(ref cache) = self.query_cache {
       let _ = cache.invalidate_collection(table).await;
-    }
-  }
-
-  fn should_queue_for_offline(
-    &self,
-    operation: &str,
-    table: &str,
-    sync_metadata: Option<&SyncMetadata>,
-  ) -> bool {
-    matches!(
-      operation,
-      "create"
-        | "update"
-        | "delete"
-        | "permanent-delete"
-        | "soft-delete-cascade"
-        | "restore-cascade"
-        | "restore"
-        | "updateAll"
-    ) && !self.use_json_provider(table, sync_metadata)
-  }
-
-  fn sync_meta_for_json(sync_metadata: &Option<SyncMetadata>) -> Option<SyncMetadata> {
-    sync_metadata.as_ref().map(|m| SyncMetadata {
-      is_private: m.is_private,
-      is_owner: m.is_owner,
-      visibility: m.visibility.clone(),
-    })
-  }
-
-  async fn queue_offline_sync(
-    &self,
-    operation: String,
-    table: String,
-    record_id: Option<String>,
-    data: Option<Value>,
-    filter: Option<Value>,
-    sync_metadata: Option<SyncMetadata>,
-  ) {
-    if let Some(ref queue_service) = self.offline_queue_service {
-      let _ = queue_service
-        .queue_request(operation, table, record_id, data, filter, sync_metadata)
-        .await;
     }
   }
 
@@ -288,106 +211,14 @@ impl RepositoryService {
     id: Option<String>,
     data: Option<Value>,
     filter: Option<Value>,
-    relations: Option<Vec<RelationObj>>,
+    _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    if let Some(ref _queue_service) = self.offline_queue_service {
-      if self.should_queue_for_offline(&operation, &table, sync_metadata.as_ref()) {
-        if self.mongodb_provider.is_none() {
-          tracing::debug!(
-            "[RepositoryService] MongoDB unavailable, executing against JSON and queueing sync: operation={}, table={}",
-            operation,
-            table
-          );
-          let sync_meta_for_json = Self::sync_meta_for_json(&sync_metadata);
-          match operation.as_str() {
-            "create"
-            | "update"
-            | "delete"
-            | "soft-delete-cascade"
-            | "restore-cascade"
-            | "restore" => {
-              let exec_result = match operation.as_str() {
-                "create" => {
-                  self
-                    .handle_create(table.clone(), data.clone(), sync_meta_for_json)
-                    .await
-                }
-                "update" => {
-                  self
-                    .handle_update(table.clone(), id.clone(), data.clone(), sync_meta_for_json)
-                    .await
-                }
-                "delete" => {
-                  self
-                    .handle_delete(table.clone(), id.clone(), sync_meta_for_json, false)
-                    .await
-                }
-                "soft-delete-cascade" => {
-                  self
-                    .handle_soft_delete_cascade(table.clone(), id.clone(), sync_meta_for_json)
-                    .await
-                }
-                "restore-cascade" => {
-                  self
-                    .handle_restore_cascade(table.clone(), id.clone(), sync_meta_for_json)
-                    .await
-                }
-                "restore" => {
-                  self
-                    .handle_restore(table.clone(), id.clone(), sync_meta_for_json)
-                    .await
-                }
-                _ => Err(err_response("Unsupported operation")),
-              };
-              if exec_result.is_ok() {
-                let record_id = exec_result.as_ref().ok().and_then(|r| {
-                  if let DataValue::String(id) = &r.data {
-                    Some(id.clone())
-                  } else {
-                    None
-                  }
-                });
-                self
-                  .queue_offline_sync(
-                    operation.clone(),
-                    table.clone(),
-                    record_id,
-                    data,
-                    filter,
-                    sync_metadata,
-                  )
-                  .await;
-              }
-              return exec_result;
-            }
-            "updateAll" => {
-              let exec_result = self
-                .handle_update_all(table.clone(), data.clone(), sync_meta_for_json)
-                .await;
-              self
-                .queue_offline_sync(
-                  operation.clone(),
-                  table.clone(),
-                  None,
-                  data,
-                  filter,
-                  sync_metadata,
-                )
-                .await;
-              return exec_result;
-            }
-            _ => return Err(err_response("Operation not supported while offline")),
-          }
-        }
-      }
-    }
-
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(table, filter, relations, load, sync_metadata)
+          .handle_get_all(table, filter, _relations, load, sync_metadata)
           .await
       }
       "get" => {
@@ -428,36 +259,32 @@ impl RepositoryService {
     &self,
     table: String,
     filter: Option<Value>,
-    relations: Option<Vec<RelationObj>>,
+    _relations: Option<Vec<RelationObj>>,
     load: Option<Vec<String>>,
     sync_metadata: Option<SyncMetadata>,
   ) -> Result<ResponseModel, ResponseModel> {
-    tracing::debug!(
-      "[RepositoryService] handle_get_all table={} filter={:?} relations={:?} load={:?}",
-      table,
-      filter,
-      relations,
-      load
-    );
-
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt = self.build_filter(&filter_val);
 
     let provider = self.get_provider(&table, sync_metadata.as_ref())?;
     let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
 
-    let load_paths: Vec<String> = get_collection_relations(&table)
-      .map(|rels| rels.into_iter().map(|r| r.name).collect())
-      .unwrap_or_default();
+    let load_paths: Vec<String> = load.map(|l| l.into_iter().collect()).unwrap_or_default();
+
     let docs = if !load_paths.is_empty() {
-      self
-        .load_relations_via_nosql_orm(
-          docs,
-          &table,
-          &load_paths,
-          matches!(provider, DataProvider::Mongo(_)),
-        )
-        .await?
+      if matches!(provider, DataProvider::Mongo(_)) {
+        if let Some(ref mongo) = self.mongodb_provider {
+          self
+            .load_relations_for_get_all(docs, &table, &load_paths, mongo.as_ref().clone())
+            .await?
+        } else {
+          docs
+        }
+      } else {
+        self
+          .load_relations_for_get_all(docs, &table, &load_paths, self.json_provider.clone())
+          .await?
+      }
     } else {
       docs
     };
@@ -465,6 +292,46 @@ impl RepositoryService {
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
     )))
+  }
+
+  async fn load_relations_for_get_all<P: DatabaseProvider + Clone>(
+    &self,
+    docs: Vec<Value>,
+    table: &str,
+    load_paths: &[String],
+    provider: P,
+  ) -> Result<Vec<Value>, ResponseModel> {
+    if load_paths.is_empty() || docs.is_empty() {
+      return Ok(docs);
+    }
+
+    let mut current_docs = docs;
+    for path in load_paths {
+      let segments: Vec<&str> = path.split('.').collect();
+      if segments.is_empty() {
+        continue;
+      }
+
+      for doc in &mut current_docs {
+        if let Some(obj) = doc.as_object_mut() {
+          if !obj.contains_key("_collection") {
+            obj.insert("_collection".to_string(), Value::String(table.to_string()));
+          }
+        }
+      }
+
+      let loader = RelationLoader::new(provider.clone());
+      let Ok(loaded) = loader
+        .load_nested(current_docs, &segments, table, true)
+        .await
+      else {
+        let e = "Relation loading failed";
+        return Err(err_response(e));
+      };
+      current_docs = loaded;
+    }
+
+    Ok(current_docs)
   }
 
   async fn handle_get(
@@ -525,21 +392,25 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
+    let visibility = data_val
+      .get("visibility")
+      .and_then(|v| v.as_str())
+      .unwrap_or("private");
+    let is_private = visibility != "team";
+
     let validated_data = validate_model(&table, &data_val, true)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
+    let effective_sync_metadata = Some(SyncMetadata {
+      is_owner: sync_metadata.as_ref().map(|m| m.is_owner).unwrap_or(true),
+      is_private,
+    });
+
+    let provider = self.get_provider(&table, effective_sync_metadata.as_ref())?;
+
     let created_record = provider.insert(&table, validated_data).await?;
 
     self.invalidate_cache(&table).await;
-    let id_str = created_record
-      .get("id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
-
-    self
-      .capture_change("insert", &table, id_str, created_record.clone())
-      .await;
 
     self
       .activity_monitor
@@ -589,9 +460,6 @@ impl RepositoryService {
     }
 
     self.invalidate_cache(&table).await;
-    self
-      .capture_change("update", &table, &id_str, updated_record.clone())
-      .await;
 
     self
       .activity_monitor
@@ -703,9 +571,6 @@ impl RepositoryService {
     }
 
     self.invalidate_cache(&table).await;
-    self
-      .capture_change("delete", &table, &id_str, json!({"id": id_str.clone()}))
-      .await;
 
     self
       .activity_monitor
@@ -733,30 +598,6 @@ impl RepositoryService {
     self.handle_delete(table, id, sync_metadata, true).await
   }
 
-  async fn handle_restore_cascade(
-    &self,
-    table: String,
-    id: Option<String>,
-    sync_metadata: Option<SyncMetadata>,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
-    let use_json = self.use_json_provider(&table, sync_metadata.as_ref());
-
-    if use_json {
-      self
-        .cascade_service
-        .restore_cascade_json(&table, &id_str)
-        .await?;
-    } else {
-      self
-        .cascade_service
-        .restore_cascade_mongo(&table, &id_str)
-        .await?;
-    }
-
-    Ok(success_response(DataValue::String(id_str)))
-  }
-
   async fn handle_sync_to_provider(
     &self,
     table: String,
@@ -776,25 +617,5 @@ impl RepositoryService {
         .await?;
     }
     Ok(success_response(DataValue::String(id)))
-  }
-
-  async fn handle_restore(
-    &self,
-    table: String,
-    id: Option<String>,
-    sync_metadata: Option<SyncMetadata>,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let id_str = id.ok_or_else(|| err_response("ID required for restore"))?;
-    let provider = self.get_provider(&table, sync_metadata.as_ref())?;
-    let patch = json!({ "deleted_at": serde_json::Value::Null });
-
-    let _ = provider.patch(&table, &id_str, patch).await?;
-
-    self
-      .cascade_service
-      .handle_json_cascade(&table, &id_str, true)
-      .await?;
-
-    Ok(success_response(DataValue::String(id_str)))
   }
 }
