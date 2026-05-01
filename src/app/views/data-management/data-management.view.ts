@@ -154,7 +154,7 @@ export class DataManagementView implements OnInit {
   dataMap = signal<any>({});
 
   selectedType = signal<string>("todos");
-  viewMode = signal<ViewMode>("list");
+  viewMode = signal<ViewMode>("card");
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
