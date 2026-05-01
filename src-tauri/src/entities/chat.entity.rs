@@ -14,7 +14,6 @@ use nosql_orm::{Model, Validate};
 #[many_to_many("read_by_users", "users", "read_by")]
 #[index("todo_id", 1)]
 #[index("user_id", 1)]
-#[Relations(todo)]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub todo_id: String,

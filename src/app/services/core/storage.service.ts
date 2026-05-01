@@ -214,8 +214,35 @@ export class StorageService extends BaseStorageService {
   getChatsByTodoReactive(todo_id?: string): ReturnType<typeof computed<Chat[]>> {
     return computed(() => {
       if (!todo_id) return [];
-      return this.chatsByTodoSignal().get(todo_id) || [];
+      return (this.chatsByTodoSignal().get(todo_id) || []).filter((chat) => !chat.deleted_at);
     });
+  }
+
+  private extractChatsFromTodos(todos: Todo[]): void {
+    todos.forEach((todo) => {
+      if (todo.chats && todo.chats.length > 0) {
+        this.chatsByTodoSignal.update((map) => {
+          const newMap = new Map(map);
+          newMap.set(todo.id, todo.chats!);
+          return newMap;
+        });
+      }
+    });
+  }
+
+  private updateNestedChatsInTodo(todo_id: string, updater: (chats: Chat[]) => Chat[]): void {
+    const updateTodos = (todos: Todo[]) =>
+      todos.map((t) => (t.id === todo_id ? { ...t, chats: updater(t.chats || []) } : t));
+
+    const privateTodos = this.privateTodosSignal();
+    const sharedTodos = this.sharedTodosSignal();
+
+    if (privateTodos.some((t) => t.id === todo_id)) {
+      this.privateTodosSignal.set(updateTodos(privateTodos));
+    }
+    if (sharedTodos.some((t) => t.id === todo_id)) {
+      this.sharedTodosSignal.set(updateTodos(sharedTodos));
+    }
   }
 
   setChatsByTodo(chats: Chat[], todo_id?: string): void {
@@ -234,6 +261,9 @@ export class StorageService extends BaseStorageService {
       }
       return newMap;
     });
+    this.updateNestedChatsInTodo(todo_id, (chats) =>
+      chats.some((c) => c.id === chat.id) ? chats : [...chats, chat]
+    );
   }
 
   updateChatInTodo(chat: Chat, todo_id?: string): void {
@@ -249,6 +279,9 @@ export class StorageService extends BaseStorageService {
       }
       return newMap;
     });
+    this.updateNestedChatsInTodo(todo_id, (chats) =>
+      chats.map((c) => (c.id === chat.id ? { ...c, ...chat } : c))
+    );
   }
 
   deleteChatFromTodo(chatId: string, todo_id?: string): void {
@@ -262,6 +295,7 @@ export class StorageService extends BaseStorageService {
       }
       return newMap;
     });
+    this.updateNestedChatsInTodo(todo_id, (chats) => chats.filter((c) => c.id !== chatId));
   }
 
   clearChatsByTodo(todo_id?: string): void {
@@ -271,6 +305,7 @@ export class StorageService extends BaseStorageService {
       newMap.delete(todo_id);
       return newMap;
     });
+    this.updateNestedChatsInTodo(todo_id, () => []);
   }
 
   // ==================== TODO OPERATIONS ====================
@@ -379,6 +414,13 @@ export class StorageService extends BaseStorageService {
           }))
         )
       );
+      this.batchUpdate(
+        "chats",
+        this.getChatsByTodo(id).map((c) => ({
+          id: c.id,
+          updates: { deleted_at: null, updated_at: timestamp },
+        }))
+      );
     } else if (table === "tasks") {
       this.batchUpdate("tasks", [{ id, updates: { deleted_at: null, updated_at: timestamp } }]);
       this.batchUpdate(
@@ -393,7 +435,13 @@ export class StorageService extends BaseStorageService {
     } else if (table === "comments") {
       this.updateItem("comments", id, { deleted_at: null, updated_at: timestamp });
     } else if (table === "chats") {
-      this.updateItem("chats", id, { deleted_at: null, updated_at: timestamp });
+      const chat = (this.handlers.chats as ChatHandler).getById(id);
+      if (chat) {
+        this.updateItem("chats", id, { deleted_at: null, updated_at: timestamp });
+        this.updateNestedChatsInTodo(chat.todo_id, (chats) =>
+          chats.map((c) => (c.id === id ? { ...c, deleted_at: null, updated_at: timestamp } : c))
+        );
+      }
     } else if (table === "categories") {
       this.updateItem("categories", id, { deleted_at: null, updated_at: timestamp });
     }
@@ -473,12 +521,18 @@ export class StorageService extends BaseStorageService {
       case "profiles":
         this.profileSignal.set(items as Profile | null);
         break;
-      case "privateTodos":
-        this.privateTodosSignal.set(items as Todo[]);
+      case "privateTodos": {
+        const privateTodos = items as Todo[];
+        this.extractChatsFromTodos(privateTodos);
+        this.privateTodosSignal.set(privateTodos);
         break;
-      case "sharedTodos":
-        this.sharedTodosSignal.set(items as Todo[]);
+      }
+      case "sharedTodos": {
+        const sharedTodos = items as Todo[];
+        this.extractChatsFromTodos(sharedTodos);
+        this.sharedTodosSignal.set(sharedTodos);
         break;
+      }
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);
         break;
@@ -571,6 +625,8 @@ export class StorageUpdateService {
       this.storageService.removeItem("todos", id);
     } else if (table === "tasks" || table === "subtasks") {
       this.storageService.removeRecordWithCascade(table, id!);
+    } else if (table === "chats" && id) {
+      this.storageService.deleteChatFromTodo(id, parentTodoId);
     } else {
       this.storageService.removeItem(table as any, id!);
     }

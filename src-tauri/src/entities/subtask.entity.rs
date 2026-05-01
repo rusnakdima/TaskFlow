@@ -9,9 +9,7 @@ use nosql_orm::Validate;
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("subtasks")]
 #[soft_delete]
-#[many_to_one("task", "tasks", "task_id")]
 #[one_to_many("comments", "comments", "subtask_id", "Cascade")]
-#[Relations(task, comments)]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]

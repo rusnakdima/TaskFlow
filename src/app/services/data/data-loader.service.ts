@@ -58,7 +58,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { user_id: currentUserId },
-      [],
+      ["categories", "tasks", "user", "chats"],
       {
         is_private: true,
         is_owner: true,
@@ -100,7 +100,7 @@ export class DataLoaderService {
         this.apiProvider,
         "todos",
         { assignees: { $in: [currentUserId] } },
-        ["category"],
+        ["category", "chats"],
         {
           is_private: false,
           is_owner: false,

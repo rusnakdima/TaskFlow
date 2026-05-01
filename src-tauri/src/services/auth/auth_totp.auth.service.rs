@@ -90,34 +90,19 @@ impl AuthTotpService {
 
   pub async fn verify_totp_code(&self, secret: &str, code: &str) -> bool {
     let code = code.trim();
-    tracing::debug!("TOTP code received: length={}", code.len());
 
     if code.len() != 6 {
-      tracing::debug!("TOTP code length invalid: {}", code.len());
       return false;
     }
 
     if !code.chars().all(|c| c.is_ascii_digit()) {
-      tracing::debug!("TOTP code contains non-digit characters");
       return false;
     }
 
     let secret_lower = secret.to_ascii_lowercase();
-    tracing::debug!(
-      "TOTP secret length: {}, first 4 chars: {}",
-      secret_lower.len(),
-      if secret_lower.len() >= 4 {
-        &secret_lower[..4]
-      } else {
-        &secret_lower
-      }
-    );
 
     let secret_bytes = match Self::decode_base32_secret(&secret_lower) {
-      Some(bytes) => {
-        tracing::debug!("TOTP decoded secret bytes length: {}", bytes.len());
-        bytes
-      }
+      Some(bytes) => bytes,
       None => {
         tracing::warn!(
           "TOTP failed to decode base32 secret, secret was: {}...",
@@ -133,29 +118,13 @@ impl AuthTotpService {
       .duration_since(std::time::UNIX_EPOCH)
       .map(|d| d.as_secs())
       .unwrap_or(0);
-    tracing::debug!("TOTP current timestamp: {}", current_time);
-
-    let generated = totp.generate(current_time);
-    tracing::debug!(
-      "TOTP generated code vs user code: {} vs {}",
-      generated,
-      code
-    );
 
     let time_step = current_time / 30;
-    tracing::debug!("TOTP time step: {}", time_step);
 
     for offset in [-1i32, 0, 1].iter() {
       let check_time = ((time_step as i64) + (*offset as i64)) * 30;
       let generated = totp.generate(check_time as u64);
-      tracing::debug!(
-        "TOTP generated code at offset {}: {} vs user code: {}",
-        offset,
-        generated,
-        code
-      );
       if generated == code {
-        tracing::info!("TOTP verified successfully with offset {}", offset);
         return true;
       }
     }
@@ -221,18 +190,6 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
 
-    tracing::info!(
-      "verify_login_totp: username={}, totp_enabled={}, totp_secret.len={}, totp_secret.prefix={}",
-      username,
-      user.totp_enabled,
-      user.totp_secret.len(),
-      if user.totp_secret.len() >= 4 {
-        &user.totp_secret[..4]
-      } else {
-        &user.totp_secret
-      }
-    );
-
     if !user.totp_enabled {
       return Err(err_response("TOTP not enabled for this user"));
     }
@@ -247,12 +204,7 @@ impl AuthTotpService {
       ));
     }
 
-    tracing::info!(
-      "verify_login_totp: calling verify_totp_code with secret.len={}",
-      user.totp_secret.len()
-    );
     let verified = self.verify_totp_code(&user.totp_secret, code).await;
-    tracing::info!("verify_login_totp: verify_totp_code returned {}", verified);
 
     if !verified {
       return Err(err_response("Invalid TOTP code"));
@@ -453,20 +405,7 @@ impl AuthTotpService {
     totp_secret: &str,
     recovery_codes: Vec<String>,
   ) -> Result<(), ResponseModel> {
-    tracing::info!(
-      "update_totp_settings: username={}, totp_enabled={}, totp_secret.len={}, totp_secret.prefix={}",
-      username,
-      totp_enabled,
-      totp_secret.len(),
-      if totp_secret.len() >= 4 {
-        &totp_secret[..4]
-      } else {
-        totp_secret
-      }
-    );
-
     let user = self.find_user(username).await?;
-    tracing::info!("update_totp_settings: found user with id={}", user.id());
 
     let mut updated_user = user.clone();
     updated_user.totp_enabled = totp_enabled;
@@ -477,7 +416,7 @@ impl AuthTotpService {
     self.save_user(&updated_user).await?;
 
     if let Some(mongo_provider) = &self.mongodb_provider {
-      match timeout(
+      let _ = timeout(
         Duration::from_secs(5),
         mongo_provider.update(
           "users",
@@ -485,20 +424,7 @@ impl AuthTotpService {
           serde_json::to_value(&updated_user).unwrap(),
         ),
       )
-      .await
-      {
-        Ok(Ok(_)) => {
-          tracing::info!("update_totp_settings: MongoDB update completed");
-        }
-        Ok(Err(e)) => {
-          tracing::warn!("Failed to update MongoDB TOTP settings: {}", e);
-        }
-        Err(_) => {
-          tracing::warn!("MongoDB TOTP update timed out, skipping");
-        }
-      }
-    } else {
-      tracing::warn!("update_totp_settings: no MongoDB provider available");
+      .await;
     }
 
     Ok(())

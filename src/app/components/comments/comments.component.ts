@@ -208,6 +208,12 @@ export class CommentsComponent implements AfterViewInit, OnChanges, OnDestroy, A
     if (user?.email) return user.email;
     const currentUser = this.storageService.user();
     if (currentUser?.id === userId && currentUser?.username) return currentUser.username;
+
+    // Try profile which has user relation loaded
+    const profile = this.storageService.profile();
+    if (profile?.user?.username) return profile.user.username;
+    if (profile?.user?.email) return profile.user.email;
+
     return this.authService.getValueByKey("username") || "User";
   }
 }

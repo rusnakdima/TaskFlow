@@ -182,6 +182,9 @@
         >
           @for (subtask of listSubtasks(); track subtask.id) {
             <app-subtask
+              cdkDrag
+              [cdkDragData]="subtask"
+              cdkDragPreviewContainer="global"
               [subtask]="subtask"
               [todo_id]="todoId()"
               [index]="$index"
@@ -197,7 +200,12 @@
               (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
               (updateSubtaskEvent)="updateSubtaskInline($event)"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
-            />
+            >
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
+            </app-subtask>
           }
         </div>
       }

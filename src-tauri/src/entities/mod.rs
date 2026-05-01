@@ -38,6 +38,3 @@ pub mod task_entity;
 pub mod todo_entity;
 #[path = "user.entity.rs"]
 pub mod user_entity;
-// WebSocket entities - REMOVED
-// #[path = "websocket.entity.rs"]
-// pub mod websocket_entity;

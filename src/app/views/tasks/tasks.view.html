@@ -169,6 +169,9 @@
       >
         @for (task of listTasks(); track task.id) {
           <app-task
+            cdkDrag
+            [cdkDragData]="task"
+            cdkDragPreviewContainer="global"
             [id]="'task-' + task.id"
             [task]="task"
             [todo_id]="todo()?.id || null"

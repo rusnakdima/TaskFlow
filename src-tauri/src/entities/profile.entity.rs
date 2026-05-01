@@ -8,10 +8,9 @@ use nosql_orm::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("profiles")]
-#[many_to_one("user", "users", "user_id")]
+#[one_to_one("user", "users", "user_id")]
 #[timestamp]
 #[index("user_id", 1)]
-#[Relations(user)]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,
