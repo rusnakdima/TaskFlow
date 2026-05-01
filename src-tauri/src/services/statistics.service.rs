@@ -14,7 +14,6 @@ use crate::helpers::activity_log::ActivityLogHelper;
 use crate::entities::{
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   statistics_entity::StatisticsResponseModel,
-  sync_metadata_entity::SyncMetadata,
 };
 
 /* statistics modules */
@@ -41,7 +40,7 @@ impl StatisticsService {
     &self,
     user_id: String,
     time_range: String,
-    _sync_metadata: SyncMetadata,
+    _visibility: String,
   ) -> Result<ResponseModel, ResponseModel> {
     let (start_date, end_date) = DateCalculator::calculate_date_range(&time_range);
     let start_date_naive = start_date.date_naive();

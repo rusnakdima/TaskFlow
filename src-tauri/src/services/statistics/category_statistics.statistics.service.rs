@@ -2,87 +2,9 @@ use chrono::{DateTime, NaiveDate};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use nosql_orm::provider::DatabaseProvider;
-
 pub struct CategoryStatistics;
 
 impl CategoryStatistics {
-  #[allow(dead_code)]
-  pub async fn calculate_category_tasks_with_aggregation<P: DatabaseProvider>(
-    provider: &P,
-    _categories: &[Value],
-    _todos: &[Value],
-    _tasks: &[Value],
-    start_date: &NaiveDate,
-    end_date: &NaiveDate,
-    user_id: &str,
-  ) -> Option<Vec<Value>> {
-    let pipeline = vec![
-      serde_json::json!({
-        "$match": {
-          "user_id": user_id,
-          "created_at": {
-            "$gte": start_date.format("%Y-%m-%dT%H:%M:%S").to_string(),
-            "$lte": end_date.format("%Y-%m-%dT%H:%M:%S").to_string()
-          }
-        }
-      }),
-      serde_json::json!({
-        "$lookup": {
-          "from": "todos",
-          "localField": "todo_id",
-          "foreignField": "id",
-          "as": "todo"
-        }
-      }),
-      serde_json::json!({
-        "$unwind": "$todo"
-      }),
-      serde_json::json!({
-        "$unwind": "$todo.categories"
-      }),
-      serde_json::json!({
-        "$lookup": {
-          "from": "categories",
-          "localField": "todo.categories.id",
-          "foreignField": "id",
-          "as": "category"
-        }
-      }),
-      serde_json::json!({
-        "$unwind": "$category"
-      }),
-      serde_json::json!({
-        "$group": {
-          "_id": "$category.id",
-          "category": { "$first": "$category" },
-          "task_count": { "$sum": 1 },
-          "completed_task_count": {
-            "$sum": {
-              "$cond": [
-                { "$in": ["$status", ["completed", "skipped"]] },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      }),
-      serde_json::json!({
-        "$project": {
-          "_id": 0,
-          "id": "$_id",
-          "title": "$category.title",
-          "task_count": 1,
-          "completed_task_count": 1,
-          "todos": "$category.todos"
-        }
-      }),
-    ];
-
-    provider.aggregate("tasks", pipeline).await.ok()
-  }
-
   pub fn calculate_category_tasks(
     categories: &[Value],
     todos: &[Value],
