@@ -24,9 +24,7 @@ import { KanbanView } from "@views/kanban/kanban.view";
 import { TodosView } from "@views/todos/todos.view";
 import { TasksView } from "@views/tasks/tasks.view";
 import { SubtasksView } from "@views/subtasks/subtasks.view";
-import { ManageTodoView } from "@views/todos/manage-todo/manage-todo.view";
-import { ManageTaskView } from "@views/tasks/manage-task/manage-task.view";
-import { ManageSubtaskView } from "@views/subtasks/manage-subtask/manage-subtask.view";
+import { ManageItemPage } from "@views/manage/manage-item.page";
 
 import { ProfileView } from "@views/profile/profile.view";
 import { ManageProfileView } from "@views/manage-profile/manage-profile.view";
@@ -139,15 +137,15 @@ export const routes: Routes = [
           },
           {
             path: "create_todo",
-            component: ManageTodoView,
+            component: ManageItemPage,
             title: "Create Todo",
-            data: { breadcrumb: "Create Todo" },
+            data: { breadcrumb: "Create Todo", itemType: "todo" },
           },
           {
             path: ":todoId/edit_todo",
-            component: ManageTodoView,
+            component: ManageItemPage,
             title: "Edit Todo",
-            data: { breadcrumb: "Edit Todo" },
+            data: { breadcrumb: "Edit Todo", itemType: "todo" },
           },
           {
             path: ":todoId/tasks",
@@ -162,15 +160,15 @@ export const routes: Routes = [
           },
           {
             path: ":todoId/tasks/create_task",
-            component: ManageTaskView,
+            component: ManageItemPage,
             title: "Create Task",
-            data: { breadcrumb: "Create Task" },
+            data: { breadcrumb: "Create Task", itemType: "task" },
           },
           {
             path: ":todoId/tasks/:taskId/edit_task",
-            component: ManageTaskView,
+            component: ManageItemPage,
             title: "Edit Task",
-            data: { breadcrumb: "Edit Task" },
+            data: { breadcrumb: "Edit Task", itemType: "task" },
           },
           {
             path: ":todoId/tasks/:taskId/subtasks",
@@ -185,15 +183,15 @@ export const routes: Routes = [
           },
           {
             path: ":todoId/tasks/:taskId/subtasks/create_subtask",
-            component: ManageSubtaskView,
+            component: ManageItemPage,
             title: "Create Subtask",
-            data: { breadcrumb: "Create Subtask" },
+            data: { breadcrumb: "Create Subtask", itemType: "subtask" },
           },
           {
             path: ":todoId/tasks/:taskId/subtasks/:subtaskId/edit_subtask",
-            component: ManageSubtaskView,
+            component: ManageItemPage,
             title: "Edit Subtask",
-            data: { breadcrumb: "Edit Subtask" },
+            data: { breadcrumb: "Edit Subtask", itemType: "subtask" },
           },
         ],
       },

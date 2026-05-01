@@ -24,6 +24,8 @@ import { filter } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatSelectModule } from "@angular/material/select";
+import { MatMenuModule } from "@angular/material/menu";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -69,6 +71,8 @@ import { TableField } from "@components/table-view/table-field.model";
     RouterModule,
     FormsModule,
     MatIconModule,
+    MatSelectModule,
+    MatMenuModule,
     TodoComponent,
     FilterBarComponent,
     DragDropModule,
@@ -104,6 +108,92 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   showStats = signal(false);
+  activeVisibility = signal<"all" | "private" | "team" | "public">("all");
+
+  visibilityOptions = [
+    { key: "all", label: "All" },
+    { key: "private", label: "Private" },
+    { key: "team", label: "Shared" },
+    { key: "public", label: "Public" },
+  ];
+
+  groupedTodos = computed(() => {
+    const privateTodos = this.storageService.privateTodos();
+    const sharedTodos = this.storageService.sharedTodos();
+    const publicTodos = this.storageService.publicTodos();
+
+    const deletedUserIds = new Set(
+      this.adminStorageService
+        .users()
+        .filter((u) => u.deleted_at)
+        .map((u) => u.id)
+    );
+
+    const filter = this.activeFilter();
+    const query = this.searchQuery().toLowerCase().trim();
+
+    const applyFilters = (todos: Todo[]) => {
+      console.log(
+        "[Todos] Raw todos received:",
+        todos.length,
+        todos.map((t) => ({ id: t.id, title: t.title, visibility: t.visibility }))
+      );
+
+      let filtered = todos.filter((todo) => !deletedUserIds.has(todo.user_id));
+
+      switch (filter) {
+        case "active":
+          filtered = filtered.filter((todo) => !this.isCompleted(todo));
+          break;
+        case "completed":
+          filtered = filtered.filter((todo) => this.isCompleted(todo));
+          break;
+        case "week":
+          filtered = FilterHelper.filterThisWeek(filtered);
+          break;
+        case "low":
+        case "medium":
+        case "high":
+        case "urgent":
+          filtered = FilterHelper.filterByPriority(filtered, filter);
+          break;
+      }
+
+      if (query) {
+        filtered = filtered.filter((todo) => todo.title.toLowerCase().includes(query));
+      }
+
+      console.log(
+        "[Todos] Filtered todos:",
+        filtered.length,
+        filtered.map((t) => ({ id: t.id, title: t.title, visibility: t.visibility }))
+      );
+      return SortHelper.sortByOrder(filtered, "desc");
+    };
+
+    console.log(
+      "[Todos] Loading todos - private:",
+      privateTodos.length,
+      "shared:",
+      sharedTodos.length,
+      "public:",
+      publicTodos.length
+    );
+
+    return {
+      private: applyFilters(privateTodos),
+      shared: applyFilters(sharedTodos),
+      public: applyFilters(publicTodos),
+    };
+  });
+
+  allTodosFlat = computed(() => {
+    return [
+      ...this.groupedTodos().private,
+      ...this.groupedTodos().shared,
+      ...this.groupedTodos().public,
+    ];
+  });
 
   // Bulk selection state (like admin page)
   selectedTodos = this.selectedItems;
@@ -114,47 +204,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   });
 
   listTodos = computed(() => {
-    // Filter based on mode - private vs team visibility todos
-    let filtered = this.isSharedMode()
-      ? this.storageService.sharedTodos()
-      : this.storageService.privateTodos();
+    const visibility = this.activeVisibility();
+    const grouped = this.groupedTodos();
 
-    // Filter out todos from deleted users
-    const deletedUserIds = new Set(
-      this.adminStorageService
-        .users()
-        .filter((u) => u.deleted_at)
-        .map((u) => u.id)
-    );
-    filtered = filtered.filter((todo) => !deletedUserIds.has(todo.user_id));
-
-    const filter = this.activeFilter();
-    const query = this.searchQuery().toLowerCase().trim();
-
-    switch (filter) {
-      case "active":
-        filtered = filtered.filter((todo) => !this.isCompleted(todo));
-        break;
-      case "completed":
-        filtered = filtered.filter((todo) => this.isCompleted(todo));
-        break;
-      case "week":
-        filtered = FilterHelper.filterThisWeek(filtered);
-        break;
-      case "low":
-      case "medium":
-      case "high":
-      case "urgent":
-        filtered = FilterHelper.filterByPriority(filtered, filter);
-        break;
+    if (visibility === "all") {
+      return [];
+    } else if (visibility === "private") {
+      return grouped.private;
+    } else if (visibility === "team") {
+      return grouped.shared;
+    } else if (visibility === "public") {
+      return grouped.public;
     }
-
-    if (query) {
-      filtered = filtered.filter((todo) => todo.title.toLowerCase().includes(query));
-    }
-
-    const result = SortHelper.sortByOrder(filtered, "desc");
-    return result;
+    return [];
   });
 
   // Get unread comments count for a todo (from all tasks, not subtasks)
@@ -287,27 +349,26 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.dataSyncProvider
-        .crud("delete", "todos", { id: todoId, isOwner: isOwner, isPrivate: !this.isSharedMode() })
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Todo deleted successfully");
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete todo");
-          },
-        });
+      const visibility = this.isSharedMode() ? "team" : "private";
+      this.dataSyncProvider.crud("delete", "todos", { id: todoId, visibility }).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete todo");
+        },
+      });
     }
   }
 
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
     const { field, value } = event;
+    const visibility = this.isSharedMode() ? "team" : "private";
     this.dataSyncProvider
       .crud("update", "todos", {
         id: todo.id,
         data: { [field]: value },
-        isOwner: todo.user_id === this.userId(),
-        isPrivate: !this.isSharedMode(),
+        visibility,
       })
       .subscribe({
         next: () => {
@@ -415,20 +476,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         currentIndex: curr,
       } as CdkDragDrop<Todo[]>;
       this.dragDropService
-        .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, {
-          isOwner: true,
-          isPrivate: true,
-        })
+        .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, "private")
         .subscribe();
     }
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.listTodos(), "todos", "todos", undefined, {
-        isOwner: true,
-        isPrivate: true,
-      })
+      .handleDrop(event, this.listTodos(), "todos", "todos", undefined, "private")
       .subscribe();
   }
 
@@ -522,8 +577,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       const requests = Array.from(selected).map((todoId) =>
         this.dataSyncProvider.crud("delete", "todos", {
           id: todoId,
-          isOwner: true,
-          isPrivate: true,
+          visibility: "private",
         })
       );
 
@@ -550,8 +604,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       const requests = Array.from(selected).map((todoId) =>
         this.dataSyncProvider.crud("delete", "todos", {
           id: todoId,
-          isOwner: true,
-          isPrivate: true,
+          visibility: "private",
         })
       );
 
