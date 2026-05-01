@@ -80,16 +80,13 @@ impl CategoryStatistics {
       }),
     ];
 
-    match provider.aggregate("tasks", pipeline).await {
-      Ok(results) => Some(results),
-      Err(_) => None,
-    }
+    provider.aggregate("tasks", pipeline).await.ok()
   }
 
   pub fn calculate_category_tasks(
-    categories: &Vec<Value>,
-    todos: &Vec<Value>,
-    tasks: &Vec<Value>,
+    categories: &[Value],
+    todos: &[Value],
+    tasks: &[Value],
     start_date: &NaiveDate,
     end_date: &NaiveDate,
   ) -> Vec<Value> {

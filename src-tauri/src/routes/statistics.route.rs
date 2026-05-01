@@ -17,7 +17,6 @@ pub async fn statistics_get(
   let sync_metadata = SyncMetadata {
     is_owner: true,
     is_private: true,
-    visibility: None,
   };
 
   match state

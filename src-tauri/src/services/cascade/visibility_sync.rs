@@ -72,14 +72,12 @@ impl VisibilitySyncService {
               e
             );
           }
-        } else {
-          if let Err(e) = mongo.insert("todos", updated.clone()).await {
-            tracing::warn!(
-              "[VisibilitySync] Failed to insert todo {} in sync_todo_to_mongo: {}",
-              id,
-              e
-            );
-          }
+        } else if let Err(e) = mongo.insert("todos", updated.clone()).await {
+          tracing::warn!(
+            "[VisibilitySync] Failed to insert todo {} in sync_todo_to_mongo: {}",
+            id,
+            e
+          );
         }
         let now = chrono::Utc::now();
         if let Err(e) = json_provider
@@ -135,15 +133,13 @@ impl VisibilitySyncService {
               e
             );
           }
-        } else {
-          if let Err(e) = mongo.insert(table, updated).await {
-            tracing::warn!(
-              "[VisibilitySync] Failed to insert {} {} in sync_entity_to_mongo: {}",
-              table,
-              id,
-              e
-            );
-          }
+        } else if let Err(e) = mongo.insert(table, updated).await {
+          tracing::warn!(
+            "[VisibilitySync] Failed to insert {} {} in sync_entity_to_mongo: {}",
+            table,
+            id,
+            e
+          );
         }
         let now = chrono::Utc::now();
         if let Err(e) = json_provider
@@ -194,14 +190,12 @@ impl VisibilitySyncService {
               e
             );
           }
-        } else {
-          if let Err(e) = json_provider.insert("todos", updated).await {
-            tracing::warn!(
-              "[VisibilitySync] Failed to insert todo {} in sync_todo_to_json: {}",
-              id,
-              e
-            );
-          }
+        } else if let Err(e) = json_provider.insert("todos", updated).await {
+          tracing::warn!(
+            "[VisibilitySync] Failed to insert todo {} in sync_todo_to_json: {}",
+            id,
+            e
+          );
         }
         let now = chrono::Utc::now();
         if let Err(e) = mongo
@@ -263,15 +257,13 @@ impl VisibilitySyncService {
               e
             );
           }
-        } else {
-          if let Err(e) = json_provider.insert(table, updated).await {
-            tracing::warn!(
-              "[VisibilitySync] Failed to insert {} {} in sync_entity_to_json: {}",
-              table,
-              id,
-              e
-            );
-          }
+        } else if let Err(e) = json_provider.insert(table, updated).await {
+          tracing::warn!(
+            "[VisibilitySync] Failed to insert {} {} in sync_entity_to_json: {}",
+            table,
+            id,
+            e
+          );
         }
         let now = chrono::Utc::now();
         if let Err(e) = mongo
@@ -393,8 +385,20 @@ impl VisibilitySyncService {
       "private"
     };
 
-    if source_provider == ProviderType::Json {
-      let todos = json_provider
+    let todos_from_json = json_provider
+      .find_many(
+        "todos",
+        Some(&Self::eq_filter("id", &todo_id)),
+        None,
+        None,
+        None,
+        false,
+      )
+      .await
+      .unwrap_or_default();
+
+    let todos_from_mongo = if let Some(mongo) = mongodb_provider {
+      mongo
         .find_many(
           "todos",
           Some(&Self::eq_filter("id", &todo_id)),
@@ -404,7 +408,42 @@ impl VisibilitySyncService {
           false,
         )
         .await
-        .unwrap_or_default();
+        .unwrap_or_default()
+    } else {
+      Vec::new()
+    };
+
+    let todo_in_json = todos_from_json
+      .iter()
+      .any(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id));
+    let todo_in_mongo = todos_from_mongo
+      .iter()
+      .any(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id));
+
+    tracing::debug!(
+      "[VisibilitySync] sync_todo_visibility: todo_id={}, source={:?}, todo_in_json={}, todo_in_mongo={}",
+      todo_id,
+      source_provider,
+      todo_in_json,
+      todo_in_mongo
+    );
+
+    if source_provider == ProviderType::Json {
+      let todos = if todo_in_json {
+        todos_from_json
+      } else if todo_in_mongo {
+        tracing::info!(
+          "[VisibilitySync] Todo {} found in MongoDB instead of JSON, using MongoDB as source",
+          todo_id
+        );
+        todos_from_mongo
+      } else {
+        tracing::warn!(
+          "[VisibilitySync] Todo {} not found in either provider",
+          todo_id
+        );
+        return Ok(success_response(DataValue::Number(0.0)));
+      };
 
       let tasks = json_provider
         .find_many(
@@ -484,17 +523,22 @@ impl VisibilitySyncService {
         synced_count += Self::sync_chats(json_provider, mongo, &chats, new_visibility, true).await;
       }
     } else if let Some(mongo) = mongodb_provider {
-      let todos = mongo
-        .find_many(
-          "todos",
-          Some(&Self::eq_filter("id", &todo_id)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
+      let todos = if todo_in_mongo {
+        todos_from_mongo
+      } else if todo_in_json {
+        tracing::info!(
+          "[VisibilitySync] Todo {} found in JSON instead of MongoDB, using JSON as source",
+          todo_id
+        );
+        todos_from_json
+      } else {
+        tracing::warn!(
+          "[VisibilitySync] Todo {} not found in either provider",
+          todo_id
+        );
+        return Ok(success_response(DataValue::Number(0.0)));
+      };
+
       let tasks = mongo
         .find_many(
           "tasks",
