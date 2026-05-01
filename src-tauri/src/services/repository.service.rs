@@ -126,6 +126,12 @@ impl RepositoryService {
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
     tracing::info!("[Repository] build_filter: input={}", filter_value);
+
+    if filter_value.is_object() && filter_value.as_object().map_or(true, |obj| obj.is_empty()) {
+      tracing::info!("[Repository] build_filter: empty filter, returning None");
+      return None;
+    }
+
     let result = Filter::from_json(filter_value).ok();
     tracing::info!("[Repository] build_filter: result={:?}", result);
     result

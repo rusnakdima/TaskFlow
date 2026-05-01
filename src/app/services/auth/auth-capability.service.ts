@@ -93,7 +93,7 @@ export class AuthCapabilityService {
       case "biometric":
         return caps.biometricAvailable && !!userSecurityStatus.biometricEnabled;
       case "qrLogin":
-        return caps.qrLoginAvailable && !!userSecurityStatus.qrLoginEnabled;
+        return caps.qrLoginAvailable;
       default:
         return false;
     }
