@@ -28,8 +28,6 @@ pub mod signup_form_entity;
 pub mod statistics_entity;
 #[path = "subtask.entity.rs"]
 pub mod subtask_entity;
-#[path = "sync_metadata.entity.rs"]
-pub mod sync_metadata_entity;
 #[path = "table.entity.rs"]
 pub mod table_entity;
 #[path = "task.entity.rs"]

@@ -96,7 +96,4 @@ pub struct SubtaskUpdateModel {
   pub updated_at: Option<String>,
   #[serde(default)]
   pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
-  #[serde(default)]
-  #[serde(rename = "_syncMetadata")]
-  pub sync_metadata: Option<crate::entities::sync_metadata_entity::SyncMetadata>,
 }
