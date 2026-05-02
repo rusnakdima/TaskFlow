@@ -73,6 +73,11 @@
   </provides>
 
   <releases>
+    <release version="0.14.2" date="2026-05-02">
+      <description>
+        <p>Update Tauri and webauthn-rs dependencies to latest versions for improved functionality and security.</p>
+      </description>
+    </release>
     <release version="0.14.1" date="2026-05-02">
       <description>
         <p>Switch nosql_orm dependency to git source for better dependency management.</p>
