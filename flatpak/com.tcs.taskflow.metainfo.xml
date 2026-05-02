@@ -73,6 +73,70 @@
   </provides>
 
   <releases>
+    <release version="0.14.0" date="2026-05-02">
+      <description>
+        <p>Release version 0.14.0 with unified entity management, improved data handling, and enhanced authentication workflows.</p>
+
+        <p>
+          <strong>Unified Entity Management:</strong>
+        </p>
+        <ul>
+          <li>Unified manage-item page - single page handles todos, tasks, and subtasks with keyboard and routing helpers, replacing three separate views</li>
+          <li>Dynamic user lookup in chat components with getUsername() method for real-time username resolution</li>
+          <li>Users entity support for improved profile lookups</li>
+        </ul>
+
+        <p>
+          <strong>Data Management Enhancements:</strong>
+        </p>
+        <ul>
+          <li>Enhanced data management view with improved UI</li>
+          <li>Improved cascade service for better entity handling</li>
+          <li>Offline queue support with conditional sync logic for create operations</li>
+          <li>Pending request entity for tracking pending synchronization requests</li>
+          <li>Better profile synchronization with optimized data loading</li>
+        </ul>
+
+        <p>
+          <strong>Storage &amp; Sync Refinements:</strong>
+        </p>
+        <ul>
+          <li>Simplified storage service with streamlined operations</li>
+          <li>Dedicated user and profile sync services</li>
+          <li>Offline operation prioritization - local handling before network operations</li>
+          <li>Updated sync metadata handling across services</li>
+        </ul>
+
+        <p>
+          <strong>Authentication &amp; Security:</strong>
+        </p>
+        <ul>
+          <li>Updated auth registration with improved registration flow</li>
+          <li>Enhanced token and storage services for better authentication</li>
+          <li>Backend 2FA infrastructure with TOTP, Passkey, and Biometric support</li>
+        </ul>
+
+        <p>
+          <strong>UI/UX Improvements:</strong>
+        </p>
+        <ul>
+          <li>Reusable QR scanner component for authentication</li>
+          <li>Canvas-based image crop modal with upload and URL support</li>
+          <li>Improved chat functionality with user_id references</li>
+          <li>Updated templates and styles across views</li>
+        </ul>
+
+        <p>
+          <strong>Developer Experience:</strong>
+        </p>
+        <ul>
+          <li>Applied Prettier and rustfmt across frontend and backend</li>
+          <li>Implemented Rust clippy style suggestions</li>
+          <li>Cleaned up dead code - unused structs, methods, and services</li>
+          <li>Updated Flatpak GNOME runtime and SDK to version 49</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.1" date="2026-04-07">
       <description>
         <p>Fixed running application on Linux with NVIDIA Wayland WebkitGTK bugs</p>
