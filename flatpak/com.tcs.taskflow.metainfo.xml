@@ -73,6 +73,11 @@
   </provides>
 
   <releases>
+    <release version="0.14.1" date="2026-05-02">
+      <description>
+        <p>Switch nosql_orm dependency to git source for better dependency management.</p>
+      </description>
+    </release>
     <release version="0.14.0" date="2026-05-02">
       <description>
         <p>Release version 0.14.0 with unified entity management, improved data handling, and enhanced authentication workflows.</p>
