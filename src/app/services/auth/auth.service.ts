@@ -232,9 +232,7 @@ export class AuthService {
             this.storageService.setCollection("user", user);
           }
         },
-        error: (err) => {
-          console.error("Auth error:", err);
-        },
+        error: (err) => {},
       });
   }
 }

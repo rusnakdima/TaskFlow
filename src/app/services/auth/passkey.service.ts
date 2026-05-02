@@ -171,7 +171,6 @@ export class PasskeyService {
       });
       return credential;
     } catch (err) {
-      console.error("Passkey error:", err);
       return null;
     }
   }

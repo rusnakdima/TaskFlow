@@ -39,7 +39,6 @@ export class UserValidationService {
             err.message.includes("Connection refused");
 
           if (isNetworkError || isBackendUnavailable) {
-            console.error("User validation network error:", err);
           } else {
             this.invalidateUserSession();
           }
