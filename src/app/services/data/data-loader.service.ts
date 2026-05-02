@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, forkJoin, of, catchError, tap } from "rxjs";
+import { Observable, forkJoin, of, catchError, tap, switchMap } from "rxjs";
 import { Router } from "@angular/router";
 
 /* models */
@@ -41,31 +41,15 @@ export class DataLoaderService {
   ): Observable<{ todos: Todo[]; categories: Category[] }> {
     const currentUserId = this.jwtTokenService.getCurrentUserId() || "";
 
-    console.log(
-      "[DataLoader] loadAllData called, loaded:",
-      this.storageService.loaded(),
-      "currentUserId:",
-      currentUserId
-    );
-
     // Always check for profile status even if data is loaded
     // This handles the case where user was redirected but page reloaded
     if (this.storageService.loaded()) {
       const todos = this.storageService.todos();
       const categories = this.storageService.categories();
       const profile = this.storageService.profile();
-      console.log(
-        "[DataLoader] Cached data check - todos:",
-        todos.length,
-        "categories:",
-        categories.length,
-        "profile:",
-        profile?.user_id
-      );
       if (todos.length > 0 || categories.length > 0) {
         // Data is cached, but still check if profile exists
         if (!profile?.user_id && currentUserId && currentUserId.trim()) {
-          console.log("[DataLoader] Cached data loaded but no profile, triggering redirect...");
           const currentUrl = window.location.pathname;
           if (!currentUrl.startsWith("/profile")) {
             this.notifyService.showWarning("Profile not found. Please create one.");
@@ -98,121 +82,45 @@ export class DataLoaderService {
     // Load user profile only if user_id is valid
     let userProfile$: Observable<Profile | null> = of(null);
     if (currentUserId && currentUserId.trim()) {
-      // Call API directly to properly handle errors
       userProfile$ = new Observable<Profile | null>((observer) => {
         this.apiProvider
-          .crud<Profile>("get", "profiles", {
-            filter: { user_id: currentUserId },
-            load: ["user"],
-            visibility: "private",
-          })
+          .invokeCommand("initialize_user_data", { userId: currentUserId })
+          .pipe(
+            switchMap((result: any) => {
+              if (result?.data?.needsRegistration) {
+                this.notifyService.showWarning("Account not found. Please register again.");
+                this.router.navigate(["/register"]);
+                observer.next(null);
+                observer.complete();
+                return of(null);
+              }
+              if (result?.data?.needsProfile) {
+                this.notifyService.showWarning("Profile not found. Please create one.");
+                this.profileRequiredService.setProfileRequiredMode(true);
+                this.router.navigate(["/profile/manage"]);
+                observer.next(null);
+                observer.complete();
+                return of(null);
+              }
+              // Sync complete, now load profile from JSON
+              return this.apiProvider.crud<Profile>("get", "profiles", {
+                filter: { user_id: currentUserId },
+                load: ["user"],
+                visibility: "private",
+              });
+            })
+          )
           .subscribe({
             next: (profile) => {
               if (profile && typeof profile === "object" && "user_id" in profile) {
-                observer.next(profile);
+                this.storageService.setCollection("profiles", profile);
               } else {
                 observer.next(null);
               }
               observer.complete();
             },
-            error: (err: Error) => {
-              const errorMsg = err.message || String(err) || "";
-              console.log("[DataLoader] Profile API error:", errorMsg);
-              if (errorMsg.includes("User not found")) {
-                this.notifyService.showWarning(
-                  "Your account was deleted from cloud. Please login again."
-                );
-                this.userValidationService.invalidateUserSession();
-              } else if (errorMsg.includes("Profile not found - user exists")) {
-                this.notifyService.showWarning("Profile not found - checking local...");
-                const localProfile = this.storageService.profile();
-                console.log("[DataLoader] localProfile:", localProfile);
-                if (localProfile?.id) {
-                  // Case A: Local profile exists - sync local to cloud
-                  this.notifyService.showWarning(
-                    "Your profile was deleted from cloud. Restoring from local..."
-                  );
-                  this.apiProvider
-                    .crud<Profile>("update", "profiles", {
-                      data: localProfile,
-                      id: localProfile.id,
-                      visibility: "private",
-                    })
-                    .subscribe({
-                      next: () => {
-                        console.log("[DataLoader] Profile synced to cloud");
-                        observer.next(localProfile);
-                        observer.complete();
-                      },
-                      error: () => {
-                        console.log("[DataLoader] Sync failed, proceeding with local");
-                        observer.next(localProfile);
-                        observer.complete();
-                      },
-                    });
-                } else {
-                  // Case B: No local - check if profile exists in cloud (without user relation)
-                  console.log("[DataLoader] Case B: No local profile, checking cloud...");
-                  this.apiProvider
-                    .crud<Profile>("get", "profiles", {
-                      filter: { user_id: currentUserId },
-                      load: [],
-                      visibility: "private",
-                    })
-                    .subscribe({
-                      next: (cloudProfile) => {
-                        if (
-                          cloudProfile &&
-                          typeof cloudProfile === "object" &&
-                          "user_id" in cloudProfile
-                        ) {
-                          // Profile exists in cloud - import to local
-                          this.notifyService.showWarning(
-                            "Your profile was found in cloud. Importing..."
-                          );
-                          this.apiProvider
-                            .crud<Profile>("create", "profiles", {
-                              data: cloudProfile,
-                              visibility: "private",
-                            })
-                            .subscribe({
-                              next: () => {
-                                console.log("[DataLoader] Profile imported from cloud");
-                                observer.next(cloudProfile);
-                                observer.complete();
-                              },
-                              error: () => {
-                                console.log("[DataLoader] Import failed");
-                                observer.next(cloudProfile);
-                                observer.complete();
-                              },
-                            });
-                        } else {
-                          // Profile doesn't exist anywhere - redirect to create
-                          console.log(
-                            "[DataLoader] Case B: Profile not found anywhere, redirecting..."
-                          );
-                          this.notifyService.showWarning("Profile not found. Please create one.");
-                          window.location.href = "/profile/manage";
-                          observer.next(null);
-                          observer.complete();
-                        }
-                      },
-                      error: (err2: Error) => {
-                        console.log("[DataLoader] Cloud check error:", err2.message);
-                        // Profile doesn't exist anywhere - redirect
-                        console.log("[DataLoader] Case B: Cloud check failed, redirecting...");
-                        this.notifyService.showWarning("Profile not found. Please create one.");
-                        window.location.href = "/profile/manage";
-                        observer.next(null);
-                        observer.complete();
-                      },
-                    });
-                }
-              } else {
-                console.log("[DataLoader] Unknown error:", errorMsg);
-                observer.next(null);
-              }
+            error: (err: any) => {
+              observer.next(null);
               observer.complete();
             },
           });
@@ -240,8 +148,6 @@ export class DataLoaderService {
         "team"
       );
 
-      console.log("[DataLoader] Created sharedTodos$ query, assignees filter:", currentUserId);
-
       const publicTodos$ = this.relationLoader.loadMany<Todo>(
         this.apiProvider,
         "todos",
@@ -250,17 +156,13 @@ export class DataLoaderService {
         "public"
       );
 
-      console.log("[DataLoader] Created publicTodos$ query, visibility filter: public");
       loadPromises.push(allProfiles$, sharedTodos$, publicTodos$);
       profileLabels.push("allProfiles", "sharedTodos", "publicTodos");
     }
 
     // Always run categories, private todos, and user profile first (JSON, fast)
     const essential$ = forkJoin([allCategories$, privateTodos$, userProfile$]).pipe(
-      catchError((error) => {
-        console.error("[DataLoader] Essential error:", error);
-        return of([null, null, null]);
-      })
+      catchError(() => of([null, null, null]))
     );
 
     const essentialLabels = ["categories", "privateTodos", "userProfile"];
@@ -275,24 +177,14 @@ export class DataLoaderService {
       if (userProfile && typeof userProfile === "object" && "user_id" in userProfile) {
         this.storageService.setCollection("profiles", userProfile);
       } else if (!userProfile && currentUserId && currentUserId.trim()) {
-        // Profile not loaded - check why and handle
-        console.log("[DataLoader] Profile not loaded after API call, checking profile status...");
         const localProfile = this.storageService.profile();
-        console.log("[DataLoader] localProfile from storage:", localProfile);
         if (!localProfile?.user_id) {
-          // Check if we're already on a profile route
           const currentUrl = window.location.pathname;
-          console.log("[DataLoader] Current URL:", currentUrl);
           if (!currentUrl.startsWith("/profile")) {
-            console.log("[DataLoader] No profile anywhere, redirecting to /profile/manage");
             this.notifyService.showWarning("Profile not found. Please create one.");
             this.profileRequiredService.setProfileRequiredMode(true);
             this.router.navigate(["/profile/manage"]);
           } else {
-            console.log(
-              "[DataLoader] Already on profile route, setting profileRequiredMode anyway"
-            );
-            // Still need to hide header/bottom nav even if on profile route
             this.profileRequiredService.setProfileRequiredMode(true);
           }
         }
@@ -303,23 +195,9 @@ export class DataLoaderService {
 
     // Load profiles and shared todos in background if enabled
     if (loadShared && loadPromises.length > 0) {
-      console.log("[DataLoader] Loading shared data with", loadPromises.length, "promises");
       forkJoin(loadPromises)
-        .pipe(
-          catchError((error) => {
-            console.error("[DataLoader] Shared error:", error);
-            return of(loadPromises.map(() => null));
-          })
-        )
+        .pipe(catchError(() => of(loadPromises.map(() => null))))
         .subscribe((results) => {
-          console.log(
-            "[DataLoader] Shared results:",
-            results.map((r, i) => ({
-              label: profileLabels[i],
-              count: Array.isArray(r) ? r.length : 0,
-              type: typeof r,
-            }))
-          );
           results.forEach((data, index) => {
             const label = profileLabels[index];
             if (label === "allProfiles" && data) {
@@ -332,18 +210,8 @@ export class DataLoaderService {
             ) {
               this.storageService.setCollection("profiles", data);
             } else if (label === "sharedTodos" && data) {
-              console.log(
-                "[DataLoader] Setting sharedTodos:",
-                Array.isArray(data) ? data.length : 0,
-                data
-              );
               this.storageService.setCollection("sharedTodos", data);
             } else if (label === "publicTodos" && data) {
-              console.log(
-                "[DataLoader] Setting publicTodos:",
-                Array.isArray(data) ? data.length : 0,
-                data
-              );
               this.storageService.setCollection("publicTodos", data);
             }
           });

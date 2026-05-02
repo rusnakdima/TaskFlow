@@ -8,6 +8,7 @@ use crate::entities::relation_obj::RelationObj;
 use crate::entities::response_entity::ResponseModel;
 
 /* helpers */
+use crate::helpers::auth_helper::validate_user_owns_data;
 use crate::helpers::response_helper::err_response;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
@@ -38,7 +39,9 @@ pub async fn manage_data(
 pub async fn import_to_local(
   state: State<'_, AppState>,
   user_id: String,
+  token: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
   state.manage_db_service.import_to_local(user_id).await
 }
 
@@ -46,10 +49,12 @@ pub async fn import_to_local(
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
   user_id: String,
+  token: String,
 ) -> Result<ResponseModel, ResponseModel> {
   if user_id.is_empty() {
     return Err(err_response("Missing required parameter: user_id"));
   };
+  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
   state.manage_db_service.export_to_cloud(user_id).await
 }
 

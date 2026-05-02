@@ -38,6 +38,9 @@ pub mod admin_manager;
 
 pub mod statistics;
 
+pub mod profile;
+pub mod user;
+
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
 

@@ -55,12 +55,11 @@ pub async fn update_user_profile_id_both(
       data: DataValue::String("".to_string()),
     })?;
 
-  // Step 2: FAIL if MongoDB not available
-  let mongo = mongo_provider.ok_or_else(|| ResponseModel {
-    status: ResponseStatus::Error,
-    message: "MongoDB not available".to_string(),
-    data: DataValue::String("".to_string()),
-  })?;
+  // Step 2: MongoDB is optional - if not available, log and return
+  let Some(mongo) = mongo_provider else {
+    println!("[WARN] MongoDB not available, skipping profile_id sync in MongoDB");
+    return Ok(());
+  };
 
   // Step 3: Update MongoDB with last-write-wins
   let now_str = timestamp_helper::get_current_timestamp();

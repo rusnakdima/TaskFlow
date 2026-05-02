@@ -20,7 +20,6 @@ use crate::entities::{
 use crate::helpers::{
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
-  user_sync_helper,
 };
 
 /* services */
@@ -97,6 +96,16 @@ impl RepositoryService {
     self
   }
 
+  fn use_json_provider_for_visibility(visibility: &str) -> bool {
+    let result = visibility == "private";
+    tracing::info!(
+      "[Repository] use_json_provider_for_visibility: visibility={}, result={}",
+      visibility,
+      result
+    );
+    result
+  }
+
   fn use_json_provider(&self, table: &str, visibility: Option<&str>) -> bool {
     if table == "daily_activities" {
       tracing::info!(
@@ -105,21 +114,12 @@ impl RepositoryService {
       );
       return true;
     }
-    let result = visibility.map_or(true, |v| v == "private");
+    let vis = visibility.unwrap_or("private");
+    let result = vis == "private";
     tracing::info!(
       "[Repository] use_json_provider: table={}, visibility={:?}, result={}",
       table,
-      visibility,
-      result
-    );
-    result
-  }
-
-  fn use_json_provider_for_visibility(visibility: &str) -> bool {
-    let result = visibility == "private";
-    tracing::info!(
-      "[Repository] use_json_provider_for_visibility: visibility={}, result={}",
-      visibility,
+      vis,
       result
     );
     result
@@ -406,23 +406,6 @@ impl RepositoryService {
     let doc = match doc {
       Some(d) => d,
       None => {
-        if table == "profiles" {
-          if let Some(f) = &filter {
-            if let Some(user_id_val) = f.get("user_id") {
-              if let Some(user_id_str) = user_id_val.as_str() {
-                let user_exists = self
-                  .check_user_exists_in_mongodb(user_id_str)
-                  .await
-                  .unwrap_or(false);
-                if user_exists {
-                  return Err(err_response("Profile not found - user exists"));
-                } else {
-                  return Err(err_response("User not found"));
-                }
-              }
-            }
-          }
-        }
         return Err(err_response("Document not found"));
       }
     };
@@ -468,34 +451,6 @@ impl RepositoryService {
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
     let created_record = provider.insert(&table, validated_data).await?;
-
-    if table == "profiles" && self.mongodb_provider.is_some() {
-      let profile_id = created_record
-        .get("id")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
-      let user_id = created_record
-        .get("user_id")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
-
-      if !profile_id.is_empty() && !user_id.is_empty() {
-        let _ = self
-          .profile_service
-          .sync_profile_to_cloud(profile_id.clone())
-          .await;
-
-        user_sync_helper::update_user_profile_id_both(
-          &self.json_provider,
-          self.mongodb_provider.as_ref(),
-          &user_id,
-          &profile_id,
-        )
-        .await?;
-      }
-    }
 
     self.invalidate_cache(&table).await;
 
@@ -700,17 +655,5 @@ impl RepositoryService {
         .await?;
     }
     Ok(success_response(DataValue::String(id)))
-  }
-
-  async fn check_user_exists_in_mongodb(&self, user_id: &str) -> Result<bool, ResponseModel> {
-    if let Some(mongo) = &self.mongodb_provider {
-      let result = mongo
-        .find_by_id("users", user_id)
-        .await
-        .map_err(|e| err_response(&format!("MongoDB query failed: {}", e)))?;
-      Ok(result.is_some())
-    } else {
-      Ok(false)
-    }
   }
 }

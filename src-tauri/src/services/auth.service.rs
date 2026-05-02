@@ -6,6 +6,7 @@ use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 
 /* services */
+use super::auth::auth_data_sync::AuthDataSyncService;
 use super::auth::auth_login::AuthLoginService;
 use super::auth::auth_password::AuthPasswordService;
 use super::auth::auth_register::AuthRegisterService;
@@ -29,6 +30,7 @@ pub struct AuthService {
   pub register_service: AuthRegisterService,
   pub password_service: AuthPasswordService,
   pub webauthn_state: Arc<WebAuthnState>,
+  pub auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
 }
 
 impl AuthService {
@@ -37,6 +39,7 @@ impl AuthService {
     mongodb_provider: Option<Arc<MongoProvider>>,
     jwt_secret: String,
     rp_domain: String,
+    auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
   ) -> Self {
     let mongo_provider = mongodb_provider.clone();
 
@@ -44,11 +47,15 @@ impl AuthService {
       json_provider.clone(),
       mongo_provider.clone(),
       jwt_secret,
+      auth_data_sync_service.clone(),
     ));
     let login_service = AuthLoginService::new(
       json_provider.clone(),
       mongo_provider.clone(),
       Arc::clone(&token_service),
+      auth_data_sync_service
+        .clone()
+        .expect("AuthDataSyncService required for login"),
     );
     let register_service = AuthRegisterService::new(
       json_provider.clone(),
@@ -72,6 +79,7 @@ impl AuthService {
       register_service,
       password_service,
       webauthn_state,
+      auth_data_sync_service,
     }
   }
 
