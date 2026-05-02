@@ -11,7 +11,6 @@ use nosql_orm::relations::RelationLoader;
 /* entities */
 use crate::entities::{
   provider_type_entity::ProviderType,
-  relation_obj::RelationObj,
   response_entity::{DataValue, ResponseModel},
   table_entity::validate_model,
 };
@@ -49,24 +48,15 @@ impl RepositoryService {
     visibility: Option<&str>,
   ) -> Result<DataProvider<'_>, ResponseModel> {
     let use_json = self.use_json_provider(table, visibility);
-    tracing::info!(
-      "[Repository] get_provider: table={}, use_json={}, visibility={:?}",
-      table,
-      use_json,
-      visibility
-    );
 
     if use_json {
       Ok(DataProvider::Json(&self.json_provider))
     } else {
       match self.mongodb_provider.as_ref() {
         Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
-        None => {
-          tracing::error!("[Repository] MongoDB not available - cannot use for team data");
-          Err(err_response(
-            "MongoDB not available - team data requires cloud connection",
-          ))
-        }
+        None => Err(err_response(
+          "MongoDB not available - team data requires cloud connection",
+        )),
       }
     }
   }
@@ -97,45 +87,35 @@ impl RepositoryService {
   }
 
   fn use_json_provider_for_visibility(visibility: &str) -> bool {
-    let result = visibility == "private";
-    tracing::info!(
-      "[Repository] use_json_provider_for_visibility: visibility={}, result={}",
-      visibility,
-      result
-    );
-    result
+    visibility == "private"
   }
 
   fn use_json_provider(&self, table: &str, visibility: Option<&str>) -> bool {
     if table == "daily_activities" {
-      tracing::info!(
-        "[Repository] use_json_provider: table={} always JSON (daily_activities)",
-        table
-      );
       return true;
     }
     let vis = visibility.unwrap_or("private");
-    let result = vis == "private";
-    tracing::info!(
-      "[Repository] use_json_provider: table={}, visibility={:?}, result={}",
-      table,
-      vis,
-      result
-    );
-    result
+    vis == "private"
   }
 
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
-    tracing::info!("[Repository] build_filter: input={}", filter_value);
-
     if filter_value.is_object() && filter_value.as_object().map_or(true, |obj| obj.is_empty()) {
-      tracing::info!("[Repository] build_filter: empty filter, returning None");
       return None;
     }
 
-    let result = Filter::from_json(filter_value).ok();
-    tracing::info!("[Repository] build_filter: result={:?}", result);
-    result
+    Filter::from_json(filter_value).ok()
+  }
+
+  fn parse_load_param(load: Option<String>) -> Vec<String> {
+    match load {
+      Some(l) => {
+        if let Ok(arr) = serde_json::from_str::<Vec<String>>(&l) {
+          return arr;
+        }
+        l.split(',').map(|s| s.trim().to_string()).collect()
+      }
+      None => vec![],
+    }
   }
 
   async fn load_relations_via_nosql_orm(
@@ -168,12 +148,6 @@ impl RepositoryService {
         {
           Ok(loaded) => result_docs = loaded,
           Err(e) => {
-            tracing::warn!(
-              "[REPO] Failed to load relations for table={}, path={}: {}",
-              table,
-              path,
-              e
-            );
             return Err(err_response_formatted(
               "Relation loading failed",
               &e.to_string(),
@@ -233,6 +207,11 @@ impl RepositoryService {
     docs
   }
 
+  fn filter_out_deleted(&self, mut docs: Vec<Value>) -> Vec<Value> {
+    docs.retain(|doc| doc.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
+    docs
+  }
+
   async fn invalidate_cache(&self, table: &str) {
     if let Some(ref cache) = self.query_cache {
       let _ = cache.invalidate_collection(table).await;
@@ -247,16 +226,11 @@ impl RepositoryService {
     id: Option<String>,
     data: Option<Value>,
     filter: Option<Value>,
-    _relations: Option<Vec<RelationObj>>,
-    load: Option<Vec<String>>,
+    load: Option<String>,
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     match operation.as_str() {
-      "getAll" => {
-        self
-          .handle_get_all(table, filter, _relations, load, visibility)
-          .await
-      }
+      "getAll" => self.handle_get_all(table, filter, load, visibility).await,
       "get" => self.handle_get(table, id, load, visibility, filter).await,
       "create" => self.handle_create(table, data, visibility).await,
       "update" => self.handle_update(table, id, data, visibility).await,
@@ -287,38 +261,20 @@ impl RepositoryService {
     &self,
     table: String,
     filter: Option<Value>,
-    _relations: Option<Vec<RelationObj>>,
-    load: Option<Vec<String>>,
+    load: Option<String>,
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_val = filter.unwrap_or(json!({}));
-    tracing::info!(
-      "[Repository] handle_get_all: table={}, filter={}, visibility={:?}",
-      table,
-      filter_val,
-      visibility
-    );
 
     let filter_opt = self.build_filter(&filter_val);
-    tracing::info!("[Repository] handle_get_all: built filter={:?}", filter_opt);
 
-    let use_json = self.use_json_provider(&table, visibility.as_deref());
-    tracing::info!(
-      "[Repository] handle_get_all: use_json_provider={} for table={}",
-      use_json,
-      table
-    );
+    let _use_json = self.use_json_provider(&table, visibility.as_deref());
 
     let provider = self.get_provider(&table, visibility.as_deref())?;
-    tracing::info!("[Repository] handle_get_all: provider selected");
 
     let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
-    tracing::info!(
-      "[Repository] handle_get_all: find_many returned {} docs",
-      docs.len()
-    );
 
-    let load_paths: Vec<String> = load.map(|l| l.into_iter().collect()).unwrap_or_default();
+    let load_paths = Self::parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
       if matches!(provider, DataProvider::Mongo(_)) {
@@ -337,6 +293,8 @@ impl RepositoryService {
     } else {
       docs
     };
+
+    let docs = self.filter_out_deleted(docs);
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -370,14 +328,20 @@ impl RepositoryService {
       }
 
       let loader = RelationLoader::new(provider.clone());
-      let Ok(loaded) = loader
+      match loader
         .load_nested(current_docs, &segments, table, true)
         .await
-      else {
-        let e = "Relation loading failed";
-        return Err(err_response(e));
-      };
-      current_docs = loaded;
+      {
+        Ok(loaded) => {
+          current_docs = loaded;
+        }
+        Err(e) => {
+          return Err(err_response_formatted(
+            "Relation loading failed",
+            &e.to_string(),
+          ));
+        }
+      }
     }
 
     Ok(current_docs)
@@ -387,7 +351,7 @@ impl RepositoryService {
     &self,
     table: String,
     id: Option<String>,
-    load: Option<Vec<String>>,
+    load: Option<String>,
     visibility: Option<String>,
     filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -411,7 +375,7 @@ impl RepositoryService {
     };
 
     // Only load relations if explicitly requested via load parameter
-    let load_paths: Vec<String> = load.map(|l| l.into_iter().collect()).unwrap_or_default();
+    let load_paths = Self::parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
       self
@@ -538,14 +502,7 @@ impl RepositoryService {
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
-        if let Err(e) = provider.update(&table, id, record.clone()).await {
-          tracing::warn!(
-            "[RepositoryService] updateAll failed to update {} in table {}: {:?}",
-            id,
-            table,
-            e
-          );
-        }
+        if let Err(_e) = provider.update(&table, id, record.clone()).await {}
       }
     }
 

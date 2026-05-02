@@ -35,9 +35,7 @@ pub async fn check_profile_exists(
     {
       if let Some(profile_val) = profiles.first() {
         if let Ok(profile) = serde_json::from_value::<ProfileEntity>(profile_val.clone()) {
-          if let Err(e) = json_provider.insert(table_name, profile_val.clone()).await {
-            tracing::warn!("Failed to sync profile to JSON: {}", e);
-          }
+          if let Err(_e) = json_provider.insert(table_name, profile_val.clone()).await {}
           return Ok(Some(profile));
         }
       }
