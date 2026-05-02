@@ -58,8 +58,8 @@ openssl-sys = { version = "0.9", features = ["vendored"] }
 # reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 keyring = { version = "3", features = [] }
 
-# nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
-nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
+nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
+# nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 # nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 
 [features]
