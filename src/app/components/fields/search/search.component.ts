@@ -17,6 +17,7 @@ export class SearchComponent implements OnInit {
   @Input() searchByFields: Array<any> = [];
   @Input() isShowSearchField: boolean = false;
   @Output() array: EventEmitter<Array<any>> = new EventEmitter<Array<any>>();
+  @Output() searchChange: EventEmitter<string> = new EventEmitter<string>();
 
   searchField: string = "";
 
@@ -64,6 +65,7 @@ export class SearchComponent implements OnInit {
     });
 
     this.array.next(results);
+    this.searchChange.next(this.searchField);
   }
 
   private fuzzyMatchInField(item: any, field: string, term: string): boolean {

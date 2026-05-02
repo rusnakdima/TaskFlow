@@ -65,11 +65,20 @@
           (click)="onRowClick(item)"
         >
           @if (dragEnabled) {
-            <td class="px-2 py-3 text-center" cdkDragHandle (click)="$event.stopPropagation()">
-              <mat-icon
-                class="h-5! w-5! cursor-grab text-2xl! text-gray-400"
-                fontIcon="drag_indicator"
-              />
+            <td class="px-2 py-3 text-center">
+              <button
+                cdkDragHandle
+                title="Drag to reorder"
+                class="cursor-move rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-zinc-700/50"
+                style="
+                  touch-action: none;
+                  -webkit-user-drag: none;
+                  -webkit-tap-highlight-color: transparent;
+                  -webkit-user-select: none;
+                "
+              >
+                <mat-icon class="h-5! w-5! min-w-5 text-base!" fontIcon="drag_indicator" />
+              </button>
             </td>
           }
           @if (showSelection) {

@@ -67,12 +67,12 @@
         @if (mode === "categories") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-red-700"
-              (click)="onHardDelete()"
-              matTooltip="Delete selected categories"
+              class="flex min-h-8! items-center gap-1 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700"
+              (click)="onSoftDelete()"
+              matTooltip="Archive selected categories"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">delete</mat-icon>
-              <span class="hidden sm:inline">Delete</span>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">archive</mat-icon>
+              <span class="hidden sm:inline">Archive</span>
             </button>
           </div>
         }

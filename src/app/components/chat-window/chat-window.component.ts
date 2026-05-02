@@ -186,9 +186,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     try {
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
-    } catch (err: unknown) {
-      console.error("Failed to scroll to bottom:", err);
-    }
+    } catch (err: unknown) {}
   }
 
   isMyMessage(chat: Chat): boolean {
@@ -229,7 +227,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
     };
 
     const todo = this.storageService.getById("todos", this.todo_id);
-    const visibility = todo?.visibility === "team" ? "team" : "private";
+    const visibility = todo?.visibility === "shared" ? "shared" : "private";
 
     this.dataSync
       .crud<Chat>("create", "chats", {
@@ -247,7 +245,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   deleteMessage(chatId: string) {
     this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todo_id }).subscribe({
-      error: (err) => console.error("Delete chat failed:", err),
+      error: (err) => {},
     });
   }
 
