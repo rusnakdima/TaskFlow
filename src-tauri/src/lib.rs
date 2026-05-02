@@ -21,6 +21,7 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 /* routes */
 use routes::{
   about_route::{download_update, get_binary_name_file, open_file},
+  auth_data_sync_route::initialize_user_data,
   auth_route::{
     authenticate_android_biometric, check_android_biometric, check_token, complete_biometric_auth,
     complete_passkey_authentication, complete_passkey_registration, disable_biometric,
@@ -44,16 +45,18 @@ use services::{
   about_service::AboutService,
   activity_monitor_service::ActivityMonitorService,
   auth::{
-    auth_biometric::AuthBiometricService, auth_passkey::AuthPasskeyService, auth_qr::QrAuthService,
-    auth_totp::AuthTotpService,
+    auth_biometric::AuthBiometricService, auth_data_sync::AuthDataSyncService,
+    auth_passkey::AuthPasskeyService, auth_qr::QrAuthService, auth_totp::AuthTotpService,
   },
   auth_service::AuthService,
   cascade::CascadeService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
+  profile::profile_sync::ProfileSyncService,
   profile_service::ProfileService,
   repository_service::RepositoryService,
   statistics_service::StatisticsService,
+  user::user_sync::UserSyncService,
 };
 
 /* nosql_orm */
@@ -71,6 +74,7 @@ pub struct AppState {
   pub totp_service: Arc<AuthTotpService>,
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
+  pub auth_data_sync_service: Arc<AuthDataSyncService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -152,6 +156,21 @@ pub fn run() {
         mongodb_provider.clone(),
       ));
 
+      let user_sync_service = Arc::new(UserSyncService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
+
+      let profile_sync_service = Arc::new(ProfileSyncService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
+
+      let auth_data_sync_service = Arc::new(AuthDataSyncService::new(
+        user_sync_service.clone(),
+        profile_sync_service.clone(),
+      ));
+
       let cascade_service = CascadeService::new(json_provider.clone(), mongodb_provider.clone());
       let entity_resolution = Arc::new(EntityResolutionService::new(
         json_provider.clone(),
@@ -185,6 +204,7 @@ pub fn run() {
         mongo_for_auth,
         config_helper.jwt_secret.clone(),
         config_helper.rp_domain.clone(),
+        Some(auth_data_sync_service.clone()),
       ));
 
       let totp_service = Arc::new(AuthTotpService::new(
@@ -230,6 +250,7 @@ pub fn run() {
         totp_service,
         passkey_service,
         biometric_service,
+        auth_data_sync_service,
       });
 
       Ok(())
@@ -280,7 +301,8 @@ pub fn run() {
       sync_visibility_to_provider,
       profile_sync_to_cloud,
       profile_sync_all_for_user,
-      statistics_get
+      statistics_get,
+      initialize_user_data
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

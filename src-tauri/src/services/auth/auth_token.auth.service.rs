@@ -15,6 +15,9 @@ use crate::entities::{
   user_entity::UserEntity,
 };
 
+/* services */
+use crate::services::auth::auth_data_sync::AuthDataSyncService;
+
 /* helpers */
 use crate::helpers::response_helper::err_response;
 
@@ -29,6 +32,7 @@ pub struct AuthTokenService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub jwt_secret: String,
+  pub auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
 }
 
 impl AuthTokenService {
@@ -36,11 +40,13 @@ impl AuthTokenService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     jwt_secret: String,
+    auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
   ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
       jwt_secret,
+      auth_data_sync_service,
     }
   }
 
@@ -89,6 +95,10 @@ impl AuthTokenService {
         let _ = self.sync_user_to_cloud(user_val.clone()).await;
       }
 
+      if let Some(sync_service) = &self.auth_data_sync_service {
+        let _ = sync_service.on_user_login(&user_id).await;
+      }
+
       return Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Token is valid (local)".to_string(),
@@ -124,6 +134,10 @@ impl AuthTokenService {
           if let Some(p) = profile_val.first() {
             let _ = self.json_provider.insert("profiles", p.clone()).await;
           }
+        }
+
+        if let Some(sync_service) = &self.auth_data_sync_service {
+          let _ = sync_service.on_user_login(&user_id).await;
         }
 
         Ok(ResponseModel {

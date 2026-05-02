@@ -325,8 +325,23 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getFilteredCount(filter: string): number {
-    // Count only private visibility todos
-    const todos = this.storageService.privateTodos();
+    const visibility = this.activeVisibility();
+    let todos: Todo[] = [];
+
+    switch (visibility) {
+      case "all":
+        todos = this.allTodosFlat();
+        break;
+      case "private":
+        todos = this.storageService.privateTodos();
+        break;
+      case "team":
+        todos = this.storageService.sharedTodos();
+        break;
+      case "public":
+        todos = this.storageService.publicTodos();
+        break;
+    }
 
     switch (filter) {
       case "all":

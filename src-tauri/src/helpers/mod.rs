@@ -1,6 +1,7 @@
 pub mod activity;
 #[path = "activity_log.helper.rs"]
 pub mod activity_log;
+pub mod auth_helper;
 #[path = "common.helper.rs"]
 pub mod common;
 #[path = "config.helper.rs"]

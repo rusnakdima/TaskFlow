@@ -384,7 +384,50 @@ impl CascadeService {
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
-    self.permanent_delete_cascade_mongo(table, id).await
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      let entity = self
+        .json_provider
+        .find_by_id(table, id)
+        .await
+        .map_err(|e| {
+          err_response_formatted(
+            "Cascade sync to MongoDB failed",
+            &format!("Failed to fetch from JSON: {}", e),
+          )
+        })?
+        .ok_or_else(|| {
+          err_response_formatted(
+            "Cascade sync to MongoDB failed",
+            &format!("Entity {} not found in JSON", id),
+          )
+        })?;
+
+      match mongo.find_by_id(table, id).await {
+        Ok(Some(_)) => {
+          mongo.update(table, id, entity).await.map_err(|e| {
+            err_response_formatted(
+              "Cascade sync to MongoDB failed",
+              &format!("Failed to update in MongoDB: {}", e),
+            )
+          })?;
+        }
+        Ok(None) => {
+          mongo.insert(table, entity).await.map_err(|e| {
+            err_response_formatted(
+              "Cascade sync to MongoDB failed",
+              &format!("Failed to insert to MongoDB: {}", e),
+            )
+          })?;
+        }
+        Err(e) => {
+          return Err(err_response_formatted(
+            "Cascade sync to MongoDB failed",
+            &format!("Failed to check MongoDB: {}", e),
+          ));
+        }
+      }
+    }
+    Ok(CascadeResult::new())
   }
 
   pub async fn handle_cascade<P>(

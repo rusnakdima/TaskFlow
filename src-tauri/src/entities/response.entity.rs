@@ -68,3 +68,9 @@ impl From<String> for DataValue {
     DataValue::String(s)
   }
 }
+
+impl From<serde_json::Value> for DataValue {
+  fn from(v: serde_json::Value) -> DataValue {
+    DataValue::Object(v)
+  }
+}

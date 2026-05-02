@@ -92,7 +92,7 @@ export class SyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
 
-      const result = await invoke<Response<R>>("import_to_local", { userId: userId });
+      const result = await invoke<Response<R>>("import_to_local", { userId: userId, token });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 90, message: "Updating local data..." });
@@ -143,7 +143,7 @@ export class SyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
 
-      const result = await invoke<Response<R>>("export_to_cloud", { userId: userId });
+      const result = await invoke<Response<R>>("export_to_cloud", { userId: userId, token });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 100, message: "Export complete" });

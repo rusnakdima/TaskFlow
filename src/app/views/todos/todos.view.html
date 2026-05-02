@@ -180,6 +180,9 @@
       } @else if (viewMode() === "grid") {
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           @if (groupedTodos().private.length > 0) {
+            <div class="col-span-full">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Private</h3>
+            </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -200,6 +203,9 @@
             @if (groupedTodos().private.length > 0) {
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
+            <div class="col-span-full">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Shared</h3>
+            </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -220,6 +226,9 @@
             @if (groupedTodos().private.length > 0 || groupedTodos().shared.length > 0) {
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
+            <div class="col-span-full">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Public</h3>
+            </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -240,6 +249,9 @@
       } @else {
         <div class="flex w-full flex-col gap-y-3">
           @if (groupedTodos().private.length > 0) {
+            <div>
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Private</h3>
+            </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -260,6 +272,9 @@
             @if (groupedTodos().private.length > 0) {
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
+            <div>
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Shared</h3>
+            </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -280,6 +295,9 @@
             @if (groupedTodos().private.length > 0 || groupedTodos().shared.length > 0) {
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
+            <div>
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Public</h3>
+            </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
                 [todo]="todo"
@@ -310,58 +328,73 @@
       </div>
     } @else {
       @if (viewMode() === "table") {
-        <app-table-view
-          [data]="listTodos()"
-          [fields]="todoTableFields"
-          [selectedIds]="selectedTodos()"
-          [showSelection]="true"
-          [dragEnabled]="true"
-          [actions]="[
-            { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-            { key: 'edit', icon: 'edit', label: 'Edit' },
-            { key: 'delete', icon: 'delete', label: 'Delete' },
-          ]"
-          (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-          (selectAll)="toggleSelectAll()"
-          (rowClick)="onRowClick($event)"
-          (actionClick)="onTableAction($event)"
-          (dropped)="onTodoDrop($event)"
-        />
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
+            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          </h3>
+          <app-table-view
+            [data]="listTodos()"
+            [fields]="todoTableFields"
+            [selectedIds]="selectedTodos()"
+            [showSelection]="true"
+            [dragEnabled]="true"
+            [actions]="[
+              { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+              { key: 'edit', icon: 'edit', label: 'Edit' },
+              { key: 'delete', icon: 'delete', label: 'Delete' },
+            ]"
+            (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+            (selectAll)="toggleSelectAll()"
+            (rowClick)="onRowClick($event)"
+            (actionClick)="onTableAction($event)"
+            (dropped)="onTodoDrop($event)"
+          />
+        </div>
       } @else if (viewMode() === "grid") {
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          @for (todo of listTodos(); track todo.id) {
-            <app-todo
-              [todo]="todo"
-              [index]="$index"
-              [isOwner]="todo.user_id === userId()"
-              [isPrivate]="activeVisibility() === 'private'"
-              [highlight]="highlightTodoId() === todo.id"
-              [isSelected]="selectedTodos().has(todo.id)"
-              [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-              (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
-              (saveAsBlueprintEvent)="saveAsBlueprint($event)"
-              (selectionChangeEvent)="toggleTodoSelection($event)"
-              (updateTodoEvent)="onUpdateTodo(todo, $event)"
-            />
-          }
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
+            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          </h3>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            @for (todo of listTodos(); track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="activeVisibility() === 'private'"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          </div>
         </div>
       } @else {
-        <div class="flex w-full flex-col gap-y-3">
-          @for (todo of listTodos(); track todo.id) {
-            <app-todo
-              [todo]="todo"
-              [index]="$index"
-              [isOwner]="todo.user_id === userId()"
-              [isPrivate]="activeVisibility() === 'private'"
-              [highlight]="highlightTodoId() === todo.id"
-              [isSelected]="selectedTodos().has(todo.id)"
-              [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-              (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
-              (saveAsBlueprintEvent)="saveAsBlueprint($event)"
-              (selectionChangeEvent)="toggleTodoSelection($event)"
-              (updateTodoEvent)="onUpdateTodo(todo, $event)"
-            />
-          }
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
+            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          </h3>
+          <div class="flex w-full flex-col gap-y-3">
+            @for (todo of listTodos(); track todo.id) {
+              <app-todo
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId()"
+                [isPrivate]="activeVisibility() === 'private'"
+                [highlight]="highlightTodoId() === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="deleteTodoById($event, todo.user_id === userId())"
+                (saveAsBlueprintEvent)="saveAsBlueprint($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="onUpdateTodo(todo, $event)"
+              />
+            }
+          </div>
         </div>
       }
     }

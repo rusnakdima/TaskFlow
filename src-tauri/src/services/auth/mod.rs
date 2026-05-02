@@ -1,5 +1,7 @@
 #[path = "auth_biometric.auth.service.rs"]
 pub mod auth_biometric;
+#[path = "auth_data_sync.service.rs"]
+pub mod auth_data_sync;
 #[path = "auth_login.auth.service.rs"]
 pub mod auth_login;
 #[path = "auth_passkey.auth.service.rs"]

@@ -10,5 +10,7 @@ pub mod profile_route;
 #[path = "about.route.rs"]
 pub mod about_route;
 
+#[path = "auth_data_sync.route.rs"]
+pub mod auth_data_sync_route;
 #[path = "statistics.route.rs"]
 pub mod statistics_route;
