@@ -130,7 +130,7 @@ impl AuthPasskeyService {
     let user = self.find_user(username).await?;
 
     let mut updated_user = user.clone();
-    updated_user.passkey_credential_id = passkey.cred_id().to_string();
+    updated_user.passkey_credential_id = BASE64URL.encode(passkey.cred_id());
     updated_user.passkey_public_key = serde_json::to_string(&passkey)
       .map_err(|e| err_response(&format!("Failed to serialize credential: {}", e)))?;
     updated_user.passkey_device = "cross-platform".to_string();
@@ -185,7 +185,7 @@ impl AuthPasskeyService {
     let qr_payload = format!(
       "{{\"u\":\"{}\",\"c\":\"{}\",\"t\":{}}}",
       BASE64URL.encode(username_str.as_bytes()),
-      auth_challenge.public_key.challenge.clone(),
+      BASE64URL.encode(&auth_challenge.public_key.challenge.clone()),
       chrono::Utc::now().timestamp()
     );
 
