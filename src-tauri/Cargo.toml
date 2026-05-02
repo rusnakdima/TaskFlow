@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT License"
 name = "taskflow"
 repository = "https://github.com/rusnakdima/TaskFlow"
-version = "0.14.0"
+version = "0.14.1"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]
