@@ -29,7 +29,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2.0.11"
 tokio-tungstenite = "0.26"
-tauri = { version = "~2.10", features = [] }
+tauri = { version = "~2.11", features = [] }
 tauri-plugin-http = "2"
 tauri-plugin-opener = "2"
 lettre = { version = "0.11", default-features = false, features = [
@@ -44,7 +44,7 @@ rand = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
-webauthn-rs = { version = "0.4", features = ["danger-allow-state-serialisation"] }
+webauthn-rs = { version = "0.6.1-dev", features = ["danger-allow-state-serialisation"] }
 totp-rs = { version = "1", default-features = false, features = ["otpauth"] }
 base32 = "0.5"
 base64 = "0.13"
@@ -53,8 +53,6 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 data-encoding = "2"
 # Use vendored OpenSSL for all platforms including Android
 rustls = "0.21"
-openssl = { version = "0.10", features = ["vendored"] }
-openssl-sys = { version = "0.9", features = ["vendored"] }
 # reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 keyring = { version = "3", features = [] }
 
