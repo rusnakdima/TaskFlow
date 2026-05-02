@@ -1,11 +1,14 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { firstValueFrom } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Category } from "@models/category.model";
@@ -20,7 +23,6 @@ import { DataLoaderService } from "@services/data/data-loader.service";
 import { BaseListView } from "@views/base-list.view";
 
 /* components */
-import { SearchComponent } from "@components/fields/search/search.component";
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
@@ -38,7 +40,8 @@ import { TableField } from "@components/table-view/table-field.model";
     FormsModule,
     ReactiveFormsModule,
     MatIconModule,
-    SearchComponent,
+    MatMenuModule,
+    MatButtonModule,
     CategoryFormComponent,
     CategoryCardComponent,
     BulkActionsComponent,
@@ -54,37 +57,37 @@ export class CategoriesView extends BaseListView implements OnInit {
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
 
-  constructor() {
-    super();
-    effect(() => {
-      const cats = this.storageService.categories();
-      if (cats.length > 0) {
-        this.loadCategories();
-      }
-    });
-  }
-
-  // Use storage signals directly for source data
   categories = this.storageService.categories;
 
-  // Signal for display list - will be synced with categories via effect
-  listCategories = signal<Category[]>([]);
-  tempListCategories = signal<Category[]>([]);
-
-  private categoriesEffect = effect(() => {
-    const cats = this.categories();
-    this.listCategories.set(cats);
-    this.tempListCategories.set(cats);
+  searchResults = computed(() => {
+    let cats = this.categories();
+    const query = this.searchQuery().toLowerCase().trim();
+    if (query) {
+      cats = cats.filter((cat) => cat.title.toLowerCase().includes(query));
+    }
+    const order = this.sortOrder();
+    const by = this.sortBy();
+    return [...cats].sort((a, b) => {
+      let comparison = 0;
+      if (by === "title") {
+        comparison = (a.title || "").localeCompare(b.title || "");
+      } else if (by === "createdAt") {
+        comparison = new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      } else if (by === "updatedAt") {
+        comparison = new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
+      }
+      return order === "asc" ? comparison : -comparison;
+    });
   });
 
   userId = signal("");
   showCreateForm = signal(false);
   editingCategory = signal<Category | null>(null);
+  sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
+  sortOrder = signal<"asc" | "desc">("desc");
 
-  // Bulk selection state
   selectedCategories = this.selectedItems;
 
-  // Table fields for categories
   categoryTableFields: TableField[] = [
     {
       key: "title",
@@ -113,25 +116,11 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.pageKey = "categories";
     this.viewMode.set(this.loadViewModePreference());
 
-    // Subscribe to create category shortcut (Alt + Shift + N)
     this.subscriptions.add(
       this.shortcutService.createCategory$.subscribe(() => {
         this.toggleCreateForm();
       })
     );
-  }
-
-  loadCategories(): void {
-    // Read directly from storage
-    const cachedCategories = this.categories();
-    if (cachedCategories && cachedCategories.length > 0) {
-      this.listCategories.set(cachedCategories);
-      this.tempListCategories.set(cachedCategories);
-    }
-  }
-
-  searchFunc(data: Array<any>) {
-    this.listCategories.set(data);
   }
 
   toggleCreateForm() {
@@ -150,7 +139,6 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   onFormSaved() {
-    // No need to reload - storage auto-updates
     this.onFormClose();
   }
 
@@ -163,6 +151,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       this.dataSyncProvider.crud("delete", "categories", { id: categoryId }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Category deleted successfully");
+          this.searchQuery.set("");
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to delete category");
@@ -175,11 +164,6 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.toggleCreateForm();
   }
 
-  // Bulk Actions Methods
-
-  /**
-   * Toggle selection of a single category
-   */
   toggleCategorySelection(categoryId: string): void {
     this.selectedCategories.update((selected) => {
       const next = new Set(selected);
@@ -192,63 +176,46 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
   }
 
-  /**
-   * Toggle select all categories in current view
-   */
   override toggleSelectAll(): void {
     super.toggleSelectAll(
-      () => this.listCategories(),
+      () => this.searchResults(),
       () => this.isAllSelected()
     );
   }
 
-  /**
-   * Check if all categories are selected
-   */
   override isAllSelected(): boolean {
-    return super.isAllSelected(() => this.listCategories());
+    return super.isAllSelected(() => this.searchResults());
   }
 
-  /**
-   * Bulk delete selected categories
-   */
-  bulkDelete(): void {
+  bulkArchive(): void {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
 
-    if (confirm(`Are you sure you want to delete ${selected.size} categorie(s)?`)) {
-      const deleteRequests = Array.from(selected).map((categoryId) =>
-        this.dataSyncProvider.crud("delete", "categories", { id: categoryId })
+    if (confirm(`Are you sure you want to archive ${selected.size} categorie(s)?`)) {
+      const archiveRequests = Array.from(selected).map((categoryId) =>
+        firstValueFrom(this.dataSyncProvider.crud("delete", "categories", { id: categoryId }))
       );
 
-      Promise.all(deleteRequests)
+      Promise.all(archiveRequests)
         .then(() => {
-          this.notifyService.showSuccess(`${selected.size} categori(es) deleted successfully`);
+          this.notifyService.showSuccess(`${selected.size} categori(es) archived successfully`);
           this.clearSelection();
+          this.searchQuery.set("");
         })
         .catch((err) => {
-          this.notifyService.showError(err.message || "Failed to delete categories");
+          this.notifyService.showError(err.message || "Failed to archive categories");
         });
     }
   }
 
-  /**
-   * Clear selection
-   */
   override clearSelection(): void {
     super.clearSelection();
   }
 
-  /**
-   * Handle row click in table view
-   */
   onRowClick(category: Category): void {
     this.editCategory(category);
   }
 
-  /**
-   * Handle table action click
-   */
   onTableAction(event: { action: string; item: Category }): void {
     const { action, item } = event;
     if (action === "edit") {
@@ -258,9 +225,6 @@ export class CategoriesView extends BaseListView implements OnInit {
     }
   }
 
-  /**
-   * Handle select all from table
-   */
   onTableSelectAll(): void {
     this.toggleSelectAll();
   }

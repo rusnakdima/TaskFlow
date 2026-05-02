@@ -197,7 +197,7 @@ export class KanbanView extends BaseListView implements OnInit {
         id: subtask.id,
         data: { status: newStatus },
         parentTodoId: todoId,
-        visibility: isPrivate ? "private" : "team",
+        visibility: isPrivate ? "private" : "shared",
       })
       .subscribe({
         next: () => {},
@@ -296,7 +296,7 @@ export class KanbanView extends BaseListView implements OnInit {
         id: taskId,
         data: { ...task, status: newStatus },
         parentTodoId: todoId,
-        visibility: isPrivate ? "private" : "team",
+        visibility: isPrivate ? "private" : "shared",
       })
       .subscribe({
         next: (updatedTask) => {

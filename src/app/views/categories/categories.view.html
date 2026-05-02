@@ -1,41 +1,111 @@
-<div class="flex min-h-screen flex-col gap-6">
-  <div class="flex items-center justify-end gap-2">
-    <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-      (click)="toggleSelectAll()"
-    >
-      <app-checkbox
-        class="pointer-events-none"
-        [checked]="isAllSelected()"
-        [indeterminate]="selectedCategories().size > 0 && !isAllSelected()"
-        [highlight]="selectedCategories().size > 0 && !isAllSelected()"
-      />
-      <span
-        class="text-sm font-medium"
-        [ngClass]="
-          selectedCategories().size > 0 && !isAllSelected()
-            ? 'text-yellow-700 dark:text-yellow-400'
-            : 'textNormal'
-        "
+<div class="flex flex-col gap-4">
+  <div class="flex flex-row items-center justify-between gap-4">
+    <div class="flex flex-row items-center gap-2">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="toggleSelectAll()"
+        [class.hidden]="viewMode() === 'table'"
       >
-        {{
-          isAllSelected()
-            ? "Deselect All"
-            : selectedCategories().size > 0
-              ? "Clear Selection"
-              : "Select All"
-        }}
-      </span>
-    </button>
-    <app-view-mode-switcher
-      [mode]="viewMode()"
-      [pageKey]="'categories'"
-      (modeChange)="setViewMode($event)"
-    />
-    <button class="styleButSuccess gap-2 px-4 py-2 text-sm" (click)="toggleCreateForm()">
-      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
-      New Category
-    </button>
+        <app-checkbox
+          class="pointer-events-none"
+          [checked]="isAllSelected()"
+          [indeterminate]="selectedCategories().size > 0 && !isAllSelected()"
+          [highlight]="selectedCategories().size > 0 && !isAllSelected()"
+        />
+      </button>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        [matMenuTriggerFor]="sortMenu"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sort" />
+      </button>
+      <mat-menu
+        #sortMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        <div
+          class="textMuted mb-1 border-b border-gray-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
+        >
+          Sort By
+        </div>
+        <button mat-menu-item (click)="sortBy.set('createdAt'); sortOrder.set('desc')">
+          <mat-icon fontIcon="schedule" />
+          <span>Created Date</span>
+          @if (sortBy() === "createdAt") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+        <button mat-menu-item (click)="sortBy.set('updatedAt'); sortOrder.set('desc')">
+          <mat-icon fontIcon="update" />
+          <span>Updated Date</span>
+          @if (sortBy() === "updatedAt") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+        <button mat-menu-item (click)="sortBy.set('title'); sortOrder.set('asc')">
+          <mat-icon fontIcon="sort_by_alpha" />
+          <span>Title</span>
+          @if (sortBy() === "title") {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+      </mat-menu>
+
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        (click)="sortOrder.set(sortOrder() === 'asc' ? 'desc' : 'asc')"
+      >
+        <mat-icon
+          class="h-5! w-5! min-w-5 text-xl!"
+          [fontIcon]="sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+        />
+      </button>
+
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        [matMenuTriggerFor]="searchMenu"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="search" />
+      </button>
+      <mat-menu
+        #searchMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        <div class="p-3" (click)="$event.stopPropagation()">
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchChange($event)"
+            (click)="$event.stopPropagation()"
+            placeholder="Search categories..."
+            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+          />
+        </div>
+      </mat-menu>
+
+      <app-view-mode-switcher
+        [mode]="viewMode()"
+        pageKey="categories"
+        (modeChange)="setViewMode($event)"
+      />
+
+      <button class="styleButSuccess gap-2 px-4 py-2 text-sm" (click)="toggleCreateForm()">
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
+        <span class="hidden sm:inline">New Category</span>
+      </button>
+    </div>
   </div>
 
   <app-category-form
@@ -45,68 +115,58 @@
     (saved)="onFormSaved()"
   />
 
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-  >
-    <div class="mb-4">
-      <app-search
-        class="w-full"
-        [isShowSearchField]="true"
-        [tempArray]="tempListCategories()"
-        [searchByFields]="['title']"
-        (array)="searchFunc($event)"
-      />
+  @if (searchResults().length === 0) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="category" />
+      <h3 class="textNormal mb-2 text-xl font-semibold">No categories found</h3>
+      <p class="textMuted mb-6">Get started by creating your first category</p>
     </div>
+  } @else {
+    <span class="textMuted mb-4 text-sm">{{ searchResults().length }} categories</span>
 
-    @if (listCategories().length === 0) {
-      <div class="py-5 text-center">
-        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="category" />
-        <h3 class="textNormal mb-2 text-xl font-semibold">No categories found</h3>
-        <p class="textMuted mb-6">Get started by creating your first category</p>
+    @if (viewMode() === "table") {
+      <app-table-view
+        [data]="searchResults()"
+        [fields]="categoryTableFields"
+        [selectedIds]="selectedCategories()"
+        [showSelection]="true"
+        [actions]="[
+          { key: 'edit', icon: 'edit', label: 'Edit' },
+          { key: 'delete', icon: 'delete', label: 'Delete' },
+        ]"
+        (selectionChange)="toggleCategorySelection($event.id)"
+        (selectAll)="onTableSelectAll()"
+        (rowClick)="onRowClick($event)"
+        (actionClick)="onTableAction($event)"
+      />
+    } @else if (viewMode() === "grid") {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        @for (category of searchResults(); track category.id) {
+          <app-category-card
+            [category]="category"
+            [isSelected]="selectedCategories().has(category.id)"
+            (edit)="editCategory($event)"
+            (delete)="deleteCategory($event)"
+            (selectionChangeEvent)="toggleCategorySelection($event)"
+          />
+        }
       </div>
-    } @else {
-      @if (viewMode() === "table") {
-        <app-table-view
-          [data]="listCategories()"
-          [fields]="categoryTableFields"
-          [selectedIds]="selectedCategories()"
-          [showSelection]="true"
-          [actions]="[
-            { key: 'edit', icon: 'edit', label: 'Edit' },
-            { key: 'delete', icon: 'delete', label: 'Delete' },
-          ]"
-          (selectionChange)="toggleCategorySelection($event.id)"
-          (selectAll)="onTableSelectAll()"
-          (rowClick)="onRowClick($event)"
-          (actionClick)="onTableAction($event)"
-        />
-      } @else if (viewMode() === "grid") {
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          @for (category of listCategories(); track category.id) {
-            <app-category-card
-              [category]="category"
-              [isSelected]="selectedCategories().has(category.id)"
-              (edit)="editCategory($event)"
-              (delete)="deleteCategory($event)"
-              (selectionChangeEvent)="toggleCategorySelection($event)"
-            />
-          }
-        </div>
-      } @else if (viewMode() === "card") {
-        <div class="flex w-full flex-col gap-y-3">
-          @for (category of listCategories(); track category.id) {
-            <app-category-card
-              [category]="category"
-              [isSelected]="selectedCategories().has(category.id)"
-              (edit)="editCategory($event)"
-              (delete)="deleteCategory($event)"
-              (selectionChangeEvent)="toggleCategorySelection($event)"
-            />
-          }
-        </div>
-      }
+    } @else if (viewMode() === "card") {
+      <div class="flex w-full flex-col gap-y-3">
+        @for (category of searchResults(); track category.id) {
+          <app-category-card
+            [category]="category"
+            [isSelected]="selectedCategories().has(category.id)"
+            (edit)="editCategory($event)"
+            (delete)="deleteCategory($event)"
+            (selectionChangeEvent)="toggleCategorySelection($event)"
+          />
+        }
+      </div>
     }
-  </div>
+  }
 </div>
 
 @if (selectedCategories().size > 0) {
@@ -115,7 +175,7 @@
     [isAllSelected]="isAllSelected()"
     mode="categories"
     (selectAllEvent)="toggleSelectAll()"
-    (hardDeleteEvent)="bulkDelete()"
+    (softDeleteEvent)="bulkArchive()"
     (cancelEvent)="clearSelection()"
   />
 }

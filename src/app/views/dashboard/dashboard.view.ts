@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect, inject, computed } from "@angular/core";
+import { Component, OnInit, inject, computed } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -40,88 +40,29 @@ interface DisplayTask {
 export class DashboardView implements OnInit {
   public TaskStatus = TaskStatus;
 
-  // ✅ FIX: Use computed signal from StorageService instead of making API call
-  profile = computed(() => this.storageService.profile());
+  private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private router = inject(Router);
 
-  totalTasks = signal(0);
-  completedTasks = signal(0);
-  inProgressTasks = signal(0);
-  overdueTasks = signal(0);
-
-  allTasks = signal<DisplayTask[]>([]);
-  filteredTasks = signal<DisplayTask[]>([]);
-
-  recentActivities = signal<{ text: string; status: TaskStatus }[]>([]);
-
+  profile = this.storageService.profile;
   userId = "";
 
-  constructor(
-    private authService: AuthService,
-    private storageService: StorageService,
-    private router: Router
-  ) {
-    // Watch for todos data changes and process when data is loaded
-    effect(() => {
-      const todos = this.storageService.todos();
-      if (todos.length > 0) {
-        this.processTodosData(todos);
-      }
-    });
-  }
+  private allTasksData = computed<DisplayTask[]>(() => {
+    const todos = this.storageService.todos();
+    const userId = this.userId;
 
-  ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
-
-    // ✅ FIX: NO API CALL NEEDED - profile already loaded in StorageService by DataLoaderService
-    // Just use the computed signal - it will update automatically when data is loaded
-  }
-
-  processTodosData(todos: Array<Todo>): void {
-    // Map tasks from all todos
-    const allTasks: { task: Task; todo: Todo }[] = [];
+    const taskData: { task: Task; todo: Todo }[] = [];
     todos.forEach((todo) => {
-      if (Array.isArray(todo.tasks)) {
+      if (Array.isArray(todo.tasks) && !todo.deleted_at) {
         todo.tasks.forEach((task) => {
-          allTasks.push({ task, todo });
+          if (!task.deleted_at) {
+            taskData.push({ task, todo });
+          }
         });
       }
     });
 
-    this.processTaskData(allTasks);
-  }
-
-  processTaskData(taskData: Array<{ task: Task; todo: Todo }>): void {
-    // Filter out deleted tasks and deleted todos
-    const activeTaskData = taskData.filter(
-      (item) => !item.task.deleted_at && !item.todo.deleted_at
-    );
-    const tasks = activeTaskData.map((item) => item.task);
-    this.totalTasks.set(tasks.length);
-
-    const now = new Date();
-
-    this.completedTasks.set(
-      tasks.filter(
-        (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
-      ).length
-    );
-    this.inProgressTasks.set(
-      tasks.filter((task) => {
-        if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-        const start = task.start_date ? new Date(task.start_date) : null;
-        const end = task.end_date ? new Date(task.end_date) : null;
-        return start && end && start <= now && now <= end;
-      }).length
-    );
-    this.overdueTasks.set(
-      tasks.filter((task) => {
-        if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
-        const end = task.end_date ? new Date(task.end_date) : null;
-        return end && end < now;
-      }).length
-    );
-
-    const newAllTasks = activeTaskData
+    return taskData
       .map((item) => ({
         id: item.task.id,
         title: item.task.title,
@@ -132,36 +73,66 @@ export class DashboardView implements OnInit {
         updated_at: item.task.updated_at,
         todo_id: item.todo.id,
         isPrivate: item.todo.visibility === "private",
-        isOwner: item.todo.user_id === this.userId,
+        isOwner: item.todo.user_id === userId,
       }))
       .sort((a, b) => {
         const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
         const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
         return bTime - aTime;
       });
+  });
 
-    this.allTasks.set(newAllTasks);
+  totalTasks = computed(() => this.allTasksData().length);
 
-    const sortedTasks = [...tasks].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    this.recentActivities.set(
-      sortedTasks.slice(0, 4).map((task) => {
-        let text = "";
-        if (task.status === TaskStatus.COMPLETED) {
-          text = `Completed task: ${task.title}`;
-        } else if (task.status === TaskStatus.SKIPPED) {
-          text = `Skipped task: ${task.title}`;
-        } else if (task.status === TaskStatus.FAILED) {
-          text = `Failed task: ${task.title}`;
-        } else {
-          text = `Created task: ${task.title}`;
-        }
-        return { text, status: task.status };
-      })
-    );
+  completedTasks = computed(
+    () =>
+      this.allTasksData().filter(
+        (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
+      ).length
+  );
 
-    this.filteredTasks.set(newAllTasks.slice(0, 10));
+  inProgressTasks = computed(() => {
+    const now = new Date();
+    return this.allTasksData().filter((task) => {
+      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
+      const start = task.dueDate ? new Date(task.dueDate) : null;
+      return start && start <= now;
+    }).length;
+  });
+
+  overdueTasks = computed(() => {
+    const now = new Date();
+    return this.allTasksData().filter((task) => {
+      if (task.status !== TaskStatus.PENDING && task.status !== TaskStatus.FAILED) return false;
+      const end = task.dueDate ? new Date(task.dueDate) : null;
+      return end && end < now;
+    }).length;
+  });
+
+  filteredTasks = computed(() => this.allTasksData().slice(0, 10));
+
+  recentActivities = computed(() => {
+    const tasks = [...this.allTasksData()]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 4);
+
+    return tasks.map((task) => {
+      let text = "";
+      if (task.status === TaskStatus.COMPLETED) {
+        text = `Completed task: ${task.title}`;
+      } else if (task.status === TaskStatus.SKIPPED) {
+        text = `Skipped task: ${task.title}`;
+      } else if (task.status === TaskStatus.FAILED) {
+        text = `Failed task: ${task.title}`;
+      } else {
+        text = `Created task: ${task.title}`;
+      }
+      return { text, status: task.status };
+    });
+  });
+
+  ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
   }
 
   getCircleColor(status: TaskStatus): string {
@@ -179,8 +150,9 @@ export class DashboardView implements OnInit {
   }
 
   getProgressPercentage(): number {
-    if (this.totalTasks() === 0) return 0;
-    return Math.round((this.completedTasks() / this.totalTasks()) * 100);
+    const total = this.totalTasks();
+    if (total === 0) return 0;
+    return Math.round((this.completedTasks() / total) * 100);
   }
 
   formatDate(dateString: string): string {

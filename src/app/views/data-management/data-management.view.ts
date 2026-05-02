@@ -158,12 +158,18 @@ export class DataManagementView implements OnInit {
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
+  expandedRecords = signal<Set<string>>(new Set());
 
   // Field configurations
   todoFields: AdminFieldConfig[] = [
     { key: "description", label: "Description", type: "text" },
     { key: "priority", label: "Priority", type: "priority" },
-    { key: "visibility", label: "Visibility", type: "select", options: ["private", "team"] },
+    {
+      key: "visibility",
+      label: "Visibility",
+      type: "select",
+      options: ["private", "shared", "public"],
+    },
     { key: "startDate", label: "Start Date", type: "date" },
     { key: "endDate", label: "End Date", type: "date" },
     { key: "tasks", label: "Tasks", type: "array-count" },
@@ -394,6 +400,11 @@ export class DataManagementView implements OnInit {
     return type ? type.label : this.selectedType();
   }
 
+  getSelectedTypeIcon(): string {
+    const type = this.dataTypes.find((t) => t.id === this.selectedType());
+    return type ? type.icon : "list_alt";
+  }
+
   selectDataType(typeId: string) {
     this.selectedType.set(typeId);
     this.clearSelection();
@@ -411,6 +422,16 @@ export class DataManagementView implements OnInit {
       const newRecords = new Set(records);
       if (selected) newRecords.add(id);
       else newRecords.delete(id);
+      return newRecords;
+    });
+  }
+
+  toggleSelectById(id: string): void {
+    const isSelected = this.selectedRecords().has(id);
+    this.selectedRecords.update((records) => {
+      const newRecords = new Set(records);
+      if (isSelected) newRecords.delete(id);
+      else newRecords.add(id);
       return newRecords;
     });
   }
@@ -573,5 +594,58 @@ export class DataManagementView implements OnInit {
 
   onBulkCancel(): void {
     this.clearSelection();
+  }
+
+  toggleExpand(recordId: string): void {
+    this.expandedRecords.update((expanded) => {
+      const newExpanded = new Set(expanded);
+      if (newExpanded.has(recordId)) {
+        newExpanded.delete(recordId);
+      } else {
+        newExpanded.add(recordId);
+      }
+      return newExpanded;
+    });
+  }
+
+  isExpanded(recordId: string): boolean {
+    return this.expandedRecords().has(recordId);
+  }
+
+  formatFieldDate(dateStr: string): string {
+    if (!dateStr) return "-";
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleString();
+    } catch {
+      return dateStr || "-";
+    }
+  }
+
+  getValue(item: any, field: any): any {
+    return item[field.key];
+  }
+
+  getPriorityBadgeClass(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case "urgent":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
+      case "high":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+      case "medium":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
+      case "low":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-zinc-700 dark:text-gray-300";
+    }
+  }
+
+  getUserDisplayName(user: any): string {
+    if (!user) return "-";
+    if (user.profile?.name) {
+      return `${user.profile.name} ${user.profile.last_name || ""}`.trim();
+    }
+    return user.username || "-";
   }
 }

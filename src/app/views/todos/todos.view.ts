@@ -108,13 +108,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   showStats = signal(false);
-  activeVisibility = signal<"all" | "private" | "team" | "public">("all");
+  activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
 
   visibilityOptions = [
-    { key: "all", label: "All" },
-    { key: "private", label: "Private" },
-    { key: "team", label: "Shared" },
-    { key: "public", label: "Public" },
+    { key: "all", label: "All", icon: "apps" },
+    { key: "private", label: "Private", icon: "lock" },
+    { key: "shared", label: "Shared", icon: "group" },
+    { key: "public", label: "Public", icon: "public" },
   ];
 
   groupedTodos = computed(() => {
@@ -133,12 +133,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const query = this.searchQuery().toLowerCase().trim();
 
     const applyFilters = (todos: Todo[]) => {
-      console.log(
-        "[Todos] Raw todos received:",
-        todos.length,
-        todos.map((t) => ({ id: t.id, title: t.title, visibility: t.visibility }))
-      );
-
       let filtered = todos.filter((todo) => !deletedUserIds.has(todo.user_id));
 
       switch (filter) {
@@ -163,22 +157,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         filtered = filtered.filter((todo) => todo.title.toLowerCase().includes(query));
       }
 
-      console.log(
-        "[Todos] Filtered todos:",
-        filtered.length,
-        filtered.map((t) => ({ id: t.id, title: t.title, visibility: t.visibility }))
-      );
       return SortHelper.sortByOrder(filtered, "desc");
     };
-
-    console.log(
-      "[Todos] Loading todos - private:",
-      privateTodos.length,
-      "shared:",
-      sharedTodos.length,
-      "public:",
-      publicTodos.length
-    );
 
     return {
       private: applyFilters(privateTodos),
@@ -211,7 +191,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       return [];
     } else if (visibility === "private") {
       return grouped.private;
-    } else if (visibility === "team") {
+    } else if (visibility === "shared") {
       return grouped.shared;
     } else if (visibility === "public") {
       return grouped.public;
@@ -271,6 +251,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       ...option,
       count: this.getFilteredCount(option.key),
     }));
+  }
+
+  getVisibilityLabel(): string {
+    const option = this.visibilityOptions.find((o) => o.key === this.activeVisibility());
+    return option?.label || "All";
+  }
+
+  getCurrentVisibilityIcon(): string {
+    const option = this.visibilityOptions.find((o) => o.key === this.activeVisibility());
+    return option?.icon || "apps";
   }
 
   override ngOnInit(): void {
@@ -335,7 +325,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       case "private":
         todos = this.storageService.privateTodos();
         break;
-      case "team":
+      case "shared":
         todos = this.storageService.sharedTodos();
         break;
       case "public":
@@ -364,7 +354,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const visibility = this.isSharedMode() ? "team" : "private";
+      const visibility = this.isSharedMode() ? "shared" : "private";
       this.dataSyncProvider.crud("delete", "todos", { id: todoId, visibility }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo deleted successfully");
@@ -378,7 +368,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
     const { field, value } = event;
-    const visibility = this.isSharedMode() ? "team" : "private";
+    const visibility = this.isSharedMode() ? "shared" : "private";
     this.dataSyncProvider
       .crud("update", "todos", {
         id: todo.id,

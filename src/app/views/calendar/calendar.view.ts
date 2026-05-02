@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, effect, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -23,7 +23,6 @@ import { DateHelper } from "@helpers/date.helper";
 /* views */
 import { BaseListView } from "@views/base-list.view";
 
-/* providers */
 @Component({
   selector: "app-calendar",
   standalone: true,
@@ -37,130 +36,85 @@ export class CalendarView extends BaseListView implements OnInit {
 
   selectedDate = signal<Date>(new Date());
   currentMonth = signal<Date>(new Date());
-  events = signal<CalendarEvent[]>([]);
-  filteredEvents = signal<CalendarEvent[]>([]);
-
   displayMode = signal<"month" | "week">("month");
 
-  calendarDays = signal<CalendarDay[]>([]);
-  weekDays = signal<CalendarDay[]>([]);
+  private userId = "";
 
-  constructor() {
-    super();
-    effect(() => {
-      const todos = this.storageService.todos();
-      if (todos.length > 0) {
-        this.processTodosData(todos);
-      }
-    });
-  }
-
-  processTodosData(todos: Array<Todo>): void {
-    const tasks: Array<Task> = [];
+  private allEvents = computed<CalendarEvent[]>(() => {
+    const todos = this.storageService.todos();
+    const newEvents: CalendarEvent[] = [];
 
     todos.forEach((todo) => {
       if (todo.tasks) {
         todo.tasks.forEach((task) => {
-          // Associate todo with task for event processing
-          (task as any).todo = todo;
-          tasks.push(task);
+          if (task.deleted_at || todo.deleted_at) return;
+
+          const isPrivate = todo.visibility === "private";
+          const isOwner = todo.user_id === this.userId;
+
+          if (task.start_date) {
+            newEvents.push({
+              id: task.id!,
+              title: `Start: ${task.title}`,
+              date: new Date(task.start_date),
+              type: "task",
+              status: "start",
+              description: task.description,
+              todo_id: todo.id,
+              isPrivate,
+              isOwner,
+            });
+          }
+
+          if (task.end_date) {
+            const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
+            const status =
+              task.status === TaskStatus.COMPLETED
+                ? "completed"
+                : task.status === TaskStatus.SKIPPED
+                  ? "skipped"
+                  : task.status === TaskStatus.FAILED
+                    ? "failed"
+                    : "due";
+
+            newEvents.push({
+              id: task.id!,
+              title: statusText,
+              date: new Date(task.end_date),
+              type: "task",
+              status,
+              description: task.description,
+              todo_id: todo.id,
+              isPrivate,
+              isOwner,
+            });
+          }
         });
       }
     });
 
-    this.processCalendarEvents(tasks);
-  }
+    return newEvents;
+  });
 
-  processCalendarEvents(tasks: Array<Task>): void {
-    const newEvents: CalendarEvent[] = [];
-    const userId: string = this.authService.getValueByKey("id");
+  filteredEvents = computed(() =>
+    this.allEvents().filter((event) => this.isSameDay(event.date, this.selectedDate()))
+  );
 
-    tasks.forEach((task) => {
-      const taskTodo = task.todo;
-      const isPrivate = taskTodo?.visibility === "private";
-      const isOwner = taskTodo?.user_id === userId;
+  calendarDays = computed<CalendarDay[]>(() =>
+    DateHelper.generateCalendarDays(this.currentMonth(), this.selectedDate(), this.allEvents())
+  );
 
-      if (task.start_date) {
-        newEvents.push({
-          id: task.id!,
-          title: `Start: ${task.title}`,
-          date: new Date(task.start_date),
-          type: "task",
-          status: "start",
-          description: task.description,
-          todo_id: taskTodo?.id || task.todo_id,
-          isPrivate,
-          isOwner,
-        });
-      }
+  weekDays = computed<CalendarDay[]>(() =>
+    DateHelper.generateWeekDays(this.selectedDate(), this.currentMonth(), this.allEvents())
+  );
 
-      if (task.end_date) {
-        const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
-        const status =
-          task.status === TaskStatus.COMPLETED
-            ? "completed"
-            : task.status === TaskStatus.SKIPPED
-              ? "skipped"
-              : task.status === TaskStatus.FAILED
-                ? "failed"
-                : "due";
-
-        newEvents.push({
-          id: task.id!,
-          title: statusText,
-          date: new Date(task.end_date),
-          type: "task",
-          status,
-          description: task.description,
-          todo_id: taskTodo?.id || task.todo_id,
-          isPrivate,
-          isOwner,
-        });
-      }
-    });
-
-    this.events.set(newEvents);
-
-    this.filterEventsForSelectedDate();
-    this.regenerateView();
-  }
-
-  regenerateView(): void {
-    if (this.displayMode() === "month") {
-      this.generateCalendarDays();
-    } else if (this.displayMode() === "week") {
-      this.generateWeekDays();
-    }
-  }
-
-  generateCalendarDays(): void {
-    const days = DateHelper.generateCalendarDays(
-      this.currentMonth(),
-      this.selectedDate(),
-      this.events()
-    );
-    this.calendarDays.set(days);
-  }
-
-  generateWeekDays(): void {
-    const days = DateHelper.generateWeekDays(
-      this.selectedDate(),
-      this.currentMonth(),
-      this.events()
-    );
-    this.weekDays.set(days);
+  override ngOnInit(): void {
+    super.ngOnInit();
+    this.userId = this.authService.getValueByKey("id");
   }
 
   selectDate(date: Date): void {
     this.selectedDate.set(new Date(date));
-    this.filterEventsForSelectedDate();
-    this.regenerateView();
-  }
-
-  filterEventsForSelectedDate(): void {
-    this.filteredEvents.set(
-      this.events().filter((event) => this.isSameDay(event.date, this.selectedDate()))
-    );
   }
 
   isSameDay(date1: Date, date2: Date): boolean {
@@ -172,15 +126,12 @@ export class CalendarView extends BaseListView implements OnInit {
       this.currentMonth.set(
         new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1)
       );
-      this.generateCalendarDays();
     } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() - 7);
         return date;
       });
-      this.generateWeekDays();
     }
-    this.filterEventsForSelectedDate();
   }
 
   next(): void {
@@ -188,22 +139,17 @@ export class CalendarView extends BaseListView implements OnInit {
       this.currentMonth.set(
         new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1)
       );
-      this.generateCalendarDays();
     } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() + 7);
         return date;
       });
-      this.generateWeekDays();
     }
-    this.filterEventsForSelectedDate();
   }
 
   goToToday(): void {
     this.currentMonth.set(new Date());
     this.selectedDate.set(new Date());
-    this.regenerateView();
-    this.filterEventsForSelectedDate();
   }
 
   formatMonthYear(): string {
@@ -233,7 +179,6 @@ export class CalendarView extends BaseListView implements OnInit {
 
   changeViewMode(mode: "month" | "week"): void {
     this.displayMode.set(mode);
-    this.regenerateView();
   }
 
   navigateToTasks(event: CalendarEvent): void {
