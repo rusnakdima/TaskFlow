@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, forkJoin, of, catchError, tap, switchMap } from "rxjs";
+import { Observable, forkJoin, of, catchError, switchMap } from "rxjs";
 import { Router } from "@angular/router";
 
 /* models */
@@ -41,27 +41,18 @@ export class DataLoaderService {
   ): Observable<{ todos: Todo[]; categories: Category[] }> {
     const currentUserId = this.jwtTokenService.getCurrentUserId() || "";
 
-    // Always check for profile status even if data is loaded
-    // This handles the case where user was redirected but page reloaded
-    if (this.storageService.loaded()) {
+    if (this.storageService.loaded() && !force) {
       const todos = this.storageService.todos();
       const categories = this.storageService.categories();
-      const profile = this.storageService.profile();
       if (todos.length > 0 || categories.length > 0) {
-        // Data is cached, but still check if profile exists
-        if (!profile?.user_id && currentUserId && currentUserId.trim()) {
-          const currentUrl = window.location.pathname;
-          if (!currentUrl.startsWith("/profile")) {
-            this.notifyService.showWarning("Profile not found. Please create one.");
-            this.profileRequiredService.setProfileRequiredMode(true);
-            this.router.navigate(["/profile/manage"]);
-          }
-        }
         return of({ todos, categories });
       }
     }
 
-    // Always load categories from JSON (private, local storage)
+    if (force) {
+      this.storageService.setLoaded(false);
+    }
+
     const allCategories$ = this.relationLoader.loadMany<Category>(
       this.apiProvider,
       "categories",
@@ -70,157 +61,178 @@ export class DataLoaderService {
       "private"
     );
 
-    // Always load private todos from JSON (private, local storage)
     const privateTodos$ = this.relationLoader.loadMany<Todo>(
       this.apiProvider,
       "todos",
       { user_id: currentUserId },
-      ["categories", "tasks", "user", "chats"],
+      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
       "private"
     );
 
-    // Load user profile only if user_id is valid
-    let userProfile$: Observable<Profile | null> = of(null);
-    if (currentUserId && currentUserId.trim()) {
-      userProfile$ = new Observable<Profile | null>((observer) => {
-        this.apiProvider
-          .invokeCommand("initialize_user_data", { userId: currentUserId })
-          .pipe(
-            switchMap((result: any) => {
-              if (result?.data?.needsRegistration) {
-                this.notifyService.showWarning("Account not found. Please register again.");
-                this.router.navigate(["/register"]);
-                observer.next(null);
-                observer.complete();
-                return of(null);
-              }
-              if (result?.data?.needsProfile) {
-                this.notifyService.showWarning("Profile not found. Please create one.");
-                this.profileRequiredService.setProfileRequiredMode(true);
-                this.router.navigate(["/profile/manage"]);
-                observer.next(null);
-                observer.complete();
-                return of(null);
-              }
-              // Sync complete, now load profile from JSON
-              return this.apiProvider.crud<Profile>("get", "profiles", {
-                filter: { user_id: currentUserId },
-                load: ["user"],
-                visibility: "private",
-              });
-            })
-          )
-          .subscribe({
-            next: (profile) => {
-              if (profile && typeof profile === "object" && "user_id" in profile) {
-                this.storageService.setCollection("profiles", profile);
-              } else {
-                observer.next(null);
-              }
-              observer.complete();
-            },
-            error: (err: any) => {
-              observer.next(null);
-              observer.complete();
-            },
-          });
-      });
-    }
+    const userProfile$: Observable<Profile | null> =
+      this.createUserProfileObservable(currentUserId);
 
-    // Load profiles and shared todos only if loadShared is true
-    const loadPromises: Observable<any>[] = [];
-    const profileLabels: string[] = [];
+    const essential$ = forkJoin({
+      categories: allCategories$,
+      privateTodos: privateTodos$,
+      userProfile: userProfile$,
+    }).pipe(
+      catchError((err) => {
+        return of({ categories: [] as Category[], privateTodos: [] as Todo[], userProfile: null });
+      }),
+      switchMap((result) => {
+        if (result.categories && result.categories.length > 0) {
+          this.storageService.setCollection("categories", result.categories);
+        }
 
-    if (loadShared) {
-      const allProfiles$ = this.relationLoader.loadMany<Profile>(
-        this.apiProvider,
-        "profiles",
-        {},
-        ["user"],
-        "team"
-      );
+        if (result.privateTodos && result.privateTodos.length > 0) {
+          this.storageService.setCollection("privateTodos", result.privateTodos);
+        }
 
-      const sharedTodos$ = this.relationLoader.loadMany<Todo>(
-        this.apiProvider,
-        "todos",
-        { assignees: { $in: [currentUserId] } },
-        ["category", "chats"],
-        "team"
-      );
-
-      const publicTodos$ = this.relationLoader.loadMany<Todo>(
-        this.apiProvider,
-        "todos",
-        { visibility: "public" },
-        ["category", "chats"],
-        "public"
-      );
-
-      loadPromises.push(allProfiles$, sharedTodos$, publicTodos$);
-      profileLabels.push("allProfiles", "sharedTodos", "publicTodos");
-    }
-
-    // Always run categories, private todos, and user profile first (JSON, fast)
-    const essential$ = forkJoin([allCategories$, privateTodos$, userProfile$]).pipe(
-      catchError(() => of([null, null, null]))
-    );
-
-    const essentialLabels = ["categories", "privateTodos", "userProfile"];
-
-    essential$.subscribe(([allCategories, privateTodos, userProfile]) => {
-      if (allCategories && Array.isArray(allCategories)) {
-        this.storageService.setCollection("categories", allCategories);
-      }
-      if (privateTodos && Array.isArray(privateTodos)) {
-        this.storageService.setCollection("privateTodos", privateTodos);
-      }
-      if (userProfile && typeof userProfile === "object" && "user_id" in userProfile) {
-        this.storageService.setCollection("profiles", userProfile);
-      } else if (!userProfile && currentUserId && currentUserId.trim()) {
-        const localProfile = this.storageService.profile();
-        if (!localProfile?.user_id) {
-          const currentUrl = window.location.pathname;
-          if (!currentUrl.startsWith("/profile")) {
-            this.notifyService.showWarning("Profile not found. Please create one.");
-            this.profileRequiredService.setProfileRequiredMode(true);
-            this.router.navigate(["/profile/manage"]);
-          } else {
-            this.profileRequiredService.setProfileRequiredMode(true);
+        if (
+          result.userProfile &&
+          typeof result.userProfile === "object" &&
+          "user_id" in result.userProfile
+        ) {
+          this.storageService.setCollection("profiles", result.userProfile);
+        } else if (!result.userProfile && currentUserId && currentUserId.trim()) {
+          const localProfile = this.storageService.profile();
+          if (!localProfile?.user_id) {
+            const currentUrl = window.location.pathname;
+            if (!currentUrl.startsWith("/profile")) {
+              this.notifyService.showWarning("Profile not found. Please create one.");
+              this.profileRequiredService.setProfileRequiredMode(true);
+              this.router.navigate(["/profile/manage"]);
+            } else {
+              this.profileRequiredService.setProfileRequiredMode(true);
+            }
           }
         }
-      }
-      this.storageService.setLoaded(true);
-      this.storageService.setLastLoaded(new Date());
-    });
 
-    // Load profiles and shared todos in background if enabled
-    if (loadShared && loadPromises.length > 0) {
-      forkJoin(loadPromises)
-        .pipe(catchError(() => of(loadPromises.map(() => null))))
-        .subscribe((results) => {
-          results.forEach((data, index) => {
-            const label = profileLabels[index];
-            if (label === "allProfiles" && data) {
-              this.storageService.setCollection("allProfiles", data);
-            } else if (
-              label === "userProfile" &&
-              data &&
-              typeof data === "object" &&
-              "user_id" in data
-            ) {
-              this.storageService.setCollection("profiles", data);
-            } else if (label === "sharedTodos" && data) {
-              this.storageService.setCollection("sharedTodos", data);
-            } else if (label === "publicTodos" && data) {
-              this.storageService.setCollection("publicTodos", data);
-            }
+        return of(result);
+      })
+    );
+
+    if (!loadShared) {
+      return essential$.pipe(
+        switchMap(() => {
+          this.storageService.setLoaded(true);
+          this.storageService.setLastLoaded(new Date());
+          return of({
+            todos: this.storageService.todos(),
+            categories: this.storageService.categories(),
           });
-        });
+        })
+      );
     }
 
-    const todos = this.storageService.todos();
-    const categories = this.storageService.categories();
-    return of({ todos, categories });
+    const sharedData$ = this.createSharedDataObservable(currentUserId);
+
+    return essential$.pipe(
+      switchMap(() => sharedData$),
+      switchMap((sharedResult) => {
+        this.storageService.setLoaded(true);
+        this.storageService.setLastLoaded(new Date());
+        return of({
+          todos: this.storageService.todos(),
+          categories: this.storageService.categories(),
+        });
+      })
+    );
+  }
+
+  private createUserProfileObservable(currentUserId: string): Observable<Profile | null> {
+    if (!currentUserId || !currentUserId.trim()) {
+      return of(null);
+    }
+
+    return new Observable<Profile | null>((observer) => {
+      this.apiProvider
+        .invokeCommand("initialize_user_data", { userId: currentUserId })
+        .pipe(
+          switchMap((result: any) => {
+            if (result?.data?.needsRegistration) {
+              this.notifyService.showWarning("Account not found. Please register again.");
+              this.router.navigate(["/register"]);
+              return of(null);
+            }
+            if (result?.data?.needsProfile) {
+              this.notifyService.showWarning("Profile not found. Please create one.");
+              this.profileRequiredService.setProfileRequiredMode(true);
+              this.router.navigate(["/profile/manage"]);
+              return of(null);
+            }
+            return this.apiProvider.crud<Profile>("get", "profiles", {
+              filter: { user_id: currentUserId },
+              load: ["user"],
+              visibility: "private",
+            });
+          })
+        )
+        .subscribe({
+          next: (profile) => {
+            observer.next(
+              profile && typeof profile === "object" && "user_id" in profile ? profile : null
+            );
+            observer.complete();
+          },
+          error: () => {
+            observer.next(null);
+            observer.complete();
+          },
+        });
+    });
+  }
+
+  private createSharedDataObservable(currentUserId: string): Observable<void> {
+    const allProfiles$ = this.relationLoader.loadMany<Profile>(
+      this.apiProvider,
+      "profiles",
+      {},
+      ["user"],
+      "shared"
+    );
+
+    const sharedTodos$ = this.relationLoader.loadMany<Todo>(
+      this.apiProvider,
+      "todos",
+      { assignees: { $in: [currentUserId] } },
+      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
+      "shared"
+    );
+
+    const publicTodos$ = this.relationLoader.loadMany<Todo>(
+      this.apiProvider,
+      "todos",
+      { visibility: "public" },
+      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
+      "public"
+    );
+
+    return forkJoin({
+      allProfiles: allProfiles$,
+      sharedTodos: sharedTodos$,
+      publicTodos: publicTodos$,
+    }).pipe(
+      catchError((err) => {
+        return of({ allProfiles: [], sharedTodos: [], publicTodos: [] });
+      }),
+      switchMap((result) => {
+        if (result.allProfiles && result.allProfiles.length > 0) {
+          this.storageService.setCollection("allProfiles", result.allProfiles);
+        }
+
+        if (result.sharedTodos && result.sharedTodos.length > 0) {
+          this.storageService.setCollection("sharedTodos", result.sharedTodos);
+        }
+
+        if (result.publicTodos && result.publicTodos.length > 0) {
+          this.storageService.setCollection("publicTodos", result.publicTodos);
+        }
+
+        return of(undefined);
+      })
+    );
   }
 
   refreshAll(): void {

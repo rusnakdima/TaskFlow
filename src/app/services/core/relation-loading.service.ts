@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
-import { tap } from "rxjs/operators";
+import { Observable, of } from "rxjs";
+import { tap, catchError } from "rxjs/operators";
 
 /* services */
 import { ApiProvider } from "@providers/api.provider";
@@ -61,10 +61,13 @@ export class RelationLoadingService {
         visibility,
       })
       .pipe(
-        tap(() => {
+        tap((result) => {
           const elapsed = Date.now() - startTime;
           this.stats.totalQueries++;
           this.stats.loadTimeMs += elapsed;
+        }),
+        catchError((err: unknown) => {
+          return of(null as unknown as T[]);
         })
       );
   }
