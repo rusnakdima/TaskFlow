@@ -22,16 +22,9 @@ impl ProviderSyncService {
         let todo_id = match todo.get("id").and_then(|v| v.as_str()) {
             Some(id) => id,
             None => {
-                tracing::warn!("[ProviderSync] Todo missing id field, skipping sync");
                 return Ok(());
             }
         };
-        
-        tracing::info!(
-            "[ProviderSync] Syncing todo {} to {} provider",
-            todo_id,
-            if is_private { "JSON (private)" } else { "Mongo (team)" }
-        );
 
         self.sync_entity_to_provider(todo, "todos", is_private).await?;
 
@@ -70,7 +63,6 @@ impl ProviderSyncService {
         let id = match entity.get("id").and_then(|v| v.as_str()) {
             Some(id) => id,
             None => {
-                tracing::warn!("[ProviderSync] Entity missing id field in table {}, skipping", table);
                 return Ok(());
             }
         };
@@ -86,38 +78,20 @@ impl ProviderSyncService {
         let existing = source_provider.find_by_id(table, id).await.ok().flatten();
 
         if existing.is_some() {
-            if let Err(e) = target_provider.update_one(table, id, entity).await {
-                tracing::warn!(
-                    "[ProviderSync] Failed to update {} {} in sync_entity_to_provider: {}",
-                    table,
-                    id,
-                    e
-                );
+            if let Err(_e) = target_provider.update_one(table, id, entity).await {
             }
         } else {
-            if let Err(e) = target_provider.insert_one(table, entity).await {
-                tracing::warn!(
-                    "[ProviderSync] Failed to insert {} {} in sync_entity_to_provider: {}",
-                    table,
-                    id,
-                    e
-                );
+            if let Err(_e) = target_provider.insert_one(table, entity).await {
             }
         }
 
         let timestamp = Utc::now().to_rfc3339();
         let source_patch = json!({
-            "visibility": if is_private { "private" } else { "team" },
+            "visibility": if is_private { "private" } else { "shared" },
             "deleted_at": timestamp
         });
 
-        if let Err(e) = source_provider.update_one(table, id, &source_patch).await {
-            tracing::warn!(
-                "[ProviderSync] Failed to patch source {} {} visibility: {}",
-                table,
-                id,
-                e
-            );
+        if let Err(_e) = source_provider.update_one(table, id, &source_patch).await {
         }
 
         Ok(())
@@ -133,26 +107,13 @@ impl ProviderSyncService {
             return Ok(());
         }
 
-        tracing::info!(
-            "[ProviderSync] Batch syncing {} entities to {} table",
-            entities.len(),
-            table
-        );
-
         let mut synced = 0;
         for entity in entities {
-            if let Err(e) = self.sync_entity_to_provider(entity, table, is_private).await {
-                tracing::warn!("[ProviderSync] Batch item sync failed: {}", e);
+            if let Err(_e) = self.sync_entity_to_provider(entity, table, is_private).await {
             } else {
                 synced += 1;
             }
         }
-
-        tracing::info!(
-            "[ProviderSync] Batch sync completed: {}/{} entities synced",
-            synced,
-            entities.len()
-        );
 
         Ok(())
     }
@@ -225,7 +186,6 @@ impl ProviderSyncService {
 
     pub async fn sync_from_mongo_to_json(&self, todo_id: &str, new_visibility: &str) -> OrmResult<()> {
         let Some(ref mongo) = self.mongo_provider else {
-            tracing::warn!("[ProviderSync] Mongo not available for sync_from_mongo_to_json");
             return Ok(());
         };
 

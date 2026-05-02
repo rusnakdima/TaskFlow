@@ -4,7 +4,6 @@ use serde_json::Value;
 use tauri::State;
 
 /* models */
-use crate::entities::relation_obj::RelationObj;
 use crate::entities::response_entity::ResponseModel;
 
 /* helpers */
@@ -21,15 +20,12 @@ pub async fn manage_data(
   id: Option<String>,
   data: Option<Value>,
   filter: Option<Value>,
-  relations: Option<Vec<RelationObj>>,
-  load: Option<Vec<String>>,
+  load: Option<String>,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
     .repository_service
-    .execute(
-      operation, table, id, data, filter, relations, load, visibility,
-    )
+    .execute(operation, table, id, data, filter, load, visibility)
     .await
 }
 

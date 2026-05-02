@@ -32,10 +32,6 @@ impl ManageDbService {
     let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
       Some(id) => id,
       None => {
-        tracing::warn!(
-          "[Import] Missing id field in item for collection {}",
-          collection
-        );
         return false;
       }
     };
@@ -51,14 +47,7 @@ impl ManageDbService {
     } else {
       self.json_provider.insert(collection, item).await
     };
-    if let Err(e) = result {
-      tracing::warn!(
-        "[Import] Failed to {} {} in import_{}: {}",
-        if is_update { "update" } else { "insert" },
-        id,
-        collection,
-        e
-      );
+    if let Err(_e) = result {
       return false;
     }
     true
@@ -68,10 +57,6 @@ impl ManageDbService {
     let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
       Some(id) => id,
       None => {
-        tracing::warn!(
-          "[Export] Missing id field in item for collection {}",
-          collection
-        );
         return false;
       }
     };
@@ -82,14 +67,7 @@ impl ManageDbService {
     } else {
       mongo.insert(collection, item).await
     };
-    if let Err(e) = result {
-      tracing::warn!(
-        "[Export] Failed to {} {} in export_{}: {}",
-        if is_update { "update" } else { "insert" },
-        id,
-        collection,
-        e
-      );
+    if let Err(_e) = result {
       return false;
     }
     true
@@ -133,7 +111,6 @@ impl ManageDbService {
       .await
     {
       let count = users.len();
-      tracing::info!("[Import] Found {} users", count);
       for item in users {
         if !self.upsert_to_json("users", item).await {
           return 0;
@@ -151,7 +128,6 @@ impl ManageDbService {
       .await
     {
       let count = profiles.len();
-      tracing::info!("[Import] Found {} profiles", count);
       for item in profiles {
         if !self.upsert_to_json("profiles", item).await {
           return 0;
@@ -170,7 +146,6 @@ impl ManageDbService {
     {
       let todos = filter_not_deleted(todos);
       let count = todos.len();
-      tracing::info!("[Import] Found {} todos", count);
       for item in todos {
         if !self.upsert_to_json("todos", item).await {
           return 0;
@@ -188,7 +163,6 @@ impl ManageDbService {
       .await
     {
       let count = categories.len();
-      tracing::info!("[Import] Found {} categories", count);
       for item in categories {
         if !self.upsert_to_json("categories", item).await {
           return 0;
@@ -206,7 +180,6 @@ impl ManageDbService {
       .await
     {
       let count = activities.len();
-      tracing::info!("[Import] Found {} activities", count);
       for item in activities {
         if !self.upsert_to_json("daily_activities", item).await {
           return 0;
@@ -245,7 +218,6 @@ impl ManageDbService {
         }
       }
     }
-    tracing::info!("[Import] Imported {} tasks", count);
     count
   }
 
@@ -291,18 +263,14 @@ impl ManageDbService {
         }
       }
     }
-    tracing::info!("[Import] Imported {} subtasks", count);
     count
   }
 
-  /// Import data from cloud MongoDB to local JSON
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
-
-    tracing::info!("[Import] Starting import for user_id: {}", user_id);
 
     let mut imported_count = 0;
     imported_count += self.import_users(mongo, &user_id).await;
@@ -312,11 +280,6 @@ impl ManageDbService {
     imported_count += self.import_activities(mongo, &user_id).await;
     imported_count += self.import_tasks(mongo, &user_id).await;
     imported_count += self.import_subtasks(mongo, &user_id).await;
-
-    tracing::info!(
-      "[Import] Completed with {} records imported",
-      imported_count
-    );
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -333,7 +296,6 @@ impl ManageDbService {
       .await
     {
       let count = users.len();
-      tracing::info!("[Export] Found {} users", count);
       for item in users {
         if !self.upsert_to_mongo(mongo, "users", item).await {
           return 0;
@@ -352,7 +314,6 @@ impl ManageDbService {
       .await
     {
       let count = profiles.len();
-      tracing::info!("[Export] Found {} profiles", count);
       for item in profiles {
         if !self.upsert_to_mongo(mongo, "profiles", item).await {
           return 0;
@@ -372,7 +333,6 @@ impl ManageDbService {
     {
       let todos = filter_not_deleted(todos);
       let count = todos.len();
-      tracing::info!("[Export] Found {} todos", count);
       for item in todos {
         if !self.upsert_to_mongo(mongo, "todos", item).await {
           return 0;
@@ -391,7 +351,6 @@ impl ManageDbService {
       .await
     {
       let count = categories.len();
-      tracing::info!("[Export] Found {} categories", count);
       for item in categories {
         if !self.upsert_to_mongo(mongo, "categories", item).await {
           return 0;
@@ -410,7 +369,6 @@ impl ManageDbService {
       .await
     {
       let count = activities.len();
-      tracing::info!("[Export] Found {} activities", count);
       for item in activities {
         if !self.upsert_to_mongo(mongo, "daily_activities", item).await {
           return 0;
@@ -451,7 +409,6 @@ impl ManageDbService {
         }
       }
     }
-    tracing::info!("[Export] Exported {} tasks", count);
     count
   }
 
@@ -500,7 +457,6 @@ impl ManageDbService {
         }
       }
     }
-    tracing::info!("[Export] Exported {} subtasks", count);
     count
   }
 
@@ -511,8 +467,6 @@ impl ManageDbService {
       .as_ref()
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
-    tracing::info!("[Export] Starting export for user_id: {}", user_id);
-
     let mut exported_count = 0;
     exported_count += self.export_users(mongo, &user_id).await;
     exported_count += self.export_profiles(mongo, &user_id).await;
@@ -521,11 +475,6 @@ impl ManageDbService {
     exported_count += self.export_activities(mongo, &user_id).await;
     exported_count += self.export_tasks(mongo, &user_id).await;
     exported_count += self.export_subtasks(mongo, &user_id).await;
-
-    tracing::info!(
-      "[Export] Completed with {} records exported",
-      exported_count
-    );
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

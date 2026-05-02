@@ -130,6 +130,16 @@ impl CascadeService {
           .await
           .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
       }
+      "categories" => {
+        provider
+          .patch(
+            "categories",
+            id,
+            serde_json::json!({ "deleted_at": chrono::Utc::now() }),
+          )
+          .await
+          .map_err(|e| err_response_formatted("Patch category failed", &e.to_string()))?;
+      }
       _ => {
         return Err(err_response_formatted(
           "Unknown table for cascade soft delete",
@@ -193,6 +203,16 @@ impl CascadeService {
           )
           .await
           .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+      }
+      "categories" => {
+        provider
+          .patch(
+            "categories",
+            id,
+            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
+          )
+          .await
+          .map_err(|e| err_response_formatted("Restore category failed", &e.to_string()))?;
       }
       _ => {
         return Err(err_response_formatted(
