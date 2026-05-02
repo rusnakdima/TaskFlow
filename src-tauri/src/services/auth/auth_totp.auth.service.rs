@@ -104,10 +104,6 @@ impl AuthTotpService {
     let secret_bytes = match Self::decode_base32_secret(&secret_lower) {
       Some(bytes) => bytes,
       None => {
-        tracing::warn!(
-          "TOTP failed to decode base32 secret, secret was: {}...",
-          secret_lower.chars().take(4).collect::<String>()
-        );
         return false;
       }
     };
@@ -128,8 +124,6 @@ impl AuthTotpService {
         return true;
       }
     }
-
-    tracing::warn!("TOTP code did not match any time step");
     false
   }
 
@@ -195,10 +189,6 @@ impl AuthTotpService {
     }
 
     if user.totp_secret.is_empty() {
-      tracing::warn!(
-        "verify_login_totp: totp_secret is empty for user {}",
-        username
-      );
       return Err(err_response(
         "TOTP secret not found. Please setup TOTP again.",
       ));
@@ -323,10 +313,7 @@ impl AuthTotpService {
         }
       }
       Ok(Err(_)) => None,
-      Err(_) => {
-        tracing::warn!("Local DB timeout");
-        None
-      }
+      Err(_) => None,
     };
 
     let user_val = match user_val {
@@ -367,12 +354,8 @@ impl AuthTotpService {
     .await
     {
       Ok(Ok(_)) => {}
-      Ok(Err(e)) => {
-        tracing::warn!("Failed to update local user: {}", e);
-      }
-      Err(_) => {
-        tracing::warn!("Local user update timed out");
-      }
+      Ok(Err(_e)) => {}
+      Err(_) => {}
     }
 
     if let Some(mongo) = &self.mongodb_provider {
@@ -389,9 +372,7 @@ impl AuthTotpService {
             e
           )));
         }
-        Err(_) => {
-          tracing::warn!("MongoDB update timed out, skipping");
-        }
+        Err(_) => {}
       }
     }
 

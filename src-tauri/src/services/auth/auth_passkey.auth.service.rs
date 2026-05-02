@@ -322,13 +322,11 @@ impl AuthPasskeyService {
     let user_id = user.id();
     let table_name = TableModelType::User.table_name();
 
-    if let Err(e) = self
+    if let Err(_e) = self
       .json_provider
       .update(table_name, user_id, user_val.clone())
       .await
-    {
-      tracing::warn!("Failed to update local user: {}", e);
-    }
+    {}
 
     if let Some(mongo) = &self.mongodb_provider {
       mongo
