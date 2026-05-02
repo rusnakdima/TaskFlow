@@ -72,7 +72,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.apiProvider.crud("delete", "todos", { id: todoId, visibility: "team" }).subscribe({
+      this.apiProvider.crud("delete", "todos", { id: todoId, visibility: "shared" }).subscribe({
         next: () => {
           this.notifyService.showSuccess("Project deleted successfully");
         },
@@ -85,13 +85,13 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   onMyProjectsDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.myProjects(), "todos", "todos", undefined, "team")
+      .handleDrop(event, this.myProjects(), "todos", "todos", undefined, "shared")
       .subscribe();
   }
 
   onSharedWithMeDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
-      .handleDrop(event, this.sharedWithMe(), "todos", "todos", undefined, "team")
+      .handleDrop(event, this.sharedWithMe(), "todos", "todos", undefined, "shared")
       .subscribe();
   }
 }

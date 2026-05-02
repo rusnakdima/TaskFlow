@@ -410,7 +410,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         "subtasks",
         "subtasks",
         taskId,
-        this.isPrivate() ? "private" : "team"
+        this.isPrivate() ? "private" : "shared"
       )
       .subscribe();
   }

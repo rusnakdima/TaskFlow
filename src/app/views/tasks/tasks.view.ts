@@ -374,7 +374,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     const todo = this.todo();
-    const isPrivate = todo?.visibility !== "team";
+    const isPrivate = todo?.visibility !== "shared";
 
     const nextTask = { ...task };
     delete (nextTask as any)._id;
@@ -408,7 +408,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .crud<Task>("create", "tasks", {
         data: nextTask,
         parentTodoId: todoId,
-        visibility: isPrivate ? "private" : "team",
+        visibility: isPrivate ? "private" : "shared",
       })
       .subscribe({
         next: (result: Task) => {
@@ -557,7 +557,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           "tasks",
           "tasks",
           todoId,
-          this.isPrivate() ? "private" : "team"
+          this.isPrivate() ? "private" : "shared"
         )
         .subscribe();
     }
@@ -574,7 +574,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         "tasks",
         "tasks",
         todoId,
-        this.isPrivate() ? "private" : "team"
+        this.isPrivate() ? "private" : "shared"
       )
       .subscribe();
   }

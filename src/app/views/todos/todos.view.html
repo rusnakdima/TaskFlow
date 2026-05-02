@@ -1,7 +1,7 @@
-<div class="flex flex-col gap-6">
-  <div class="flex flex-row items-center justify-between gap-4">
+<div class="flex flex-col gap-4">
+  <div class="flex items-center gap-2">
     <div
-      class="inline-flex items-center rounded-lg border border-gray-300 p-1 dark:border-zinc-600"
+      class="hidden items-center rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600"
     >
       @for (option of visibilityOptions; track option.key) {
         <button
@@ -17,6 +17,37 @@
           {{ option.label }}
         </button>
       }
+    </div>
+
+    <div class="flex items-center gap-2 lg:hidden">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        [matMenuTriggerFor]="visibilityMenu"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="getCurrentVisibilityIcon()" />
+        <span class="hidden font-medium md:inline">{{ getVisibilityLabel() }}</span>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+      </button>
+      <mat-menu
+        #visibilityMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        @for (option of visibilityOptions; track option.key) {
+          <button
+            mat-menu-item
+            (click)="activeVisibility.set($any(option.key))"
+            class="flex w-full items-center gap-3"
+            [ngClass]="activeVisibility() === option.key ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+          >
+            <mat-icon
+              class="size-5! min-w-5 text-xl!"
+              [ngClass]="activeVisibility() === option.key ? 'text-blue-500!' : 'text-gray-400!'"
+              [fontIcon]="option.icon"
+            />
+            <span [class.font-bold]="activeVisibility() === option.key">{{ option.label }}</span>
+          </button>
+        }
+      </mat-menu>
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-2">
@@ -181,7 +212,7 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           @if (groupedTodos().private.length > 0) {
             <div class="col-span-full">
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Private</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
@@ -204,7 +235,7 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Shared</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
             </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
@@ -227,7 +258,7 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Public</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
             </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
@@ -250,7 +281,7 @@
         <div class="flex w-full flex-col gap-y-3">
           @if (groupedTodos().private.length > 0) {
             <div>
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Private</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
@@ -273,7 +304,7 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Shared</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
             </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
@@ -296,7 +327,7 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Public</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
             </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
@@ -329,8 +360,14 @@
     } @else {
       @if (viewMode() === "table") {
         <div>
-          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
-            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              activeVisibility() === "private"
+                ? "Private"
+                : activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
           </h3>
           <app-table-view
             [data]="listTodos()"
@@ -352,8 +389,14 @@
         </div>
       } @else if (viewMode() === "grid") {
         <div>
-          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
-            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              activeVisibility() === "private"
+                ? "Private"
+                : activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
           </h3>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             @for (todo of listTodos(); track todo.id) {
@@ -375,8 +418,14 @@
         </div>
       } @else {
         <div>
-          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
-            {{ activeVisibility() === 'private' ? 'Private' : activeVisibility() === 'team' ? 'Shared' : 'Public' }}
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              activeVisibility() === "private"
+                ? "Private"
+                : activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
           </h3>
           <div class="flex w-full flex-col gap-y-3">
             @for (todo of listTodos(); track todo.id) {

@@ -241,7 +241,7 @@ export class ManageItemPage implements OnInit, OnDestroy {
     } else {
       // Load from API with appropriate visibility
       const visibilityValue = this.form.get("visibility")?.value;
-      const visibility = !visibilityValue || visibilityValue === "private" ? "private" : "team";
+      const visibility = !visibilityValue || visibilityValue === "private" ? "private" : "shared";
 
       const response = await firstValueFrom(
         this.dataSyncProvider.crud<any>("get", config.table, {
@@ -326,7 +326,12 @@ export class ManageItemPage implements OnInit, OnDestroy {
       const payload = this.buildPayload(formValue, config);
 
       const action = this.isEdit() ? "update" : "create";
-      await firstValueFrom(this.dataSyncProvider.crud(action, config.table, { data: payload }));
+      await firstValueFrom(
+        this.dataSyncProvider.crud(action, config.table, {
+          data: payload,
+          visibility: payload.visibility,
+        })
+      );
 
       this.notifyService.showSuccess(
         `${config.type} ${this.isEdit() ? "updated" : "created"} successfully`
@@ -364,15 +369,22 @@ export class ManageItemPage implements OnInit, OnDestroy {
         assignees: formValue.assignees || [],
       };
     } else if (config.type === "task") {
+      const parentTodo = this.storageService.getById("todos", formValue.todo_id);
       return {
         ...base,
         todo_id: formValue.todo_id,
         repeat: formValue.repeat || "none",
+        visibility: parentTodo?.visibility || "private",
       };
     } else {
+      const parentTask = this.storageService.getById("tasks", formValue.task_id);
+      const parentTodo = parentTask
+        ? this.storageService.getById("todos", parentTask.todo_id)
+        : null;
       return {
         ...base,
         task_id: formValue.task_id,
+        visibility: parentTodo?.visibility || "private",
       };
     }
   }
