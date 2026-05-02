@@ -149,7 +149,6 @@ export class WebAuthnService {
       } as any)) as unknown as PasskeyCredential;
       return credential;
     } catch (err) {
-      console.error("WebAuthn error:", err);
       return null;
     }
   }
@@ -173,7 +172,6 @@ export class WebAuthnService {
       } as any)) as unknown as PasskeyCredential;
       return credential;
     } catch (err) {
-      console.error("WebAuthn error:", err);
       return null;
     }
   }
