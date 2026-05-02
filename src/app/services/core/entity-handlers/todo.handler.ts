@@ -213,7 +213,7 @@ export class TodoHandler extends EntityHandler<Todo> {
   private handleVisibilityChange(todoId: string, newVisibility: string): void {
     const isPrivate = newVisibility === "private";
     const isPublic = newVisibility === "public";
-    const isTeam = newVisibility === "team";
+    const isTeam = newVisibility === "shared";
 
     const signals: { from: WritableSignal<Todo[]>; to: WritableSignal<Todo[]> } | null = isPrivate
       ? { from: this.sharedSignal, to: this.privateSignal }

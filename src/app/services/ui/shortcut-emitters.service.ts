@@ -1,15 +1,14 @@
 import { Injectable } from "@angular/core";
 import { Subject } from "rxjs";
 
+import { ShortcutService } from "./shortcut.service";
+
 @Injectable({
   providedIn: "root",
 })
 export class ShortcutEmittersService {
   private saveSubject = new Subject<void>();
   save$ = this.saveSubject.asObservable();
-
-  private helpSubject = new Subject<void>();
-  help$ = this.helpSubject.asObservable();
 
   private closeSubject = new Subject<void>();
   close$ = this.closeSubject.asObservable();
@@ -20,12 +19,14 @@ export class ShortcutEmittersService {
   private refreshSubject = new Subject<void>();
   refresh$ = this.refreshSubject.asObservable();
 
+  constructor(private shortcutService: ShortcutService) {}
+
   emitSave(): void {
     this.saveSubject.next();
   }
 
   emitHelp(): void {
-    this.helpSubject.next();
+    this.shortcutService.showHelp();
   }
 
   emitClose(): void {
@@ -38,5 +39,9 @@ export class ShortcutEmittersService {
 
   emitRefresh(): void {
     this.refreshSubject.next();
+  }
+
+  emitShortcuts(): void {
+    this.shortcutService.showHelp();
   }
 }

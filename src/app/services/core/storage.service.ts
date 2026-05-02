@@ -75,7 +75,7 @@ export class StorageService extends BaseStorageService {
 
   private readonly sharedTodosComputed = computed(() => {
     return this.sharedTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "team"
+      (todo) => !todo.deleted_at && todo.visibility === "shared"
     );
   });
 
@@ -180,7 +180,7 @@ export class StorageService extends BaseStorageService {
     }
   }
 
-  removeItem(type: StorageEntity, id: string, parentId?: string, isTeam: boolean = false): void {
+  removeItem(type: StorageEntity, id: string, parentId?: string, isShared: boolean = false): void {
     if (type === "users") return;
     this.handlers[type]?.remove(id, parentId);
   }
@@ -329,7 +329,7 @@ export class StorageService extends BaseStorageService {
     this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== todo_id));
     if (!this.sharedTodosSignal().some((t) => t.id === todo_id)) {
       this.sharedTodosSignal.update((todos) => [
-        { ...todo, visibility: "team" },
+        { ...todo, visibility: "shared" },
         ...todos.filter((t) => t.id !== todo_id),
       ]);
     }
@@ -594,14 +594,14 @@ export class StorageUpdateService {
         this.notifyService.handleLocalAction(table, operation, result || { id });
       }
 
-      const isTeam = result?.visibility === "team";
+      const isShared = result?.visibility === "shared";
 
       switch (operation) {
         case "create":
-          this.storageService.addItem(table as any, result, { isPrivate: !isTeam });
+          this.storageService.addItem(table as any, result, { isPrivate: !isShared });
           break;
         case "update":
-          this.handleUpdate(table, result, isTeam);
+          this.handleUpdate(table, result, isShared);
           break;
         case "delete":
           this.handleDelete(table, id, parentTodoId);
@@ -610,15 +610,13 @@ export class StorageUpdateService {
           this.handleUpdateAll(table, result, parentTodoId);
           break;
       }
-    } catch (error) {
-      console.error("Operation " + operation + " failed for " + table + ":", error);
-    }
+    } catch (error) {}
   }
 
-  private handleUpdate(table: string, result: any, isTeam: boolean): void {
+  private handleUpdate(table: string, result: any, isShared: boolean): void {
     if (!result || !result.id) return;
 
-    const options = { isPrivate: !isTeam };
+    const options = { isPrivate: !isShared };
 
     if (table === "tasks") {
       const existing = this.storageService.getById("tasks", result.id);

@@ -25,6 +25,10 @@ export class ShortcutService implements OnDestroy {
   private createCategorySubject = new Subject<void>();
   createCategory$ = this.createCategorySubject.asObservable();
 
+  showHelp(): void {
+    this.helpSubject.next();
+  }
+
   private currentUrl = "";
   private routerSub: Subscription | null = null;
   private keydownHandler: ((event: KeyboardEvent) => void) | null = null;
@@ -96,9 +100,10 @@ export class ShortcutService implements OnDestroy {
       }
 
       if (!isInput) {
-        if (event.key === "?" || event.key === "і") {
+        if (event.key === "F1") {
           event.preventDefault();
           this.zone.run(() => this.helpSubject.next());
+          return;
         }
 
         if (event.key === "/") {

@@ -1,6 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, of, Subscriber } from "rxjs";
-import { tap, catchError } from "rxjs/operators";
+import { Observable, from, Subscriber } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
@@ -17,7 +16,6 @@ interface CrudOptions {
   id?: string;
   data?: unknown;
   parentTodoId?: string;
-  relations?: RelationObj[];
   load?: string[];
   filter?: { [key: string]: any };
   visibility?: string;
@@ -57,8 +55,7 @@ export class ApiProvider {
       if (options.id) payload["id"] = options.id;
       if (options.data) payload["data"] = options.data;
       if (options.filter) payload["filter"] = options.filter;
-      if (options.relations) payload["relations"] = options.relations;
-      if (options.load) payload["load"] = options.load;
+      if (options.load) payload["load"] = JSON.stringify(options.load);
       if (options.visibility) payload["visibility"] = options.visibility;
 
       if (operation === "updateAll" && options.data) {
@@ -67,6 +64,18 @@ export class ApiProvider {
         invoke<Response<T>>("manage_data", payload).then(
           (response) => {
             if (response.status === ResponseStatus.SUCCESS) {
+              if (operation !== "get" && operation !== "getAll") {
+                this.storageUpdateService.updateAfterOperation(
+                  operation,
+                  table,
+                  response.data,
+                  options.id,
+                  options.parentTodoId
+                );
+              }
+              if (operation === "getAll" && table === "chats") {
+                this.handleChatsResult(response.data as Chat[], options.filter);
+              }
               subscriber.next(response.data as T);
               subscriber.complete();
             } else {
@@ -77,27 +86,11 @@ export class ApiProvider {
           (err) => {
             const msg = err?.message || String(err);
             this.notifyService.showError(msg);
-            subscriber.error(new Error(msg));
+            subscriber.error(new Error(err));
           }
         );
       }
-    }).pipe(
-      tap((result) => {
-        if (operation !== "get" && operation !== "getAll") {
-          this.storageUpdateService.updateAfterOperation(
-            operation,
-            table,
-            result,
-            options.id,
-            options.parentTodoId
-          );
-        }
-        if (operation === "getAll" && table === "chats") {
-          this.handleChatsResult(result as Chat[], options.filter);
-        }
-      }),
-      catchError(() => of(null) as Observable<T>)
-    );
+    });
   }
 
   clearCache(): void {
@@ -124,6 +117,17 @@ export class ApiProvider {
       (responses: Response<T>[]) => {
         const success = responses.every((r) => r.status === ResponseStatus.SUCCESS);
         if (success) {
+          const table = payload["table"] as string;
+          responses.forEach((response, index) => {
+            const item = dataItems[index];
+            this.storageUpdateService.updateAfterOperation(
+              item["id"] ? "update" : "create",
+              table,
+              response.data,
+              item["id"] as string | undefined,
+              undefined
+            );
+          });
           subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
           subscriber.complete();
         } else {

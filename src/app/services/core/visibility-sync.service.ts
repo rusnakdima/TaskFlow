@@ -25,7 +25,7 @@ export class VisibilitySyncService {
   }
 
   async syncSingleTodoVisibilityChange(
-    newVisibility: "private" | "team",
+    newVisibility: "private" | "shared",
     todo_id?: string
   ): Promise<void> {
     if (!todo_id) return;
@@ -35,10 +35,10 @@ export class VisibilitySyncService {
     }
 
     const currentVisibility = todo.visibility;
-    const isPrivateToTeam = currentVisibility === "private" && newVisibility === "team";
-    const isTeamToPrivate = currentVisibility === "team" && newVisibility === "private";
+    const isPrivateToShared = currentVisibility === "private" && newVisibility === "shared";
+    const isSharedToPrivate = currentVisibility === "shared" && newVisibility === "private";
 
-    if (!isPrivateToTeam && !isTeamToPrivate) {
+    if (!isPrivateToShared && !isSharedToPrivate) {
       await this.importTodoToLocalDb(todo_id);
       return;
     }
@@ -60,7 +60,7 @@ export class VisibilitySyncService {
 
   private async syncTodoVisibility(
     todo: Todo,
-    targetVisibility: "private" | "team"
+    targetVisibility: "private" | "shared"
   ): Promise<void> {
     let lastError: Error | null = null;
 
@@ -125,7 +125,7 @@ export class VisibilitySyncService {
   }
 
   private async exportTodoToStorage(todo: Todo, isPrivate: boolean): Promise<void> {
-    const visibility = isPrivate ? "private" : "team";
+    const visibility = isPrivate ? "private" : "shared";
     const todoWithoutRelations = this.stripRelations(todo);
 
     await firstValueFrom(
@@ -137,7 +137,6 @@ export class VisibilitySyncService {
         })
         .pipe(
           catchError((error) => {
-            console.error("[VisibilitySync] Error:", error);
             return of(null);
           })
         )
