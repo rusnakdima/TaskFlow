@@ -332,7 +332,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         .crud<Comment>("create", "comments", {
           data: commentForBackend,
           parentTodoId: effectiveTodoId,
-          visibility: this.isPrivate ? "private" : "team",
+          visibility: this.isPrivate ? "private" : "shared",
         })
         .subscribe({
           next: () => {
@@ -368,7 +368,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       .crud<Comment>("create", "comments", {
         data: commentForBackend,
         parentTodoId: effectiveTodoId,
-        visibility: this.isPrivate ? "private" : "team",
+        visibility: this.isPrivate ? "private" : "shared",
       })
       .subscribe({
         next: () => {
@@ -388,7 +388,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
         .subscribe({
-          error: (err) => console.error("Task operation failed:", err),
+          error: (err) => {},
         });
     }
   }

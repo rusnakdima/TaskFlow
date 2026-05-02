@@ -64,9 +64,7 @@ export class CropModalComponent {
       setTimeout(() => this.redrawCanvas(), 0);
     };
 
-    img.onerror = () => {
-      console.error("Failed to load image for cropping");
-    };
+    img.onerror = () => {};
 
     try {
       img.crossOrigin = "anonymous";

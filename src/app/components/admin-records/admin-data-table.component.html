@@ -1,126 +1,222 @@
-<div class="grid grid-cols-1 gap-4">
-  @for (item of data; track item.id) {
-    <mat-card class="p-4 transition-shadow hover:shadow-lg">
-      <div class="flex items-start gap-4">
-        <app-checkbox
-          class="mt-1"
-          [checked]="isSelected(item.id)"
-          (checkedChange)="onSelectChange(item.id, $event)"
-        />
-
-        <div class="min-w-0 flex-1">
-          <div class="mb-2 flex items-start justify-between">
-            <div class="min-w-0 flex-1">
-              <h4
-                class="textNormal mb-1 cursor-pointer truncate text-lg font-semibold hover:text-blue-600"
-                (click)="onSelectChange(item.id, !isSelected(item.id))"
-              >
-                @if (titleKey === "content") {
-                  {{ item[titleKey] || "No content" }}
-                } @else if (titleKey === "date") {
-                  {{ item[titleKey] || formatDate(item.created_at) }}
-                } @else {
-                  {{ item[titleKey] || "No Title" }}
-                }
-              </h4>
-              <div class="textMuted flex items-center gap-4 text-sm">
-                <span class="truncate">ID: {{ item.id }}</span>
-                <span>{{ formatDate(item.created_at) }}</span>
-              </div>
+<div class="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700">
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-gray-50 dark:bg-zinc-800/80">
+        <tr>
+          <th class="w-12 px-4 py-3">
+            <div class="flex items-center justify-center">
+              <app-checkbox
+                [checked]="isAllSelected()"
+                [indeterminate]="selectedRecords.size > 0 && !isAllSelected()"
+                [highlight]="selectedRecords.size > 0 && !isAllSelected()"
+                (checkedChange)="onSelectAllChange($event)"
+              />
             </div>
-            <div class="ml-4 flex shrink-0 items-center gap-2">
-              <div class="flex flex-col items-end gap-1">
-                <mat-chip class="h-7 text-xs" [ngClass]="getDeletedStatusColor(item.deleted_at)">
-                  {{ getDeletedStatusText(item.deleted_at) }}
-                </mat-chip>
-                @if (item.deleted_at) {
-                  <span class="textMuted text-xs">{{ formatDate(item.deleted_at) }}</span>
-                }
+          </th>
+          <th class="min-w-[200px] px-4 py-3 text-left">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Title</span>
+          </th>
+          <th class="px-4 py-3 text-left">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Status</span>
+          </th>
+          <th class="px-4 py-3 text-left">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Priority</span>
+          </th>
+          <th class="px-4 py-3 text-left">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Visibility</span>
+          </th>
+          <th class="px-4 py-3 text-left">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Created</span>
+          </th>
+          <th class="w-24 px-4 py-3 text-center">
+            <span class="textMuted text-xs font-semibold tracking-wider uppercase">Actions</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-zinc-700/50">
+        @for (item of data; track item.id) {
+          <tr
+            class="transition-colors hover:bg-blue-50/50 dark:hover:bg-zinc-700/30"
+            [ngClass]="{
+              'bg-blue-50/30 dark:bg-blue-900/10': selectedRecords.has(item.id) && !item.deleted_at,
+              'bg-red-50/30 dark:bg-red-900/10': item.deleted_at && !selectedRecords.has(item.id),
+              'bg-red-50/50 dark:bg-red-900/20': item.deleted_at && selectedRecords.has(item.id),
+              'even:bg-gray-50/50 dark:even:bg-zinc-800/30':
+                !selectedRecords.has(item.id) && !item.deleted_at,
+            }"
+          >
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-center">
+                <app-checkbox
+                  [checked]="selectedRecords.has(item.id)"
+                  (checkedChange)="onSelectChange(item.id, $event)"
+                />
               </div>
-              <button mat-icon-button class="h-8 w-8" (click)="toggleExpanded(item.id)">
-                <mat-icon class="h-5 w-5 min-w-5">
-                  {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
-                </mat-icon>
-              </button>
-              @if (showActions) {
-                <button
-                  mat-icon-button
-                  class="h-8 w-8 text-blue-600"
-                  (click)="toggleDelete.emit(item)"
-                  [title]="item.deleted_at ? 'Restore record' : 'Soft delete record'"
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-col">
+                <span
+                  class="cursor-pointer font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+                  (click)="onSelectChange(item.id, !selectedRecords.has(item.id))"
                 >
-                  <mat-icon
-                    class="h-5! w-5! min-w-5 text-xl!"
-                    [fontIcon]="item.deleted_at ? 'restore_from_trash' : 'delete'"
-                  />
-                </button>
-                <button
-                  mat-icon-button
-                  class="h-8 w-8 text-red-600"
-                  (click)="deleteRecord.emit(item)"
-                  title="Permanently delete record"
+                  {{ getTitle(item) }}
+                </span>
+                <span class="textMuted mt-0.5 text-xs">ID: {{ item.id | slice: 0 : 12 }}...</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              @if (item.deleted_at) {
+                <span
+                  class="inline-flex rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
                 >
-                  <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete_forever" />
-                </button>
+                  Deleted
+                </span>
+              } @else if (item.status) {
+                <span
+                  class="inline-flex rounded-md px-2 py-1 text-xs font-medium"
+                  [ngClass]="getStatusColor(item.status)"
+                >
+                  {{ item.status }}
+                </span>
+              } @else {
+                <span class="textMuted text-xs">-</span>
               }
-            </div>
-          </div>
-
-          @if (isExpanded(item.id)) {
-            <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
-              <div class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm md:grid-cols-2">
-                @for (field of fields; track field.key) {
-                  <div
-                    [class.md:col-span-2]="field.type === 'text' && field.key === descriptionKey"
+            </td>
+            <td class="px-4 py-3">
+              @if (item.priority) {
+                <mat-chip class="h-6 text-xs" [ngClass]="getPriorityColor(item.priority)">
+                  {{ item.priority }}
+                </mat-chip>
+              } @else {
+                <span class="textMuted text-xs">-</span>
+              }
+            </td>
+            <td class="px-4 py-3">
+              @if (item.visibility) {
+                <span
+                  class="inline-flex items-center gap-1 rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                >
+                  @if (item.visibility === "private") {
+                    <mat-icon class="h-3 w-3 min-w-3">lock</mat-icon>
+                  } @else {
+                    <mat-icon class="h-3 w-3 min-w-3">group</mat-icon>
+                  }
+                  {{ item.visibility }}
+                </span>
+              } @else {
+                <span class="textMuted text-xs">-</span>
+              }
+            </td>
+            <td class="px-4 py-3">
+              <span class="textMuted text-sm">{{ formatDate(item.created_at) }}</span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-center gap-1">
+                <button
+                  mat-icon-button
+                  class="h-8 w-8"
+                  [ngClass]="
+                    isExpanded(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'
+                  "
+                  (click)="toggleExpanded(item.id)"
+                  title="Expand details"
+                >
+                  <mat-icon class="h-5 w-5 min-w-5 text-base">
+                    {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
+                  </mat-icon>
+                </button>
+                @if (showActions) {
+                  <button
+                    mat-icon-button
+                    class="h-8 w-8 text-blue-600 dark:text-blue-400"
+                    (click)="toggleDelete.emit(item)"
+                    [title]="item.deleted_at ? 'Restore record' : 'Soft delete'"
                   >
-                    <span class="textMuted mr-2 font-medium">{{ field.label }}:</span>
-
-                    @switch (field.type) {
-                      @case ("date") {
-                        <span class="textNormal">{{ formatDate(getValue(item, field)) }}</span>
-                      }
-                      @case ("priority") {
-                        <mat-chip
-                          class="h-6 text-xs"
-                          [ngClass]="getPriorityColor(getValue(item, field))"
-                        >
-                          {{ getValue(item, field) }}
-                        </mat-chip>
-                      }
-                      @case ("chip") {
-                        <mat-chip
-                          class="h-6 text-xs"
-                          [ngClass]="field.getChipColor ? field.getChipColor(item) : ''"
-                        >
-                          {{ field.getChipText ? field.getChipText(item) : getValue(item, field) }}
-                        </mat-chip>
-                      }
-                      @case ("user") {
-                        @if (getValue(item, field)) {
-                          <span class="textNormal">
-                            {{ getValue(item, field).profile.name }}
-                            {{ getValue(item, field).profile.last_name }} ({{
-                              getValue(item, field).username
-                            }})
-                          </span>
-                        } @else {
-                          <span class="textMuted">No User</span>
-                        }
-                      }
-                      @case ("array-count") {
-                        <span class="textNormal">{{ getValue(item, field)?.length || 0 }}</span>
-                      }
-                      @default {
-                        <span class="textNormal">{{ getValue(item, field) }}</span>
-                      }
+                    <mat-icon class="h-5! w-5! min-w-5 text-base!" fontIcon="delete" />
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="h-8 w-8 text-red-600"
+                    (click)="deleteRecord.emit(item)"
+                    title="Permanently delete"
+                  >
+                    <mat-icon class="h-5! w-5! min-w-5 text-base!" fontIcon="delete_forever" />
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+          @if (isExpanded(item.id)) {
+            <tr class="expand-row">
+              <td colspan="7" class="px-4 py-4">
+                <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+                  <div
+                    class="mb-3 flex items-center gap-2 border-b border-gray-200 pb-2 dark:border-zinc-700"
+                  >
+                    <mat-icon class="textMuted">info</mat-icon>
+                    <span class="text-sm font-semibold">Record Details</span>
+                    @if (item.deleted_at) {
+                      <mat-chip
+                        class="ml-2 h-6 text-xs"
+                        ngClass="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                      >
+                        Deleted: {{ formatDate(item.deleted_at) }}
+                      </mat-chip>
                     }
                   </div>
-                }
-              </div>
-            </div>
+                  <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+                    @for (field of fields; track field.key) {
+                      <div class="flex flex-col">
+                        <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
+                          {{ field.label }}
+                        </span>
+                        <span class="textNormal text-sm">
+                          @switch (field.type) {
+                            @case ("date") {
+                              {{ formatDate(getValue(item, field)) || "-" }}
+                            }
+                            @case ("priority") {
+                              <mat-chip
+                                class="h-5 text-xs"
+                                [ngClass]="getPriorityColor(getValue(item, field))"
+                              >
+                                {{ getValue(item, field) || "-" }}
+                              </mat-chip>
+                            }
+                            @case ("user") {
+                              @if (getValue(item, field)) {
+                                {{ getValue(item, field).profile?.name }}
+                                {{ getValue(item, field).profile?.last_name }}
+                              } @else {
+                                -
+                              }
+                            }
+                            @case ("array-count") {
+                              {{ getValue(item, field)?.length || 0 }}
+                            }
+                            @default {
+                              {{ getValue(item, field) || "-" }}
+                            }
+                          }
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </td>
+            </tr>
           }
-        </div>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (data.length === 0) {
+    <div class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <mat-icon class="textMuted mb-2 h-12! w-12! min-w-12 text-4xl!" fontIcon="inbox" />
+        <p class="textMuted">No records found</p>
       </div>
-    </mat-card>
+    </div>
   }
 </div>

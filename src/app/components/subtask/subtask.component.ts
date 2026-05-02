@@ -190,7 +190,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
         .crud<Comment>("create", "comments", {
           data: commentForBackend,
           parentTodoId: effectiveTodoId,
-          visibility: this.isPrivate ? "private" : "team",
+          visibility: this.isPrivate ? "private" : "shared",
         })
         .subscribe({
           next: () => {
@@ -212,7 +212,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
         .subscribe({
-          error: (err) => console.error("Subtask operation failed:", err),
+          error: (err) => {},
         });
     }
   }

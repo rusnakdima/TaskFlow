@@ -35,6 +35,7 @@ import { SyncService } from "@services/data/sync.service";
 import { ApiProvider } from "@providers/api.provider";
 import { StorageService } from "@services/core/storage.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -63,7 +64,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private syncService: SyncService,
     private cdr: ChangeDetectorRef,
     private location: Location,
-    private appStateService: AppStateService
+    private appStateService: AppStateService,
+    private shortcutEmitters: ShortcutEmittersService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
@@ -339,5 +341,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   logout() {
     this.authService.logout();
+  }
+
+  showShortcuts() {
+    this.shortcutEmitters.emitShortcuts();
   }
 }

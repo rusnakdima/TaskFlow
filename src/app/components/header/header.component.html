@@ -181,6 +181,15 @@
 
     <button
       mat-menu-item
+      (click)="showShortcuts()"
+      class="transition-colors hover:bg-gray-300! dark:hover:bg-zinc-700!"
+    >
+      <mat-icon class="textMuted mr-3 size-5! min-w-5 text-xl!" fontIcon="keyboard" />
+      <span class="textNormal">Shortcuts</span>
+    </button>
+
+    <button
+      mat-menu-item
       class="text-red-600 transition-colors hover:bg-red-50! dark:text-red-400 dark:hover:bg-red-900/30!"
       (click)="logout()"
     >
