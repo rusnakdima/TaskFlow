@@ -15,6 +15,44 @@ export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
 
   /**
+   * Load initial paginated data for a specific type
+   */
+  loadInitialData(type: string, limit: number): Observable<any> {
+    return new Observable((subscriber) => {
+      this.adminService.getArchiveDataPaginated(type, 0, limit).subscribe({
+        next: (response) => {
+          if (response.status === "Success" && response.data) {
+            subscriber.next(response.data);
+            subscriber.complete();
+          } else {
+            subscriber.error(new Error(response.message || "Failed to load data"));
+          }
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
+  }
+
+  /**
+   * Load more paginated data for a specific type
+   */
+  loadMoreData(type: string, skip: number): Observable<any> {
+    return new Observable((subscriber) => {
+      this.adminService.getArchiveDataPaginated(type, skip, 10).subscribe({
+        next: (response) => {
+          if (response.status === "Success" && response.data) {
+            subscriber.next(response.data);
+            subscriber.complete();
+          } else {
+            subscriber.error(new Error(response.message || "Failed to load more data"));
+          }
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
+  }
+
+  /**
    * Get all archive data with relations
    */
   getArchiveDataWithRelations(): AdminDataWithRelations {

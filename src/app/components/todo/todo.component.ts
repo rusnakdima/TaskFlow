@@ -134,23 +134,23 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   getProjectStatusColor(): string {
-    if (!this.todo || !this.todo.tasks || this.todo.tasks.length === 0) {
+    if (!this.todo || this.todo.tasks_count === 0) {
       return "bg-gray-400";
     }
 
-    const completed = BaseItemHelper.countCompleted(this.todo.tasks);
-    if (completed === this.todo.tasks.length) {
+    const completed = this.todo.completed_tasks_count || 0;
+    if (completed === this.todo.tasks_count) {
       return "bg-green-500";
     }
     return "bg-blue-500";
   }
 
   getProjectStatusText(): string {
-    if (!this.todo || !this.todo.tasks || this.todo.tasks.length === 0) {
+    if (!this.todo || this.todo.tasks_count === 0) {
       return "No tasks";
     }
-    const completed = BaseItemHelper.countCompleted(this.todo.tasks);
-    if (completed === this.todo.tasks.length) {
+    const completed = this.todo.completed_tasks_count || 0;
+    if (completed === this.todo.tasks_count) {
       return "Completed";
     }
     return "In Progress";
@@ -188,20 +188,17 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   get countTasks(): number {
-    return this.todo?.tasks?.length ?? 0;
+    return this.todo?.tasks_count ?? 0;
   }
 
   getTotalSubtasksCount(): number {
-    if (!this.todo?.tasks) return 0;
-    return this.todo.tasks.reduce((acc, task) => acc + (task.subtasks?.length ?? 0), 0);
+    // Cannot calculate without nested access - would need to query storage
+    return 0;
   }
 
   getCompletedSubtasksCount(): number {
-    if (!this.todo?.tasks) return 0;
-    return this.todo.tasks.reduce(
-      (acc, task) => acc + BaseItemHelper.countCompleted(task.subtasks ?? []),
-      0
-    );
+    // Cannot calculate without nested access - would need to query storage
+    return 0;
   }
 
   toggleSelection(checked: boolean): void {

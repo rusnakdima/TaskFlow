@@ -38,4 +38,12 @@ export class AdminService {
   async toggleDeleteStatusLocal(table: string, id: string): Promise<Response<boolean>> {
     return await invoke<Response<boolean>>("toggle_delete_status_local", { table, id });
   }
+
+  getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
+    return from(invoke<Response<R>>("get_admin_data_paginated", { type, skip, limit }));
+  }
+
+  getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
+    return from(invoke<Response<R>>("get_archive_data_paginated", { type, skip, limit }));
+  }
 }

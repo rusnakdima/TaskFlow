@@ -96,6 +96,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private dragDropService = inject(DragDropOrderService);
   public bulkService = inject(BulkActionService);
   private appStateService = inject(AppStateService);
+  private dataLoaderService = inject(DataLoaderService);
 
   // State signals
   showChat = signal(false);
@@ -141,14 +142,72 @@ export class SubtasksView extends BaseListView implements OnInit {
   // Bulk selection state (like admin page)
   selectedSubtasks = this.selectedItems;
 
-  // Computed signals for data flow - Always use storage as the single source of truth
-  taskSubtasks = computed(() => {
-    const taskFromSignal = this.task();
-    const taskId = taskFromSignal?.id;
-    if (!taskId) return [];
-    // Always use storage data for real-time updates
-    return this.storageService.getSubtasksByTaskId(taskId);
-  });
+  commentExpandedSubtasks = signal<Set<string>>(new Set());
+
+  subtaskPagination = signal<{
+    skip: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
+
+  taskSubtasks = signal<Subtask[]>([]);
+
+  loadInitialSubtasks() {
+    const taskId = this.task()?.id;
+    if (!taskId) return;
+
+    this.subtaskPagination.update((p) => ({ ...p, loading: true }));
+
+    this.dataLoaderService.loadInitialSubtasksForTask(taskId).subscribe({
+      next: (subtasks) => {
+        this.taskSubtasks.set(subtasks);
+        this.subtaskPagination.update((p) => ({
+          ...p,
+          skip: subtasks.length,
+          loading: false,
+          hasMore: subtasks.length === p.limit,
+        }));
+      },
+      error: () => {
+        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+      },
+    });
+  }
+
+  loadMoreSubtasks() {
+    if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
+    const taskId = this.task()?.id;
+    if (!taskId) return;
+
+    this.subtaskPagination.update((p) => ({ ...p, loading: true }));
+
+    this.dataLoaderService.loadMoreSubtasksForTask(taskId).subscribe({
+      next: (subtasks) => {
+        this.taskSubtasks.update((current) => [...current, ...subtasks]);
+        this.subtaskPagination.update((p) => ({
+          ...p,
+          skip: p.skip + subtasks.length,
+          loading: false,
+          hasMore: subtasks.length === p.limit,
+        }));
+      },
+      error: () => {
+        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+      },
+    });
+  }
+
+  constructor() {
+    super();
+    effect(() => {
+      const taskId = this.task()?.id;
+      if (taskId) {
+        this.loadInitialSubtasks();
+      }
+    });
+  }
 
   listSubtasks = computed(() => {
     let filtered = this.taskSubtasks();

@@ -107,14 +107,10 @@ export class KanbanView extends BaseListView implements OnInit {
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    // Directly access todos and find the matching one, then get its tasks
-    const todo = this.storageService.todos().find((t) => t.id === todoId);
-    const tasks = todo?.tasks || [];
+    const tasks = this.storageService.getTasksByTodoId(todoId);
 
-    // Filter out deleted tasks
     const filteredTasks = tasks.filter((task) => !task.deleted_at);
 
-    // Remove duplicates by ID, keeping the first occurrence
     const uniqueTaskMap = new Map<string, Task>();
     filteredTasks.forEach((task) => {
       if (!uniqueTaskMap.has(task.id)) {

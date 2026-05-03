@@ -1,7 +1,8 @@
 <ng-template #progressTemplate>
   <div class="mb-4">
     <app-progress-bar
-      [items]="todo?.tasks ?? []"
+      [completedCount]="todo?.completed_tasks_count ?? 0"
+      [totalCount]="todo?.tasks_count ?? 0"
       size="md"
       [showPercentage]="true"
       [showLegend]="true"
@@ -119,6 +120,18 @@
             <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="assignment" />
             <span>{{ countTasks }} tasks</span>
           </div>
+          @if (todo.tasks_count > 0) {
+            <div class="flex items-center gap-1">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="check_circle" />
+              <span>{{ todo.completed_tasks_count }}/{{ todo.tasks_count }}</span>
+            </div>
+          }
+          @if (todo.chats_count > 0) {
+            <div class="flex items-center gap-1">
+              <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="chat" />
+              <span>{{ todo.chats_count }}</span>
+            </div>
+          }
         </div>
 
         @if (isExpandedDetails()) {

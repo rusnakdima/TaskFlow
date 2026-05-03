@@ -19,6 +19,9 @@ interface CrudOptions {
   load?: string[];
   filter?: { [key: string]: any };
   visibility?: string;
+  skip?: number;
+  limit?: number;
+  sort?: { [key: string]: number };
 }
 
 @Injectable({
@@ -57,6 +60,9 @@ export class ApiProvider {
       if (options.filter) payload["filter"] = options.filter;
       if (options.load) payload["load"] = JSON.stringify(options.load);
       if (options.visibility) payload["visibility"] = options.visibility;
+      if (options.skip !== undefined) payload["skip"] = options.skip;
+      if (options.limit !== undefined) payload["limit"] = options.limit;
+      if (options.sort) payload["sort"] = JSON.stringify(options.sort);
 
       if (operation === "updateAll" && options.data) {
         this.executeUpdateAll(payload, options, subscriber);
@@ -95,6 +101,10 @@ export class ApiProvider {
 
   clearCache(): void {
     // Cache removed - no-op for backwards compatibility
+  }
+
+  isOffline(): boolean {
+    return !navigator.onLine;
   }
 
   private executeUpdateAll<T>(

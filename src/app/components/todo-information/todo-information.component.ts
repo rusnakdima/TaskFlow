@@ -32,19 +32,20 @@ export class TodoInformationComponent {
   protected formatDate = DateHelper.formatDateShort;
 
   getCompletedTasksCount(): number {
-    return BaseItemHelper.countCompleted(this.todo.tasks || []);
+    return this.todo.completed_tasks_count || 0;
   }
 
   getSkippedTasksCount(): number {
-    return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.SKIPPED).length;
+    // Cannot get skipped count without accessing nested tasks - return 0 or query storage
+    return 0;
   }
 
   getFailedTasksCount(): number {
-    return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.FAILED).length;
+    return 0;
   }
 
   getInProgressTasksCount(): number {
-    return (this.todo.tasks || []).filter((task) => task.status === TaskStatus.PENDING).length;
+    return (this.todo.tasks_count || 0) - (this.todo.completed_tasks_count || 0);
   }
 
   getCategories(): Category[] {

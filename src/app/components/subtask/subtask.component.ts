@@ -110,30 +110,36 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     return comments.filter((c) => !c.deleted_at);
   }
 
+  getSubtaskComments(subtaskId: string): Comment[] {
+    return this.storageService
+      .comments()
+      .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
+  }
+
   toggleComments() {
     const wasOpen = this.showComments();
     this.showComments.update((v) => !v);
 
     if (!wasOpen && this.subtask) {
+      const subtaskId = this.subtask.id;
       const userId = this.authService.getValueByKey("id");
-      if (userId && this.subtask.comments && this.subtask.comments.length > 0) {
-        const hasUnread = this.subtask.comments.some(
-          (c: any) =>
-            !c.deleted_at &&
-            c.subtask_id &&
-            c.user_id !== userId &&
-            (!c.read_by || !c.read_by.includes(userId))
+      const subtaskComments = this.storageService
+        .comments()
+        .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
+      if (userId && subtaskComments.length > 0) {
+        const hasUnread = subtaskComments.some(
+          (c) => c.subtask_id && c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
         );
 
         if (hasUnread) {
-          const updatedComments = this.subtask.comments.map((c: any) => {
+          const updatedComments = subtaskComments.map((c) => {
             if (c.deleted_at || !c.subtask_id) return c;
             if (c.user_id === userId) return c;
 
             if (!c.read_by || !c.read_by.includes(userId)) {
               return {
                 ...c,
-                readBy: [...(c.read_by || []), userId],
+                read_by: [...(c.read_by || []), userId],
               };
             }
             return c;
@@ -141,20 +147,19 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
           this.storageService.updateItem("subtasks", this.subtask.id, {
             ...this.subtask,
-            comments: updatedComments,
           });
 
           const effectiveTodoId =
             this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
           if (effectiveTodoId) {
             const commentsToUpdate = updatedComments.filter(
-              (c: any) => !c.deleted_at && c.subtask_id === this.subtask?.id && c.user_id !== userId
+              (c) => !c.deleted_at && c.subtask_id === this.subtask?.id && c.user_id !== userId
             );
 
             if (commentsToUpdate.length > 0) {
               this.dataSyncProvider
                 .crud("updateAll", "comments", {
-                  data: commentsToUpdate.map((c: any) => ({ id: c.id, read_by: c.read_by })),
+                  data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
                   parentTodoId: effectiveTodoId,
                 })
                 .subscribe();
@@ -220,13 +225,17 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   onMarkAsRead(commentIds: string[]) {
     const userId = this.authService.getValueByKey("id");
     if (this.subtask && userId && commentIds.length > 0) {
+      const subtaskId = this.subtask.id;
+      const subtaskComments = this.storageService
+        .comments()
+        .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
       let changed = false;
-      const updatedComments = (this.subtask.comments || []).map((c) => {
+      const updatedComments = subtaskComments.map((c) => {
         if (commentIds.includes(c.id)) {
           const readBy = c.read_by || [];
           if (!readBy.includes(userId)) {
             changed = true;
-            return { ...c, readBy: [...(c.read_by || []), userId] };
+            return { ...c, read_by: [...(c.read_by || []), userId] };
           }
         }
         return c;

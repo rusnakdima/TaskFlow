@@ -131,8 +131,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const task = this.taskForComments();
     if (!task) return [];
 
-    const taskComments = this.getActiveComments(task.comments);
-    return taskComments;
+    return this.storageService.comments().filter((c) => c.task_id === task.id && !c.deleted_at);
   });
 
   /** Subtask rows (always available for list + inline expand) */
@@ -140,21 +139,36 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const task = this.taskForComments();
     if (!task) return [] as SubtaskCommentGroup[];
 
-    return (task.subtasks || [])
-      .map((s: Subtask) => ({
+    const subtasks = this.storageService
+      .subtasks()
+      .filter((s) => s.task_id === task.id && !s.deleted_at);
+
+    return subtasks.map((s) => {
+      const subtaskComments = this.storageService
+        .comments()
+        .filter((c) => c.subtask_id === s.id && !c.deleted_at);
+      return {
         subtask_id: s.id,
         title: s.title || "Untitled subtask",
-        comments: this.getActiveComments(s.comments),
-      }))
-      .map((g) => ({ ...g, comments: g.comments }));
+        comments: subtaskComments,
+      };
+    });
   });
 
   /** Total active comments (task + subtasks) used for the small badge near the comment icon */
   totalCommentsForBadge = computed(() => {
     const taskCount = this.taskOnlyCommentsForPanel().length;
-    const subtaskCount = this.subtaskCommentGroups().reduce((sum, g) => sum + g.comments.length, 0);
+    const subtaskCount = this.subtaskCommentGroups().reduce(
+      (sum: number, g) => sum + g.comments.length,
+      0
+    );
     return taskCount + subtaskCount;
   });
+
+  /** Get subtasks for a task from flat storage */
+  getTaskSubtasks(taskId: string): Subtask[] {
+    return this.storageService.subtasks().filter((s) => s.task_id === taskId && !s.deleted_at);
+  }
 
   ngOnInit() {}
 
@@ -215,57 +229,38 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const wasOpen = this.showComments();
     this.showComments.update((v) => !v);
 
-    // Mark subtask comments as read when opening (task's own comments are not counted in badge)
-    if (!wasOpen && this.task && this.task.subtasks && this.task.subtasks.length > 0) {
+    if (!wasOpen && this.task) {
+      const taskId = this.task.id;
       const userId = this.authService.getValueByKey("id");
       if (userId) {
-        let hasUpdates = false;
+        const subtaskIds = this.storageService
+          .subtasks()
+          .filter((s) => s.task_id === taskId && !s.deleted_at)
+          .map((s) => s.id);
 
-        // Mark all subtask comments as read
-        const updatedSubtasks = this.task.subtasks.map((subtask: Subtask) => {
-          if (!subtask.comments || subtask.comments.length === 0) return subtask;
+        const subtaskComments = this.storageService
+          .comments()
+          .filter((c) => c.subtask_id && subtaskIds.includes(c.subtask_id) && !c.deleted_at);
 
-          const updatedComments = subtask.comments.map((c: Comment) => {
-            if (c.deleted_at || !c.subtask_id) return c;
-            if (c.user_id === userId) return c;
+        const commentsToUpdate = subtaskComments.filter(
+          (c) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
+        );
 
-            if (!c.read_by || !c.read_by.includes(userId)) {
-              hasUpdates = true;
-              return {
-                ...c,
-                readBy: [...(c.read_by || []), userId],
-              };
-            }
-            return c;
-          });
-
-          return { ...subtask, comments: updatedComments };
-        });
-
-        if (hasUpdates) {
-          // Update storage
-          this.storageService.updateItem("tasks", this.task.id, {
-            ...this.task,
-            subtasks: updatedSubtasks,
-          });
-
-          // Send update to backend for subtask comments only
+        if (commentsToUpdate.length > 0) {
           const effectiveTodoId = this.todo_id || this.task.todo_id;
-          if (effectiveTodoId) {
-            const allSubtaskComments = updatedSubtasks.flatMap((s: Subtask) =>
-              (s.comments || []).filter(
-                (c: Comment) => !c.deleted_at && c.subtask_id && c.user_id !== userId
-              )
-            );
+          commentsToUpdate.forEach((c) => {
+            this.storageService.updateItem("comments", c.id, {
+              read_by: [...(c.read_by || []), userId],
+            });
+          });
 
-            if (allSubtaskComments.length > 0) {
-              this.dataSyncProvider
-                .crud("updateAll", "comments", {
-                  data: allSubtaskComments.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
-                  parentTodoId: effectiveTodoId,
-                })
-                .subscribe();
-            }
+          if (effectiveTodoId) {
+            this.dataSyncProvider
+              .crud("updateAll", "comments", {
+                data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
+                parentTodoId: effectiveTodoId,
+              })
+              .subscribe();
           }
         }
       }
@@ -396,24 +391,29 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   onMarkAsRead(commentIds: string[]) {
     const userId = this.authService.getValueByKey("id");
     if (this.task && userId && commentIds.length > 0) {
-      let changed = false;
-      const updatedComments = (this.task.comments || []).map((c) => {
-        if (commentIds.includes(c.id)) {
-          const readBy = c.read_by || [];
-          if (!readBy.includes(userId)) {
-            changed = true;
-            return { ...c, readBy: [...readBy, userId] };
-          }
-        }
-        return c;
-      });
+      const taskId = this.task.id;
+      const taskComments = this.storageService
+        .comments()
+        .filter((c) => c.task_id === taskId && commentIds.includes(c.id) && !c.deleted_at);
 
-      if (changed) {
-        this.updateTaskEvent.emit({
-          task: this.task,
-          field: "comments",
-          value: updatedComments,
+      const commentsToUpdate = taskComments.filter((c) => !c.read_by?.includes(userId));
+
+      if (commentsToUpdate.length > 0) {
+        commentsToUpdate.forEach((c) => {
+          this.storageService.updateItem("comments", c.id, {
+            read_by: [...(c.read_by || []), userId],
+          });
         });
+
+        const effectiveTodoId = this.todo_id || this.task.todo_id;
+        if (effectiveTodoId) {
+          this.dataSyncProvider
+            .crud("updateAll", "comments", {
+              data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
+              parentTodoId: effectiveTodoId,
+            })
+            .subscribe();
+        }
       }
     }
   }
@@ -423,42 +423,24 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const effectiveTodoId = this.todo_id || this.task?.todo_id;
     if (!this.task || !userId || !effectiveTodoId || commentIds.length === 0) return;
 
-    let changed = false;
-    const updatedSubtasks = (this.task.subtasks || []).map((s: Subtask) => {
-      if (s.id !== subtask_id) return s;
-      const updatedComments = (s.comments || []).map((c: Comment) => {
-        if (!commentIds.includes(c.id)) return c;
-        const readBy = c.read_by || [];
-        if (!readBy.includes(userId)) {
-          changed = true;
-          return { ...c, readBy: [...readBy, userId] };
-        }
-        return c;
+    const commentsToUpdate = this.storageService
+      .comments()
+      .filter((c) => c.subtask_id === subtask_id && commentIds.includes(c.id) && !c.deleted_at);
+
+    if (commentsToUpdate.length === 0) return;
+
+    commentsToUpdate.forEach((c) => {
+      this.storageService.updateItem("comments", c.id, {
+        read_by: [...(c.read_by || []), userId],
       });
-      return { ...s, comments: updatedComments };
     });
 
-    if (!changed) return;
-
-    this.storageService.updateItem("tasks", this.task.id, {
-      ...this.task,
-      subtasks: updatedSubtasks,
-    });
-
-    const commentsToUpdate = updatedSubtasks
-      .find((s: Subtask) => s.id === subtask_id)
-      ?.comments?.filter(
-        (c: Comment) => commentIds.includes(c.id) && !c.deleted_at && c.user_id !== userId
-      );
-
-    if (commentsToUpdate && commentsToUpdate.length > 0) {
-      this.dataSyncProvider
-        .crud("updateAll", "comments", {
-          data: commentsToUpdate.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
-          parentTodoId: effectiveTodoId,
-        })
-        .subscribe();
-    }
+    this.dataSyncProvider
+      .crud("updateAll", "comments", {
+        data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
+        parentTodoId: effectiveTodoId,
+      })
+      .subscribe();
   }
 
   toggleExpand() {
@@ -485,11 +467,18 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   getSubtaskStatusColor = BaseItemHelper.getStatusColor;
 
   get countCompletedSubtasks(): number {
-    return BaseItemHelper.countCompleted(this.task?.subtasks ?? []);
+    const taskId = this.task?.id;
+    if (!taskId) return 0;
+    return this.storageService
+      .subtasks()
+      .filter((s) => s.task_id === taskId && !s.deleted_at && s.status === "completed").length;
   }
 
   get totalSubtasks(): number {
-    return this.task?.subtasks?.length ?? 0;
+    const taskId = this.task?.id;
+    if (!taskId) return 0;
+    return this.storageService.subtasks().filter((s) => s.task_id === taskId && !s.deleted_at)
+      .length;
   }
 
   getPriorityColor = BaseItemHelper.getPriorityBadgeClass;

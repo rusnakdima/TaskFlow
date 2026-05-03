@@ -146,17 +146,17 @@
         </div>
 
         <div class="mb-4">
-          <app-progress-bar [items]="task.subtasks" [showLegend]="true" size="lg" />
+          <app-progress-bar [taskId]="task.id" [showLegend]="true" size="lg" />
         </div>
 
-        @if (isExpanded && task.subtasks.length > 0) {
+        @if (isExpanded && getTaskSubtasks(task.id).length > 0) {
           <div class="mt-2 border-t border-gray-200 pt-4 dark:border-zinc-700">
             <h4 class="textMuted mb-3 flex items-center gap-2 text-sm font-medium">
               <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="list" />
               Subtasks
             </h4>
             <div class="flex max-h-64 flex-col gap-2 overflow-y-auto">
-              @for (subtask of task.subtasks; track subtask.id) {
+              @for (subtask of getTaskSubtasks(task.id); track subtask.id) {
                 <div
                   class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
                 >

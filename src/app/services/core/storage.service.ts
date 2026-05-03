@@ -10,11 +10,9 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 /* handlers */
 import { TodoHandler } from "./entity-handlers/todo.handler";
-import { NestedEntityHandler } from "./entity-handlers/nested-entity.handler";
-import { CommentHandler } from "./entity-handlers/comment.handler";
 import { CategoryHandler } from "./entity-handlers/category.handler";
 import { ProfileHandler } from "./entity-handlers/profile.handler";
-import { ChatHandler } from "./entity-handlers/chat.handler";
+import { FlatCommentHandler } from "./entity-handlers/flat-comment.handler";
 
 import { BaseStorageService } from "./base-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -35,15 +33,18 @@ interface EntityMap {
 // ==================== STORAGE SERVICE ====================
 @Injectable({ providedIn: "root" })
 export class StorageService extends BaseStorageService {
-  // ==================== SIGNALS ====================
+  // ==================== FLAT SIGNALS ====================
   private readonly privateTodosSignal = signal<Todo[]>([]);
   private readonly sharedTodosSignal = signal<Todo[]>([]);
   private readonly publicTodosSignal = signal<Todo[]>([]);
+  private readonly tasksSignal = signal<Task[]>([]);
+  private readonly subtasksSignal = signal<Subtask[]>([]);
+  private readonly commentsSignal = signal<Comment[]>([]);
+  private readonly chatsSignal = signal<Chat[]>([]);
   private readonly categoriesSignal = signal<Category[]>([]);
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly profilesSignal = signal<Profile[]>([]);
   private readonly allProfilesSignal = signal<Profile[]>([]);
-  private readonly chatsByTodoSignal = signal<Map<string, Chat[]>>(new Map());
   private readonly userSignal = signal<any | null>(null);
 
   // ==================== COMPUTED SIGNALS ====================
@@ -90,57 +91,29 @@ export class StorageService extends BaseStorageService {
   readonly sharedTodos = this.sharedTodosComputed;
   readonly publicTodos = this.publicTodosComputed;
   readonly todos = this.todosComputed;
-  readonly tasks = computed(() =>
-    this.todos().flatMap((todo) =>
-      (Array.isArray(todo.tasks) ? todo.tasks : []).filter((task) => !task.deleted_at)
-    )
-  );
-  readonly subtasks = computed(() =>
-    this.tasks().flatMap((task) =>
-      (Array.isArray(task.subtasks) ? task.subtasks : []).filter((subtask) => !subtask.deleted_at)
-    )
-  );
-  readonly comments = computed(() => {
-    const todos = this.todos();
-    const allComments: Comment[] = [];
-    todos.forEach((todo) => {
-      if (Array.isArray(todo.tasks)) {
-        todo.tasks.forEach((task) => {
-          if (Array.isArray(task.comments)) {
-            allComments.push(...task.comments);
-          }
-          if (Array.isArray(task.subtasks)) {
-            task.subtasks.forEach((subtask) => {
-              if (Array.isArray(subtask.comments)) {
-                allComments.push(...subtask.comments);
-              }
-            });
-          }
-        });
-      }
-    });
-    return allComments;
-  });
+  readonly tasks = computed(() => this.tasksSignal().filter((t) => !t.deleted_at));
+  readonly subtasks = computed(() => this.subtasksSignal().filter((s) => !s.deleted_at));
+  readonly comments = computed(() => this.commentsSignal().filter((c) => !c.deleted_at));
   readonly categories = this.categoriesSignal.asReadonly();
   readonly profile = this.profileSignal.asReadonly();
   readonly profiles = this.profilesSignal.asReadonly();
   readonly allProfiles = this.allProfilesSignal.asReadonly();
-  readonly chatsByTodo = this.chatsByTodoSignal.asReadonly();
+  readonly chats = computed(() => this.chatsSignal().filter((c) => !c.deleted_at));
   readonly user = this.userSignal.asReadonly();
 
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
     todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
-    tasks: new NestedEntityHandler<Task>(this.privateTodosSignal, this.sharedTodosSignal, "tasks"),
-    subtasks: new NestedEntityHandler<Subtask>(
+    tasks: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
+    subtasks: new TodoHandler(
       this.privateTodosSignal,
       this.sharedTodosSignal,
-      "subtasks"
+      this.publicTodosSignal
     ),
     categories: new CategoryHandler(this.categoriesSignal),
     profiles: new ProfileHandler(this.profileSignal),
-    chats: new ChatHandler(this.chatsByTodoSignal),
-    comments: new CommentHandler(this.privateTodosSignal, this.sharedTodosSignal),
+    chats: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
+    comments: new FlatCommentHandler(this.commentsSignal),
   };
 
   // ==================== CRUD OPERATIONS ====================
@@ -197,20 +170,13 @@ export class StorageService extends BaseStorageService {
 
   // ==================== PUBLIC GETTERS ====================
   getTasksByTodoId(todo_id?: string): Task[] {
-    const todo = this.todos().find((t) => t.id === todo_id);
-    return Array.isArray(todo?.tasks) ? todo.tasks : [];
+    if (!todo_id) return [];
+    return this.tasks().filter((t) => t.todo_id === todo_id);
   }
 
   getSubtasksByTaskId(task_id?: string): Subtask[] {
-    for (const todo of [...this.privateTodosSignal(), ...this.sharedTodosSignal()]) {
-      const tasks = Array.isArray(todo.tasks) ? todo.tasks : [];
-      for (const task of tasks) {
-        if (task.id === task_id) {
-          return Array.isArray(task.subtasks) ? task.subtasks : [];
-        }
-      }
-    }
-    return [];
+    if (!task_id) return [];
+    return this.subtasks().filter((s) => s.task_id === task_id);
   }
 
   get pendingTasksCount(): number {
@@ -220,104 +186,49 @@ export class StorageService extends BaseStorageService {
   // ==================== CHAT OPERATIONS ====================
   getChatsByTodo(todo_id?: string): Chat[] {
     if (!todo_id) return [];
-    return this.chatsByTodoSignal().get(todo_id) || [];
+    return this.chats().filter((c) => c.todo_id === todo_id);
   }
 
   getChatsByTodoReactive(todo_id?: string): ReturnType<typeof computed<Chat[]>> {
     return computed(() => {
       if (!todo_id) return [];
-      return (this.chatsByTodoSignal().get(todo_id) || []).filter((chat) => !chat.deleted_at);
+      return this.chats().filter((chat) => chat.todo_id === todo_id);
     });
-  }
-
-  private extractChatsFromTodos(todos: Todo[]): void {
-    todos.forEach((todo) => {
-      if (todo.chats && todo.chats.length > 0) {
-        this.chatsByTodoSignal.update((map) => {
-          const newMap = new Map(map);
-          newMap.set(todo.id, todo.chats!);
-          return newMap;
-        });
-      }
-    });
-  }
-
-  private updateNestedChatsInTodo(todo_id: string, updater: (chats: Chat[]) => Chat[]): void {
-    const updateTodos = (todos: Todo[]) =>
-      todos.map((t) => (t.id === todo_id ? { ...t, chats: updater(t.chats || []) } : t));
-
-    const privateTodos = this.privateTodosSignal();
-    const sharedTodos = this.sharedTodosSignal();
-
-    if (privateTodos.some((t) => t.id === todo_id)) {
-      this.privateTodosSignal.set(updateTodos(privateTodos));
-    }
-    if (sharedTodos.some((t) => t.id === todo_id)) {
-      this.sharedTodosSignal.set(updateTodos(sharedTodos));
-    }
   }
 
   setChatsByTodo(chats: Chat[], todo_id?: string): void {
     if (!todo_id) return;
-    const handler = this.handlers.chats;
-    handler.setByTodoId(chats, todo_id);
+    this.chatsSignal.update((existing) => {
+      const filtered = existing.filter((c) => c.todo_id !== todo_id);
+      return [...filtered, ...chats];
+    });
   }
 
   addChatToTodo(chat: Chat, todo_id?: string): void {
     if (!todo_id) return;
-    this.chatsByTodoSignal.update((map) => {
-      const newMap = new Map(map);
-      const chats = newMap.get(todo_id) || [];
-      if (!chats.some((c) => c.id === chat.id)) {
-        newMap.set(todo_id, [...chats, chat]);
-      }
-      return newMap;
+    this.chatsSignal.update((chats) => {
+      if (chats.some((c) => c.id === chat.id)) return chats;
+      return [...chats, chat];
     });
-    this.updateNestedChatsInTodo(todo_id, (chats) =>
-      chats.some((c) => c.id === chat.id) ? chats : [...chats, chat]
-    );
   }
 
   updateChatInTodo(chat: Chat, todo_id?: string): void {
     if (!todo_id) return;
-    this.chatsByTodoSignal.update((map) => {
-      const newMap = new Map(map);
-      for (const [tid, chats] of newMap.entries()) {
-        if (tid === todo_id) {
-          const updatedChats = chats.map((c) => (c.id === chat.id ? { ...c, ...chat } : c));
-          newMap.set(tid, updatedChats);
-          break;
-        }
-      }
-      return newMap;
-    });
-    this.updateNestedChatsInTodo(todo_id, (chats) =>
+    this.chatsSignal.update((chats) =>
       chats.map((c) => (c.id === chat.id ? { ...c, ...chat } : c))
     );
   }
 
   deleteChatFromTodo(chatId: string, todo_id?: string): void {
     if (!todo_id) return;
-    this.chatsByTodoSignal.update((map) => {
-      const newMap = new Map(map);
-      const chats = newMap.get(todo_id) || [];
-      const filtered = chats.filter((c) => c.id !== chatId);
-      if (filtered.length !== chats.length) {
-        newMap.set(todo_id, filtered);
-      }
-      return newMap;
-    });
-    this.updateNestedChatsInTodo(todo_id, (chats) => chats.filter((c) => c.id !== chatId));
+    this.chatsSignal.update((chats) =>
+      chats.filter((c) => !(c.id === chatId && c.todo_id === todo_id))
+    );
   }
 
   clearChatsByTodo(todo_id?: string): void {
     if (!todo_id) return;
-    this.chatsByTodoSignal.update((map) => {
-      const newMap = new Map(map);
-      newMap.delete(todo_id);
-      return newMap;
-    });
-    this.updateNestedChatsInTodo(todo_id, () => []);
+    this.chatsSignal.update((chats) => chats.filter((c) => c.todo_id !== todo_id));
   }
 
   // ==================== TODO OPERATIONS ====================
@@ -419,12 +330,10 @@ export class StorageService extends BaseStorageService {
       );
       this.batchUpdate(
         "subtasks",
-        this.getTasksByTodoId(id).flatMap((t) =>
-          (t.subtasks || []).map((s) => ({
-            id: s.id,
-            updates: { deleted_at: null, updated_at: timestamp },
-          }))
-        )
+        this.getSubtasksByTaskId(id).map((s) => ({
+          id: s.id,
+          updates: { deleted_at: null, updated_at: timestamp },
+        }))
       );
       this.batchUpdate(
         "chats",
@@ -447,13 +356,7 @@ export class StorageService extends BaseStorageService {
     } else if (table === "comments") {
       this.updateItem("comments", id, { deleted_at: null, updated_at: timestamp });
     } else if (table === "chats") {
-      const chat = (this.handlers.chats as ChatHandler).getById(id);
-      if (chat) {
-        this.updateItem("chats", id, { deleted_at: null, updated_at: timestamp });
-        this.updateNestedChatsInTodo(chat.todo_id, (chats) =>
-          chats.map((c) => (c.id === id ? { ...c, deleted_at: null, updated_at: timestamp } : c))
-        );
-      }
+      this.updateItem("chats", id, { deleted_at: null, updated_at: timestamp });
     } else if (table === "categories") {
       this.updateItem("categories", id, { deleted_at: null, updated_at: timestamp });
     }
@@ -482,9 +385,9 @@ export class StorageService extends BaseStorageService {
     parentId: string
   ): T extends "tasks" ? Task[] : Subtask[] {
     if (entityType === "tasks") {
-      return this.todos().find((t) => t.id === parentId)?.tasks || ([] as any);
+      return this.getTasksByTodoId(parentId) as any;
     }
-    return this.tasks().find((t) => t.id === parentId)?.subtasks || ([] as any);
+    return this.getSubtasksByTaskId(parentId) as any;
   }
 
   getTodoReactive(todo_id?: string): ReturnType<typeof computed<Todo | undefined>> {
@@ -504,6 +407,11 @@ export class StorageService extends BaseStorageService {
   clear(): void {
     this.privateTodosSignal.set([]);
     this.sharedTodosSignal.set([]);
+    this.publicTodosSignal.set([]);
+    this.tasksSignal.set([]);
+    this.subtasksSignal.set([]);
+    this.commentsSignal.set([]);
+    this.chatsSignal.set([]);
     this.categoriesSignal.set([]);
     this.profileSignal.set(null);
     this.profilesSignal.set([]);
@@ -520,18 +428,30 @@ export class StorageService extends BaseStorageService {
       | "sharedTodos"
       | "publicTodos"
       | "allProfiles"
-      | "user",
+      | "user"
+      | "tasks"
+      | "subtasks"
+      | "comments"
+      | "chats",
   >(
     type: T,
     items: T extends "profiles"
       ? Profile | null
-      : T extends "privateTodos" | "sharedTodos" | "publicTodos" | "allProfiles"
-        ? T extends "allProfiles"
-          ? Profile[]
-          : Todo[]
-        : T extends "user"
-          ? any | null
-          : Category[]
+      : T extends "tasks"
+        ? Task[]
+        : T extends "subtasks"
+          ? Subtask[]
+          : T extends "comments"
+            ? Comment[]
+            : T extends "chats"
+              ? Chat[]
+              : T extends "privateTodos" | "sharedTodos" | "publicTodos" | "allProfiles"
+                ? T extends "allProfiles"
+                  ? Profile[]
+                  : Todo[]
+                : T extends "user"
+                  ? any | null
+                  : Category[]
   ): void {
     switch (type) {
       case "categories":
@@ -540,24 +460,27 @@ export class StorageService extends BaseStorageService {
       case "profiles":
         this.profileSignal.set(items as Profile | null);
         break;
-      case "privateTodos": {
-        const privateTodos = items as Todo[];
-        this.extractChatsFromTodos(privateTodos);
-        this.privateTodosSignal.set(privateTodos);
+      case "tasks":
+        this.tasksSignal.set(items as Task[]);
         break;
-      }
-      case "sharedTodos": {
-        const sharedTodos = items as Todo[];
-        this.extractChatsFromTodos(sharedTodos);
-        this.sharedTodosSignal.set(sharedTodos);
+      case "subtasks":
+        this.subtasksSignal.set(items as Subtask[]);
         break;
-      }
-      case "publicTodos": {
-        const publicTodos = items as Todo[];
-        this.extractChatsFromTodos(publicTodos);
-        this.publicTodosSignal.set(publicTodos);
+      case "comments":
+        this.commentsSignal.set(items as Comment[]);
         break;
-      }
+      case "chats":
+        this.chatsSignal.set(items as Chat[]);
+        break;
+      case "privateTodos":
+        this.privateTodosSignal.set(items as Todo[]);
+        break;
+      case "sharedTodos":
+        this.sharedTodosSignal.set(items as Todo[]);
+        break;
+      case "publicTodos":
+        this.publicTodosSignal.set(items as Todo[]);
+        break;
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);
         break;

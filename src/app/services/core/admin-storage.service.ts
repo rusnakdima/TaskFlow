@@ -11,20 +11,62 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 
 /* services */
+import { AdminService } from "@services/data/admin.service";
 import { ApiProvider } from "@providers/api.provider";
 import { AdminDataService, AdminDataWithRelations } from "@services/core/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
+import { CascadeService } from "./cascade.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminStorageService extends BaseAdminStorageService {
   private apiProvider = inject(ApiProvider);
+  private adminService = inject(AdminService);
   private adminDataService = inject(AdminDataService);
+  private cascadeService = inject(CascadeService);
+
+  /**
+   * Load initial paginated data for a specific type
+   */
+  loadInitialData(type: string, limit: number): Observable<any> {
+    return new Observable((subscriber) => {
+      this.adminService.getAdminDataPaginated(type, 0, limit).subscribe({
+        next: (response) => {
+          if (response.status === "Success" && response.data) {
+            subscriber.next(response.data);
+            subscriber.complete();
+          } else {
+            subscriber.error(new Error(response.message || "Failed to load data"));
+          }
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
+  }
+
+  /**
+   * Load more paginated data for a specific type
+   */
+  loadMoreData(type: string, skip: number): Observable<any> {
+    return new Observable((subscriber) => {
+      this.adminService.getAdminDataPaginated(type, skip, 10).subscribe({
+        next: (response) => {
+          if (response.status === "Success" && response.data) {
+            subscriber.next(response.data);
+            subscriber.complete();
+          } else {
+            subscriber.error(new Error(response.message || "Failed to load more data"));
+          }
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
+  }
 
   /**
    * Load all admin data from backend
-   * Only fetches if cache is expired or data is empty
+   * Updates SingleDataStore and local signals
    */
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
     if (!this.hasData()) {
@@ -84,11 +126,12 @@ export class AdminStorageService extends BaseAdminStorageService {
    */
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
-    const todo = this.todosSignal().find((t) => t.id === todo_id);
-    if (!todo) return;
 
-    const taskIds = todo.tasks?.map((t) => t.id) || [];
-    const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+    const { taskIds, subtaskIds } = this.cascadeService.computeCascadeForTodo(
+      this.tasksSignal(),
+      this.subtasksSignal(),
+      todo_id
+    );
 
     this.subtasksSignal.update((items) => items.filter((s) => !subtaskIds.includes(s.id)));
 
@@ -141,78 +184,83 @@ export class AdminStorageService extends BaseAdminStorageService {
     const timestamp = new Date().toISOString();
 
     if (table === "todos") {
-      const todo = this.todosSignal().find((t) => t.id === id);
-      if (todo) {
-        const taskIds = todo.tasks?.map((t) => t.id) || [];
+      const { taskIds, subtaskIds } = this.cascadeService.computeCascadeForTodo(
+        this.tasksSignal(),
+        this.subtasksSignal(),
+        id
+      );
 
-        this.tasksSignal.update((tasks) =>
-          tasks.map((task) =>
-            task.todo_id === id
-              ? { ...task, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : task
-          )
-        );
+      this.tasksSignal.update((tasks) =>
+        tasks.map((task) =>
+          task.todo_id === id
+            ? { ...task, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : task
+        )
+      );
 
-        const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
-        this.subtasksSignal.update((subtasks) =>
-          subtasks.map((subtask) =>
-            subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : subtask
-          )
-        );
+      this.subtasksSignal.update((subtasks) =>
+        subtasks.map((subtask) =>
+          subtaskIds.includes(subtask.id)
+            ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : subtask
+        )
+      );
 
-        this.commentsSignal.update((comments) =>
-          comments.map((comment) => {
-            const isRelated =
-              (comment.task_id && taskIds.includes(comment.task_id)) ||
-              (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
-            return isRelated
-              ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : comment;
-          })
-        );
+      this.commentsSignal.update((comments) =>
+        comments.map((comment) => {
+          const isRelated =
+            (comment.task_id && taskIds.includes(comment.task_id)) ||
+            (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
+          return isRelated
+            ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : comment;
+        })
+      );
 
-        this.chatsSignal.update((chats) =>
-          chats.map((chat) =>
-            chat.todo_id === id
-              ? { ...chat, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : chat
-          )
-        );
-      }
-      this.updateRecord(table, id, {
-        deleted_at: deletedAt ? timestamp : null,
-        updated_at: timestamp,
-      });
+      this.chatsSignal.update((chats) =>
+        chats.map((chat) =>
+          chat.todo_id === id
+            ? { ...chat, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : chat
+        )
+      );
+
+      this.todosSignal.update((todos) =>
+        todos.map((todo) =>
+          todo.id === id
+            ? { ...todo, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : todo
+        )
+      );
     } else if (table === "tasks") {
-      const task = this.tasksSignal().find((t) => t.id === id);
-      if (task) {
-        const subtaskIds = task.subtasks?.map((s) => s.id) || [];
+      const { subtaskIds } = this.cascadeService.computeCascadeForTask(this.subtasksSignal(), id);
 
-        this.subtasksSignal.update((subtasks) =>
-          subtasks.map((subtask) =>
-            subtaskIds.includes(subtask.id)
-              ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : subtask
-          )
-        );
+      this.subtasksSignal.update((subtasks) =>
+        subtasks.map((subtask) =>
+          subtaskIds.includes(subtask.id)
+            ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : subtask
+        )
+      );
 
-        this.commentsSignal.update((comments) =>
-          comments.map((comment) => {
-            const isRelated =
-              comment.task_id === id ||
-              (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
-            return isRelated
-              ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
-              : comment;
-          })
-        );
-      }
-      this.updateRecord(table, id, {
-        deleted_at: deletedAt ? timestamp : null,
-        updated_at: timestamp,
-      });
+      this.commentsSignal.update((comments) =>
+        comments.map((comment) => {
+          const isRelated =
+            comment.task_id === id ||
+            (comment.subtask_id && subtaskIds.includes(comment.subtask_id));
+          return isRelated
+            ? { ...comment, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : comment;
+        })
+      );
+
+      this.tasksSignal.update((tasks) =>
+        tasks.map((task) =>
+          task.id === id
+            ? { ...task, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : task
+        )
+      );
     } else if (table === "subtasks") {
       this.commentsSignal.update((comments) =>
         comments.map((comment) =>
@@ -221,15 +269,14 @@ export class AdminStorageService extends BaseAdminStorageService {
             : comment
         )
       );
-      this.updateRecord(table, id, {
-        deleted_at: deletedAt ? timestamp : null,
-        updated_at: timestamp,
-      });
-    } else {
-      this.updateRecord(table, id, {
-        deleted_at: deletedAt ? timestamp : null,
-        updated_at: timestamp,
-      });
+
+      this.subtasksSignal.update((subtasks) =>
+        subtasks.map((subtask) =>
+          subtask.id === id
+            ? { ...subtask, deleted_at: deletedAt ? timestamp : null, updated_at: timestamp }
+            : subtask
+        )
+      );
     }
   }
 
@@ -240,13 +287,12 @@ export class AdminStorageService extends BaseAdminStorageService {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
     } else if (table === "tasks") {
-      const task = this.tasksSignal().find((t) => t.id === id);
-      if (task) {
-        const subtaskIds = task.subtasks?.map((s) => s.id) || [];
-        this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
-        this.commentsSignal.set(this.commentsSignal().filter((c) => c.task_id !== id));
-        this.tasksSignal.set(this.tasksSignal().filter((t) => t.id !== id));
-      }
+      const subtaskIds = this.subtasksSignal()
+        .filter((s) => s.task_id === id)
+        .map((s) => s.id);
+      this.subtasksSignal.set(this.subtasksSignal().filter((s) => !subtaskIds.includes(s.id)));
+      this.commentsSignal.set(this.commentsSignal().filter((c) => c.task_id !== id));
+      this.tasksSignal.set(this.tasksSignal().filter((t) => t.id !== id));
     } else if (table === "subtasks") {
       this.commentsSignal.set(this.commentsSignal().filter((c) => c.subtask_id !== id));
       this.subtasksSignal.set(this.subtasksSignal().filter((s) => s.id !== id));

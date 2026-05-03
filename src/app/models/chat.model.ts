@@ -1,13 +1,12 @@
-export interface Chat {
+import { BaseEntity } from "@models/base-entity.model";
+
+export interface Chat extends BaseEntity {
   id: string;
   todo_id: string;
   user_id: string;
   author_name?: string;
   content: string;
   read_by: string[];
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
   user?: {
     username?: string;
     email?: string;

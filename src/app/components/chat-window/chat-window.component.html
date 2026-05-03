@@ -29,8 +29,27 @@
     </div>
   </div>
 
-  <div #scrollContainer class="flex-1 space-y-4 overflow-y-auto p-4">
-    @for (chat of getChats(); track chat.id) {
+  <div
+    #scrollContainer
+    class="flex-1 space-y-4 overflow-y-auto p-4"
+    (scroll)="onChatScroll($event)"
+  >
+    @if (hasMoreMessages()) {
+      <div class="flex justify-center py-2">
+        @if (loadingOlder()) {
+          <span class="text-sm text-gray-400">Loading older messages...</span>
+        } @else {
+          <button
+            (click)="loadOlderChats(currentTodoId)"
+            class="text-sm text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Load older messages
+          </button>
+        }
+      </div>
+    }
+
+    @for (chat of messages(); track chat.id) {
       <div
         [id]="'chat-' + chat.id"
         [attr.data-chat-id]="chat.id"

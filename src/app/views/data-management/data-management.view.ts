@@ -150,6 +150,14 @@ export class DataManagementView implements OnInit {
   protected bulkActionService = inject(BulkActionHelper);
   protected storageService = inject(StorageService);
 
+  paginationState = signal<{
+    skip: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
+
   mode: "admin" | "archive" = "admin";
   dataMap = signal<any>({});
 
@@ -271,70 +279,56 @@ export class DataManagementView implements OnInit {
 
   loadData(force: boolean = false) {
     this.loading.set(true);
-    const obs: Observable<any> =
+
+    const obs =
       this.mode === "admin"
-        ? this.adminStorageService.loadAdminData(force)
-        : this.archiveStorageService.loadArchiveData(force);
+        ? this.adminStorageService.loadInitialData(this.selectedType(), 10)
+        : this.archiveStorageService.loadInitialData(this.selectedType(), 10);
 
     obs.subscribe({
-      next: (response: any) => {
-        this.dataMap.set(response);
-
-        const users = response["users"] || [];
-        this.userList.set(
-          users
-            .map((u: any) => ({ id: u.id, label: u.username || u.email }))
-            .sort((a: any, b: any) => a.label.localeCompare(b.label))
-        );
-
-        const categories = response["categories"] || [];
-        this.categoryList.set(
-          categories
-            .map((c: any) => ({ id: c.id, label: c.title }))
-            .sort((a: any, b: any) => a.label.localeCompare(b.label))
-        );
-
-        const todos = response["todos"] || [];
-        this.todoList.set(
-          todos
-            .filter((t: any) => !t.deleted_at)
-            .map((t: any) => ({ id: t.id, label: t.title || t.id }))
-            .sort((a: any, b: any) => a.label.localeCompare(b.label))
-        );
-
-        const tasks = response["tasks"] || [];
-        this.taskList.set(
-          tasks
-            .filter((t: any) => !t.deleted_at)
-            .map((t: any) => ({
-              id: t.id,
-              label: t.title || t.id,
-            }))
-            .sort((a: any, b: any) => (a.label || "").localeCompare(b.label || ""))
-        );
-
-        const subtasks = response["subtasks"] || [];
-        this.subtaskList.set(
-          subtasks
-            .filter((s: any) => !s.deleted_at)
-            .map((s: any) => ({
-              id: s.id,
-              label: s.description || s.id,
-            }))
-            .sort((a: any, b: any) => (a.label || "").localeCompare(b.label || ""))
-        );
-
-        // Calculate counts based on ALL data
-        this.dataTypes.forEach((type) => {
-          const tableData = response[type.id] || [];
-          type.count = tableData.length;
+      next: (response) => {
+        this.dataMap.set(response.data);
+        this.paginationState.set({
+          skip: response.data.length,
+          limit: 10,
+          total: response.total,
+          hasMore: response.has_more,
+          loading: false,
         });
-
         this.loading.set(false);
       },
-      error: (error: any) => {
+      error: (error) => {
         this.notifyService.showError(`Failed to load ${this.mode} data: ${error}`);
         this.loading.set(false);
+      },
+    });
+  }
+
+  loadMore() {
+    if (this.paginationState().loading || !this.paginationState().hasMore) return;
+
+    this.paginationState.update((s) => ({ ...s, loading: true }));
+
+    const obs =
+      this.mode === "admin"
+        ? this.adminStorageService.loadMoreData(this.selectedType(), this.paginationState().skip)
+        : this.archiveStorageService.loadMoreData(this.selectedType(), this.paginationState().skip);
+
+    obs.subscribe({
+      next: (response) => {
+        this.dataMap.update((map) => ({
+          ...map,
+          [this.selectedType()]: [...(map[this.selectedType()] || []), ...response.data],
+        }));
+        this.paginationState.update((s) => ({
+          ...s,
+          skip: s.skip + response.data.length,
+          loading: false,
+          hasMore: response.has_more,
+        }));
+      },
+      error: () => {
+        this.paginationState.update((s) => ({ ...s, loading: false }));
       },
     });
   }
@@ -410,6 +404,7 @@ export class DataManagementView implements OnInit {
     this.clearSelection();
     this.clearFilters();
     this.showFilters.set(false);
+    this.paginationState.set({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
   }
 
   closeFilters() {

@@ -167,10 +167,15 @@
               @for (action of actions; track action.key) {
                 <button
                   class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                  [class.text-gray-500]="action.key !== 'delete'"
+                  [class.text-gray-500]="action.key !== 'delete' && action.key !== 'archive'"
+                  [class.text-orange-500]="action.key === 'archive'"
                   [class.text-red-500]="action.key === 'delete'"
-                  [class.hover:text-gray-700]="action.key !== 'delete'"
-                  [class.dark:hover:text-gray-300]="action.key !== 'delete'"
+                  [class.hover:text-gray-700]="action.key !== 'delete' && action.key !== 'archive'"
+                  [class.dark:hover:text-gray-300]="
+                    action.key !== 'delete' && action.key !== 'archive'
+                  "
+                  [class.hover:text-orange-600]="action.key === 'archive'"
+                  [class.dark:hover:text-orange-400]="action.key === 'archive'"
                   [class.hover:text-red-700]="action.key === 'delete'"
                   [class.dark:hover:text-red-400]="action.key === 'delete'"
                   (click)="onActionClick(action.key, item)"

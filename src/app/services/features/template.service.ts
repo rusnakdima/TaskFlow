@@ -1,6 +1,6 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
+import { StorageService } from "@services/core/storage.service";
 
 export interface ProjectTemplate {
   id: string;
@@ -23,6 +23,7 @@ export interface TemplateTask {
 })
 export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
+  private storageService = inject(StorageService);
 
   templates = signal<ProjectTemplate[]>([]);
 
@@ -35,9 +36,7 @@ export class TemplateService {
     if (stored) {
       try {
         this.templates.set(JSON.parse(stored));
-      } catch {
-        // Silently ignore parse errors
-      }
+      } catch {}
     }
   }
 
@@ -46,16 +45,16 @@ export class TemplateService {
   }
 
   createTemplate(name: string, description: string, todo: Todo): ProjectTemplate {
-    const templateTasks: TemplateTask[] =
-      todo.tasks?.map((task) => ({
+    const tasks = this.storageService.getTasksByTodoId(todo.id);
+    const templateTasks: TemplateTask[] = tasks.map((task) => {
+      const subtasks = this.storageService.getSubtasksByTaskId(task.id);
+      return {
         title: task.title,
         description: task.description,
         priority: task.priority,
-        subtasks:
-          task.subtasks?.map((st) => ({
-            title: st.title,
-          })) || [],
-      })) || [];
+        subtasks: subtasks.map((st) => ({ title: st.title })),
+      };
+    });
 
     const template: ProjectTemplate = {
       id: Date.now().toString(),

@@ -107,6 +107,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropService = inject(DragDropOrderService);
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
+  private dataLoaderService = inject(DataLoaderService);
   private appStateService = inject(AppStateService);
 
   // State signals
@@ -138,6 +139,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
   });
 
+  private taskLoadEffect = effect(() => {
+    const todoId = this.todo()?.id;
+    if (todoId) {
+      this.loadInitialTasks();
+    }
+  });
+
   todo = computed(() => {
     const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
     if (!tid) return null;
@@ -147,14 +155,57 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
-  // Computed signals for data flow - Always use storage as the single source of truth
-  todoTasks = computed(() => {
-    const todoFromSignal = this.todo();
-    const todoId = todoFromSignal?.id;
-    if (!todoId) return [];
-    // Always use storage data for real-time updates
-    return this.storageService.getTasksByTodoId(todoId);
+  allTasksForTodo = computed(() => {
+    const tid = this.todo()?.id;
+    if (!tid) return [];
+    return this.storageService.getTasksByTodoId(tid);
   });
+
+  // Pagination state
+  taskPagination = signal<{
+    skip: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
+
+  // Lazy-loaded tasks signal
+  todoTasks = signal<Task[]>([]);
+
+  loadInitialTasks() {
+    const todoId = this.todo()?.id;
+    if (!todoId) return;
+
+    this.dataLoaderService.loadInitialTasksForTodo(todoId).subscribe({
+      next: (tasks: Task[]) => {
+        this.todoTasks.set(tasks);
+        this.taskPagination.update((p) => ({
+          ...p,
+          skip: tasks.length,
+          hasMore: tasks.length === p.limit,
+        }));
+      },
+    });
+  }
+
+  loadMoreTasks() {
+    if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
+    const todoId = this.todo()?.id;
+    if (!todoId) return;
+
+    this.dataLoaderService.loadMoreTasksForTodo(todoId).subscribe({
+      next: (tasks: Task[]) => {
+        this.todoTasks.update((current) => [...current, ...tasks]);
+        this.taskPagination.update((p) => ({
+          ...p,
+          skip: p.skip + tasks.length,
+          loading: false,
+          hasMore: tasks.length === p.limit,
+        }));
+      },
+    });
+  }
 
   listTasks = computed(() => {
     let filtered = this.todoTasks();
@@ -201,23 +252,28 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   // Only counts comments where user is NOT the author AND hasn't read
   getTaskUnreadCommentsCount(task: Task): number {
     const userId = this.authService.getValueByKey("id");
-    if (!userId || !task.subtasks || task.subtasks.length === 0) return 0;
+    if (!userId) return 0;
+
+    const subtasks = this.storageService.getSubtasksByTaskId(task.id);
+    if (subtasks.length === 0) return 0;
 
     let count = 0;
-    // Count only subtask comments (not task's own comments)
-    for (const subtask of task.subtasks) {
-      if (!subtask.comments || subtask.comments.length === 0) continue;
-      count += subtask.comments.filter((c: any) => {
-        if (c.deleted_at) return false;
-        // Skip if user is the author (they've read their own comment)
+    for (const subtask of subtasks) {
+      const subtaskComments = this.storageService
+        .comments()
+        .filter((c) => c.subtask_id === subtask.id && !c.deleted_at);
+      if (subtaskComments.length === 0) continue;
+      count += subtaskComments.filter((c: any) => {
         if (c.user_id === userId) return false;
         if (c.read_by && c.read_by.includes(userId)) return false;
-        // Only count subtask comments (must have subtaskId)
-        if (!c.subtask_id) return false;
         return true;
       }).length;
     }
     return count;
+  }
+
+  getTaskSubtasks(taskId: string): Subtask[] {
+    return this.storageService.getSubtasksByTaskId(taskId);
   }
 
   userId: string = "";

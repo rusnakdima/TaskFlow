@@ -1,12 +1,15 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
-import { Observable, forkJoin, of, catchError, switchMap } from "rxjs";
+import { Injectable, inject, signal, Signal, WritableSignal } from "@angular/core";
+import { Observable, forkJoin, of, catchError, switchMap, timeout } from "rxjs";
 import { Router } from "@angular/router";
 
 /* models */
 import { Todo } from "@models/todo.model";
 import { Category } from "@models/category.model";
 import { Profile } from "@models/profile.model";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Chat } from "@models/chat.model";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -18,6 +21,109 @@ import { RelationLoadingService } from "@services/core/relation-loading.service"
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
+
+interface PaginationState {
+  items: any[];
+  skip: number;
+  limit: number;
+  hasMore: boolean;
+  loading: boolean;
+}
+
+interface PaginationOptions {
+  entityName: string;
+  paginationSignal: WritableSignal<PaginationState>;
+  currentIdSignal?: WritableSignal<string | null>;
+  filterBuilder: (skip: number, limit: number) => Record<string, any>;
+  load: string[];
+  visibility: string;
+  reverseItems?: boolean;
+  prependItems?: boolean;
+}
+
+class PaginationLoader<T> {
+  constructor(
+    private apiProvider: ApiProvider,
+    private options: PaginationOptions
+  ) {}
+
+  loadInitial(): Observable<T[]> {
+    const { paginationSignal, filterBuilder, load, visibility, entityName } = this.options;
+    paginationSignal.set({
+      items: [],
+      skip: 0,
+      limit: paginationSignal().limit,
+      hasMore: true,
+      loading: true,
+    });
+
+    return this.apiProvider
+      .crud<T[]>("get", entityName, {
+        ...filterBuilder(0, paginationSignal().limit),
+        load,
+        visibility,
+      })
+      .pipe(
+        switchMap((entities) => {
+          const current = paginationSignal();
+          const items = this.options.reverseItems ? (entities || []).reverse() : entities || [];
+          paginationSignal.set({
+            ...current,
+            items,
+            skip: (entities || []).length,
+            hasMore: (entities || []).length >= current.limit,
+            loading: false,
+          });
+          return of(items);
+        }),
+        catchError(() => {
+          const current = paginationSignal();
+          paginationSignal.set({ ...current, loading: false });
+          return of([]);
+        })
+      );
+  }
+
+  loadMore(): Observable<T[]> {
+    const { paginationSignal, filterBuilder, load, visibility, entityName, prependItems } =
+      this.options;
+    const current = paginationSignal();
+    if (current.loading || !current.hasMore) {
+      return of(current.items);
+    }
+
+    paginationSignal.set({ ...current, loading: true });
+
+    return this.apiProvider
+      .crud<T[]>("get", entityName, {
+        ...filterBuilder(current.skip, current.limit),
+        load,
+        visibility,
+      })
+      .pipe(
+        switchMap((entities) => {
+          const newItems = this.options.reverseItems ? (entities || []).reverse() : entities || [];
+          const updated = paginationSignal();
+          const mergedItems = prependItems
+            ? [...newItems, ...updated.items]
+            : [...updated.items, ...newItems];
+          paginationSignal.set({
+            ...updated,
+            items: mergedItems,
+            skip: updated.skip + newItems.length,
+            hasMore: newItems.length >= current.limit,
+            loading: false,
+          });
+          return of(newItems);
+        }),
+        catchError(() => {
+          const updated = paginationSignal();
+          paginationSignal.set({ ...updated, loading: false });
+          return of(paginationSignal().items);
+        })
+      );
+  }
+}
 
 @Injectable({
   providedIn: "root",
@@ -34,6 +140,46 @@ export class DataLoaderService {
 
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
+
+  private todosPagination = signal<PaginationState>({
+    items: [],
+    skip: 0,
+    limit: 10,
+    hasMore: true,
+    loading: false,
+  });
+
+  private tasksPagination = signal<PaginationState>({
+    items: [],
+    skip: 0,
+    limit: 10,
+    hasMore: true,
+    loading: false,
+  });
+
+  private subtasksPagination = signal<PaginationState>({
+    items: [],
+    skip: 0,
+    limit: 10,
+    hasMore: true,
+    loading: false,
+  });
+
+  private chatsPagination = signal<PaginationState>({
+    items: [],
+    skip: 0,
+    limit: 10,
+    hasMore: true,
+    loading: false,
+  });
+
+  private currentTasksTodoId = signal<string | null>(null);
+  private currentSubtasksTaskId = signal<string | null>(null);
+  private currentChatsTodoId = signal<string | null>(null);
+
+  private createPaginationLoader<T>(options: PaginationOptions): PaginationLoader<T> {
+    return new PaginationLoader<T>(this.apiProvider, options);
+  }
 
   loadAllData(
     force: boolean = false,
@@ -65,7 +211,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { user_id: currentUserId },
-      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
+      ["categories", "user", "assignees"],
       "private"
     );
 
@@ -133,8 +279,16 @@ export class DataLoaderService {
       switchMap((sharedResult) => {
         this.storageService.setLoaded(true);
         this.storageService.setLastLoaded(new Date());
+
+        const allTodos = this.storageService.todos();
+
+        const sortedTodos = [...allTodos].sort((a, b) => {
+          const order: Record<string, number> = { private: 0, shared: 1, public: 2 };
+          return (order[a.visibility] ?? 3) - (order[b.visibility] ?? 3);
+        });
+
         return of({
-          todos: this.storageService.todos(),
+          todos: sortedTodos,
           categories: this.storageService.categories(),
         });
       })
@@ -150,6 +304,11 @@ export class DataLoaderService {
       this.apiProvider
         .invokeCommand("initialize_user_data", { userId: currentUserId })
         .pipe(
+          timeout(3000),
+          catchError((err) => {
+            console.warn("initialize_user_data failed or timed out, checking local JSON");
+            return of({ data: { needsProfile: true, needsRegistration: false } });
+          }),
           switchMap((result: any) => {
             if (result?.data?.needsRegistration) {
               this.notifyService.showWarning("Account not found. Please register again.");
@@ -185,6 +344,11 @@ export class DataLoaderService {
   }
 
   private createSharedDataObservable(currentUserId: string): Observable<void> {
+    if (this.apiProvider.isOffline()) {
+      console.log("[Offline] Skipping shared/public data loading");
+      return of(undefined);
+    }
+
     const allProfiles$ = this.relationLoader.loadMany<Profile>(
       this.apiProvider,
       "profiles",
@@ -197,7 +361,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { assignees: { $in: [currentUserId] } },
-      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
+      ["categories", "user", "assignees"],
       "shared"
     );
 
@@ -205,7 +369,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { visibility: "public" },
-      ["categories", "tasks", "tasks.subtasks", "tasks.comments", "user", "assignees", "chats"],
+      ["categories", "user", "assignees"],
       "public"
     );
 
@@ -237,5 +401,155 @@ export class DataLoaderService {
 
   refreshAll(): void {
     this.loadAllData(true).subscribe();
+  }
+
+  // Todos - paginated
+  loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
+    this.todosPagination.set({ items: [], skip: 0, limit, hasMore: true, loading: true });
+    const filter =
+      visibility === "private"
+        ? { user_id: this.jwtTokenService.getCurrentUserId() || "" }
+        : visibility === "shared"
+          ? { assignees: { $in: [this.jwtTokenService.getCurrentUserId() || ""] } }
+          : { visibility: "public" };
+
+    return this.apiProvider
+      .crud<Todo[]>("get", "todos", { filter, skip: 0, limit, load: ["categories"], visibility })
+      .pipe(
+        switchMap((todos) => {
+          const current = this.todosPagination();
+          this.todosPagination.set({
+            ...current,
+            items: todos || [],
+            skip: (todos || []).length,
+            hasMore: (todos || []).length >= limit,
+            loading: false,
+          });
+          return of(todos || []);
+        }),
+        catchError(() => {
+          const current = this.todosPagination();
+          this.todosPagination.set({ ...current, loading: false });
+          return of([]);
+        })
+      );
+  }
+
+  loadMoreTodos(visibility: string): Observable<Todo[]> {
+    const current = this.todosPagination();
+    if (current.loading || !current.hasMore) return of(current.items);
+    this.todosPagination.set({ ...current, loading: true });
+    const filter =
+      visibility === "private"
+        ? { user_id: this.jwtTokenService.getCurrentUserId() || "" }
+        : visibility === "shared"
+          ? { assignees: { $in: [this.jwtTokenService.getCurrentUserId() || ""] } }
+          : { visibility: "public" };
+
+    return this.apiProvider
+      .crud<
+        Todo[]
+      >("get", "todos", { filter, skip: current.skip, limit: current.limit, load: ["categories"], visibility })
+      .pipe(
+        switchMap((todos) => {
+          const newItems = todos || [];
+          const updated = this.todosPagination();
+          this.todosPagination.set({
+            ...updated,
+            items: [...updated.items, ...newItems],
+            skip: updated.skip + newItems.length,
+            hasMore: newItems.length >= current.limit,
+            loading: false,
+          });
+          return of(newItems);
+        }),
+        catchError(() => {
+          const updated = this.todosPagination();
+          this.todosPagination.set({ ...updated, loading: false });
+          return of([]);
+        })
+      );
+  }
+
+  // Tasks - lazy loaded when todo opened
+  loadInitialTasksForTodo(todoId: string, limit: number = 10): Observable<Task[]> {
+    this.currentTasksTodoId.set(todoId);
+    return this.createPaginationLoader<Task>({
+      entityName: "tasks",
+      paginationSignal: this.tasksPagination,
+      currentIdSignal: this.currentTasksTodoId,
+      filterBuilder: () => ({ filter: { todo_id: todoId } }),
+      load: ["subtasks", "comments"],
+      visibility: "private",
+    }).loadInitial();
+  }
+
+  loadMoreTasksForTodo(todoId: string): Observable<Task[]> {
+    if (this.currentTasksTodoId() !== todoId) return this.loadInitialTasksForTodo(todoId);
+    return this.createPaginationLoader<Task>({
+      entityName: "tasks",
+      paginationSignal: this.tasksPagination,
+      currentIdSignal: this.currentTasksTodoId,
+      filterBuilder: (skip) => ({ filter: { todo_id: todoId }, skip }),
+      load: ["subtasks", "comments"],
+      visibility: "private",
+    }).loadMore();
+  }
+
+  // Subtasks
+  loadInitialSubtasksForTask(taskId: string, limit: number = 10): Observable<Subtask[]> {
+    this.currentSubtasksTaskId.set(taskId);
+    return this.createPaginationLoader<Subtask>({
+      entityName: "subtasks",
+      paginationSignal: this.subtasksPagination,
+      currentIdSignal: this.currentSubtasksTaskId,
+      filterBuilder: () => ({ filter: { task_id: taskId } }),
+      load: ["user"],
+      visibility: "private",
+    }).loadInitial();
+  }
+
+  loadMoreSubtasksForTask(taskId: string): Observable<Subtask[]> {
+    if (this.currentSubtasksTaskId() !== taskId) return this.loadInitialSubtasksForTask(taskId);
+    return this.createPaginationLoader<Subtask>({
+      entityName: "subtasks",
+      paginationSignal: this.subtasksPagination,
+      currentIdSignal: this.currentSubtasksTaskId,
+      filterBuilder: (skip) => ({ filter: { task_id: taskId }, skip }),
+      load: ["user"],
+      visibility: "private",
+    }).loadMore();
+  }
+
+  // Chats - load latest 10, scroll up for older
+  loadInitialChatsForTodo(todoId: string, limit: number = 10): Observable<Chat[]> {
+    this.currentChatsTodoId.set(todoId);
+    return this.createPaginationLoader<Chat>({
+      entityName: "chats",
+      paginationSignal: this.chatsPagination,
+      currentIdSignal: this.currentChatsTodoId,
+      filterBuilder: () => ({ filter: { todo_id: todoId }, sort: { created_at: -1 } }),
+      load: ["user"],
+      visibility: "private",
+      reverseItems: true,
+    }).loadInitial();
+  }
+
+  loadOlderChatsForTodo(todoId: string, beforeTimestamp: string): Observable<Chat[]> {
+    if (this.currentChatsTodoId() !== todoId) return this.loadInitialChatsForTodo(todoId);
+    return this.createPaginationLoader<Chat>({
+      entityName: "chats",
+      paginationSignal: this.chatsPagination,
+      currentIdSignal: this.currentChatsTodoId,
+      filterBuilder: (skip) => ({
+        filter: { todo_id: todoId, created_at: { $lt: beforeTimestamp } },
+        skip,
+        sort: { created_at: -1 },
+      }),
+      load: ["user"],
+      visibility: "private",
+      reverseItems: true,
+      prependItems: true,
+    }).loadMore();
   }
 }

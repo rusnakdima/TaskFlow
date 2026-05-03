@@ -48,7 +48,8 @@
 
         <div class="mt-4">
           <app-progress-bar
-            [items]="todo.tasks || []"
+            [completedCount]="getCompletedTasksCount()"
+            [totalCount]="todo.tasks_count || 0"
             [showLegend]="true"
             [showPercentage]="true"
             size="lg"
