@@ -149,14 +149,8 @@
                 class="absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-white bg-blue-500 dark:border-zinc-800"
               ></div>
             }
-            @if (
-              subtask.comments &&
-              getActiveComments(subtask.comments).length > 0 &&
-              unreadCommentsCount === 0
-            ) {
-              <span class="text-[10px] font-bold">{{
-                getActiveComments(subtask.comments).length
-              }}</span>
+            @if (getSubtaskComments(subtask.id).length > 0 && unreadCommentsCount === 0) {
+              <span class="text-[10px] font-bold">{{ getSubtaskComments(subtask.id).length }}</span>
             }
           </div>
         </button>
@@ -187,7 +181,7 @@
 
     @if (showComments()) {
       <app-comments
-        [comments]="getActiveComments(subtask.comments)"
+        [comments]="getSubtaskComments(subtask.id)"
         [subtask_id]="subtask.id"
         (addCommentEvent)="onAddComment($event)"
         (deleteCommentEvent)="onDeleteComment($event)"

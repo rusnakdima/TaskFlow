@@ -1,4 +1,5 @@
 /* sys lib */
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /* providers */
@@ -38,9 +39,6 @@ impl AdminManager {
     }
   }
 
-  /// Get ALL local data for Archive page (all users, includes deleted records)
-  /// This allows users to view and restore any deleted data from local storage
-  /// Data source: Local JSON database only
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
       "todos",
@@ -51,47 +49,40 @@ impl AdminManager {
       "categories",
       "daily_activities",
     ];
+    let mut all_data = HashMap::new();
 
-    let mut all_data = std::collections::HashMap::new();
-
-    // Get ALL users from local JSON
-    let users = match self.json_provider.find_all("users").await {
-      Ok(u) => u,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting users: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+    let users = self
+      .json_provider
+      .find_all("users")
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error getting users: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
     all_data.insert("users".to_string(), users);
 
-    // Get ALL profiles from local JSON
-    let profiles = match self.json_provider.find_all("profiles").await {
-      Ok(p) => p,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting profiles: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+    let profiles = self
+      .json_provider
+      .find_all("profiles")
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error getting profiles: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
     all_data.insert("profiles".to_string(), profiles);
 
-    // Get ALL data for each table
     for table in tables {
-      let docs = match self.json_provider.find_all(table).await {
-        Ok(d) => d,
-        Err(e) => {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error getting data for {}: {}", table, e),
-            data: DataValue::String("".to_string()),
-          });
-        }
-      };
+      let docs = self
+        .json_provider
+        .find_all(table)
+        .await
+        .map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting data for {}: {}", table, e),
+          data: DataValue::String("".to_string()),
+        })?;
       all_data.insert(table.to_string(), docs);
     }
 
@@ -102,8 +93,29 @@ impl AdminManager {
     })
   }
 
-  /// Get all data for admin view (includes deleted and non-deleted records)
-  /// Only accessible by admin users - fetches from MongoDB
+  pub async fn get_archive_data_paginated(
+    &self,
+    data_type: String,
+    skip: u64,
+    limit: u64,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let docs = self
+      .json_provider
+      .find_many(&data_type, None, Some(skip), Some(limit), None, true)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error getting paginated {} data: {}", data_type, e),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Retrieved {} {} records", docs.len(), data_type),
+      data: convert_data_to_object(&docs),
+    })
+  }
+
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
       "todos",
@@ -114,33 +126,29 @@ impl AdminManager {
       "categories",
       "daily_activities",
     ];
+    let mut all_data = HashMap::new();
 
-    let mut all_data = std::collections::HashMap::new();
-
-    // Get all users from MongoDB
-    let users = match self.mongodb_provider.find_all("users").await {
-      Ok(u) => u,
-      Err(e) => {
-        return Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Error getting users: {}", e),
-          data: DataValue::String("".to_string()),
-        });
-      }
-    };
+    let users = self
+      .mongodb_provider
+      .find_all("users")
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error getting users: {}", e),
+        data: DataValue::String("".to_string()),
+      })?;
     all_data.insert("users".to_string(), users);
 
     for table in tables {
-      let docs = match self.mongodb_provider.find_all(table).await {
-        Ok(d) => d,
-        Err(e) => {
-          return Err(ResponseModel {
-            status: ResponseStatus::Error,
-            message: format!("Error getting data for {}: {}", table, e),
-            data: DataValue::String("".to_string()),
-          });
-        }
-      };
+      let docs = self
+        .mongodb_provider
+        .find_all(table)
+        .await
+        .map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Error getting data for {}: {}", table, e),
+          data: DataValue::String("".to_string()),
+        })?;
       all_data.insert(table.to_string(), docs);
     }
 
@@ -151,8 +159,6 @@ impl AdminManager {
     })
   }
 
-  /// Permanently delete a record and all its children (cascade hard delete)
-  /// Works with MongoDB (admin page) - deletes only from MongoDB
   pub async fn permanently_delete_record(
     &self,
     table: String,
@@ -180,7 +186,6 @@ impl AdminManager {
     })
   }
 
-  /// Permanently delete a record and all its children from local JSON only (Archive page)
   pub async fn permanently_delete_record_local(
     &self,
     table: String,
@@ -202,8 +207,6 @@ impl AdminManager {
     })
   }
 
-  /// Toggle isDeleted status for a record and all its children
-  /// Works with MongoDB (admin page) - updates only MongoDB
   pub async fn toggle_delete_status(
     &self,
     table: String,
@@ -226,11 +229,10 @@ impl AdminManager {
 
     let is_deleted = record
       .get("deleted_at")
-      .map(|v| !v.is_null())
+      .and_then(|v| v.as_bool())
       .unwrap_or(false);
-    let new_status = !is_deleted;
 
-    if new_status {
+    if !is_deleted {
       self
         .cascade_service
         .soft_delete_cascade_mongo(&table, &id)
@@ -244,12 +246,11 @@ impl AdminManager {
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: format!("Record delete status toggled to {} in MongoDB", new_status),
-      data: DataValue::Bool(new_status),
+      message: format!("Record delete status toggled to {} in MongoDB", !is_deleted),
+      data: DataValue::Bool(!is_deleted),
     })
   }
 
-  /// Toggle isDeleted status for a record and all its children in local JSON only (Archive page)
   pub async fn toggle_delete_status_local(
     &self,
     table: String,
@@ -272,11 +273,10 @@ impl AdminManager {
 
     let is_deleted = record
       .get("deleted_at")
-      .map(|v| !v.is_null())
+      .and_then(|v| v.as_bool())
       .unwrap_or(false);
-    let new_status = !is_deleted;
 
-    if new_status {
+    if !is_deleted {
       self
         .cascade_service
         .soft_delete_cascade_json(&table, &id)
@@ -292,9 +292,9 @@ impl AdminManager {
       status: ResponseStatus::Success,
       message: format!(
         "Record delete status toggled to {} in local database",
-        new_status
+        !is_deleted
       ),
-      data: DataValue::Bool(new_status),
+      data: DataValue::Bool(!is_deleted),
     })
   }
 }

@@ -32,8 +32,8 @@ use routes::{
     use_recovery_code, verify_code, verify_login_totp,
   },
   manage_db_route::{
-    export_to_cloud, get_all_data_for_admin, get_all_data_for_archive, import_to_local,
-    manage_data, permanently_delete_record, permanently_delete_record_local,
+    export_to_cloud, get_all_data_for_admin, get_all_data_for_archive, get_archive_data_paginated,
+    import_to_local, manage_data, permanently_delete_record, permanently_delete_record_local,
     sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
   },
   profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
@@ -292,6 +292,7 @@ pub fn run() {
       export_to_cloud,
       get_all_data_for_admin,
       get_all_data_for_archive,
+      get_archive_data_paginated,
       import_to_local,
       manage_data,
       permanently_delete_record,

@@ -53,8 +53,9 @@ export class DashboardView implements OnInit {
 
     const taskData: { task: Task; todo: Todo }[] = [];
     todos.forEach((todo) => {
-      if (Array.isArray(todo.tasks) && !todo.deleted_at) {
-        todo.tasks.forEach((task) => {
+      if (!todo.deleted_at) {
+        const tasks = this.storageService.getTasksByTodoId(todo.id);
+        tasks.forEach((task) => {
           if (!task.deleted_at) {
             taskData.push({ task, todo });
           }

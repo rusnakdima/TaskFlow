@@ -1,25 +1,18 @@
-/* sys lib */
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/* nosql_orm */
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
-use nosql_orm::providers::JsonProvider;
-use nosql_orm::providers::MongoProvider;
+use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::relations::WithRelations;
 
-/* entities */
 use crate::entities::comment_entity::CommentEntity;
+use crate::entities::response_entity::ResponseModel;
 use crate::entities::subtask_entity::SubtaskEntity;
 use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
 
-/* helpers */
 use crate::helpers::response_helper::err_response_formatted;
-
-/* models */
-use crate::entities::response_entity::ResponseModel;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct CascadeResult {
@@ -80,7 +73,30 @@ impl CascadeService {
     }
   }
 
-  pub async fn soft_delete_cascade_internal<P>(
+  pub async fn soft_delete_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self
+      .soft_delete_cascade(&self.json_provider, table, id)
+      .await
+  }
+
+  pub async fn soft_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self.soft_delete_cascade(mongo.as_ref(), table, id).await
+  }
+
+  pub async fn soft_delete_cascade<P>(
+    &self,
     provider: &P,
     table: &str,
     id: &str,
@@ -151,7 +167,28 @@ impl CascadeService {
     Ok(CascadeResult::from_deleted_ids(&deleted))
   }
 
-  async fn restore_cascade_internal<P>(
+  pub async fn restore_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.restore_cascade(&self.json_provider, table, id).await
+  }
+
+  pub async fn restore_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self.restore_cascade(mongo.as_ref(), table, id).await
+  }
+
+  pub async fn restore_cascade<P>(
+    &self,
     provider: &P,
     table: &str,
     id: &str,
@@ -225,7 +262,32 @@ impl CascadeService {
     Ok(CascadeResult::from_deleted_ids(&restored))
   }
 
-  async fn permanent_delete_cascade_internal<P>(
+  pub async fn permanent_delete_cascade_json(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self
+      .permanent_delete_cascade(&self.json_provider, table, id)
+      .await
+  }
+
+  pub async fn permanent_delete_cascade_mongo(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+    self
+      .permanent_delete_cascade(mongo.as_ref(), table, id)
+      .await
+  }
+
+  pub async fn permanent_delete_cascade<P>(
+    &self,
     provider: &P,
     table: &str,
     id: &str,
@@ -273,108 +335,6 @@ impl CascadeService {
     }
 
     Ok(CascadeResult::from_deleted_ids(&deleted))
-  }
-
-  pub async fn soft_delete_cascade<P>(
-    &self,
-    provider: &P,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    Self::soft_delete_cascade_internal(provider, table, id).await
-  }
-
-  pub async fn restore_cascade<P>(
-    &self,
-    provider: &P,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    Self::restore_cascade_internal(provider, table, id).await
-  }
-
-  pub async fn permanent_delete_cascade<P>(
-    &self,
-    provider: &P,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    Self::permanent_delete_cascade_internal(provider, table, id).await
-  }
-
-  pub async fn soft_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self
-      .soft_delete_cascade(&self.json_provider, table, id)
-      .await
-  }
-
-  pub async fn soft_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    self.soft_delete_cascade(mongo.as_ref(), table, id).await
-  }
-
-  pub async fn restore_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self.restore_cascade(&self.json_provider, table, id).await
-  }
-
-  pub async fn restore_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    self.restore_cascade(mongo.as_ref(), table, id).await
-  }
-
-  pub async fn permanent_delete_cascade_json(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    self
-      .permanent_delete_cascade(&self.json_provider, table, id)
-      .await
-  }
-
-  pub async fn permanent_delete_cascade_mongo(
-    &self,
-    table: &str,
-    id: &str,
-  ) -> Result<CascadeResult, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
-    self
-      .permanent_delete_cascade(mongo.as_ref(), table, id)
-      .await
   }
 
   pub async fn import_todo_cascade_to_json(
@@ -448,22 +408,5 @@ impl CascadeService {
       }
     }
     Ok(CascadeResult::new())
-  }
-
-  pub async fn handle_cascade<P>(
-    &self,
-    provider: &P,
-    table: &str,
-    id: &str,
-    is_restore: bool,
-  ) -> Result<CascadeResult, ResponseModel>
-  where
-    P: DatabaseProvider + Send + Sync,
-  {
-    if is_restore {
-      self.restore_cascade(provider, table, id).await
-    } else {
-      self.soft_delete_cascade(provider, table, id).await
-    }
   }
 }

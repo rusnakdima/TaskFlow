@@ -21,6 +21,9 @@ export class SortHelper {
    * Sort array by field
    */
   static sortByField<T>(data: T[], config: SortConfig): T[] {
+    if (!Array.isArray(data)) {
+      return [];
+    }
     const { field, order } = config;
 
     return [...data].sort((a: T, b: T) => {
@@ -55,6 +58,9 @@ export class SortHelper {
    * Sort by order field (for drag-drop reordering)
    */
   static sortByOrder<T extends { order: number }>(data: T[], order: "asc" | "desc" = "desc"): T[] {
+    if (!Array.isArray(data)) {
+      return [];
+    }
     return [...data].sort((a, b) => {
       return order === "asc" ? a.order - b.order : b.order - a.order;
     });

@@ -64,6 +64,20 @@ pub async fn get_all_data_for_archive(
   state.manage_db_service.get_all_data_for_archive().await
 }
 
+/// Get paginated data from local JSON for Archive page
+#[tauri::command]
+pub async fn get_archive_data_paginated(
+  state: State<'_, AppState>,
+  data_type: String,
+  skip: u64,
+  limit: u64,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .get_archive_data_paginated(data_type, skip, limit)
+    .await
+}
+
 /// Get all data for admin from MongoDB (global view with all users' data)
 #[tauri::command]
 pub async fn get_all_data_for_admin(

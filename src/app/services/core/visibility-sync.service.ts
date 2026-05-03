@@ -91,13 +91,14 @@ export class VisibilitySyncService {
   }
 
   private countTodoChildren(todo: Todo): number {
+    const tasks = this.storageService.getTasksByTodoId(todo.id);
     let count = 0;
-    todo.tasks?.forEach((task) => {
+    tasks.forEach((task) => {
       count++;
-      task.subtasks?.forEach(() => {
+      const subtasks = this.storageService.getSubtasksByTaskId(task.id);
+      subtasks.forEach(() => {
         count++;
       });
-      count++;
     });
     return count;
   }
@@ -144,7 +145,7 @@ export class VisibilitySyncService {
   }
 
   private stripRelations(todo: Todo): Partial<Todo> {
-    const { tasks, user, categories, ...rest } = todo;
+    const { user, categories, ...rest } = todo;
     return rest;
   }
 

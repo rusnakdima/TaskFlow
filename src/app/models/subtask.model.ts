@@ -1,9 +1,9 @@
+import { BaseEntity } from "@models/base-entity.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Comment } from "@models/comment.model";
 
-export interface Subtask {
+export interface Subtask extends BaseEntity {
   id: string;
-  task: Task;
   task_id: string;
   title: string;
   description: string;
@@ -12,8 +12,5 @@ export interface Subtask {
   start_date: string | null;
   end_date: string | null;
   order: number;
-  comments: Array<Comment>;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+  comments_count: number;
 }

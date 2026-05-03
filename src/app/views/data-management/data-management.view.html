@@ -389,6 +389,24 @@
     (hardDeleteEvent)="onBulkHardDelete()"
     (cancelEvent)="onBulkCancel()"
   />
+
+  @if (paginationState().hasMore && getCurrentData().length > 0) {
+    <div class="flex justify-center py-4">
+      <button
+        class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
+        (click)="loadMore()"
+        [disabled]="paginationState().loading"
+      >
+        @if (paginationState().loading) {
+          <mat-icon class="h-5! w-5! min-w-5 animate-spin text-xl!" fontIcon="sync" />
+          <span>Loading...</span>
+        } @else {
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="expand_more" />
+          <span>Load More</span>
+        }
+      </button>
+    </div>
+  }
 </div>
 
 @if (showFilters()) {

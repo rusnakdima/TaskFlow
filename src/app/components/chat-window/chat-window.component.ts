@@ -49,6 +49,12 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   chats = signal<Chat[]>([]);
 
+  messages = signal<Chat[]>([]);
+  hasMoreMessages = signal(true);
+  loadingOlder = signal(false);
+  oldestTimestamp = signal<string | null>(null);
+  currentTodoId = "";
+
   private chatReactiveEffect = effect(() => {
     const reactiveChats = this.storageService.getChatsByTodoReactive(this.todo_id)();
     this.chats.set(reactiveChats);
@@ -70,6 +76,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
 
   ngOnInit() {
     this.shouldScroll = true;
+    this.currentTodoId = this.todo_id;
+    this.loadInitialChats(this.todo_id);
     setTimeout(() => this.initIntersectionObserver(), 500);
   }
 
@@ -88,6 +96,53 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked, OnDestroy,
         this.smartScroll();
       }
       this.shouldScroll = false;
+    }
+  }
+
+  private loadInitialChats(todoId: string) {
+    this.dataSync.crud<Chat[]>("getAll", "chats", { filter: { todo_id: todoId } }).subscribe({
+      next: (chats) => {
+        const reversed = [...chats].reverse();
+        this.messages.set(reversed);
+        if (chats.length > 0) {
+          this.oldestTimestamp.set(chats[chats.length - 1].created_at);
+          this.hasMoreMessages.set(chats.length >= 10);
+        }
+      },
+    });
+  }
+
+  loadOlderChats(todoId: string) {
+    if (this.loadingOlder() || !this.hasMoreMessages()) return;
+
+    const timestamp = this.oldestTimestamp();
+    if (!timestamp) return;
+
+    this.loadingOlder.set(true);
+
+    this.dataSync
+      .crud<Chat[]>("getAll", "chats", { filter: { todo_id: todoId, before: timestamp } })
+      .subscribe({
+        next: (olderChats) => {
+          if (olderChats.length === 0) {
+            this.hasMoreMessages.set(false);
+          } else {
+            const reversed = [...olderChats].reverse();
+            this.messages.update((current) => [...reversed, ...current]);
+            this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
+          }
+          this.loadingOlder.set(false);
+        },
+        error: () => {
+          this.loadingOlder.set(false);
+        },
+      });
+  }
+
+  onChatScroll(event: Event) {
+    const element = event.target as HTMLElement;
+    if (element.scrollTop === 0 && this.hasMoreMessages() && !this.loadingOlder()) {
+      this.loadOlderChats(this.currentTodoId);
     }
   }
 

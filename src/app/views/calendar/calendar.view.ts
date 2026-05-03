@@ -45,52 +45,53 @@ export class CalendarView extends BaseListView implements OnInit {
     const newEvents: CalendarEvent[] = [];
 
     todos.forEach((todo) => {
-      if (todo.tasks) {
-        todo.tasks.forEach((task) => {
-          if (task.deleted_at || todo.deleted_at) return;
+      const tasks = this.storageService.getTasksByTodoId(todo.id);
+      if (todo.deleted_at) return;
 
-          const isPrivate = todo.visibility === "private";
-          const isOwner = todo.user_id === this.userId;
+      const isPrivate = todo.visibility === "private";
+      const isOwner = todo.user_id === this.userId;
 
-          if (task.start_date) {
-            newEvents.push({
-              id: task.id!,
-              title: `Start: ${task.title}`,
-              date: new Date(task.start_date),
-              type: "task",
-              status: "start",
-              description: task.description,
-              todo_id: todo.id,
-              isPrivate,
-              isOwner,
-            });
-          }
+      tasks.forEach((task) => {
+        if (task.deleted_at) return;
 
-          if (task.end_date) {
-            const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
-            const status =
-              task.status === TaskStatus.COMPLETED
-                ? "completed"
-                : task.status === TaskStatus.SKIPPED
-                  ? "skipped"
-                  : task.status === TaskStatus.FAILED
-                    ? "failed"
-                    : "due";
+        if (task.start_date) {
+          newEvents.push({
+            id: task.id!,
+            title: `Start: ${task.title}`,
+            date: new Date(task.start_date),
+            type: "task",
+            status: "start",
+            description: task.description,
+            todo_id: todo.id,
+            isPrivate,
+            isOwner,
+          });
+        }
 
-            newEvents.push({
-              id: task.id!,
-              title: statusText,
-              date: new Date(task.end_date),
-              type: "task",
-              status,
-              description: task.description,
-              todo_id: todo.id,
-              isPrivate,
-              isOwner,
-            });
-          }
-        });
-      }
+        if (task.end_date) {
+          const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
+          const status =
+            task.status === TaskStatus.COMPLETED
+              ? "completed"
+              : task.status === TaskStatus.SKIPPED
+                ? "skipped"
+                : task.status === TaskStatus.FAILED
+                  ? "failed"
+                  : "due";
+
+          newEvents.push({
+            id: task.id!,
+            title: statusText,
+            date: new Date(task.end_date),
+            type: "task",
+            status,
+            description: task.description,
+            todo_id: todo.id,
+            isPrivate,
+            isOwner,
+          });
+        }
+      });
     });
 
     return newEvents;

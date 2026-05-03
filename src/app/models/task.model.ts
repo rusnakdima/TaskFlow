@@ -1,3 +1,4 @@
+import { BaseEntity } from "@models/base-entity.model";
 import { Subtask } from "@models/subtask.model";
 import { Todo } from "@models/todo.model";
 import { Comment } from "@models/comment.model";
@@ -29,12 +30,11 @@ export enum RepeatInterval {
   MONTHLY = "monthly",
 }
 
-export interface Task {
+export interface Task extends BaseEntity {
   id: string;
   todo_id: string;
   title: string;
   description: string;
-  subtasks: Array<Subtask>;
   status: TaskStatus;
   priority: string;
   start_date: string | null;
@@ -42,9 +42,7 @@ export interface Task {
   repeat?: RepeatInterval;
   order: number;
   depends_on?: string[];
-  comments: Array<Comment>;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  todo?: Todo;
+  subtasks_count: number;
+  completed_subtasks_count: number;
+  comments_count: number;
 }

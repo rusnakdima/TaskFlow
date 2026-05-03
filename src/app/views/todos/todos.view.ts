@@ -102,6 +102,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
   private dataSyncProvider = inject(ApiProvider);
+  private dataLoaderService = inject(DataLoaderService);
 
   // State
   todos = this.storageService.todos;
@@ -109,6 +110,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   userId = signal("");
   showStats = signal(false);
   activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
+
+  todoPagination = signal<{
+    skip: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
   visibilityOptions = [
     { key: "all", label: "All", icon: "apps" },
@@ -203,21 +212,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   // Only counts comments where user is NOT the author AND hasn't read
   getTodoUnreadCommentsCount(todo: Todo): number {
     const userId = this.authService.getValueByKey("id");
-    const tasks = Array.isArray(todo.tasks) ? todo.tasks : [];
+    const tasks = this.storageService.getTasksByTodoId(todo.id);
     if (!userId || tasks.length === 0) return 0;
 
     let count = 0;
     for (const task of tasks) {
-      const comments = Array.isArray(task.comments) ? task.comments : [];
-      if (comments.length === 0) continue;
-      count += comments.filter((c: any) => {
-        // Skip deleted comments
-        if (c.deleted_at) return false;
-        // Skip if user is the author (they've read their own comment)
+      const taskComments = this.storageService
+        .comments()
+        .filter((c) => c.task_id === task.id && !c.deleted_at);
+      if (taskComments.length === 0) continue;
+      count += taskComments.filter((c: any) => {
         if (c.user_id === userId) return false;
-        // Skip if user has read the comment
         if (c.read_by && c.read_by.includes(userId)) return false;
-        // Only count task comments (not subtask comments)
         if (c.subtask_id) return false;
         return true;
       }).length;
@@ -256,6 +262,52 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   getVisibilityLabel(): string {
     const option = this.visibilityOptions.find((o) => o.key === this.activeVisibility());
     return option?.label || "All";
+  }
+
+  get visibility() {
+    return this.activeVisibility();
+  }
+
+  getProgress(todo: Todo): string {
+    if (todo.tasks_count === 0) return "No tasks";
+    return `${todo.completed_tasks_count}/${todo.tasks_count} completed`;
+  }
+
+  getChatsCount(todo: Todo): number {
+    return todo.chats_count;
+  }
+
+  loadInitialTodos() {
+    this.dataLoaderService
+      .loadInitialTodos(this.visibility, this.todoPagination().limit)
+      .subscribe({
+        next: (todos: Todo[]) => {
+          this.todoPagination.update((p) => ({
+            ...p,
+            skip: todos.length,
+            hasMore: todos.length === p.limit,
+            total: todos.length,
+          }));
+        },
+      });
+  }
+
+  loadMore() {
+    if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
+
+    this.todoPagination.update((p) => ({ ...p, loading: true }));
+
+    this.dataLoaderService.loadMoreTodos(this.visibility).subscribe({
+      next: (todos: Todo[]) => {
+        this.todoPagination.update((p) => ({
+          ...p,
+          skip: p.skip + todos.length,
+          loading: false,
+          hasMore: todos.length === p.limit,
+          total: p.total + todos.length,
+        }));
+      },
+    });
   }
 
   getCurrentVisibilityIcon(): string {
@@ -398,6 +450,20 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       case "edit":
         this.router.navigate(["/todos", item.id, "edit_todo"]);
         break;
+      case "archive":
+        if (confirm(`Are you sure you want to archive this project?`)) {
+          this.dataSyncProvider
+            .crud("delete", "todos", {
+              id: item.id,
+              visibility: "private",
+            })
+            .subscribe({
+              next: () => this.notifyService.showSuccess("Project archived successfully"),
+              error: (err) =>
+                this.notifyService.showError(err.message || "Failed to archive project"),
+            });
+        }
+        break;
       case "delete":
         this.deleteTodoById(item.id, item.user_id === this.userId());
         break;
@@ -525,7 +591,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
    * Check if todo is completed
    */
   isCompleted(todo: Todo): boolean {
-    const listTasks = Array.isArray(todo?.tasks) ? todo.tasks : [];
+    const listTasks = this.storageService.getTasksByTodoId(todo.id);
     if (listTasks.length === 0) return false;
     const listCompletedTasks = listTasks.filter(
       (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED

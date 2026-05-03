@@ -86,30 +86,10 @@ export class TodoHandler extends EntityHandler<Todo> {
   }
 
   private cascadeDeleteToNested(todoId: string, deletedAt: string): void {
-    const cascade = (signal: WritableSignal<Todo[]>) => {
-      signal.update((todos) =>
-        todos.map((todo) => {
-          if (todo.id !== todoId) return todo;
-          return {
-            ...todo,
-            tasks: todo.tasks?.map((task) => ({
-              ...task,
-              deleted_at: task.deleted_at || deletedAt,
-              subtasks: task.subtasks?.map((subtask) => ({
-                ...subtask,
-                deleted_at: subtask.deleted_at || deletedAt,
-              })),
-            })),
-          };
-        })
-      );
-    };
-    cascade(this.privateSignal);
-    cascade(this.sharedSignal);
-    cascade(this.publicSignal);
+    // No-op for flat storage - cascade handled by AdminStorageService
   }
 
-  remove(id: string): void {
+  remove(id: string, _parentId?: string): void {
     const privateTodos = this.privateSignal();
     const sharedTodos = this.sharedSignal();
     const publicTodos = this.publicSignal();
@@ -130,76 +110,14 @@ export class TodoHandler extends EntityHandler<Todo> {
    * Sets deleted_at on todo and all nested entities
    */
   removeWithCascade(id: string, allTodos: Todo[]): void {
-    const todo = allTodos.find((t) => t.id === id);
-    if (!todo) return;
-
-    const now = new Date().toISOString();
-
-    const softDeleteInSignal = (signal: WritableSignal<Todo[]>) => {
-      signal.update((todos) =>
-        todos.map((t) => {
-          if (t.id !== id) return t;
-          return {
-            ...t,
-            deleted_at: now,
-            tasks: t.tasks?.map((task) => ({
-              ...task,
-              deleted_at: now,
-              subtasks: task.subtasks?.map((subtask) => ({
-                ...subtask,
-                deleted_at: now,
-              })),
-            })),
-          };
-        })
-      );
-    };
-
-    softDeleteInSignal(this.privateSignal);
-    softDeleteInSignal(this.sharedSignal);
+    // No-op for flat storage - cascade handled by AdminStorageService
   }
 
   /**
    * Restore todo with all related data
    */
   restoreWithCascade(data: TodoCascadeData): void {
-    const restoreInSignal = (signal: WritableSignal<Todo[]>) => {
-      signal.update((todos) => {
-        const existingIndex = todos.findIndex((t) => t.id === data.todo.id);
-        if (existingIndex >= 0) {
-          const updatedTodos = [...todos];
-          updatedTodos[existingIndex] = {
-            ...data.todo,
-            tasks: data.tasks.map((task) => ({
-              ...task,
-              deleted_at: null,
-              subtasks: data.subtasks
-                .filter((s) => s.task_id === task.id)
-                .map((subtask) => ({ ...subtask, deleted_at: null })),
-            })),
-          };
-          return updatedTodos;
-        } else {
-          return [
-            ...todos,
-            {
-              ...data.todo,
-              tasks: data.tasks.map((task) => ({
-                ...task,
-                deleted_at: null,
-                subtasks: data.subtasks
-                  .filter((s) => s.task_id === task.id)
-                  .map((subtask) => ({ ...subtask, deleted_at: null })),
-              })),
-            },
-          ];
-        }
-      });
-    };
-
-    restoreInSignal(this.privateSignal);
-    restoreInSignal(this.sharedSignal);
-    restoreInSignal(this.publicSignal);
+    // No-op for flat storage - restore handled by AdminStorageService
   }
 
   getById(id: string): Todo | undefined {

@@ -1,10 +1,9 @@
+import { BaseEntity } from "@models/base-entity.model";
 import { Category } from "@models/category.model";
-import { Chat } from "@models/chat.model";
 import { Profile } from "@models/profile.model";
-import { Task } from "@models/task.model";
 import { User } from "@models/user.model";
 
-export interface Todo {
+export interface Todo extends BaseEntity {
   id: string;
   user_id: string;
   title: string;
@@ -20,9 +19,7 @@ export interface Todo {
   priority: string;
   order: number;
   user: User;
-  tasks: Array<Task>;
-  chats?: Chat[];
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+  tasks_count: number;
+  completed_tasks_count: number;
+  chats_count: number;
 }
