@@ -31,7 +31,6 @@ import { BaseListView } from "@views/base-list.view";
 })
 export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
-  private authService = inject(AuthService);
   private storageService = inject(StorageService);
 
   selectedDate = signal<Date>(new Date());

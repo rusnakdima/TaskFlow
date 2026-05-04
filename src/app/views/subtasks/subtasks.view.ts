@@ -35,6 +35,7 @@ interface QueryParams {
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
+import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -64,6 +65,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
+import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 
 @Component({
   selector: "app-subtasks",
@@ -83,19 +85,20 @@ import { TableField } from "@components/table-view/table-field.model";
     BulkActionsComponent,
     TableViewComponent,
     ViewModeSwitcherComponent,
+    EmptyStateComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
 export class SubtasksView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private authService = inject(AuthService);
   private dataSyncProvider = inject(ApiProvider);
   private cdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
   public bulkService = inject(BulkActionService);
   private appStateService = inject(AppStateService);
+  private authorizationService = inject(AuthorizationService);
   private dataLoaderService = inject(DataLoaderService);
 
   // State signals
@@ -256,12 +259,6 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   userId: string = "";
 
-  canUserEditSubtask(todo: Todo, subtask: Subtask, userId: string): boolean {
-    if (todo.user_id === userId) return true;
-    if (todo.visibility !== "private") return true;
-    return false;
-  }
-
   isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
@@ -384,6 +381,10 @@ export class SubtasksView extends BaseListView implements OnInit {
     });
   }
 
+  onCommentToggle(subtaskId: string): void {
+    this.highlightComment.set(null);
+  }
+
   toggleChat() {
     this.showChat.update((v) => !v);
   }
@@ -396,8 +397,7 @@ export class SubtasksView extends BaseListView implements OnInit {
     const todoId = this.todoId();
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
-    const chats = this.chats();
-    return chats.filter((c) => !c.read_by || !c.read_by.includes(currentUserId)).length;
+    return this.storageService.getUnreadChatCount(todoId, currentUserId);
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {

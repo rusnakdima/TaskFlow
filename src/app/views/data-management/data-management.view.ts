@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from "@angular/core";
+import { Component, OnInit, signal, inject, ViewChild, TemplateRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -35,13 +35,16 @@ import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* components */
-import { AdminDataTableComponent } from "@components/admin-records/admin-data-table.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { TableField } from "@components/table-view/table-field.model";
+import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import {
   ViewModeSwitcherComponent,
   ViewMode,
 } from "@components/view-mode-switcher/view-mode-switcher.component";
+import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -60,86 +63,17 @@ import {
     MatDatepickerModule,
     MatNativeDateModule,
     FormsModule,
-    AdminDataTableComponent,
+    TableViewComponent,
     BulkActionsComponent,
     CheckboxComponent,
     ViewModeSwitcherComponent,
+    FilterSidebarComponent,
   ],
   templateUrl: "./data-management.view.html",
-  styles: [
-    `
-      .filter-sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        animation: fadeIn 0.2s ease-out;
-      }
-      .filter-sidebar {
-        position: fixed;
-        top: 0;
-        right: -320px;
-        width: 320px;
-        max-width: 85vw;
-        height: 100vh;
-        background: white;
-        z-index: 1000;
-        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-        transition: right 0.3s ease-in-out;
-        overflow-y: auto;
-      }
-      :host-context(.dark) .filter-sidebar {
-        background: rgb(39 39 42);
-      }
-      .filter-sidebar.open {
-        right: 0;
-      }
-      .filter-sidebar-content {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        padding: 1.5rem;
-      }
-      .filter-sidebar-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgb(229 231 235);
-        margin-bottom: 1.5rem;
-      }
-      :host-context(.dark) .filter-sidebar-header {
-        border-bottom-color: rgb(64 64 64);
-      }
-      .filter-sidebar-section {
-        margin-bottom: 1.5rem;
-      }
-      .filter-sidebar-actions {
-        margin-top: auto;
-        padding-top: 1rem;
-        border-top: 1px solid rgb(229 231 235);
-      }
-      :host-context(.dark) .filter-sidebar-actions {
-        border-top-color: rgb(64 64 64);
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-      @media (max-width: 640px) {
-        .filter-sidebar {
-          width: 100%;
-          max-width: 100%;
-        }
-      }
-    `,
-  ],
 })
 export class DataManagementView implements OnInit {
+  @ViewChild("expandRowTemplate") expandRowTemplate!: TemplateRef<any>;
+
   private route = inject(ActivatedRoute);
 
   protected adminStorageService = inject(AdminStorageService);
@@ -167,6 +101,13 @@ export class DataManagementView implements OnInit {
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
   expandedRecords = signal<Set<string>>(new Set());
+
+  adminTableFields = TableFieldFactory.createAdminFields();
+
+  adminActions = [
+    { key: "toggleDelete", icon: "delete", label: "Soft Delete" },
+    { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
+  ];
 
   // Field configurations
   todoFields: AdminFieldConfig[] = [
@@ -352,6 +293,24 @@ export class DataManagementView implements OnInit {
       default:
         return [];
     }
+  }
+
+  getTitleField(): string {
+    if (this.selectedType() === "daily_activities") return "date";
+    if (this.selectedType() === "comments" || this.selectedType() === "chats") return "content";
+    return "title";
+  }
+
+  onAdminAction(event: { action: string; item: any }): void {
+    if (event.action === "toggleDelete") {
+      this.toggleDeleteStatus(event.item);
+    } else if (event.action === "delete" || event.action === "deleteRecord") {
+      this.deleteRecord(event.item);
+    }
+  }
+
+  onRecordSelect(event: { id: string; selected: boolean }): void {
+    this.toggleSelect(event);
   }
 
   getCurrentData(): any[] {
