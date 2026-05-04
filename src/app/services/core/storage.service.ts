@@ -45,8 +45,12 @@ export class StorageService extends BaseStorageService {
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly profilesSignal = signal<Profile[]>([]);
   private readonly allProfilesSignal = signal<Profile[]>([]);
-  private readonly userSignal = signal<any | null>(null);
-  private readonly usersSignal = signal<any[]>([]);
+  private readonly userSignal = signal<any | null>(null); // TODO: type User properly
+  private readonly usersSignal = signal<any[]>([]); // TODO: type User properly
+
+  // Cache for reactive computed signals (prevents infinite loops)
+  private readonly chatsCache = new Map<string, ReturnType<typeof computed<Chat[]>>>();
+  private readonly tasksByTodoCache = new Map<string, ReturnType<typeof computed<Task[]>>>();
 
   // ==================== COMPUTED SIGNALS ====================
   private readonly todosComputed = computed(() => {
@@ -70,21 +74,17 @@ export class StorageService extends BaseStorageService {
   });
 
   private readonly privateTodosComputed = computed(() => {
-    return this.privateTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "private"
-    );
+    // Deduplication happens at the source signals (privateTodosSignal, etc.)
+    // This computed just filters out deleted items
+    return this.privateTodosSignal().filter((todo) => !todo.deleted_at);
   });
 
   private readonly sharedTodosComputed = computed(() => {
-    return this.sharedTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "shared"
-    );
+    return this.sharedTodosSignal().filter((todo) => !todo.deleted_at);
   });
 
   private readonly publicTodosComputed = computed(() => {
-    return this.publicTodosSignal().filter(
-      (todo) => !todo.deleted_at && todo.visibility === "public"
-    );
+    return this.publicTodosSignal().filter((todo) => !todo.deleted_at);
   });
 
   // ==================== PUBLIC SIGNALS ====================
@@ -119,6 +119,9 @@ export class StorageService extends BaseStorageService {
   };
 
   // ==================== CRUD OPERATIONS ====================
+  // TODO: The `any` type here is due to handler architecture - handlers accept dynamic entity data
+  // and this service acts as a router. Refactoring would require restructuring the handler system
+  // to properly type all entity operations across todos, tasks, subtasks, etc.
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
     if (type === "users" || !data?.id) return;
     this.handlers[type]?.add(data);
@@ -192,10 +195,17 @@ export class StorageService extends BaseStorageService {
   }
 
   getChatsByTodoReactive(todo_id?: string): ReturnType<typeof computed<Chat[]>> {
-    return computed(() => {
-      if (!todo_id) return [];
-      return this.chats().filter((chat) => chat.todo_id === todo_id);
-    });
+    if (!todo_id) return computed(() => []);
+
+    if (!this.chatsCache.has(todo_id)) {
+      this.chatsCache.set(
+        todo_id,
+        computed(() => {
+          return this.chats().filter((chat) => chat.todo_id === todo_id);
+        })
+      );
+    }
+    return this.chatsCache.get(todo_id)!;
   }
 
   setChatsByTodo(chats: Chat[], todo_id?: string): void {

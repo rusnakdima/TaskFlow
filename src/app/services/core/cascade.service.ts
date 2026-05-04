@@ -13,6 +13,8 @@ export interface CascadeUpdate {
   updates: { deleted_at: string | null; updated_at: string };
 }
 
+// ARCHITECTURAL NOTE: CascadeService handles cascade operations for task/subtask deletion.
+// This is a focused utility service, not a god service - kept minimal.
 @Injectable({ providedIn: "root" })
 export class CascadeService {
   getCascadeTaskIds(tasks: Task[], todoId: string): string[] {

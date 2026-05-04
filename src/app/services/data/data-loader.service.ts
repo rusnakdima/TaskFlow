@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, inject, signal, Signal, WritableSignal } from "@angular/core";
-import { Observable, forkJoin, of, catchError, switchMap, timeout } from "rxjs";
+import { Observable, forkJoin, of, catchError, switchMap, timeout, map } from "rxjs";
 import { Router } from "@angular/router";
 
 /* models */
@@ -300,13 +300,19 @@ export class DataLoaderService {
       return of(null);
     }
 
+    // If offline, skip initialize_user_data and directly fetch from JSON
+    if (this.apiProvider.isOffline()) {
+      console.log("[Offline] Skipping initialize_user_data, fetching profile directly from JSON");
+      return this.fetchProfileFromJson(currentUserId);
+    }
+
     return new Observable<Profile | null>((observer) => {
       this.apiProvider
         .invokeCommand("initialize_user_data", { userId: currentUserId })
         .pipe(
-          timeout(3000),
+          timeout(5000),
           catchError((err) => {
-            console.warn("initialize_user_data failed or timed out, checking local JSON");
+            console.warn("initialize_user_data failed or timed out, fetching profile directly");
             return of({ data: { needsProfile: true, needsRegistration: false } });
           }),
           switchMap((result: any) => {
@@ -341,6 +347,29 @@ export class DataLoaderService {
           },
         });
     });
+  }
+
+  private fetchProfileFromJson(currentUserId: string): Observable<Profile | null> {
+    return this.apiProvider
+      .crud<Profile>("get", "profiles", {
+        filter: { user_id: currentUserId },
+        load: ["user"],
+        visibility: "private",
+      })
+      .pipe(
+        map((profile) => {
+          if (profile && typeof profile === "object" && "user_id" in profile) {
+            console.log("[Offline] Profile fetched from JSON");
+            return profile;
+          }
+          console.log("[Offline] No profile found in JSON");
+          return null;
+        }),
+        catchError((err) => {
+          console.warn("[Offline] Error fetching profile from JSON:", err);
+          return of(null);
+        })
+      );
   }
 
   private createSharedDataObservable(currentUserId: string): Observable<void> {

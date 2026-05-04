@@ -13,3 +13,4 @@ export { TokenStorageHelper } from "./token-storage.helper";
 export { LoginCompletionHelper } from "./login-completion.helper";
 export { LoginErrorHelper } from "./login-error.helper";
 export { ObjectHelper } from "./object.helper";
+export { FilteredListHelper } from "./filtered-list.helper";

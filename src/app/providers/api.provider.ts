@@ -10,7 +10,7 @@ import { StorageUpdateService } from "@services/core/storage.service";
 import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
-type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
 interface CrudOptions {
   id?: string;
@@ -50,6 +50,13 @@ export class ApiProvider {
 
   crud<T>(operation: Operation, table: string, options: CrudOptions = {}): Observable<T> {
     return new Observable<T>((subscriber) => {
+      if (this.isOffline() && operation !== "get" && operation !== "getAll") {
+        const errorMsg = "You are offline. Changes will sync when connection is restored.";
+        this.notifyService.showWarning(errorMsg);
+        subscriber.error(new Error(errorMsg));
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         operation,
         table,
@@ -112,6 +119,13 @@ export class ApiProvider {
     options: CrudOptions,
     subscriber: Subscriber<T>
   ): void {
+    if (this.isOffline()) {
+      const errorMsg = "You are offline. Changes will sync when connection is restored.";
+      this.notifyService.showWarning(errorMsg);
+      subscriber.error(new Error(errorMsg));
+      return;
+    }
+
     const dataItems = options.data as Array<Record<string, unknown>>;
     Promise.all(
       dataItems.map((item) =>
