@@ -579,8 +579,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             previousContainer: null,
             distance: { x: 0, y: 0 },
           } as unknown as CdkDragDrop<Todo[]>;
+          const todos = this.activeVisibility() === "all" ? this.allTodosFlat() : this.listTodos();
           this.dragDropService
-            .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, "private")
+            .handleDrop(syntheticEvent, todos, "todos", "todos", undefined, "private")
             .subscribe();
         }
       }
@@ -588,8 +589,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    const todos = this.activeVisibility() === "all" ? this.allTodosFlat() : this.listTodos();
     this.dragDropService
-      .handleDrop(event, this.listTodos(), "todos", "todos", undefined, "private")
+      .handleDrop(event, todos, "todos", "todos", undefined, "private")
       .subscribe();
   }
 
