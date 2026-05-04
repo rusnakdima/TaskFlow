@@ -251,7 +251,7 @@ button:disabled {
 }
 
 mat-icon {
-  @apply h-7.5! w-7.5! text-3xl!;
+  @apply h-6! w-6! min-w-6 text-2xl!;
   line-height: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -324,11 +324,11 @@ pre {
 
 .ngx-pagination a,
 .ngx-pagination .disabled {
-  @apply border border-gray-300! bg-white! px-4! py-2! text-xl text-gray-500! hover:bg-gray-100! hover:text-gray-700! dark:border-zinc-600! dark:bg-zinc-800! dark:text-zinc-400! dark:hover:bg-zinc-700! dark:hover:text-white!;
+  @apply border border-gray-300! bg-white! px-4! py-2! text-base text-gray-500! hover:bg-gray-100! hover:text-gray-700! dark:border-zinc-600! dark:bg-zinc-800! dark:text-zinc-400! dark:hover:bg-zinc-700! dark:hover:text-white!;
 }
 
 .ngx-pagination .current {
-  @apply z-0 border border-blue-300 bg-blue-50! px-4! py-2! text-xl text-blue-600! hover:bg-blue-100! hover:text-blue-700! dark:border-zinc-400! dark:bg-zinc-600! dark:text-white! dark:hover:bg-zinc-700!;
+  @apply z-0 border border-blue-300 bg-blue-50! px-4! py-2! text-base text-blue-600! hover:bg-blue-100! hover:text-blue-700! dark:border-zinc-400! dark:bg-zinc-600! dark:text-white! dark:hover:bg-zinc-700!;
 }
 
 .mat-calendar,
