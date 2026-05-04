@@ -13,6 +13,7 @@ export interface AdminFieldConfig {
   label: string;
   type: AdminFieldType;
   options?: string[];
+  width?: string;
   getValue?: (item: any) => any;
   getChipColor?: (value: any) => string;
   getChipText?: (value: any) => string;

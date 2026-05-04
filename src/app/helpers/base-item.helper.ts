@@ -134,6 +134,7 @@ export class BaseItemHelper {
    * Get priority badge class
    */
   static getPriorityBadgeClass(priority: string): string {
+    if (!priority) return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
     switch (priority.toLowerCase()) {
       case "urgent":
         return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
@@ -143,6 +144,27 @@ export class BaseItemHelper {
         return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
       case "low":
         return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+      default:
+        return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+    }
+  }
+
+  /**
+   * Get status badge class
+   */
+  static getStatusBadgeClass(status: string): string {
+    switch (status?.toLowerCase()) {
+      case "active":
+      case "in_progress":
+        return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+      case "completed":
+      case "done":
+        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+      case "pending":
+        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
+      case "cancelled":
+      case "deleted":
+        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
     }
