@@ -26,3 +26,8 @@ pub fn success_response<T: Into<DataValue>>(data: T) -> ResponseModel {
     data: data.into(),
   }
 }
+
+/// Logs a message (non-error, for debugging/sync operations)
+pub fn log_response(message: &str) {
+  println!("[ProfileSync] {}", message);
+}
