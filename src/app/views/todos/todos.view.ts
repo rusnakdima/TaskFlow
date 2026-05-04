@@ -61,6 +61,9 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
+import { VisibilityToggleComponent } from "@components/visibility-toggle/visibility-toggle.component";
+import { StatsCardComponent } from "@components/stats-card/stats-card.component";
+import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 
 @Component({
   selector: "app-todos",
@@ -80,6 +83,9 @@ import { TableField } from "@components/table-view/table-field.model";
     BulkActionsComponent,
     TableViewComponent,
     ViewModeSwitcherComponent,
+    VisibilityToggleComponent,
+    StatsCardComponent,
+    EmptyStateComponent,
   ],
   templateUrl: "./todos.view.html",
 })
@@ -98,7 +104,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropService = inject(DragDropOrderService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
   private dataSyncProvider = inject(ApiProvider);
@@ -318,7 +323,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   override ngOnInit(): void {
     super.ngOnInit();
 
-    this.userId.set(this.authService.getValueByKey("id"));
     this.pageKey = this.isSharedMode() ? "shared-tasks" : "todos";
 
     // Load view mode preference
@@ -465,7 +469,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }
         break;
       case "delete":
-        this.deleteTodoById(item.id, item.user_id === this.userId());
+        this.deleteTodoById(item.id, item.user_id === this.currentUserId);
         break;
     }
   }
@@ -572,7 +576,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   confirmCreateFromBlueprint() {
-    this.blueprintService.confirmCreateFromBlueprint(this.userId()).subscribe();
+    this.blueprintService.confirmCreateFromBlueprint(this.currentUserId).subscribe();
   }
 
   openApplyBlueprint(template: any) {

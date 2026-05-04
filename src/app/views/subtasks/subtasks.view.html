@@ -7,19 +7,13 @@
   }
 
   @if (!loading() && !task()) {
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-    >
-      <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="error_outline" />
-      <h3 class="textNormal mb-2 text-xl font-semibold">Unable to load task</h3>
-      <p class="textMuted">The requested task could not be found</p>
-      <button
-        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-        routerLink="/todos"
-      >
-        Back to Todos
-      </button>
-    </div>
+    <app-empty-state
+      icon="error_outline"
+      title="Unable to load task"
+      message="The requested task could not be found"
+      actionLabel="Back to Todos"
+      actionLink="/todos"
+    />
   }
 
   @if (!loading() && task()) {
@@ -111,12 +105,7 @@
     }
 
     @if (listSubtasks().length === 0) {
-      <div
-        class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-      >
-        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="check_box" />
-        <h3 class="textNormal mb-2 text-xl font-semibold">No subtasks found</h3>
-      </div>
+      <app-empty-state icon="check_box" title="No subtasks found" />
     } @else {
       @if (viewMode() === "table") {
         <app-table-view
@@ -124,11 +113,13 @@
           [fields]="subtaskTableFields"
           [selectedIds]="selectedSubtasks()"
           [showSelection]="true"
+          [showCommentToggle]="true"
           [dragEnabled]="true"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
           (dropped)="onSubtaskDrop($event)"
+          (commentToggle)="onCommentToggle($event)"
         />
       } @else if (viewMode() === "grid") {
         <div

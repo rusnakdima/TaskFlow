@@ -1,23 +1,10 @@
 <div class="flex flex-col gap-4">
   <div class="flex items-center gap-2">
-    <div
-      class="hidden items-center rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600"
-    >
-      @for (option of visibilityOptions; track option.key) {
-        <button
-          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-          [class.bg-blue-600]="activeVisibility() === option.key"
-          [class.text-white]="activeVisibility() === option.key"
-          [class.text-gray-700]="activeVisibility() !== option.key"
-          [class.dark:text-gray-300]="activeVisibility() !== option.key"
-          [class.hover:bg-gray-100]="activeVisibility() !== option.key"
-          [class.dark:hover:bg-zinc-700]="activeVisibility() !== option.key"
-          (click)="activeVisibility.set($any(option.key))"
-        >
-          {{ option.label }}
-        </button>
-      }
-    </div>
+    <app-visibility-toggle
+      [options]="visibilityOptions"
+      [active]="activeVisibility()"
+      (select)="activeVisibility.set($any($event))"
+    />
 
     <div class="flex items-center gap-2 lg:hidden">
       <button
@@ -109,55 +96,31 @@
   </div>
 
   @if (showStats()) {
-    <!-- Stats Cards -->
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <div
-        class="rounded-xl bg-linear-to-r from-blue-500 to-blue-600 p-4 text-white shadow-sm dark:from-blue-600 dark:to-blue-700"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium tracking-wide text-blue-100 uppercase">Total Projects</p>
-            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("all") }}</p>
-          </div>
-          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="assignment" />
-        </div>
-      </div>
-
-      <div
-        class="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 p-4 text-white shadow-sm dark:from-orange-600 dark:to-orange-700"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium tracking-wide text-orange-100 uppercase">Active</p>
-            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("active") }}</p>
-          </div>
-          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="play_circle" />
-        </div>
-      </div>
-
-      <div
-        class="rounded-xl bg-linear-to-r from-green-500 to-green-600 p-4 text-white shadow-sm dark:from-green-600 dark:to-green-700"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium tracking-wide text-green-100 uppercase">Completed</p>
-            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("completed") }}</p>
-          </div>
-          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="check_circle" />
-        </div>
-      </div>
-
-      <div
-        class="rounded-xl bg-linear-to-r from-purple-500 to-purple-600 p-4 text-white shadow-sm dark:from-purple-600 dark:to-purple-700"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium tracking-wide text-purple-100 uppercase">This Week</p>
-            <p class="mt-1 text-2xl font-bold">{{ getFilteredCount("week") }}</p>
-          </div>
-          <mat-icon class="h-8! w-8! min-w-8 text-3xl! opacity-80" fontIcon="calendar_today" />
-        </div>
-      </div>
+      <app-stats-card
+        label="Total Projects"
+        [value]="getFilteredCount('all')"
+        icon="assignment"
+        iconBgClass="bg-blue-500"
+      />
+      <app-stats-card
+        label="Active"
+        [value]="getFilteredCount('active')"
+        icon="play_circle"
+        iconBgClass="bg-orange-500"
+      />
+      <app-stats-card
+        label="Completed"
+        [value]="getFilteredCount('completed')"
+        icon="check_circle"
+        iconBgClass="bg-green-500"
+      />
+      <app-stats-card
+        label="This Week"
+        [value]="getFilteredCount('week')"
+        icon="calendar_today"
+        iconBgClass="bg-purple-500"
+      />
     </div>
   }
 
@@ -182,13 +145,11 @@
       groupedTodos().shared.length === 0 &&
       groupedTodos().public.length === 0
     ) {
-      <div
-        class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-      >
-        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
-        <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
-        <p class="textMuted">No projects match the current filter</p>
-      </div>
+      <app-empty-state
+        icon="folder_open"
+        title="No projects found"
+        message="No projects match the current filter"
+      />
     } @else {
       @if (viewMode() === "table") {
         <app-table-view
@@ -350,13 +311,11 @@
     }
   } @else {
     @if (listTodos().length === 0) {
-      <div
-        class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-      >
-        <mat-icon class="textMuted mb-4 h-12! w-12! min-w-12 text-5xl!" fontIcon="folder_open" />
-        <h3 class="textNormal mb-2 text-xl font-semibold">No projects found</h3>
-        <p class="textMuted">No projects match the current filter</p>
-      </div>
+      <app-empty-state
+        icon="folder_open"
+        title="No projects found"
+        message="No projects match the current filter"
+      />
     } @else {
       @if (viewMode() === "table") {
         <div>

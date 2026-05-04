@@ -36,6 +36,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
+import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -66,6 +67,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
+import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 
 @Component({
   selector: "app-tasks",
@@ -87,6 +89,7 @@ import { TableField } from "@components/table-view/table-field.model";
     BulkActionsComponent,
     TableViewComponent,
     ViewModeSwitcherComponent,
+    EmptyStateComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -100,7 +103,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dragRef: DragRef | null = null;
 
   private storageService = inject(StorageService);
-  private authService = inject(AuthService);
   private dataSyncProvider = inject(ApiProvider);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -109,6 +111,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   public bulkService = inject(BulkActionService);
   private dataLoaderService = inject(DataLoaderService);
   private appStateService = inject(AppStateService);
+  private authorizationService = inject(AuthorizationService);
 
   // State signals
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
@@ -117,7 +120,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
   openChat = signal(false);
-  expandedTasks = signal<Set<string>>(new Set());
   chats = signal<any[]>([]);
   private routeSub?: Subscription;
   private loadingRelations = signal<Set<string>>(new Set());
@@ -278,12 +280,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   userId: string = "";
 
-  canUserEditTask(todo: Todo, task: Task, userId: string): boolean {
-    if (todo.user_id === userId) return true;
-    if (todo.visibility !== "private") return true;
-    return false;
-  }
-
   @HostListener("window:keydown", ["$event"])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.ctrlKey && event.key === "f") {
@@ -382,19 +378,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   toggleExpandTask(task: Task) {
-    this.expandedTasks.update((set) => {
-      const newSet = new Set(set);
-      if (newSet.has(task.id)) {
-        newSet.delete(task.id);
-      } else {
-        newSet.add(task.id);
-      }
-      return newSet;
-    });
+    this.toggleExpandItem(task.id);
   }
 
   isTaskExpanded(taskId?: string): boolean {
-    return taskId ? this.expandedTasks().has(taskId) : false;
+    return this.isItemExpanded(taskId);
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
@@ -493,8 +481,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todo()?.id;
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
-    const chats = this.chats();
-    return chats.filter((c) => !c.read_by || !c.read_by.includes(currentUserId)).length;
+    return this.storageService.getUnreadChatCount(todoId, currentUserId);
   }
 
   updateTaskInline(event: { task: Task; field: string; value: any }) {
@@ -513,6 +500,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onRowClick(task: any): void {
     this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
+  }
+
+  onCommentToggle(taskId: string): void {
+    this.highlightCommentId.set(null);
   }
 
   deleteTask(taskId?: string) {

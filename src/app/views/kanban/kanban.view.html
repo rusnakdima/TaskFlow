@@ -77,23 +77,12 @@
   @if (showStats()) {
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       @for (column of columns; track column.id) {
-        <div
-          class="cursor-pointer rounded-xl p-4 text-white shadow-sm sm:p-6"
-          [ngClass]="getColumnColorClass(column.id)"
-        >
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs text-white/80 sm:text-sm">{{ column.label }}</p>
-              <p class="text-xl font-bold sm:text-2xl">{{ getTasksByStatus(column.id).length }}</p>
-            </div>
-            <div class="rounded-lg bg-white/20 p-2 sm:p-3">
-              <mat-icon
-                class="size-5! min-w-5 text-xl! sm:size-6! sm:min-w-6 sm:text-2xl!"
-                [fontIcon]="column.icon"
-              />
-            </div>
-          </div>
-        </div>
+        <app-stats-card
+          [label]="column.label"
+          [value]="getTasksByStatus(column.id).length"
+          [icon]="column.icon"
+          [iconBgClass]="column.iconBgClass"
+        />
       }
     </div>
   }
@@ -157,17 +146,11 @@
       </div>
     </div>
   } @else {
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-    >
-      <div class="mb-4 inline-flex rounded-full bg-gray-100 p-8 dark:bg-zinc-700/50">
-        <mat-icon class="textMuted size-16! min-w-16 text-6xl!" fontIcon="view_kanban" />
-      </div>
-      <h2 class="textNormal mb-2 text-xl font-medium">Select a Project</h2>
-      <p class="textMuted mx-auto max-w-md text-sm">
-        Choose a project from the dropdown above to view and manage its tasks in the kanban board.
-      </p>
-    </div>
+    <app-empty-state
+      icon="view_kanban"
+      title="Select a Project"
+      message="Choose a project from the dropdown above to view and manage its tasks in the kanban board."
+    />
   }
 
   @if (loading()) {

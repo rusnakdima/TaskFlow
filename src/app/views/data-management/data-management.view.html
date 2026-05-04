@@ -202,21 +202,18 @@
       <p class="textMuted">No {{ getSelectedTypeLabel().toLowerCase() }} data available</p>
     </div>
   } @else if (viewMode() === "table") {
-    <app-admin-data-table
+    <app-table-view
       [data]="getCurrentData()"
-      [fields]="getFieldConfig()"
-      [selectedRecords]="selectedRecords()"
-      [titleKey]="
-        selectedType() === 'daily_activities'
-          ? 'date'
-          : selectedType() === 'comments' || selectedType() === 'chats'
-            ? 'content'
-            : 'title'
-      "
-      [showActions]="true"
-      (selectRecord)="toggleSelect($event)"
-      (deleteRecord)="deleteRecord($event)"
-      (toggleDelete)="toggleDeleteStatus($event)"
+      [fields]="adminTableFields"
+      [selectedIds]="selectedRecords()"
+      [showSelection]="true"
+      [showActionsColumn]="true"
+      [expandable]="true"
+      [expandTemplate]="expandRowTemplate"
+      [actions]="adminActions"
+      [emptyMessage]="'No ' + getSelectedTypeLabel().toLowerCase() + ' data available'"
+      (selectionChange)="onRecordSelect($event)"
+      (actionClick)="onAdminAction($event)"
     />
   } @else if (viewMode() === "grid") {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -410,446 +407,477 @@
 </div>
 
 @if (showFilters()) {
-  <div class="filter-sidebar-overlay" (click)="closeFilters()"></div>
-  <div class="filter-sidebar" [class.open]="showFilters()">
-    <div class="filter-sidebar-content">
-      <div class="filter-sidebar-header">
-        <h3 class="textNormal flex items-center gap-2 text-lg font-semibold">
-          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
-            >filter_list</mat-icon
-          >
-          Filters
-        </h3>
-        <button
-          mat-icon-button
-          (click)="closeFilters()"
-          class="textMuted hover:textNormal"
-          aria-label="Close filters"
+  <app-filter-sidebar
+    [isOpen]="showFilters()"
+    title="Filters"
+    (closeEvent)="closeFilters()"
+    (clearEvent)="clearFilters()"
+    (applyEvent)="closeFilters()"
+  >
+    <div filter-header class="filter-sidebar-header">
+      <h3 class="textNormal flex items-center gap-2 text-lg font-semibold">
+        <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+          >filter_list</mat-icon
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
-        </button>
-      </div>
+        Filters
+      </h3>
+      <button
+        mat-icon-button
+        (click)="closeFilters()"
+        class="textMuted hover:textNormal"
+        aria-label="Close filters"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
+      </button>
+    </div>
 
+    <div class="filter-sidebar-section">
+      <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+        >Deleted Status</label
+      >
+      <mat-form-field class="w-full">
+        <mat-select [ngModel]="deletedFilter()" (ngModelChange)="deletedFilter.set($event)">
+          <mat-option value="all">All Records</mat-option>
+          <mat-option value="not_deleted">Not Deleted</mat-option>
+          <mat-option value="deleted">Deleted</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (selectedType() === "todos") {
       <div class="filter-sidebar-section">
         <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-          >Deleted Status</label
+          >Title</label
+        >
+        <input
+          type="text"
+          [ngModel]="titleFilter()"
+          (ngModelChange)="titleFilter.set($event)"
+          placeholder="Search by title..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Description</label
+        >
+        <input
+          type="text"
+          [ngModel]="descriptionFilter()"
+          (ngModelChange)="descriptionFilter.set($event)"
+          placeholder="Search by description..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Priority</label
         >
         <mat-form-field class="w-full">
-          <mat-select [ngModel]="deletedFilter()" (ngModelChange)="deletedFilter.set($event)">
-            <mat-option value="all">All Records</mat-option>
-            <mat-option value="not_deleted">Not Deleted</mat-option>
-            <mat-option value="deleted">Deleted</mat-option>
+          <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
+            <mat-option value="">All</mat-option>
+            <mat-option value="low">Low</mat-option>
+            <mat-option value="medium">Medium</mat-option>
+            <mat-option value="high">High</mat-option>
+            <mat-option value="urgent">Urgent</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
-
-      @if (selectedType() === "todos") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Title</label
-          >
-          <input
-            type="text"
-            [ngModel]="titleFilter()"
-            (ngModelChange)="titleFilter.set($event)"
-            placeholder="Search by title..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Description</label
-          >
-          <input
-            type="text"
-            [ngModel]="descriptionFilter()"
-            (ngModelChange)="descriptionFilter.set($event)"
-            placeholder="Search by description..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Priority</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
-              <mat-option value="">All</mat-option>
-              <mat-option value="low">Low</mat-option>
-              <mat-option value="medium">Medium</mat-option>
-              <mat-option value="high">High</mat-option>
-              <mat-option value="urgent">Urgent</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Status</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
-              <mat-option value="all">All</mat-option>
-              <mat-option value="active">Active</mat-option>
-              <mat-option value="completed">Completed</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Visibility</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select
-              [ngModel]="visibilityFilter()"
-              (ngModelChange)="visibilityFilter.set($event)"
-            >
-              <mat-option value="all">All</mat-option>
-              <mat-option value="private">Private</mat-option>
-              <mat-option value="team">Team</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >User</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
-              <mat-option value="">All Users</mat-option>
-              @for (user of userList(); track user.id) {
-                <mat-option [value]="user.id">{{ user.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Categories</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select
-              [ngModel]="categoriesFilter()"
-              (ngModelChange)="categoriesFilter.set($event)"
-            >
-              <mat-option value="">All Categories</mat-option>
-              @for (category of categoryList(); track category.id) {
-                <mat-option [value]="category.id">{{ category.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Start Date</label
-          >
-          <input
-            type="date"
-            [ngModel]="startDateFilter()"
-            (ngModelChange)="startDateFilter.set($event)"
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >End Date</label
-          >
-          <input
-            type="date"
-            [ngModel]="endDateFilter()"
-            (ngModelChange)="endDateFilter.set($event)"
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-      }
-
-      @if (selectedType() === "tasks") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Title</label
-          >
-          <input
-            type="text"
-            [ngModel]="titleFilter()"
-            (ngModelChange)="titleFilter.set($event)"
-            placeholder="Search by title..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Description</label
-          >
-          <input
-            type="text"
-            [ngModel]="descriptionFilter()"
-            (ngModelChange)="descriptionFilter.set($event)"
-            placeholder="Search by description..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Priority</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
-              <mat-option value="">All</mat-option>
-              <mat-option value="low">Low</mat-option>
-              <mat-option value="medium">Medium</mat-option>
-              <mat-option value="high">High</mat-option>
-              <mat-option value="urgent">Urgent</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Completion</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select
-              [ngModel]="isCompletedFilter()"
-              (ngModelChange)="isCompletedFilter.set($event)"
-            >
-              <mat-option value="all">All</mat-option>
-              <mat-option value="pending">Pending</mat-option>
-              <mat-option value="in-progress">In Progress</mat-option>
-              <mat-option value="completed">Completed</mat-option>
-              <mat-option value="skipped">Skipped</mat-option>
-              <mat-option value="failed">Failed</mat-option>
-              <mat-option value="blocked">Blocked</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Todo</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="todoIdFilter()" (ngModelChange)="todoIdFilter.set($event)">
-              <mat-option value="">All Todos</mat-option>
-              @for (todo of todoList(); track todo.id) {
-                <mat-option [value]="todo.id">{{ todo.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >User</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
-              <mat-option value="">All Users</mat-option>
-              @for (user of userList(); track user.id) {
-                <mat-option [value]="user.id">{{ user.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Start Date</label
-          >
-          <input
-            type="date"
-            [ngModel]="startDateFilter()"
-            (ngModelChange)="startDateFilter.set($event)"
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >End Date</label
-          >
-          <input
-            type="date"
-            [ngModel]="endDateFilter()"
-            (ngModelChange)="endDateFilter.set($event)"
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-      }
-
-      @if (selectedType() === "subtasks") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Title</label
-          >
-          <input
-            type="text"
-            [ngModel]="titleFilter()"
-            (ngModelChange)="titleFilter.set($event)"
-            placeholder="Search by title..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Priority</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
-              <mat-option value="">All</mat-option>
-              <mat-option value="low">Low</mat-option>
-              <mat-option value="medium">Medium</mat-option>
-              <mat-option value="high">High</mat-option>
-              <mat-option value="urgent">Urgent</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Completion</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select
-              [ngModel]="isCompletedFilter()"
-              (ngModelChange)="isCompletedFilter.set($event)"
-            >
-              <mat-option value="all">All</mat-option>
-              <mat-option value="pending">Pending</mat-option>
-              <mat-option value="in-progress">In Progress</mat-option>
-              <mat-option value="completed">Completed</mat-option>
-              <mat-option value="skipped">Skipped</mat-option>
-              <mat-option value="failed">Failed</mat-option>
-              <mat-option value="blocked">Blocked</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Task</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="taskIdFilter()" (ngModelChange)="taskIdFilter.set($event)">
-              <mat-option value="">All Tasks</mat-option>
-              @for (task of taskList(); track task.id) {
-                <mat-option [value]="task.id">{{ task.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      }
-
-      @if (selectedType() === "comments") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Content</label
-          >
-          <input
-            type="text"
-            [ngModel]="descriptionFilter()"
-            (ngModelChange)="descriptionFilter.set($event)"
-            placeholder="Search in comments..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Task</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="taskIdFilter()" (ngModelChange)="taskIdFilter.set($event)">
-              <mat-option value="">All Tasks</mat-option>
-              @for (task of taskList(); track task.id) {
-                <mat-option [value]="task.id">{{ task.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Subtask</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="subtaskIdFilter()" (ngModelChange)="subtaskIdFilter.set($event)">
-              <mat-option value="">All Subtasks</mat-option>
-              @for (subtask of subtaskList(); track subtask.id) {
-                <mat-option [value]="subtask.id">{{ subtask.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      }
-
-      @if (selectedType() === "chats") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Content</label
-          >
-          <input
-            type="text"
-            [ngModel]="descriptionFilter()"
-            (ngModelChange)="descriptionFilter.set($event)"
-            placeholder="Search in messages..."
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Todo</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="todoIdFilter()" (ngModelChange)="todoIdFilter.set($event)">
-              <mat-option value="">All Todos</mat-option>
-              @for (todo of todoList(); track todo.id) {
-                <mat-option [value]="todo.id">{{ todo.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      }
-
-      @if (selectedType() === "categories") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >User</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
-              <mat-option value="">All Users</mat-option>
-              @for (user of userList(); track user.id) {
-                <mat-option [value]="user.id">{{ user.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      }
-
-      @if (selectedType() === "daily_activities") {
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >User</label
-          >
-          <mat-form-field class="w-full">
-            <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
-              <mat-option value="">All Users</mat-option>
-              @for (user of userList(); track user.id) {
-                <mat-option [value]="user.id">{{ user.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="filter-sidebar-section">
-          <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
-            >Date</label
-          >
-          <input
-            type="date"
-            [ngModel]="startDateFilter()"
-            (ngModelChange)="startDateFilter.set($event)"
-            class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
-          />
-        </div>
-      }
-
-      <div class="filter-sidebar-actions">
-        <button mat-button color="primary" (click)="closeFilters()" class="w-full">Done</button>
-        <button mat-button color="warn" (click)="clearFilters()" class="mt-2 w-full">
-          <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
-          Clear All Filters
-        </button>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Status</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            <mat-option value="all">All</mat-option>
+            <mat-option value="active">Active</mat-option>
+            <mat-option value="completed">Completed</mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Visibility</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="visibilityFilter()" (ngModelChange)="visibilityFilter.set($event)">
+            <mat-option value="all">All</mat-option>
+            <mat-option value="private">Private</mat-option>
+            <mat-option value="team">Team</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">User</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
+            <mat-option value="">All Users</mat-option>
+            @for (user of userList(); track user.id) {
+              <mat-option [value]="user.id">{{ user.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Categories</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="categoriesFilter()" (ngModelChange)="categoriesFilter.set($event)">
+            <mat-option value="">All Categories</mat-option>
+            @for (category of categoryList(); track category.id) {
+              <mat-option [value]="category.id">{{ category.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Start Date</label
+        >
+        <input
+          type="date"
+          [ngModel]="startDateFilter()"
+          (ngModelChange)="startDateFilter.set($event)"
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >End Date</label
+        >
+        <input
+          type="date"
+          [ngModel]="endDateFilter()"
+          (ngModelChange)="endDateFilter.set($event)"
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+    }
+
+    @if (selectedType() === "tasks") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Title</label
+        >
+        <input
+          type="text"
+          [ngModel]="titleFilter()"
+          (ngModelChange)="titleFilter.set($event)"
+          placeholder="Search by title..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Description</label
+        >
+        <input
+          type="text"
+          [ngModel]="descriptionFilter()"
+          (ngModelChange)="descriptionFilter.set($event)"
+          placeholder="Search by description..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Priority</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
+            <mat-option value="">All</mat-option>
+            <mat-option value="low">Low</mat-option>
+            <mat-option value="medium">Medium</mat-option>
+            <mat-option value="high">High</mat-option>
+            <mat-option value="urgent">Urgent</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Completion</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select
+            [ngModel]="isCompletedFilter()"
+            (ngModelChange)="isCompletedFilter.set($event)"
+          >
+            <mat-option value="all">All</mat-option>
+            <mat-option value="pending">Pending</mat-option>
+            <mat-option value="in-progress">In Progress</mat-option>
+            <mat-option value="completed">Completed</mat-option>
+            <mat-option value="skipped">Skipped</mat-option>
+            <mat-option value="failed">Failed</mat-option>
+            <mat-option value="blocked">Blocked</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">Todo</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="todoIdFilter()" (ngModelChange)="todoIdFilter.set($event)">
+            <mat-option value="">All Todos</mat-option>
+            @for (todo of todoList(); track todo.id) {
+              <mat-option [value]="todo.id">{{ todo.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">User</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
+            <mat-option value="">All Users</mat-option>
+            @for (user of userList(); track user.id) {
+              <mat-option [value]="user.id">{{ user.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Start Date</label
+        >
+        <input
+          type="date"
+          [ngModel]="startDateFilter()"
+          (ngModelChange)="startDateFilter.set($event)"
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >End Date</label
+        >
+        <input
+          type="date"
+          [ngModel]="endDateFilter()"
+          (ngModelChange)="endDateFilter.set($event)"
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+    }
+
+    @if (selectedType() === "subtasks") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Title</label
+        >
+        <input
+          type="text"
+          [ngModel]="titleFilter()"
+          (ngModelChange)="titleFilter.set($event)"
+          placeholder="Search by title..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Priority</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event)">
+            <mat-option value="">All</mat-option>
+            <mat-option value="low">Low</mat-option>
+            <mat-option value="medium">Medium</mat-option>
+            <mat-option value="high">High</mat-option>
+            <mat-option value="urgent">Urgent</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Completion</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select
+            [ngModel]="isCompletedFilter()"
+            (ngModelChange)="isCompletedFilter.set($event)"
+          >
+            <mat-option value="all">All</mat-option>
+            <mat-option value="pending">Pending</mat-option>
+            <mat-option value="in-progress">In Progress</mat-option>
+            <mat-option value="completed">Completed</mat-option>
+            <mat-option value="skipped">Skipped</mat-option>
+            <mat-option value="failed">Failed</mat-option>
+            <mat-option value="blocked">Blocked</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">Task</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="taskIdFilter()" (ngModelChange)="taskIdFilter.set($event)">
+            <mat-option value="">All Tasks</mat-option>
+            @for (task of taskList(); track task.id) {
+              <mat-option [value]="task.id">{{ task.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
+    @if (selectedType() === "comments") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Content</label
+        >
+        <input
+          type="text"
+          [ngModel]="descriptionFilter()"
+          (ngModelChange)="descriptionFilter.set($event)"
+          placeholder="Search in comments..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">Task</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="taskIdFilter()" (ngModelChange)="taskIdFilter.set($event)">
+            <mat-option value="">All Tasks</mat-option>
+            @for (task of taskList(); track task.id) {
+              <mat-option [value]="task.id">{{ task.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Subtask</label
+        >
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="subtaskIdFilter()" (ngModelChange)="subtaskIdFilter.set($event)">
+            <mat-option value="">All Subtasks</mat-option>
+            @for (subtask of subtaskList(); track subtask.id) {
+              <mat-option [value]="subtask.id">{{ subtask.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
+    @if (selectedType() === "chats") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase"
+          >Content</label
+        >
+        <input
+          type="text"
+          [ngModel]="descriptionFilter()"
+          (ngModelChange)="descriptionFilter.set($event)"
+          placeholder="Search in messages..."
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">Todo</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="todoIdFilter()" (ngModelChange)="todoIdFilter.set($event)">
+            <mat-option value="">All Todos</mat-option>
+            @for (todo of todoList(); track todo.id) {
+              <mat-option [value]="todo.id">{{ todo.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
+    @if (selectedType() === "categories") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">User</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
+            <mat-option value="">All Users</mat-option>
+            @for (user of userList(); track user.id) {
+              <mat-option [value]="user.id">{{ user.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
+    @if (selectedType() === "daily_activities") {
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">User</label>
+        <mat-form-field class="w-full">
+          <mat-select [ngModel]="userFilter()" (ngModelChange)="userFilter.set($event)">
+            <mat-option value="">All Users</mat-option>
+            @for (user of userList(); track user.id) {
+              <mat-option [value]="user.id">{{ user.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-sidebar-section">
+        <label class="textMuted mb-2 block text-xs font-medium tracking-wide uppercase">Date</label>
+        <input
+          type="date"
+          [ngModel]="startDateFilter()"
+          (ngModelChange)="startDateFilter.set($event)"
+          class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+    }
+
+    <div filter-actions class="filter-sidebar-actions">
+      <button mat-button color="primary" (click)="closeFilters()" class="w-full">Done</button>
+      <button mat-button color="warn" (click)="clearFilters()" class="mt-2 w-full">
+        <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
+        Clear All Filters
+      </button>
+    </div>
+  </app-filter-sidebar>
+}
+
+<ng-template #expandRowTemplate let-item>
+  <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+    <div class="mb-3 flex items-center gap-2 border-b border-gray-200 pb-2 dark:border-zinc-700">
+      <mat-icon class="textMuted">info</mat-icon>
+      <span class="text-sm font-semibold">Record Details</span>
+      @if (item.deleted_at) {
+        <mat-chip
+          class="ml-2 h-6 text-xs"
+          ngClass="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+        >
+          Deleted: {{ formatFieldDate(item.deleted_at) }}
+        </mat-chip>
+      }
+    </div>
+    <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+      @for (field of getFieldConfig(); track field.key) {
+        <div class="flex flex-col">
+          <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
+            {{ field.label }}
+          </span>
+          <span class="textNormal text-sm">
+            @switch (field.type) {
+              @case ("date") {
+                {{ formatFieldDate(item[field.key]) || "-" }}
+              }
+              @case ("priority") {
+                <mat-chip class="h-5 text-xs" [ngClass]="getPriorityBadgeClass(item[field.key])">
+                  {{ item[field.key] || "-" }}
+                </mat-chip>
+              }
+              @case ("user") {
+                @if (item[field.key]) {
+                  {{ item[field.key].profile?.name }}
+                  {{ item[field.key].profile?.last_name }}
+                } @else {
+                  -
+                }
+              }
+              @case ("array-count") {
+                {{ item[field.key]?.length || 0 }}
+              }
+              @default {
+                {{ item[field.key] || "-" }}
+              }
+            }
+          </span>
+        </div>
+      }
     </div>
   </div>
-}
+</ng-template>

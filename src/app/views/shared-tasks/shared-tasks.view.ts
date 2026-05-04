@@ -32,7 +32,6 @@ import { TodoComponent } from "@components/todo/todo.component";
   templateUrl: "./shared-tasks.view.html",
 })
 export class SharedTasksView extends BaseListView implements OnInit {
-  private authService = inject(AuthService);
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);

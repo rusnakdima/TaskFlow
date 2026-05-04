@@ -41,6 +41,8 @@ import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
+import { StatsCardComponent } from "@components/stats-card/stats-card.component";
+import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 
 @Component({
   selector: "app-kanban",
@@ -57,13 +59,14 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
     MatButtonModule,
     RouterModule,
     KanbanTaskCardComponent,
+    StatsCardComponent,
+    EmptyStateComponent,
   ],
   templateUrl: "./kanban.view.html",
 })
 export class KanbanView extends BaseListView implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private authService = inject(AuthService);
   private dataSyncProvider = inject(ApiProvider);
   private dragDropService = inject(KanbanDragDropService);
   private storageService = inject(StorageService);
@@ -122,10 +125,10 @@ export class KanbanView extends BaseListView implements OnInit {
   });
 
   columns = [
-    { id: TaskStatus.PENDING, label: "To Do", icon: "assignment" },
-    { id: TaskStatus.COMPLETED, label: "Done", icon: "check_circle" },
-    { id: TaskStatus.SKIPPED, label: "Skipped", icon: "skip_next" },
-    { id: TaskStatus.FAILED, label: "Failed", icon: "error" },
+    { id: TaskStatus.PENDING, label: "To Do", icon: "assignment", iconBgClass: "bg-blue-500" },
+    { id: TaskStatus.COMPLETED, label: "Done", icon: "check_circle", iconBgClass: "bg-green-500" },
+    { id: TaskStatus.SKIPPED, label: "Skipped", icon: "skip_next", iconBgClass: "bg-purple-500" },
+    { id: TaskStatus.FAILED, label: "Failed", icon: "error", iconBgClass: "bg-red-500" },
   ];
 
   constructor() {

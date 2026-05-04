@@ -52,7 +52,6 @@ import { TableField } from "@components/table-view/table-field.model";
   templateUrl: "./categories.view.html",
 })
 export class CategoriesView extends BaseListView implements OnInit {
-  private authService = inject(AuthService);
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
