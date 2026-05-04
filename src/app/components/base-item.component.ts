@@ -1,5 +1,5 @@
 /* sys lib */
-import { Directive, signal, inject, EventEmitter } from "@angular/core";
+import { Directive, signal, inject, EventEmitter, HostListener } from "@angular/core";
 import { ChangeDetectorRef } from "@angular/core";
 
 export interface ItemUpdateEvent {
@@ -19,10 +19,11 @@ export abstract class BaseItemComponent {
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
+  isMenuOpen = signal(false);
 
   abstract get item(): { id: string; title?: string; description?: string } | null;
-
   abstract get updateEvent(): EventEmitter<any>;
+  abstract get menuClass(): string;
 
   startInlineEdit(field: string, currentValue: string) {
     this.editingField.set(field);
@@ -55,5 +56,26 @@ export abstract class BaseItemComponent {
       }
     }
     this.cancelInlineEdit();
+  }
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (this.isMenuOpen() && !target.closest("." + this.menuClass)) {
+      this.closeMenu();
+    }
+  }
+
+  toggleMenu(event: any) {
+    event.stopPropagation();
+    this.isMenuOpen.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  closeMenu() {
+    if (this.isMenuOpen()) {
+      this.isMenuOpen.set(false);
+      this.cdr.markForCheck();
+    }
   }
 }

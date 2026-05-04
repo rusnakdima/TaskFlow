@@ -10,7 +10,6 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  HostListener,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
@@ -71,6 +70,8 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   @Input() isSelected: boolean = false;
 
   @Output() deleteTodoEvent: EventEmitter<string> = new EventEmitter();
+  @Output() archiveTodoEvent: EventEmitter<string> = new EventEmitter();
+  @Output() restoreTodoEvent: EventEmitter<string> = new EventEmitter();
   @Output() saveAsBlueprintEvent: EventEmitter<Todo> = new EventEmitter();
   @Output() updateTodoEvent: EventEmitter<{ field: string; value: any }> = new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
@@ -78,19 +79,14 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
 
   isExpandedDetails = signal(false);
   isDragging = signal(false);
-  isMenuOpen = signal(false);
+
+  get menuClass(): string {
+    return "todo-menu";
+  }
 
   ngOnInit() {
     // Force change detection when component initializes to ensure relation data is displayed
     this.cdr.markForCheck();
-  }
-
-  @HostListener("document:click", ["$event"])
-  onDocumentClick(event: Event) {
-    const target = event.target as HTMLElement;
-    if (this.isMenuOpen() && !target.closest(".todo-menu")) {
-      this.closeMenu();
-    }
   }
 
   truncateString = Common.truncateString;
@@ -99,19 +95,6 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     event.stopPropagation();
     this.isExpandedDetails.update((v) => !v);
     this.cdr.markForCheck();
-  }
-
-  toggleMenu(event: any) {
-    event.stopPropagation();
-    this.isMenuOpen.update((v) => !v);
-    this.cdr.markForCheck();
-  }
-
-  closeMenu() {
-    if (this.isMenuOpen()) {
-      this.isMenuOpen.set(false);
-      this.cdr.markForCheck();
-    }
   }
 
   getAssigneeImageUrl(assignee: any): string {
@@ -159,6 +142,18 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   getPriorityBadgeClass = BaseItemHelper.getPriorityBadgeClass;
 
   formatDate = DateHelper.formatDateShort;
+
+  archiveTodo() {
+    if (this.todo) {
+      this.archiveTodoEvent.emit(this.todo.id);
+    }
+  }
+
+  restoreTodo() {
+    if (this.todo) {
+      this.restoreTodoEvent.emit(this.todo.id);
+    }
+  }
 
   deleteTodo() {
     if (this.todo) {

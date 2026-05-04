@@ -113,38 +113,4 @@ export class BulkActionHelper {
   ): Observable<BulkOperationResult> {
     return this.bulkUpdateField(items, "priority", priority, updateFn);
   }
-
-  /**
-   * Select all items
-   */
-  selectAll<T extends { id: string }>(items: T[]): Set<string> {
-    return new Set(items.map((item) => item.id));
-  }
-
-  /**
-   * Clear selection
-   */
-  clearSelection(): Set<string> {
-    return new Set();
-  }
-
-  /**
-   * Toggle selection
-   */
-  toggleSelection(selected: Set<string>, id: string): Set<string> {
-    const newSelected = new Set(selected);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    return newSelected;
-  }
-
-  /**
-   * Check if all items are selected
-   */
-  isAllSelected<T extends { id: string }>(selected: Set<string>, items: T[]): boolean {
-    return selected.size === items.length && items.length > 0;
-  }
 }

@@ -13,7 +13,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   computed,
-  HostListener,
 } from "@angular/core";
 
 /* base */
@@ -105,10 +104,13 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     new EventEmitter();
 
   showComments = signal(false);
-  isMenuOpen = signal(false);
   /** Inline expanded subtask comment blocks (by subtaskId) */
   expandedSubtaskCommentIds = signal<Set<string>>(new Set());
   private highlightedExpandedSubtaskId = signal<string | null>(null);
+
+  get menuClass(): string {
+    return "task-menu";
+  }
 
   /** Task as signal so computed can react to input changes */
   private taskForComments = signal<Task | null>(null);
@@ -164,27 +166,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   }
 
   ngOnInit() {}
-
-  @HostListener("document:click", ["$event"])
-  onDocumentClick(event: Event) {
-    const target = event.target as HTMLElement;
-    if (this.isMenuOpen() && !target.closest(".task-menu")) {
-      this.closeMenu();
-    }
-  }
-
-  toggleMenu(event: any) {
-    event.stopPropagation();
-    this.isMenuOpen.update((v) => !v);
-    this.cdr.markForCheck();
-  }
-
-  closeMenu() {
-    if (this.isMenuOpen()) {
-      this.isMenuOpen.set(false);
-      this.cdr.markForCheck();
-    }
-  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["task"]) {
@@ -253,7 +234,13 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
                 data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
                 parentTodoId: effectiveTodoId,
               })
-              .subscribe();
+              .subscribe({
+                next: () => {},
+                error: (err) => {
+                  console.error("Mark comments read failed:", err);
+                  this.notifyService.showError("Failed to mark comments as read");
+                },
+              });
           }
         }
       }
@@ -317,6 +304,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
+          // TODO: properly type err
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -342,6 +330,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
+          // TODO: properly type err
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -400,6 +389,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   get countCompletedSubtasks(): number {
     const taskId = this.task?.id;
     if (!taskId) return 0;
+    // TODO: Consider using subtasksByTaskId computed from StorageService for better performance
     return this.storageService
       .subtasks()
       .filter((s) => s.task_id === taskId && !s.deleted_at && s.status === "completed").length;
@@ -408,6 +398,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   get totalSubtasks(): number {
     const taskId = this.task?.id;
     if (!taskId) return 0;
+    // TODO: Consider using subtasksByTaskId computed from StorageService for better performance
     return this.storageService.subtasks().filter((s) => s.task_id === taskId && !s.deleted_at)
       .length;
   }
