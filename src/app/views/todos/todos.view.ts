@@ -566,7 +566,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     );
   }
 
-  onTodoListDropped(): void {
+  onTodoListDropped(event: CdkDragDrop<Todo[]>): void {
     this.dragDropHandlerService.onListDropped<Todo>(
       this.todoPlaceholder,
       (prev: number, curr: number) => {
