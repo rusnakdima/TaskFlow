@@ -6,22 +6,7 @@ import { MatIconModule } from "@angular/material/icon";
   selector: "app-stats-card",
   standalone: true,
   imports: [CommonModule, MatIconModule],
-  template: `
-    <div
-      class="dark:from-opacity-80 rounded-xl bg-linear-to-r p-4 text-white shadow-sm"
-      [ngClass]="gradientClass"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium tracking-wide text-white/80 uppercase">{{ label }}</p>
-          <p class="mt-1 text-2xl font-bold">{{ value }}</p>
-        </div>
-        <div class="rounded-lg bg-white/20 p-2">
-          <mat-icon class="size-6! min-w-6 text-2xl! opacity-80" [fontIcon]="icon" />
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: "./stats-card.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatsCardComponent {

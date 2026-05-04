@@ -161,21 +161,23 @@
         >
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
         </button>
-        <button
-          class="rounded p-1 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-          [routerLink]="subtask.id + '/edit_subtask'"
-          [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
-          title="Edit subtask"
-        >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
-        </button>
-        <button
-          class="rounded p-1 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
-          (click)="deleteSubtask(); $event.stopPropagation()"
-          title="Delete subtask"
-        >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
-        </button>
+        @if (isOwner) {
+          <button
+            class="rounded p-1 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            [routerLink]="subtask.id + '/edit_subtask'"
+            [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
+            title="Edit subtask"
+          >
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
+          </button>
+          <button
+            class="rounded p-1 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+            (click)="deleteSubtask(); $event.stopPropagation()"
+            title="Delete subtask"
+          >
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
+          </button>
+        }
       </div>
     </div>
 

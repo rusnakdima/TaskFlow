@@ -1,0 +1,14 @@
+@if (isOpen) {
+  <div class="filter-sidebar-overlay" (click)="close()"></div>
+}
+<div class="filter-sidebar" [class.open]="isOpen">
+  <div class="filter-sidebar-content">
+    <ng-content select="[filter-header]"></ng-content>
+
+    <div class="filter-sidebar-body">
+      <ng-content></ng-content>
+    </div>
+
+    <ng-content select="[filter-actions]"></ng-content>
+  </div>
+</div>
