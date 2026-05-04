@@ -208,24 +208,24 @@ pub async fn disable_biometric(
   state.biometric_service.disable_biometric(&username).await
 }
 
-// TODO [API v2]: get_user_security_status takes `_username` parameter that's ignored.
-// The function always retrieves the first user found, ignoring the provided username parameter.
-// Should either use the parameter or remove it (breaking change).
-
 #[tauri::command]
 pub async fn get_user_security_status(
   state: State<'_, AppState>,
-  _username: String,
+  username: String,
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
   use crate::entities::user_entity::UserEntity;
   use crate::helpers::response_helper::err_response;
   use nosql_orm::provider::DatabaseProvider;
+  use nosql_orm::query::Filter;
+
+  let table_name = "users";
+  let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
 
   let user_result: Option<UserEntity> = match state
     .repository_service
     .json_provider
-    .find_all("users")
+    .find_many(table_name, Some(&filter), None, None, None, true)
     .await
   {
     Ok(users) => {
@@ -241,16 +241,14 @@ pub async fn get_user_security_status(
   let user = if let Some(user) = user_result {
     user
   } else if let Some(ref mongo) = state.repository_service.mongodb_provider {
-    match mongo.find_all("users").await {
-      Ok(users) => {
-        if let Some(user_val) = users.first() {
-          serde_json::from_value(user_val.clone())
-            .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?
-        } else {
-          return Err(err_response("User not found"));
-        }
-      }
-      Err(e) => return Err(err_response(&format!("Database error: {}", e))),
+    let mut users = mongo
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+      .map_err(|e| err_response(&format!("Database error: {}", e)))?;
+    match users.pop() {
+      Some(user_val) => serde_json::from_value(user_val.clone())
+        .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?,
+      None => return Err(err_response("User not found")),
     }
   } else {
     return Err(err_response("User not found"));

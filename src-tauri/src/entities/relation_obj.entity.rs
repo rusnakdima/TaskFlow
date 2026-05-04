@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum TypesField {
   OneToOne,
   OneToMany,
@@ -11,6 +12,7 @@ pub enum TypesField {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[allow(dead_code)]
 pub struct RelationObj {
   pub name_table: String,
   pub type_field: TypesField,

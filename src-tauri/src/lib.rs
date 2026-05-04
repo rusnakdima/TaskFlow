@@ -53,6 +53,7 @@ use services::{
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
   profile::profile_sync::ProfileSyncService,
+  profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
   repository_service::RepositoryService,
   statistics_service::StatisticsService,
@@ -166,9 +167,14 @@ pub fn run() {
         mongodb_provider.clone(),
       ));
 
+      let profile_sync_unified_service = Arc::new(ProfileSyncUnifiedService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
+
       let auth_data_sync_service = Arc::new(AuthDataSyncService::new(
         user_sync_service.clone(),
-        profile_sync_service.clone(),
+        profile_sync_unified_service.clone(),
       ));
 
       let cascade_service = CascadeService::new(json_provider.clone(), mongodb_provider.clone());
