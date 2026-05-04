@@ -116,19 +116,21 @@
                   mat-icon-button
                   class="h-8 w-8"
                   [ngClass]="
-                    isExpanded(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'
+                    isExpanded(item.id)
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400'
                   "
                   (click)="toggleExpanded(item.id)"
                   title="Expand details"
                 >
-                  <mat-icon class="h-5 w-5 min-w-5 text-base">
+                  <mat-icon class="h-5! w-5! min-w-5 text-base!">
                     {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
                   </mat-icon>
                 </button>
                 @if (showActions) {
                   <button
                     mat-icon-button
-                    class="h-8 w-8 text-blue-600 dark:text-blue-400"
+                    class="h-8 w-8 text-amber-600 dark:text-amber-400"
                     (click)="toggleDelete.emit(item)"
                     [title]="item.deleted_at ? 'Restore record' : 'Soft delete'"
                   >
@@ -136,7 +138,7 @@
                   </button>
                   <button
                     mat-icon-button
-                    class="h-8 w-8 text-red-600"
+                    class="h-8 w-8 text-red-600 dark:text-red-400"
                     (click)="deleteRecord.emit(item)"
                     title="Permanently delete"
                   >
