@@ -33,6 +33,10 @@ export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
   private storageService = inject(StorageService);
 
+  protected getItems(): { id: string }[] {
+    return [];
+  }
+
   selectedDate = signal<Date>(new Date());
   currentMonth = signal<Date>(new Date());
   displayMode = signal<"month" | "week">("month");

@@ -58,6 +58,14 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   categories = this.storageService.categories;
 
+  protected getItems(): { id: string }[] {
+    return this.searchResults();
+  }
+
+  protected get selectedCategories() {
+    return this.selectedItems;
+  }
+
   searchResults = computed(() => {
     let cats = this.categories();
     const query = this.searchQuery().toLowerCase().trim();
@@ -84,8 +92,6 @@ export class CategoriesView extends BaseListView implements OnInit {
   editingCategory = signal<Category | null>(null);
   sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
-
-  selectedCategories = this.selectedItems;
 
   categoryTableFields: TableField[] = [
     {
@@ -175,17 +181,6 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
   }
 
-  override toggleSelectAll(): void {
-    super.toggleSelectAll(
-      () => this.searchResults(),
-      () => this.isAllSelected()
-    );
-  }
-
-  override isAllSelected(): boolean {
-    return super.isAllSelected(() => this.searchResults());
-  }
-
   bulkArchive(): void {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
@@ -205,10 +200,6 @@ export class CategoriesView extends BaseListView implements OnInit {
           this.notifyService.showError(err.message || "Failed to archive categories");
         });
     }
-  }
-
-  override clearSelection(): void {
-    super.clearSelection();
   }
 
   onRowClick(category: Category): void {

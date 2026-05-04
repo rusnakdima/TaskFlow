@@ -42,6 +42,8 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   protected expandedItemIds = signal<Set<string>>(new Set());
 
+  protected abstract getItems(): { id: string }[];
+
   protected get currentUserId(): string {
     return this.authService.getValueByKey("id");
   }
@@ -141,9 +143,9 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     localStorage.setItem(this.STORAGE_KEY, mode);
   }
 
-  toggleSelectAll(getItemsFn: () => { id: string }[], isAllSelectedFn: () => boolean): void {
-    const allItems = getItemsFn();
-    const allSelected = isAllSelectedFn();
+  toggleSelectAll(getItemsFn?: () => { id: string }[], isAllSelectedFn?: () => boolean): void {
+    const allItems = getItemsFn ? getItemsFn() : this.getItems();
+    const allSelected = isAllSelectedFn ? isAllSelectedFn() : this.isAllSelected();
 
     this.selectedItems.update((selected) => {
       const newSelected = new Set(selected);
@@ -156,8 +158,8 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     });
   }
 
-  isAllSelected(getItemsFn: () => { id: string }[]): boolean {
-    const currentList = getItemsFn();
+  isAllSelected(getItemsFn?: () => { id: string }[]): boolean {
+    const currentList = getItemsFn ? getItemsFn() : this.getItems();
     return currentList.length > 0 && currentList.every((item) => this.selectedItems().has(item.id));
   }
 
