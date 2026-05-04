@@ -9,7 +9,7 @@
   </div>
 
   <!-- Comments List -->
-  <div #commentsList class="flex max-h-60 flex-col gap-3 overflow-y-auto pr-1">
+  <div #scrollContainer class="flex max-h-60 flex-col gap-3 overflow-y-auto pr-1">
     @for (comment of comments; track comment.id) {
       <div
         [attr.data-comment-id]="comment.id"
