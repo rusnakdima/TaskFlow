@@ -1,6 +1,8 @@
 import { Directive, signal, inject, OnDestroy, OnInit } from "@angular/core";
 import { Subscription } from "rxjs";
 
+import { AuthService } from "@services/auth/auth.service";
+import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
@@ -31,10 +33,38 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   protected dataSyncService = inject(DataLoaderService);
   protected notifyService = inject(NotifyService);
   protected shortcutService = inject(ShortcutService);
+  protected bulkActionService = inject(BulkActionService);
+  protected authService = inject(AuthService);
 
   protected readonly subscriptions = new Subscription();
 
   protected isOffline = signal(false);
+
+  protected expandedItemIds = signal<Set<string>>(new Set());
+
+  protected get currentUserId(): string {
+    return this.authService.getValueByKey("id");
+  }
+
+  protected toggleExpandItem(itemId: string): void {
+    this.expandedItemIds.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  }
+
+  protected isItemExpanded(itemId: string | undefined): boolean {
+    return itemId ? this.expandedItemIds().has(itemId) : false;
+  }
+
+  protected clearExpandedItems(): void {
+    this.expandedItemIds.set(new Set());
+  }
 
   private onOnline = (): void => {
     this.isOffline.set(false);
