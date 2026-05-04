@@ -1,9 +1,7 @@
 <div
   class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
 >
-  <div
-    class="relative bg-linear-to-r from-blue-500 to-blue-600 p-6 text-white dark:from-blue-600 dark:to-blue-700"
-  >
+  <div [class]="headerClass()" class="relative p-6 text-white">
     <div class="flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
       <div class="flex w-full flex-col sm:flex-1">
         <div class="mb-2 flex items-center gap-3">
@@ -13,61 +11,48 @@
         <p class="mb-4 break-words text-blue-100">{{ todo.description }}</p>
 
         <div class="mb-4 flex flex-wrap gap-4 text-sm">
-          @if (todo.start_date) {
-            <div class="flex items-center gap-1 text-blue-100">
+          @if (start_date) {
+            <div class="flex items-center gap-1" [class]="accentColorClass()">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="event" />
-              <span>Start: {{ formatDate(todo.start_date) }}</span>
+              <span>Start: {{ formatDate(start_date) }}</span>
             </div>
           }
-          @if (todo.end_date) {
-            <div class="flex items-center gap-1 text-blue-100">
+          @if (end_date) {
+            <div class="flex items-center gap-1" [class]="accentColorClass()">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
-              <span>End: {{ formatDate(todo.end_date) }}</span>
+              <span>End: {{ formatDate(end_date) }}</span>
             </div>
           }
         </div>
 
         <div class="grid w-full grid-cols-2 justify-between gap-2 text-center sm:grid-cols-4">
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getCompletedTasksCount() }}</div>
+            <div class="text-xl font-bold">{{ completedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Completed</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getSkippedTasksCount() }}</div>
+            <div class="text-xl font-bold">{{ skippedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Skipped</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getFailedTasksCount() }}</div>
+            <div class="text-xl font-bold">{{ failedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Failed</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getInProgressTasksCount() }}</div>
+            <div class="text-xl font-bold">{{ inProgressCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">In Progress</div>
           </div>
         </div>
 
         <div class="mt-4">
           <app-progress-bar
-            [completedCount]="getCompletedTasksCount()"
+            [completedCount]="completedCount()"
             [totalCount]="todo.tasks_count || 0"
             [showLegend]="true"
             [showPercentage]="true"
             size="lg"
           />
         </div>
-
-        @if (getCategories().length > 0) {
-          <div class="mt-4 flex flex-wrap gap-2">
-            @for (category of getCategories(); track category.id) {
-              <span
-                class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm"
-              >
-                <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!" fontIcon="category" />
-                {{ category.title }}
-              </span>
-            }
-          </div>
-        }
       </div>
     </div>
 
@@ -84,4 +69,19 @@
       }
     </div>
   </div>
+
+  @if (getCategories().length > 0) {
+    <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+      <div class="flex flex-wrap gap-2">
+        @for (category of getCategories(); track category.id) {
+          <span
+            class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm"
+          >
+            <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!" fontIcon="category" />
+            {{ category.title }}
+          </span>
+        }
+      </div>
+    </div>
+  }
 </div>
