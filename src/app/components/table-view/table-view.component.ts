@@ -7,6 +7,7 @@ import {
   Output,
   signal,
   ChangeDetectionStrategy,
+  TemplateRef,
 } from "@angular/core";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -16,6 +17,11 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { CommentsComponent } from "@components/comments/comments.component";
+
+/* helpers */
+import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 /* models */
 import { TableField } from "./table-field.model";
@@ -23,7 +29,14 @@ import { TableField } from "./table-field.model";
 @Component({
   selector: "app-table-view",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, CheckboxComponent, DragDropModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    CheckboxComponent,
+    DragDropModule,
+    CommentsComponent,
+  ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -40,6 +53,9 @@ export class TableViewComponent {
   ];
   @Input() expandColumn = false;
   @Input() dragEnabled = false;
+  @Input() expandable = false;
+  @Input() expandTemplate: TemplateRef<any> | null = null;
+  @Input() showCommentToggle = false;
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
@@ -47,11 +63,13 @@ export class TableViewComponent {
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
   @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any[]>>();
+  @Output() commentToggle = new EventEmitter<string>();
 
   sortField = signal<string>("");
   sortDirection = signal<"asc" | "desc">("asc");
 
   expandedRows = signal<Set<string>>(new Set());
+  expandedComments = signal<Set<string>>(new Set());
 
   toggleSort(field: TableField): void {
     if (!field.sortable) return;
@@ -131,25 +149,8 @@ export class TableViewComponent {
     return item[field.key];
   }
 
-  formatDate(value: string): string {
-    if (!value) return "-";
-    try {
-      const date = new Date(value);
-      return date.toLocaleString();
-    } catch {
-      return value;
-    }
-  }
-
-  formatDateTime(value: string): string {
-    if (!value) return "-";
-    try {
-      const date = new Date(value);
-      return date.toLocaleString();
-    } catch {
-      return value;
-    }
-  }
+  formatDate = DateHelper.formatDateShort;
+  formatDateTime = DateHelper.formatDateTime;
 
   getFieldClass(field: TableField): string {
     return field.width ? `w-${field.width}` : "";
@@ -168,36 +169,27 @@ export class TableViewComponent {
     this.dropped.emit(event);
   }
 
-  getPriorityClass(priority: string): string {
-    switch (priority?.toLowerCase()) {
-      case "urgent":
-        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
-      case "high":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-      case "medium":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
-      case "low":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
-    }
+  isCommentExpanded(id: string): boolean {
+    return this.expandedComments().has(id);
   }
 
-  getStatusClass(status: string): string {
-    switch (status?.toLowerCase()) {
-      case "active":
-      case "in_progress":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
-      case "completed":
-      case "done":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-      case "pending":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
-      case "cancelled":
-      case "deleted":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
-    }
+  toggleComments(id: string): void {
+    this.expandedComments.update((expanded) => {
+      const newExpanded = new Set(expanded);
+      if (newExpanded.has(id)) {
+        newExpanded.delete(id);
+      } else {
+        newExpanded.add(id);
+      }
+      return newExpanded;
+    });
+    this.commentToggle.emit(id);
   }
+
+  getCommentsForItem(item: any): any[] {
+    return item.comments || [];
+  }
+
+  getPriorityClass = BaseItemHelper.getPriorityBadgeClass;
+  getStatusClass = BaseItemHelper.getStatusBadgeClass;
 }

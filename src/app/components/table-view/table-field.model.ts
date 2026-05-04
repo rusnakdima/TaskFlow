@@ -10,7 +10,8 @@ export type TableFieldType =
   | "number"
   | "boolean"
   | "select"
-  | "actions";
+  | "actions"
+  | "expand";
 
 export interface TableField {
   key: string;
