@@ -1,3 +1,4 @@
+// TODO: Consider refactoring to reduce scope
 /* sys lib */
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -30,6 +31,9 @@ use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 use crate::services::profile_service::ProfileService;
 
+// ARCHITECTURAL NOTE: RepositoryService is a god service that coordinates multiple providers
+// (JSON, MongoDB), cache, cascade operations, and entity resolution. Future refactoring should
+// split these into focused services following single responsibility principle.
 pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -55,7 +59,7 @@ impl RepositoryService {
       match self.mongodb_provider.as_ref() {
         Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
         None => Err(err_response(
-          "MongoDB not available - team data requires cloud connection",
+          "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
         )),
       }
     }
@@ -82,6 +86,8 @@ impl RepositoryService {
   }
 
   pub fn with_cache(mut self, cache: QueryCache) -> Self {
+    // NOTE: QueryCache uses LRU-style invalidation. When invalidate_collection is called,
+    // entries for that table are evicted. The cache has internal size management.
     self.query_cache = Some(Arc::new(cache));
     self
   }
@@ -98,8 +104,62 @@ impl RepositoryService {
     vis == "private"
   }
 
+  fn get_visibility_from_data(&self, table: &str, data: &Value) -> Option<String> {
+    data
+      .get("visibility")
+      .and_then(|v| v.as_str())
+      .map(|s| s.to_string())
+  }
+
+  async fn resolve_visibility_from_parent(&self, table: &str, data: &Value) -> Option<String> {
+    let parent_id: String = match table {
+      "tasks" => data.get("todo_id")?.as_str()?.to_string(),
+      "subtasks" => data.get("task_id")?.as_str()?.to_string(),
+      "comments" => {
+        if let Some(task_id) = data.get("task_id")?.as_str() {
+          task_id.to_string()
+        } else {
+          let subtask_id = data.get("subtask_id")?.as_str()?;
+          let task_id_opt = self
+            .entity_resolution
+            .get_task_id_for_subtask(subtask_id)
+            .await
+            .ok()?;
+          task_id_opt?
+        }
+      }
+      _ => return None,
+    };
+
+    let parent_table = match table {
+      "tasks" => "todos",
+      "subtasks" | "comments" => "tasks",
+      _ => return None,
+    };
+
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      if let Ok(Some(doc)) = mongo.find_by_id(parent_table, &parent_id).await {
+        if let Some(visibility) = doc.get("visibility").and_then(|v| v.as_str()) {
+          return Some(visibility.to_string());
+        }
+      }
+    }
+
+    if let Ok(Some(doc)) = self
+      .json_provider
+      .find_by_id(parent_table, &parent_id)
+      .await
+    {
+      if let Some(visibility) = doc.get("visibility").and_then(|v| v.as_str()) {
+        return Some(visibility.to_string());
+      }
+    }
+
+    None
+  }
+
   fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
-    if filter_value.is_object() && filter_value.as_object().map_or(true, |obj| obj.is_empty()) {
+    if filter_value.is_object() && filter_value.as_object().is_none_or(|obj| obj.is_empty()) {
       return None;
     }
 
@@ -407,7 +467,12 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
-    let visibility_str = visibility.unwrap_or_else(|| "private".to_string());
+    let visibility_str = visibility
+      .or_else(|| self.get_visibility_from_data(&table, &data_val))
+      .or_else(|| {
+        tauri::async_runtime::block_on(self.resolve_visibility_from_parent(&table, &data_val))
+      })
+      .unwrap_or_else(|| "private".to_string());
 
     let provider = self.get_provider(&table, Some(&visibility_str))?;
 

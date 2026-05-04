@@ -107,4 +107,36 @@ impl EntityResolutionService {
 
     None
   }
+
+  pub async fn get_task_id_for_subtask(&self, subtask_id: &str) -> OrmResult<Option<String>> {
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      if let Ok(Some(subtask)) = mongo.find_by_id("subtasks", subtask_id).await {
+        if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
+          return Ok(Some(task_id.to_string()));
+        }
+      }
+    }
+    if let Ok(Some(subtask)) = self.json_provider.find_by_id("subtasks", subtask_id).await {
+      if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
+        return Ok(Some(task_id.to_string()));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn get_todo_id_for_task(&self, task_id: &str) -> OrmResult<Option<String>> {
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      if let Ok(Some(task)) = mongo.find_by_id("tasks", task_id).await {
+        if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
+          return Ok(Some(todo_id.to_string()));
+        }
+      }
+    }
+    if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", task_id).await {
+      if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
+        return Ok(Some(todo_id.to_string()));
+      }
+    }
+    Ok(None)
+  }
 }
