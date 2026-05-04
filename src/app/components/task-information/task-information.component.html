@@ -1,12 +1,10 @@
 <div
   class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
 >
-  <div
-    class="relative bg-linear-to-r from-green-500 to-green-600 p-6 text-white dark:from-green-600 dark:to-green-700"
-  >
+  <div [class]="headerClass()" class="relative p-6 text-white">
     <div class="flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
       <div class="flex w-full flex-col sm:flex-1">
-        <div class="mb-2 flex items-center gap-2 text-green-100">
+        <div class="mb-2 flex items-center gap-2" [class]="accentColorClass()">
           <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="folder" />
           <span class="text-sm">{{ projectTitle }}</span>
         </div>
@@ -15,38 +13,38 @@
           <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="task" />
           <h1 class="text-2xl font-bold">{{ task.title || "Untitled Task" }}</h1>
         </div>
-        <p class="mb-4 text-green-100">{{ task.description }}</p>
+        <p class="mb-4" [class]="accentColorClass()">{{ task.description }}</p>
 
         <div class="mb-4 flex flex-wrap gap-4 text-sm">
-          @if (task.start_date) {
-            <div class="flex items-center gap-1 text-green-100">
+          @if (start_date) {
+            <div class="flex items-center gap-1" [class]="accentColorClass()">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="event" />
-              <span>Start: {{ formatDate(task.start_date) }}</span>
+              <span>Start: {{ formatDate(start_date) }}</span>
             </div>
           }
-          @if (task.end_date) {
-            <div class="flex items-center gap-1 text-green-100">
+          @if (end_date) {
+            <div class="flex items-center gap-1" [class]="accentColorClass()">
               <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="schedule" />
-              <span>End: {{ formatDate(task.end_date) }}</span>
+              <span>End: {{ formatDate(end_date) }}</span>
             </div>
           }
         </div>
 
         <div class="grid w-full grid-cols-2 justify-between gap-2 text-center sm:grid-cols-4">
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getCompletedSubtasksCount() }}</div>
+            <div class="text-xl font-bold">{{ completedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Completed</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getSkippedSubtasksCount() }}</div>
+            <div class="text-xl font-bold">{{ skippedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Skipped</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getFailedSubtasksCount() }}</div>
+            <div class="text-xl font-bold">{{ failedCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">Failed</div>
           </div>
           <div class="flex flex-col">
-            <div class="text-xl font-bold">{{ getInProgressSubtasksCount() }}</div>
+            <div class="text-xl font-bold">{{ inProgressCount() }}</div>
             <div class="text-xs text-gray-200 sm:text-sm">In Progress</div>
           </div>
         </div>

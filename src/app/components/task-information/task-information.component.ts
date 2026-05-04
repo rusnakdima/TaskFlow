@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, signal, inject } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, signal, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -17,10 +17,11 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 
 /* components */
+import {
+  ItemInfoBaseComponent,
+  ItemInfoColorScheme,
+} from "@components/item-info-base/item-info-base.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
-
-/* helpers */
-import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-task-information",
@@ -29,37 +30,41 @@ import { DateHelper } from "@helpers/date.helper";
   imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./task-information.component.html",
 })
-export class TaskInformationComponent {
+export class TaskInformationComponent extends ItemInfoBaseComponent implements OnChanges {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private dataSyncProvider = inject(ApiProvider);
 
   public showActions = signal(false);
 
-  protected formatDate = DateHelper.formatDateShort;
-
   @Input() task!: Task;
   @Input() todo_id!: string;
   @Input() projectTitle!: string;
   @Input() listSubtasks: Array<Subtask> = [];
 
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
+  @Input() override isOwner: boolean = true;
+  @Input() override isPrivate: boolean = true;
 
-  getCompletedSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.COMPLETED).length;
+  constructor() {
+    super();
+    this.colorScheme.set(ItemInfoColorScheme.GREEN);
   }
 
-  getSkippedSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.SKIPPED).length;
-  }
-
-  getFailedSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.FAILED).length;
-  }
-
-  getInProgressSubtasksCount(): number {
-    return this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.PENDING).length;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["listSubtasks"] && this.listSubtasks) {
+      this._completed.set(
+        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.COMPLETED).length
+      );
+      this._skipped.set(
+        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.SKIPPED).length
+      );
+      this._failed.set(
+        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.FAILED).length
+      );
+      this._inProgress.set(
+        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.PENDING).length
+      );
+    }
   }
 
   toggleActions() {

@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, signal, inject } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -8,15 +8,14 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { TaskStatus } from "@models/task.model";
 import { Category } from "@models/category.model";
 
 /* components */
+import {
+  ItemInfoBaseComponent,
+  ItemInfoColorScheme,
+} from "@components/item-info-base/item-info-base.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
-
-/* helpers */
-import { BaseItemHelper } from "@helpers/base-item.helper";
-import { DateHelper } from "@helpers/date.helper";
 
 @Component({
   selector: "app-todo-information",
@@ -24,28 +23,24 @@ import { DateHelper } from "@helpers/date.helper";
   imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./todo-information.component.html",
 })
-export class TodoInformationComponent {
+export class TodoInformationComponent extends ItemInfoBaseComponent implements OnChanges {
+  @Input() override isOwner: boolean = true;
+  @Input() override isPrivate: boolean = true;
+
   @Input() todo!: Todo;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
 
-  protected formatDate = DateHelper.formatDateShort;
-
-  getCompletedTasksCount(): number {
-    return this.todo.completed_tasks_count || 0;
+  constructor() {
+    super();
+    this.colorScheme.set(ItemInfoColorScheme.BLUE);
   }
 
-  getSkippedTasksCount(): number {
-    // Cannot get skipped count without accessing nested tasks - return 0 or query storage
-    return 0;
-  }
-
-  getFailedTasksCount(): number {
-    return 0;
-  }
-
-  getInProgressTasksCount(): number {
-    return (this.todo.tasks_count || 0) - (this.todo.completed_tasks_count || 0);
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["todo"] && this.todo) {
+      this._completed.set(this.todo.completed_tasks_count || 0);
+      this._skipped.set(0);
+      this._failed.set(0);
+      this._inProgress.set((this.todo.tasks_count || 0) - (this.todo.completed_tasks_count || 0));
+    }
   }
 
   getCategories(): Category[] {
