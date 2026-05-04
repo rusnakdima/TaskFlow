@@ -31,16 +31,16 @@ export interface PasskeyAuthOptions {
   username: string;
 }
 
-export interface BiometricInfo {
-  enabled: boolean;
-  platform: string;
-}
-
 export interface UserSecurityStatus {
   totpEnabled: boolean;
   passkeyEnabled: boolean;
   biometricEnabled: boolean;
   qrLoginEnabled?: boolean;
+}
+
+export interface BiometricInfo {
+  enabled: boolean;
+  platform: string;
 }
 
 @Injectable({
@@ -90,16 +90,6 @@ export class SecurityService {
       return "webauthn";
     }
     return "webauthn";
-  }
-
-  /**
-   * Get security status for a specific user
-   * Used to check if passkey/biometric/TOTP is enabled before showing login options
-   */
-  getUserSecurityStatus(username: string): Observable<UserSecurityStatus> {
-    return this.dataSyncProvider.invokeCommand<UserSecurityStatus>("getUserSecurityStatus", {
-      username,
-    });
   }
 
   /**

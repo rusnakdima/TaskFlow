@@ -44,6 +44,8 @@ export class AdminService {
   }
 
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
-    return from(invoke<Response<R>>("get_archive_data_paginated", { type, skip, limit }));
+    return from(
+      invoke<Response<R>>("get_archive_data_paginated", { data_type: type, skip, limit })
+    );
   }
 }

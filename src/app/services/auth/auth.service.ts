@@ -24,6 +24,9 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
 
+// ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
+// token handling, and profile operations. Future refactoring should split these responsibilities
+// into dedicated services (AuthService → AuthService + TokenService + UserService).
 @Injectable({
   providedIn: "root",
 })
