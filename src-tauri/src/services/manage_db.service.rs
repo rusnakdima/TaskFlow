@@ -319,7 +319,11 @@ impl ManageDbService {
     limit: u64,
   ) -> Result<ResponseModel, ResponseModel> {
     match &self.admin_manager {
-      Some(manager) => manager.get_archive_data_paginated(data_type, skip, limit).await,
+      Some(manager) => {
+        manager
+          .get_archive_data_paginated(data_type, skip, limit)
+          .await
+      }
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
