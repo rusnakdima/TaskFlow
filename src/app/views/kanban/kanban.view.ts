@@ -2,6 +2,7 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   signal,
   effect,
   computed,
@@ -71,6 +72,10 @@ export class KanbanView extends BaseListView implements OnInit {
   private dragDropService = inject(KanbanDragDropService);
   private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
+
+  protected getItems(): { id: string }[] {
+    return [];
+  }
 
   private routeSub?: Subscription;
 
@@ -155,6 +160,10 @@ export class KanbanView extends BaseListView implements OnInit {
         this.selectedTodoId.set(params["projectId"]);
       }
     });
+  }
+
+  override ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
   }
 
   toggleExpandTask(task: Task) {
