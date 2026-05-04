@@ -1,10 +1,14 @@
 /* sys lib */
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::Duration;
 
 /* nosql_orm */
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::Value;
+
+/* tokio */
+use tokio::time::timeout;
 
 /* providers */
 use crate::providers::json_provider::JsonProvider;
@@ -50,12 +54,11 @@ impl UserSyncService {
 
   pub async fn user_exists_in_mongo(&self, user_id: &str) -> bool {
     if let Some(mongo) = &self.mongodb_provider {
-      mongo
-        .find_by_id("users", user_id)
-        .await
-        .ok()
-        .flatten()
-        .is_some()
+      let result = timeout(Duration::from_secs(5), mongo.find_by_id("users", user_id)).await;
+      match result {
+        Ok(Ok(Some(_))) => true,
+        Ok(Ok(None)) | Ok(Err(_)) | Err(_) => false,
+      }
     } else {
       false
     }
@@ -148,19 +151,54 @@ impl UserSyncService {
 
   pub async fn ensure_user_in_both(&self, user_id: &str) -> Result<UserSyncStatus, ResponseModel> {
     let in_json = self.user_exists_in_json(user_id).await;
+    println!("[UserSync] user_exists_in_json: {}", in_json);
+
     let in_mongo = self.user_exists_in_mongo(user_id).await;
+    println!("[UserSync] user_exists_in_mongo: {}", in_mongo);
 
     match (in_json, in_mongo) {
-      (true, true) => Ok(UserSyncStatus::InBoth),
+      (true, true) => {
+        println!("[UserSync] User in both JSON and MongoDB");
+        Ok(UserSyncStatus::InBoth)
+      }
       (true, false) => {
-        self.sync_user_to_mongo(user_id).await?;
-        Ok(UserSyncStatus::SyncedToCloud)
+        println!("[UserSync] User in JSON only, syncing to MongoDB...");
+        match timeout(Duration::from_secs(5), self.sync_user_to_mongo(user_id)).await {
+          Ok(Ok(_)) => {
+            println!("[UserSync] User synced to MongoDB successfully");
+            Ok(UserSyncStatus::SyncedToCloud)
+          }
+          Ok(Err(e)) => {
+            println!("[UserSync] Failed to sync user to MongoDB: {}", e.message);
+            Ok(UserSyncStatus::SyncedToLocal) // Still count as synced to local
+          }
+          Err(_) => {
+            println!("[UserSync] MongoDB sync timed out, continuing offline");
+            Ok(UserSyncStatus::SyncedToLocal) // Continue with local only
+          }
+        }
       }
       (false, true) => {
-        self.sync_user_to_json(user_id).await?;
-        Ok(UserSyncStatus::SyncedToLocal)
+        println!("[UserSync] User in MongoDB only, syncing to JSON...");
+        match timeout(Duration::from_secs(5), self.sync_user_to_json(user_id)).await {
+          Ok(Ok(_)) => {
+            println!("[UserSync] User synced to JSON successfully");
+            Ok(UserSyncStatus::SyncedToLocal)
+          }
+          Ok(Err(e)) => {
+            println!("[UserSync] Failed to sync user to JSON: {}", e.message);
+            Ok(UserSyncStatus::NotFound)
+          }
+          Err(_) => {
+            println!("[UserSync] JSON sync timed out, continuing");
+            Ok(UserSyncStatus::NotFound)
+          }
+        }
       }
-      (false, false) => Ok(UserSyncStatus::NotFound),
+      (false, false) => {
+        println!("[UserSync] User not found in either database");
+        Ok(UserSyncStatus::NotFound)
+      }
     }
   }
 }
