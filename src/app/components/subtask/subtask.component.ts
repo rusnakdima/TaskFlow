@@ -85,6 +85,10 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
   showComments = signal(false);
 
+  get menuClass(): string {
+    return "subtask-menu";
+  }
+
   truncateString = Common.truncateString;
 
   ngOnChanges(changes: SimpleChanges) {
@@ -164,7 +168,13 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
                   data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
                   parentTodoId: effectiveTodoId,
                 })
-                .subscribe();
+                .subscribe({
+                  next: () => {},
+                  error: (err) => {
+                    console.error("Mark comments read failed:", err);
+                    this.notifyService.showError("Failed to mark comments as read");
+                  },
+                });
             }
           }
         }
