@@ -37,6 +37,10 @@ export class SharedTasksView extends BaseListView implements OnInit {
   private dragDropService = inject(DragDropOrderService);
   private apiProvider = inject(ApiProvider);
 
+  protected getItems(): { id: string }[] {
+    return [];
+  }
+
   userId = signal("");
 
   myProjects = computed(() => {

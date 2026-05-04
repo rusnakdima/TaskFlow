@@ -15,7 +15,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 import { NotifyService } from "@services/notifications/notify.service";
-import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
+import { SecurityService } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
@@ -74,26 +74,6 @@ export class SettingsView implements OnInit {
     this.enableNotificationSounds.set(settings.enableSounds);
 
     this.platformName.set(this.capabilities().platformName);
-
-    this.loadSecurityStatus();
-  }
-
-  private loadSecurityStatus(): void {
-    const username = this.securityService.getUsername();
-    if (!username) {
-      return;
-    }
-
-    this.securityService.getUserSecurityStatus(username).subscribe({
-      next: (status: UserSecurityStatus) => {
-        this.totpEnabled.set(status.totpEnabled);
-        this.passkeyEnabled.set(status.passkeyEnabled);
-        this.biometricEnabled.set(status.biometricEnabled);
-      },
-      error: () => {
-        // Silently handle error
-      },
-    });
   }
 
   setActiveTab(tab: "notifications" | "security"): void {
