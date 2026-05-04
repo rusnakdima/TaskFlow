@@ -35,6 +35,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
+import { CommentService } from "@services/features/comment.service";
 
 /* models */
 import { Subtask } from "@models/subtask.model";
@@ -61,6 +62,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
+  private commentService = inject(CommentService);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -173,40 +175,29 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   onAddComment(content: string) {
-    if (this.subtask) {
-      const userId = this.authService.getValueByKey("id");
-      const effectiveTodoId =
-        this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
+    if (!this.subtask) return;
+    const effectiveTodoId =
+      this.todo_id || this.storageService.getById("tasks", this.subtask.task_id)?.todo_id;
 
-      if (!userId || !effectiveTodoId) {
-        this.notifyService.showError("Cannot add comment: User or Project not found");
-        return;
-      }
-
-      const commentForBackend: any = {
-        user_id: userId,
-        content: content,
-        subtask_id: this.subtask.id,
-        read_by: [userId],
-        deleted_at: null,
-      };
-
-      this.dataSyncProvider
-        .crud<Comment>("create", "comments", {
-          data: commentForBackend,
-          parentTodoId: effectiveTodoId,
-          visibility: this.isPrivate ? "private" : "shared",
-        })
-        .subscribe({
-          next: () => {
-            this.showComments.set(true);
-            this.cdr.markForCheck();
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to add comment");
-          },
-        });
+    if (!effectiveTodoId) {
+      this.notifyService.showError("Cannot add comment: User or Project not found");
+      return;
     }
+
+    this.commentService
+      .createComment(content, effectiveTodoId, {
+        subtaskId: this.subtask.id,
+        visibility: this.isPrivate ? "private" : "shared",
+      })
+      .subscribe({
+        next: () => {
+          this.showComments.set(true);
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add comment");
+        },
+      });
   }
 
   onDeleteComment(commentId: string) {
@@ -224,31 +215,14 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
   onMarkAsRead(commentIds: string[]) {
     const userId = this.authService.getValueByKey("id");
-    if (this.subtask && userId && commentIds.length > 0) {
-      const subtaskId = this.subtask.id;
-      const subtaskComments = this.storageService
-        .comments()
-        .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
-      let changed = false;
-      const updatedComments = subtaskComments.map((c) => {
-        if (commentIds.includes(c.id)) {
-          const readBy = c.read_by || [];
-          if (!readBy.includes(userId)) {
-            changed = true;
-            return { ...c, read_by: [...(c.read_by || []), userId] };
-          }
-        }
-        return c;
-      });
+    const effectiveTodoId =
+      this.todo_id ||
+      (this.subtask
+        ? this.storageService.getById("tasks", this.subtask.task_id)?.todo_id
+        : undefined);
+    if (!this.subtask || !userId || commentIds.length === 0) return;
 
-      if (changed) {
-        this.updateSubtaskEvent.emit({
-          subtask: this.subtask,
-          field: "comments",
-          value: updatedComments,
-        });
-      }
-    }
+    this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId || "");
   }
 
   toggleCompletion() {
@@ -258,19 +232,12 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     }
   }
 
-  saveInlineEdit() {
-    if (this.editingValue().trim() && this.editingField() && this.subtask) {
-      const originalValue =
-        this.editingField() === "title" ? this.subtask.title : this.subtask.description;
-      if (this.editingValue().trim() !== originalValue) {
-        this.updateSubtaskEvent.emit({
-          subtask: this.subtask,
-          field: this.editingField()!,
-          value: this.editingValue().trim(),
-        });
-      }
-    }
-    this.cancelInlineEdit();
+  get item() {
+    return this.subtask;
+  }
+
+  get updateEvent() {
+    return this.updateSubtaskEvent;
   }
 
   deleteSubtask() {

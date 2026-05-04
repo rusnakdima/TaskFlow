@@ -41,21 +41,13 @@ import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
+import { CommentService } from "@services/features/comment.service";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
-
-interface CommentAction {
-  user_id: string;
-  content: string;
-  task_id?: string;
-  subtask_id?: string;
-  read_by: string[];
-  deleted_at: string | null;
-}
 
 interface SubtaskCommentGroup {
   subtask_id: string;
@@ -86,6 +78,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
+  private commentService = inject(CommentService);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -306,63 +299,40 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   }
 
   onAddComment(content: string) {
-    if (this.task) {
-      const userId = this.authService.getValueByKey("id");
-      const effectiveTodoId = this.todo_id || this.task.todo_id;
-
-      if (!userId || !effectiveTodoId) {
-        this.notifyService.showError("Cannot add comment: User or Project not found");
-        return;
-      }
-
-      const commentForBackend: CommentAction = {
-        user_id: userId,
-        content: content,
-        task_id: this.task.id,
-        read_by: [userId],
-        deleted_at: null,
-      };
-
-      this.dataSyncProvider
-        .crud<Comment>("create", "comments", {
-          data: commentForBackend,
-          parentTodoId: effectiveTodoId,
-          visibility: this.isPrivate ? "private" : "shared",
-        })
-        .subscribe({
-          next: () => {
-            this.showComments.set(true);
-            this.cdr.markForCheck();
-          },
-          error: (err: Error) => {
-            this.notifyService.showError(err.message || "Failed to add comment");
-          },
-        });
-    }
-  }
-
-  onAddSubtaskComment(content: string, subtask_id?: string) {
     if (!this.task) return;
-    const userId = this.authService.getValueByKey("id");
     const effectiveTodoId = this.todo_id || this.task.todo_id;
-
-    if (!userId || !effectiveTodoId) {
+    if (!effectiveTodoId) {
       this.notifyService.showError("Cannot add comment: User or Project not found");
       return;
     }
 
-    const commentForBackend: CommentAction = {
-      user_id: userId,
-      content,
-      subtask_id: subtask_id,
-      read_by: [userId],
-      deleted_at: null,
-    };
+    this.commentService
+      .createComment(content, effectiveTodoId, {
+        taskId: this.task.id,
+        visibility: this.isPrivate ? "private" : "shared",
+      })
+      .subscribe({
+        next: () => {
+          this.showComments.set(true);
+          this.cdr.markForCheck();
+        },
+        error: (err: Error) => {
+          this.notifyService.showError(err.message || "Failed to add comment");
+        },
+      });
+  }
 
-    this.dataSyncProvider
-      .crud<Comment>("create", "comments", {
-        data: commentForBackend,
-        parentTodoId: effectiveTodoId,
+  onAddSubtaskComment(content: string, subtask_id?: string) {
+    if (!this.task) return;
+    const effectiveTodoId = this.todo_id || this.task.todo_id;
+    if (!effectiveTodoId) {
+      this.notifyService.showError("Cannot add comment: User or Project not found");
+      return;
+    }
+
+    this.commentService
+      .createComment(content, effectiveTodoId, {
+        subtaskId: subtask_id,
         visibility: this.isPrivate ? "private" : "shared",
       })
       .subscribe({
@@ -390,32 +360,10 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   onMarkAsRead(commentIds: string[]) {
     const userId = this.authService.getValueByKey("id");
-    if (this.task && userId && commentIds.length > 0) {
-      const taskId = this.task.id;
-      const taskComments = this.storageService
-        .comments()
-        .filter((c) => c.task_id === taskId && commentIds.includes(c.id) && !c.deleted_at);
+    const effectiveTodoId = this.todo_id || this.task?.todo_id;
+    if (!this.task || !userId || commentIds.length === 0) return;
 
-      const commentsToUpdate = taskComments.filter((c) => !c.read_by?.includes(userId));
-
-      if (commentsToUpdate.length > 0) {
-        commentsToUpdate.forEach((c) => {
-          this.storageService.updateItem("comments", c.id, {
-            read_by: [...(c.read_by || []), userId],
-          });
-        });
-
-        const effectiveTodoId = this.todo_id || this.task.todo_id;
-        if (effectiveTodoId) {
-          this.dataSyncProvider
-            .crud("updateAll", "comments", {
-              data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
-              parentTodoId: effectiveTodoId,
-            })
-            .subscribe();
-        }
-      }
-    }
+    this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId || "");
   }
 
   onMarkSubtaskCommentsAsRead(commentIds: string[], subtask_id?: string) {
@@ -423,24 +371,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     const effectiveTodoId = this.todo_id || this.task?.todo_id;
     if (!this.task || !userId || !effectiveTodoId || commentIds.length === 0) return;
 
-    const commentsToUpdate = this.storageService
-      .comments()
-      .filter((c) => c.subtask_id === subtask_id && commentIds.includes(c.id) && !c.deleted_at);
-
-    if (commentsToUpdate.length === 0) return;
-
-    commentsToUpdate.forEach((c) => {
-      this.storageService.updateItem("comments", c.id, {
-        read_by: [...(c.read_by || []), userId],
-      });
-    });
-
-    this.dataSyncProvider
-      .crud("updateAll", "comments", {
-        data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
-        parentTodoId: effectiveTodoId,
-      })
-      .subscribe();
+    this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId);
   }
 
   toggleExpand() {
@@ -493,19 +424,12 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     }
   }
 
-  saveInlineEdit() {
-    if (this.editingValue().trim() && this.editingField() && this.task) {
-      const originalValue =
-        this.editingField() === "title" ? this.task.title : this.task.description;
-      if (this.editingValue().trim() !== originalValue) {
-        this.updateTaskEvent.emit({
-          task: this.task,
-          field: this.editingField()!,
-          value: this.editingValue().trim(),
-        });
-      }
-    }
-    this.cancelInlineEdit();
+  get item() {
+    return this.task;
+  }
+
+  get updateEvent() {
+    return this.updateTaskEvent;
   }
 
   deleteTask() {
