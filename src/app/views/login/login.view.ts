@@ -132,26 +132,6 @@ export class LoginView implements OnDestroy {
     document.addEventListener("keydown", this.keydownHandler);
 
     this.checkDatabaseConnection();
-
-    this.loginForm.get("username")?.valueChanges.subscribe((username) => {
-      if (username && username.length >= 3) {
-        this.checkUserSecurityStatus(username);
-      } else {
-        this.userSecurityStatus.set(null);
-      }
-    });
-  }
-
-  private async checkUserSecurityStatus(username: string): Promise<void> {
-    this.securityService.getUserSecurityStatus(username).subscribe({
-      next: (status) => {
-        this.userSecurityStatus.set(status);
-        this.authStore.setSecurityFeatures(status);
-      },
-      error: () => {
-        this.userSecurityStatus.set(null);
-      },
-    });
   }
 
   checkDatabaseConnection() {
