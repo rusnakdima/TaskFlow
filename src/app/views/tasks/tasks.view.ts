@@ -44,6 +44,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -51,6 +52,7 @@ import { ApiProvider } from "@providers/api.provider";
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilterHelper } from "@helpers/filter.helper";
+import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 
@@ -107,11 +109,20 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
+  private dragDropHandlerService = inject(DragDropHandlerService);
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
   private dataLoaderService = inject(DataLoaderService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
+
+  protected getItems(): { id: string }[] {
+    return this.listTasks();
+  }
+
+  protected get selectedTasks() {
+    return this.selectedItems;
+  }
 
   // State signals
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
@@ -125,7 +136,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private loadingRelations = signal<Set<string>>(new Set());
 
   // Bulk selection state (like admin page)
-  selectedTasks = this.selectedItems;
 
   // Reactive route param — updates when navigating between todos without component destroy (H-11)
   private readonly routeTodoId = toSignal(
@@ -175,9 +185,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   // Lazy-loaded tasks signal
   todoTasks = signal<Task[]>([]);
 
+  // Prevent infinite requests
+  private isLoadingTasks = false;
+  private lastLoadedTodoId: string | null = null;
+
   loadInitialTasks() {
     const todoId = this.todo()?.id;
     if (!todoId) return;
+
+    // Prevent infinite loading - skip if already loading same todo
+    if (this.isLoadingTasks && this.lastLoadedTodoId === todoId) return;
+
+    this.isLoadingTasks = true;
+    this.lastLoadedTodoId = todoId;
 
     this.dataLoaderService.loadInitialTasksForTodo(todoId).subscribe({
       next: (tasks: Task[]) => {
@@ -187,6 +207,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           skip: tasks.length,
           hasMore: tasks.length === p.limit,
         }));
+      },
+      error: () => {
+        console.error("Failed to load tasks");
+      },
+      complete: () => {
+        this.isLoadingTasks = false;
       },
     });
   }
@@ -210,44 +236,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   listTasks = computed(() => {
-    let filtered = this.todoTasks();
-    const filter = this.activeFilter();
-    const query = this.searchQuery().toLowerCase().trim();
-
-    // Apply status/priority filter
-    switch (filter) {
-      case "active":
-        filtered = FilterHelper.filterByCompletion(filtered, "active");
-        break;
-      case "completed":
-        filtered = FilterHelper.filterByCompletion(filtered, "completed");
-        break;
-      case "skipped":
-        filtered = FilterHelper.filterByStatus(filtered, "skipped");
-        break;
-      case "failed":
-        filtered = FilterHelper.filterByStatus(filtered, "failed");
-        break;
-      case "done":
-        filtered = FilterHelper.filterByStatus(filtered, "done");
-        break;
-      case "high":
-        filtered = FilterHelper.filterByPriority(filtered, "high");
-        break;
-    }
-
-    // Apply search filter
-    if (query) {
-      filtered = filtered.filter(
-        (task) =>
-          task.title.toLowerCase().includes(query) ||
-          (task.description && task.description.toLowerCase().includes(query))
-      );
-    }
-
-    // Skip sorting during drag to prevent snap-back
-    const result = SortHelper.sortByOrder(filtered, "desc");
-    return result;
+    return FilteredListHelper.filterAndSort(this.todoTasks(), {
+      filter: this.activeFilter(),
+      query: this.searchQuery(),
+      filterType: "status",
+    });
   });
 
   // Get unread comments count for a task (from all subtasks, NOT task's own comments)
@@ -374,7 +367,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         data: { ...task, status: newStatus },
         parentTodoId: todoId,
       })
-      .subscribe();
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update task status failed:", err);
+          this.notifyService.showError("Failed to update task status");
+        },
+      });
   }
 
   toggleExpandTask(task: Task) {
@@ -398,7 +397,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         data: { status: newStatus },
         parentTodoId: todoId,
       })
-      .subscribe();
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update subtask status failed:", err);
+          this.notifyService.showError("Failed to update subtask status");
+        },
+      });
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {
@@ -495,7 +500,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         data: { [event.field]: event.value },
         parentTodoId: todoId,
       })
-      .subscribe();
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update task failed:", err);
+          this.notifyService.showError("Failed to update task");
+        },
+      });
   }
 
   onRowClick(task: any): void {
@@ -566,48 +577,39 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskListDropped(): void {
-    if (!this.dragTarget || !this.taskPlaceholder?.element?.nativeElement) return;
+    this.dragDropHandlerService.onListDropped<Task>(
+      this.taskPlaceholder,
+      (prev: number, curr: number) => {
+        const todoId = this.todo()?.id;
+        if (!todoId) return;
 
-    const placeholderEl = this.taskPlaceholder.element.nativeElement as HTMLElement;
-    const parent = placeholderEl.parentElement;
-    if (parent) {
-      placeholderEl.style.display = "none";
-      parent.removeChild(placeholderEl);
-      parent.appendChild(placeholderEl);
-      const sourceEl = this.dragSource?.element.nativeElement as HTMLElement;
-      if (sourceEl) {
-        parent.insertBefore(sourceEl, parent.children[this.dragSourceIndex]);
+        const syntheticEvent = {
+          previousIndex: prev,
+          currentIndex: curr,
+          item: null,
+          container: null,
+          previousContainer: null,
+          distance: { x: 0, y: 0 },
+        } as unknown as CdkDragDrop<Task[]>;
+
+        this.dragDropService
+          .handleDrop(
+            syntheticEvent,
+            this.listTasks(),
+            "tasks",
+            "tasks",
+            todoId,
+            this.isPrivate() ? "private" : "shared"
+          )
+          .subscribe({
+            next: () => {},
+            error: (err) => {
+              console.error("Reorder tasks failed:", err);
+              this.notifyService.showError("Failed to reorder tasks");
+            },
+          });
       }
-    }
-
-    if (this.taskPlaceholder._dropListRef.isDragging() && this.dragRef) {
-      this.taskPlaceholder._dropListRef.exit(this.dragRef);
-    }
-
-    const prev = this.dragSourceIndex;
-    const curr = this.dragTargetIndex;
-    this.dragTarget = null;
-    this.dragSource = null;
-    this.dragRef = null;
-
-    if (prev !== curr) {
-      const todoId = this.todo()?.id;
-      if (!todoId) return;
-      const syntheticEvent = {
-        previousIndex: prev,
-        currentIndex: curr,
-      } as CdkDragDrop<Task[]>;
-      this.dragDropService
-        .handleDrop(
-          syntheticEvent,
-          this.listTasks(),
-          "tasks",
-          "tasks",
-          todoId,
-          this.isPrivate() ? "private" : "shared"
-        )
-        .subscribe();
-    }
+    );
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>): void {
@@ -623,7 +625,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         todoId,
         this.isPrivate() ? "private" : "shared"
       )
-      .subscribe();
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Task drop failed:", err);
+          this.notifyService.showError("Failed to drop task");
+        },
+      });
   }
 
   /**
@@ -644,20 +652,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  override toggleSelectAll() {
-    super.toggleSelectAll(
-      () => this.listTasks(),
-      () => this.isAllSelected()
-    );
-  }
-
   override clearSelection() {
     super.clearSelection();
     this.bulkService.setSelectionState(0, false);
-  }
-
-  override isAllSelected() {
-    return super.isAllSelected(() => this.listTasks());
   }
 
   bulkUpdatePriority(priority: string) {

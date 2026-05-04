@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import {
   Component,
   OnInit,
+  OnDestroy,
   AfterViewInit,
   ViewChild,
   signal,
@@ -39,12 +40,13 @@ import { AdminStorageService } from "@services/core/admin-storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { ApiProvider, Operation } from "@providers/api.provider";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -97,17 +99,32 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragSource: CdkDropList | null = null;
   private dragSourceIndex = 0;
   private dragRef: DragRef | null = null;
+  private keydownHandler = (event: KeyboardEvent): void => {
+    if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
+      event.preventDefault();
+      this.showFilter.set(true);
+      setTimeout(() => {
+        const searchField = document.getElementById("searchField");
+        if (searchField) searchField.focus();
+      }, 100);
+    }
+  };
 
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
   private dragDropService = inject(DragDropOrderService);
+  private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
+
+  protected getItems(): { id: string }[] {
+    return [];
+  }
 
   // State
   todos = this.storageService.todos;
@@ -346,20 +363,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     // Handle highlight from query params
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
+        // TODO: type queryParams
         super.handleHighlightQueryParams(queryParams, "highlightTodoId", "todo-", "ring-blue-500");
       })
     );
 
-    document.addEventListener("keydown", (event: KeyboardEvent) => {
-      if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        event.preventDefault();
-        this.showFilter.set(true);
-        setTimeout(() => {
-          const searchField = document.getElementById("searchField");
-          if (searchField) searchField.focus();
-        }, 100);
-      }
-    });
+    document.addEventListener("keydown", this.keydownHandler);
+    this.userId.set(this.authService.getValueByKey("id"));
+  }
+
+  override ngOnDestroy(): void {
+    document.removeEventListener("keydown", this.keydownHandler);
+    super.ngOnDestroy();
   }
 
   @HostListener("window:keydown", ["$event"])
@@ -422,7 +437,36 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
+  archiveTodoById(todoId?: string): void {
+    if (confirm("Are you sure you want to archive this project?")) {
+      const visibility = this.isSharedMode() ? "shared" : "private";
+      this.dataSyncProvider.crud("delete", "todos", { id: todoId, visibility }).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo archived successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to archive todo");
+        },
+      });
+    }
+  }
+
+  restoreTodoById(todoId?: string): void {
+    const visibility = this.isSharedMode() ? "shared" : "private";
+    this.dataSyncProvider
+      .crud("update", "todos", { id: todoId, visibility, data: { deleted_at: null } })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo restored successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to restore todo");
+        },
+      });
+  }
+
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
+    // TODO: type todo and event properly
     const { field, value } = event;
     const visibility = this.isSharedMode() ? "shared" : "private";
     this.dataSyncProvider
@@ -442,10 +486,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onRowClick(todo: any): void {
+    // TODO: type todo properly
     this.router.navigate(["/todos", todo.id, "tasks"]);
   }
 
   onTableAction(event: { action: string; item: any }): void {
+    // TODO: type item properly
     const { action, item } = event;
     switch (action) {
       case "blueprint":
@@ -521,39 +567,24 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTodoListDropped(): void {
-    if (!this.dragTarget || !this.todoPlaceholder?.element?.nativeElement) return;
-
-    const placeholderEl = this.todoPlaceholder.element.nativeElement as HTMLElement;
-    const parent = placeholderEl.parentElement;
-    if (parent) {
-      placeholderEl.style.display = "none";
-      parent.removeChild(placeholderEl);
-      parent.appendChild(placeholderEl);
-      const sourceEl = this.dragSource?.element.nativeElement as HTMLElement;
-      if (sourceEl) {
-        parent.insertBefore(sourceEl, parent.children[this.dragSourceIndex]);
+    this.dragDropHandlerService.onListDropped<Todo>(
+      this.todoPlaceholder,
+      (prev: number, curr: number) => {
+        if (prev !== curr) {
+          const syntheticEvent = {
+            previousIndex: prev,
+            currentIndex: curr,
+            item: null,
+            container: null,
+            previousContainer: null,
+            distance: { x: 0, y: 0 },
+          } as unknown as CdkDragDrop<Todo[]>;
+          this.dragDropService
+            .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, "private")
+            .subscribe();
+        }
       }
-    }
-
-    if (this.todoPlaceholder._dropListRef.isDragging() && this.dragRef) {
-      this.todoPlaceholder._dropListRef.exit(this.dragRef);
-    }
-
-    const prev = this.dragSourceIndex;
-    const curr = this.dragTargetIndex;
-    this.dragTarget = null;
-    this.dragSource = null;
-    this.dragRef = null;
-
-    if (prev !== curr) {
-      const syntheticEvent = {
-        previousIndex: prev,
-        currentIndex: curr,
-      } as CdkDragDrop<Todo[]>;
-      this.dragDropService
-        .handleDrop(syntheticEvent, this.listTodos(), "todos", "todos", undefined, "private")
-        .subscribe();
-    }
+    );
   }
 
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {

@@ -49,8 +49,10 @@ import { ApiProvider } from "@providers/api.provider";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -100,6 +102,15 @@ export class SubtasksView extends BaseListView implements OnInit {
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private dataLoaderService = inject(DataLoaderService);
+  private bulkActionHelper = inject(BulkActionHelper);
+
+  protected getItems(): { id: string }[] {
+    return this.listSubtasks();
+  }
+
+  protected get selectedSubtasks() {
+    return this.selectedItems;
+  }
 
   // State signals
   showChat = signal(false);
@@ -143,7 +154,6 @@ export class SubtasksView extends BaseListView implements OnInit {
   private routeSub?: Subscription;
 
   // Bulk selection state (like admin page)
-  selectedSubtasks = this.selectedItems;
 
   commentExpandedSubtasks = signal<Set<string>>(new Set());
 
@@ -157,9 +167,19 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   taskSubtasks = signal<Subtask[]>([]);
 
+  // Prevent infinite requests
+  private isLoadingSubtasks = false;
+  private lastLoadedTaskId: string | null = null;
+
   loadInitialSubtasks() {
     const taskId = this.task()?.id;
     if (!taskId) return;
+
+    // Prevent infinite loading - skip if already loading same task
+    if (this.isLoadingSubtasks && this.lastLoadedTaskId === taskId) return;
+
+    this.isLoadingSubtasks = true;
+    this.lastLoadedTaskId = taskId;
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
@@ -175,6 +195,9 @@ export class SubtasksView extends BaseListView implements OnInit {
       },
       error: () => {
         this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+      },
+      complete: () => {
+        this.isLoadingSubtasks = false;
       },
     });
   }
@@ -213,48 +236,11 @@ export class SubtasksView extends BaseListView implements OnInit {
   }
 
   listSubtasks = computed(() => {
-    let filtered = this.taskSubtasks();
-    const filter = this.activeFilter();
-    const query = this.searchQuery().toLowerCase().trim();
-
-    if (filter !== "all") {
-      switch (filter) {
-        case "active":
-          filtered = FilterHelper.filterByStatus(filtered, "pending");
-          break;
-        case "completed":
-          filtered = FilterHelper.filterByStatus(filtered, "completed");
-          break;
-        case "skipped":
-          filtered = FilterHelper.filterByStatus(filtered, "skipped");
-          break;
-        case "failed":
-          filtered = FilterHelper.filterByStatus(filtered, "failed");
-          break;
-        case "done":
-          filtered = filtered.filter(
-            (s) =>
-              s.status === TaskStatus.COMPLETED ||
-              s.status === TaskStatus.SKIPPED ||
-              s.status === TaskStatus.FAILED
-          );
-          break;
-        case "high":
-          filtered = filtered.filter((s) => s.priority === "high");
-          break;
-      }
-    }
-
-    if (query) {
-      filtered = filtered.filter(
-        (s) =>
-          s.title.toLowerCase().includes(query) ||
-          (s.description && s.description.toLowerCase().includes(query))
-      );
-    }
-
-    const result = SortHelper.sortByOrder(filtered, "desc");
-    return result;
+    return FilteredListHelper.filterAndSort(this.taskSubtasks(), {
+      filter: this.activeFilter(),
+      query: this.searchQuery(),
+      filterType: "status",
+    });
   });
 
   userId: string = "";
@@ -471,7 +457,13 @@ export class SubtasksView extends BaseListView implements OnInit {
         taskId,
         this.isPrivate() ? "private" : "shared"
       )
-      .subscribe();
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Reorder subtasks failed:", err);
+          this.notifyService.showError("Failed to reorder subtasks");
+        },
+      });
   }
 
   // Bulk Actions Methods
@@ -492,23 +484,6 @@ export class SubtasksView extends BaseListView implements OnInit {
       this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
       return newSelected;
     });
-  }
-
-  /**
-   * Toggle select all subtasks in current view
-   */
-  override toggleSelectAll(): void {
-    super.toggleSelectAll(
-      () => this.listSubtasks(),
-      () => this.isAllSelected()
-    );
-  }
-
-  /**
-   * Check if all subtasks are selected
-   */
-  override isAllSelected(): boolean {
-    return super.isAllSelected(() => this.listSubtasks());
   }
 
   /**
@@ -551,17 +526,27 @@ export class SubtasksView extends BaseListView implements OnInit {
     const todoId = this.todoId();
 
     if (confirm(`Are you sure you want to delete ${selected.size} subtask(s)?`)) {
-      const deleteRequests = Array.from(selected).map((subtaskId) =>
-        this.dataSyncProvider.crud("delete", "subtasks", { id: subtaskId, parentTodoId: todoId })
-      );
-
-      Promise.all(deleteRequests)
-        .then(() => {
-          this.notifyService.showSuccess(`${selected.size} subtask(s) deleted successfully`);
-          this.clearSelection();
-        })
-        .catch((err) => {
-          this.notifyService.showError(err.message || "Failed to delete subtasks");
+      this.bulkActionHelper
+        .bulkDelete(
+          Array.from(selected).map((id) => ({ id })),
+          (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
+        )
+        .subscribe({
+          next: (result) => {
+            this.clearSelection();
+            if (result.errorCount > 0) {
+              this.notifyService.showWarning(
+                `Deleted ${result.successCount} subtask(s), ${result.errorCount} failed.`
+              );
+            } else {
+              this.notifyService.showSuccess(
+                `${result.successCount} subtask(s) deleted successfully`
+              );
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete subtasks");
+          },
         });
     }
   }
@@ -576,17 +561,27 @@ export class SubtasksView extends BaseListView implements OnInit {
     const todoId = this.todoId();
 
     if (confirm(`Archive ${selected.size} subtask(s)?`)) {
-      const deleteRequests = Array.from(selected).map((subtaskId) =>
-        this.dataSyncProvider.crud("delete", "subtasks", { id: subtaskId, parentTodoId: todoId })
-      );
-
-      Promise.all(deleteRequests)
-        .then(() => {
-          this.notifyService.showSuccess(`${selected.size} subtask(s) archived successfully`);
-          this.clearSelection();
-        })
-        .catch((err) => {
-          this.notifyService.showError(err.message || "Failed to archive subtasks");
+      this.bulkActionHelper
+        .bulkDelete(
+          Array.from(selected).map((id) => ({ id })),
+          (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
+        )
+        .subscribe({
+          next: (result) => {
+            this.clearSelection();
+            if (result.errorCount > 0) {
+              this.notifyService.showWarning(
+                `Archived ${result.successCount} subtask(s), ${result.errorCount} failed.`
+              );
+            } else {
+              this.notifyService.showSuccess(
+                `${result.successCount} subtask(s) archived successfully`
+              );
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to archive subtasks");
+          },
         });
     }
   }
