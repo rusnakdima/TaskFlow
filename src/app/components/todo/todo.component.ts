@@ -166,18 +166,12 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     }
   }
 
-  saveInlineEdit() {
-    if (this.editingValue().trim() && this.editingField() && this.todo) {
-      const originalValue =
-        this.editingField() === "title" ? this.todo.title : this.todo.description;
-      if (this.editingValue().trim() !== originalValue) {
-        this.updateTodoEvent.emit({
-          field: this.editingField()!,
-          value: this.editingValue().trim(),
-        });
-      }
-    }
-    this.cancelInlineEdit();
+  get item() {
+    return this.todo;
+  }
+
+  get updateEvent() {
+    return this.updateTodoEvent;
   }
 
   onSaveAsBlueprint(event: any) {
