@@ -170,13 +170,22 @@
           (dropped)="onTodoDrop($event)"
         />
       } @else if (viewMode() === "grid") {
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          [cdkDropListData]="activeVisibility() === 'all' ? groupedTodos().private : listTodos()"
+          (cdkDropListDropped)="onTodoListDropped($event)"
+        >
           @if (groupedTodos().private.length > 0) {
             <div class="col-span-full">
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -190,7 +199,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+              </app-todo>
             }
           }
           @if (groupedTodos().shared.length > 0) {
@@ -202,6 +213,9 @@
             </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -215,7 +229,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+              </app-todo>
             }
           }
           @if (groupedTodos().public.length > 0) {
@@ -227,6 +243,9 @@
             </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -240,18 +259,28 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+              </app-todo>
             }
           }
         </div>
       } @else {
-        <div class="flex w-full flex-col gap-y-3">
+        <div
+          class="flex w-full flex-col gap-y-3"
+          cdkDropList
+          [cdkDropListData]="activeVisibility() === 'all' ? groupedTodos().private : listTodos()"
+          (cdkDropListDropped)="onTodoListDropped($event)"
+        >
           @if (groupedTodos().private.length > 0) {
             <div>
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of groupedTodos().private; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -265,7 +294,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+              </app-todo>
             }
           }
           @if (groupedTodos().shared.length > 0) {
@@ -277,6 +308,9 @@
             </div>
             @for (todo of groupedTodos().shared; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -290,7 +324,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+              </app-todo>
             }
           }
           @if (groupedTodos().public.length > 0) {
@@ -302,6 +338,9 @@
             </div>
             @for (todo of groupedTodos().public; track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -315,7 +354,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+              </app-todo>
             }
           }
         </div>
@@ -369,9 +410,18 @@
                   : "Public"
             }}
           </h3>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div
+            class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            [cdkDropListData]="listTodos()"
+            (cdkDropListDropped)="onTodoListDropped($event)"
+          >
             @for (todo of listTodos(); track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -385,7 +435,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+              </app-todo>
             }
           </div>
         </div>
@@ -400,9 +452,17 @@
                   : "Public"
             }}
           </h3>
-          <div class="flex w-full flex-col gap-y-3">
+          <div
+            class="flex w-full flex-col gap-y-3"
+            cdkDropList
+            [cdkDropListData]="listTodos()"
+            (cdkDropListDropped)="onTodoListDropped($event)"
+          >
             @for (todo of listTodos(); track todo.id) {
               <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
                 [todo]="todo"
                 [index]="$index"
                 [isOwner]="todo.user_id === userId()"
@@ -416,7 +476,9 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
-              />
+              >
+                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+              </app-todo>
             }
           </div>
         </div>
@@ -593,3 +655,20 @@
     </div>
   }
 </div>
+
+<style>
+  .cdk-drag-preview {
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 1000 !important;
+  }
+
+  .cdk-drag-placeholder {
+    visibility: hidden;
+  }
+
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+</style>
