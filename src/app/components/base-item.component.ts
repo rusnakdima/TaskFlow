@@ -1,6 +1,13 @@
 /* sys lib */
-import { Directive, signal, inject } from "@angular/core";
+import { Directive, signal, inject, EventEmitter } from "@angular/core";
 import { ChangeDetectorRef } from "@angular/core";
+
+export interface ItemUpdateEvent {
+  field: string;
+  value: any;
+  task?: any;
+  subtask?: any;
+}
 
 /**
  * Abstract base for item components (Task, Subtask, Todo).
@@ -12,6 +19,10 @@ export abstract class BaseItemComponent {
 
   editingField = signal<string | null>(null);
   editingValue = signal("");
+
+  abstract get item(): { id: string; title?: string; description?: string } | null;
+
+  abstract get updateEvent(): EventEmitter<any>;
 
   startInlineEdit(field: string, currentValue: string) {
     this.editingField.set(field);
@@ -30,5 +41,19 @@ export abstract class BaseItemComponent {
     this.editingField.set(null);
     this.editingValue.set("");
     this.cdr.markForCheck();
+  }
+
+  saveInlineEdit(): void {
+    if (this.editingValue().trim() && this.editingField() && this.item) {
+      const field = this.editingField()!;
+      const originalValue = field === "title" ? this.item.title : this.item.description;
+      if (this.editingValue().trim() !== (originalValue ?? "").trim()) {
+        this.updateEvent.emit({
+          field,
+          value: this.editingValue().trim(),
+        });
+      }
+    }
+    this.cancelInlineEdit();
   }
 }

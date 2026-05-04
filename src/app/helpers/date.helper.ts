@@ -184,6 +184,12 @@ export class DateHelper {
     });
   }
 
+  static formatDateTime(dateString: string): string {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  }
+
   static generateCalendarDays(
     currentMonth: Date,
     selectedDate: Date,
