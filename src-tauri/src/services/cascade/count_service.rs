@@ -6,6 +6,9 @@ use nosql_orm::error::OrmResult;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::json;
 
+/* tracing */
+use tracing::warn;
+
 pub struct CountService {
   json_provider: JsonProvider,
   mongodb_provider: Option<Arc<MongoProvider>>,
@@ -60,329 +63,181 @@ impl CountService {
       .await
   }
 
-  pub async fn on_task_created(&self, todo_id: &str) {
+  async fn increment_count_both(
+    &self,
+    collection: &str,
+    id: &str,
+    field: &str,
+    delta: i32,
+  ) {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "tasks_count", 1)
-        .await;
+      if let Err(e) = self
+        .increment_count(mongo.as_ref(), collection, id, field, delta)
+        .await
+      {
+        warn!(
+          "Failed to increment count in MongoDB (collection={}, id={}, field={}): {}",
+          collection, id, field, e
+        );
+      }
     }
-    let _ = self
-      .increment_count(&self.json_provider, "todos", todo_id, "tasks_count", 1)
+    if let Err(e) = self
+      .increment_count(&self.json_provider, collection, id, field, delta)
+      .await
+    {
+      warn!(
+        "Failed to increment count in JSON (collection={}, id={}, field={}): {}",
+        collection, id, field, e
+      );
+    }
+  }
+
+  async fn decrement_count_both(
+    &self,
+    collection: &str,
+    id: &str,
+    field: &str,
+    delta: i32,
+  ) {
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      if let Err(e) = self
+        .decrement_count(mongo.as_ref(), collection, id, field, delta)
+        .await
+      {
+        warn!(
+          "Failed to decrement count in MongoDB (collection={}, id={}, field={}): {}",
+          collection, id, field, e
+        );
+      }
+    }
+    if let Err(e) = self
+      .decrement_count(&self.json_provider, collection, id, field, delta)
+      .await
+    {
+      warn!(
+        "Failed to decrement count in JSON (collection={}, id={}, field={}): {}",
+        collection, id, field, e
+      );
+    }
+  }
+
+  pub async fn on_task_created(&self, todo_id: &str) {
+    self
+      .increment_count_both("todos", todo_id, "tasks_count", 1)
       .await;
   }
 
   pub async fn on_task_completed(&self, todo_id: &str) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "completed_tasks_count", 1)
-        .await;
-    }
-    let _ = self
-      .increment_count(
-        &self.json_provider,
-        "todos",
-        todo_id,
-        "completed_tasks_count",
-        1,
-      )
+    self
+      .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
       .await;
   }
 
   pub async fn on_task_deleted(&self, todo_id: &str, was_completed: bool) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .decrement_count(mongo.as_ref(), "todos", todo_id, "tasks_count", 1)
-        .await;
-      if was_completed {
-        let _ = self
-          .decrement_count(mongo.as_ref(), "todos", todo_id, "completed_tasks_count", 1)
-          .await;
-      }
-    }
-    let _ = self
-      .decrement_count(&self.json_provider, "todos", todo_id, "tasks_count", 1)
+    self
+      .decrement_count_both("todos", todo_id, "tasks_count", 1)
       .await;
     if was_completed {
-      let _ = self
-        .decrement_count(
-          &self.json_provider,
-          "todos",
-          todo_id,
-          "completed_tasks_count",
-          1,
-        )
+      self
+        .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
         .await;
     }
   }
 
   pub async fn on_task_restored(&self, todo_id: &str, is_completed: bool) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "tasks_count", 1)
-        .await;
-      if is_completed {
-        let _ = self
-          .increment_count(mongo.as_ref(), "todos", todo_id, "completed_tasks_count", 1)
-          .await;
-      }
-    }
-    let _ = self
-      .increment_count(&self.json_provider, "todos", todo_id, "tasks_count", 1)
+    self
+      .increment_count_both("todos", todo_id, "tasks_count", 1)
       .await;
     if is_completed {
-      let _ = self
-        .increment_count(
-          &self.json_provider,
-          "todos",
-          todo_id,
-          "completed_tasks_count",
-          1,
-        )
+      self
+        .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
         .await;
     }
   }
 
   pub async fn on_subtask_created(&self, task_id: &str, todo_id: &str) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "tasks", task_id, "subtasks_count", 1)
-        .await;
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "tasks_count", 1)
-        .await;
-    }
-    let _ = self
-      .increment_count(&self.json_provider, "tasks", task_id, "subtasks_count", 1)
+    self
+      .increment_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
-    let _ = self
-      .increment_count(&self.json_provider, "todos", todo_id, "tasks_count", 1)
+    self
+      .increment_count_both("todos", todo_id, "tasks_count", 1)
       .await;
   }
 
   pub async fn on_subtask_completed(&self, task_id: &str, todo_id: &str) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(
-          mongo.as_ref(),
-          "tasks",
-          task_id,
-          "completed_subtasks_count",
-          1,
-        )
-        .await;
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "completed_tasks_count", 1)
-        .await;
-    }
-    let _ = self
-      .increment_count(
-        &self.json_provider,
-        "tasks",
-        task_id,
-        "completed_subtasks_count",
-        1,
-      )
+    self
+      .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
       .await;
-    let _ = self
-      .increment_count(
-        &self.json_provider,
-        "todos",
-        todo_id,
-        "completed_tasks_count",
-        1,
-      )
+    self
+      .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
       .await;
   }
 
   pub async fn on_subtask_deleted(&self, task_id: &str, todo_id: &str, was_completed: bool) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .decrement_count(mongo.as_ref(), "tasks", task_id, "subtasks_count", 1)
-        .await;
-      if was_completed {
-        let _ = self
-          .decrement_count(
-            mongo.as_ref(),
-            "tasks",
-            task_id,
-            "completed_subtasks_count",
-            1,
-          )
-          .await;
-      }
-    }
-    let _ = self
-      .decrement_count(&self.json_provider, "tasks", task_id, "subtasks_count", 1)
+    self
+      .decrement_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
     if was_completed {
-      let _ = self
-        .decrement_count(
-          &self.json_provider,
-          "tasks",
-          task_id,
-          "completed_subtasks_count",
-          1,
-        )
+      self
+        .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1)
         .await;
     }
   }
 
   pub async fn on_subtask_restored(&self, task_id: &str, todo_id: &str, is_completed: bool) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "tasks", task_id, "subtasks_count", 1)
-        .await;
-      if is_completed {
-        let _ = self
-          .increment_count(
-            mongo.as_ref(),
-            "tasks",
-            task_id,
-            "completed_subtasks_count",
-            1,
-          )
-          .await;
-      }
-    }
-    let _ = self
-      .increment_count(&self.json_provider, "tasks", task_id, "subtasks_count", 1)
+    self
+      .increment_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
     if is_completed {
-      let _ = self
-        .increment_count(
-          &self.json_provider,
-          "tasks",
-          task_id,
-          "completed_subtasks_count",
-          1,
-        )
+      self
+        .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
         .await;
     }
-  }
-
-  pub async fn get_task_id_for_subtask(&self, subtask_id: &str) -> OrmResult<Option<String>> {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Ok(Some(subtask)) = mongo.find_by_id("subtasks", subtask_id).await {
-        if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
-          return Ok(Some(task_id.to_string()));
-        }
-      }
-    }
-    if let Ok(Some(subtask)) = self.json_provider.find_by_id("subtasks", subtask_id).await {
-      if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
-        return Ok(Some(task_id.to_string()));
-      }
-    }
-    Ok(None)
-  }
-
-  pub async fn get_todo_id_for_task(&self, task_id: &str) -> OrmResult<Option<String>> {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Ok(Some(task)) = mongo.find_by_id("tasks", task_id).await {
-        if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-          return Ok(Some(todo_id.to_string()));
-        }
-      }
-    }
-    if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", task_id).await {
-      if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-        return Ok(Some(todo_id.to_string()));
-      }
-    }
-    Ok(None)
   }
 
   pub async fn on_comment_created(&self, task_id: Option<&str>, subtask_id: Option<&str>) {
     if let Some(subtask_id) = subtask_id {
-      if let Ok(Some(task_id)) = self.get_task_id_for_subtask(subtask_id).await {
-        if let Some(mongo) = self.mongodb_provider.as_ref() {
-          let _ = self
-            .increment_count(mongo.as_ref(), "subtasks", subtask_id, "comments_count", 1)
-            .await;
-          let _ = self
-            .increment_count(mongo.as_ref(), "tasks", &task_id, "comments_count", 1)
-            .await;
-        }
-        let _ = self
-          .increment_count(
-            &self.json_provider,
-            "subtasks",
-            subtask_id,
-            "comments_count",
-            1,
-          )
-          .await;
-        let _ = self
-          .increment_count(&self.json_provider, "tasks", &task_id, "comments_count", 1)
+      self
+        .increment_count_both("subtasks", subtask_id, "comments_count", 1)
+        .await;
+      if let Some(task_id) = task_id {
+        self
+          .increment_count_both("tasks", task_id, "comments_count", 1)
           .await;
       }
     } else if let Some(task_id) = task_id {
-      if let Some(mongo) = self.mongodb_provider.as_ref() {
-        let _ = self
-          .increment_count(mongo.as_ref(), "tasks", task_id, "comments_count", 1)
-          .await;
-      }
-      let _ = self
-        .increment_count(&self.json_provider, "tasks", task_id, "comments_count", 1)
+      self
+        .increment_count_both("tasks", task_id, "comments_count", 1)
         .await;
     }
   }
 
   pub async fn on_comment_deleted(&self, task_id: Option<&str>, subtask_id: Option<&str>) {
     if let Some(subtask_id) = subtask_id {
-      if let Ok(Some(task_id)) = self.get_task_id_for_subtask(subtask_id).await {
-        if let Some(mongo) = self.mongodb_provider.as_ref() {
-          let _ = self
-            .decrement_count(mongo.as_ref(), "subtasks", subtask_id, "comments_count", 1)
-            .await;
-          let _ = self
-            .decrement_count(mongo.as_ref(), "tasks", &task_id, "comments_count", 1)
-            .await;
-        }
-        let _ = self
-          .decrement_count(
-            &self.json_provider,
-            "subtasks",
-            subtask_id,
-            "comments_count",
-            1,
-          )
-          .await;
-        let _ = self
-          .decrement_count(&self.json_provider, "tasks", &task_id, "comments_count", 1)
+      self
+        .decrement_count_both("subtasks", subtask_id, "comments_count", 1)
+        .await;
+      if let Some(task_id) = task_id {
+        self
+          .decrement_count_both("tasks", task_id, "comments_count", 1)
           .await;
       }
     } else if let Some(task_id) = task_id {
-      if let Some(mongo) = self.mongodb_provider.as_ref() {
-        let _ = self
-          .decrement_count(mongo.as_ref(), "tasks", task_id, "comments_count", 1)
-          .await;
-      }
-      let _ = self
-        .decrement_count(&self.json_provider, "tasks", task_id, "comments_count", 1)
+      self
+        .decrement_count_both("tasks", task_id, "comments_count", 1)
         .await;
     }
   }
 
   pub async fn on_chat_created(&self, todo_id: &str) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .increment_count(mongo.as_ref(), "todos", todo_id, "chats_count", 1)
-        .await;
-    }
-    let _ = self
-      .increment_count(&self.json_provider, "todos", todo_id, "chats_count", 1)
+    self
+      .increment_count_both("todos", todo_id, "chats_count", 1)
       .await;
   }
 
   pub async fn on_chat_deleted(&self, todo_id: &str) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let _ = self
-        .decrement_count(mongo.as_ref(), "todos", todo_id, "chats_count", 1)
-        .await;
-    }
-    let _ = self
-      .decrement_count(&self.json_provider, "todos", todo_id, "chats_count", 1)
+    self
+      .decrement_count_both("todos", todo_id, "chats_count", 1)
       .await;
   }
 }

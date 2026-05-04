@@ -17,6 +17,7 @@ use crate::entities::{
 
 /* services */
 use crate::services::auth::auth_data_sync::AuthDataSyncService;
+use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* helpers */
 use crate::helpers::response_helper::err_response;
@@ -99,10 +100,23 @@ impl AuthTokenService {
         let _ = sync_service.on_user_login(&user_id).await;
       }
 
+      let profile_sync_service =
+        ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
+      let profile = profile_sync_service
+        .get_profile(&user_id)
+        .await
+        .ok()
+        .flatten();
+
+      let mut response_data = serde_json::to_value(&user).unwrap();
+      if let Some(p) = profile {
+        response_data["profile"] = serde_json::to_value(&p).unwrap();
+      }
+
       return Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Token is valid (local)".to_string(),
-        data: DataValue::Object(serde_json::to_value(&user).unwrap()),
+        data: DataValue::Object(response_data),
       });
     }
 
@@ -140,10 +154,23 @@ impl AuthTokenService {
           let _ = sync_service.on_user_login(&user_id).await;
         }
 
+        let profile_sync_service =
+          ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
+        let profile = profile_sync_service
+          .get_profile(&user_id)
+          .await
+          .ok()
+          .flatten();
+
+        let mut response_data = serde_json::to_value(&user).unwrap();
+        if let Some(p) = profile {
+          response_data["profile"] = serde_json::to_value(&p).unwrap();
+        }
+
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Token is valid".to_string(),
-          data: DataValue::Object(serde_json::to_value(&user).unwrap()),
+          data: DataValue::Object(response_data),
         })
       }
       Ok(None) => Err(err_response("User not found")),

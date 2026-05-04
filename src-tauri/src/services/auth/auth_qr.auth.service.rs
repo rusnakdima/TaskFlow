@@ -414,14 +414,11 @@ impl QrAuthService {
     }
 
     // Check if profile exists (JSON first, then MongoDB)
-    let profile = check_profile_exists(
-      &self.json_provider,
-      self.mongodb_provider.as_deref(),
-      &user_id,
-    )
-    .await
-    .ok()
-    .flatten();
+    let profile =
+      check_profile_exists(&self.json_provider, self.mongodb_provider.clone(), &user_id)
+        .await
+        .ok()
+        .flatten();
 
     let needs_profile = profile.is_none();
 
