@@ -51,34 +51,35 @@ impl VisibilitySyncService {
     }
   }
 
-  async fn sync_todo_to_mongo(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    todo: &Value,
-    _todo_id: &str,
+  async fn sync_todo<P: DatabaseProvider, S: DatabaseProvider>(
+    primary: &P,
+    secondary: &S,
+    table: &str,
+    entity: &Value,
+    _id: &str,
     new_visibility: &str,
   ) -> bool {
-    if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
-      let mut updated = todo.clone();
+    if let Some(id) = entity.get("id").and_then(|v| v.as_str()) {
+      let mut updated = entity.clone();
       if let Some(obj) = updated.as_object_mut() {
         obj.insert("visibility".to_string(), json!(new_visibility));
       }
-      if Self::should_sync_to_mongo(mongo, "todos", id, &updated).await {
-        if mongo.find_by_id("todos", id).await.ok().flatten().is_some() {
-          if let Err(_e) = mongo.patch("todos", id, updated.clone()).await {}
-        } else if let Err(_e) = mongo.insert("todos", updated.clone()).await {
+      if Self::should_sync(primary, table, id, &updated).await {
+        if primary.find_by_id(table, id).await.ok().flatten().is_some() {
+          if let Err(_e) = primary.patch(table, id, updated).await {}
+        } else if let Err(_e) = primary.insert(table, updated).await {
         }
         let now = chrono::Utc::now();
-        if let Err(_e) = json_provider
+        if let Err(_e) = secondary
           .patch(
-            "todos",
+            table,
             id,
             json!({"visibility": new_visibility, "deleted_at": now}),
           )
           .await
         {}
-        if let Err(_e) = mongo
-          .patch("todos", id, json!({ "deleted_at": Value::Null }))
+        if let Err(_e) = primary
+          .patch(table, id, json!({ "deleted_at": Value::Null }))
           .await
         {}
         return true;
@@ -87,9 +88,9 @@ impl VisibilitySyncService {
     false
   }
 
-  async fn sync_entity_to_mongo(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
+  async fn sync_entity<P: DatabaseProvider, S: DatabaseProvider>(
+    primary: &P,
+    secondary: &S,
     table: &str,
     entity: &Value,
     new_visibility: &str,
@@ -100,13 +101,13 @@ impl VisibilitySyncService {
         obj.insert("visibility".to_string(), json!(new_visibility));
         obj.insert("deleted_at".to_string(), Value::Null);
       }
-      if Self::should_sync_to_mongo(mongo, table, id, &updated).await {
-        if mongo.find_by_id(table, id).await.ok().flatten().is_some() {
-          if let Err(_e) = mongo.patch(table, id, updated).await {}
-        } else if let Err(_e) = mongo.insert(table, updated).await {
+      if Self::should_sync(primary, table, id, &updated).await {
+        if primary.find_by_id(table, id).await.ok().flatten().is_some() {
+          if let Err(_e) = primary.patch(table, id, updated).await {}
+        } else if let Err(_e) = primary.insert(table, updated).await {
         }
         let now = chrono::Utc::now();
-        if let Err(_e) = json_provider
+        if let Err(_e) = secondary
           .patch(
             table,
             id,
@@ -120,165 +121,16 @@ impl VisibilitySyncService {
     false
   }
 
-  async fn sync_todo_to_json(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    todo: &Value,
-    _todo_id: &str,
-    new_visibility: &str,
-  ) -> bool {
-    if let Some(id) = todo.get("id").and_then(|v| v.as_str()) {
-      let mut updated = todo.clone();
-      if let Some(obj) = updated.as_object_mut() {
-        obj.insert("visibility".to_string(), json!(new_visibility));
-      }
-      if Self::should_sync_to_json(json_provider, "todos", id, &updated).await {
-        if json_provider
-          .find_by_id("todos", id)
-          .await
-          .ok()
-          .flatten()
-          .is_some()
-        {
-          if let Err(_e) = json_provider.patch("todos", id, updated).await {}
-        } else if let Err(_e) = json_provider.insert("todos", updated).await {
-        }
-        let now = chrono::Utc::now();
-        if let Err(_e) = mongo
-          .patch(
-            "todos",
-            id,
-            json!({"visibility": new_visibility, "deleted_at": now}),
-          )
-          .await
-        {}
-        if let Err(_e) = json_provider
-          .patch("todos", id, json!({ "deleted_at": Value::Null }))
-          .await
-        {}
-        return true;
-      }
-    }
-    false
-  }
-
-  async fn sync_entity_to_json(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
+  async fn sync_batch<P: DatabaseProvider, S: DatabaseProvider>(
+    primary: &P,
+    secondary: &S,
     table: &str,
-    entity: &Value,
+    entities: &[Value],
     new_visibility: &str,
-  ) -> bool {
-    if let Some(id) = entity.get("id").and_then(|v| v.as_str()) {
-      let mut updated = entity.clone();
-      if let Some(obj) = updated.as_object_mut() {
-        obj.insert("visibility".to_string(), json!(new_visibility));
-        obj.insert("deleted_at".to_string(), Value::Null);
-      }
-      if Self::should_sync_to_json(json_provider, table, id, &updated).await {
-        if json_provider
-          .find_by_id(table, id)
-          .await
-          .ok()
-          .flatten()
-          .is_some()
-        {
-          if let Err(_e) = json_provider.patch(table, id, updated).await {}
-        } else if let Err(_e) = json_provider.insert(table, updated).await {
-        }
-        let now = chrono::Utc::now();
-        if let Err(_e) = mongo
-          .patch(
-            table,
-            id,
-            json!({"visibility": new_visibility, "deleted_at": now}),
-          )
-          .await
-        {}
-        return true;
-      }
-    }
-    false
-  }
-
-  async fn sync_tasks_for_todo(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    tasks: &[Value],
-    new_visibility: &str,
-    to_mongo: bool,
   ) -> usize {
     let mut count = 0;
-    for task in tasks.iter() {
-      let synced = if to_mongo {
-        Self::sync_entity_to_mongo(json_provider, mongo, "tasks", task, new_visibility).await
-      } else {
-        Self::sync_entity_to_json(json_provider, mongo, "tasks", task, new_visibility).await
-      };
-      if synced {
-        count += 1;
-      }
-    }
-    count
-  }
-
-  async fn sync_subtasks_for_tasks(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    subtasks: &[Value],
-    new_visibility: &str,
-    to_mongo: bool,
-  ) -> usize {
-    let mut count = 0;
-    for subtask in subtasks.iter() {
-      let synced = if to_mongo {
-        Self::sync_entity_to_mongo(json_provider, mongo, "subtasks", subtask, new_visibility).await
-      } else {
-        Self::sync_entity_to_json(json_provider, mongo, "subtasks", subtask, new_visibility).await
-      };
-      if synced {
-        count += 1;
-      }
-    }
-    count
-  }
-
-  async fn sync_comments(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    comments: &[Value],
-    new_visibility: &str,
-    to_mongo: bool,
-  ) -> usize {
-    let mut count = 0;
-    for comment in comments.iter() {
-      let synced = if to_mongo {
-        Self::sync_entity_to_mongo(json_provider, mongo, "comments", comment, new_visibility).await
-      } else {
-        Self::sync_entity_to_json(json_provider, mongo, "comments", comment, new_visibility).await
-      };
-      if synced {
-        count += 1;
-      }
-    }
-    count
-  }
-
-  async fn sync_chats(
-    json_provider: &JsonProvider,
-    mongo: &MongoProvider,
-    chats: &[Value],
-    new_visibility: &str,
-    to_mongo: bool,
-  ) -> usize {
-    let mut count = 0;
-    for chat in chats.iter() {
-      let synced = if to_mongo {
-        Self::sync_entity_to_mongo(json_provider, mongo, "chats", chat, new_visibility).await
-      } else {
-        Self::sync_entity_to_json(json_provider, mongo, "chats", chat, new_visibility).await
-      };
-      if synced {
+    for entity in entities.iter() {
+      if Self::sync_entity(primary, secondary, table, entity, new_visibility).await {
         count += 1;
       }
     }
@@ -402,25 +254,36 @@ impl VisibilitySyncService {
         .unwrap_or_default();
 
       if let Some(mongo) = mongodb_provider {
+        let mongo = &**mongo;
         if let Some(todo) = todos
           .iter()
           .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id))
         {
-          if Self::sync_todo_to_mongo(json_provider, mongo, todo, &todo_id, new_visibility).await {
+          if Self::sync_todo(
+            json_provider,
+            mongo,
+            "todos",
+            todo,
+            &todo_id,
+            new_visibility,
+          )
+          .await
+          {
             synced_count += 1;
           }
         }
 
         synced_count +=
-          Self::sync_tasks_for_todo(json_provider, mongo, &tasks, new_visibility, true).await;
+          Self::sync_batch(json_provider, mongo, "tasks", &tasks, new_visibility).await;
         synced_count +=
-          Self::sync_subtasks_for_tasks(json_provider, mongo, &subtasks, new_visibility, true)
-            .await;
+          Self::sync_batch(json_provider, mongo, "subtasks", &subtasks, new_visibility).await;
         synced_count +=
-          Self::sync_comments(json_provider, mongo, &comments, new_visibility, true).await;
-        synced_count += Self::sync_chats(json_provider, mongo, &chats, new_visibility, true).await;
+          Self::sync_batch(json_provider, mongo, "comments", &comments, new_visibility).await;
+        synced_count +=
+          Self::sync_batch(json_provider, mongo, "chats", &chats, new_visibility).await;
       }
     } else if let Some(mongo) = mongodb_provider {
+      let mongo = &**mongo;
       let todos = if todo_in_mongo {
         todos_from_mongo
       } else if todo_in_json {
@@ -486,55 +349,39 @@ impl VisibilitySyncService {
         .iter()
         .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id))
       {
-        if Self::sync_todo_to_json(json_provider, mongo, todo, &todo_id, new_visibility).await {
+        if Self::sync_todo(
+          mongo,
+          json_provider,
+          "todos",
+          todo,
+          &todo_id,
+          new_visibility,
+        )
+        .await
+        {
           synced_count += 1;
         }
       }
 
+      synced_count += Self::sync_batch(mongo, json_provider, "tasks", &tasks, new_visibility).await;
       synced_count +=
-        Self::sync_tasks_for_todo(json_provider, mongo, &tasks, new_visibility, false).await;
+        Self::sync_batch(mongo, json_provider, "subtasks", &subtasks, new_visibility).await;
       synced_count +=
-        Self::sync_subtasks_for_tasks(json_provider, mongo, &subtasks, new_visibility, false).await;
-      synced_count +=
-        Self::sync_comments(json_provider, mongo, &comments, new_visibility, false).await;
-      synced_count += Self::sync_chats(json_provider, mongo, &chats, new_visibility, false).await;
+        Self::sync_batch(mongo, json_provider, "comments", &comments, new_visibility).await;
+      synced_count += Self::sync_batch(mongo, json_provider, "chats", &chats, new_visibility).await;
     }
 
     Ok(success_response(DataValue::Number(synced_count as f64)))
   }
 
-  async fn should_sync_to_mongo(
-    mongo: &MongoProvider,
+  async fn should_sync<P: DatabaseProvider>(
+    provider: &P,
     table: &str,
     id: &str,
     new_data: &Value,
   ) -> bool {
-    let existing = mongo.find_by_id(table, id).await.ok().flatten();
-    let existing_time = existing.as_ref().and_then(|e| {
-      e.get("updated_at")
-        .and_then(|v| v.as_str())
-        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-    });
-    let new_time = new_data
-      .get("updated_at")
-      .and_then(|v| v.as_str())
-      .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
-
-    match (existing_time, new_time) {
-      (Some(e), Some(n)) => n > e,
-      (None, _) => true,
-      _ => false,
-    }
-  }
-
-  async fn should_sync_to_json(
-    json: &JsonProvider,
-    table: &str,
-    id: &str,
-    new_data: &Value,
-  ) -> bool {
-    let existing = json.find_by_id(table, id).await.ok().flatten();
-    let existing_time = existing.as_ref().and_then(|e| {
+    let existing = provider.find_by_id(table, id).await.ok().flatten();
+    let existing_time = existing.as_ref().and_then(|e: &Value| {
       e.get("updated_at")
         .and_then(|v| v.as_str())
         .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())

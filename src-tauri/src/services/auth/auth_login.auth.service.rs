@@ -11,18 +11,18 @@ use nosql_orm::query::Filter;
 /* services */
 use super::auth_data_sync::AuthDataSyncService;
 use super::auth_token::AuthTokenService;
+use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
 use crate::entities::{
   login_form_entity::LoginForm,
-  profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
 };
 
 /* helpers */
-use crate::helpers::{profile_helper::check_profile_exists, response_helper::err_response};
+use crate::helpers::response_helper::err_response;
 
 #[derive(Clone)]
 pub struct AuthLoginService {
@@ -110,31 +110,28 @@ impl AuthLoginService {
       return Err(err_response("Invalid password"));
     }
 
-    let token = self.token_service.generate_token(user.id(), "", "")?;
+    let user_id = user.id().to_string();
 
-    let user_id = user.id();
+    let token = self.token_service.generate_token(&user_id, "", "")?;
 
-    let _ = self.auth_data_sync_service.on_user_login(user_id).await;
+    let _ = self.auth_data_sync_service.on_user_login(&user_id).await;
+
+    let profile_sync_service =
+      ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
+    let profile = profile_sync_service
+      .get_profile(&user_id)
+      .await
+      .ok()
+      .flatten();
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Login successful".to_string(),
       data: DataValue::Object(serde_json::json!({
-        "token": token
+        "token": token,
+        "profile": profile
       })),
     })
-  }
-
-  pub async fn check_profile_exists(
-    &self,
-    user_id: &str,
-  ) -> Result<Option<ProfileEntity>, ResponseModel> {
-    check_profile_exists(
-      &self.json_provider,
-      self.mongodb_provider.as_deref(),
-      user_id,
-    )
-    .await
   }
 
   async fn sync_user_to_json(
