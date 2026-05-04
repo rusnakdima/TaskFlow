@@ -163,6 +163,7 @@
             </td>
           }
           @if (showActionsColumn) {
+            <<<<<<< Updated upstream
             <td class="px-4 py-3 text-right whitespace-nowrap" (click)="$event.stopPropagation()">
               @for (action of actions; track action.key) {
                 <button
@@ -183,9 +184,117 @@
                   <mat-icon class="h-5! w-5! text-2xl!" [fontIcon]="action.icon" />
                 </button>
               }
+              =======
+            </td>
+
+            <td class="w-24 px-4 py-3 text-center" (click)="$event.stopPropagation()">
+              <div class="flex items-center justify-center gap-1">
+                @if (expandable) {
+                  <button
+                    mat-icon-button
+                    class="h-8 w-8"
+                    [ngClass]="
+                      isExpanded(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'
+                    "
+                    (click)="toggleExpanded(item.id)"
+                    title="Expand details"
+                  >
+                    <mat-icon class="h-5 w-5 min-w-5 text-base">
+                      {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
+                    </mat-icon>
+                  </button>
+                }
+                @if (showCommentToggle) {
+                  <button
+                    mat-icon-button
+                    class="h-8 w-8"
+                    [ngClass]="
+                      isCommentExpanded(item.id)
+                        ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
+                    "
+                    (click)="toggleComments(item.id)"
+                    title="Toggle comments"
+                  >
+                    <mat-icon class="h-5 w-5 min-w-5 text-base">forum</mat-icon>
+                  </button>
+                }
+                @for (action of actions; track action.key) {
+                  <button
+                    mat-icon-button
+                    class="h-8 w-8"
+                    [class.text-blue-600]="action.key !== 'delete' && action.key !== 'deleteRecord'"
+                    [class.dark:text-blue-400]="
+                      action.key !== 'delete' && action.key !== 'deleteRecord'
+                    "
+                    [class.text-red-600]="action.key === 'delete' || action.key === 'deleteRecord'"
+                    (click)="onActionClick(action.key, item)"
+                    [title]="action.label"
+                  >
+                    <mat-icon class="h-5! w-5! min-w-5 text-base!" [fontIcon]="action.icon" />
+                  </button>
+                }
+              </div>
+              >>>>>>> Stashed changes
             </td>
           }
         </tr>
+        @if (expandable && isExpanded(item.id)) {
+          <tr class="expand-row">
+            <td
+              [attr.colspan]="
+                fields.length +
+                (showSelection ? 1 : 0) +
+                (showActionsColumn ? 1 : 0) +
+                (dragEnabled ? 1 : 0)
+              "
+              class="px-4 py-4"
+            >
+              @if (expandTemplate) {
+                <ng-container *ngTemplateOutlet="expandTemplate; context: { $implicit: item }" />
+              } @else {
+                <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+                  <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+                    @for (field of fields; track field.key) {
+                      <div class="flex flex-col">
+                        <span
+                          class="mb-1 text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                        >
+                          {{ field.label }}
+                        </span>
+                        <span class="text-sm text-gray-900 dark:text-gray-100">
+                          {{ formatValue(item, field) || "-" }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+        @if (showCommentToggle && isCommentExpanded(item.id)) {
+          <tr class="expand-row">
+            <td
+              [attr.colspan]="
+                fields.length +
+                (showSelection ? 1 : 0) +
+                (showActionsColumn ? 1 : 0) +
+                (dragEnabled ? 1 : 0)
+              "
+              class="px-4 py-4"
+            >
+              <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+                <app-comments
+                  title="Task comments"
+                  [comments]="getCommentsForItem(item)"
+                  [task_id]="item.id"
+                  [todo_id]="item.todo_id"
+                />
+              </div>
+            </td>
+          </tr>
+        }
       } @empty {
         <tr>
           <td
