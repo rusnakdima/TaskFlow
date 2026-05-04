@@ -46,6 +46,7 @@ export class StorageService extends BaseStorageService {
   private readonly profilesSignal = signal<Profile[]>([]);
   private readonly allProfilesSignal = signal<Profile[]>([]);
   private readonly userSignal = signal<any | null>(null);
+  private readonly usersSignal = signal<any[]>([]);
 
   // ==================== COMPUTED SIGNALS ====================
   private readonly todosComputed = computed(() => {
@@ -100,6 +101,7 @@ export class StorageService extends BaseStorageService {
   readonly allProfiles = this.allProfilesSignal.asReadonly();
   readonly chats = computed(() => this.chatsSignal().filter((c) => !c.deleted_at));
   readonly user = this.userSignal.asReadonly();
+  readonly users = this.usersSignal.asReadonly();
 
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
@@ -390,6 +392,24 @@ export class StorageService extends BaseStorageService {
     return this.getSubtasksByTaskId(parentId) as any;
   }
 
+  getUnreadChatCount(todoId: string, userId: string): number {
+    const chats = this.getChatsByTodo(todoId).filter((c: Chat) => !c.deleted_at);
+    return chats.filter((c: Chat) => !c.read_by || !c.read_by.includes(userId)).length;
+  }
+
+  getUsername(userId: string): string {
+    const user = this.users().find((u) => u.id === userId);
+    if (user?.profile?.name) {
+      return `${user.profile.name} ${user.profile.last_name || ""}`.trim();
+    }
+    const profile = this.profiles().find((p) => p.user_id === userId);
+    if (profile?.name) {
+      return `${profile.name} ${profile.last_name || ""}`.trim();
+    }
+    if (user?.username) return user.username;
+    return "Unknown";
+  }
+
   getTodoReactive(todo_id?: string): ReturnType<typeof computed<Todo | undefined>> {
     return computed(() => {
       if (!todo_id) return undefined;
@@ -416,6 +436,7 @@ export class StorageService extends BaseStorageService {
     this.profileSignal.set(null);
     this.profilesSignal.set([]);
     this.userSignal.set(null);
+    this.usersSignal.set([]);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
   }
@@ -432,7 +453,8 @@ export class StorageService extends BaseStorageService {
       | "tasks"
       | "subtasks"
       | "comments"
-      | "chats",
+      | "chats"
+      | "users",
   >(
     type: T,
     items: T extends "profiles"
@@ -451,7 +473,9 @@ export class StorageService extends BaseStorageService {
                   : Todo[]
                 : T extends "user"
                   ? any | null
-                  : Category[]
+                  : T extends "users"
+                    ? any[]
+                    : Category[]
   ): void {
     switch (type) {
       case "categories":
@@ -486,6 +510,9 @@ export class StorageService extends BaseStorageService {
         break;
       case "user":
         this.userSignal.set(items as any | null);
+        break;
+      case "users":
+        this.usersSignal.set(items as any[]);
         break;
     }
   }

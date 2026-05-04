@@ -1,10 +1,14 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
+import { firstValueFrom } from "rxjs";
 
 /* services */
 import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+
+/* providers */
+import { ApiProvider } from "@providers/api.provider";
 
 /**
  * MainResolver - Storage-First with Fallback Loading
@@ -18,6 +22,7 @@ import { DataLoaderService } from "@services/data/data-loader.service";
 export class MainResolver implements Resolve<any> {
   private storageService = inject(StorageService);
   private dataLoaderService = inject(DataLoaderService);
+  private apiProvider = inject(ApiProvider);
 
   async resolve(
     route: ActivatedRouteSnapshot,
@@ -32,12 +37,15 @@ export class MainResolver implements Resolve<any> {
 
         let todoFromStorage = this.storageService.getById("todos", todoId);
 
-        // If todo not in storage, load it directly
         if (!todoFromStorage) {
-          todoFromStorage = await this.loadTodoDirectly(todoId);
+          todoFromStorage = await this.loadTodoFromApi(todoId);
         }
 
-        const taskFromStorage = this.storageService.getById("tasks", taskId);
+        let taskFromStorage = this.storageService.getById("tasks", taskId);
+
+        if (!taskFromStorage) {
+          taskFromStorage = await this.loadTaskFromApi(taskId, todoId);
+        }
 
         if (todoFromStorage || taskFromStorage) {
           return { task: taskFromStorage || null, todo: todoFromStorage || null };
@@ -49,9 +57,8 @@ export class MainResolver implements Resolve<any> {
 
         let todoFromStorage = this.storageService.getById("todos", todoId);
 
-        // If todo not in storage, load it directly
         if (!todoFromStorage) {
-          todoFromStorage = await this.loadTodoDirectly(todoId);
+          todoFromStorage = await this.loadTodoFromApi(todoId);
         }
 
         if (todoFromStorage) {
@@ -67,7 +74,37 @@ export class MainResolver implements Resolve<any> {
     }
   }
 
-  private async loadTodoDirectly(todoId: string): Promise<any> {
-    return this.storageService.getById("todos", todoId);
+  private async loadTodoFromApi(todoId: string): Promise<any> {
+    try {
+      const todo = await firstValueFrom(
+        this.apiProvider.crud("get", "todos", {
+          id: todoId,
+          load: ["tasks", "tasks.subtasks", "tasks.comments", "categories", "assignees", "user"],
+        })
+      );
+      if (todo) {
+        this.storageService.addItem("todos", todo);
+      }
+      return todo;
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadTaskFromApi(taskId: string, todoId: string): Promise<any> {
+    try {
+      const task = await firstValueFrom(
+        this.apiProvider.crud("get", "tasks", {
+          id: taskId,
+          load: ["subtasks", "comments", "assignees"],
+        })
+      );
+      if (task) {
+        this.storageService.addItem("tasks", task);
+      }
+      return task;
+    } catch {
+      return null;
+    }
   }
 }
