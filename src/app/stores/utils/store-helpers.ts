@@ -95,17 +95,6 @@ export function removeEntityFromArray<T extends { id: string }>(entities: T[], i
 }
 
 /**
- * Sort entities by creation date (newest first)
- */
-export function sortByNewest<T extends { created_at?: string }>(entities: T[]): T[] {
-  return [...entities].sort((a, b) => {
-    const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return bDate - aDate;
-  });
-}
-
-/**
  * Sort entities by order field
  */
 export function sortByOrder<T extends { order?: number }>(entities: T[]): T[] {
@@ -113,8 +102,6 @@ export function sortByOrder<T extends { order?: number }>(entities: T[]): T[] {
 }
 
 /**
- * Group entities by a key
- */
 export function groupByKey<T>(entities: T[], keySelector: (entity: T) => string): Map<string, T[]> {
   const groups = new Map<string, T[]>();
 
