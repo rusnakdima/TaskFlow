@@ -34,7 +34,8 @@
       "@guards/*": ["./src/app/guards/*"],
       "@bases/*": ["./src/app/bases/*"],
       "@stores/*": ["./src/app/stores/*"],
-      "@mixins/*": ["./src/app/mixins/*"]
+      "@mixins/*": ["./src/app/mixins/*"],
+      "@constants/*": ["./src/app/constants/*"]
     }
   },
   "angularCompilerOptions": {
