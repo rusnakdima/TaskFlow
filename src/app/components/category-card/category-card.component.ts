@@ -22,11 +22,16 @@ export class CategoryCardComponent {
   @Input() isSelected: boolean = false;
 
   @Output() edit = new EventEmitter<Category>();
+  @Output() archive = new EventEmitter<string>();
   @Output() delete = new EventEmitter<string>();
   @Output() selectionChangeEvent = new EventEmitter<string>();
 
   onEdit() {
     this.edit.emit(this.category);
+  }
+
+  onArchive() {
+    this.archive.emit(this.category.id);
   }
 
   onDelete() {

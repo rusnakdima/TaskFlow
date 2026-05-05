@@ -32,6 +32,7 @@ export class QrScannerComponent implements OnDestroy, AfterViewInit {
 
   isLoading = signal(true);
   isApproved = signal(false);
+  hasPermissionDenied = signal(false);
   status = signal<"pending" | "approved">("pending");
 
   private stream: MediaStream | null = null;
@@ -45,6 +46,13 @@ export class QrScannerComponent implements OnDestroy, AfterViewInit {
   async startScanning(): Promise<void> {
     try {
       this.isLoading.set(true);
+
+      const permission = await navigator.permissions.query({ name: "camera" });
+      if (permission.state === "denied") {
+        this.hasPermissionDenied.set(true);
+        this.isLoading.set(false);
+        return;
+      }
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 720 }, height: { ideal: 720 } },

@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, HostListener, OnInit, Output, signal } from "@angular/core";
+import { Component, EventEmitter, HostListener, OnInit, Output, signal, ViewChild, ElementRef } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
@@ -22,6 +22,7 @@ interface CommandItem {
 })
 export class CommandPaletteComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
+  @ViewChild("searchInput") searchInputRef!: ElementRef<HTMLInputElement>;
 
   isOpen = signal(false);
   searchQuery = signal("");
@@ -165,12 +166,6 @@ export class CommandPaletteComponent implements OnInit {
 
   @HostListener("window:keydown", ["$event"])
   handleKeydown(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key === "k") {
-      event.preventDefault();
-      this.open();
-      return;
-    }
-
     if (!this.isOpen()) return;
 
     if (event.key === "Escape") {
@@ -202,6 +197,9 @@ export class CommandPaletteComponent implements OnInit {
     this.searchQuery.set("");
     this.selectedIndex.set(0);
     this.filteredItems.set(this.allItems);
+    setTimeout(() => {
+      this.searchInputRef?.nativeElement?.focus();
+    }, 50);
   }
 
   closePalette() {

@@ -25,8 +25,15 @@ export class ShortcutService implements OnDestroy {
   private createCategorySubject = new Subject<void>();
   createCategory$ = this.createCategorySubject.asObservable();
 
+  private focusSearchSubject = new Subject<void>();
+  focusSearch$ = this.focusSearchSubject.asObservable();
+
   showHelp(): void {
     this.helpSubject.next();
+  }
+
+  focusSearch(): void {
+    this.focusSearchSubject.next();
   }
 
   private currentUrl = "";
@@ -100,6 +107,12 @@ export class ShortcutService implements OnDestroy {
       }
 
       if (!isInput) {
+        if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+          event.preventDefault();
+          this.zone.run(() => this.focusSearchSubject.next());
+          return;
+        }
+
         if (event.key === "F1") {
           event.preventDefault();
           this.zone.run(() => this.helpSubject.next());

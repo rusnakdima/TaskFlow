@@ -64,6 +64,17 @@
         </div>
       }
 
+      <!-- Permission denied state -->
+      @if (hasPermissionDenied()) {
+        <div
+          class="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-black/90"
+        >
+          <mat-icon class="text-6xl text-red-400">videocam_off</mat-icon>
+          <p class="mt-4 text-sm text-white/70">Camera access denied</p>
+          <p class="mt-2 text-xs text-white/50">Please enable camera in your browser settings</p>
+        </div>
+      }
+
       <!-- Success flash -->
       @if (isApproved()) {
         <div
