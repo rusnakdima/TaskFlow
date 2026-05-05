@@ -1,14 +1,13 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
-import { firstValueFrom } from "rxjs";
 
 /* services */
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 
@@ -30,11 +29,11 @@ import { UserValidationService } from "@services/auth/user-validation.service";
   providedIn: "root",
 })
 export class InitialDataResolver implements Resolve<unknown> {
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private profileRequiredService = inject(ProfileRequiredService);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private dataLoaderService = inject(DataLoaderService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);
@@ -68,8 +67,6 @@ export class InitialDataResolver implements Resolve<unknown> {
 
     const userId = this.authService.getValueByKey("id") ?? "";
 
-    // Return immediately with current cache state
-    // UI will update when cache changes via signals
     return {
       loaded: true,
       hasProfile: this.hasValidProfile(),

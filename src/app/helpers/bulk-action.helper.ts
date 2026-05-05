@@ -1,9 +1,9 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 
-import { StorageUpdateService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 /**
  * Bulk operation result interface
@@ -21,7 +21,8 @@ export interface BulkOperationResult {
  */
 @Injectable({ providedIn: "root" })
 export class BulkActionHelper {
-  constructor(private storageUpdateService: StorageUpdateService) {}
+  constructor(private dataService: DataService) {}
+
   /**
    * Bulk update field for multiple items
    */
