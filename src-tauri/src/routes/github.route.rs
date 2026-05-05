@@ -16,7 +16,10 @@ use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::json;
 
-async fn get_user_github_token(state: &AppState, user_id: &str) -> Result<(String, UserEntity), ResponseModel> {
+async fn get_user_github_token(
+  state: &AppState,
+  user_id: &str,
+) -> Result<(String, UserEntity), ResponseModel> {
   let table_name = "users";
   let filter = Filter::Eq("id".to_string(), json!(user_id));
 
@@ -77,7 +80,9 @@ pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseMode
   let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
-    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
+    return Err(err_response(
+      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+    ));
   }
 
   let redirect_uri = if state.config_helper.github_callback_url.is_empty() {
@@ -104,7 +109,9 @@ pub async fn github_oauth_callback(
   let github_client_secret = state.config_helper.github_client_secret.clone();
 
   if github_client_id.is_empty() || github_client_secret.is_empty() {
-    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env"));
+    return Err(err_response(
+      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env",
+    ));
   }
 
   let service = GithubService::new();
@@ -127,7 +134,8 @@ pub async fn github_oauth_callback(
     tokens.expires_in,
     &github_user.id.to_string(),
     &github_user.login,
-  ).await;
+  )
+  .await;
 
   Ok(success_response(DataValue::Object(json!({
     "username": github_user.login,
@@ -144,7 +152,9 @@ pub async fn github_get_repos(
   let (access_token, _user) = get_user_github_token(&state, &user_id).await?;
 
   let service = GithubService::new();
-  let repos = service.get_repos(&access_token).await
+  let repos = service
+    .get_repos(&access_token)
+    .await
     .map_err(|e| err_response_formatted("Failed to get repos", &e))?;
 
   let repo_list: Vec<serde_json::Value> = repos
@@ -208,7 +218,9 @@ pub async fn github_disconnect(
     let _ = mongo.update(table_name, &user_id, update_data).await;
   }
 
-  Ok(success_response(DataValue::String("Disconnected".to_string())))
+  Ok(success_response(DataValue::String(
+    "Disconnected".to_string(),
+  )))
 }
 
 #[tauri::command]
@@ -266,7 +278,9 @@ pub async fn github_start_device_flow(
   let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
-    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
+    return Err(err_response(
+      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+    ));
   }
 
   let service = GithubService::new();
@@ -290,13 +304,20 @@ pub async fn github_check_device_flow(
   let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
-    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
+    return Err(err_response(
+      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+    ));
   }
 
   let service = GithubService::new();
-  match service.check_device_code(&github_client_id, &device_code).await {
+  match service
+    .check_device_code(&github_client_id, &device_code)
+    .await
+  {
     Ok(Some(tokens)) => {
-      let github_user = service.get_user(&tokens.access_token).await
+      let github_user = service
+        .get_user(&tokens.access_token)
+        .await
         .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
 
       Ok(success_response(DataValue::Object(json!({
@@ -309,12 +330,10 @@ pub async fn github_check_device_flow(
         "avatar_url": github_user.avatar_url
       }))))
     }
-    Ok(None) => {
-      Ok(success_response(DataValue::Object(json!({
-        "success": false,
-        "pending": true
-      }))))
-    }
+    Ok(None) => Ok(success_response(DataValue::Object(json!({
+      "success": false,
+      "pending": true
+    })))),
     Err(e) => Err(err_response(&e)),
   }
 }
