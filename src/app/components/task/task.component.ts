@@ -13,7 +13,9 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   computed,
+  DestroyRef,
 } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* base */
 import { BaseItemComponent } from "@components/base-item.component";
@@ -36,7 +38,7 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
@@ -70,13 +72,14 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 })
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private commentService = inject(CommentService);
   private githubService = inject(GithubService);
   private dataLoaderService = inject(DataLoaderService);
+  private destroyRef = inject(DestroyRef);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -108,7 +111,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   creatingGithubIssue = signal(false);
   loadingTaskComments = signal(false);
 
-  /** Inline expanded subtask comment blocks (by subtaskId) */
+  private commentsSignal = signal<Comment[]>([]);
+  private subtasksSignal = signal<Subtask[]>([]);
+
   expandedSubtaskCommentIds = signal<Set<string>>(new Set());
   private highlightedExpandedSubtaskId = signal<string | null>(null);
 
@@ -116,36 +121,55 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     return "task-menu";
   }
 
-  /** Task as signal so computed can react to input changes */
   private taskForComments = signal<Task | null>(null);
 
-  todo = computed(() => {
-    const id = this.todo_id || this.task?.todo_id;
-    if (!id) return null;
-    return this.storageService.getById("todos", id) as Todo | null;
-  });
+  private todoSignal = signal<Todo | null>(null);
 
-  /** Task-only comments for the main comment panel */
+  todo = computed(() => this.todoSignal());
+
+  ngOnInit() {
+    const todoId = this.todo_id || this.task?.todo_id;
+    if (todoId) {
+      this.dataService
+        .getTodo(todoId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (todo) => this.todoSignal.set(todo),
+          error: () => this.todoSignal.set(null),
+        });
+    }
+
+    this.dataService.comments$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (comments) => this.commentsSignal.set(comments),
+    });
+
+    this.dataService.subtasks$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (subtasks) => this.subtasksSignal.set(subtasks),
+    });
+  }
+
+  private comments = computed(() => this.commentsSignal());
+  private subtasks = computed(() => this.subtasksSignal());
+
   taskOnlyCommentsForPanel = computed(() => {
     const task = this.taskForComments();
     if (!task) return [];
 
-    return this.storageService.comments().filter((c) => c.task_id === task.id && !c.deleted_at);
+    return this.comments().filter((c: Comment) => c.task_id === task.id && !c.deleted_at);
   });
 
-  /** Subtask rows (always available for list + inline expand) */
-  subtaskCommentGroups = computed(() => {
+  subtaskCommentGroups = computed((): SubtaskCommentGroup[] => {
     const task = this.taskForComments();
     if (!task) return [] as SubtaskCommentGroup[];
 
-    const subtasks = this.storageService
-      .subtasks()
-      .filter((s) => s.task_id === task.id && !s.deleted_at);
+    const taskSubtasks = this.subtasks().filter(
+      (s: Subtask) => s.task_id === task.id && !s.deleted_at
+    );
 
-    return subtasks.map((s) => {
-      const subtaskComments = this.storageService
-        .comments()
-        .filter((c) => c.subtask_id === s.id && !c.deleted_at);
+    return taskSubtasks.map((s: Subtask) => {
+      const subtaskComments = this.comments().filter(
+        (c: Comment) => c.subtask_id === s.id && !c.deleted_at
+      );
       return {
         subtask_id: s.id,
         title: s.title || "Untitled subtask",
@@ -154,22 +178,18 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     });
   });
 
-  /** Total active comments (task + subtasks) used for the small badge near the comment icon */
   totalCommentsForBadge = computed(() => {
     const taskCount = this.taskOnlyCommentsForPanel().length;
     const subtaskCount = this.subtaskCommentGroups().reduce(
-      (sum: number, g) => sum + g.comments.length,
+      (sum: number, g: SubtaskCommentGroup) => sum + g.comments.length,
       0
     );
     return taskCount + subtaskCount;
   });
 
-  /** Get subtasks for a task from flat storage */
   getTaskSubtasks(taskId: string): Subtask[] {
-    return this.storageService.subtasks().filter((s) => s.task_id === taskId && !s.deleted_at);
+    return this.subtasks().filter((s: Subtask) => s.task_id === taskId && !s.deleted_at);
   }
-
-  ngOnInit() {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["task"]) {
@@ -195,12 +215,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     return BaseItemHelper.isBlockedByDependencies(this.task?.depends_on, this.allTasks);
   }
 
-  /**
-   * Filter out deleted comments
-   */
   getActiveComments(comments: Comment[] | undefined): Comment[] {
     if (!comments || comments.length === 0) return [];
-    return comments.filter((c) => !c.deleted_at);
+    return comments.filter((c: Comment) => !c.deleted_at);
   }
 
   toggleComments() {
@@ -222,36 +239,36 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
       const userId = this.authService.getValueByKey("id");
       if (userId) {
-        const subtaskIds = this.storageService
-          .subtasks()
-          .filter((s) => s.task_id === taskId && !s.deleted_at)
-          .map((s) => s.id);
+        const subtaskIds = this.subtasks()
+          .filter((s: Subtask) => s.task_id === taskId && !s.deleted_at)
+          .map((s: Subtask) => s.id);
 
-        const subtaskComments = this.storageService
-          .comments()
-          .filter((c) => c.subtask_id && subtaskIds.includes(c.subtask_id) && !c.deleted_at);
+        const subtaskComments = this.comments().filter(
+          (c: Comment) => c.subtask_id && subtaskIds.includes(c.subtask_id) && !c.deleted_at
+        );
 
         const commentsToUpdate = subtaskComments.filter(
-          (c) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
+          (c: Comment) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
         );
 
         if (commentsToUpdate.length > 0) {
           const effectiveTodoId = this.todo_id || this.task.todo_id;
-          commentsToUpdate.forEach((c) => {
-            this.storageService.updateItem("comments", c.id, {
-              read_by: [...(c.read_by || []), userId],
-            });
-          });
+
+          const localUpdates = commentsToUpdate.map((c: Comment) => ({
+            ...c,
+            read_by: [...(c.read_by || []), userId],
+          }));
 
           if (effectiveTodoId) {
             this.dataSyncProvider
               .crud("updateAll", "comments", {
-                data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
+                data: localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
                 parentTodoId: effectiveTodoId,
               })
+              .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
                 next: () => {},
-                error: (err) => {
+                error: (err: Error) => {
                   console.error("Mark comments read failed:", err);
                 },
               });
@@ -318,7 +335,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
-          // TODO: properly type err
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -344,7 +360,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
-          // TODO: properly type err
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -356,7 +371,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       this.dataSyncProvider
         .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
         .subscribe({
-          error: (err) => {},
+          error: (err: Error) => {},
         });
     }
   }
@@ -419,18 +434,15 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   get countCompletedSubtasks(): number {
     const taskId = this.task?.id;
     if (!taskId) return 0;
-    // TODO: Consider using subtasksByTaskId computed from StorageService for better performance
-    return this.storageService
-      .subtasks()
-      .filter((s) => s.task_id === taskId && !s.deleted_at && s.status === "completed").length;
+    return this.subtasks().filter(
+      (s: Subtask) => s.task_id === taskId && !s.deleted_at && s.status === "completed"
+    ).length;
   }
 
   get totalSubtasks(): number {
     const taskId = this.task?.id;
     if (!taskId) return 0;
-    // TODO: Consider using subtasksByTaskId computed from StorageService for better performance
-    return this.storageService.subtasks().filter((s) => s.task_id === taskId && !s.deleted_at)
-      .length;
+    return this.subtasks().filter((s: Subtask) => s.task_id === taskId && !s.deleted_at).length;
   }
 
   getPriorityColor = BaseItemHelper.getPriorityBadgeClass;

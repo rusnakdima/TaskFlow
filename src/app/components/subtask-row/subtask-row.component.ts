@@ -5,6 +5,7 @@ import {
   EventEmitter,
   Input,
   Output,
+  signal,
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -21,11 +22,6 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
-/* services */
-import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
-import { ApiProvider } from "@providers/api.provider";
-
 /* models */
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
@@ -39,9 +35,6 @@ import { Todo } from "@models/todo.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubtaskRowComponent {
-  private authService = inject(AuthService);
-  private storageService = inject(StorageService);
-  private dataSyncProvider = inject(ApiProvider);
   private cdr = inject(ChangeDetectorRef);
 
   @Input() subtask: Subtask | null = null;
