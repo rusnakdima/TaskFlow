@@ -62,14 +62,16 @@ import { BaseListView } from "@views/base-list.view";
 /* components */
 import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
-import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
+import { FilterField } from "@models/filter-config.model";
 
 @Component({
   selector: "app-tasks",
@@ -84,14 +86,12 @@ import { EmptyStateComponent } from "@components/empty-state/empty-state.compone
     RouterModule,
     TaskComponent,
     TodoInformationComponent,
-    FilterBarComponent,
     ChatWindowComponent,
     DragDropModule,
-    CheckboxComponent,
     BulkActionsComponent,
     TableViewComponent,
-    ViewModeSwitcherComponent,
     EmptyStateComponent,
+    PageToolbarComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -271,6 +271,45 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return this.storageService.getSubtasksByTaskId(taskId);
   }
 
+  getToolbarConfig(): PageToolbarConfig {
+    return {
+      infoToggle: {
+        onToggle: () => this.toggleInfoBlock(),
+        isActive: this.showInfoBlock(),
+        label: "Info",
+      },
+      selectAll: {
+        onToggle: () => this.toggleSelectAll(),
+        isAllSelected: this.isAllSelected(),
+        count: this.selectedTasks().size,
+        highlight: this.selectedTasks().size > 0 && !this.isAllSelected(),
+      },
+      filter: {
+        onToggle: () => this.toggleFilter(),
+        isActive: this.showFilter(),
+      },
+      newButton: {
+        onClick: () => this.router.navigate(["create_task"], { relativeTo: this.route }),
+        label: "New Task",
+        icon: "add",
+      },
+      viewMode: {
+        mode: this.viewMode(),
+        pageKey: "tasks",
+        onModeChange: (mode) => this.setViewMode(mode),
+      },
+      filterFields: this.filterFields,
+      showFilter: this.showFilter(),
+      onFiltersChange: (filters) => this.onFiltersChange(filters),
+    };
+  }
+
+  onFiltersChange(filters: Record<string, string | string[] | any>): void {
+    this._activeFilters.set(filters);
+  }
+
+  private _activeFilters = signal<Record<string, string | string[] | any>>({});
+
   userId: string = "";
 
   @HostListener("window:keydown", ["$event"])
@@ -289,6 +328,32 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     { key: "failed", label: "Failed" },
     { key: "done", label: "Done" },
     { key: "high", label: "High Priority" },
+  ];
+
+  filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "checkbox",
+      options: [
+        { key: "all", label: "All" },
+        { key: "pending", label: "Pending" },
+        { key: "completed", label: "Completed" },
+        { key: "skipped", label: "Skipped" },
+        { key: "failed", label: "Failed" },
+      ],
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      type: "checkbox",
+      options: [
+        { key: "all", label: "All" },
+        { key: "low", label: "Low" },
+        { key: "medium", label: "Medium" },
+        { key: "high", label: "High" },
+      ],
+    },
   ];
 
   taskTableFields: TableField[] = [

@@ -1,98 +1,19 @@
 <div class="flex flex-col gap-4">
-  <div class="flex items-center gap-2">
-    <app-visibility-toggle
+  <div class="flex items-center justify-between gap-2">
+    <app-segment-selector
       [options]="visibilityOptions"
       [active]="activeVisibility()"
       (select)="activeVisibility.set($any($event))"
     />
 
-    <div class="flex items-center gap-2 lg:hidden">
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        [matMenuTriggerFor]="visibilityMenu"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="getCurrentVisibilityIcon()" />
-        <span class="hidden font-medium md:inline">{{ getVisibilityLabel() }}</span>
-        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
-      </button>
-      <mat-menu
-        #visibilityMenu="matMenu"
-        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
-      >
-        @for (option of visibilityOptions; track option.key) {
-          <button
-            mat-menu-item
-            (click)="activeVisibility.set($any(option.key))"
-            class="flex w-full items-center gap-3"
-            [ngClass]="activeVisibility() === option.key ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
-          >
-            <mat-icon
-              class="size-5! min-w-5 text-xl!"
-              [ngClass]="activeVisibility() === option.key ? 'text-blue-500!' : 'text-gray-400!'"
-              [fontIcon]="option.icon"
-            />
-            <span [class.font-bold]="activeVisibility() === option.key">{{ option.label }}</span>
-          </button>
-        }
-      </mat-menu>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-end gap-2">
-      @if (viewMode() !== "table") {
-        <button
-          class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-          (click)="toggleSelectAll()"
-        >
-          <app-checkbox
-            [checked]="isAllSelected()"
-            [indeterminate]="selectedTodos().size > 0 && !isAllSelected()"
-            [highlight]="selectedTodos().size > 0 && !isAllSelected()"
-          />
-        </button>
-      }
-
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="showStats.set(!showStats())"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
-      </button>
-
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="toggleFilter()"
-      >
-        <mat-icon
-          class="h-5! w-5! min-w-5 text-xl!"
-          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
-        />
-      </button>
-
-      <button
-        class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
-        [matMenuTriggerFor]="newProjectMenu"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
-        <span class="hidden sm:inline">New</span>
-        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
-      </button>
-      <mat-menu #newProjectMenu="matMenu">
-        <button mat-menu-item routerLink="/todos/create_todo">
-          <mat-icon fontIcon="add" />
-          <span>Blank Project</span>
-        </button>
-        <button mat-menu-item (click)="blueprintService.showBlueprintDialog.set(true)">
-          <mat-icon fontIcon="account_tree" />
-          <span>From Blueprint</span>
-        </button>
-      </mat-menu>
-
-      <app-view-mode-switcher
-        [mode]="viewMode()"
-        [pageKey]="isSharedMode() ? 'shared-tasks' : 'todos'"
-        (modeChange)="setViewMode($event)"
-      />
-    </div>
+    <app-page-toolbar
+      [config]="getToolbarConfig()"
+      [filterFields]="filterFields"
+      [showFilter]="showFilter()"
+      (filterToggle)="toggleFilter()"
+      (filtersChange)="onFiltersChange($event)"
+      (searchChange)="onSearchChange($event)"
+    />
   </div>
 
   @if (showStats()) {
@@ -200,7 +121,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -230,7 +154,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -260,7 +187,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -295,7 +225,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -325,7 +258,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -355,7 +291,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
               </app-todo>
             }
           }
@@ -436,7 +375,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
               </app-todo>
             }
           </div>
@@ -477,7 +419,10 @@
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
               >
-                <div *cdkDragPlaceholder class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"></div>
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
               </app-todo>
             }
           </div>
@@ -616,19 +561,6 @@
       </div>
     </div>
   }
-
-  <app-filter-bar
-    [filterOptions]="filterOptionsWithCounts"
-    [activeFilter]="activeFilter()"
-    [showFilter]="showFilter()"
-    [showBlueprintButton]="true"
-    filterLabel="Status"
-    filterGroupName="todo-filter"
-    (filterToggle)="toggleFilter()"
-    (filterChange)="changeFilter($any($event))"
-    (searchChange)="onSearchChange($any($event))"
-    (openBlueprints)="blueprintService.showBlueprintDialog.set(true)"
-  />
 
   <app-bulk-actions
     [selectedCount]="selectedTodos().size"

@@ -22,10 +22,24 @@ import { AuthService } from "@services/auth/auth.service";
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
 
+/* components */
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { TableField } from "@components/table-view/table-field.model";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
+
 @Component({
   selector: "app-stats",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    TableViewComponent,
+    SegmentSelectorComponent,
+  ],
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
@@ -38,12 +52,12 @@ export class StatsView implements OnInit {
 
   selectedTimeRange = signal<string>("week");
 
-  timeRanges = [
-    { key: "day", label: "This Day" },
-    { key: "week", label: "This Week" },
-    { key: "month", label: "This Month" },
-    { key: "quarter", label: "This Quarter" },
-    { key: "year", label: "This Year" },
+  timeRanges: SegmentOption[] = [
+    { id: "day", label: "This Day" },
+    { id: "week", label: "This Week" },
+    { id: "month", label: "This Month" },
+    { id: "quarter", label: "This Quarter" },
+    { id: "year", label: "This Year" },
   ];
 
   statistics = signal<Statistics>({
@@ -66,6 +80,13 @@ export class StatsView implements OnInit {
   achievements = signal<Achievement[]>([]);
 
   detailedMetrics = signal<DetailedMetric[]>([]);
+
+  detailedMetricsFields: TableField[] = [
+    { key: "name", label: "Metric", type: "text" },
+    { key: "current", label: "Current Period", type: "text" },
+    { key: "previous", label: "Previous Period", type: "text" },
+    { key: "change", label: "Change", type: "change" },
+  ];
 
   ngOnInit(): void {
     // Data is already loaded in app.ts, just load statistics
@@ -116,6 +137,11 @@ export class StatsView implements OnInit {
 
   changeTimeRange(range: string): void {
     this.selectedTimeRange.set(range);
+    this.loadStatistics();
+  }
+
+  changeTimeRangeFromSelector(id: string): void {
+    this.selectedTimeRange.set(id);
     this.loadStatistics();
   }
 }

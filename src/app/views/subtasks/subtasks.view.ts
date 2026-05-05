@@ -61,13 +61,15 @@ import { BaseListView } from "@views/base-list.view";
 import { SubtaskComponent } from "@components/subtask/subtask.component";
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
 
 @Component({
   selector: "app-subtasks",
@@ -83,11 +85,10 @@ import { EmptyStateComponent } from "@components/empty-state/empty-state.compone
     FilterBarComponent,
     DragDropModule,
     ChatWindowComponent,
-    CheckboxComponent,
     BulkActionsComponent,
     TableViewComponent,
-    ViewModeSwitcherComponent,
     EmptyStateComponent,
+    PageToolbarComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -377,6 +378,36 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   toggleInfoBlock() {
     this.appStateService.toggleInfoBlock();
+  }
+
+  getToolbarConfig(): PageToolbarConfig {
+    return {
+      infoToggle: {
+        onToggle: () => this.toggleInfoBlock(),
+        isActive: this.showInfoBlock(),
+        label: "Info",
+      },
+      selectAll: {
+        onToggle: () => this.toggleSelectAll(),
+        isAllSelected: this.isAllSelected(),
+        count: this.selectedSubtasks().size,
+        highlight: this.selectedSubtasks().size > 0 && !this.isAllSelected(),
+      },
+      filter: {
+        onToggle: () => this.toggleFilter(),
+        isActive: this.showFilter(),
+      },
+      newButton: {
+        onClick: () => this.router.navigate(["create_subtask"], { relativeTo: this.route }),
+        label: "New Subtask",
+        icon: "add",
+      },
+      viewMode: {
+        mode: this.viewMode(),
+        pageKey: "subtasks",
+        onModeChange: (mode) => this.setViewMode(mode),
+      },
+    };
   }
 
   getUnreadCount(): number {
