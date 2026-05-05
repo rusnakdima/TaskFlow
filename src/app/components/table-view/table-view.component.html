@@ -107,13 +107,13 @@
                 @case ("boolean") {
                   @if (formatValue(item, field)) {
                     <mat-icon
-                      class="h-5! w-5! text-2xl!"
+                      class="text-2xl!"
                       [class]="getIconColor(field, true)"
                       fontIcon="check_circle"
                     />
                   } @else {
                     <mat-icon
-                      class="h-5! w-5! text-2xl!"
+                      class="text-2xl!"
                       [class]="getIconColor(field, false)"
                       fontIcon="cancel"
                     />
@@ -172,19 +172,19 @@
                   >
                     @if (changeVal > 0) {
                       <mat-icon
-                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        class="mr-1 text-xs!"
                         [class]="getIconColor(field, changeVal)"
                         fontIcon="trending_up"
                       />
                     } @else if (changeVal < 0) {
                       <mat-icon
-                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        class="mr-1 text-xs!"
                         [class]="getIconColor(field, changeVal)"
                         fontIcon="trending_down"
                       />
                     } @else {
                       <mat-icon
-                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        class="mr-1 text-xs!"
                         [class]="getIconColor(field, changeVal)"
                         fontIcon="remove"
                       />
@@ -205,32 +205,32 @@
                   <button
                     mat-icon-button
                     class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
-                    [ngClass]="
+                    [class]="
                       isExpanded(item.id)
-                        ? 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30'
-                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                        ? '!text-blue-600 hover:!bg-blue-50 dark:!text-blue-400 dark:hover:!bg-blue-900/30'
+                        : '!text-gray-500 hover:!bg-gray-100 dark:!text-gray-400 dark:hover:!bg-gray-700'
                     "
                     (click)="toggleExpanded(item.id)"
                     title="Expand details"
                   >
-                    <mat-icon class="h-5 w-5 min-w-5 text-base">
-                      {{ isExpanded(item.id) ? "expand_less" : "expand_more" }}
-                    </mat-icon>
+                    <mat-icon class="text-2xl!">{{
+                      isExpanded(item.id) ? "expand_less" : "expand_more"
+                    }}</mat-icon>
                   </button>
                 }
                 @if (showCommentToggle) {
                   <button
                     mat-icon-button
                     class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
-                    [ngClass]="
+                    [class]="
                       isCommentExpanded(item.id)
-                        ? 'bg-purple-100 text-purple-600 hover:bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50'
-                        : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
+                        ? '!bg-purple-100 !text-purple-600 hover:!bg-purple-50 dark:!bg-purple-900/30 dark:!text-purple-400 dark:hover:!bg-purple-900/50'
+                        : '!text-purple-600 hover:!bg-purple-50 dark:!text-purple-400 dark:hover:!bg-purple-900/30'
                     "
                     (click)="toggleComments(item.id)"
                     title="Toggle comments"
                   >
-                    <mat-icon class="h-5 w-5 min-w-5 text-base">forum</mat-icon>
+                    <mat-icon class="text-2xl!">forum</mat-icon>
                   </button>
                 }
                 @for (action of actions; track action.key) {
@@ -245,11 +245,11 @@
                     <button
                       mat-icon-button
                       class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
-                      [ngClass]="getActionColor(action)"
+                      [class]="getActionColor(action)"
                       (click)="onActionClick(action.key, item)"
                       [title]="action.label"
                     >
-                      <mat-icon class="h-5! w-5! min-w-5 text-base!" [fontIcon]="action.icon" />
+                      <mat-icon class="text-2xl!" [fontIcon]="action.icon" />
                     </button>
                   }
                 }
