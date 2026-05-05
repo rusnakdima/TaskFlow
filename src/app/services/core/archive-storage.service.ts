@@ -22,7 +22,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       this.adminService.getArchiveDataPaginated(type, 0, limit).subscribe({
         next: (response) => {
           if (response.status === "Success" && response.data) {
-            subscriber.next({ data: response.data, total: 0, has_more: true });
+            subscriber.next(response);
             subscriber.complete();
           } else {
             subscriber.error(new Error(response.message || "Failed to load data"));
@@ -41,7 +41,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       this.adminService.getArchiveDataPaginated(type, skip, 10).subscribe({
         next: (response) => {
           if (response.status === "Success" && response.data) {
-            subscriber.next({ data: response.data, total: 0, has_more: true });
+            subscriber.next(response);
             subscriber.complete();
           } else {
             subscriber.error(new Error(response.message || "Failed to load more data"));
