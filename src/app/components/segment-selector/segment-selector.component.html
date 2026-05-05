@@ -1,0 +1,58 @@
+<div class="flex items-center gap-2">
+  <div
+    class="hidden items-center rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600"
+  >
+    @for (option of options; track option.id) {
+      <button
+        class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+        [class.bg-blue-600]="active === option.id"
+        [class.text-white]="active === option.id"
+        [class.text-gray-700]="active !== option.id"
+        [class.dark:text-gray-300]="active !== option.id"
+        [class.hover:bg-gray-100]="active !== option.id"
+        [class.dark:hover:bg-zinc-700]="active !== option.id"
+        (click)="onSelect(option.id)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
+  <div class="flex items-center gap-2 lg:hidden">
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      [matMenuTriggerFor]="selectorMenu"
+    >
+      @if (getActiveOption()?.icon) {
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="getActiveOption()!.icon!" />
+      }
+      <span class="hidden font-medium md:inline">{{ getActiveOption()?.label }}</span>
+      <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+    </button>
+    <mat-menu
+      #selectorMenu="matMenu"
+      class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+    >
+      @for (option of options; track option.id) {
+        <button
+          mat-menu-item
+          (click)="onSelect(option.id)"
+          class="flex w-full items-center gap-3"
+          [ngClass]="active === option.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+        >
+          @if (option.icon) {
+            <mat-icon
+              class="size-5! min-w-5 text-xl!"
+              [ngClass]="active === option.id ? 'text-blue-500!' : 'text-gray-400!'"
+              [fontIcon]="option.icon"
+            />
+          }
+          <span [class.font-bold]="active === option.id">{{ option.label }}</span>
+          @if (option.count !== undefined) {
+            <span class="ml-auto text-xs text-gray-400">({{ option.count }})</span>
+          }
+        </button>
+      }
+    </mat-menu>
+  </div>
+</div>
