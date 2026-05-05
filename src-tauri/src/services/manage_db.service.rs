@@ -287,6 +287,11 @@ impl ManageDbService {
     })
   }
 
+  /// Check if MongoDB is connected
+  pub fn is_mongodb_connected(&self) -> bool {
+    self.mongodb_provider.is_some()
+  }
+
   /// Get all data for admin view (from MongoDB)
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
     match &self.admin_manager {
@@ -297,6 +302,38 @@ impl ManageDbService {
         data: DataValue::String("".to_string()),
       }),
     }
+  }
+
+  /// Get paginated admin data for a specific table type from MongoDB
+  pub async fn get_admin_data_paginated(
+    &self,
+    data_type: String,
+    skip: u64,
+    limit: u64,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    let docs = mongo
+      .find_many(&data_type, None, Some(skip), Some(limit), None, true)
+      .await
+      .map_err(|e| ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Error getting paginated {} data: {}", data_type, e),
+        data: DataValue::String("".to_string()),
+      })?;
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Retrieved {} {} records", docs.len(), data_type),
+      data: crate::helpers::common::convert_data_to_object(&docs),
+    })
   }
 
   /// Get all data for Archive page from local JSON (all users, includes deleted)
