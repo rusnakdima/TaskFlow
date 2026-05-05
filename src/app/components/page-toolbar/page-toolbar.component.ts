@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
@@ -69,6 +70,12 @@ export interface SortOrderConfig {
   currentOrder: "asc" | "desc";
 }
 
+export interface SearchConfig {
+  query: string;
+  placeholder?: string;
+  onSearch: (query: string) => void;
+}
+
 export interface PageToolbarConfig {
   selectAll?: SelectAllConfig;
   stats?: StatsConfig;
@@ -79,6 +86,7 @@ export interface PageToolbarConfig {
   refresh?: RefreshConfig;
   sortMenu?: SortMenuConfig;
   sortOrder?: SortOrderConfig;
+  search?: SearchConfig;
   viewMode?: {
     mode: ViewMode;
     pageKey: string;
@@ -95,6 +103,7 @@ export interface PageToolbarConfig {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatIconModule,
     MatButtonModule,
     MatMenuModule,

@@ -4,7 +4,7 @@
   >
     @for (option of options; track option.id) {
       <button
-        class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+        class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
         [class.bg-blue-600]="active === option.id"
         [class.text-white]="active === option.id"
         [class.text-gray-700]="active !== option.id"
@@ -13,6 +13,9 @@
         [class.dark:hover:bg-zinc-700]="active !== option.id"
         (click)="onSelect(option.id)"
       >
+        @if (option.icon) {
+          <mat-icon class="h-4! w-4! min-w-4 text-base!" [fontIcon]="option.icon" />
+        }
         {{ option.label }}
       </button>
     }

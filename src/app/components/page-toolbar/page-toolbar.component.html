@@ -158,6 +158,30 @@
     </button>
   }
 
+  @if (config?.search) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      [matMenuTriggerFor]="searchMenu"
+    >
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="search" />
+    </button>
+    <mat-menu
+      #searchMenu="matMenu"
+      class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+    >
+      <div class="p-3" (click)="$event.stopPropagation()">
+        <input
+          type="text"
+          [ngModel]="config!.search!.query"
+          (ngModelChange)="config!.search!.onSearch($event)"
+          (click)="$event.stopPropagation()"
+          [placeholder]="config!.search!.placeholder || 'Search...'"
+          class="textNormal placeholder:textMuted w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+        />
+      </div>
+    </mat-menu>
+  }
+
   @if (config?.viewMode) {
     <app-view-mode-switcher
       [mode]="config!.viewMode!.mode"
