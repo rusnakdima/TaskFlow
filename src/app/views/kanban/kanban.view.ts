@@ -45,6 +45,14 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { FilterField } from "@models/filter-config.model";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
 
 @Component({
   selector: "app-kanban",
@@ -63,6 +71,8 @@ import { FilterField } from "@models/filter-config.model";
     KanbanTaskCardComponent,
     StatsCardComponent,
     EmptyStateComponent,
+    PageToolbarComponent,
+    SegmentSelectorComponent,
   ],
   templateUrl: "./kanban.view.html",
 })
@@ -137,6 +147,14 @@ export class KanbanView extends BaseListView implements OnInit {
     { id: TaskStatus.SKIPPED, label: "Skipped", icon: "skip_next", iconBgClass: "bg-purple-500" },
     { id: TaskStatus.FAILED, label: "Failed", icon: "error", iconBgClass: "bg-red-500" },
   ];
+
+  todoSelectorOptions = computed<SegmentOption[]>(() =>
+    this.todos().map((todo) => ({
+      id: todo.id,
+      label: todo.title,
+      icon: this.selectedTodoId() === todo.id ? "check_circle" : "circle",
+    }))
+  );
 
   filterFields: FilterField[] = [
     {
@@ -359,5 +377,28 @@ export class KanbanView extends BaseListView implements OnInit {
     if (todoId && task.id) {
       this.router.navigate(["/todos", todoId, "tasks", task.id]);
     }
+  }
+
+  onTodoSelect(todoId: string): void {
+    this.selectedTodoId.set(todoId);
+    this.expandedTasks.set(new Set());
+  }
+
+  onStatsToggle(): void {
+    this.showStats.set(!this.showStats());
+  }
+
+  getToolbarConfig(): PageToolbarConfig {
+    return {
+      stats: {
+        onToggle: () => this.onStatsToggle(),
+        isActive: this.showStats(),
+      },
+      search: {
+        query: this.searchQuery(),
+        placeholder: "Search tasks...",
+        onSearch: (query) => this.searchQuery.set(query),
+      },
+    };
   }
 }

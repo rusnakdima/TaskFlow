@@ -1,77 +1,12 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-row items-center justify-between gap-4">
-    <div class="flex flex-row items-center gap-3">
-      <button
-        [matMenuTriggerFor]="projectMenu"
-        class="h-12 rounded-xl border border-zinc-200 bg-zinc-100 px-4 text-inherit dark:border-zinc-700 dark:bg-zinc-800"
-      >
-        <div class="flex items-center gap-2">
-          <mat-icon class="size-5! min-w-5 text-xl! text-blue-500" fontIcon="folder_open" />
-          <span class="max-w-32 truncate font-semibold">{{
-            selectedProjectTitle() || "Select Project"
-          }}</span>
-          <mat-icon class="size-4! min-w-4 text-base!" fontIcon="expand_more" />
-        </div>
-      </button>
+  <div class="flex items-center justify-between gap-4">
+    <app-segment-selector
+      [options]="todoSelectorOptions()"
+      [active]="selectedTodoId()"
+      (select)="onTodoSelect($event)"
+    />
 
-      <mat-menu
-        #projectMenu="matMenu"
-        class="mt-2 overflow-hidden rounded-xl border border-zinc-200 shadow-2xl dark:border-zinc-700"
-      >
-        <div
-          class="textMuted mb-1 border-b border-zinc-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
-        >
-          Your Projects
-        </div>
-        @for (todo of todos(); track todo.id) {
-          <button
-            (click)="onTodoChange(todo.id)"
-            class="flex w-full items-center gap-3 p-3"
-            [ngClass]="selectedTodoId() === todo.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
-          >
-            <mat-icon
-              class="size-5! min-w-5 text-xl!"
-              [ngClass]="selectedTodoId() === todo.id ? 'text-blue-500!' : 'text-gray-400!'"
-              [fontIcon]="selectedTodoId() === todo.id ? 'check_circle' : 'circle'"
-            />
-            <span [class.font-bold]="selectedTodoId() === todo.id">{{ todo.title }}</span>
-          </button>
-        }
-        @if (todos().length === 0) {
-          <div class="textMuted px-4 py-3 text-sm italic">No projects found</div>
-        }
-      </mat-menu>
-    </div>
-
-    <div class="flex flex-row items-center gap-3">
-      <div class="relative">
-        <input
-          type="text"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="onSearchChange($event)"
-          placeholder="Search tasks..."
-          class="w-48 rounded-lg border border-gray-200 bg-gray-50 py-2 pr-4 pl-10 text-base focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-64 dark:border-zinc-600 dark:bg-zinc-700/50"
-        />
-        <mat-icon
-          class="absolute top-1/2 left-3 h-5! w-5! min-w-5 -translate-y-1/2 text-xl! text-gray-400"
-          fontIcon="search"
-        />
-      </div>
-      @if (searchQuery()) {
-        <button
-          (click)="clearSearch()"
-          class="text-sm font-medium text-blue-500 hover:text-blue-600"
-        >
-          Clear
-        </button>
-      }
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="showStats.set(!showStats())"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
-      </button>
-    </div>
+    <app-page-toolbar [config]="getToolbarConfig()" />
   </div>
 
   @if (showStats()) {
