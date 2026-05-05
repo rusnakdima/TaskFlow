@@ -76,12 +76,13 @@ export class MainResolver implements Resolve<any> {
 
   private async loadTodoFromApi(todoId: string): Promise<any> {
     try {
-      const todo = await firstValueFrom(
+      const response = await firstValueFrom(
         this.apiProvider.crud("get", "todos", {
           id: todoId,
-          load: ["tasks", "tasks.subtasks", "tasks.comments", "categories", "assignees", "user"],
+          load: [],
         })
       );
+      const todo = Array.isArray(response) ? response[0] : response;
       if (todo) {
         this.storageService.addItem("todos", todo);
       }
@@ -93,12 +94,13 @@ export class MainResolver implements Resolve<any> {
 
   private async loadTaskFromApi(taskId: string, todoId: string): Promise<any> {
     try {
-      const task = await firstValueFrom(
+      const response = await firstValueFrom(
         this.apiProvider.crud("get", "tasks", {
           id: taskId,
-          load: ["subtasks", "comments", "assignees"],
+          load: [],
         })
       );
+      const task = Array.isArray(response) ? response[0] : response;
       if (task) {
         this.storageService.addItem("tasks", task);
       }
