@@ -382,19 +382,52 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   loadInitialTodos() {
-    const sub = this.dataSyncService
-      .loadInitialTodos(this.visibility, this.todoPagination().limit)
-      .subscribe({
-        next: (todos: Todo[]) => {
-          this.todoPagination.update((p) => ({
-            ...p,
-            skip: todos.length,
-            hasMore: todos.length === p.limit,
-            total: todos.length,
-          }));
+    const visibility = this.activeVisibility();
+
+    if (visibility === "all" || visibility === "private") {
+      const privateSub = this.dataService.getTodos({ visibility: "private" }).subscribe({
+        next: (privateTodos) => {
+          this.todosList = privateTodos;
+          if (visibility === "all") {
+            this.dataService.getTodos({ visibility: "all" }).subscribe({
+              next: (sharedTodos) => {
+                const privateIds = new Set(privateTodos.map((t) => t.id));
+                const newSharedTodos = sharedTodos.filter((t) => !privateIds.has(t.id) && t.visibility !== "private");
+                this.todosList = [...privateTodos, ...newSharedTodos];
+                this.todoPagination.update((p) => ({
+                  ...p,
+                  skip: this.todosList.length,
+                  hasMore: false,
+                  total: this.todosList.length,
+                }));
+              },
+            });
+          } else {
+            this.todoPagination.update((p) => ({
+              ...p,
+              skip: privateTodos.length,
+              hasMore: false,
+              total: privateTodos.length,
+            }));
+          }
         },
       });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+      this.destroyRef.onDestroy(() => privateSub.unsubscribe());
+    } else {
+      const sub = this.dataSyncService
+        .loadInitialTodos(visibility, this.todoPagination().limit)
+        .subscribe({
+          next: (todos: Todo[]) => {
+            this.todoPagination.update((p) => ({
+              ...p,
+              skip: todos.length,
+              hasMore: todos.length === p.limit,
+              total: todos.length,
+            }));
+          },
+        });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    }
   }
 
   loadMore() {
@@ -421,6 +454,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return option?.icon || "apps";
   }
 
+  onVisibilityChange(visibility: string): void {
+    this.activeVisibility.set(visibility as any);
+    this.loadInitialTodos();
+  }
+
   override ngOnInit(): void {
     super.ngOnInit();
 
@@ -428,6 +466,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     // Load view mode preference
     this.viewMode.set(this.loadViewModePreference());
+
+    // Load filter preferences
+    this.loadFilterPreferences();
 
     // Initialize bulk action service
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
@@ -471,20 +512,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     this.destroyRef.onDestroy(() => commentsSub.unsubscribe());
 
-    // Load initial data using DataLoaderService (which has pagination methods)
-    const initSub = this.dataSyncService
-      .loadInitialTodos(this.visibility, this.todoPagination().limit)
-      .subscribe({
-        next: (todos: Todo[]) => {
-          this.todoPagination.update((p) => ({
-            ...p,
-            skip: todos.length,
-            hasMore: todos.length === p.limit,
-            total: todos.length,
-          }));
-        },
-      });
-    this.destroyRef.onDestroy(() => initSub.unsubscribe());
+    // Subscribe to refresh shortcut (Ctrl+R)
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.loadInitialTodos();
+    });
+    this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
+
+    // Load initial todos
+    this.loadInitialTodos();
   }
 
   override ngOnDestroy(): void {
@@ -770,11 +805,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.listTodos());
-  }
-
-  override clearSelection(): void {
-    super.clearSelection();
-    this.bulkService.setSelectionState(0, false);
   }
 
   /**

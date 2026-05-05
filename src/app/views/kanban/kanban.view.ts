@@ -35,6 +35,7 @@ import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
@@ -83,6 +84,7 @@ export class KanbanView extends BaseListView implements OnInit {
   private dataSyncProvider = inject(ApiProvider);
   private dragDropService = inject(KanbanDragDropService);
   private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
 
@@ -128,6 +130,9 @@ export class KanbanView extends BaseListView implements OnInit {
   });
 
   private tasksList = signal<Task[]>([]);
+
+  private subtasksByTask = signal<{ [taskId: string]: Subtask[] }>({});
+  private subtasksLoading = signal<Set<string>>(new Set());
 
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
@@ -200,20 +205,25 @@ export class KanbanView extends BaseListView implements OnInit {
       }
     });
 
-    const todosSub = this.dataService.todos$.subscribe((todos) => {
-      this.todosList.set(todos);
+    this.dataService.getTodos({ visibility: "private" }).subscribe({
+      next: (todos) => {
+        this.todosList.set(todos);
+        this.dataService.getTodos({ visibility: "all" }).subscribe({
+          next: (sharedTodos) => {
+            const privateIds = new Set(todos.map((t) => t.id));
+            const newSharedTodos = sharedTodos.filter((t) => !privateIds.has(t.id) && t.visibility !== "private");
+            this.todosList.update((current) => [...current, ...newSharedTodos]);
+          },
+          error: (err) => console.error("Failed to load shared todos:", err),
+        });
+      },
+      error: (err) => console.error("Failed to load private todos:", err),
     });
-    this.destroyRef.onDestroy(() => todosSub.unsubscribe());
 
     const tasksSub = this.dataService.tasks$.subscribe((tasks) => {
       this.tasksList.set(tasks);
     });
     this.destroyRef.onDestroy(() => tasksSub.unsubscribe());
-
-    this.dataService.getTodos().subscribe({
-      next: (todos) => this.todosList.set(todos),
-      error: (err) => console.error("Failed to load todos:", err),
-    });
   }
 
   override ngOnDestroy(): void {
@@ -237,7 +247,53 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   onToggleExpand(task: Task): void {
-    this.toggleExpandTask(task);
+    const isExpanded = this.expandedTasks().has(task.id);
+
+    this.expandedTasks.update((set) => {
+      const newSet = new Set(set);
+      if (isExpanded) {
+        newSet.delete(task.id);
+      } else {
+        newSet.add(task.id);
+        this.loadSubtasksIfNeeded(task.id);
+      }
+      return newSet;
+    });
+  }
+
+  private loadSubtasksIfNeeded(taskId: string): void {
+    if (this.subtasksLoading().has(taskId)) return;
+
+    const alreadyLoaded = this.subtasksByTask().hasOwnProperty(taskId) &&
+      this.subtasksByTask()[taskId] !== undefined;
+
+    if (alreadyLoaded) return;
+
+    this.subtasksLoading.update((set) => {
+      const newSet = new Set(set);
+      newSet.add(taskId);
+      return newSet;
+    });
+
+    this.dataService.getSubtasks(taskId).subscribe({
+      next: (subtasks) => {
+        this.subtasksByTask.update((map) => ({ ...map, [taskId]: subtasks }));
+        this.storageService.setCollection("subtasks", subtasks);
+        this.subtasksLoading.update((set) => {
+          const newSet = new Set(set);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      },
+      error: (err) => {
+        console.error("Failed to load subtasks for task", taskId, err);
+        this.subtasksLoading.update((set) => {
+          const newSet = new Set(set);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      },
+    });
   }
 
   onMoveTask(event: { taskId: string; newStatus: TaskStatus }): void {
@@ -270,7 +326,8 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   getSubtasksForTask(taskId?: string): Subtask[] {
-    return [];
+    if (!taskId) return [];
+    return this.subtasksByTask()[taskId] || [];
   }
 
   getCompletedSubtasksCount(taskId?: string): number {

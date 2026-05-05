@@ -19,6 +19,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 
 @Component({
   selector: "app-profile",
@@ -36,15 +37,15 @@ export class ProfileView implements OnInit, OnDestroy {
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
-    private dataService: DataService
+    private dataService: DataService,
+    private storageService: StorageService
   ) {}
 
   userId: string = "";
-  private profileData: Profile | null = null;
 
-  profile = computed(() => this.profileData);
-  currentUsername = computed(() => this.profileData?.user?.username || "");
-  currentEmail = computed(() => this.profileData?.user?.email || "");
+  profile = computed(() => this.storageService.profile());
+  currentUsername = computed(() => this.storageService.profile()?.user?.username || "");
+  currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
 
   // Offline auth signals
   canExportData = signal(false);
@@ -64,11 +65,6 @@ export class ProfileView implements OnInit, OnDestroy {
 
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
-
-    const profileSub = this.dataService.profile$.subscribe((profile) => {
-      this.profileData = profile;
-    });
-    this.destroyRef.onDestroy(() => profileSub.unsubscribe());
   }
 
   ngOnDestroy(): void {
@@ -163,7 +159,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private approveQrLogin(token: string): void {
-    const username = this.profileData?.user?.username;
+    const username = this.storageService.profile()?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in to approve QR login");
       return;
@@ -187,7 +183,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private completeDesktopLoginFromMobileScan(token: string): void {
-    const username = this.profileData?.user?.username;
+    const username = this.storageService.profile()?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in");
       return;
@@ -210,7 +206,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   async showMyQrCode(): Promise<void> {
-    const username = this.profileData?.user?.username;
+    const username = this.storageService.profile()?.user?.username;
     const userId = this.authService.getValueByKey("id");
     if (!username || !userId) {
       this.notifyService.showError("You must be logged in to show QR code");

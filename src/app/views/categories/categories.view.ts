@@ -12,12 +12,14 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Category } from "@models/category.model";
+import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { AdminService } from "@services/data/admin.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -56,6 +58,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   private dataService = inject(DataService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
+  private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
 
   private categoriesList = signal<Category[]>([]);
@@ -156,23 +159,29 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.onFormClose();
   }
 
-  deleteCategory(categoryId: string) {
+  async archiveCategory(categoryId: string) {
     if (
       confirm(
-        "Are you sure you want to delete this category? This will remove it from all associated todos."
+        "Are you sure you want to archive this category? This will remove it from all associated todos."
       )
     ) {
-      const sub = this.dataService.getCategories().subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Category deleted successfully");
+      try {
+        const response = await this.adminService.toggleDeleteStatusLocal("categories", categoryId);
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showSuccess("Category archived successfully");
+          this.dataLoaderService.loadInitialCategories().subscribe();
           this.searchQuery.set("");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete category");
-        },
-      });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
+        } else {
+          this.notifyService.showError(response.message || "Failed to archive category");
+        }
+      } catch (err: any) {
+        this.notifyService.showError(err.message || "Failed to archive category");
+      }
     }
+  }
+
+  deleteCategory(categoryId: string) {
+    this.archiveCategory(categoryId);
   }
 
   cancelEdit() {
@@ -220,8 +229,8 @@ export class CategoriesView extends BaseListView implements OnInit {
     const { action, item } = event;
     if (action === "edit") {
       this.editCategory(item);
-    } else if (action === "delete") {
-      this.deleteCategory(item.id);
+    } else if (action === "archive") {
+      this.archiveCategory(item.id);
     }
   }
 

@@ -25,6 +25,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
@@ -43,31 +44,27 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 export class ManageProfileView implements OnInit {
   isEditMode: boolean = false;
   private destroyRef = inject(DestroyRef);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private dataSyncProvider = inject(ApiProvider);
+  private notifyService = inject(NotifyService);
+  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
+private profileRequiredService = inject(ProfileRequiredService);
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private dataSyncProvider: ApiProvider,
-    private notifyService: NotifyService,
-    private dataService: DataService,
-    private profileRequiredService: ProfileRequiredService
-  ) {
-    this.form = fb.group({
-      _id: [""],
-      id: [""],
-      name: ["", Validators.required],
-      last_name: ["", Validators.required],
-      bio: [""],
-      image_url: [""],
-      original_image_url: [""],
-      user_id: ["", Validators.required],
-      created_at: [""],
-      updated_at: [""],
-    });
-  }
-
-  form: FormGroup;
+  form: FormGroup = this.fb.group({
+    _id: [""],
+    id: [""],
+    name: ["", Validators.required],
+    last_name: ["", Validators.required],
+    bio: [""],
+    image_url: [""],
+    original_image_url: [""],
+    user_id: ["", Validators.required],
+    created_at: [""],
+    updated_at: [""],
+  });
 
   formFields: Array<FormField> = [
     {
@@ -106,13 +103,27 @@ export class ManageProfileView implements OnInit {
 
     this.form.controls["user_id"].setValue(userId);
 
-    const profileSub = this.dataService.profile$.subscribe((profile) => {
-      if (profile && profile.user_id === userId) {
-        this.isEditMode = true;
-        this.form.patchValue(profile);
-      }
-    });
-    this.destroyRef.onDestroy(() => profileSub.unsubscribe());
+    let profile = this.storageService.profile();
+    console.debug("[ManageProfileView] ngOnInit, profile from storage:", profile);
+    
+    if (!profile) {
+      this.dataService.getProfile().subscribe({
+        next: (p) => {
+          profile = p;
+          console.debug("[ManageProfileView] getProfile returned:", profile);
+          if (profile && profile.user_id === userId) {
+            this.isEditMode = true;
+            this.form.patchValue(profile);
+          }
+        },
+        error: (err) => {
+          console.error("[ManageProfileView] getProfile error:", err);
+        }
+      });
+    } else if (profile.user_id === userId) {
+      this.isEditMode = true;
+      this.form.patchValue(profile);
+    }
   }
 
   onSubmit() {
@@ -125,24 +136,28 @@ export class ManageProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
+      console.debug("[ManageProfileView] onSubmit, body:", body, "isEditMode:", this.isEditMode);
 
       if (this.isEditMode) {
-        const { _id, ...updateData } = body;
-        const sub = this.dataService.getProfile().subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Profile updated successfully");
-            this.profileRequiredService.setProfileRequiredMode(false);
-            this.router.navigate(["/profile"]);
-          },
-          error: (err: unknown) => {
-            const message = err instanceof Error ? err.message : "Failed to update profile";
-            this.notifyService.showError(message);
-          },
-        });
-        this.destroyRef.onDestroy(() => sub.unsubscribe());
+        const profile = this.storageService.profile();
+        if (profile) {
+          const { _id, ...updateData } = body;
+          const sub = this.dataService.updateProfile(profile.id, updateData).subscribe({
+            next: (updated) => {
+              this.notifyService.showSuccess("Profile updated successfully");
+              this.profileRequiredService.setProfileRequiredMode(false);
+              this.router.navigate(["/profile"]);
+            },
+            error: (err: unknown) => {
+              const message = err instanceof Error ? err.message : "Failed to update profile";
+              this.notifyService.showError(message);
+            },
+          });
+          this.destroyRef.onDestroy(() => sub.unsubscribe());
+        }
       } else {
-        const sub = this.dataService.getPublicProfiles().subscribe({
-          next: () => {
+        const sub = this.dataService.createProfile(body).subscribe({
+          next: (created) => {
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
             window.location.href = "/";
