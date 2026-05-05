@@ -137,6 +137,92 @@ impl VisibilitySyncService {
     count
   }
 
+  async fn sync_todo_related_entities<P: DatabaseProvider, S: DatabaseProvider>(
+    primary: &P,
+    secondary: &S,
+    todos: &[Value],
+    todo_id: &str,
+    new_visibility: &str,
+  ) -> usize {
+    let mut synced_count = 0;
+
+    let tasks = primary
+      .find_many(
+        "tasks",
+        Some(&Self::eq_filter("todo_id", todo_id)),
+        None,
+        None,
+        None,
+        false,
+      )
+      .await
+      .unwrap_or_default();
+
+    let task_ids: Vec<String> = tasks
+      .iter()
+      .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
+      .collect();
+
+    let subtasks = primary
+      .find_many(
+        "subtasks",
+        Some(&Self::in_filter("task_id", &task_ids)),
+        None,
+        None,
+        None,
+        false,
+      )
+      .await
+      .unwrap_or_default();
+
+    let subtask_ids: Vec<String> = subtasks
+      .iter()
+      .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
+      .collect();
+
+    let comments = primary
+      .find_many(
+        "comments",
+        Some(&Self::comment_filter(&task_ids, &subtask_ids)),
+        None,
+        None,
+        None,
+        false,
+      )
+      .await
+      .unwrap_or_default();
+
+    let chats = primary
+      .find_many(
+        "chats",
+        Some(&Self::eq_filter("todo_id", todo_id)),
+        None,
+        None,
+        None,
+        false,
+      )
+      .await
+      .unwrap_or_default();
+
+    if let Some(todo) = todos
+      .iter()
+      .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(todo_id))
+    {
+      if Self::sync_todo(primary, secondary, "todos", todo, todo_id, new_visibility).await {
+        synced_count += 1;
+      }
+    }
+
+    synced_count += Self::sync_batch(primary, secondary, "tasks", &tasks, new_visibility).await;
+    synced_count +=
+      Self::sync_batch(primary, secondary, "subtasks", &subtasks, new_visibility).await;
+    synced_count +=
+      Self::sync_batch(primary, secondary, "comments", &comments, new_visibility).await;
+    synced_count += Self::sync_batch(primary, secondary, "chats", &chats, new_visibility).await;
+
+    synced_count
+  }
+
   pub async fn sync_todo_visibility(
     json_provider: &JsonProvider,
     mongodb_provider: Option<&Arc<MongoProvider>>,
@@ -144,7 +230,6 @@ impl VisibilitySyncService {
     source_provider: ProviderType,
     target_provider: ProviderType,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mut synced_count = 0;
     let new_visibility = if target_provider == ProviderType::Mongo {
       "shared"
     } else {
@@ -186,190 +271,61 @@ impl VisibilitySyncService {
       .iter()
       .any(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id));
 
-    if source_provider == ProviderType::Json {
-      let todos = if todo_in_json {
-        todos_from_json
-      } else if todo_in_mongo {
-        todos_from_mongo
-      } else {
-        return Ok(success_response(DataValue::Number(0.0)));
-      };
-
-      let tasks = json_provider
-        .find_many(
-          "tasks",
-          Some(&Self::eq_filter("todo_id", &todo_id)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-
-      let task_ids: Vec<String> = tasks
-        .iter()
-        .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
-        .collect();
-
-      let subtasks = json_provider
-        .find_many(
-          "subtasks",
-          Some(&Self::in_filter("task_id", &task_ids)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-
-      let subtask_ids: Vec<String> = subtasks
-        .iter()
-        .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
-        .collect();
-
-      let comments = json_provider
-        .find_many(
-          "comments",
-          Some(&Self::comment_filter(&task_ids, &subtask_ids)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-
-      let chats = json_provider
-        .find_many(
-          "chats",
-          Some(&Self::eq_filter("todo_id", &todo_id)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-
-      if let Some(mongo) = mongodb_provider {
-        let mongo = &**mongo;
-        if let Some(todo) = todos
-          .iter()
-          .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id))
-        {
-          if Self::sync_todo(
+    let synced_count = if source_provider == ProviderType::Json {
+      if todo_in_json {
+        if let Some(mongo) = mongodb_provider {
+          Self::sync_todo_related_entities(
             json_provider,
-            mongo,
-            "todos",
-            todo,
+            &**mongo,
+            &todos_from_json,
             &todo_id,
             new_visibility,
           )
           .await
-          {
-            synced_count += 1;
-          }
+        } else {
+          0
         }
-
-        synced_count +=
-          Self::sync_batch(json_provider, mongo, "tasks", &tasks, new_visibility).await;
-        synced_count +=
-          Self::sync_batch(json_provider, mongo, "subtasks", &subtasks, new_visibility).await;
-        synced_count +=
-          Self::sync_batch(json_provider, mongo, "comments", &comments, new_visibility).await;
-        synced_count +=
-          Self::sync_batch(json_provider, mongo, "chats", &chats, new_visibility).await;
+      } else if todo_in_mongo {
+        if let Some(mongo) = mongodb_provider {
+          Self::sync_todo_related_entities(
+            json_provider,
+            &**mongo,
+            &todos_from_mongo,
+            &todo_id,
+            new_visibility,
+          )
+          .await
+        } else {
+          0
+        }
+      } else {
+        0
       }
     } else if let Some(mongo) = mongodb_provider {
-      let mongo = &**mongo;
-      let todos = if todo_in_mongo {
-        todos_from_mongo
-      } else if todo_in_json {
-        todos_from_json
-      } else {
-        return Ok(success_response(DataValue::Number(0.0)));
-      };
-
-      let tasks = mongo
-        .find_many(
-          "tasks",
-          Some(&Self::eq_filter("todo_id", &todo_id)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-      let task_ids: Vec<String> = tasks
-        .iter()
-        .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
-        .collect();
-      let subtasks = mongo
-        .find_many(
-          "subtasks",
-          Some(&Self::in_filter("task_id", &task_ids)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-      let subtask_ids: Vec<String> = subtasks
-        .iter()
-        .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
-        .collect();
-      let comments = mongo
-        .find_many(
-          "comments",
-          Some(&Self::comment_filter(&task_ids, &subtask_ids)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-      let chats = mongo
-        .find_many(
-          "chats",
-          Some(&Self::eq_filter("todo_id", &todo_id)),
-          None,
-          None,
-          None,
-          false,
-        )
-        .await
-        .unwrap_or_default();
-
-      if let Some(todo) = todos
-        .iter()
-        .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(&todo_id))
-      {
-        if Self::sync_todo(
-          mongo,
+      if todo_in_mongo {
+        Self::sync_todo_related_entities(
+          &**mongo,
           json_provider,
-          "todos",
-          todo,
+          &todos_from_mongo,
           &todo_id,
           new_visibility,
         )
         .await
-        {
-          synced_count += 1;
-        }
+      } else if todo_in_json {
+        Self::sync_todo_related_entities(
+          &**mongo,
+          json_provider,
+          &todos_from_json,
+          &todo_id,
+          new_visibility,
+        )
+        .await
+      } else {
+        0
       }
-
-      synced_count += Self::sync_batch(mongo, json_provider, "tasks", &tasks, new_visibility).await;
-      synced_count +=
-        Self::sync_batch(mongo, json_provider, "subtasks", &subtasks, new_visibility).await;
-      synced_count +=
-        Self::sync_batch(mongo, json_provider, "comments", &comments, new_visibility).await;
-      synced_count += Self::sync_batch(mongo, json_provider, "chats", &chats, new_visibility).await;
-    }
+    } else {
+      0
+    };
 
     Ok(success_response(DataValue::Number(synced_count as f64)))
   }

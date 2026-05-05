@@ -52,6 +52,10 @@ impl RepositoryService {
     visibility: Option<&str>,
   ) -> Result<DataProvider<'_>, ResponseModel> {
     let use_json = self.use_json_provider(table, visibility);
+    println!(
+      "[RepositoryService] get_provider: table={}, visibility={:?}, use_json={}",
+      table, visibility, use_json
+    );
 
     if use_json {
       Ok(DataProvider::Json(&self.json_provider))
@@ -104,7 +108,7 @@ impl RepositoryService {
     vis == "private"
   }
 
-  fn get_visibility_from_data(&self, table: &str, data: &Value) -> Option<String> {
+  fn get_visibility_from_data(&self, _table: &str, data: &Value) -> Option<String> {
     data
       .get("visibility")
       .and_then(|v| v.as_str())
@@ -289,6 +293,10 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
+    println!(
+      "[RepositoryService] execute: operation={}, table={}, id={:?}, visibility={:?}",
+      operation, table, id, visibility
+    );
     match operation.as_str() {
       "getAll" => self.handle_get_all(table, filter, load, visibility).await,
       "get" => self.handle_get(table, id, load, visibility, filter).await,
@@ -325,14 +333,24 @@ impl RepositoryService {
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_val = filter.unwrap_or(json!({}));
+    println!(
+      "[RepositoryService] handle_get_all START: table={}, visibility={:?}, filter={}",
+      table, visibility, filter_val
+    );
 
     let filter_opt = self.build_filter(&filter_val);
 
-    let _use_json = self.use_json_provider(&table, visibility.as_deref());
+    let use_json = self.use_json_provider(&table, visibility.as_deref());
+    println!(
+      "[RepositoryService] use_json_provider={}, visibility={:?}",
+      use_json, visibility
+    );
 
     let provider = self.get_provider(&table, visibility.as_deref())?;
+    println!("[RepositoryService] provider selected");
 
     let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
+    println!("[RepositoryService] find_many returned {} docs", docs.len());
 
     let load_paths = Self::parse_load_param(load);
 
@@ -355,6 +373,10 @@ impl RepositoryService {
     };
 
     let docs = self.filter_out_deleted(docs);
+    println!(
+      "[RepositoryService] handle_get_all END: returning {} docs",
+      docs.len()
+    );
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -415,14 +437,20 @@ impl RepositoryService {
     visibility: Option<String>,
     filter: Option<Value>,
   ) -> Result<ResponseModel, ResponseModel> {
+    println!(
+      "[RepositoryService] handle_get: table={}, id={:?}, filter={:?}, visibility={:?}",
+      table, id, filter, visibility
+    );
     let provider = self.get_provider(&table, visibility.as_deref())?;
 
-    let docs: Vec<Value> = if let Some(id_val) = id {
+    let docs: Vec<Value> = if let Some(ref id_val) = id {
+      println!("[RepositoryService] find_by_id: {}", id_val);
       match provider.find_by_id(&table, &id_val).await? {
         Some(d) => vec![d],
         None => return Err(err_response("Document not found")),
       }
     } else if let Some(f) = &filter {
+      println!("[RepositoryService] find_many with filter: {:?}", f);
       let filter_obj = nosql_orm::query::Filter::from_json(f)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
       provider.find_many(&table, Some(&filter_obj)).await?
@@ -430,9 +458,14 @@ impl RepositoryService {
       return Err(err_response("ID or filter is required for get operation"));
     };
 
+    println!("[RepositoryService] handle_get found {} docs", docs.len());
     let load_paths = Self::parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
+      println!(
+        "[RepositoryService] loading relations for: {:?}",
+        load_paths
+      );
       self
         .load_relations_via_nosql_orm(
           docs,
@@ -445,9 +478,22 @@ impl RepositoryService {
       docs
     };
 
-    Ok(success_response(DataValue::Array(
-      self.apply_projection_recursive(docs),
-    )))
+    println!(
+      "[RepositoryService] handle_get returning success with {} docs",
+      docs.len()
+    );
+    let projected = self.apply_projection_recursive(docs);
+    if id.is_some() {
+      if !projected.is_empty() {
+        Ok(success_response(DataValue::Object(
+          projected.into_iter().next().unwrap(),
+        )))
+      } else {
+        Err(err_response("Document not found after projection"))
+      }
+    } else {
+      Ok(success_response(DataValue::Array(projected)))
+    }
   }
 
   async fn handle_create(
@@ -618,7 +664,7 @@ impl RepositoryService {
       None => return Ok(task_record),
     };
 
-    let github_repo_id = match todo.get("github_repo_id").and_then(|v| v.as_str()) {
+    let _github_repo_id = match todo.get("github_repo_id").and_then(|v| v.as_str()) {
       Some(id) if !id.is_empty() => id,
       _ => return Ok(task_record),
     };

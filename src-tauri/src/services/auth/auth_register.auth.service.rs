@@ -24,7 +24,7 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{err_response, err_response_formatted, log_response};
+use crate::helpers::response_helper::{err_response, log_response};
 
 #[derive(Clone)]
 pub struct AuthRegisterService {

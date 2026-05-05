@@ -23,10 +23,16 @@ pub async fn manage_data(
   load: Option<String>,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state
+  println!(
+    "[manage_data] START: operation={}, table={}, id={:?}, filter={:?}, visibility={:?}",
+    operation, table, id, filter, visibility
+  );
+  let result = state
     .repository_service
-    .execute(operation, table, id, data, filter, load, visibility)
-    .await
+    .execute(operation, table.clone(), id, data, filter, load, visibility)
+    .await;
+  println!("[manage_data] END: table={}", table);
+  result
 }
 
 // ==================== SYNC OPERATIONS ====================

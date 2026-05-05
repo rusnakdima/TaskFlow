@@ -6,7 +6,6 @@ use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::query::Filter;
 
 /* services */
 use super::auth_data_sync::AuthDataSyncService;
@@ -18,11 +17,10 @@ use crate::entities::{
   login_form_entity::LoginForm,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
   table_entity::TableModelType,
-  user_entity::UserEntity,
 };
 
 /* helpers */
-use crate::helpers::response_helper::err_response;
+use crate::helpers::{auth_helper::find_user_by_username, response_helper::err_response};
 
 #[derive(Clone)]
 pub struct AuthLoginService {
@@ -50,58 +48,13 @@ impl AuthLoginService {
   pub async fn login(&self, login_data: LoginForm) -> Result<ResponseModel, ResponseModel> {
     let username = login_data.username;
     let password = login_data.password;
-    let table_name = TableModelType::User.table_name();
-    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
 
-    let user_val = match self
-      .json_provider
-      .find_many(table_name, Some(&filter), None, None, None, true)
-      .await
-    {
-      Ok(mut users) => {
-        if users.is_empty() {
-          None
-        } else {
-          Some(users.remove(0))
-        }
-      }
-      Err(_) => None,
-    };
-
-    let user_val = match user_val {
-      Some(v) => v,
-      None => {
-        let mongo = match self.mongodb_provider.as_ref() {
-          Some(m) => m,
-          None => {
-            return Err(err_response(
-              "User account not found. Please register again.",
-            ))
-          }
-        };
-        let mut users = mongo
-          .find_many(table_name, Some(&filter), None, None, None, true)
-          .await
-          .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-        match users.pop() {
-          Some(u) => {
-            if let Some(mongo_user) = self.sync_user_to_json(&u).await.ok().flatten() {
-              mongo_user
-            } else {
-              u
-            }
-          }
-          None => {
-            return Err(err_response(
-              "User account not found. Please register again.",
-            ))
-          }
-        }
-      }
-    };
-
-    let user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+    let user = find_user_by_username(
+      &self.json_provider,
+      self.mongodb_provider.as_ref(),
+      &username,
+    )
+    .await?;
 
     let valid = verify(password, &user.password)
       .map_err(|e| err_response(&format!("Error verifying password: {}", e)))?;
@@ -134,6 +87,7 @@ impl AuthLoginService {
     })
   }
 
+  #[allow(dead_code)]
   async fn sync_user_to_json(
     &self,
     mongo_user: &serde_json::Value,
