@@ -10,6 +10,7 @@ import {
   inject,
   computed,
   HostListener,
+  DestroyRef,
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
@@ -21,7 +22,7 @@ import {
   DragRef,
 } from "@angular/cdk/drag-drop";
 import { forkJoin } from "rxjs";
-import { filter } from "rxjs/operators";
+import { filter, map } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -31,17 +32,17 @@ import { MatMenuModule } from "@angular/material/menu";
 /* models */
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
+import { Comment } from "@models/comment.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/core/storage.service";
 import { AdminStorageService } from "@services/core/admin-storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
@@ -120,17 +121,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private storageService = inject(StorageService);
   private adminStorageService = inject(AdminStorageService);
   private dataSyncProvider = inject(ApiProvider);
-  private dataLoaderService = inject(DataLoaderService);
+  private dataService = inject(DataService);
+  private destroyRef = inject(DestroyRef);
 
   protected getItems(): { id: string }[] {
     return [];
   }
 
-  // State
-  todos = this.storageService.todos;
+  // State - local todos list from DataService subscription
+  private todosList: Todo[] = [];
+  private tasksList: Task[] = [];
+  private commentsList: Comment[] = [];
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   showStats = signal(false);
@@ -151,10 +154,26 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     { id: "public", label: "Public", icon: "public" },
   ];
 
+  private getPrivateTodos(): Todo[] {
+    return this.todosList.filter((t) => t.visibility === "private" && !t.deleted_at);
+  }
+
+  private getSharedTodos(): Todo[] {
+    return this.todosList.filter((t) => t.visibility === "shared" && !t.deleted_at);
+  }
+
+  private getPublicTodos(): Todo[] {
+    return this.todosList.filter((t) => t.visibility === "public" && !t.deleted_at);
+  }
+
+  private getTasksByTodoId(todoId: string): Task[] {
+    return this.tasksList.filter((t) => t.todo_id === todoId && !t.deleted_at);
+  }
+
   groupedTodos = computed(() => {
-    const privateTodos = this.storageService.privateTodos();
-    const sharedTodos = this.storageService.sharedTodos();
-    const publicTodos = this.storageService.publicTodos();
+    const privateTodos = this.getPrivateTodos();
+    const sharedTodos = this.getSharedTodos();
+    const publicTodos = this.getPublicTodos();
 
     const deletedUserIds = new Set(
       this.adminStorageService
@@ -163,13 +182,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .map((u) => u.id)
     );
 
-    const filter = this.activeFilter();
+    const activeFilter = this.activeFilter();
     const query = this.searchQuery().toLowerCase().trim();
 
-    const applyFilters = (todos: Todo[]) => {
+    const applyFilters = (todos: Todo[]): Todo[] => {
       let filtered = todos.filter((todo) => !deletedUserIds.has(todo.user_id));
 
-      switch (filter) {
+      switch (activeFilter) {
         case "active":
           filtered = filtered.filter((todo) => !this.isCompleted(todo));
           break;
@@ -183,7 +202,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         case "medium":
         case "high":
         case "urgent":
-          filtered = FilterHelper.filterByPriority(filtered, filter);
+          filtered = FilterHelper.filterByPriority(filtered, activeFilter);
           break;
       }
 
@@ -237,16 +256,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   // Only counts comments where user is NOT the author AND hasn't read
   getTodoUnreadCommentsCount(todo: Todo): number {
     const userId = this.authService.getValueByKey("id");
-    const tasks = this.storageService.getTasksByTodoId(todo.id);
+    const tasks = this.getTasksByTodoId(todo.id);
     if (!userId || tasks.length === 0) return 0;
 
     let count = 0;
     for (const task of tasks) {
-      const taskComments = this.storageService
-        .comments()
-        .filter((c) => c.task_id === task.id && !c.deleted_at);
+      const taskComments = this.commentsList.filter(
+        (c: Comment) => c.task_id === task.id && !c.deleted_at
+      );
       if (taskComments.length === 0) continue;
-      count += taskComments.filter((c: any) => {
+      count += taskComments.filter((c: Comment) => {
         if (c.user_id === userId) return false;
         if (c.read_by && c.read_by.includes(userId)) return false;
         if (c.subtask_id) return false;
@@ -363,7 +382,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   loadInitialTodos() {
-    this.dataLoaderService
+    const sub = this.dataSyncService
       .loadInitialTodos(this.visibility, this.todoPagination().limit)
       .subscribe({
         next: (todos: Todo[]) => {
@@ -375,6 +394,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           }));
         },
       });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   loadMore() {
@@ -382,7 +402,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataLoaderService.loadMoreTodos(this.visibility).subscribe({
+    const sub = this.dataSyncService.loadMoreTodos(this.visibility).subscribe({
       next: (todos: Todo[]) => {
         this.todoPagination.update((p) => ({
           ...p,
@@ -393,6 +413,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }));
       },
     });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   getCurrentVisibilityIcon(): string {
@@ -411,9 +432,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     // Initialize bulk action service
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
     this.bulkService.updateTotalCount(
-      this.isSharedMode()
-        ? this.storageService.sharedTodos().length
-        : this.storageService.privateTodos().length
+      this.isSharedMode() ? this.getSharedTodos().length : this.getPrivateTodos().length
     );
 
     // Clear selection when navigating away from this view
@@ -433,6 +452,39 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     document.addEventListener("keydown", this.keydownHandler);
     this.userId.set(this.authService.getValueByKey("id"));
+
+    // Subscribe to dataService todos$ for real-time updates
+    const todosSub = this.dataService.todos$.subscribe((todos) => {
+      this.todosList = todos;
+    });
+    this.destroyRef.onDestroy(() => todosSub.unsubscribe());
+
+    // Subscribe to dataService tasks$ for real-time updates
+    const tasksSub = this.dataService.tasks$.subscribe((tasks) => {
+      this.tasksList = tasks;
+    });
+    this.destroyRef.onDestroy(() => tasksSub.unsubscribe());
+
+    // Subscribe to dataService comments$ for real-time updates
+    const commentsSub = this.dataService.comments$.subscribe((comments) => {
+      this.commentsList = comments;
+    });
+    this.destroyRef.onDestroy(() => commentsSub.unsubscribe());
+
+    // Load initial data using DataLoaderService (which has pagination methods)
+    const initSub = this.dataSyncService
+      .loadInitialTodos(this.visibility, this.todoPagination().limit)
+      .subscribe({
+        next: (todos: Todo[]) => {
+          this.todoPagination.update((p) => ({
+            ...p,
+            skip: todos.length,
+            hasMore: todos.length === p.limit,
+            total: todos.length,
+          }));
+        },
+      });
+    this.destroyRef.onDestroy(() => initSub.unsubscribe());
   }
 
   override ngOnDestroy(): void {
@@ -457,13 +509,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         todos = this.allTodosFlat();
         break;
       case "private":
-        todos = this.storageService.privateTodos();
+        todos = this.getPrivateTodos();
         break;
       case "shared":
-        todos = this.storageService.sharedTodos();
+        todos = this.getSharedTodos();
         break;
       case "public":
-        todos = this.storageService.publicTodos();
+        todos = this.getPublicTodos();
         break;
     }
 
@@ -488,8 +540,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const visibility = this.isSharedMode() ? "shared" : "private";
-      this.dataSyncProvider.crud("delete", "todos", { id: todoId, visibility }).subscribe({
+      const sub = this.dataService.deleteTodo(todoId!).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo deleted successfully");
         },
@@ -497,13 +548,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showError(err.message || "Failed to delete todo");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
   archiveTodoById(todoId?: string): void {
     if (confirm("Are you sure you want to archive this project?")) {
-      const visibility = this.isSharedMode() ? "shared" : "private";
-      this.dataSyncProvider.crud("delete", "todos", { id: todoId, visibility }).subscribe({
+      const sub = this.dataService.deleteTodo(todoId!).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo archived successfully");
         },
@@ -511,41 +562,34 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showError(err.message || "Failed to archive todo");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
   restoreTodoById(todoId?: string): void {
-    const visibility = this.isSharedMode() ? "shared" : "private";
-    this.dataSyncProvider
-      .crud("update", "todos", { id: todoId, visibility, data: { deleted_at: null } })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo restored successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to restore todo");
-        },
-      });
+    const sub = this.dataService.updateTodo(todoId!, { deleted_at: null }).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Todo restored successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to restore todo");
+      },
+    });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
     // TODO: type todo and event properly
     const { field, value } = event;
-    const visibility = this.isSharedMode() ? "shared" : "private";
-    this.dataSyncProvider
-      .crud("update", "todos", {
-        id: todo.id,
-        data: { [field]: value },
-        visibility,
-      })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Project updated successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to update project");
-        },
-      });
+    const sub = this.dataService.updateTodo(todo.id, { [field]: value }).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Project updated successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to update project");
+      },
+    });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   onRowClick(todo: any): void {
@@ -565,16 +609,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         break;
       case "archive":
         if (confirm(`Are you sure you want to archive this project?`)) {
-          this.dataSyncProvider
-            .crud("delete", "todos", {
-              id: item.id,
-              visibility: "private",
-            })
-            .subscribe({
-              next: () => this.notifyService.showSuccess("Project archived successfully"),
-              error: (err) =>
-                this.notifyService.showError(err.message || "Failed to archive project"),
-            });
+          const sub = this.dataService.deleteTodo(item.id).subscribe({
+            next: () => this.notifyService.showSuccess("Project archived successfully"),
+            error: (err) =>
+              this.notifyService.showError(err.message || "Failed to archive project"),
+          });
+          this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
         break;
       case "delete":
@@ -691,7 +731,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
    * Check if todo is completed
    */
   isCompleted(todo: Todo): boolean {
-    const listTasks = this.storageService.getTasksByTodoId(todo.id);
+    const listTasks = this.getTasksByTodoId(todo.id);
     if (listTasks.length === 0) return false;
     const listCompletedTasks = listTasks.filter(
       (task: Task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
@@ -745,14 +785,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     if (selected.size === 0) return;
 
     if (confirm(`Are you sure you want to archive ${selected.size} project(s)?`)) {
-      const requests = Array.from(selected).map((todoId) =>
-        this.dataSyncProvider.crud("delete", "todos", {
-          id: todoId,
-          visibility: "private",
-        })
-      );
+      const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
 
-      forkJoin(requests).subscribe({
+      const sub = forkJoin(requests).subscribe({
         next: () => {
           this.notifyService.showSuccess(`${selected.size} project(s) archived successfully`);
           this.clearSelection();
@@ -761,6 +796,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showError(err.message || "Failed to archive projects");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
@@ -772,14 +808,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     if (selected.size === 0) return;
 
     if (confirm(`Are you sure you want to delete ${selected.size} project(s)?`)) {
-      const requests = Array.from(selected).map((todoId) =>
-        this.dataSyncProvider.crud("delete", "todos", {
-          id: todoId,
-          visibility: "private",
-        })
-      );
+      const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
 
-      forkJoin(requests).subscribe({
+      const sub = forkJoin(requests).subscribe({
         next: () => {
           this.notifyService.showSuccess(`${selected.size} project(s) deleted successfully`);
           this.clearSelection();
@@ -788,6 +819,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showError(err.message || "Failed to delete projects");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 }
