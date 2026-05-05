@@ -20,6 +20,12 @@ import { FormsModule } from "@angular/forms";
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
+/* components */
+import {
+  SubtaskCommentsListComponent,
+  SubtaskCommentGroup,
+} from "@components/subtask-comments-list/subtask-comments-list.component";
+
 /* models */
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
@@ -36,7 +42,7 @@ import { ScrollingMixin } from "@mixins/scrolling.mixin";
 @Component({
   selector: "app-comments",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, SubtaskCommentsListComponent],
   templateUrl: "./comments.component.html",
 })
 export class CommentsComponent
@@ -54,10 +60,18 @@ export class CommentsComponent
   @Input() highlightCommentId?: string;
   @Input() autoOpen?: boolean = false;
   @Input() todo: Todo | null = null;
+  @Input() hasMoreComments: boolean = false;
+  @Input() loadingMore: boolean = false;
+  @Input() showSubtaskList: boolean = false;
+  @Input() subtaskCommentGroups: SubtaskCommentGroup[] = [];
+  @Input() taskIdForSubtasks?: string;
+  @Input() highlightSubtaskId?: string;
 
   @Output() addCommentEvent = new EventEmitter<string>();
   @Output() deleteCommentEvent = new EventEmitter<string>();
   @Output() markAsReadEvent = new EventEmitter<string[]>();
+  @Output() loadMoreEvent = new EventEmitter<void>();
+  @Output() addSubtaskCommentEvent = new EventEmitter<{ content: string; subtask_id: string }>();
 
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
 

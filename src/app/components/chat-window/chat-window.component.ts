@@ -58,6 +58,7 @@ export class ChatWindowComponent
   messages = signal<Chat[]>([]);
   hasMoreMessages = signal(true);
   loadingOlder = signal(false);
+  loadingInitial = signal(false);
   oldestTimestamp = signal<string | null>(null);
   currentTodoId = "";
 
@@ -104,16 +105,23 @@ export class ChatWindowComponent
   }
 
   private loadInitialChats(todoId: string) {
-    this.dataSync.crud<Chat[]>("getAll", "chats", { filter: { todo_id: todoId } }).subscribe({
-      next: (chats) => {
-        const reversed = [...chats].reverse();
-        this.messages.set(reversed);
-        if (chats.length > 0) {
-          this.oldestTimestamp.set(chats[chats.length - 1].created_at);
-          this.hasMoreMessages.set(chats.length >= 10);
-        }
-      },
-    });
+    if (this.loadingInitial()) return;
+    this.loadingInitial.set(true);
+
+    this.dataSync
+      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId }, load: ["user"] })
+      .subscribe({
+        next: (chats) => {
+          const reversed = [...chats].reverse();
+          this.messages.set(reversed);
+          if (chats.length > 0) {
+            this.oldestTimestamp.set(chats[chats.length - 1].created_at);
+            this.hasMoreMessages.set(chats.length >= 10);
+          }
+        },
+        complete: () => this.loadingInitial.set(false),
+        error: () => this.loadingInitial.set(false),
+      });
   }
 
   loadOlderChats(todoId: string) {
@@ -125,7 +133,7 @@ export class ChatWindowComponent
     this.loadingOlder.set(true);
 
     this.dataSync
-      .crud<Chat[]>("getAll", "chats", { filter: { todo_id: todoId, before: timestamp } })
+      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId, before: timestamp } })
       .subscribe({
         next: (olderChats) => {
           if (olderChats.length === 0) {

@@ -10,6 +10,22 @@
 
   <!-- Comments List -->
   <div #scrollContainer class="flex max-h-60 flex-col gap-3 overflow-y-auto pr-1">
+    @if (hasMoreComments && comments.length > 0) {
+      <button
+        class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 py-2 text-xs text-gray-600 hover:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-gray-400 dark:hover:bg-zinc-900"
+        (click)="loadMoreEvent.emit()"
+        [disabled]="loadingMore"
+      >
+        @if (loadingMore) {
+          <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
+          Loading...
+        } @else {
+          <mat-icon class="h-4! w-4! text-lg!">expand_less</mat-icon>
+          Load older comments
+        }
+      </button>
+    }
+
     @for (comment of comments; track comment.id) {
       <div
         [attr.data-comment-id]="comment.id"
@@ -80,4 +96,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Subtask Comments List -->
+  @if (showSubtaskList && subtaskCommentGroups.length > 0) {
+    <app-subtask-comments-list
+      [subtaskCommentGroups]="subtaskCommentGroups"
+      [todo]="todo"
+      [highlightSubtaskId]="highlightSubtaskId ?? null"
+      (addCommentEvent)="addSubtaskCommentEvent.emit($event)"
+      (deleteCommentEvent)="deleteCommentEvent.emit($event)"
+      (markAsReadEvent)="markAsReadEvent.emit($event)"
+    />
+  }
 </div>
