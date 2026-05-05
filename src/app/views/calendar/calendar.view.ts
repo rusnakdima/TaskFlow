@@ -23,10 +23,23 @@ import { DateHelper } from "@helpers/date.helper";
 /* views */
 import { BaseListView } from "@views/base-list.view";
 
+/* components */
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
+
 @Component({
   selector: "app-calendar",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatDatepickerModule, MatNativeDateModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    SegmentSelectorComponent,
+  ],
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView extends BaseListView implements OnInit {
@@ -40,6 +53,11 @@ export class CalendarView extends BaseListView implements OnInit {
   selectedDate = signal<Date>(new Date());
   currentMonth = signal<Date>(new Date());
   displayMode = signal<"month" | "week">("month");
+
+  displayModeOptions: SegmentOption[] = [
+    { id: "month", label: "Month" },
+    { id: "week", label: "Week" },
+  ];
 
   private userId = "";
 
@@ -183,6 +201,12 @@ export class CalendarView extends BaseListView implements OnInit {
 
   changeViewMode(mode: "month" | "week"): void {
     this.displayMode.set(mode);
+  }
+
+  onDisplayModeChange(id: string): void {
+    if (id === "month" || id === "week") {
+      this.displayMode.set(id);
+    }
   }
 
   navigateToTasks(event: CalendarEvent): void {
