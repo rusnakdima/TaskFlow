@@ -450,33 +450,29 @@ export class DataLoaderService {
 
     if (visibility === "all") {
       filter = {
-        $or: [
-          { user_id: userId },
-          { assignees: { $in: [userId] } },
-          { visibility: "public" }
-        ],
+        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
       };
     } else if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
       filter = {
-        $or: [
-          { assignees: { $in: [userId] } },
-          { visibility: "shared", user_id: userId }
-        ]
+        $or: [{ assignees: { $in: [userId] } }, { visibility: "shared", user_id: userId }],
       };
     } else if (visibility === "public") {
       filter = { visibility: "public" };
     } else {
       filter = { visibility: visibility };
     }
-    console.log(`[DataLoader] filter=`, JSON.stringify(filter, null, 2));
+    console.log(`[DataLoader] filter for "${visibility}"=`, JSON.stringify(filter, null, 2));
+    console.log(`[DataLoader] === CALLING getTodos with visibility="${visibility}" ===`);
 
     return this.dataService
       .getTodos({ filter, skip: 0, limit, load: ["categories"], visibility })
       .pipe(
         switchMap((todos) => {
-          console.log(`[DataLoader] loadInitialTodos END | received ${todos?.length ?? 0} todos`);
+          console.log(
+            `[DataLoader] loadInitialTodos END | visibility="${visibility}" | received ${todos?.length ?? 0} todos`
+          );
           const current = this.todosPagination();
           const loadedTodos = todos || [];
           this.todosPagination.set({
@@ -491,7 +487,7 @@ export class DataLoaderService {
           return of(loadedTodos);
         }),
         catchError((err) => {
-          console.error(`[DataLoader] loadInitialTodos ERROR:`, err);
+          console.error(`[DataLoader] loadInitialTodos ERROR for visibility="${visibility}":`, err);
           const current = this.todosPagination();
           this.todosPagination.set({ ...current, loading: false });
           return of([]);
