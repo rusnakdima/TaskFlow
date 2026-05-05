@@ -436,7 +436,7 @@ export class StorageService extends BaseStorageService {
     });
   }
 
-clear(): void {
+  clear(): void {
     this.privateTodosSignal.set([]);
     this.sharedTodosSignal.set([]);
     this.publicTodosSignal.set([]);
@@ -502,7 +502,10 @@ clear(): void {
         console.debug("[StorageService] setCollection: profiles", items);
         this.profileSignal.set(items as Profile | null);
         if (items && typeof items === "object" && "user" in items && (items as Profile).user) {
-          console.debug("[StorageService] setCollection: setting user from profile", (items as Profile).user);
+          console.debug(
+            "[StorageService] setCollection: setting user from profile",
+            (items as Profile).user
+          );
           this.userSignal.set((items as Profile).user || null);
         }
         break;

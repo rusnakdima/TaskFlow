@@ -59,22 +59,56 @@ export class GithubService {
     );
   }
 
-  startDeviceFlow(): Observable<{ device_code: string; user_code: string; verification_uri: string }> {
-    return this.dataSyncProvider.invokeCommand<{ device_code: string; user_code: string; verification_uri: string }>("github_start_device_flow", {}).pipe(
-      catchError((err) => {
-        this.notifyService.showError("Failed to start GitHub device flow: " + (err.message || err));
-        throw err;
-      })
-    );
+  startDeviceFlow(): Observable<{
+    device_code: string;
+    user_code: string;
+    verification_uri: string;
+  }> {
+    return this.dataSyncProvider
+      .invokeCommand<{
+        device_code: string;
+        user_code: string;
+        verification_uri: string;
+      }>("github_start_device_flow", {})
+      .pipe(
+        catchError((err) => {
+          this.notifyService.showError(
+            "Failed to start GitHub device flow: " + (err.message || err)
+          );
+          throw err;
+        })
+      );
   }
 
-  checkDeviceFlow(device_code: string): Observable<{ success: boolean; pending?: boolean; access_token?: string; refresh_token?: string; expires_in?: number; username?: string; user_id?: string; avatar_url?: string }> {
-    return this.dataSyncProvider.invokeCommand<{ success: boolean; pending?: boolean; access_token?: string; refresh_token?: string; expires_in?: number; username?: string; user_id?: string; avatar_url?: string }>("github_check_device_flow", { device_code }).pipe(
-      catchError((err) => {
-        this.notifyService.showError("Failed to check device flow: " + (err.message || err));
-        throw err;
-      })
-    );
+  checkDeviceFlow(
+    device_code: string
+  ): Observable<{
+    success: boolean;
+    pending?: boolean;
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    username?: string;
+    user_id?: string;
+    avatar_url?: string;
+  }> {
+    return this.dataSyncProvider
+      .invokeCommand<{
+        success: boolean;
+        pending?: boolean;
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+        username?: string;
+        user_id?: string;
+        avatar_url?: string;
+      }>("github_check_device_flow", { device_code })
+      .pipe(
+        catchError((err) => {
+          this.notifyService.showError("Failed to check device flow: " + (err.message || err));
+          throw err;
+        })
+      );
   }
 
   handleOAuthCallback(code: string): Observable<GithubOAuthResult> {
