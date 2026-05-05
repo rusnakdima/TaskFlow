@@ -477,6 +477,7 @@ export class DataService {
         operation: "get",
         table: "profiles",
         filter: { user_id: userId },
+        load: JSON.stringify(["user"]),
         visibility: "private",
       }).subscribe({
         next: (data) => {
