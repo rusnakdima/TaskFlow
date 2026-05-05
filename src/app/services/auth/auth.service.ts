@@ -4,7 +4,6 @@ import { Observable, of } from "rxjs";
 import { tap, take, catchError } from "rxjs/operators";
 
 /* models */
-
 import { LoginForm, SignupForm, AuthResponse } from "@models/auth-forms.model";
 import { PasswordReset } from "@models/password-reset.model";
 import { OfflineAuthResult } from "@models/local-user.model";
@@ -19,7 +18,7 @@ import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
@@ -36,7 +35,7 @@ export class AuthService {
 
   private dataSyncService = inject(DataLoaderService);
   private profileRequiredService = inject(ProfileRequiredService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);
@@ -221,18 +220,14 @@ export class AuthService {
     const userId = this.getValueByKey("id");
     if (!userId) return;
 
-    // Check if already loaded
-    const currentUser = this.storageService.user();
-    if (currentUser && currentUser.id === userId) return;
-
-    // Load from backend
-    this.dataSyncProvider
-      .crud<any>("get", "users", { id: userId, visibility: "private" })
+    // Load from backend via DataService
+    this.dataService
+      .getEntitiesByType("users", { filter: { id: userId, visibility: "private" } })
       .pipe(take(1))
       .subscribe({
-        next: (user) => {
-          if (user) {
-            this.storageService.setCollection("user", user);
+        next: (users) => {
+          if (users && users.length > 0) {
+            // Data is loaded through DataLoaderService cache updates
           }
         },
         error: (err) => {},

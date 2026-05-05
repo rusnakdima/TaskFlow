@@ -5,7 +5,9 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { SyncMetadata } from "@models/sync-metadata";
 import { Todo } from "@models/todo.model";
-import { StorageService } from "@services/core/storage.service";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { DataService } from "@services/data/data.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { ApiProvider } from "@providers/api.provider";
 
@@ -17,7 +19,7 @@ const RETRY_DELAY_BASE = 1000;
 })
 export class VisibilitySyncService {
   private injector = inject(Injector);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private syncProgressService = inject(SyncProgressService);
 
   private get apiProvider(): ApiProvider {
@@ -29,7 +31,7 @@ export class VisibilitySyncService {
     todo_id?: string
   ): Promise<void> {
     if (!todo_id) return;
-    const todo = this.storageService.getById("todos", todo_id);
+    const todo = await firstValueFrom(this.dataService.getTodo(todo_id));
     if (!todo) {
       throw new Error(`Todo with id ${todo_id} not found`);
     }
@@ -74,7 +76,8 @@ export class VisibilitySyncService {
           `Exporting todo to ${targetVisibility === "private" ? "local storage" : "MongoDB"}`
         );
 
-        this.syncProgressService.updateProgress(this.countTodoChildren(todo), "Importing...");
+        const tasks = await firstValueFrom(this.dataService.getTasks(todo.id));
+        this.syncProgressService.updateProgress(tasks.length, "Importing...");
 
         await this.importTodoToLocalDb(todo.id);
         return;
@@ -88,19 +91,6 @@ export class VisibilitySyncService {
     }
 
     throw lastError || new Error(`Failed to sync todo after retries`);
-  }
-
-  private countTodoChildren(todo: Todo): number {
-    const tasks = this.storageService.getTasksByTodoId(todo.id);
-    let count = 0;
-    tasks.forEach((task) => {
-      count++;
-      const subtasks = this.storageService.getSubtasksByTaskId(task.id);
-      subtasks.forEach(() => {
-        count++;
-      });
-    });
-    return count;
   }
 
   private async withRetry<T>(

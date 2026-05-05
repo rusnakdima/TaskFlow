@@ -1,19 +1,15 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
-
-/* services */
-import { StorageService } from "@services/core/storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class JwtTokenService {
   private jwtHelper = new JwtHelperService();
-  private storageService = inject(StorageService);
   private cachedToken: string | null = null;
   private cachedDecodedToken: { [key: string]: any } | null = null;
 
@@ -54,25 +50,23 @@ export class JwtTokenService {
   }
 
   /**
-   * Get username from token or user data
+   * Get username from token or profile data
    */
   getUsername(token: string | null): string | null {
     let username = this.getValueByKey(token, "username");
     if (!username) {
-      const user = this.storageService.user();
-      username = user?.username || null;
+      username = this.getValueByKey(token, "name") || null;
     }
     return username;
   }
 
   /**
-   * Get user role from token or user data
+   * Get user role from token or profile data
    */
   getRole(token: string | null): string | null {
     let role = this.getValueByKey(token, "role");
     if (!role) {
-      const user = this.storageService.user();
-      role = user?.role || null;
+      role = this.getValueByKey(token, "user_role") || null;
     }
     return role;
   }
