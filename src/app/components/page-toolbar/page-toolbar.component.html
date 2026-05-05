@@ -1,0 +1,180 @@
+<div class="flex flex-wrap items-center justify-end gap-2">
+  @if (config?.selectAll) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.selectAll!.onToggle()"
+    >
+      <app-checkbox
+        [checked]="config!.selectAll!.isAllSelected"
+        [indeterminate]="config!.selectAll!.count > 0 && !config!.selectAll!.isAllSelected"
+        [highlight]="config!.selectAll!.highlight"
+      />
+      @if (config!.selectAll!.count > 0) {
+        <span
+          class="hidden text-sm font-medium lg:inline"
+          [ngClass]="
+            config!.selectAll!.highlight ? 'text-yellow-700 dark:text-yellow-400' : 'textNormal'
+          "
+        >
+          {{
+            config!.selectAll!.isAllSelected
+              ? "Deselect All"
+              : config!.selectAll!.count > 0
+                ? "Clear Selection"
+                : "Select All"
+          }}
+        </span>
+      }
+    </button>
+  }
+
+  @if (config?.stats) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.stats!.onToggle()"
+    >
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
+      <span class="hidden text-sm font-medium lg:inline">Stats</span>
+    </button>
+  }
+
+  @if (config?.filter) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.filter!.onToggle()"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl!"
+        [fontIcon]="config!.filter!.isActive ? 'filter_list_off' : 'filter_list'"
+      />
+      <span class="hidden text-sm font-medium lg:inline">Filter</span>
+    </button>
+  }
+
+  @if (config?.newButton) {
+    <button
+      class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
+      (click)="config!.newButton!.onClick()"
+    >
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="config!.newButton!.icon || 'add'" />
+      <span class="hidden lg:inline">{{ config!.newButton!.label || "New" }}</span>
+    </button>
+  }
+
+  @if (config?.newButtonWithMenu) {
+    <button
+      class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
+      [matMenuTriggerFor]="newMenu"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl!"
+        [fontIcon]="config!.newButtonWithMenu!.icon || 'add'"
+      />
+      <span class="hidden lg:inline">{{ config!.newButtonWithMenu!.label }}</span>
+      <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+    </button>
+    <mat-menu #newMenu="matMenu">
+      @for (item of config!.newButtonWithMenu!.menuItems; track item.label) {
+        <button mat-menu-item (click)="item.action()">
+          @if (item.icon) {
+            <mat-icon [fontIcon]="item.icon" />
+          }
+          <span>{{ item.label }}</span>
+        </button>
+      }
+    </mat-menu>
+  }
+
+  @if (config?.infoToggle) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.infoToggle!.onToggle()"
+      [title]="config!.infoToggle!.isActive ? 'Hide Info' : 'Show Info'"
+    >
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="info" />
+      @if (config!.infoToggle!.label) {
+        <span class="hidden text-sm font-medium lg:inline">{{
+          config!.infoToggle!.isActive ? "Hide Info" : "Show Info"
+        }}</span>
+      }
+    </button>
+  }
+
+  @if (config?.refresh) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.refresh!.onClick()"
+      [disabled]="config!.refresh!.loading"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl!"
+        [ngClass]="config!.refresh!.loading ? 'animate-spin' : ''"
+        fontIcon="sync"
+      />
+      <span class="hidden text-sm font-medium lg:inline">Refresh</span>
+    </button>
+  }
+
+  @if (config?.sortMenu) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      [matMenuTriggerFor]="sortMenuDropdown"
+    >
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sort" />
+      <span class="hidden text-sm font-medium lg:inline">Sort</span>
+    </button>
+    <mat-menu #sortMenuDropdown="matMenu">
+      <div
+        class="textMuted mb-1 border-b border-gray-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
+      >
+        Sort By
+      </div>
+      @for (option of config!.sortMenu!.sortOptions; track option.key) {
+        <button mat-menu-item (click)="config!.sortMenu!.onSort(option.key)">
+          @if (option.icon) {
+            <mat-icon [fontIcon]="option.icon" />
+          }
+          <span>{{ option.label }}</span>
+          @if (config!.sortMenu!.sortBy === option.key) {
+            <mat-icon
+              class="ml-auto"
+              [fontIcon]="config!.sortMenu!.sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+            />
+          }
+        </button>
+      }
+    </mat-menu>
+  }
+
+  @if (config?.sortOrder) {
+    <button
+      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      (click)="config!.sortOrder!.onToggle()"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl!"
+        [fontIcon]="config!.sortOrder!.currentOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'"
+      />
+    </button>
+  }
+
+  @if (config?.viewMode) {
+    <app-view-mode-switcher
+      [mode]="config!.viewMode!.mode"
+      [pageKey]="config!.viewMode!.pageKey"
+      (modeChange)="config!.viewMode!.onModeChange($event)"
+    />
+  }
+</div>
+
+@if (showFilter && filterFields.length > 0) {
+  <app-filter-bar
+    [fields]="filterFields"
+    [activeFilter]="activeFilter"
+    [showFilter]="showFilter"
+    [searchQuery]="searchQuery"
+    (filterToggle)="onToggleFilter()"
+    (filtersChange)="onFiltersChange($event)"
+    (searchChange)="onSearchChange($event)"
+  />
+}

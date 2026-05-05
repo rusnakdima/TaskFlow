@@ -1,0 +1,72 @@
+@if (filteredComments.length > 0 || totalSubtaskComments > 0) {
+  <div class="border-t border-gray-200 pt-4 dark:border-zinc-700">
+    <button
+      class="flex w-full items-center gap-2 rounded-lg p-2 text-left transition-all duration-200 hover:scale-105 hover:bg-gray-100 dark:hover:bg-zinc-700"
+      (click)="toggleExpand()"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl! transition-transform duration-200"
+        [ngClass]="{ 'rotate-180': !isExpanded() }"
+        fontIcon="expand_less"
+      />
+      <span class="text-sm font-medium">{{ title }}</span>
+      @if (totalSubtaskComments > 0) {
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+          +{{ totalSubtaskComments }} subtask
+        </span>
+      }
+    </button>
+
+    @if (isExpanded()) {
+      <div class="mt-3">
+        <app-comments
+          [comments]="filteredComments"
+          [task_id]="itemType === 'task' ? itemId : undefined"
+          [subtask_id]="itemType === 'subtask' ? itemId : undefined"
+          [todo]="todo"
+          [highlightCommentId]="highlightCommentId ?? undefined"
+          (addCommentEvent)="onAddComment($event)"
+          (deleteCommentEvent)="onDeleteComment($event)"
+          (markAsReadEvent)="onMarkAsRead($event)"
+        />
+
+        @if (subtaskComments.length > 0) {
+          @for (subtaskCommentList of subtaskComments; track $index) {
+            @if (subtaskCommentList && getFilteredSubtaskComments(subtaskCommentList).length > 0) {
+              <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
+                <div class="mb-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <mat-icon
+                    class="h-4! w-4! min-w-4 text-base!"
+                    fontIcon="subdirectory_arrow_right"
+                  />
+                  <span>Subtask {{ $index + 1 }} comments</span>
+                </div>
+                <app-comments
+                  [comments]="getFilteredSubtaskComments(subtaskCommentList)"
+                  [subtask_id]="itemType === 'task' ? undefined : itemId"
+                  [todo]="todo"
+                  (addCommentEvent)="onAddComment($event)"
+                  (deleteCommentEvent)="onDeleteComment($event)"
+                  (markAsReadEvent)="onMarkAsRead($event)"
+                />
+              </div>
+            }
+          }
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <div class="border-t border-gray-200 pt-4 dark:border-zinc-700">
+    <button
+      class="flex w-full items-center gap-2 rounded-lg p-2 text-left text-gray-500 transition-all duration-200 hover:scale-105 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700"
+      (click)="toggleExpand()"
+    >
+      <mat-icon
+        class="h-5! w-5! min-w-5 text-xl!"
+        [fontIcon]="isExpanded() ? 'expand_less' : 'expand_more'"
+      />
+      <span class="text-sm">No comments yet</span>
+    </button>
+  </div>
+}
