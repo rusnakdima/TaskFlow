@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { firstValueFrom } from "rxjs";
@@ -15,7 +15,7 @@ import { Category } from "@models/category.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
 
@@ -53,11 +53,12 @@ import {
   templateUrl: "./categories.view.html",
 })
 export class CategoriesView extends BaseListView implements OnInit {
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
+  private destroyRef = inject(DestroyRef);
 
-  categories = this.storageService.categories;
+  private categoriesList = signal<Category[]>([]);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -68,7 +69,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   searchResults = computed(() => {
-    let cats = this.categories();
+    let cats = this.categoriesList();
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
       cats = cats.filter((cat) => cat.title.toLowerCase().includes(query));
@@ -127,6 +128,13 @@ export class CategoriesView extends BaseListView implements OnInit {
         this.toggleCreateForm();
       })
     );
+
+    const categoriesSub = this.dataService.categories$.subscribe((categories) => {
+      this.categoriesList.set(categories);
+    });
+    this.destroyRef.onDestroy(() => categoriesSub.unsubscribe());
+
+    this.dataLoaderService.loadInitialCategories().subscribe();
   }
 
   toggleCreateForm() {
@@ -154,7 +162,7 @@ export class CategoriesView extends BaseListView implements OnInit {
         "Are you sure you want to delete this category? This will remove it from all associated todos."
       )
     ) {
-      this.dataSyncProvider.crud("delete", "categories", { id: categoryId }).subscribe({
+      const sub = this.dataService.getCategories().subscribe({
         next: () => {
           this.notifyService.showSuccess("Category deleted successfully");
           this.searchQuery.set("");
@@ -163,6 +171,7 @@ export class CategoriesView extends BaseListView implements OnInit {
           this.notifyService.showError(err.message || "Failed to delete category");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
@@ -188,7 +197,7 @@ export class CategoriesView extends BaseListView implements OnInit {
 
     if (confirm(`Are you sure you want to archive ${selected.size} categorie(s)?`)) {
       const archiveRequests = Array.from(selected).map((categoryId) =>
-        firstValueFrom(this.dataSyncProvider.crud("delete", "categories", { id: categoryId }))
+        firstValueFrom(this.dataService.getCategories())
       );
 
       Promise.all(archiveRequests)

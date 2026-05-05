@@ -2,6 +2,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -14,7 +15,7 @@ import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -44,7 +45,7 @@ import {
 })
 export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -60,63 +61,8 @@ export class CalendarView extends BaseListView implements OnInit {
   ];
 
   private userId = "";
-
-  private allEvents = computed<CalendarEvent[]>(() => {
-    const todos = this.storageService.todos();
-    const newEvents: CalendarEvent[] = [];
-
-    todos.forEach((todo) => {
-      const tasks = this.storageService.getTasksByTodoId(todo.id);
-      if (todo.deleted_at) return;
-
-      const isPrivate = todo.visibility === "private";
-      const isOwner = todo.user_id === this.userId;
-
-      tasks.forEach((task) => {
-        if (task.deleted_at) return;
-
-        if (task.start_date) {
-          newEvents.push({
-            id: task.id!,
-            title: `Start: ${task.title}`,
-            date: new Date(task.start_date),
-            type: "task",
-            status: "start",
-            description: task.description,
-            todo_id: todo.id,
-            isPrivate,
-            isOwner,
-          });
-        }
-
-        if (task.end_date) {
-          const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
-          const status =
-            task.status === TaskStatus.COMPLETED
-              ? "completed"
-              : task.status === TaskStatus.SKIPPED
-                ? "skipped"
-                : task.status === TaskStatus.FAILED
-                  ? "failed"
-                  : "due";
-
-          newEvents.push({
-            id: task.id!,
-            title: statusText,
-            date: new Date(task.end_date),
-            type: "task",
-            status,
-            description: task.description,
-            todo_id: todo.id,
-            isPrivate,
-            isOwner,
-          });
-        }
-      });
-    });
-
-    return newEvents;
-  });
+  private todos = signal<Todo[]>([]);
+  private allEvents = signal<CalendarEvent[]>([]);
 
   filteredEvents = computed(() =>
     this.allEvents().filter((event) => this.isSameDay(event.date, this.selectedDate()))
@@ -133,6 +79,97 @@ export class CalendarView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
+
+    this.dataService.todos$.pipe(takeUntilDestroyed()).subscribe((todos) => {
+      this.todos.set(todos);
+      this.loadEventsForTodos(todos);
+    });
+
+    this.dataService.getTodos().subscribe({
+      next: (todos) => {
+        this.todos.set(todos);
+        this.loadEventsForTodos(todos);
+      },
+      error: (err) => this.handleError(err),
+    });
+  }
+
+  private loadEventsForTodos(todos: Todo[]): void {
+    const events: CalendarEvent[] = [];
+    let completed = 0;
+    const total = todos.filter((t) => !t.deleted_at).length;
+
+    if (total === 0) {
+      this.allEvents.set([]);
+      return;
+    }
+
+    todos.forEach((todo) => {
+      if (todo.deleted_at) return;
+
+      const isPrivate = todo.visibility === "private";
+      const isOwner = todo.user_id === this.userId;
+
+      this.subscriptions.add(
+        this.dataService.getTasks(todo.id).subscribe({
+          next: (tasks) => {
+            tasks.forEach((task) => {
+              if (task.deleted_at) return;
+
+              if (task.start_date) {
+                events.push({
+                  id: task.id!,
+                  title: `Start: ${task.title}`,
+                  date: new Date(task.start_date),
+                  type: "task",
+                  status: "start",
+                  description: task.description,
+                  todo_id: todo.id,
+                  isPrivate,
+                  isOwner,
+                });
+              }
+
+              if (task.end_date) {
+                const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
+                const status =
+                  task.status === TaskStatus.COMPLETED
+                    ? "completed"
+                    : task.status === TaskStatus.SKIPPED
+                      ? "skipped"
+                      : task.status === TaskStatus.FAILED
+                        ? "failed"
+                        : "due";
+
+                events.push({
+                  id: task.id!,
+                  title: statusText,
+                  date: new Date(task.end_date),
+                  type: "task",
+                  status,
+                  description: task.description,
+                  todo_id: todo.id,
+                  isPrivate,
+                  isOwner,
+                });
+              }
+            });
+
+            completed++;
+            if (completed === total) {
+              this.allEvents.set([...events]);
+            }
+          },
+          error: (err) => {
+            this.handleError(err);
+            completed++;
+            if (completed === total) {
+              this.allEvents.set([...events]);
+            }
+          },
+        })
+      );
+    });
   }
 
   selectDate(date: Date): void {
