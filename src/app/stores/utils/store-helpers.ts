@@ -94,29 +94,6 @@ export function removeEntityFromArray<T extends { id: string }>(entities: T[], i
   return entities.filter((entity) => entity.id !== id);
 }
 
-/**
- * Sort entities by order field
- */
-export function sortByOrder<T extends { order?: number }>(entities: T[]): T[] {
-  return [...entities].sort((a, b) => (a.order || 0) - (b.order || 0));
-}
-
-/**
-export function groupByKey<T>(entities: T[], keySelector: (entity: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-
-  for (const entity of entities) {
-    const key = keySelector(entity);
-    const existing = groups.get(key) || [];
-    groups.set(key, [...existing, entity]);
-  }
-
-  return groups;
-}
-
-/**
- * Create a signal-based filtered view
- */
 export function createFilteredView<T>(
   sourceSignal: Signal<T[]>,
   filterFn: (entity: T) => boolean

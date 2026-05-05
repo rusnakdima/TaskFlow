@@ -1,7 +1,7 @@
 /* sys lib */
-import { Injectable, DestroyRef, OnDestroy } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { BehaviorSubject, Observable, Subscription } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
@@ -12,7 +12,6 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { DataService } from "@services/data/data.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 
@@ -27,7 +26,7 @@ export interface SyncProgress {
 @Injectable({
   providedIn: "root",
 })
-export class SyncService implements OnDestroy {
+export class SyncService {
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
   private progressSubject = new BehaviorSubject<SyncProgress>({
     isSyncing: false,
@@ -35,12 +34,10 @@ export class SyncService implements OnDestroy {
     progress: 0,
     message: "Ready to sync",
   });
-  private dataSubscription: Subscription | null = null;
 
   constructor(
     private jwtTokenService: JwtTokenService,
     private dataService: DataService,
-    private dataSyncService: DataLoaderService,
     private notifyService: NotifyService,
     private syncProgressService: SyncProgressService
   ) {}
@@ -95,9 +92,6 @@ export class SyncService implements OnDestroy {
       const result = await invoke<Response<R>>("import_to_local", { userId: userId, token });
 
       if (result.status === ResponseStatus.SUCCESS) {
-        this.updateProgress({ progress: 90, message: "Updating local data..." });
-        this.unsubscribeData();
-        this.dataSubscription = this.dataSyncService.loadAllData(true).subscribe();
         this.updateProgress({ progress: 100, message: "Import complete" });
         this.notifyService.showSuccess("Data imported successfully from cloud");
       } else {
@@ -259,16 +253,5 @@ export class SyncService implements OnDestroy {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private unsubscribeData(): void {
-    if (this.dataSubscription) {
-      this.dataSubscription.unsubscribe();
-      this.dataSubscription = null;
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.unsubscribeData();
   }
 }
