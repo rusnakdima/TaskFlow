@@ -1,11 +1,12 @@
 import { inject, Injectable, NgZone } from "@angular/core";
-import { Subject } from "rxjs";
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import { Subject, UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 
 import { ConflictDetectionService } from "@services/core/conflict-detection.service";
+import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/core/storage.service";
 import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
 
 type StorageUpdateHandler = (data: any) => void;
 
@@ -14,7 +15,7 @@ type StorageUpdateHandler = (data: any) => void;
 })
 export class DatabaseChangeListenerService {
   private ngZone = inject(NgZone);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private conflictDetectionService = inject(ConflictDetectionService);
   private notifyService = inject(NotifyService);
 
@@ -22,43 +23,115 @@ export class DatabaseChangeListenerService {
   readonly eventSubject = new Subject<{ event: string; data: any }>();
   private listenersActive = false;
 
+  private localTodos: any[] = [];
+  private localTasks: any[] = [];
+  private localSubtasks: any[] = [];
+  private localCategories: any[] = [];
+  private localChats: any[] = [];
+
   private storageHandlers: Record<string, StorageUpdateHandler> = {
-    "todo-created": (data) => this.storageService.addItem("todos", data),
-    "todo-updated": (data) => this.storageService.updateItem("todos", data.id, data),
+    "todo-created": (data) => {
+      this.localTodos.push(data);
+      this.dataService.todos$.next([...this.localTodos]);
+    },
+    "todo-updated": (data) => {
+      const index = this.localTodos.findIndex((t) => t.id === data.id);
+      if (index !== -1) {
+        this.localTodos[index] = data;
+        this.dataService.todos$.next([...this.localTodos]);
+      }
+    },
     "todo-deleted": (data) => {
       if (data.deleted_at !== null) {
-        this.storageService.updateItem("todos", data.id, data);
+        const index = this.localTodos.findIndex((t) => t.id === data.id);
+        if (index !== -1) {
+          this.localTodos[index] = data;
+          this.dataService.todos$.next([...this.localTodos]);
+        }
       } else {
-        this.storageService.removeItem("todos", data.id);
+        this.localTodos = this.localTodos.filter((t) => t.id !== data.id);
+        this.dataService.todos$.next([...this.localTodos]);
       }
     },
-    "task-created": (data) => this.storageService.addItem("tasks", data),
-    "task-updated": (data) => this.storageService.updateItem("tasks", data.id, data),
+    "task-created": (data) => {
+      this.localTasks.push(data);
+      this.dataService.tasks$.next([...this.localTasks]);
+    },
+    "task-updated": (data) => {
+      const index = this.localTasks.findIndex((t) => t.id === data.id);
+      if (index !== -1) {
+        this.localTasks[index] = data;
+        this.dataService.tasks$.next([...this.localTasks]);
+      }
+    },
     "task-deleted": (data) => {
       if (data.deleted_at !== null) {
-        this.storageService.removeRecordWithCascade("tasks", data.id, data.deleted_at);
+        const index = this.localTasks.findIndex((t) => t.id === data.id);
+        if (index !== -1) {
+          this.localTasks[index] = { ...this.localTasks[index], deleted_at: data.deleted_at };
+          this.dataService.tasks$.next([...this.localTasks]);
+        }
       } else {
-        this.storageService.removeRecordWithCascade("tasks", data.id);
+        this.localTasks = this.localTasks.filter((t) => t.id !== data.id);
+        this.dataService.tasks$.next([...this.localTasks]);
       }
     },
-    "subtask-created": (data) => this.storageService.addItem("subtasks", data),
-    "subtask-updated": (data) => this.storageService.updateItem("subtasks", data.id, data),
+    "subtask-created": (data) => {
+      this.localSubtasks.push(data);
+      this.dataService.subtasks$.next([...this.localSubtasks]);
+    },
+    "subtask-updated": (data) => {
+      const index = this.localSubtasks.findIndex((s) => s.id === data.id);
+      if (index !== -1) {
+        this.localSubtasks[index] = data;
+        this.dataService.subtasks$.next([...this.localSubtasks]);
+      }
+    },
     "subtask-deleted": (data) => {
       if (data.deleted_at !== null) {
-        this.storageService.removeRecordWithCascade("subtasks", data.id, data.deleted_at);
+        const index = this.localSubtasks.findIndex((s) => s.id === data.id);
+        if (index !== -1) {
+          this.localSubtasks[index] = { ...this.localSubtasks[index], deleted_at: data.deleted_at };
+          this.dataService.subtasks$.next([...this.localSubtasks]);
+        }
       } else {
-        this.storageService.removeRecordWithCascade("subtasks", data.id);
+        this.localSubtasks = this.localSubtasks.filter((s) => s.id !== data.id);
+        this.dataService.subtasks$.next([...this.localSubtasks]);
       }
     },
-    "category-created": (data) => this.storageService.addItem("categories", data),
-    "category-updated": (data) => this.storageService.updateItem("categories", data.id, data),
-    "category-deleted": (data) => this.storageService.removeItem("categories", data.id),
+    "category-created": (data) => {
+      this.localCategories.push(data);
+      this.dataService.categories$.next([...this.localCategories]);
+    },
+    "category-updated": (data) => {
+      const index = this.localCategories.findIndex((c) => c.id === data.id);
+      if (index !== -1) {
+        this.localCategories[index] = data;
+        this.dataService.categories$.next([...this.localCategories]);
+      }
+    },
+    "category-deleted": (data) => {
+      this.localCategories = this.localCategories.filter((c) => c.id !== data.id);
+      this.dataService.categories$.next([...this.localCategories]);
+    },
     "comment-created": (data) => this.handleCommentCreate(data),
     "comment-updated": (data) => this.handleCommentCreate(data),
     "comment-deleted": (data) => this.handleCommentDelete(data),
-    "chat-created": (data) => this.storageService.addChatToTodo(data, data.todo_id),
-    "chat-updated": (data) => this.storageService.updateChatInTodo(data, data.todo_id),
-    "chat-deleted": (data) => this.storageService.deleteChatFromTodo(data.id, data.todo_id),
+    "chat-created": (data) => {
+      this.localChats.push(data);
+      this.dataService.chats$.next([...this.localChats]);
+    },
+    "chat-updated": (data) => {
+      const index = this.localChats.findIndex((c) => c.id === data.id);
+      if (index !== -1) {
+        this.localChats[index] = data;
+        this.dataService.chats$.next([...this.localChats]);
+      }
+    },
+    "chat-deleted": (data) => {
+      this.localChats = this.localChats.filter((c) => c.id !== data.id);
+      this.dataService.chats$.next([...this.localChats]);
+    },
   };
 
   async initTauriListeners(): Promise<void> {
@@ -122,21 +195,20 @@ export class DatabaseChangeListenerService {
   }
 
   private handleCommentCreate(data: Comment): void {
-    if (data.task_id) {
-      const task = this.storageService.getById("tasks", data.task_id);
-      if (task) {
-        this.storageService.addCommentToTask(data, data.task_id);
-      }
-    } else if (data.subtask_id) {
-      const subtask = this.storageService.getById("subtasks", data.subtask_id);
-      if (subtask) {
-        this.storageService.addCommentToSubtask(data, data.subtask_id);
-      }
+    const currentComments = this.dataService["comments"]?.getValue?.() || [];
+    const existingIndex = currentComments.findIndex((c: Comment) => c.id === data.id);
+    if (existingIndex !== -1) {
+      currentComments[existingIndex] = data;
+    } else {
+      currentComments.push(data);
     }
+    this.dataService.comments$.next([...currentComments]);
   }
 
   private handleCommentDelete(data: { id: string }): void {
-    this.storageService.removeCommentFromAll(data.id);
+    const currentComments = this.dataService["comments"]?.getValue?.() || [];
+    const filtered = currentComments.filter((c: Comment) => c.id !== data.id);
+    this.dataService.comments$.next(filtered);
   }
 
   cleanup(): void {
