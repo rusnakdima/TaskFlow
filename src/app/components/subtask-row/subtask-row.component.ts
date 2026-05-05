@@ -15,7 +15,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
-import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
+import { CommentsComponent } from "@components/comments/comments.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* helpers */
@@ -34,7 +34,7 @@ import { Todo } from "@models/todo.model";
 @Component({
   selector: "app-subtask-row",
   standalone: true,
-  imports: [CommonModule, MatIconModule, DragDropModule, CommentsPanelComponent, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, DragDropModule, CommentsComponent, CheckboxComponent],
   templateUrl: "./subtask-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

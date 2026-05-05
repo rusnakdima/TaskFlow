@@ -204,11 +204,11 @@
                 @if (expandable) {
                   <button
                     mat-icon-button
-                    class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
+                    class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                     [class]="
                       isExpanded(item.id)
-                        ? '!text-blue-600 hover:!bg-blue-50 dark:!text-blue-400 dark:hover:!bg-blue-900/30'
-                        : '!text-gray-500 hover:!bg-gray-100 dark:!text-gray-400 dark:hover:!bg-gray-700'
+                        ? 'text-blue-600! hover:bg-blue-50! dark:text-blue-400! dark:hover:bg-blue-900/30!'
+                        : 'text-gray-500! hover:bg-gray-100! dark:text-gray-400! dark:hover:bg-gray-700!'
                     "
                     (click)="toggleExpanded(item.id)"
                     title="Expand details"
@@ -221,11 +221,11 @@
                 @if (showCommentToggle) {
                   <button
                     mat-icon-button
-                    class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
+                    class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                     [class]="
                       isCommentExpanded(item.id)
-                        ? '!bg-purple-100 !text-purple-600 hover:!bg-purple-50 dark:!bg-purple-900/30 dark:!text-purple-400 dark:hover:!bg-purple-900/50'
-                        : '!text-purple-600 hover:!bg-purple-50 dark:!text-purple-400 dark:hover:!bg-purple-900/30'
+                        ? 'bg-purple-100! text-purple-600! hover:bg-purple-50! dark:bg-purple-900/30! dark:text-purple-400! dark:hover:bg-purple-900/50!'
+                        : 'text-purple-600! hover:bg-purple-50! dark:text-purple-400! dark:hover:bg-purple-900/30!'
                     "
                     (click)="toggleComments(item.id)"
                     title="Toggle comments"
@@ -244,7 +244,7 @@
                   } @else {
                     <button
                       mat-icon-button
-                      class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
+                      class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                       [class]="getActionColor(action)"
                       (click)="onActionClick(action.key, item)"
                       [title]="action.label"
@@ -270,16 +270,6 @@
             >
               @if (expandTemplate) {
                 <ng-container *ngTemplateOutlet="expandTemplate; context: { $implicit: item }" />
-              } @else if (showCommentToggle && isCommentExpanded(item.id)) {
-                <app-comments-panel
-                  [comments]="getCommentsForItem(item)"
-                  [itemType]="'task'"
-                  [itemId]="item.id"
-                  [todo]="item.todo || null"
-                  (addCommentEvent)="onCommentAdd($event, item)"
-                  (deleteCommentEvent)="onCommentDelete($event)"
-                  (markAsReadEvent)="onCommentMarkAsRead($event)"
-                />
               } @else {
                 <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
                   <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
@@ -298,6 +288,34 @@
                   </div>
                 </div>
               }
+            </td>
+          </tr>
+        }
+        @if (
+          showCommentToggle && isCommentExpanded(item.id) && (!expandable || !isExpanded(item.id))
+        ) {
+          <tr class="expand-row">
+            <td
+              [attr.colspan]="
+                fields.length +
+                (showSelection ? 1 : 0) +
+                (showActionsColumn ? 1 : 0) +
+                (dragEnabled ? 1 : 0)
+              "
+              class="px-4 py-4"
+            >
+              <app-comments
+                [comments]="getCommentsForItem(item)"
+                [task_id]="item.id"
+                [todo]="item.todo || null"
+                [showSubtaskList]="true"
+                [subtaskCommentGroups]="getSubtaskCommentGroupsForItem(item)"
+                [taskIdForSubtasks]="item.id"
+                (addCommentEvent)="onCommentAdd($event, item)"
+                (deleteCommentEvent)="onCommentDelete($event)"
+                (markAsReadEvent)="onCommentMarkAsRead($event)"
+                (addSubtaskCommentEvent)="onSubtaskCommentAdd($event, item)"
+              />
             </td>
           </tr>
         }

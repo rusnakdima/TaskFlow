@@ -54,10 +54,9 @@
       </div>
     </div>
 
-    <app-comments-panel
+    <app-comments
       [comments]="subtaskComments"
-      [itemType]="'subtask'"
-      [itemId]="subtask.id"
+      [subtask_id]="subtask.id"
       [todo]="todo"
       (addCommentEvent)="onAddComment($event)"
       (deleteCommentEvent)="onDeleteComment($event)"

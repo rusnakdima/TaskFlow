@@ -36,6 +36,7 @@ import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CommentService } from "@services/features/comment.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* models */
 import { Subtask } from "@models/subtask.model";
@@ -63,6 +64,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private commentService = inject(CommentService);
+  private dataLoaderService = inject(DataLoaderService);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -84,6 +86,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     new EventEmitter();
 
   showComments = signal(false);
+  loadingSubtaskComments = signal(false);
 
   get menuClass(): string {
     return "subtask-menu";
@@ -127,6 +130,16 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     this.showComments.update((v) => !v);
 
     if (!wasOpen && this.subtask) {
+      const visibility = this.isPrivate ? "private" : "shared";
+      this.dataLoaderService.loadCommentsForSubtask(this.subtask.id, visibility).subscribe({
+        next: () => {
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load comments");
+        },
+      });
+
       const subtaskId = this.subtask.id;
       const userId = this.authService.getValueByKey("id");
       const subtaskComments = this.storageService
@@ -172,7 +185,6 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
                   next: () => {},
                   error: (err) => {
                     console.error("Mark comments read failed:", err);
-                    this.notifyService.showError("Failed to mark comments as read");
                   },
                 });
             }
@@ -233,6 +245,22 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || !userId || commentIds.length === 0) return;
 
     this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId || "");
+  }
+
+  onLoadMoreSubtaskComments() {
+    if (!this.subtask || this.loadingSubtaskComments()) return;
+    const visibility = this.isPrivate ? "private" : "shared";
+    this.loadingSubtaskComments.set(true);
+    this.dataLoaderService.loadMoreCommentsForSubtask(this.subtask.id, visibility).subscribe({
+      next: () => {
+        this.loadingSubtaskComments.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingSubtaskComments.set(false);
+        this.notifyService.showError("Failed to load more comments");
+      },
+    });
   }
 
   toggleCompletion() {
