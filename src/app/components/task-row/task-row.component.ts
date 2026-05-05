@@ -17,9 +17,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
-import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
 import { CommentsComponent } from "@components/comments/comments.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -39,7 +39,7 @@ import { Todo } from "@models/todo.model";
 @Component({
   selector: "app-task-row",
   standalone: true,
-  imports: [CommonModule, MatIconModule, DragDropModule, CommentsPanelComponent, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, DragDropModule, CommentsComponent, CheckboxComponent],
   templateUrl: "./task-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -66,6 +66,7 @@ export class TaskRowComponent {
   @Output() deleteCommentEvent = new EventEmitter<string>();
   @Output() markAsReadEvent = new EventEmitter<string[]>();
   @Output() actionClickEvent = new EventEmitter<{ action: string; item: any }>();
+  @Output() addSubtaskCommentEvent = new EventEmitter<{ content: string; subtask_id: string }>();
 
   showComments = signal(false);
 
@@ -81,6 +82,15 @@ export class TaskRowComponent {
   get taskComments(): Comment[] {
     if (!this.task?.comments) return [];
     return this.task.comments.filter((c) => !c.deleted_at);
+  }
+
+  get subtaskCommentGroups(): SubtaskCommentGroup[] {
+    if (!this.task?.subtasks) return [];
+    return this.task.subtasks.map((s) => ({
+      subtask_id: s.id,
+      title: s.title || "Untitled subtask",
+      comments: (s.comments || []).filter((c: Comment) => !c.deleted_at),
+    }));
   }
 
   toggleExpand() {
@@ -108,6 +118,10 @@ export class TaskRowComponent {
     if (this.task) {
       this.addCommentEvent.emit({ content, task_id: this.task.id });
     }
+  }
+
+  onAddSubtaskComment(event: { content: string; subtask_id: string }) {
+    this.addSubtaskCommentEvent.emit(event);
   }
 
   onDeleteComment(commentId: string) {

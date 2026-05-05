@@ -81,16 +81,17 @@
       </div>
     }
 
-    <app-comments-panel
+    <app-comments
       [comments]="taskComments"
-      [itemType]="'task'"
-      [itemId]="task.id"
       [todo]="todo"
       [highlightCommentId]="highlightCommentId"
-      [subtaskComments]="task.subtasks?.map((s) => s.comments || []) || []"
+      [showSubtaskList]="true"
+      [subtaskCommentGroups]="subtaskCommentGroups"
+      [taskIdForSubtasks]="task?.id ?? undefined"
       (addCommentEvent)="onAddComment($event)"
       (deleteCommentEvent)="onDeleteComment($event)"
       (markAsReadEvent)="onMarkAsRead($event)"
+      (addSubtaskCommentEvent)="onAddSubtaskComment($event)"
     />
 
     <div
