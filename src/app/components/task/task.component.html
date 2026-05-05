@@ -158,18 +158,10 @@
             <div class="flex max-h-64 flex-col gap-2 overflow-y-auto">
               @for (subtask of getTaskSubtasks(task.id); track subtask.id) {
                 <div
-                  class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
+                  class="flex cursor-pointer items-center gap-3 rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
+                  [routerLink]="[task.id + '/subtasks']"
+                  [queryParams]="{ highlightSubtask: subtask.id }"
                 >
-                  <button
-                    class="rounded p-0.5 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700"
-                    (click)="onSubtaskToggleCompletion(subtask)"
-                  >
-                    <mat-icon
-                      class="h-5! w-5! min-w-5 text-xl!"
-                      [fontIcon]="getSubtaskStatusIcon(subtask.status)"
-                      [ngClass]="getSubtaskStatusColor(subtask.status)"
-                    />
-                  </button>
                   <div class="min-w-0 flex-1">
                     <p
                       class="truncate text-sm font-medium"
@@ -204,93 +196,16 @@
             [todo]="todo()"
             [highlightCommentId]="highlightCommentId || undefined"
             [autoOpen]="autoOpenComments"
+            [showSubtaskList]="true"
+            [subtaskCommentGroups]="subtaskCommentGroups()"
+            [taskIdForSubtasks]="task.id"
             (addCommentEvent)="onAddComment($event)"
             (deleteCommentEvent)="onDeleteComment($event)"
             (markAsReadEvent)="onMarkAsRead($event)"
+            (loadMoreEvent)="onLoadMoreTaskComments()"
+            (addSubtaskCommentEvent)="onAddSubtaskComment($event.content, $event.subtask_id)"
             (click)="$event.stopPropagation()"
           />
-
-          <div
-            class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700"
-            (click)="$event.stopPropagation()"
-          >
-            <div class="mb-2 flex items-center justify-between">
-              <h4 class="textNormal flex items-center gap-2 text-sm font-semibold">
-                <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="subdirectory_arrow_right" />
-                Subtask comments
-              </h4>
-              <span class="textMuted text-[10px]">
-                {{ subtaskCommentGroups().length }} subtasks
-              </span>
-            </div>
-
-            <div class="flex flex-col gap-2">
-              @for (group of subtaskCommentGroups(); track group.subtask_id) {
-                <div
-                  class="rounded-xl border border-gray-200 bg-white/60 dark:border-zinc-700 dark:bg-zinc-800/30"
-                  [ngClass]="{
-                    'animate-pulse ring-2 ring-purple-500': shouldHighlightExpandedSubtask(
-                      group.subtask_id
-                    ),
-                  }"
-                >
-                  <div class="flex items-center justify-between p-3">
-                    <button
-                      class="textNormal flex items-center gap-2 text-sm font-semibold transition-colors hover:text-purple-600 dark:hover:text-purple-400"
-                      (click)="
-                        $event.stopPropagation(); toggleInlineSubtaskComments(group.subtask_id)
-                      "
-                      title="Expand/collapse this subtask's comments"
-                    >
-                      <mat-icon
-                        class="h-4! w-4! min-w-4 text-lg!"
-                        [fontIcon]="
-                          isSubtaskExpanded(group.subtask_id) ? 'expand_less' : 'expand_more'
-                        "
-                      />
-                      <span class="truncate">{{ group.title }}</span>
-                      @if (group.comments.length > 0) {
-                        <span
-                          class="ml-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white"
-                        >
-                          {{ group.comments.length }}
-                        </span>
-                      }
-                    </button>
-
-                    <button
-                      class="rounded-lg p-1.5 text-purple-600 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
-                      (click)="
-                        $event.stopPropagation(); navigateToSubtaskComments(group.subtask_id)
-                      "
-                      title="Open in Subtasks view"
-                    >
-                      <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="open_in_new" />
-                    </button>
-                  </div>
-
-                  @if (isSubtaskExpanded(group.subtask_id)) {
-                    <div class="px-3 pb-3">
-                      <app-comments
-                        [title]="'Subtask: ' + group.title"
-                        [comments]="group.comments"
-                        [subtask_id]="group.subtask_id"
-                        [todo]="todo()"
-                        (addCommentEvent)="onAddSubtaskComment($event, group.subtask_id)"
-                        (deleteCommentEvent)="onDeleteComment($event)"
-                        (markAsReadEvent)="onMarkSubtaskCommentsAsRead($event, group.subtask_id)"
-                        (click)="$event.stopPropagation()"
-                      />
-                    </div>
-                  }
-                </div>
-              } @empty {
-                <div class="textMuted flex items-center justify-center py-4 text-xs">
-                  No subtasks yet
-                </div>
-              }
-            </div>
-          </div>
         }
       </div>
 
@@ -369,6 +284,26 @@
               }
             </div>
           </button>
+
+          @if (todo()?.github_repo_name && isOwner) {
+            <button
+              class="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
+              [disabled]="creatingGithubIssue()"
+              (click)="createGithubIssue(); $event.stopPropagation()"
+              title="Create GitHub issue from this task"
+            >
+              @if (creatingGithubIssue()) {
+                <mat-icon class="h-5! w-5! min-w-5 animate-spin text-xl!" fontIcon="sync" />
+              } @else {
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                  />
+                </svg>
+              }
+            </button>
+          }
+
           <div class="relative">
             <button
               (click)="toggleMenu($event); $event.stopPropagation()"

@@ -41,18 +41,15 @@ import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 import { CommentService } from "@services/features/comment.service";
+import { GithubService } from "@services/github/github.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
-
-interface SubtaskCommentGroup {
-  subtask_id: string;
-  title: string;
-  comments: Comment[];
-}
+import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 @Component({
   selector: "app-task",
@@ -78,6 +75,8 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private commentService = inject(CommentService);
+  private githubService = inject(GithubService);
+  private dataLoaderService = inject(DataLoaderService);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -102,8 +101,13 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   @Output() toggleSubtaskCompletionEvent: EventEmitter<Subtask> = new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
+  @Output() addSubtaskCommentEvent: EventEmitter<{ content: string; subtask_id: string }> =
+    new EventEmitter();
 
   showComments = signal(false);
+  creatingGithubIssue = signal(false);
+  loadingTaskComments = signal(false);
+
   /** Inline expanded subtask comment blocks (by subtaskId) */
   expandedSubtaskCommentIds = signal<Set<string>>(new Set());
   private highlightedExpandedSubtaskId = signal<string | null>(null);
@@ -204,7 +208,18 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     this.showComments.update((v) => !v);
 
     if (!wasOpen && this.task) {
+      const visibility = this.isPrivate ? "private" : "shared";
       const taskId = this.task.id;
+
+      this.dataLoaderService.loadCommentsForTask(taskId, visibility).subscribe({
+        next: () => {
+          this.dataLoaderService.loadInitialSubtasksForTask(taskId, visibility).subscribe();
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load comments");
+        },
+      });
+
       const userId = this.authService.getValueByKey("id");
       if (userId) {
         const subtaskIds = this.storageService
@@ -238,7 +253,6 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
                 next: () => {},
                 error: (err) => {
                   console.error("Mark comments read failed:", err);
-                  this.notifyService.showError("Failed to mark comments as read");
                 },
               });
           }
@@ -355,6 +369,22 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId || "");
   }
 
+  onLoadMoreTaskComments() {
+    if (!this.task || this.loadingTaskComments()) return;
+    const visibility = this.isPrivate ? "private" : "shared";
+    this.loadingTaskComments.set(true);
+    this.dataLoaderService.loadMoreCommentsForTask(this.task.id, visibility).subscribe({
+      next: () => {
+        this.loadingTaskComments.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingTaskComments.set(false);
+        this.notifyService.showError("Failed to load more comments");
+      },
+    });
+  }
+
   onMarkSubtaskCommentsAsRead(commentIds: string[], subtask_id?: string) {
     const userId = this.authService.getValueByKey("id");
     const effectiveTodoId = this.todo_id || this.task?.todo_id;
@@ -427,5 +457,43 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (this.task) {
       this.deleteTaskEvent.emit(this.task.id);
     }
+  }
+
+  createGithubIssue() {
+    if (!this.task) return;
+    const todo = this.todo();
+    if (!todo || !todo.github_repo_id || !todo.github_repo_name) {
+      this.notifyService.showError("Project is not linked to a GitHub repository");
+      return;
+    }
+
+    this.creatingGithubIssue.set(true);
+    const [owner, repo] = todo.github_repo_name.split("/");
+    if (!owner || !repo) {
+      this.notifyService.showError("Invalid GitHub repository configuration");
+      this.creatingGithubIssue.set(false);
+      return;
+    }
+
+    const issueBody = `**Task Details**
+
+**Description:** ${this.task.description || "N/A"}
+**Priority:** ${this.task.priority || "medium"}
+**Due Date:** ${this.task.end_date || "N/A"}
+**Created in:** TaskFlow
+
+---
+[View in TaskFlow](taskflow://tasks/${this.task.id})`;
+
+    this.githubService.createIssue(owner, repo, this.task.title, issueBody).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
+        this.creatingGithubIssue.set(false);
+      },
+      error: (err) => {
+        this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
+        this.creatingGithubIssue.set(false);
+      },
+    });
   }
 }
