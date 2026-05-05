@@ -44,6 +44,7 @@ import { BaseListView } from "@views/base-list.view";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import { FilterField } from "@models/filter-config.model";
 
 @Component({
   selector: "app-kanban",
@@ -104,6 +105,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
   private isUpdatingOrder = signal<boolean>(false);
   showStats = signal(false);
+  override showFilter = signal(false);
 
   selectedProjectTitle = computed(() => {
     const todoId = this.selectedTodoId();
@@ -134,6 +136,20 @@ export class KanbanView extends BaseListView implements OnInit {
     { id: TaskStatus.COMPLETED, label: "Done", icon: "check_circle", iconBgClass: "bg-green-500" },
     { id: TaskStatus.SKIPPED, label: "Skipped", icon: "skip_next", iconBgClass: "bg-purple-500" },
     { id: TaskStatus.FAILED, label: "Failed", icon: "error", iconBgClass: "bg-red-500" },
+  ];
+
+  filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "checkbox",
+      options: [
+        { key: TaskStatus.PENDING, label: "To Do" },
+        { key: TaskStatus.COMPLETED, label: "Done" },
+        { key: TaskStatus.SKIPPED, label: "Skipped" },
+        { key: TaskStatus.FAILED, label: "Failed" },
+      ],
+    },
   ];
 
   constructor() {
@@ -239,8 +255,16 @@ export class KanbanView extends BaseListView implements OnInit {
 
   getTasksByStatus(status: string): Task[] {
     const query = this.searchQuery().toLowerCase().trim();
+    const filters = this._kanbanFilters();
+    const statusFilter = filters["status"];
+
     return this.projectTasks().filter((t) => {
       const matchesStatus = t.status === status;
+
+      if (statusFilter && Array.isArray(statusFilter) && statusFilter.length > 0) {
+        if (!statusFilter.includes(t.status)) return false;
+      }
+
       const matchesSearch =
         !query ||
         t.title.toLowerCase().includes(query) ||
@@ -252,6 +276,12 @@ export class KanbanView extends BaseListView implements OnInit {
   clearSearch() {
     this.searchQuery.set("");
   }
+
+  onKanbanFilterChange(filters: Record<string, string | string[]>): void {
+    this._kanbanFilters.set(filters);
+  }
+
+  private _kanbanFilters = signal<Record<string, string | string[]>>({});
 
   getColumnColorClass = BaseItemHelper.getColumnColorClass;
   getAssigneeColor = BaseItemHelper.getAssigneeColor;

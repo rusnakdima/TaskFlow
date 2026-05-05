@@ -40,11 +40,16 @@ import { TableField } from "@components/table-view/table-field.model";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-import {
-  ViewModeSwitcherComponent,
-  ViewMode,
-} from "@components/view-mode-switcher/view-mode-switcher.component";
+import { ViewMode } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -66,8 +71,9 @@ import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sideba
     TableViewComponent,
     BulkActionsComponent,
     CheckboxComponent,
-    ViewModeSwitcherComponent,
     FilterSidebarComponent,
+    SegmentSelectorComponent,
+    PageToolbarComponent,
   ],
   templateUrl: "./data-management.view.html",
 })
@@ -196,14 +202,14 @@ export class DataManagementView implements OnInit {
   sortBy = signal<string>("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
 
-  dataTypes = [
-    { id: "todos", label: "Todos", icon: "list_alt", count: 0 },
-    { id: "tasks", label: "Tasks", icon: "checklist", count: 0 },
-    { id: "subtasks", label: "Subtasks", icon: "assignment", count: 0 },
-    { id: "comments", label: "Comments", icon: "forum", count: 0 },
-    { id: "chats", label: "Chats", icon: "chat", count: 0 },
-    { id: "categories", label: "Categories", icon: "category", count: 0 },
-    { id: "daily_activities", label: "Daily Activities", icon: "schedule", count: 0 },
+  dataTypes: SegmentOption[] = [
+    { id: "todos", label: "Todos", icon: "list_alt" },
+    { id: "tasks", label: "Tasks", icon: "checklist" },
+    { id: "subtasks", label: "Subtasks", icon: "assignment" },
+    { id: "comments", label: "Comments", icon: "forum" },
+    { id: "chats", label: "Chats", icon: "chat" },
+    { id: "categories", label: "Categories", icon: "category" },
+    { id: "daily_activities", label: "Daily Activities", icon: "schedule" },
   ];
 
   ngOnInit(): void {
@@ -355,7 +361,63 @@ export class DataManagementView implements OnInit {
 
   getSelectedTypeIcon(): string {
     const type = this.dataTypes.find((t) => t.id === this.selectedType());
-    return type ? type.icon : "list_alt";
+    return type ? type.icon || "list_alt" : "list_alt";
+  }
+
+  getToolbarConfig(): PageToolbarConfig {
+    const sortOptions: { key: string; label: string; icon?: string }[] = [
+      { key: "createdAt", label: "Created Date", icon: "schedule" },
+      { key: "updatedAt", label: "Updated Date", icon: "update" },
+      { key: "title", label: "Title", icon: "sort_by_alpha" },
+    ];
+
+    if (
+      this.selectedType() === "todos" ||
+      this.selectedType() === "tasks" ||
+      this.selectedType() === "subtasks"
+    ) {
+      sortOptions.push({ key: "priority", label: "Priority", icon: "flag" });
+    }
+
+    if (this.selectedType() === "todos" || this.selectedType() === "tasks") {
+      sortOptions.push({ key: "startDate", label: "Start Date", icon: "play_arrow" });
+      sortOptions.push({ key: "endDate", label: "End Date", icon: "stop" });
+    }
+
+    return {
+      selectAll: {
+        onToggle: () => this.onBulkSelectAll(),
+        isAllSelected: this.isAllSelected(),
+        count: this.selectedRecords().size,
+        highlight: this.selectedRecords().size > 0 && !this.isAllSelected(),
+      },
+      sortMenu: {
+        sortBy: this.sortBy(),
+        sortOrder: this.sortOrder(),
+        sortOptions,
+        onSort: (key) => {
+          this.sortBy.set(key);
+          this.sortOrder.set("desc");
+        },
+      },
+      sortOrder: {
+        onToggle: () => this.sortOrder.set(this.sortOrder() === "asc" ? "desc" : "asc"),
+        currentOrder: this.sortOrder(),
+      },
+      refresh: {
+        onClick: () => this.loadData(true),
+        loading: this.loading(),
+      },
+      filter: {
+        onToggle: () => this.showFilters.update((v) => !v),
+        isActive: this.showFilters(),
+      },
+      viewMode: {
+        mode: this.viewMode(),
+        pageKey: "data-management",
+        onModeChange: (mode) => this.viewMode.set(mode),
+      },
+    };
   }
 
   selectDataType(typeId: string) {
