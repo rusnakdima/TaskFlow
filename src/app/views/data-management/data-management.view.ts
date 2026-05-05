@@ -234,12 +234,14 @@ export class DataManagementView implements OnInit {
 
     obs.subscribe({
       next: (response) => {
-        this.dataMap.set(response.data);
+        const table = this.selectedType();
+        const tableData = Array.isArray(response.data) ? response.data : (response.data?.[table] || []);
+        this.dataMap.set({ [table]: tableData });
         this.paginationState.set({
-          skip: response.data.length,
+          skip: tableData.length,
           limit: 10,
-          total: response.total,
-          hasMore: response.has_more,
+          total: response.total || tableData.length,
+          hasMore: response.has_more ?? (tableData.length >= 10),
           loading: false,
         });
         this.loading.set(false);
