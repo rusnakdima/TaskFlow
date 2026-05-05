@@ -81,75 +81,44 @@
       </div>
     }
 
-    @if (showComments()) {
-      <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
-        <app-comments
-          title="Task comments"
-          [comments]="taskComments"
-          [task_id]="task.id"
-          [todo]="todo"
-          [highlightCommentId]="highlightCommentId"
-          (addCommentEvent)="onAddComment($event)"
-          (deleteCommentEvent)="onDeleteComment($event)"
-          (markAsReadEvent)="onMarkAsRead($event)"
-        />
-      </div>
-    }
+    <app-comments-panel
+      [comments]="taskComments"
+      [itemType]="'task'"
+      [itemId]="task.id"
+      [todo]="todo"
+      [highlightCommentId]="highlightCommentId"
+      [subtaskComments]="task.subtasks?.map((s) => s.comments || []) || []"
+      (addCommentEvent)="onAddComment($event)"
+      (deleteCommentEvent)="onDeleteComment($event)"
+      (markAsReadEvent)="onMarkAsRead($event)"
+    />
 
     <div
       class="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-zinc-700"
     >
       <div class="flex items-center gap-2">
         <button
-          class="cursor-move rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
+          class="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+          cdkDragHandle
           title="Drag to reorder"
         >
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
         </button>
-        @if (totalSubtasks > 0) {
-          <button
-            class="rounded-lg p-2 transition-colors"
-            [ngClass]="
-              isExpanded
-                ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30'
-            "
-            (click)="toggleExpand()"
-            [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
-          >
-            <mat-icon
-              class="h-5! w-5! min-w-5 text-xl!"
-              [fontIcon]="isExpanded ? 'expand_less' : 'expand_more'"
-            />
-          </button>
-        }
-        <button
-          class="rounded-lg p-2 transition-colors"
-          [ngClass]="
-            showComments()
-              ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-              : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
-          "
-          (click)="toggleComments()"
-          [title]="showComments() ? 'Hide comments' : 'Show comments'"
-        >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="forum" />
-        </button>
       </div>
       <div class="flex items-center gap-1">
         <button
-          class="rounded p-1 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
+          class="rounded-lg p-1 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
           (click)="onActionClick('edit')"
           title="Edit task"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-2xl!" fontIcon="edit" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
         </button>
         <button
-          class="rounded p-1 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
+          class="rounded-lg p-1 text-red-500 transition-all duration-200 hover:scale-110 hover:bg-red-50 dark:hover:bg-red-900/30"
           (click)="deleteTask()"
           title="Delete task"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-2xl!" fontIcon="delete" />
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
         </button>
       </div>
     </div>

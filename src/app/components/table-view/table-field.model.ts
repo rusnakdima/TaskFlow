@@ -1,3 +1,5 @@
+import { TemplateRef } from "@angular/core";
+
 export type TableFieldType =
   | "text"
   | "date"
@@ -11,7 +13,33 @@ export type TableFieldType =
   | "boolean"
   | "select"
   | "actions"
-  | "expand";
+  | "expand"
+  | "change";
+
+export interface TableFieldColorConfig {
+  positive?: string;
+  negative?: string;
+  neutral?: string;
+  true?: string;
+  false?: string;
+  default?: string;
+}
+
+export interface TableFieldIconConfig {
+  positive?: string;
+  negative?: string;
+  neutral?: string;
+  true?: string;
+  false?: string;
+  default?: string;
+}
+
+export interface TableFieldActionButton {
+  key: string;
+  icon: string;
+  label: string;
+  template?: TemplateRef<any>;
+}
 
 export interface TableField {
   key: string;
@@ -24,4 +52,6 @@ export interface TableField {
   getChipColor?: (value: any) => string;
   getChipText?: (value: any) => string;
   getSortValue?: (item: any) => any;
+  colorConfig?: TableFieldColorConfig;
+  iconConfig?: TableFieldIconConfig;
 }

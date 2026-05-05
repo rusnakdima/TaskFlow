@@ -5,7 +5,6 @@ import {
   EventEmitter,
   Input,
   Output,
-  signal,
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -13,9 +12,10 @@ import {
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
-import { CommentsComponent } from "@components/comments/comments.component";
+import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* helpers */
@@ -34,7 +34,7 @@ import { Todo } from "@models/todo.model";
 @Component({
   selector: "app-subtask-row",
   standalone: true,
-  imports: [CommonModule, MatIconModule, CommentsComponent, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, DragDropModule, CommentsPanelComponent, CheckboxComponent],
   templateUrl: "./subtask-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
