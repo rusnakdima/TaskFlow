@@ -53,11 +53,11 @@ export class StatsView implements OnInit {
   selectedTimeRange = signal<string>("week");
 
   timeRanges: SegmentOption[] = [
-    { id: "day", label: "This Day" },
-    { id: "week", label: "This Week" },
-    { id: "month", label: "This Month" },
-    { id: "quarter", label: "This Quarter" },
-    { id: "year", label: "This Year" },
+    { id: "day", label: "This Day", icon: "today" },
+    { id: "week", label: "This Week", icon: "date_range" },
+    { id: "month", label: "This Month", icon: "calendar_month" },
+    { id: "quarter", label: "This Quarter", icon: "calendar_view_month" },
+    { id: "year", label: "This Year", icon: "calendar_today" },
   ];
 
   statistics = signal<Statistics>({

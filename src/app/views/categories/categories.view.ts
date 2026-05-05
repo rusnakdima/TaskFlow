@@ -26,10 +26,12 @@ import { BaseListView } from "@views/base-list.view";
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
 
 @Component({
   selector: "app-categories",
@@ -45,9 +47,8 @@ import { TableField } from "@components/table-view/table-field.model";
     CategoryFormComponent,
     CategoryCardComponent,
     BulkActionsComponent,
-    CheckboxComponent,
     TableViewComponent,
-    ViewModeSwitcherComponent,
+    PageToolbarComponent,
   ],
   templateUrl: "./categories.view.html",
 })
@@ -217,5 +218,46 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   onTableSelectAll(): void {
     this.toggleSelectAll();
+  }
+
+  getToolbarConfig(): PageToolbarConfig {
+    return {
+      sortMenu: {
+        sortBy: this.sortBy(),
+        sortOrder: this.sortOrder(),
+        sortOptions: [
+          { key: "createdAt", label: "Created Date", icon: "schedule" },
+          { key: "updatedAt", label: "Updated Date", icon: "update" },
+          { key: "title", label: "Title", icon: "sort_by_alpha" },
+        ],
+        onSort: (key) => {
+          this.sortBy.set(key as "title" | "createdAt" | "updatedAt");
+          this.sortOrder.set("desc");
+        },
+      },
+      sortOrder: {
+        onToggle: () => this.sortOrder.set(this.sortOrder() === "asc" ? "desc" : "asc"),
+        currentOrder: this.sortOrder(),
+      },
+      newButton: {
+        onClick: () => this.toggleCreateForm(),
+        label: "New Category",
+        icon: "add",
+      },
+      search: {
+        query: this.searchQuery(),
+        placeholder: "Search categories...",
+        onSearch: (query) => this.onSearch(query),
+      },
+      viewMode: {
+        mode: this.viewMode(),
+        pageKey: "categories",
+        onModeChange: (mode) => this.setViewMode(mode),
+      },
+    };
+  }
+
+  onSearch(query: string): void {
+    this.searchQuery.set(query);
   }
 }
