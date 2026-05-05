@@ -1,12 +1,12 @@
 import { CommonModule, Location } from "@angular/common";
 import {
   Component,
-  OnDestroy,
   OnInit,
   signal,
   inject,
   computed,
   ChangeDetectorRef,
+  DestroyRef,
 } from "@angular/core";
 import {
   FormBuilder,
@@ -38,7 +38,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 import { GithubService } from "@services/github/github.service";
@@ -47,6 +47,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { ApiProvider } from "@providers/api.provider";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 type ItemType = "todo" | "task" | "subtask";
 
@@ -86,14 +87,14 @@ interface FormConfig {
   ],
   templateUrl: "./manage-item.page.html",
 })
-export class ManageItemPage implements OnInit, OnDestroy {
+export class ManageItemPage implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
   private shortcutService = inject(ShortcutService);
@@ -101,6 +102,7 @@ export class ManageItemPage implements OnInit, OnDestroy {
   private relationLoader = inject(RelationLoadingService);
   private visibilitySyncService = inject(VisibilitySyncService);
   private githubService = inject(GithubService);
+  private destroyRef = inject(DestroyRef);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -212,7 +214,6 @@ export class ManageItemPage implements OnInit, OnDestroy {
   private async loadData(params: RouteParams): Promise<void> {
     const path = this.route.snapshot.url.map((s) => s.path);
 
-    // First set itemType based on path
     if (path.includes("subtasks")) {
       this.itemType.set("subtask");
       if (params.taskId) this.form.patchValue({ task_id: params.taskId });
@@ -223,12 +224,8 @@ export class ManageItemPage implements OnInit, OnDestroy {
       this.itemType.set("todo");
     }
 
-    // Load parent entities with correct visibility for loading existing item
     await this.loadParentEntities();
 
-    // If editing, load the existing item
-    // Only check entity's own ID params (taskId for tasks, subtaskId for subtasks, todoId for todos)
-    // Note: todoId is set for create_todo path too, so we check based on itemType
     const isEntityIdSet =
       (this.itemType() === "todo" && params.todoId) ||
       (this.itemType() === "task" && params.taskId) ||
@@ -243,14 +240,14 @@ export class ManageItemPage implements OnInit, OnDestroy {
   private async loadParentEntities(): Promise<void> {
     const type = this.itemType();
 
-    // Get todos from storage (already loaded with correct visibility)
-    const allTodos = this.storageService.todos();
-    this.todos.set(allTodos);
+    this.dataService.todos$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((todos) => this.todos.set(todos));
 
     if (type === "task" || type === "subtask") {
-      // Get tasks from storage
-      const allTasks = this.storageService.tasks();
-      this.tasks.set(allTasks);
+      this.dataService.tasks$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((tasks) => this.tasks.set(tasks));
     }
   }
 
@@ -260,28 +257,21 @@ export class ManageItemPage implements OnInit, OnDestroy {
 
     if (!id) return;
 
-    // Try to get from local storage first
-    const localItem = this.storageService.getById(config.table as any, id);
-
-    if (localItem) {
-      this.applyItemToForm(localItem);
-    } else {
-      // Load from API with appropriate visibility
-      const visibilityValue = this.form.get("visibility")?.value;
-      const visibility = !visibilityValue || visibilityValue === "private" ? "private" : "shared";
-
-      const response = await firstValueFrom(
-        this.dataSyncProvider.crud<any>("get", config.table, {
-          id,
-          visibility,
-        })
-      );
-
-      if (response?.data?.[0]) {
-        this.applyItemToForm(response.data[0]);
-      } else if (response) {
-        this.applyItemToForm(response);
+    try {
+      let item: any;
+      if (config.type === "todo") {
+        item = await firstValueFrom(this.dataService.getTodo(id));
+      } else if (config.type === "task") {
+        item = await firstValueFrom(this.dataService.getTask(id));
+      } else {
+        item = await firstValueFrom(this.dataService.getSubtask(id));
       }
+
+      if (item) {
+        this.applyItemToForm(item);
+      }
+    } catch (err) {
+      this.notifyService.showError("Failed to load item");
     }
   }
 
@@ -298,16 +288,13 @@ export class ManageItemPage implements OnInit, OnDestroy {
       } catch {}
     }
 
-    // Set visibility from item if not already set
     if (item.visibility && !this.form.get("visibility")?.value) {
       this.form.patchValue({ visibility: item.visibility });
     }
 
-    // Handle permissions based on type and visibility
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken());
     this.isOwner.set(item.user_id === userId);
 
-    // Permission checks
     if (item.visibility === "shared" && item.user_id !== userId) {
       this.notifyService.showError("Only owner can manage project settings");
       setTimeout(() => this.location.back(), 500);
@@ -352,13 +339,24 @@ export class ManageItemPage implements OnInit, OnDestroy {
       const formValue = this.form.value;
       const payload = this.buildPayload(formValue, config);
 
-      const action = this.isEdit() ? "update" : "create";
-      await firstValueFrom(
-        this.dataSyncProvider.crud(action, config.table, {
-          data: payload,
-          visibility: payload.visibility,
-        })
-      );
+      if (this.isEdit()) {
+        const id = formValue._id || formValue.id;
+        if (config.type === "todo") {
+          await firstValueFrom(this.dataService.updateTodo(id, payload));
+        } else if (config.type === "task") {
+          await firstValueFrom(this.dataService.updateTask(id, payload));
+        } else {
+          await firstValueFrom(this.dataService.updateSubtask(id, payload));
+        }
+      } else {
+        if (config.type === "todo") {
+          await firstValueFrom(this.dataService.createTodo(payload));
+        } else if (config.type === "task") {
+          await firstValueFrom(this.dataService.createTask(payload));
+        } else {
+          await firstValueFrom(this.dataService.createSubtask(payload));
+        }
+      }
 
       this.notifyService.showSuccess(
         `${config.type} ${this.isEdit() ? "updated" : "created"} successfully`
@@ -398,7 +396,7 @@ export class ManageItemPage implements OnInit, OnDestroy {
         github_repo_name: this.getRepoName(formValue.github_repo_id),
       };
     } else if (config.type === "task") {
-      const parentTodo = this.storageService.getById("todos", formValue.todo_id);
+      const parentTodo = this.todos().find((t) => t.id === formValue.todo_id);
       return {
         ...base,
         todo_id: formValue.todo_id,
@@ -407,10 +405,8 @@ export class ManageItemPage implements OnInit, OnDestroy {
         publish_to_github: formValue.publish_to_github || false,
       };
     } else {
-      const parentTask = this.storageService.getById("tasks", formValue.task_id);
-      const parentTodo = parentTask
-        ? this.storageService.getById("todos", parentTask.todo_id)
-        : null;
+      const parentTask = this.tasks().find((t) => t.id === formValue.task_id);
+      const parentTodo = parentTask ? this.todos().find((t) => t.id === parentTask.todo_id) : null;
       return {
         ...base,
         task_id: formValue.task_id,
@@ -437,8 +433,4 @@ export class ManageItemPage implements OnInit, OnDestroy {
   dateClass = (date: Date): MatCalendarCellCssClasses => {
     return DateHelper.createDateClass(this.form)(date);
   };
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
 }

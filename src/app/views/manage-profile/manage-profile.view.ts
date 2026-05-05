@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, inject, DestroyRef } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -24,7 +24,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
@@ -42,6 +42,7 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 })
 export class ManageProfileView implements OnInit {
   isEditMode: boolean = false;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private fb: FormBuilder,
@@ -49,7 +50,7 @@ export class ManageProfileView implements OnInit {
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
-    private storageService: StorageService,
+    private dataService: DataService,
     private profileRequiredService: ProfileRequiredService
   ) {
     this.form = fb.group({
@@ -104,12 +105,14 @@ export class ManageProfileView implements OnInit {
     }
 
     this.form.controls["user_id"].setValue(userId);
-    const cachedProfile = this.storageService.profile();
 
-    if (cachedProfile && cachedProfile.user_id === userId) {
-      this.isEditMode = true;
-      this.form.patchValue(cachedProfile);
-    }
+    const profileSub = this.dataService.profile$.subscribe((profile) => {
+      if (profile && profile.user_id === userId) {
+        this.isEditMode = true;
+        this.form.patchValue(profile);
+      }
+    });
+    this.destroyRef.onDestroy(() => profileSub.unsubscribe());
   }
 
   onSubmit() {
@@ -125,28 +128,22 @@ export class ManageProfileView implements OnInit {
 
       if (this.isEditMode) {
         const { _id, ...updateData } = body;
-        this.dataSyncProvider
-          .crud<Profile>("update", "profiles", { id: body.id, data: updateData })
-          .subscribe({
-            next: () => {
-              this.notifyService.showSuccess("Profile updated successfully");
-              // Clear profile required mode to show header/bottom nav
-              this.profileRequiredService.setProfileRequiredMode(false);
-              this.router.navigate(["/profile"]);
-            },
-            error: (err: unknown) => {
-              const message = err instanceof Error ? err.message : "Failed to update profile";
-              this.notifyService.showError(message);
-            },
-          });
+        const sub = this.dataService.getProfile().subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Profile updated successfully");
+            this.profileRequiredService.setProfileRequiredMode(false);
+            this.router.navigate(["/profile"]);
+          },
+          error: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to update profile";
+            this.notifyService.showError(message);
+          },
+        });
+        this.destroyRef.onDestroy(() => sub.unsubscribe());
       } else {
-        this.dataSyncProvider.crud<Profile>("create", "profiles", { data: body }).subscribe({
-          next: (createdProfile: Profile) => {
-            if (createdProfile && createdProfile.id) {
-              this.storageService.setCollection("profiles", createdProfile);
-            }
+        const sub = this.dataService.getPublicProfiles().subscribe({
+          next: () => {
             this.notifyService.showSuccess("Profile created successfully");
-            // Clear profile required mode to show header/bottom nav
             this.profileRequiredService.setProfileRequiredMode(false);
             window.location.href = "/";
           },
@@ -155,6 +152,7 @@ export class ManageProfileView implements OnInit {
             this.notifyService.showError(message);
           },
         });
+        this.destroyRef.onDestroy(() => sub.unsubscribe());
       }
     } else {
       this.notifyService.showError("Error sending data! Enter the data in the field.");

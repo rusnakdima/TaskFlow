@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, OnDestroy } from "@angular/core";
+import { Component, OnInit, signal, computed, OnDestroy, inject, DestroyRef } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
@@ -18,7 +18,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 @Component({
   selector: "app-profile",
@@ -28,6 +28,7 @@ import { StorageService } from "@services/core/storage.service";
 })
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private route: ActivatedRoute,
@@ -35,14 +36,15 @@ export class ProfileView implements OnInit, OnDestroy {
     private authService: AuthService,
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
-    private storageService: StorageService
+    private dataService: DataService
   ) {}
 
   userId: string = "";
+  private profileData: Profile | null = null;
 
-  profile = computed(() => this.storageService.profile());
-  currentUsername = computed(() => this.storageService.profile()?.user?.username || "");
-  currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
+  profile = computed(() => this.profileData);
+  currentUsername = computed(() => this.profileData?.user?.username || "");
+  currentEmail = computed(() => this.profileData?.user?.email || "");
 
   // Offline auth signals
   canExportData = signal(false);
@@ -62,6 +64,11 @@ export class ProfileView implements OnInit, OnDestroy {
 
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
+
+    const profileSub = this.dataService.profile$.subscribe((profile) => {
+      this.profileData = profile;
+    });
+    this.destroyRef.onDestroy(() => profileSub.unsubscribe());
   }
 
   ngOnDestroy(): void {
@@ -156,7 +163,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private approveQrLogin(token: string): void {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.profileData?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in to approve QR login");
       return;
@@ -180,7 +187,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private completeDesktopLoginFromMobileScan(token: string): void {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.profileData?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in");
       return;
@@ -203,7 +210,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   async showMyQrCode(): Promise<void> {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.profileData?.user?.username;
     const userId = this.authService.getValueByKey("id");
     if (!username || !userId) {
       this.notifyService.showError("You must be logged in to show QR code");
@@ -211,7 +218,7 @@ export class ProfileView implements OnInit, OnDestroy {
     }
 
     try {
-      this.dataSyncProvider
+      const sub = this.dataSyncProvider
         .invokeCommand<{
           token: string;
           qrCode: string;
@@ -228,6 +235,7 @@ export class ProfileView implements OnInit, OnDestroy {
             this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
           },
         });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     } catch (err: any) {
       this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
     }

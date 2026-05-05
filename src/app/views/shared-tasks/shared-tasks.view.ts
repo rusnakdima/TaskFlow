@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
@@ -13,7 +13,7 @@ import { Todo } from "@models/todo.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 
 /* providers */
@@ -33,26 +33,26 @@ import { TodoComponent } from "@components/todo/todo.component";
 })
 export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private dragDropService = inject(DragDropOrderService);
   private apiProvider = inject(ApiProvider);
+  private destroyRef = inject(DestroyRef);
 
   protected getItems(): { id: string }[] {
     return [];
   }
 
   userId = signal("");
+  private sharedTodosList: Todo[] = [];
 
   myProjects = computed(() => {
     const userId = this.userId();
-    return this.storageService
-      .sharedTodos()
-      .filter((todo) => todo.user_id === userId && !todo.deleted_at);
+    return this.sharedTodosList.filter((todo) => todo.user_id === userId && !todo.deleted_at);
   });
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
-    return this.storageService.sharedTodos().filter((todo) => {
+    return this.sharedTodosList.filter((todo) => {
       const isNotOwner = todo.user_id !== userId;
 
       const isAssignee =
@@ -67,6 +67,11 @@ export class SharedTasksView extends BaseListView implements OnInit {
     super.ngOnInit();
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
+
+    const sharedTodosSub = this.dataService.todos$.subscribe((todos) => {
+      this.sharedTodosList = todos.filter((t) => t.visibility === "shared");
+    });
+    this.destroyRef.onDestroy(() => sharedTodosSub.unsubscribe());
   }
 
   todoIsOwner(todo: Todo): boolean {
@@ -75,7 +80,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      this.apiProvider.crud("delete", "todos", { id: todoId, visibility: "shared" }).subscribe({
+      const sub = this.dataService.deleteTodo(todoId).subscribe({
         next: () => {
           this.notifyService.showSuccess("Project deleted successfully");
         },
@@ -83,6 +88,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
           this.notifyService.showError(err.message || "Failed to delete project");
         },
       });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
