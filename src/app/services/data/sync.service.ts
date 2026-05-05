@@ -11,7 +11,7 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
@@ -39,7 +39,7 @@ export class SyncService implements OnDestroy {
 
   constructor(
     private jwtTokenService: JwtTokenService,
-    private storageService: StorageService,
+    private dataService: DataService,
     private dataSyncService: DataLoaderService,
     private notifyService: NotifyService,
     private syncProgressService: SyncProgressService

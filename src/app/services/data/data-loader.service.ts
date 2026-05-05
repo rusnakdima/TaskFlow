@@ -22,6 +22,7 @@ import { RelationLoadingService } from "@services/core/relation-loading.service"
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { DataService } from "@services/data/data.service";
 
 interface PaginationState {
   items: any[];
@@ -44,7 +45,7 @@ interface PaginationOptions {
 
 class PaginationLoader<T> {
   constructor(
-    private apiProvider: ApiProvider,
+    private dataService: DataService,
     private options: PaginationOptions
   ) {}
 
@@ -64,9 +65,10 @@ class PaginationLoader<T> {
       loading: true,
     });
 
-    return this.apiProvider
-      .crud<T[]>("get", entityName, {
-        ...filterBuilder(0, paginationSignal().limit),
+    const filterParams = filterBuilder(0, paginationSignal().limit);
+    return this.dataService
+      .getEntitiesByType<T>(entityName, {
+        ...filterParams,
         load,
         visibility,
       })
@@ -101,9 +103,10 @@ class PaginationLoader<T> {
 
     paginationSignal.set({ ...current, loading: true });
 
-    return this.apiProvider
-      .crud<T[]>("get", entityName, {
-        ...filterBuilder(current.skip, current.limit),
+    const filterParams = filterBuilder(current.skip, current.limit);
+    return this.dataService
+      .getEntitiesByType<T>(entityName, {
+        ...filterParams,
         load,
         visibility,
       })
@@ -144,6 +147,7 @@ export class DataLoaderService {
   private notifyService = inject(NotifyService);
   private profileRequiredService = inject(ProfileRequiredService);
   private router = inject(Router);
+  private dataService = inject(DataService);
 
   private readonly RETRY_COUNT = 2;
   private readonly RETRY_DELAY_MS = 1000;
@@ -193,7 +197,7 @@ export class DataLoaderService {
   private currentChatsTodoId = signal<string | null>(null);
 
   private createPaginationLoader<T>(options: PaginationOptions): PaginationLoader<T> {
-    return new PaginationLoader<T>(this.apiProvider, options);
+    return new PaginationLoader<T>(this.dataService, options);
   }
 
   loadAllData(
@@ -214,21 +218,13 @@ export class DataLoaderService {
       this.storageService.setLoaded(false);
     }
 
-    const allCategories$ = this.relationLoader.loadMany<Category>(
-      this.apiProvider,
-      "categories",
-      {},
-      [],
-      "private"
-    );
+    const allCategories$ = this.dataService.getCategories();
 
-    const privateTodos$ = this.relationLoader.loadMany<Todo>(
-      this.apiProvider,
-      "todos",
-      { user_id: currentUserId },
-      ["categories", "user"],
-      "private"
-    );
+    const privateTodos$ = this.dataService.getTodos({
+      filter: { user_id: currentUserId },
+      load: ["categories", "user"],
+      visibility: "private",
+    });
 
     const userProfile$: Observable<Profile | null> =
       this.createUserProfileObservable(currentUserId);
@@ -315,15 +311,14 @@ export class DataLoaderService {
       return of(null);
     }
 
-    // If offline, skip initialize_user_data and directly fetch from JSON
-    if (this.apiProvider.isOffline()) {
+    if (this.dataService.isOffline()) {
       console.log("[Offline] Skipping initialize_user_data, fetching profile directly from JSON");
       return this.fetchProfileFromJson(currentUserId);
     }
 
     return new Observable<Profile | null>((observer) => {
-      this.apiProvider
-        .invokeCommand("initialize_user_data", { userId: currentUserId })
+      this.dataService
+        .initializeUserData(currentUserId)
         .pipe(
           timeout(5000),
           catchError((err) => {
@@ -337,29 +332,9 @@ export class DataLoaderService {
               return of(null);
             }
             if (result?.data?.needsProfile) {
-              return this.apiProvider
-                .crud<Profile>("get", "profiles", {
-                  filter: { user_id: currentUserId },
-                  load: ["user"],
-                  visibility: "private",
-                })
-                .pipe(
-                  switchMap((profile) => {
-                    if (profile && typeof profile === "object" && "user_id" in profile) {
-                      return of(profile);
-                    }
-                    this.notifyService.showWarning("Profile not found. Please create one.");
-                    this.profileRequiredService.setProfileRequiredMode(true);
-                    this.router.navigate(["/profile/manage"]);
-                    return of(null);
-                  })
-                );
+              return this.dataService.getProfile();
             }
-            return this.apiProvider.crud<Profile>("get", "profiles", {
-              filter: { user_id: currentUserId },
-              load: ["user"],
-              visibility: "private",
-            });
+            return this.dataService.getProfile();
           })
         )
         .subscribe({
@@ -381,57 +356,40 @@ export class DataLoaderService {
   }
 
   private fetchProfileFromJson(currentUserId: string): Observable<Profile | null> {
-    return this.apiProvider
-      .crud<Profile>("get", "profiles", {
-        filter: { user_id: currentUserId },
-        load: ["user"],
-        visibility: "private",
+    return this.dataService.getProfile().pipe(
+      map((profile) => {
+        if (profile && typeof profile === "object" && "user_id" in profile) {
+          console.log("[Offline] Profile fetched from JSON");
+          return profile;
+        }
+        console.log("[Offline] No profile found in JSON");
+        return null;
+      }),
+      catchError((err) => {
+        console.warn("[Offline] Error fetching profile from JSON:", err);
+        return of(null);
       })
-      .pipe(
-        map((profile) => {
-          if (profile && typeof profile === "object" && "user_id" in profile) {
-            console.log("[Offline] Profile fetched from JSON");
-            return profile;
-          }
-          console.log("[Offline] No profile found in JSON");
-          return null;
-        }),
-        catchError((err) => {
-          console.warn("[Offline] Error fetching profile from JSON:", err);
-          return of(null);
-        })
-      );
+    );
   }
 
   private createSharedDataObservable(currentUserId: string): Observable<void> {
-    if (this.apiProvider.isOffline()) {
+    if (this.dataService.isOffline()) {
       console.log("[Offline] Skipping shared/public data loading");
       return of(undefined);
     }
 
-    const allProfiles$ = this.relationLoader.loadMany<Profile>(
-      this.apiProvider,
-      "profiles",
-      {},
-      ["user"],
-      "shared"
-    );
+    const allProfiles$ = this.dataService.getPublicProfiles();
 
-    const sharedTodos$ = this.relationLoader.loadMany<Todo>(
-      this.apiProvider,
-      "todos",
-      { assignees: { $in: [currentUserId] } },
-      ["categories", "user"],
-      "shared"
-    );
+    const sharedTodos$ = this.dataService.getTodos({
+      filter: { assignees: { $in: [currentUserId] } },
+      load: ["categories", "user"],
+      visibility: "shared",
+    });
 
-    const publicTodos$ = this.relationLoader.loadMany<Todo>(
-      this.apiProvider,
-      "todos",
-      { visibility: "public" },
-      ["categories", "user"],
-      "public"
-    );
+    const publicTodos$ = this.dataService.getTodos({
+      visibility: "public",
+      load: ["categories", "user"],
+    });
 
     return forkJoin({
       allProfiles: allProfiles$,
@@ -459,33 +417,46 @@ export class DataLoaderService {
     );
   }
 
+  loadInitialCategories(): Observable<Category[]> {
+    return this.dataService.getCategories();
+  }
+
   refreshAll(): void {
     this.loadAllData(true).subscribe();
   }
 
-  // Todos - paginated
   loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
     this.todosPagination.set({ items: [], skip: 0, limit, hasMore: true, loading: true });
-    const filter =
-      visibility === "private"
-        ? { user_id: this.jwtTokenService.getCurrentUserId() || "" }
-        : visibility === "shared"
-          ? { assignees: { $in: [this.jwtTokenService.getCurrentUserId() || ""] } }
-          : { visibility: "public" };
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
+    let filter: any;
 
-    return this.apiProvider
-      .crud<Todo[]>("get", "todos", { filter, skip: 0, limit, load: ["categories"], visibility })
+    if (visibility === "all") {
+      filter = {
+        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
+      };
+    } else if (visibility === "private") {
+      filter = { user_id: userId };
+    } else if (visibility === "shared") {
+      filter = { assignees: { $in: [userId] } };
+    } else {
+      filter = { visibility: visibility };
+    }
+
+    return this.dataService
+      .getTodos({ filter, skip: 0, limit, load: ["categories"], visibility })
       .pipe(
         switchMap((todos) => {
           const current = this.todosPagination();
+          const loadedTodos = todos || [];
           this.todosPagination.set({
             ...current,
-            items: todos || [],
-            skip: (todos || []).length,
-            hasMore: (todos || []).length >= limit,
+            items: loadedTodos,
+            skip: loadedTodos.length,
+            hasMore: loadedTodos.length >= limit,
             loading: false,
           });
-          return of(todos || []);
+          this.dataService.setCurrentTodos(loadedTodos);
+          return of(loadedTodos);
         }),
         catchError(() => {
           const current = this.todosPagination();
@@ -499,28 +470,42 @@ export class DataLoaderService {
     const current = this.todosPagination();
     if (current.loading || !current.hasMore) return of(current.items);
     this.todosPagination.set({ ...current, loading: true });
-    const filter =
-      visibility === "private"
-        ? { user_id: this.jwtTokenService.getCurrentUserId() || "" }
-        : visibility === "shared"
-          ? { assignees: { $in: [this.jwtTokenService.getCurrentUserId() || ""] } }
-          : { visibility: "public" };
+    const userId = this.jwtTokenService.getCurrentUserId() || "";
+    let filter: any;
 
-    return this.apiProvider
-      .crud<
-        Todo[]
-      >("get", "todos", { filter, skip: current.skip, limit: current.limit, load: ["categories"], visibility })
+    if (visibility === "all") {
+      filter = {
+        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
+      };
+    } else if (visibility === "private") {
+      filter = { user_id: userId };
+    } else if (visibility === "shared") {
+      filter = { assignees: { $in: [userId] } };
+    } else {
+      filter = { visibility: visibility };
+    }
+
+    return this.dataService
+      .getTodos({
+        filter,
+        skip: current.skip,
+        limit: current.limit,
+        load: ["categories"],
+        visibility,
+      })
       .pipe(
         switchMap((todos) => {
           const newItems = todos || [];
           const updated = this.todosPagination();
+          const allItems = [...updated.items, ...newItems];
           this.todosPagination.set({
             ...updated,
-            items: [...updated.items, ...newItems],
+            items: allItems,
             skip: updated.skip + newItems.length,
             hasMore: newItems.length >= current.limit,
             loading: false,
           });
+          this.dataService.setCurrentTodos(allItems);
           return of(newItems);
         }),
         catchError(() => {
@@ -531,7 +516,6 @@ export class DataLoaderService {
       );
   }
 
-  // Tasks - lazy loaded when todo opened
   loadInitialTasksForTodo(
     todoId: string,
     visibility: string = "private",
@@ -561,7 +545,6 @@ export class DataLoaderService {
     }).loadMore();
   }
 
-  // Subtasks
   loadInitialSubtasksForTask(
     taskId: string,
     visibility: string = "private",
@@ -586,7 +569,7 @@ export class DataLoaderService {
       paginationSignal: this.subtasksPagination,
       currentIdSignal: this.currentSubtasksTaskId,
       filterBuilder: () => ({ filter: { task_id: taskId } }),
-      load: ["user", "comments"],
+      load: ["comments"],
       visibility,
     }).loadInitial();
   }
@@ -599,12 +582,11 @@ export class DataLoaderService {
       paginationSignal: this.subtasksPagination,
       currentIdSignal: this.currentSubtasksTaskId,
       filterBuilder: (skip) => ({ filter: { task_id: taskId }, skip }),
-      load: ["user", "comments"],
+      load: ["comments"],
       visibility,
     }).loadMore();
   }
 
-  // Comments - lazy load with pagination (latest 10 by default)
   loadCommentsForTask(
     taskId: string,
     visibility: string = "private",
@@ -678,7 +660,6 @@ export class DataLoaderService {
     }).loadMore();
   }
 
-  // Chats - load latest 10, scroll up for older
   loadInitialChatsForTodo(
     todoId: string,
     visibility: string = "private",
