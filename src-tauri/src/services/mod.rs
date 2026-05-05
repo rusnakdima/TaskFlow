@@ -46,3 +46,6 @@ pub mod statistics_service;
 
 #[path = "crypto.service.rs"]
 pub mod crypto_service;
+
+#[path = "github_service.rs"]
+pub mod github_service;
