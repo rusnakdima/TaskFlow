@@ -1,20 +1,10 @@
 <div class="flex flex-col gap-6">
-  <div class="flex flex-row items-center gap-3">
-    <div class="flex max-w-full flex-row gap-2 overflow-x-auto">
-      @for (range of timeRanges; track $index) {
-        <button
-          class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-          [ngClass]="
-            selectedTimeRange() === range.key
-              ? 'bg-blue-500 text-white'
-              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
-          "
-          (click)="changeTimeRange(range.key)"
-        >
-          {{ range.label }}
-        </button>
-      }
-    </div>
+  <div class="flex items-center gap-2">
+    <app-segment-selector
+      [options]="timeRanges"
+      [active]="selectedTimeRange()"
+      (select)="changeTimeRange($event)"
+    />
   </div>
 
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -233,46 +223,12 @@
       </button>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-zinc-600">
-            <th class="textNormal px-4 py-3 text-left font-medium">Metric</th>
-            <th class="textNormal px-4 py-3 text-left font-medium">Current Period</th>
-            <th class="textNormal px-4 py-3 text-left font-medium">Previous Period</th>
-            <th class="textNormal px-4 py-3 text-left font-medium">Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (metric of detailedMetrics(); track $index) {
-            <tr class="border-b border-gray-100 dark:border-zinc-700">
-              <td class="textNormal px-4 py-3">{{ metric.name }}</td>
-              <td class="textNormal px-4 py-3">{{ metric.current }}</td>
-              <td class="textMuted px-4 py-3">{{ metric.previous }}</td>
-              <td class="px-4 py-3">
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-                  [ngClass]="{
-                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300':
-                      metric.change > 0,
-                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300':
-                      metric.change < 0,
-                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300':
-                      metric.change === 0,
-                  }"
-                >
-                  @if (metric.change > 0) {
-                    <mat-icon class="mr-1 h-3! w-3! min-w-3 text-xs!" fontIcon="trending_up" />
-                  } @else if (metric.change < 0) {
-                    <mat-icon class="mr-1 h-3! w-3! min-w-3 text-xs!" fontIcon="trending_down" />
-                  }
-                  {{ metric.change > 0 ? "+" : "" }}{{ metric.change }}%
-                </span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <app-table-view
+      [data]="detailedMetrics()"
+      [fields]="detailedMetricsFields"
+      [showSelection]="false"
+      [showActionsColumn]="false"
+      emptyMessage="No detailed metrics available"
+    />
   </div>
 </div>

@@ -33,63 +33,8 @@
     }
 
     <!-- Toolbar Row -->
-    <div class="flex flex-wrap items-center justify-end gap-2">
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="toggleInfoBlock()"
-        title="Toggle task info"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="info" />
-        <span class="textNormal hidden text-sm font-medium sm:inline">{{
-          showInfoBlock() ? "Hide Info" : "Show Info"
-        }}</span>
-      </button>
-
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="toggleSelectAll()"
-      >
-        <app-checkbox
-          [checked]="isAllSelected()"
-          [indeterminate]="selectedSubtasks().size > 0 && !isAllSelected()"
-          [highlight]="selectedSubtasks().size > 0 && !isAllSelected()"
-        />
-        <span
-          class="hidden text-sm font-medium sm:inline"
-          [ngClass]="
-            selectedSubtasks().size > 0 && !isAllSelected()
-              ? 'text-yellow-700 dark:text-yellow-400'
-              : 'textNormal'
-          "
-        >
-          {{
-            isAllSelected()
-              ? "Deselect All"
-              : selectedSubtasks().size > 0
-                ? "Clear Selection"
-                : "Select All"
-          }}
-        </span>
-      </button>
-      <button
-        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-        (click)="toggleFilter()"
-      >
-        <mat-icon
-          class="h-5! w-5! min-w-5 text-xl!"
-          [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
-        />
-        <span class="hidden sm:inline">Filter</span>
-      </button>
-      <button class="styleButSuccess h-min gap-2 p-3 text-sm" routerLink="create_subtask">
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="add" />
-        <span class="hidden sm:inline">New Subtask</span>
-      </button>
-      <app-view-mode-switcher
-        [mode]="viewMode()"
-        [pageKey]="'subtasks'"
-        (modeChange)="setViewMode($event)"
-      />
+    <div class="flex items-center justify-between gap-2">
+      <app-page-toolbar [config]="getToolbarConfig()" />
     </div>
 
     <!-- Collapsible Info Block -->
@@ -119,7 +64,6 @@
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
           (dropped)="onSubtaskDrop($event)"
-          (commentToggle)="onCommentToggle($event)"
         />
       } @else if (viewMode() === "grid") {
         <div

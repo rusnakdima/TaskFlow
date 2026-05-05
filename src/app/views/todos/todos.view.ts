@@ -57,15 +57,20 @@ import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { TodoComponent } from "@components/todo/todo.component";
-import { FilterBarComponent, FilterOption } from "@components/filter-bar/filter-bar.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { TableField } from "@components/table-view/table-field.model";
-import { VisibilityToggleComponent } from "@components/visibility-toggle/visibility-toggle.component";
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
+import {
+  PageToolbarComponent,
+  PageToolbarConfig,
+} from "@components/page-toolbar/page-toolbar.component";
+import { FilterField } from "@models/filter-config.model";
 
 @Component({
   selector: "app-todos",
@@ -79,15 +84,13 @@ import { EmptyStateComponent } from "@components/empty-state/empty-state.compone
     MatSelectModule,
     MatMenuModule,
     TodoComponent,
-    FilterBarComponent,
     DragDropModule,
-    CheckboxComponent,
     BulkActionsComponent,
     TableViewComponent,
-    ViewModeSwitcherComponent,
-    VisibilityToggleComponent,
     StatsCardComponent,
     EmptyStateComponent,
+    SegmentSelectorComponent,
+    PageToolbarComponent,
   ],
   templateUrl: "./todos.view.html",
 })
@@ -141,11 +144,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
-  visibilityOptions = [
-    { key: "all", label: "All", icon: "apps" },
-    { key: "private", label: "Private", icon: "lock" },
-    { key: "shared", label: "Shared", icon: "group" },
-    { key: "public", label: "Public", icon: "public" },
+  visibilityOptions: SegmentOption[] = [
+    { id: "all", label: "All", icon: "apps" },
+    { id: "private", label: "Private", icon: "lock" },
+    { id: "shared", label: "Shared", icon: "group" },
+    { id: "public", label: "Public", icon: "public" },
   ];
 
   groupedTodos = computed(() => {
@@ -253,15 +256,30 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return count;
   }
 
-  filterOptions: FilterOption[] = [
-    { key: "all", label: "All" },
-    { key: "active", label: "Active" },
-    { key: "completed", label: "Completed" },
-    { key: "week", label: "This Week" },
-    { key: "low", label: "Low Priority" },
-    { key: "medium", label: "Medium Priority" },
-    { key: "high", label: "High Priority" },
-    { key: "urgent", label: "Urgent Priority" },
+  filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "radio",
+      options: [
+        { key: "all", label: "All" },
+        { key: "active", label: "Active" },
+        { key: "completed", label: "Completed" },
+        { key: "week", label: "This Week" },
+      ],
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      type: "radio",
+      options: [
+        { key: "all", label: "All" },
+        { key: "low", label: "Low" },
+        { key: "medium", label: "Medium" },
+        { key: "high", label: "High" },
+        { key: "urgent", label: "Urgent" },
+      ],
+    },
   ];
 
   todoTableFields: TableField[] = [
@@ -274,17 +292,62 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
   ];
 
-  get filterOptionsWithCounts(): FilterOption[] {
-    return this.filterOptions.map((option) => ({
-      ...option,
-      count: this.getFilteredCount(option.key),
-    }));
-  }
-
   getVisibilityLabel(): string {
-    const option = this.visibilityOptions.find((o) => o.key === this.activeVisibility());
+    const option = this.visibilityOptions.find((o) => o.id === this.activeVisibility());
     return option?.label || "All";
   }
+
+  getToolbarConfig(): PageToolbarConfig {
+    return {
+      selectAll:
+        this.viewMode() !== "table"
+          ? {
+              onToggle: () => this.toggleSelectAll(),
+              isAllSelected: this.isAllSelected(),
+              count: this.selectedTodos().size,
+              highlight: this.selectedTodos().size > 0 && !this.isAllSelected(),
+            }
+          : undefined,
+      stats: {
+        onToggle: () => this.showStats.update((v) => !v),
+        isActive: this.showStats(),
+      },
+      filter: {
+        onToggle: () => this.toggleFilter(),
+        isActive: this.showFilter(),
+      },
+      newButtonWithMenu: {
+        label: "New",
+        icon: "add",
+        menuItems: [
+          {
+            label: "Blank Project",
+            icon: "add",
+            action: () => this.router.navigate(["/todos/create_todo"]),
+          },
+          {
+            label: "From Blueprint",
+            icon: "account_tree",
+            action: () => this.blueprintService.showBlueprintDialog.set(true),
+          },
+        ],
+      },
+      viewMode: {
+        mode: this.viewMode(),
+        pageKey: this.isSharedMode() ? "shared-tasks" : "todos",
+        onModeChange: (mode) => this.setViewMode(mode),
+      },
+      filterFields: this.filterFields,
+      showFilter: this.showFilter(),
+      onFiltersChange: (filters) => this.onFiltersChange(filters),
+    };
+  }
+
+  onFiltersChange(filters: Record<string, string | string[] | any>): void {
+    this._activeFilters.set(filters);
+  }
+
+  private _activeFilters = signal<Record<string, string | string[] | any>>({});
 
   get visibility() {
     return this.activeVisibility();
@@ -333,7 +396,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getCurrentVisibilityIcon(): string {
-    const option = this.visibilityOptions.find((o) => o.key === this.activeVisibility());
+    const option = this.visibilityOptions.find((o) => o.id === this.activeVisibility());
     return option?.icon || "apps";
   }
 
