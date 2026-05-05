@@ -1,4 +1,12 @@
-import { Component, OnInit, signal, inject, ViewChild, TemplateRef } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  ViewChild,
+  TemplateRef,
+  DestroyRef,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -23,7 +31,7 @@ import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -81,6 +89,7 @@ export class DataManagementView implements OnInit {
   @ViewChild("expandRowTemplate") expandRowTemplate!: TemplateRef<any>;
 
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
 
   protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
@@ -88,7 +97,7 @@ export class DataManagementView implements OnInit {
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
-  protected storageService = inject(StorageService);
+  protected dataService = inject(DataService);
 
   paginationState = signal<{
     skip: number;
@@ -218,10 +227,11 @@ export class DataManagementView implements OnInit {
       this.loadData();
     });
 
-    this.shortcutService.refresh$.subscribe(() => {
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       this.loadData(true);
       this.notifyService.showSuccess("Data refreshed");
     });
+    this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
   }
 
   loadData(force: boolean = false) {
@@ -232,7 +242,7 @@ export class DataManagementView implements OnInit {
         ? this.adminStorageService.loadInitialData(this.selectedType(), 10)
         : this.archiveStorageService.loadInitialData(this.selectedType(), 10);
 
-    obs.subscribe({
+    const sub = obs.subscribe({
       next: (response) => {
         const table = this.selectedType();
         const tableData = Array.isArray(response.data)
@@ -253,6 +263,7 @@ export class DataManagementView implements OnInit {
         this.loading.set(false);
       },
     });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   loadMore() {
@@ -265,7 +276,7 @@ export class DataManagementView implements OnInit {
         ? this.adminStorageService.loadMoreData(this.selectedType(), this.paginationState().skip)
         : this.archiveStorageService.loadMoreData(this.selectedType(), this.paginationState().skip);
 
-    obs.subscribe({
+    const sub = obs.subscribe({
       next: (response) => {
         const table = this.selectedType();
         const newData = Array.isArray(response.data) ? response.data : response.data?.[table] || [];
@@ -284,6 +295,7 @@ export class DataManagementView implements OnInit {
         this.paginationState.update((s) => ({ ...s, loading: false }));
       },
     });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   getFieldConfig(): AdminFieldConfig[] {
@@ -516,7 +528,6 @@ export class DataManagementView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        this.adminStorageService.removeRecordWithCascade(table, record.id);
 
         this.dataMap.update((data) => {
           const updated = { ...data };
@@ -540,22 +551,6 @@ export class DataManagementView implements OnInit {
           : await this.adminService.toggleDeleteStatusLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
-        const newDeletedAt = response.data;
-        const timestamp = new Date().toISOString();
-
-        if (table === "todos" || table === "tasks" || table === "subtasks") {
-          if (newDeletedAt) {
-            this.storageService.removeRecordWithCascade(table, record.id, timestamp);
-          } else {
-            this.storageService.restoreRecordWithCascade(table, record.id);
-          }
-        } else {
-          this.storageService.updateItem(table as any, record.id, {
-            deleted_at: newDeletedAt ? timestamp : null,
-            updated_at: timestamp,
-          });
-        }
-
         this.notifyService.showSuccess("Record status updated");
         this.loadData(true);
       }
@@ -567,7 +562,6 @@ export class DataManagementView implements OnInit {
   async onBulkSoftDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
-    const timestamp = new Date().toISOString();
 
     const promises = selected.map((id) =>
       this.mode === "admin"
@@ -575,17 +569,6 @@ export class DataManagementView implements OnInit {
         : this.adminService.toggleDeleteStatusLocal(table, id)
     );
     await Promise.all(promises);
-
-    for (const id of selected) {
-      if (table === "todos" || table === "tasks" || table === "subtasks") {
-        this.storageService.removeRecordWithCascade(table, id, timestamp);
-      } else {
-        this.storageService.updateItem(table as any, id, {
-          deleted_at: timestamp,
-          updated_at: timestamp,
-        });
-      }
-    }
 
     this.notifyService.showSuccess("Bulk update successful");
     this.clearSelection();
@@ -602,14 +585,6 @@ export class DataManagementView implements OnInit {
         : this.adminService.permanentlyDeleteRecordLocal(table, id)
     );
     await Promise.all(promises);
-
-    for (const id of selected) {
-      if (table === "todos" || table === "tasks" || table === "subtasks") {
-        this.storageService.removeRecordWithCascade(table, id);
-      } else {
-        this.storageService.removeItem(table as any, id);
-      }
-    }
 
     this.notifyService.showSuccess("Bulk delete successful");
     this.clearSelection();

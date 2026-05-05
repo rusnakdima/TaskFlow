@@ -8,6 +8,7 @@ import {
   computed,
   inject,
   ChangeDetectorRef,
+  DestroyRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -33,7 +34,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
@@ -81,8 +82,9 @@ export class KanbanView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private dataSyncProvider = inject(ApiProvider);
   private dragDropService = inject(KanbanDragDropService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -92,11 +94,13 @@ export class KanbanView extends BaseListView implements OnInit {
 
   TaskStatus = TaskStatus;
 
-  todos = computed(() => this.storageService.todos().filter((todo) => !todo.deleted_at));
+  private todosList = signal<Todo[]>([]);
+
+  todos = computed(() => this.todosList().filter((todo) => !todo.deleted_at));
 
   selectedTodo = computed(() => {
     const todoId = this.selectedTodoId();
-    return this.storageService.todos().find((t) => t.id === todoId) ?? null;
+    return this.todosList().find((t) => t.id === todoId) ?? null;
   });
 
   private selectedTodoMeta = computed(() => {
@@ -123,13 +127,14 @@ export class KanbanView extends BaseListView implements OnInit {
     return todo?.title || "No Project Selected";
   });
 
-  // Derived tasks for the selected project
+  private tasksList = signal<Task[]>([]);
+
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    const tasks = this.storageService.getTasksByTodoId(todoId);
+    const tasks = this.tasksList();
 
-    const filteredTasks = tasks.filter((task) => !task.deleted_at);
+    const filteredTasks = tasks.filter((task) => !task.deleted_at && task.todo_id === todoId);
 
     const uniqueTaskMap = new Map<string, Task>();
     filteredTasks.forEach((task) => {
@@ -194,6 +199,21 @@ export class KanbanView extends BaseListView implements OnInit {
         this.selectedTodoId.set(params["projectId"]);
       }
     });
+
+    const todosSub = this.dataService.todos$.subscribe((todos) => {
+      this.todosList.set(todos);
+    });
+    this.destroyRef.onDestroy(() => todosSub.unsubscribe());
+
+    const tasksSub = this.dataService.tasks$.subscribe((tasks) => {
+      this.tasksList.set(tasks);
+    });
+    this.destroyRef.onDestroy(() => tasksSub.unsubscribe());
+
+    this.dataService.getTodos().subscribe({
+      next: (todos) => this.todosList.set(todos),
+      error: (err) => console.error("Failed to load todos:", err),
+    });
   }
 
   override ngOnDestroy(): void {
@@ -250,7 +270,7 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   getSubtasksForTask(taskId?: string): Subtask[] {
-    return this.storageService.getSubtasksByTaskId(taskId);
+    return [];
   }
 
   getCompletedSubtasksCount(taskId?: string): number {
@@ -268,7 +288,15 @@ export class KanbanView extends BaseListView implements OnInit {
     if (todoId) {
       this.selectedTodoId.set(todoId);
       this.expandedTasks.set(new Set());
+      this.loadTasksForTodo(todoId);
     }
+  }
+
+  private loadTasksForTodo(todoId: string): void {
+    this.dataService.getTasks(todoId).subscribe({
+      next: (tasks) => this.tasksList.set(tasks),
+      error: (err) => console.error("Failed to load tasks:", err),
+    });
   }
 
   getTasksByStatus(status: string): Task[] {
@@ -322,10 +350,7 @@ export class KanbanView extends BaseListView implements OnInit {
       }
     );
 
-    // Note: Notification will be shown in moveTaskToStatus after API response
     if (result.moved && result.task) {
-      // Visual update happens via transferArrayItem in dragDropService
-      // The actual data update and notification will happen after API response
     }
   }
 
