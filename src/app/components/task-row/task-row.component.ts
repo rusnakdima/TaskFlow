@@ -9,7 +9,6 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  computed,
 } from "@angular/core";
 
 /* materials */
@@ -25,11 +24,6 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
-/* services */
-import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
-import { ApiProvider } from "@providers/api.provider";
-
 /* models */
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
@@ -44,9 +38,6 @@ import { Todo } from "@models/todo.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskRowComponent {
-  private authService = inject(AuthService);
-  private storageService = inject(StorageService);
-  private dataSyncProvider = inject(ApiProvider);
   private cdr = inject(ChangeDetectorRef);
 
   @Input() task: Task | null = null;

@@ -5,6 +5,7 @@ import {
   EventEmitter,
   Input,
   OnInit,
+  OnDestroy,
   Output,
   signal,
   inject,
@@ -12,6 +13,8 @@ import {
   ChangeDetectorRef,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { Subscription } from "rxjs";
+import { take } from "rxjs/operators";
 
 /* base */
 import { BaseItemComponent } from "@components/base-item.component";
@@ -34,6 +37,7 @@ import { DateHelper } from "@helpers/date.helper";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { TemplateService } from "@services/features/template.service";
+import { DataService } from "@services/data/data.service";
 
 /* models */
 import { Todo } from "@models/todo.model";
@@ -59,6 +63,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private templateService = inject(TemplateService);
+  private dataService = inject(DataService);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -79,14 +84,54 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
 
   isExpandedDetails = signal(false);
   isDragging = signal(false);
+  totalSubtasksCount = signal(0);
+  completedSubtasksCount = signal(0);
+  private tasksSubscription: Subscription | null = null;
+  private subtasksSubscription: Subscription | null = null;
 
   get menuClass(): string {
     return "todo-menu";
   }
 
   ngOnInit() {
-    // Force change detection when component initializes to ensure relation data is displayed
+    this.loadSubtasksData();
     this.cdr.markForCheck();
+  }
+
+  ngOnDestroy(): void {
+    if (this.tasksSubscription) {
+      this.tasksSubscription.unsubscribe();
+    }
+    if (this.subtasksSubscription) {
+      this.subtasksSubscription.unsubscribe();
+    }
+  }
+
+  private loadSubtasksData(): void {
+    if (!this.todo?.id) return;
+
+    this.tasksSubscription = this.dataService
+      .getTasks(this.todo.id)
+      .pipe(take(1))
+      .subscribe((tasks) => {
+        let total = 0;
+        let completed = 0;
+
+        tasks.forEach((task) => {
+          this.subtasksSubscription = this.dataService
+            .getSubtasks(task.id)
+            .pipe(take(1))
+            .subscribe((subtasks) => {
+              total += subtasks.length;
+              completed += subtasks.filter(
+                (s) => s.status === TaskStatus.COMPLETED || s.status === TaskStatus.SKIPPED
+              ).length;
+              this.totalSubtasksCount.set(total);
+              this.completedSubtasksCount.set(completed);
+              this.cdr.markForCheck();
+            });
+        });
+      });
   }
 
   truncateString = Common.truncateString;
@@ -181,13 +226,11 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   getTotalSubtasksCount(): number {
-    // Cannot calculate without nested access - would need to query storage
-    return 0;
+    return this.totalSubtasksCount();
   }
 
   getCompletedSubtasksCount(): number {
-    // Cannot calculate without nested access - would need to query storage
-    return 0;
+    return this.completedSubtasksCount();
   }
 
   toggleSelection(checked: boolean): void {
