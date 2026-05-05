@@ -14,19 +14,20 @@ import {
   SimpleChanges,
   signal,
   effect,
+  DestroyRef,
 } from "@angular/core";
 import { CommonModule, DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
-import { of } from "rxjs";
+import { of, Subscription } from "rxjs";
 
 /* models */
 import { Chat, ChatCreate } from "@models/chat.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -51,7 +52,8 @@ export class ChatWindowComponent
 
   dataSync = inject(ApiProvider);
   authService = inject(AuthService);
-  storageService = inject(StorageService);
+  dataService = inject(DataService);
+  private destroyRef = inject(DestroyRef);
 
   chats = signal<Chat[]>([]);
 
@@ -62,9 +64,17 @@ export class ChatWindowComponent
   oldestTimestamp = signal<string | null>(null);
   currentTodoId = "";
 
+  private subscriptions = new Subscription();
+  private currentTodo = signal<any>(null);
+  private usernameCache = new Map<string, string>();
+
   private chatReactiveEffect = effect(() => {
-    const reactiveChats = this.storageService.getChatsByTodoReactive(this.todo_id)();
-    this.chats.set(reactiveChats);
+    this.subscriptions.add(
+      this.dataService.getChats(this.todo_id).subscribe({
+        next: (chats) => this.chats.set(chats),
+        error: () => this.chats.set([]),
+      })
+    );
   });
 
   newMessage = "";
@@ -79,6 +89,7 @@ export class ChatWindowComponent
 
   ngOnInit() {
     this.shouldScroll.set(true);
+    this.loadTodo();
     setTimeout(
       () =>
         this.initIntersectionObserver(".unread-chat", "data-chat-id", (id: string) =>
@@ -90,6 +101,7 @@ export class ChatWindowComponent
 
   ngOnDestroy() {
     this.destroyObserver();
+    this.subscriptions.unsubscribe();
   }
 
   ngAfterViewChecked() {
@@ -104,6 +116,15 @@ export class ChatWindowComponent
     }
   }
 
+  private loadTodo() {
+    this.subscriptions.add(
+      this.dataService.getTodo(this.todo_id).subscribe({
+        next: (todo) => this.currentTodo.set(todo),
+        error: () => this.currentTodo.set(null),
+      })
+    );
+  }
+
   private loadInitialChats(todoId: string) {
     if (this.loadingInitial()) return;
     this.loadingInitial.set(true);
@@ -114,6 +135,7 @@ export class ChatWindowComponent
         next: (chats) => {
           const reversed = [...chats].reverse();
           this.messages.set(reversed);
+          this.cacheUsernames(chats);
           if (chats.length > 0) {
             this.oldestTimestamp.set(chats[chats.length - 1].created_at);
             this.hasMoreMessages.set(chats.length >= 10);
@@ -122,6 +144,16 @@ export class ChatWindowComponent
         complete: () => this.loadingInitial.set(false),
         error: () => this.loadingInitial.set(false),
       });
+  }
+
+  private cacheUsernames(chats: Chat[]) {
+    for (const chat of chats) {
+      if (chat.author_name) {
+        this.usernameCache.set(chat.user_id, chat.author_name);
+      } else if (chat.user?.username) {
+        this.usernameCache.set(chat.user_id, chat.user.username);
+      }
+    }
   }
 
   loadOlderChats(todoId: string) {
@@ -136,6 +168,7 @@ export class ChatWindowComponent
       .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId, before: timestamp } })
       .subscribe({
         next: (olderChats) => {
+          this.cacheUsernames(olderChats);
           if (olderChats.length === 0) {
             this.hasMoreMessages.set(false);
           } else {
@@ -187,12 +220,13 @@ export class ChatWindowComponent
 
   getUnreadCount(): number {
     const currentUserId = this.authService.getValueByKey("id");
-    return this.storageService.getUnreadChatCount(this.todo_id, currentUserId);
+    const chats = this.chats().filter((c: Chat) => !c.deleted_at);
+    return chats.filter((c: Chat) => !c.read_by || !c.read_by.includes(currentUserId)).length;
   }
 
   isOwner(): boolean {
     const currentUserId = this.authService.getValueByKey("id");
-    const todo = this.storageService.getById("todos", this.todo_id);
+    const todo = this.currentTodo();
     return todo?.user_id === currentUserId;
   }
 
@@ -213,7 +247,7 @@ export class ChatWindowComponent
       content: this.newMessage,
     };
 
-    const todo = this.storageService.getById("todos", this.todo_id);
+    const todo = this.currentTodo();
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
 
     this.dataSync
@@ -272,12 +306,12 @@ export class ChatWindowComponent
   }
 
   getUsername(userId: string): string {
-    return this.storageService.getUsername(userId);
+    return this.usernameCache.get(userId) || "Unknown";
   }
 
   canDelete(chat: Chat): boolean {
     const currentUserId = this.authService.getValueByKey("id");
-    const todo = this.storageService.getById("todos", chat.todo_id);
+    const todo = this.currentTodo();
     if (todo && todo.user_id === currentUserId) return true;
     return chat.user_id === currentUserId;
   }

@@ -9,10 +9,11 @@ import {
   signal,
   inject,
   ChangeDetectorRef,
-  computed,
   Input,
+  DestroyRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { distinctUntilChanged, filter, map } from "rxjs";
 
@@ -33,7 +34,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncService } from "@services/data/sync.service";
 import { ApiProvider } from "@providers/api.provider";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 
@@ -53,7 +54,8 @@ interface Breadcrumb {
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private router: Router,
@@ -77,9 +79,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   iconUrl = signal("");
   userId = signal("");
 
-  profile = computed(() => this.storageService.profile());
-  userEmail = computed(() => this.storageService.profile()?.user?.email || "");
-  role = computed(() => this.storageService.profile()?.user?.role || "");
+  profile = signal<Profile | null>(null);
+  userEmail = signal("");
+  role = signal("");
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
 
@@ -101,6 +103,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
     );
+
+    this.loadProfile();
 
     this.router.events
       .pipe(
@@ -126,6 +130,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
       });
   }
 
+  private loadProfile(): void {
+    this.dataService
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+          this.userEmail.set(profile?.user?.email || "");
+          this.role.set(profile?.user?.role || "");
+        },
+        error: () => {
+          this.profile.set(null);
+          this.userEmail.set("");
+          this.role.set("");
+        },
+      });
+  }
+
   ngOnDestroy(): void {
     this.syncSubscription?.unsubscribe();
   }
@@ -144,7 +166,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     for (const child of children) {
       const routeURL: string = child.snapshot.url.map((segment) => segment.path).join("/");
 
-      // Skip empty path segments but still recurse into their children
       if (routeURL == "") {
         return this.createBreadcrumbs(child, url, breadcrumbs);
       }
@@ -157,11 +178,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
       if (breadcrumbData) {
         if (typeof breadcrumbData === "function") {
-          // Access resolved data directly from snapshot
           const resolvedTodo = child.snapshot.data["todo"];
           const resolvedTask = child.snapshot.data["task"];
 
-          // Subtasks route: resolvedTask = { task: Task, todo: Todo }
           if (resolvedTask) {
             const taskData = resolvedTask as { task: Task; todo: Todo };
             if (taskData?.task) {
@@ -174,9 +193,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
             if (taskData?.todo) {
               this.todo.set(taskData.todo);
             }
-          }
-          // Tasks route: resolvedTodo = Todo object
-          else if (resolvedTodo) {
+          } else if (resolvedTodo) {
             const todo = resolvedTodo as Todo;
             this.todo.set(todo);
             label = todo.title;
@@ -184,7 +201,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
             this.description.set(description);
           }
 
-          // Fallback if no label was set
           if (!label) {
             label = "TaskFlow";
           }
@@ -192,7 +208,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
           label = breadcrumbData;
         }
       } else {
-        // No breadcrumb data, use route title as fallback
         label = child.snapshot.title?.toString() || routeURL;
       }
 
@@ -244,19 +259,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onNotificationClick(notif: NotificationAction): void {
-    // Mark as read
     this.markAsRead(notif.id);
 
-    // Navigate based on notification type
     if (notif.type === "chat") {
-      // Navigate to todo -> chat section
       if (notif.todo_id) {
         this.router.navigate(["/todos", notif.todo_id, "tasks"], {
           queryParams: { openChat: true, highlightChat: notif.chat_id },
         });
       }
     } else if (notif.type === "comment") {
-      // Navigate to the task/subtask with the comment
       if (notif.todo_id && notif.task_id) {
         const queryParams: any = {
           highlightComment: notif.comment_id,
@@ -266,20 +277,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
           queryParams,
         });
       } else if (notif.todo_id) {
-        // Comment on todo level (if applicable)
         this.router.navigate(["/todos", notif.todo_id, "tasks"], {
           queryParams: { openChat: true },
         });
       }
     } else if (notif.type === "todo") {
-      // Navigate to todos page and highlight
       if (notif.todo_id) {
         this.router.navigate(["/todos"], {
           queryParams: { highlightTodo: notif.todo_id },
         });
       }
     } else if (notif.type === "task") {
-      // Navigate to tasks page and highlight
       if (notif.todo_id && notif.task_id) {
         this.router.navigate(["/todos", notif.todo_id, "tasks"], {
           queryParams: { highlightTaskId: notif.task_id },
@@ -288,7 +296,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.router.navigate(["/todos", notif.todo_id, "tasks"]);
       }
     } else if (notif.type === "subtask") {
-      // Navigate to subtasks page and highlight
       if (notif.todo_id && notif.task_id && notif.subtask_id) {
         this.router.navigate(["/todos", notif.todo_id, "tasks", notif.task_id, "subtasks"], {
           queryParams: { highlightSubtask: notif.subtask_id },
@@ -313,27 +320,21 @@ export class HeaderComponent implements OnInit, OnDestroy {
           this.notifyService.showSuccess("Synchronization completed successfully!");
         }
       } else {
-        // Check if it's a network error using centralized helper
         if (NetworkErrorHelper.isNetworkError(response.message)) {
-          // Network error - sync is optional, don't show error
           if (!silent) {
             this.notifyService.showWarning("Working offline - sync unavailable");
           }
         } else if (!silent) {
-          // Other error - show it
           this.notifyService.showError(response.message || "Synchronization failed");
         }
       }
     } catch (error) {
-      // Check if it's a network error using centralized helper
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (NetworkErrorHelper.isNetworkError(errorMessage)) {
-        // Network error - sync is optional, don't show error
         if (!silent) {
           this.notifyService.showWarning("Working offline - sync unavailable");
         }
       } else if (!silent) {
-        // Other error - show it
         this.notifyService.showError("Synchronization failed: " + errorMessage);
       }
     }

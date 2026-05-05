@@ -17,18 +17,11 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
-import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
-import { ApiProvider } from "@providers/api.provider";
-
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment, Todo } from "@models";
 
 export abstract class ItemRowBaseComponent {
-  protected authService = inject(AuthService);
-  protected storageService = inject(StorageService);
-  protected dataSyncProvider = inject(ApiProvider);
   protected cdr = inject(ChangeDetectorRef);
 
   @Input() isOwner: boolean = true;
