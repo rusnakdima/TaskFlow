@@ -5,6 +5,7 @@ import {
   signal,
   computed,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
@@ -32,7 +33,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
 import { AuthStore } from "@stores/auth.store";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { EncodingHelper } from "@helpers/encoding.helper";
@@ -64,7 +65,8 @@ export class LoginView implements OnDestroy {
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
+  private destroyRef = inject(DestroyRef);
 
   rememberField: CheckboxField = {
     name: "remember",
@@ -135,25 +137,28 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    this.dataSyncProvider.crud<any[]>("getAll", "users", { visibility: "private" }).subscribe({
-      next: (users) => {
-        const activeUsers = (users || []).filter((u) => !u.deleted_at);
-        this.hasLocalUsers.set(activeUsers.length > 0);
-      },
-      error: (err) => {
-        this.hasLocalUsers.set(false);
+    const sub = this.dataSyncProvider
+      .crud<any[]>("getAll", "users", { visibility: "private" })
+      .subscribe({
+        next: (users) => {
+          const activeUsers = (users || []).filter((u) => !u.deleted_at);
+          this.hasLocalUsers.set(activeUsers.length > 0);
+        },
+        error: (err) => {
+          this.hasLocalUsers.set(false);
 
-        if (NetworkErrorHelper.isNetworkError(err)) {
-          this.notifyService.showWarning(
-            "Cannot connect to database. Please check:\n" +
-              "1. MongoDB server is running\n" +
-              "2. Connection string in .env is correct\n" +
-              "3. Network/firewall allows connection\n\n" +
-              "Check terminal for detailed error message."
-          );
-        }
-      },
-    });
+          if (NetworkErrorHelper.isNetworkError(err)) {
+            this.notifyService.showWarning(
+              "Cannot connect to database. Please check:\n" +
+                "1. MongoDB server is running\n" +
+                "2. Connection string in .env is correct\n" +
+                "3. Network/firewall allows connection\n\n" +
+                "Check terminal for detailed error message."
+            );
+          }
+        },
+      });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   ngOnDestroy() {
@@ -226,11 +231,6 @@ export class LoginView implements OnDestroy {
       await new Promise<void>((resolve, reject) => {
         this.securityService.completeTotpLogin(username, code).subscribe({
           next: (authResponse) => {
-            // Store profile if provided
-            if (authResponse.profile && !authResponse.needsProfile) {
-              this.storageService.setCollection("profiles", authResponse.profile);
-            }
-
             LoginCompletionHelper.completeLogin({
               token: authResponse.token,
               remember: this.f["remember"].value,
@@ -498,11 +498,6 @@ export class LoginView implements OnDestroy {
     }
 
     if (authResponse?.token) {
-      // Store profile if provided
-      if (authResponse.profile && !authResponse.needsProfile) {
-        this.storageService.setCollection("profiles", authResponse.profile);
-      }
-
       LoginCompletionHelper.completeLogin({
         token: authResponse.token,
         remember: this.f["remember"].value,
