@@ -1,8 +1,9 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ApiProvider } from "@providers/api.provider";
 import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
 import { Observable, of } from "rxjs";
 
 @Injectable({
@@ -10,7 +11,7 @@ import { Observable, of } from "rxjs";
 })
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private apiProvider = inject(ApiProvider);
 
   showBlueprintDialog = signal(false);
@@ -46,13 +47,14 @@ export class TodosBlueprintService {
     const description = this.newBlueprintDescription();
     if (!name.trim()) return;
 
-    const todos = this.storageService.todos();
-    const privateTodos = this.storageService.privateTodos();
-    const allTodos = [...todos, ...privateTodos];
-    const todo = allTodos.find((t) => t.title === name && t.description === (description || ""));
+    const todos = this.dataService.getCurrentTodos();
+    const allTodos = todos;
+    const foundTodo = allTodos.find(
+      (t) => t.title === name && t.description === (description || "")
+    );
 
-    if (todo) {
-      this.templateService.createTemplate(name, description || "", todo);
+    if (foundTodo) {
+      this.templateService.createTemplate(name, description || "", foundTodo);
     }
 
     this.showCreateBlueprintDialog.set(false);
@@ -83,20 +85,20 @@ export class TodosBlueprintService {
     };
 
     return new Observable((subscriber) => {
-      this.apiProvider
-        .crud<Todo>("create", "todos", {
-          data: todoData,
+      this.dataService
+        .createTodo({
+          ...todoData,
           visibility: "private",
         })
         .subscribe({
           next: (createdTodo) => {
             if (createdTodo) {
-              this.storageService.addItem("todos", createdTodo);
+              const currentTodos = this.dataService.getCurrentTodos();
+              this.dataService.setCurrentTodos([...currentTodos, createdTodo]);
 
               const tasks = this.templateService.applyTemplate(template, userId, createdTodo.id);
-              tasks.forEach((task) => {
-                this.storageService.addItem("tasks", task);
-              });
+              const currentTasks = this.dataService.getCurrentTasks();
+              this.dataService.setCurrentTasks([...currentTasks, ...tasks]);
 
               subscriber.next([createdTodo]);
               subscriber.complete();

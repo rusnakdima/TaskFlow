@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { StorageService, StorageEntity } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
@@ -8,11 +8,20 @@ import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 import { OrderCalculationService, Orderable } from "./order-calculation.service";
 
+export type EntityType =
+  | "todos"
+  | "tasks"
+  | "subtasks"
+  | "categories"
+  | "profiles"
+  | "chats"
+  | "comments";
+
 @Injectable({
   providedIn: "root",
 })
 export class DragDropOrderService {
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private dataSyncService = inject(DataLoaderService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
@@ -26,7 +35,7 @@ export class DragDropOrderService {
   handleDrop<T extends Orderable>(
     event: CdkDragDrop<T[]>,
     currentList: T[],
-    entityType: StorageEntity,
+    entityType: EntityType,
     table: string,
     parentTodoId?: string,
     visibility?: string
