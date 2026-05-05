@@ -195,10 +195,19 @@ export class ApiProvider {
   private emitUpdate(table: string, data: any): void {
     const subject = this.getSubjectForTable(table);
     if (subject) {
+      if (table === "profiles") {
+        subject.next(data);
+        return;
+      }
       const currentData = this.getCurrentDataForTable(table);
-      const updated = currentData.map((item: any) =>
-        item.id === data.id ? { ...item, ...data } : item
-      );
+      const existingIndex = currentData.findIndex((item: any) => item.id === data.id);
+      let updated: any[];
+      if (existingIndex !== -1) {
+        updated = [...currentData];
+        updated[existingIndex] = { ...currentData[existingIndex], ...data };
+      } else {
+        updated = [...currentData, data];
+      }
       subject.next(updated);
     }
   }
@@ -225,6 +234,8 @@ export class ApiProvider {
         return this.dataService.chats$;
       case "categories":
         return this.dataService.categories$;
+      case "profiles":
+        return this.dataService.profile$;
       default:
         return null;
     }
@@ -246,6 +257,15 @@ export class ApiProvider {
         return this.dataService.getCurrentCategories();
       default:
         return [];
+    }
+  }
+
+  private getCurrentDataForTableSingle(table: string): any {
+    switch (table) {
+      case "profiles":
+        return this.dataService.getCurrentProfile();
+      default:
+        return null;
     }
   }
 }

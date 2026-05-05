@@ -66,6 +66,7 @@ export class App implements OnInit {
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
+  @ViewChild(CommandPaletteComponent) commandPalette!: CommandPaletteComponent;
 
   url = signal<string>("");
   showComponents = signal<boolean>(true);
@@ -85,12 +86,18 @@ export class App implements OnInit {
       this.triggerSync();
     });
 
+    this.shortcutService.focusSearch$.subscribe(() => {
+      this.commandPalette?.open();
+    });
+
     const theme = localStorage.getItem("theme") ?? "";
     document.querySelector("html")!.setAttribute("class", theme);
 
     this.updateShowComponents();
 
     this.authService.initializeSession(this.authRoutes);
+
+    this.dataLoaderService.loadProfileAndUser().subscribe();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
       let lastIndex =
