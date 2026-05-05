@@ -17,7 +17,8 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
+import { CommentsComponent } from "@components/comments/comments.component";
+import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -42,7 +43,7 @@ import {
     MatButtonModule,
     CheckboxComponent,
     DragDropModule,
-    CommentsPanelComponent,
+    CommentsComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +74,11 @@ export class TableViewComponent {
   @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
   @Output() deleteComment = new EventEmitter<string>();
   @Output() markAsRead = new EventEmitter<string[]>();
+  @Output() addSubtaskComment = new EventEmitter<{
+    content: string;
+    subtask_id: string;
+    itemId: string;
+  }>();
 
   sortField = signal<string>("");
   sortDirection = signal<"asc" | "desc">("asc");
@@ -198,6 +204,15 @@ export class TableViewComponent {
     return item.comments || [];
   }
 
+  getSubtaskCommentGroupsForItem(item: any): SubtaskCommentGroup[] {
+    if (!item.subtasks) return [];
+    return item.subtasks.map((s: any) => ({
+      subtask_id: s.id,
+      title: s.title || "Untitled subtask",
+      comments: (s.comments || []).filter((c: any) => !c.deleted_at),
+    }));
+  }
+
   getPriorityClass = BaseItemHelper.getPriorityBadgeClass;
   getStatusClass = BaseItemHelper.getStatusBadgeClass;
 
@@ -229,7 +244,10 @@ export class TableViewComponent {
 
   getActionColor(action: TableFieldActionButton): string {
     const colorKey = action.key as keyof typeof TableActionColors;
-    return TableActionColors[colorKey] || TableActionColors.default;
+    const baseClass =
+      "flex items-center justify-center rounded-lg transition-all duration-200 hover:scale-110 text-2xl!";
+    const actionColor = TableActionColors[colorKey] || TableActionColors.default;
+    return `${baseClass} ${actionColor}`;
   }
 
   hasActionTemplate(action: TableFieldActionButton): boolean {
@@ -246,5 +264,9 @@ export class TableViewComponent {
 
   onCommentMarkAsRead(commentIds: string[]): void {
     this.markAsRead.emit(commentIds);
+  }
+
+  onSubtaskCommentAdd(event: { content: string; subtask_id: string }, item: any): void {
+    this.addSubtaskComment.emit({ ...event, itemId: item.id });
   }
 }
