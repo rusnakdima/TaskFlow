@@ -41,6 +41,8 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/core/storage.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
+import { GithubService } from "@services/github/github.service";
+import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 import { ApiProvider } from "@providers/api.provider";
 import { DateHelper } from "@helpers/date.helper";
@@ -80,6 +82,7 @@ interface FormConfig {
     MatRadioModule,
     MatMenuModule,
     MatDividerModule,
+    CheckboxComponent,
   ],
   templateUrl: "./manage-item.page.html",
 })
@@ -97,6 +100,7 @@ export class ManageItemPage implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private relationLoader = inject(RelationLoadingService);
   private visibilitySyncService = inject(VisibilitySyncService);
+  private githubService = inject(GithubService);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -108,6 +112,11 @@ export class ManageItemPage implements OnInit, OnDestroy {
   tasks = signal<Task[]>([]);
   categories = signal<Category[]>([]);
   assignees = signal<Profile[]>([]);
+
+  githubRepos = signal<any[]>([]);
+  selectedGithubRepo = signal<string | null>(null);
+  githubConnected = signal(false);
+  publishToGithub = signal(false);
 
   private subscriptions = new Subscription();
 
@@ -147,6 +156,22 @@ export class ManageItemPage implements OnInit, OnDestroy {
     this.initForm();
     this.subscribeToRoute();
     this.subscriptions.add(bindSaveShortcut(this.shortcutService, () => this.onSubmit()));
+    this.loadGithubData();
+  }
+
+  private async loadGithubData(): Promise<void> {
+    this.githubService.getConnectionStatus().subscribe({
+      next: (status) => {
+        this.githubConnected.set(status.connected);
+        if (status.connected) {
+          this.githubService.getRepos().subscribe({
+            next: (repos) => this.githubRepos.set(repos),
+            error: () => {},
+          });
+        }
+      },
+      error: () => {},
+    });
   }
 
   private initForm(): void {
@@ -167,6 +192,8 @@ export class ManageItemPage implements OnInit, OnDestroy {
       categories: [[]],
       assignees: [[]],
       repeat: ["none"],
+      github_repo_id: [""],
+      publish_to_github: [false],
     });
   }
 
@@ -367,6 +394,8 @@ export class ManageItemPage implements OnInit, OnDestroy {
         visibility: formValue.visibility || "private",
         categories: formValue.categories || [],
         assignees: formValue.assignees || [],
+        github_repo_id: formValue.github_repo_id || "",
+        github_repo_name: this.getRepoName(formValue.github_repo_id),
       };
     } else if (config.type === "task") {
       const parentTodo = this.storageService.getById("todos", formValue.todo_id);
@@ -375,6 +404,7 @@ export class ManageItemPage implements OnInit, OnDestroy {
         todo_id: formValue.todo_id,
         repeat: formValue.repeat || "none",
         visibility: parentTodo?.visibility || "private",
+        publish_to_github: formValue.publish_to_github || false,
       };
     } else {
       const parentTask = this.storageService.getById("tasks", formValue.task_id);
@@ -391,6 +421,17 @@ export class ManageItemPage implements OnInit, OnDestroy {
 
   back(): void {
     this.location.back();
+  }
+
+  private getRepoName(repoId: string): string {
+    if (!repoId) return "";
+    const repo = this.githubRepos().find((r) => r.id === repoId);
+    return repo?.full_name || "";
+  }
+
+  onGithubRepoChange(repoId: string): void {
+    this.selectedGithubRepo.set(repoId);
+    this.form.patchValue({ github_repo_id: repoId });
   }
 
   dateClass = (date: Date): MatCalendarCellCssClasses => {

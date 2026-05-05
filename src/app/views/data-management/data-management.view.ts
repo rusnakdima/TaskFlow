@@ -235,13 +235,15 @@ export class DataManagementView implements OnInit {
     obs.subscribe({
       next: (response) => {
         const table = this.selectedType();
-        const tableData = Array.isArray(response.data) ? response.data : (response.data?.[table] || []);
+        const tableData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.[table] || [];
         this.dataMap.set({ [table]: tableData });
         this.paginationState.set({
           skip: tableData.length,
           limit: 10,
           total: response.total || tableData.length,
-          hasMore: response.has_more ?? (tableData.length >= 10),
+          hasMore: response.has_more ?? tableData.length >= 10,
           loading: false,
         });
         this.loading.set(false);
@@ -265,15 +267,17 @@ export class DataManagementView implements OnInit {
 
     obs.subscribe({
       next: (response) => {
+        const table = this.selectedType();
+        const newData = Array.isArray(response.data) ? response.data : response.data?.[table] || [];
         this.dataMap.update((map) => ({
           ...map,
-          [this.selectedType()]: [...(map[this.selectedType()] || []), ...response.data],
+          [table]: [...(map[table] || []), ...newData],
         }));
         this.paginationState.update((s) => ({
           ...s,
-          skip: s.skip + response.data.length,
+          skip: s.skip + newData.length,
           loading: false,
-          hasMore: response.has_more,
+          hasMore: response.has_more ?? newData.length >= 10,
         }));
       },
       error: () => {

@@ -18,6 +18,8 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
+import { GithubService } from "@services/github/github.service";
+import { GithubStore } from "@stores/github.store";
 
 import { ApiProvider } from "@providers/api.provider";
 
@@ -33,6 +35,8 @@ export class SettingsView implements OnInit {
   private securityService = inject(SecurityService);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
+  private githubService = inject(GithubService);
+  private githubStore = inject(GithubStore);
   private sanitizer = inject(DomSanitizer);
   private dataSyncProvider = inject(ApiProvider);
 
@@ -41,7 +45,7 @@ export class SettingsView implements OnInit {
   generalNotificationVolume = signal(50);
   enableNotificationSounds = signal(true);
 
-  activeTab = signal<"notifications" | "security">("notifications");
+  activeTab = signal<"notifications" | "security" | "integrations">("notifications");
 
   totpEnabled = signal(false);
   totpSetupInProgress = signal(false);
@@ -61,6 +65,13 @@ export class SettingsView implements OnInit {
 
   platformName = signal("");
 
+  githubConnected = signal(false);
+  githubUsername = signal("");
+  githubUserId = signal("");
+  githubAvatarUrl = signal("");
+  githubRepos = signal<any[]>([]);
+  githubLoading = signal(false);
+
   readonly capabilities = this.authCapabilityService.capabilities;
 
   readonly showPasskeySection = computed(() => this.capabilities().passkeyAvailable);
@@ -74,10 +85,69 @@ export class SettingsView implements OnInit {
     this.enableNotificationSounds.set(settings.enableSounds);
 
     this.platformName.set(this.capabilities().platformName);
+
+    this.loadGithubStatus();
   }
 
-  setActiveTab(tab: "notifications" | "security"): void {
+  setActiveTab(tab: "notifications" | "security" | "integrations"): void {
     this.activeTab.set(tab);
+  }
+
+  private async loadGithubStatus(): Promise<void> {
+    this.githubService.getConnectionStatus().subscribe({
+      next: (status) => {
+        this.githubConnected.set(status.connected);
+        if (status.username) this.githubUsername.set(status.username);
+        if (status.user_id) this.githubUserId.set(status.user_id);
+        if (status.avatar_url) this.githubAvatarUrl.set(status.avatar_url);
+        if (status.connected) {
+          this.loadGithubRepos();
+        }
+      },
+      error: () => {
+        this.githubConnected.set(false);
+      },
+    });
+  }
+
+  private loadGithubRepos(): void {
+    this.githubLoading.set(true);
+    this.githubService.getRepos().subscribe({
+      next: (repos) => {
+        this.githubRepos.set(repos);
+        this.githubLoading.set(false);
+      },
+      error: () => {
+        this.githubRepos.set([]);
+        this.githubLoading.set(false);
+      },
+    });
+  }
+
+  async connectGithub(): Promise<void> {
+    this.githubLoading.set(true);
+    this.githubService.getOAuthUrl().subscribe({
+      next: async (url) => {
+        window.location.href = url;
+      },
+      error: () => {
+        this.githubLoading.set(false);
+        this.notifyService.showError("Failed to connect GitHub");
+      },
+    });
+  }
+
+  disconnectGithub(): void {
+    this.githubService.disconnect().subscribe({
+      next: () => {
+        this.githubConnected.set(false);
+        this.githubUsername.set("");
+        this.githubUserId.set("");
+        this.githubAvatarUrl.set("");
+        this.githubRepos.set([]);
+      },
+      error: () => {},
+    });
   }
 
   saveSettings(): void {
