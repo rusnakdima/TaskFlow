@@ -1,10 +1,10 @@
 /* sys lib */
 import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
-import { Subject, filter } from "rxjs";
+import { Subject, filter, take } from "rxjs";
+import { invoke } from "@tauri-apps/api/core";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { StorageService } from "@services/core/storage.service";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
@@ -49,7 +49,6 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 })
 export class NotifyService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
 
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
@@ -91,6 +90,20 @@ export class NotifyService implements OnDestroy {
         }
       }
     }, 5000);
+  }
+
+  private async fetchEntityTitle(table: string, id: string): Promise<string> {
+    try {
+      const result: any = await invoke("manage_data", {
+        operation: "get",
+        table,
+        id,
+      });
+      if (result?.status === ResponseStatus.SUCCESS && result.data?.title) {
+        return result.data.title;
+      }
+    } catch {}
+    return "";
   }
 
   // ==================== NOTIFY SERVICE METHODS (Toast Notifications) ====================
@@ -397,86 +410,90 @@ export class NotifyService implements OnDestroy {
       this.recentCommentEvents.set(data.task_id, Date.now());
     }
 
-    let title = "";
-    let message = "";
     const todoId = data.todo_id;
     const taskId = data.task_id;
     const commentId = data.id;
     const chatId = data.id;
 
     let todoTitle = "";
-    if (todoId) {
-      const todo = this.storageService.getById("todos", todoId);
-      todoTitle = todo?.title || "";
-    }
-
     let taskTitle = "";
-    if (taskId) {
-      const task = this.storageService.getById("tasks", taskId);
-      taskTitle = task?.title || "";
-    }
 
-    // Build notification content based on type and action
-    if (type === "chat") {
-      if (action === "created") {
-        title = "New Chat Message";
-        message = todoTitle
-          ? `${data.author_name} in "${todoTitle}": ${data.content}`
-          : `${data.author_name}: ${data.content}`;
-      } else if (action === "cleared") {
-        title = "Chat Cleared";
-        message = todoTitle ? `Chat in "${todoTitle}" was cleared` : "Chat was cleared";
-      } else {
-        // For other chat actions (update, delete), still play sound but don't create notification
-        this.playSound(type, action === "cleared" ? "updated" : (action as any));
-        return;
+    const fetchTitles = async () => {
+      if (todoId) {
+        todoTitle = await this.fetchEntityTitle("todos", todoId);
       }
-    } else if (type === "comment") {
-      if (action === "created") {
-        title = "New Comment";
-        const contextParts: string[] = [];
-        if (todoTitle) contextParts.push(`"${todoTitle}"`);
-        if (taskTitle) contextParts.push(`task "${taskTitle}"`);
-        const context = contextParts.join(" > ");
-        message = `${data.author_name} commented on ${context || "a task"}: "${data.content}"`;
-      } else if (action === "deleted") {
-        title = "Comment Deleted";
-        const contextParts: string[] = [];
-        if (todoTitle) contextParts.push(`"${todoTitle}"`);
-        if (taskTitle) contextParts.push(`task "${taskTitle}"`);
-        const context = contextParts.join(" > ");
-        message = `Comment on ${context || "a task"} was deleted`;
-      } else {
-        // For other comment actions (update), still play sound but don't create notification
-        this.playSound(type, action as any);
-        return;
+      if (taskId) {
+        taskTitle = await this.fetchEntityTitle("tasks", taskId);
       }
-    }
+    };
 
-    const notificationAction =
-      action === "cleared" ? "updated" : (action as NotificationAction["action"]);
+    setTimeout(async () => {
+      await fetchTitles();
+      let title = "";
+      let message = "";
 
-    // Always play sound for chat/comment actions
-    this.playSound(type, notificationAction);
+      // Build notification content based on type and action
+      if (type === "chat") {
+        if (action === "created") {
+          title = "New Chat Message";
+          message = todoTitle
+            ? `${data.author_name} in "${todoTitle}": ${data.content}`
+            : `${data.author_name}: ${data.content}`;
+        } else if (action === "cleared") {
+          title = "Chat Cleared";
+          message = todoTitle ? `Chat in "${todoTitle}" was cleared` : "Chat was cleared";
+        } else {
+          // For other chat actions (update, delete), still play sound but don't create notification
+          this.playSound(type, action === "cleared" ? "updated" : (action as any));
+          return;
+        }
+      } else if (type === "comment") {
+        if (action === "created") {
+          title = "New Comment";
+          const contextParts: string[] = [];
+          if (todoTitle) contextParts.push(`"${todoTitle}"`);
+          if (taskTitle) contextParts.push(`task "${taskTitle}"`);
+          const context = contextParts.join(" > ");
+          message = `${data.author_name} commented on ${context || "a task"}: "${data.content}"`;
+        } else if (action === "deleted") {
+          title = "Comment Deleted";
+          const contextParts: string[] = [];
+          if (todoTitle) contextParts.push(`"${todoTitle}"`);
+          if (taskTitle) contextParts.push(`task "${taskTitle}"`);
+          const context = contextParts.join(" > ");
+          message = `Comment on ${context || "a task"} was deleted`;
+        } else {
+          // For other comment actions (update), still play sound but don't create notification
+          this.playSound(type, action as any);
+          return;
+        }
+      }
 
-    // Only store notification if not own action and we have valid content
-    if (shouldNotify && title && message) {
-      const newNotification: NotificationAction = {
-        id: Math.random().toString(36).substring(7),
-        type,
-        action: notificationAction,
-        title,
-        message,
-        timestamp: new Date(),
-        read: false,
-        todo_id: todoId,
-        task_id: taskId,
-        comment_id: type === "comment" ? commentId : undefined,
-        chat_id: type === "chat" ? chatId : undefined,
-      };
+      const notificationAction =
+        action === "cleared" ? "updated" : (action as NotificationAction["action"]);
 
-      this.addNotification(newNotification);
-    }
+      // Always play sound for chat/comment actions
+      this.playSound(type, notificationAction);
+
+      // Only store notification if not own action and we have valid content
+      if (shouldNotify && title && message) {
+        const newNotification: NotificationAction = {
+          id: Math.random().toString(36).substring(7),
+          type,
+          action: notificationAction,
+          title,
+          message,
+          timestamp: new Date(),
+          read: false,
+          todo_id: todoId,
+          task_id: taskId,
+          comment_id: type === "comment" ? commentId : undefined,
+          chat_id: type === "chat" ? chatId : undefined,
+        };
+
+        this.addNotification(newNotification);
+      }
+    }, 0);
   }
 
   private handleOtherNotification(
@@ -496,17 +513,17 @@ export class NotifyService implements OnDestroy {
     this.playSound("general", action);
 
     if (action === "created") {
-      setTimeout(() => {
+      setTimeout(async () => {
         let todoTitle = "";
-        if (todoId) {
-          const todo = this.storageService.getById("todos", todoId);
-          todoTitle = todo?.title || "";
-        }
         let taskTitle = "";
-        if (taskId) {
-          const task = this.storageService.getById("tasks", taskId);
-          taskTitle = task?.title || "";
+
+        if (todoId) {
+          todoTitle = await this.fetchEntityTitle("todos", todoId);
         }
+        if (taskId) {
+          taskTitle = await this.fetchEntityTitle("tasks", taskId);
+        }
+
         this.buildAndAddNotification(
           type,
           title,
@@ -529,8 +546,6 @@ export class NotifyService implements OnDestroy {
         todoId = data.todo_id;
       } else if (type === "subtask" && !taskId) {
         taskId = data.task_id;
-        const task = this.storageService.getById("tasks", data.task_id);
-        todoId = task?.todo_id;
       }
 
       // Only store notification if not own action
@@ -556,17 +571,17 @@ export class NotifyService implements OnDestroy {
       return;
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       let todoTitle = "";
-      if (todoId) {
-        const todo = this.storageService.getById("todos", todoId);
-        todoTitle = todo?.title || "";
-      }
       let taskTitle = "";
-      if (taskId) {
-        const task = this.storageService.getById("tasks", taskId);
-        taskTitle = task?.title || "";
+
+      if (todoId) {
+        todoTitle = await this.fetchEntityTitle("todos", todoId);
       }
+      if (taskId) {
+        taskTitle = await this.fetchEntityTitle("tasks", taskId);
+      }
+
       this.buildAndAddNotification(
         type,
         title,

@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { ApiProvider } from "@providers/api.provider";
 import { Observable } from "rxjs";
 import { Comment } from "@models/comment.model";
@@ -22,7 +22,7 @@ export interface MarkCommentsResult {
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private apiProvider = inject(ApiProvider);
 
   createComment(
@@ -52,7 +52,8 @@ export class CommentService {
     userId: string,
     parentTodoId: string
   ): MarkCommentsResult {
-    const comments = this.storageService.comments().filter((c) => commentIds.includes(c.id));
+    const allComments = this.dataService.getCurrentComments();
+    const comments = allComments.filter((c) => commentIds.includes(c.id));
     const toUpdate = comments.filter((c) => !c.read_by?.includes(userId));
 
     if (toUpdate.length === 0) return { updatedComments: [], hasChanges: false };
@@ -61,9 +62,11 @@ export class CommentService {
     toUpdate.forEach((c) => {
       const updatedReadBy = [...(c.read_by || []), userId];
       updatedComments.push({ ...c, read_by: updatedReadBy });
-      this.storageService.updateItem("comments", c.id, {
-        read_by: updatedReadBy,
-      });
+      this.dataService
+        .updateComment(c.id, {
+          read_by: updatedReadBy,
+        })
+        .subscribe();
     });
 
     this.apiProvider
@@ -81,12 +84,11 @@ export class CommentService {
   }
 
   getUnreadCountForTask(taskId: string, userId: string): number {
-    const subtasks = this.storageService.getSubtasksByTaskId(taskId);
+    const subtasks = this.dataService.getSubtasksByTaskId(taskId);
     let count = 0;
     for (const subtask of subtasks) {
-      const comments = this.storageService
-        .comments()
-        .filter((c) => c.subtask_id === subtask.id && !c.deleted_at);
+      const allComments = this.dataService.getCurrentComments();
+      const comments = allComments.filter((c) => c.subtask_id === subtask.id && !c.deleted_at);
       count += comments.filter(
         (c) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
       ).length;
