@@ -10,6 +10,7 @@ import { Profile } from "@models/profile.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Chat } from "@models/chat.model";
+import { Comment } from "@models/comment.model";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -49,10 +50,16 @@ class PaginationLoader<T> {
 
   loadInitial(): Observable<T[]> {
     const { paginationSignal, filterBuilder, load, visibility, entityName } = this.options;
+    const current = paginationSignal();
+
+    if (current.loading) {
+      return of(current.items);
+    }
+
     paginationSignal.set({
       items: [],
       skip: 0,
-      limit: paginationSignal().limit,
+      limit: current.limit,
       hasMore: true,
       loading: true,
     });
@@ -173,6 +180,14 @@ export class DataLoaderService {
     loading: false,
   });
 
+  private commentsPagination = signal<PaginationState>({
+    items: [],
+    skip: 0,
+    limit: 10,
+    hasMore: true,
+    loading: false,
+  });
+
   private currentTasksTodoId = signal<string | null>(null);
   private currentSubtasksTaskId = signal<string | null>(null);
   private currentChatsTodoId = signal<string | null>(null);
@@ -211,7 +226,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { user_id: currentUserId },
-      ["categories", "user", "assignees"],
+      ["categories", "user"],
       "private"
     );
 
@@ -322,10 +337,23 @@ export class DataLoaderService {
               return of(null);
             }
             if (result?.data?.needsProfile) {
-              this.notifyService.showWarning("Profile not found. Please create one.");
-              this.profileRequiredService.setProfileRequiredMode(true);
-              this.router.navigate(["/profile/manage"]);
-              return of(null);
+              return this.apiProvider
+                .crud<Profile>("get", "profiles", {
+                  filter: { user_id: currentUserId },
+                  load: ["user"],
+                  visibility: "private",
+                })
+                .pipe(
+                  switchMap((profile) => {
+                    if (profile && typeof profile === "object" && "user_id" in profile) {
+                      return of(profile);
+                    }
+                    this.notifyService.showWarning("Profile not found. Please create one.");
+                    this.profileRequiredService.setProfileRequiredMode(true);
+                    this.router.navigate(["/profile/manage"]);
+                    return of(null);
+                  })
+                );
             }
             return this.apiProvider.crud<Profile>("get", "profiles", {
               filter: { user_id: currentUserId },
@@ -336,8 +364,11 @@ export class DataLoaderService {
         )
         .subscribe({
           next: (profile) => {
+            const profileData = Array.isArray(profile) ? profile[0] : profile;
             observer.next(
-              profile && typeof profile === "object" && "user_id" in profile ? profile : null
+              profileData && typeof profileData === "object" && "user_id" in profileData
+                ? profileData
+                : null
             );
             observer.complete();
           },
@@ -390,7 +421,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { assignees: { $in: [currentUserId] } },
-      ["categories", "user", "assignees"],
+      ["categories", "user"],
       "shared"
     );
 
@@ -398,7 +429,7 @@ export class DataLoaderService {
       this.apiProvider,
       "todos",
       { visibility: "public" },
-      ["categories", "user", "assignees"],
+      ["categories", "user"],
       "public"
     );
 
@@ -501,57 +532,158 @@ export class DataLoaderService {
   }
 
   // Tasks - lazy loaded when todo opened
-  loadInitialTasksForTodo(todoId: string, limit: number = 10): Observable<Task[]> {
+  loadInitialTasksForTodo(
+    todoId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Task[]> {
     this.currentTasksTodoId.set(todoId);
     return this.createPaginationLoader<Task>({
       entityName: "tasks",
       paginationSignal: this.tasksPagination,
       currentIdSignal: this.currentTasksTodoId,
       filterBuilder: () => ({ filter: { todo_id: todoId } }),
-      load: ["subtasks", "comments"],
-      visibility: "private",
+      load: [],
+      visibility,
     }).loadInitial();
   }
 
-  loadMoreTasksForTodo(todoId: string): Observable<Task[]> {
-    if (this.currentTasksTodoId() !== todoId) return this.loadInitialTasksForTodo(todoId);
+  loadMoreTasksForTodo(todoId: string, visibility: string = "private"): Observable<Task[]> {
+    if (this.currentTasksTodoId() !== todoId)
+      return this.loadInitialTasksForTodo(todoId, visibility);
     return this.createPaginationLoader<Task>({
       entityName: "tasks",
       paginationSignal: this.tasksPagination,
       currentIdSignal: this.currentTasksTodoId,
       filterBuilder: (skip) => ({ filter: { todo_id: todoId }, skip }),
-      load: ["subtasks", "comments"],
-      visibility: "private",
+      load: [],
+      visibility,
     }).loadMore();
   }
 
   // Subtasks
-  loadInitialSubtasksForTask(taskId: string, limit: number = 10): Observable<Subtask[]> {
+  loadInitialSubtasksForTask(
+    taskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Subtask[]> {
     this.currentSubtasksTaskId.set(taskId);
+
+    const cachedSubtasks = this.storageService.getSubtasksByTaskId(taskId);
+    if (cachedSubtasks.length > 0) {
+      this.subtasksPagination.set({
+        items: cachedSubtasks,
+        skip: cachedSubtasks.length,
+        limit: limit,
+        hasMore: false,
+        loading: false,
+      });
+      return of(cachedSubtasks);
+    }
+
     return this.createPaginationLoader<Subtask>({
       entityName: "subtasks",
       paginationSignal: this.subtasksPagination,
       currentIdSignal: this.currentSubtasksTaskId,
       filterBuilder: () => ({ filter: { task_id: taskId } }),
-      load: ["user"],
-      visibility: "private",
+      load: ["user", "comments"],
+      visibility,
     }).loadInitial();
   }
 
-  loadMoreSubtasksForTask(taskId: string): Observable<Subtask[]> {
-    if (this.currentSubtasksTaskId() !== taskId) return this.loadInitialSubtasksForTask(taskId);
+  loadMoreSubtasksForTask(taskId: string, visibility: string = "private"): Observable<Subtask[]> {
+    if (this.currentSubtasksTaskId() !== taskId)
+      return this.loadInitialSubtasksForTask(taskId, visibility);
     return this.createPaginationLoader<Subtask>({
       entityName: "subtasks",
       paginationSignal: this.subtasksPagination,
       currentIdSignal: this.currentSubtasksTaskId,
       filterBuilder: (skip) => ({ filter: { task_id: taskId }, skip }),
+      load: ["user", "comments"],
+      visibility,
+    }).loadMore();
+  }
+
+  // Comments - lazy load with pagination (latest 10 by default)
+  loadCommentsForTask(
+    taskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Comment[]> {
+    this.commentsPagination.set({
+      items: [],
+      skip: 0,
+      limit,
+      hasMore: true,
+      loading: true,
+    });
+    return this.createPaginationLoader<Comment>({
+      entityName: "comments",
+      paginationSignal: this.commentsPagination,
+      filterBuilder: () => ({ filter: { task_id: taskId }, sort: { created_at: -1 } }),
       load: ["user"],
-      visibility: "private",
+      visibility,
+      reverseItems: true,
+    }).loadInitial();
+  }
+
+  loadMoreCommentsForTask(taskId: string, visibility: string = "private"): Observable<Comment[]> {
+    return this.createPaginationLoader<Comment>({
+      entityName: "comments",
+      paginationSignal: this.commentsPagination,
+      filterBuilder: (skip) => ({ filter: { task_id: taskId }, skip, sort: { created_at: -1 } }),
+      load: ["user"],
+      visibility,
+      reverseItems: true,
+    }).loadMore();
+  }
+
+  loadCommentsForSubtask(
+    subtaskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Comment[]> {
+    this.commentsPagination.set({
+      items: [],
+      skip: 0,
+      limit,
+      hasMore: true,
+      loading: true,
+    });
+    return this.createPaginationLoader<Comment>({
+      entityName: "comments",
+      paginationSignal: this.commentsPagination,
+      filterBuilder: () => ({ filter: { subtask_id: subtaskId }, sort: { created_at: -1 } }),
+      load: ["user"],
+      visibility,
+      reverseItems: true,
+    }).loadInitial();
+  }
+
+  loadMoreCommentsForSubtask(
+    subtaskId: string,
+    visibility: string = "private"
+  ): Observable<Comment[]> {
+    return this.createPaginationLoader<Comment>({
+      entityName: "comments",
+      paginationSignal: this.commentsPagination,
+      filterBuilder: (skip) => ({
+        filter: { subtask_id: subtaskId },
+        skip,
+        sort: { created_at: -1 },
+      }),
+      load: ["user"],
+      visibility,
+      reverseItems: true,
     }).loadMore();
   }
 
   // Chats - load latest 10, scroll up for older
-  loadInitialChatsForTodo(todoId: string, limit: number = 10): Observable<Chat[]> {
+  loadInitialChatsForTodo(
+    todoId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Chat[]> {
     this.currentChatsTodoId.set(todoId);
     return this.createPaginationLoader<Chat>({
       entityName: "chats",
@@ -559,13 +691,18 @@ export class DataLoaderService {
       currentIdSignal: this.currentChatsTodoId,
       filterBuilder: () => ({ filter: { todo_id: todoId }, sort: { created_at: -1 } }),
       load: ["user"],
-      visibility: "private",
+      visibility,
       reverseItems: true,
     }).loadInitial();
   }
 
-  loadOlderChatsForTodo(todoId: string, beforeTimestamp: string): Observable<Chat[]> {
-    if (this.currentChatsTodoId() !== todoId) return this.loadInitialChatsForTodo(todoId);
+  loadOlderChatsForTodo(
+    todoId: string,
+    visibility: string = "private",
+    beforeTimestamp?: string
+  ): Observable<Chat[]> {
+    if (this.currentChatsTodoId() !== todoId)
+      return this.loadInitialChatsForTodo(todoId, visibility);
     return this.createPaginationLoader<Chat>({
       entityName: "chats",
       paginationSignal: this.chatsPagination,
@@ -576,7 +713,7 @@ export class DataLoaderService {
         sort: { created_at: -1 },
       }),
       load: ["user"],
-      visibility: "private",
+      visibility,
       reverseItems: true,
       prependItems: true,
     }).loadMore();
