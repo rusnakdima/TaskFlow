@@ -17,6 +17,9 @@ pub struct ConfigHelper {
   pub reset_token_expiry_hours: u64,
   pub rp_domain: String,
   pub enable_query_logging: bool,
+  pub github_client_id: String,
+  pub github_client_secret: String,
+  pub github_callback_url: String,
 }
 
 impl ConfigHelper {
@@ -77,6 +80,18 @@ impl ConfigHelper {
         .get("ENABLE_QUERY_LOGGING")
         .map(|s| s.to_lowercase() == "true")
         .unwrap_or(false),
+      github_client_id: env_vars
+        .get("GITHUB_CLIENT_ID")
+        .cloned()
+        .unwrap_or_else(|| "".to_string()),
+      github_client_secret: env_vars
+        .get("GITHUB_CLIENT_SECRET")
+        .cloned()
+        .unwrap_or_else(|| "".to_string()),
+      github_callback_url: env_vars
+        .get("GITHUB_CALLBACK_URL")
+        .cloned()
+        .unwrap_or_else(|| "".to_string()),
     }
   }
 

@@ -16,10 +16,7 @@ use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::json;
 
-async fn get_user_github_token(
-  state: &AppState,
-  user_id: &str,
-) -> Result<(String, UserEntity), ResponseModel> {
+async fn get_user_github_token(state: &AppState, user_id: &str) -> Result<(String, UserEntity), ResponseModel> {
   let table_name = "users";
   let filter = Filter::Eq("id".to_string(), json!(user_id));
 
@@ -54,7 +51,6 @@ async fn update_user_github_tokens(
   github_username: &str,
 ) -> Result<(), ResponseModel> {
   let table_name = "users";
-  let filter = Filter::Eq("id".to_string(), json!(user_id));
 
   let update_data = json!({
     "github_access_token": access_token,
@@ -78,19 +74,17 @@ async fn update_user_github_tokens(
 
 #[tauri::command]
 pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = std::env::var("GITHUB_CLIENT_ID").unwrap_or_else(|_| {
-    eprintln!("WARNING: GITHUB_CLIENT_ID not set in .env");
-    "".to_string()
-  });
+  let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
-    return Err(err_response("GitHub OAuth not configured"));
+    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
   }
 
-  let redirect_uri = std::env::var("GITHUB_CALLBACK_URL").unwrap_or_else(|_| {
-    let config_helper = &state.config_helper;
-    format!("https://{}/github/callback", config_helper.rp_domain)
-  });
+  let redirect_uri = if state.config_helper.github_callback_url.is_empty() {
+    format!("https://{}/github/callback", state.config_helper.rp_domain)
+  } else {
+    state.config_helper.github_callback_url.clone()
+  };
 
   let service = GithubService::new();
   let url = service
@@ -106,18 +100,11 @@ pub async fn github_oauth_callback(
   user_id: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = std::env::var("GITHUB_CLIENT_ID").unwrap_or_else(|_| {
-    eprintln!("WARNING: GITHUB_CLIENT_ID not set in .env");
-    "".to_string()
-  });
-
-  let github_client_secret = std::env::var("GITHUB_CLIENT_SECRET").unwrap_or_else(|_| {
-    eprintln!("WARNING: GITHUB_CLIENT_SECRET not set in .env");
-    "".to_string()
-  });
+  let github_client_id = state.config_helper.github_client_id.clone();
+  let github_client_secret = state.config_helper.github_client_secret.clone();
 
   if github_client_id.is_empty() || github_client_secret.is_empty() {
-    return Err(err_response("GitHub OAuth not configured"));
+    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env"));
   }
 
   let service = GithubService::new();
@@ -140,8 +127,7 @@ pub async fn github_oauth_callback(
     tokens.expires_in,
     &github_user.id.to_string(),
     &github_user.login,
-  )
-  .await;
+  ).await;
 
   Ok(success_response(DataValue::Object(json!({
     "username": github_user.login,
@@ -158,9 +144,7 @@ pub async fn github_get_repos(
   let (access_token, _user) = get_user_github_token(&state, &user_id).await?;
 
   let service = GithubService::new();
-  let repos = service
-    .get_repos(&access_token)
-    .await
+  let repos = service.get_repos(&access_token).await
     .map_err(|e| err_response_formatted("Failed to get repos", &e))?;
 
   let repo_list: Vec<serde_json::Value> = repos
@@ -224,9 +208,7 @@ pub async fn github_disconnect(
     let _ = mongo.update(table_name, &user_id, update_data).await;
   }
 
-  Ok(success_response(DataValue::String(
-    "Disconnected".to_string(),
-  )))
+  Ok(success_response(DataValue::String("Disconnected".to_string())))
 }
 
 #[tauri::command]
@@ -275,4 +257,64 @@ pub async fn github_create_comment(
     "id": comment.id,
     "html_url": comment.html_url
   }))))
+}
+
+#[tauri::command]
+pub async fn github_start_device_flow(
+  state: State<'_, AppState>,
+) -> Result<ResponseModel, ResponseModel> {
+  let github_client_id = state.config_helper.github_client_id.clone();
+
+  if github_client_id.is_empty() {
+    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
+  }
+
+  let service = GithubService::new();
+  let (device_code, user_code, verification_uri) = service
+    .start_device_code_flow(&github_client_id)
+    .await
+    .map_err(|e| err_response_formatted("Failed to start device flow", &e))?;
+
+  Ok(success_response(DataValue::Object(json!({
+    "device_code": device_code,
+    "user_code": user_code,
+    "verification_uri": verification_uri
+  }))))
+}
+
+#[tauri::command]
+pub async fn github_check_device_flow(
+  state: State<'_, AppState>,
+  device_code: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let github_client_id = state.config_helper.github_client_id.clone();
+
+  if github_client_id.is_empty() {
+    return Err(err_response("GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env"));
+  }
+
+  let service = GithubService::new();
+  match service.check_device_code(&github_client_id, &device_code).await {
+    Ok(Some(tokens)) => {
+      let github_user = service.get_user(&tokens.access_token).await
+        .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
+
+      Ok(success_response(DataValue::Object(json!({
+        "success": true,
+        "access_token": tokens.access_token,
+        "refresh_token": tokens.refresh_token,
+        "expires_in": tokens.expires_in,
+        "username": github_user.login,
+        "user_id": github_user.id.to_string(),
+        "avatar_url": github_user.avatar_url
+      }))))
+    }
+    Ok(None) => {
+      Ok(success_response(DataValue::Object(json!({
+        "success": false,
+        "pending": true
+      }))))
+    }
+    Err(e) => Err(err_response(&e)),
+  }
 }
