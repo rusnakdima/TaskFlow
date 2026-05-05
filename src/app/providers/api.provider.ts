@@ -86,7 +86,7 @@ export class ApiProvider {
                   options.parentTodoId
                 );
               }
-              if (operation === "getAll" && table === "chats") {
+              if ((operation === "getAll" || operation === "get") && table === "chats") {
                 this.handleChatsResult(response.data as Chat[], options.filter);
               }
               subscriber.next(response.data as T);
@@ -170,11 +170,15 @@ export class ApiProvider {
   }
 
   private handleChatsResult(chats: Chat[], filter?: Record<string, unknown>): void {
-    if (chats?.length > 0) {
-      const todoId = (chats[0]?.todo_id || filter?.["todo_id"]) as string | undefined;
-      if (todoId) {
-        this.storageService.setChatsByTodo(chats, todoId);
-      }
+    if (!chats || chats.length === 0) return;
+
+    const todoId = (chats[0]?.todo_id || filter?.["todo_id"]) as string | undefined;
+    if (todoId) {
+      const cleanedChats = chats.map((chat) => {
+        const { todo, ...rest } = chat as any;
+        return rest;
+      });
+      this.storageService.setChatsByTodo(cleanedChats, todoId);
     }
   }
 }

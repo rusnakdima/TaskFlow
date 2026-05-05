@@ -7,4 +7,6 @@ export interface Comment extends BaseEntity {
   task_id?: string;
   subtask_id?: string;
   read_by: string[];
+  github_comment_id?: string;
+  github_issue_id?: string;
 }

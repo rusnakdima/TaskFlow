@@ -22,4 +22,6 @@ export interface Todo extends BaseEntity {
   tasks_count: number;
   completed_tasks_count: number;
   chats_count: number;
+  github_repo_id?: string;
+  github_repo_name?: string;
 }

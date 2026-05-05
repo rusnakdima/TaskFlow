@@ -45,4 +45,7 @@ export interface Task extends BaseEntity {
   subtasks_count: number;
   completed_subtasks_count: number;
   comments_count: number;
+  publish_to_github: boolean;
+  github_issue_id?: string;
+  github_issue_url?: string;
 }
