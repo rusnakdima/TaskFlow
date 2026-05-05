@@ -17,14 +17,21 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-import { CommentsComponent } from "@components/comments/comments.component";
+import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
 /* models */
-import { TableField } from "./table-field.model";
+import { TableField, TableFieldActionButton } from "./table-field.model";
+
+/* constants */
+import {
+  TableFieldColors,
+  TableFieldIcons,
+  TableActionColors,
+} from "@constants/table-field.constants";
 
 @Component({
   selector: "app-table-view",
@@ -35,7 +42,7 @@ import { TableField } from "./table-field.model";
     MatButtonModule,
     CheckboxComponent,
     DragDropModule,
-    CommentsComponent,
+    CommentsPanelComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,7 +54,7 @@ export class TableViewComponent {
   @Input() showSelection = true;
   @Input() showActionsColumn = true;
   @Input() emptyMessage = "No data available";
-  @Input() actions: { key: string; icon: string; label: string }[] = [
+  @Input() actions: TableFieldActionButton[] = [
     { key: "edit", icon: "edit", label: "Edit" },
     { key: "delete", icon: "delete", label: "Delete" },
   ];
@@ -63,7 +70,9 @@ export class TableViewComponent {
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
   @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any[]>>();
-  @Output() commentToggle = new EventEmitter<string>();
+  @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
+  @Output() deleteComment = new EventEmitter<string>();
+  @Output() markAsRead = new EventEmitter<string[]>();
 
   sortField = signal<string>("");
   sortDirection = signal<"asc" | "desc">("asc");
@@ -183,7 +192,6 @@ export class TableViewComponent {
       }
       return newExpanded;
     });
-    this.commentToggle.emit(id);
   }
 
   getCommentsForItem(item: any): any[] {
@@ -192,4 +200,51 @@ export class TableViewComponent {
 
   getPriorityClass = BaseItemHelper.getPriorityBadgeClass;
   getStatusClass = BaseItemHelper.getStatusBadgeClass;
+
+  getIconColor(field: TableField, value: any): string {
+    if (field.iconConfig?.default) return field.iconConfig.default;
+    if (field.type === "boolean") {
+      return value ? TableFieldIcons.boolean.true : TableFieldIcons.boolean.false;
+    }
+    if (field.type === "change") {
+      if (value > 0) return TableFieldIcons.change.positive;
+      if (value < 0) return TableFieldIcons.change.negative;
+      return TableFieldIcons.change.neutral;
+    }
+    return "";
+  }
+
+  getChipOrBadgeColor(field: TableField, value: any): string {
+    if (field.colorConfig?.default) return field.colorConfig.default;
+    if (field.type === "change") {
+      if (value > 0) return TableFieldColors.change.positive;
+      if (value < 0) return TableFieldColors.change.negative;
+      return TableFieldColors.change.neutral;
+    }
+    if (field.type === "boolean") {
+      return value ? TableFieldColors.boolean.true : TableFieldColors.boolean.false;
+    }
+    return "";
+  }
+
+  getActionColor(action: TableFieldActionButton): string {
+    const colorKey = action.key as keyof typeof TableActionColors;
+    return TableActionColors[colorKey] || TableActionColors.default;
+  }
+
+  hasActionTemplate(action: TableFieldActionButton): boolean {
+    return !!action.template;
+  }
+
+  onCommentAdd(content: string, item: any): void {
+    this.addComment.emit({ content, itemId: item.id });
+  }
+
+  onCommentDelete(commentId: string): void {
+    this.deleteComment.emit(commentId);
+  }
+
+  onCommentMarkAsRead(commentIds: string[]): void {
+    this.markAsRead.emit(commentIds);
+  }
 }

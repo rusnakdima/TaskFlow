@@ -13,9 +13,11 @@ import {
 } from "@angular/core";
 
 /* materials */
-import { MatIconModule } from "@angular/material/icon';
+import { MatIconModule } from "@angular/material/icon";
+import { DragDropModule } from "@angular/cdk/drag-drop";
 
 /* components */
+import { CommentsPanelComponent } from "@components/comments-panel/comments-panel.component";
 import { CommentsComponent } from "@components/comments/comments.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
@@ -37,7 +39,7 @@ import { Todo } from "@models/todo.model";
 @Component({
   selector: "app-task-row",
   standalone: true,
-  imports: [CommonModule, MatIconModule, CommentsComponent, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, DragDropModule, CommentsPanelComponent, CheckboxComponent],
   templateUrl: "./task-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

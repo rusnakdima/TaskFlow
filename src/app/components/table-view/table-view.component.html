@@ -69,7 +69,7 @@
               <button
                 cdkDragHandle
                 title="Drag to reorder"
-                class="cursor-move rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-zinc-700/50"
+                class="cursor-move rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-gray-700"
                 style="
                   touch-action: none;
                   -webkit-user-drag: none;
@@ -106,9 +106,17 @@
                 }
                 @case ("boolean") {
                   @if (formatValue(item, field)) {
-                    <mat-icon class="h-5! w-5! text-2xl! text-green-600" fontIcon="check_circle" />
+                    <mat-icon
+                      class="h-5! w-5! text-2xl!"
+                      [class]="getIconColor(field, true)"
+                      fontIcon="check_circle"
+                    />
                   } @else {
-                    <mat-icon class="h-5! w-5! text-2xl! text-gray-400" fontIcon="cancel" />
+                    <mat-icon
+                      class="h-5! w-5! text-2xl!"
+                      [class]="getIconColor(field, false)"
+                      fontIcon="cancel"
+                    />
                   }
                 }
                 @case ("chip") {
@@ -156,6 +164,34 @@
                     {{ formatValue(item, field) }}
                   }
                 }
+                @case ("change") {
+                  @let changeVal = formatValue(item, field);
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
+                    [class]="getChipOrBadgeColor(field, changeVal)"
+                  >
+                    @if (changeVal > 0) {
+                      <mat-icon
+                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        [class]="getIconColor(field, changeVal)"
+                        fontIcon="trending_up"
+                      />
+                    } @else if (changeVal < 0) {
+                      <mat-icon
+                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        [class]="getIconColor(field, changeVal)"
+                        fontIcon="trending_down"
+                      />
+                    } @else {
+                      <mat-icon
+                        class="mr-1 h-3! w-3! min-w-3 text-xs!"
+                        [class]="getIconColor(field, changeVal)"
+                        fontIcon="remove"
+                      />
+                    }
+                    {{ changeVal > 0 ? "+" : "" }}{{ changeVal }}%
+                  </span>
+                }
                 @default {
                   {{ formatValue(item, field) }}
                 }
@@ -168,9 +204,11 @@
                 @if (expandable) {
                   <button
                     mat-icon-button
-                    class="h-8 w-8"
+                    class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
                     [ngClass]="
-                      isExpanded(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'
+                      isExpanded(item.id)
+                        ? 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30'
+                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
                     "
                     (click)="toggleExpanded(item.id)"
                     title="Expand details"
@@ -183,10 +221,10 @@
                 @if (showCommentToggle) {
                   <button
                     mat-icon-button
-                    class="h-8 w-8"
+                    class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
                     [ngClass]="
                       isCommentExpanded(item.id)
-                        ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                        ? 'bg-purple-100 text-purple-600 hover:bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50'
                         : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
                     "
                     (click)="toggleComments(item.id)"
@@ -196,21 +234,24 @@
                   </button>
                 }
                 @for (action of actions; track action.key) {
-                  <button
-                    mat-icon-button
-                    class="h-8 w-8"
-                    [ngClass]="{
-                      'text-blue-600 dark:text-blue-400': action.key === 'edit' || action.key === 'update',
-                      'text-amber-600 dark:text-amber-400': action.key === 'delete' || action.key === 'deleteRecord',
-                      'text-green-600 dark:text-green-400': action.key === 'confirm' || action.key === 'approve',
-                      'text-purple-600 dark:text-purple-400': action.key === 'expand' || action.key === 'view',
-                      'text-gray-500 dark:text-gray-400': action.key !== 'edit' && action.key !== 'update' && action.key !== 'delete' && action.key !== 'deleteRecord' && action.key !== 'confirm' && action.key !== 'approve' && action.key !== 'expand' && action.key !== 'view'
-                    }"
-                    (click)="onActionClick(action.key, item)"
-                    [title]="action.label"
-                  >
-                    <mat-icon class="h-5! w-5! min-w-5 text-base!" [fontIcon]="action.icon" />
-                  </button>
+                  @if (hasActionTemplate(action)) {
+                    <ng-container
+                      *ngTemplateOutlet="
+                        action.template;
+                        context: { $implicit: item, action: action }
+                      "
+                    />
+                  } @else {
+                    <button
+                      mat-icon-button
+                      class="h-8 w-8 rounded-lg transition-all duration-200 hover:scale-110"
+                      [ngClass]="getActionColor(action)"
+                      (click)="onActionClick(action.key, item)"
+                      [title]="action.label"
+                    >
+                      <mat-icon class="h-5! w-5! min-w-5 text-base!" [fontIcon]="action.icon" />
+                    </button>
+                  }
                 }
               </div>
             </td>
@@ -229,6 +270,16 @@
             >
               @if (expandTemplate) {
                 <ng-container *ngTemplateOutlet="expandTemplate; context: { $implicit: item }" />
+              } @else if (showCommentToggle && isCommentExpanded(item.id)) {
+                <app-comments-panel
+                  [comments]="getCommentsForItem(item)"
+                  [itemType]="'task'"
+                  [itemId]="item.id"
+                  [todo]="item.todo || null"
+                  (addCommentEvent)="onCommentAdd($event, item)"
+                  (deleteCommentEvent)="onCommentDelete($event)"
+                  (markAsReadEvent)="onCommentMarkAsRead($event)"
+                />
               } @else {
                 <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
                   <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
@@ -247,28 +298,6 @@
                   </div>
                 </div>
               }
-            </td>
-          </tr>
-        }
-        @if (showCommentToggle && isCommentExpanded(item.id)) {
-          <tr class="expand-row">
-            <td
-              [attr.colspan]="
-                fields.length +
-                (showSelection ? 1 : 0) +
-                (showActionsColumn ? 1 : 0) +
-                (dragEnabled ? 1 : 0)
-              "
-              class="px-4 py-4"
-            >
-              <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
-                <app-comments
-                  title="Task comments"
-                  [comments]="getCommentsForItem(item)"
-                  [task_id]="item.id"
-                  [todo_id]="item.todo_id"
-                />
-              </div>
             </td>
           </tr>
         }
