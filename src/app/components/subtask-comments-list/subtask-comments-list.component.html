@@ -1,0 +1,65 @@
+<div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+  <div class="mb-2 flex items-center justify-between">
+    <h4 class="textNormal flex items-center gap-2 text-sm font-semibold">
+      <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="subdirectory_arrow_right" />
+      Subtask comments
+    </h4>
+    <span class="textMuted text-[10px]"> {{ subtaskCommentGroups.length }} subtasks </span>
+  </div>
+
+  <div class="flex flex-col gap-2">
+    @for (group of subtaskCommentGroups; track group.subtask_id) {
+      <div
+        class="rounded-xl border border-gray-200 bg-white/60 dark:border-zinc-700 dark:bg-zinc-800/30"
+        [ngClass]="{
+          'animate-pulse ring-2 ring-purple-500': shouldHighlightSubtask(group.subtask_id),
+        }"
+      >
+        <div class="flex items-center justify-between p-3">
+          <button
+            class="textNormal flex items-center gap-2 text-sm font-semibold transition-colors hover:text-purple-600 dark:hover:text-purple-400"
+            (click)="toggleSubtaskExpand(group.subtask_id)"
+            title="Expand/collapse this subtask's comments"
+          >
+            <mat-icon
+              class="h-4! w-4! min-w-4 text-lg!"
+              [fontIcon]="isSubtaskExpanded(group.subtask_id) ? 'expand_less' : 'expand_more'"
+            />
+            <span class="truncate">{{ group.title }}</span>
+            @if (group.comments.length > 0) {
+              <span
+                class="ml-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white"
+              >
+                {{ group.comments.length }}
+              </span>
+            }
+          </button>
+
+          <button
+            class="rounded-lg p-1.5 text-purple-600 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
+            (click)="navigateToSubtaskComments(group.subtask_id)"
+            title="Open in Subtasks view"
+          >
+            <mat-icon class="h-4! w-4! min-w-4 text-lg!" fontIcon="open_in_new" />
+          </button>
+        </div>
+
+        @if (isSubtaskExpanded(group.subtask_id)) {
+          <div class="px-3 pb-3">
+            <app-comments
+              [title]="'Subtask: ' + group.title"
+              [comments]="group.comments"
+              [subtask_id]="group.subtask_id"
+              [todo]="todo"
+              (addCommentEvent)="onAddSubtaskComment($event, group.subtask_id)"
+              (deleteCommentEvent)="onDeleteComment($event)"
+              (markAsReadEvent)="onMarkAsRead($event)"
+            />
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="textMuted flex items-center justify-center py-4 text-xs">No subtasks yet</div>
+    }
+  </div>
+</div>
