@@ -200,6 +200,22 @@ export class DataLoaderService {
     return new PaginationLoader<T>(this.dataService, options);
   }
 
+  loadProfileAndUser(): Observable<{ profile: Profile | null; user: any | null }> {
+    console.debug("[DataLoader] loadProfileAndUser called");
+    return this.dataService.getProfile().pipe(
+      switchMap((profile) => {
+        console.debug("[DataLoader] getProfile returned:", profile);
+        this.dataService.setCurrentProfile(profile);
+        const user = profile?.user || null;
+        if (user) {
+          this.dataService.setCurrentUser(user);
+        }
+        return of({ profile, user });
+      }),
+      catchError(() => of({ profile: null, user: null }))
+    );
+  }
+
   loadAllData(
     force: boolean = false,
     loadShared: boolean = true
@@ -426,26 +442,41 @@ export class DataLoaderService {
   }
 
   loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
+    console.log(`[DataLoader] loadInitialTodos START | visibility="${visibility}", limit=${limit}`);
     this.todosPagination.set({ items: [], skip: 0, limit, hasMore: true, loading: true });
     const userId = this.jwtTokenService.getCurrentUserId() || "";
+    console.log(`[DataLoader] userId="${userId}"`);
     let filter: any;
 
     if (visibility === "all") {
       filter = {
-        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
+        $or: [
+          { user_id: userId },
+          { assignees: { $in: [userId] } },
+          { visibility: "public" }
+        ],
       };
     } else if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
-      filter = { assignees: { $in: [userId] } };
+      filter = {
+        $or: [
+          { assignees: { $in: [userId] } },
+          { visibility: "shared", user_id: userId }
+        ]
+      };
+    } else if (visibility === "public") {
+      filter = { visibility: "public" };
     } else {
       filter = { visibility: visibility };
     }
+    console.log(`[DataLoader] filter=`, JSON.stringify(filter, null, 2));
 
     return this.dataService
       .getTodos({ filter, skip: 0, limit, load: ["categories"], visibility })
       .pipe(
         switchMap((todos) => {
+          console.log(`[DataLoader] loadInitialTodos END | received ${todos?.length ?? 0} todos`);
           const current = this.todosPagination();
           const loadedTodos = todos || [];
           this.todosPagination.set({
@@ -455,10 +486,12 @@ export class DataLoaderService {
             hasMore: loadedTodos.length >= limit,
             loading: false,
           });
+          console.log(`[DataLoader] setCurrentTodos called with ${loadedTodos.length} todos`);
           this.dataService.setCurrentTodos(loadedTodos);
           return of(loadedTodos);
         }),
-        catchError(() => {
+        catchError((err) => {
+          console.error(`[DataLoader] loadInitialTodos ERROR:`, err);
           const current = this.todosPagination();
           this.todosPagination.set({ ...current, loading: false });
           return of([]);

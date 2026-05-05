@@ -12,10 +12,12 @@ import { Chat } from "@models/chat.model";
 import { Profile } from "@models/profile.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { StorageService } from "@services/core/storage.service";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
   private jwtTokenService = inject(JwtTokenService);
+  private storageService = inject(StorageService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
 
@@ -25,6 +27,7 @@ export class DataService {
   private cachedComments: Comment[] = [];
   private cachedChats: Chat[] = [];
   private cachedCategories: Category[] = [];
+  private cachedProfile: Profile | null = null;
 
   readonly todos$ = new Subject<Todo[]>();
   readonly tasks$ = new Subject<Task[]>();
@@ -90,8 +93,10 @@ export class DataService {
     visibility?: string;
   }): Observable<Todo[]> {
     const { filter, skip, limit, load, visibility } = options || {};
+    console.log(`[DataService] getTodos called | visibility="${visibility}", filter=${filter ? 'present' : 'None'}`);
     const key = this.getRequestDeduplicationKey("getAll", "todos", undefined, filter);
     return new Observable<Todo[]>((subscriber) => {
+      console.log(`[DataService] invoking manage_data for todos`);
       this.invoke<Todo[]>("manage_data", {
         operation: "getAll",
         table: "todos",
@@ -102,6 +107,7 @@ export class DataService {
         visibility,
       }).subscribe({
         next: (data) => {
+          console.log(`[DataService] manage_data returned ${data?.length ?? 0} todos`);
           this.cachedTodos = data || [];
           this.todos$.next(this.cachedTodos);
           subscriber.next(this.cachedTodos);
@@ -464,15 +470,17 @@ export class DataService {
     });
   }
 
-  getProfile(): Observable<Profile> {
+  getProfile(): Observable<Profile | null> {
     const userId = this.jwtTokenService.getCurrentUserId();
+    console.debug("[DataService] getProfile called, userId:", userId);
     if (!userId) {
       return new Observable<Profile>((subscriber) => {
         subscriber.error(new Error("No user logged in"));
       });
     }
     const key = this.getRequestDeduplicationKey("get", "profiles", userId);
-    return new Observable<Profile>((subscriber) => {
+    return new Observable<Profile | null>((subscriber) => {
+      console.debug("[DataService] invoking manage_data for profiles with filter:", { user_id: userId });
       this.invoke<Profile>("manage_data", {
         operation: "get",
         table: "profiles",
@@ -481,12 +489,16 @@ export class DataService {
         visibility: "private",
       }).subscribe({
         next: (data) => {
-          this.profile$.next(data);
-          subscriber.next(data);
+          console.debug("[DataService] getProfile received data:", data);
+          const profile = Array.isArray(data) ? data[0] : data;
+          this.profile$.next(profile);
+          this.setCurrentProfile(profile);
+          subscriber.next(profile);
           subscriber.complete();
           this.removeRequest(key);
         },
         error: (err: any) => {
+          console.error("[DataService] getProfile error:", err);
           subscriber.error(err);
           this.removeRequest(key);
         },
@@ -576,6 +588,10 @@ export class DataService {
     return this.cachedCategories;
   }
 
+  getCurrentProfile(): Profile | null {
+    return this.cachedProfile;
+  }
+
   getTasksByTodoId(todoId: string): Task[] {
     return this.cachedTasks.filter((t) => t.todo_id === todoId);
   }
@@ -608,6 +624,50 @@ export class DataService {
         error: (err) => subscriber.error(err),
       });
     });
+  }
+
+  setCurrentProfile(profile: Profile | null): void {
+    console.debug("[DataService] setCurrentProfile called with:", profile);
+    this.storageService.setCollection("profiles", profile);
+  }
+
+  updateProfile(id: string, data: Partial<Profile>, visibility?: string): Observable<Profile> {
+    return new Observable<Profile>((subscriber) => {
+      this.invoke<Profile>("manage_data", {
+        operation: "update",
+        table: "profiles",
+        id,
+        data,
+        visibility,
+      }).subscribe({
+        next: (data) => {
+          subscriber.next(data);
+          subscriber.complete();
+        },
+        error: (err: any) => subscriber.error(err),
+      });
+    });
+  }
+
+  createProfile(data: Partial<Profile>, visibility?: string): Observable<Profile> {
+    return new Observable<Profile>((subscriber) => {
+      this.invoke<Profile>("manage_data", {
+        operation: "create",
+        table: "profiles",
+        data,
+        visibility,
+      }).subscribe({
+        next: (data) => {
+          subscriber.next(data);
+          subscriber.complete();
+        },
+        error: (err: any) => subscriber.error(err),
+      });
+    });
+  }
+
+  setCurrentUser(user: any | null): void {
+    this.storageService.setCollection("user", user);
   }
 
   setCurrentTodos(todos: Todo[]): void {
