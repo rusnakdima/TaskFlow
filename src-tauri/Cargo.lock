@@ -5599,6 +5599,7 @@ dependencies = [
  "qrcode",
  "rand 0.8.6",
  "regex",
+ "reqwest 0.12.28",
  "rustls 0.21.12",
  "serde",
  "serde_json",

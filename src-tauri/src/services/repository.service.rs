@@ -417,45 +417,36 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(&table, visibility.as_deref())?;
 
-    let doc = if let Some(id_val) = id {
-      provider.find_by_id(&table, &id_val).await?
+    let docs: Vec<Value> = if let Some(id_val) = id {
+      match provider.find_by_id(&table, &id_val).await? {
+        Some(d) => vec![d],
+        None => return Err(err_response("Document not found")),
+      }
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-      provider.find_one(&table, Some(&filter_obj)).await?
+      provider.find_many(&table, Some(&filter_obj)).await?
     } else {
       return Err(err_response("ID or filter is required for get operation"));
     };
 
-    let doc = match doc {
-      Some(d) => d,
-      None => {
-        return Err(err_response("Document not found"));
-      }
-    };
-
-    // Only load relations if explicitly requested via load parameter
     let load_paths = Self::parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
       self
         .load_relations_via_nosql_orm(
-          vec![doc],
+          docs,
           &table,
           &load_paths,
           matches!(provider, DataProvider::Mongo(_)),
         )
         .await?
     } else {
-      vec![doc]
+      docs
     };
 
-    Ok(success_response(DataValue::Object(
-      self
-        .apply_projection_recursive(docs)
-        .into_iter()
-        .next()
-        .unwrap_or(json!({})),
+    Ok(success_response(DataValue::Array(
+      self.apply_projection_recursive(docs),
     )))
   }
 
@@ -488,9 +479,308 @@ impl RepositoryService {
       .log_action(&table, "create", &created_record, None)
       .await;
 
+    let should_publish_to_github = table == "tasks"
+      && created_record
+        .get("publish_to_github")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    let mut final_record = created_record.clone();
+
+    if should_publish_to_github {
+      if let Ok(updated) = self
+        .handle_github_publish_for_task(created_record.clone(), visibility_str.clone())
+        .await
+      {
+        final_record = updated;
+      }
+    }
+
+    if table == "comments" {
+      if let Ok(updated) = self
+        .handle_github_sync_comment(created_record, visibility_str)
+        .await
+      {
+        final_record = updated;
+      }
+    }
+
     let projection = security_projection();
-    let response_doc = projection.apply_recursive(&created_record);
+    let response_doc = projection.apply_recursive(&final_record);
     Ok(success_response(DataValue::Object(response_doc)))
+  }
+
+  async fn handle_github_sync_comment(
+    &self,
+    comment_record: Value,
+    visibility: String,
+  ) -> Result<Value, ResponseModel> {
+    let task_id = match comment_record.get("task_id").and_then(|v| v.as_str()) {
+      Some(id) => id,
+      None => return Ok(comment_record),
+    };
+
+    let provider = self.get_provider("tasks", Some(&visibility))?;
+    let task = match provider.find_by_id("tasks", task_id).await? {
+      Some(t) => t,
+      None => return Ok(comment_record),
+    };
+
+    let github_issue_id = match task.get("github_issue_id").and_then(|v| v.as_i64()) {
+      Some(id) => id,
+      _ => return Ok(comment_record),
+    };
+
+    let github_issue_url = task
+      .get("github_issue_url")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+
+    if github_issue_url.is_empty() {
+      return Ok(comment_record);
+    }
+
+    let repo_url = github_issue_url;
+    let parts: Vec<&str> = repo_url.trim_end_matches('/').split('/').collect();
+    if parts.len() < 2 {
+      return Ok(comment_record);
+    }
+    let repo_owner = parts[parts.len() - 4];
+    let repo_name = parts[parts.len() - 3];
+
+    let comment_content = comment_record
+      .get("content")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+
+    let user_id = comment_record
+      .get("user_id")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+    let access_token = self
+      .get_user_github_token(user_id)
+      .await
+      .unwrap_or_default();
+
+    if access_token.is_empty() {
+      return Ok(comment_record);
+    }
+
+    use crate::services::github_service::GithubService;
+    let github_service = GithubService::new();
+
+    let gh_comment = github_service
+      .create_comment(
+        &access_token,
+        repo_owner,
+        repo_name,
+        github_issue_id,
+        comment_content,
+      )
+      .await?;
+
+    let mut updated_record = comment_record.clone();
+    if let Some(obj) = updated_record.as_object_mut() {
+      obj.insert(
+        "github_comment_id".to_string(),
+        serde_json::json!(gh_comment.id),
+      );
+      obj.insert(
+        "github_issue_id".to_string(),
+        serde_json::json!(github_issue_id),
+      );
+    }
+
+    let comment_id = comment_record
+      .get("id")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+    let _ = provider
+      .update("comments", comment_id, updated_record.clone())
+      .await;
+
+    Ok(updated_record)
+  }
+
+  async fn handle_github_publish_for_task(
+    &self,
+    task_record: Value,
+    visibility: String,
+  ) -> Result<Value, ResponseModel> {
+    let todo_id = match task_record.get("todo_id").and_then(|v| v.as_str()) {
+      Some(id) => id,
+      None => return Ok(task_record),
+    };
+
+    let provider = self.get_provider("todos", Some(&visibility))?;
+    let todo = match provider.find_by_id("todos", todo_id).await? {
+      Some(t) => t,
+      None => return Ok(task_record),
+    };
+
+    let github_repo_id = match todo.get("github_repo_id").and_then(|v| v.as_str()) {
+      Some(id) if !id.is_empty() => id,
+      _ => return Ok(task_record),
+    };
+
+    let github_repo_name = todo
+      .get("github_repo_name")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+
+    let parts: Vec<&str> = github_repo_name.split('/').collect();
+    if parts.len() != 2 {
+      return Ok(task_record);
+    }
+    let repo_owner = parts[0];
+    let repo_name = parts[1];
+
+    let task_title = task_record
+      .get("title")
+      .and_then(|v| v.as_str())
+      .unwrap_or("Task");
+    let task_description = task_record
+      .get("description")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+    let task_priority = task_record
+      .get("priority")
+      .and_then(|v| v.as_str())
+      .unwrap_or("medium");
+    let task_end_date = task_record
+      .get("end_date")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+
+    let issue_body = format!(
+      "**Task Details**\n\n**Description:** {}\n\n**Priority:** {}\n**Due Date:** {}\n**Created in:** TaskFlow\n\n---\n[View in TaskFlow](taskflow://tasks/{})",
+      task_description,
+      task_priority,
+      task_end_date,
+      task_record.get("id").and_then(|v| v.as_str()).unwrap_or("")
+    );
+
+    use crate::services::github_service::GithubService;
+    let github_service = GithubService::new();
+
+    let user_id = task_record
+      .get("user_id")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+    let access_token = self
+      .get_user_github_token(user_id)
+      .await
+      .unwrap_or_default();
+
+    if access_token.is_empty() {
+      return Ok(task_record);
+    }
+
+    let issue = github_service
+      .create_issue(
+        &access_token,
+        repo_owner,
+        repo_name,
+        task_title,
+        &issue_body,
+      )
+      .await?;
+
+    let mut updated_record = task_record.clone();
+    if let Some(obj) = updated_record.as_object_mut() {
+      obj.insert("github_issue_id".to_string(), serde_json::json!(issue.id));
+      obj.insert(
+        "github_issue_url".to_string(),
+        serde_json::json!(issue.html_url),
+      );
+    }
+
+    let task_id = task_record.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let _ = provider
+      .update("tasks", task_id, updated_record.clone())
+      .await;
+
+    if let Ok(subtasks) = self.get_subtasks_for_task(task_id, &visibility).await {
+      for (index, subtask) in subtasks.into_iter().enumerate() {
+        let subtask_title = subtask
+          .get("title")
+          .and_then(|v: &serde_json::Value| v.as_str())
+          .unwrap_or("");
+        let comment_body = format!("**Subtask {}:** {}", index + 1, subtask_title);
+        let _ = github_service
+          .create_comment(
+            &access_token,
+            repo_owner,
+            repo_name,
+            issue.number,
+            &comment_body,
+          )
+          .await;
+      }
+    }
+
+    Ok(updated_record)
+  }
+
+  async fn get_user_github_token(&self, user_id: &str) -> Result<String, ResponseModel> {
+    let table_name = "users";
+    let filter = nosql_orm::query::Filter::Eq("id".to_string(), serde_json::json!(user_id));
+
+    let user_val = self
+      .json_provider
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+      .map_err(|e| err_response(&format!("Database error: {}", e)))?
+      .into_iter()
+      .next()
+      .ok_or_else(|| err_response("User not found"))?;
+
+    let user: crate::entities::user_entity::UserEntity =
+      serde_json::from_value(user_val).map_err(|e| err_response(&format!("Parse error: {}", e)))?;
+
+    Ok(user.github_access_token)
+  }
+
+  async fn get_subtasks_for_task(
+    &self,
+    task_id: &str,
+    visibility: &str,
+  ) -> Result<Vec<Value>, ResponseModel> {
+    let provider = self.get_provider("subtasks", Some(visibility))?;
+    let filter = nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
+    provider.find_many("subtasks", Some(&filter)).await
+  }
+
+  async fn handle_update_all(
+    &self,
+    table: String,
+    data: Option<Value>,
+    visibility: Option<String>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
+
+    let raw_records = data_val
+      .as_array()
+      .ok_or_else(|| err_response("Data must be an array for updateAll"))?
+      .clone();
+
+    let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
+    for record in raw_records {
+      let validated = validate_model(&table, &record, false)
+        .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
+      validated_records.push(validated);
+    }
+
+    let provider = self.get_provider(&table, visibility.as_deref())?;
+
+    for record in &validated_records {
+      if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
+        if let Err(_e) = provider.update(&table, id, record.clone()).await {}
+      }
+    }
+
+    let projected_records = self.apply_projection_recursive(validated_records);
+    Ok(success_response(DataValue::Array(projected_records)))
   }
 
   async fn handle_update(
@@ -541,38 +831,6 @@ impl RepositoryService {
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
     Ok(success_response(DataValue::Object(response_doc)))
-  }
-
-  async fn handle_update_all(
-    &self,
-    table: String,
-    data: Option<Value>,
-    visibility: Option<String>,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
-
-    let raw_records = data_val
-      .as_array()
-      .ok_or_else(|| err_response("Data must be an array for updateAll"))?
-      .clone();
-
-    let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
-    for record in raw_records {
-      let validated = validate_model(&table, &record, false)
-        .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
-      validated_records.push(validated);
-    }
-
-    let provider = self.get_provider(&table, visibility.as_deref())?;
-
-    for record in &validated_records {
-      if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
-        if let Err(_e) = provider.update(&table, id, record.clone()).await {}
-      }
-    }
-
-    let projected_records = self.apply_projection_recursive(validated_records);
-    Ok(success_response(DataValue::Array(projected_records)))
   }
 
   async fn handle_delete(

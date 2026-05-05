@@ -139,6 +139,11 @@ impl AuthRegisterService {
       biometric_enabled: false,
       qr_login_enabled: false,
       recovery_codes: Vec::new(),
+      github_access_token: String::new(),
+      github_refresh_token: String::new(),
+      github_token_expiry: String::new(),
+      github_user_id: String::new(),
+      github_username: String::new(),
     };
 
     let user_val = serde_json::to_value(&new_user)

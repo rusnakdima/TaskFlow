@@ -57,6 +57,16 @@ pub struct UserEntity {
   #[serde(default)]
   pub qr_login_enabled: bool,
   #[serde(default)]
+  pub github_access_token: String,
+  #[serde(default)]
+  pub github_refresh_token: String,
+  #[serde(default)]
+  pub github_token_expiry: String,
+  #[serde(default)]
+  pub github_user_id: String,
+  #[serde(default)]
+  pub github_username: String,
+  #[serde(default)]
   pub recovery_codes: Vec<String>,
   #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
@@ -106,6 +116,16 @@ pub struct UserCreateModel {
   #[serde(default)]
   pub qr_login_enabled: bool,
   #[serde(default)]
+  pub github_access_token: String,
+  #[serde(default)]
+  pub github_refresh_token: String,
+  #[serde(default)]
+  pub github_token_expiry: String,
+  #[serde(default)]
+  pub github_user_id: String,
+  #[serde(default)]
+  pub github_username: String,
+  #[serde(default)]
   pub recovery_codes: Vec<String>,
 }
 
@@ -134,6 +154,11 @@ impl From<UserCreateModel> for UserEntity {
       passkey_enabled: value.passkey_enabled,
       biometric_enabled: value.biometric_enabled,
       qr_login_enabled: value.qr_login_enabled,
+      github_access_token: value.github_access_token,
+      github_refresh_token: value.github_refresh_token,
+      github_token_expiry: value.github_token_expiry,
+      github_user_id: value.github_user_id,
+      github_username: value.github_username,
       recovery_codes: value.recovery_codes,
     }
   }
@@ -177,6 +202,16 @@ pub struct UserUpdateModel {
   pub biometric_enabled: Option<bool>,
   #[serde(default)]
   pub qr_login_enabled: Option<bool>,
+  #[serde(default)]
+  pub github_access_token: Option<String>,
+  #[serde(default)]
+  pub github_refresh_token: Option<String>,
+  #[serde(default)]
+  pub github_token_expiry: Option<String>,
+  #[serde(default)]
+  pub github_user_id: Option<String>,
+  #[serde(default)]
+  pub github_username: Option<String>,
   #[serde(default)]
   pub recovery_codes: Option<Vec<String>>,
 }
