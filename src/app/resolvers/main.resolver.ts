@@ -1,28 +1,22 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, take } from "rxjs";
 
 /* services */
-import { StorageService } from "@services/core/storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { DataService } from "@services/data/data.service";
 
 /**
- * MainResolver - Storage-First with Fallback Loading
+ * MainResolver - DataService First with Fallback Loading
  *
- * This resolver returns data from StorageService.
+ * This resolver returns data from DataService.
  * If data is not found, it triggers a direct API call and waits.
  */
 @Injectable({
   providedIn: "root",
 })
 export class MainResolver implements Resolve<any> {
-  private storageService = inject(StorageService);
-  private dataLoaderService = inject(DataLoaderService);
-  private apiProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
 
   async resolve(
     route: ActivatedRouteSnapshot,
@@ -35,17 +29,13 @@ export class MainResolver implements Resolve<any> {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
 
-        let todoFromStorage = this.storageService.getById("todos", todoId);
+        let todoFromStorage = await firstValueFrom(
+          this.dataService.getTodo(todoId).pipe(take(1))
+        ).catch(() => null);
 
-        if (!todoFromStorage) {
-          todoFromStorage = await this.loadTodoFromApi(todoId);
-        }
-
-        let taskFromStorage = this.storageService.getById("tasks", taskId);
-
-        if (!taskFromStorage) {
-          taskFromStorage = await this.loadTaskFromApi(taskId, todoId);
-        }
+        let taskFromStorage = await firstValueFrom(
+          this.dataService.getTask(taskId).pipe(take(1))
+        ).catch(() => null);
 
         if (todoFromStorage || taskFromStorage) {
           return { task: taskFromStorage || null, todo: todoFromStorage || null };
@@ -55,11 +45,9 @@ export class MainResolver implements Resolve<any> {
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
 
-        let todoFromStorage = this.storageService.getById("todos", todoId);
-
-        if (!todoFromStorage) {
-          todoFromStorage = await this.loadTodoFromApi(todoId);
-        }
+        let todoFromStorage = await firstValueFrom(
+          this.dataService.getTodo(todoId).pipe(take(1))
+        ).catch(() => null);
 
         if (todoFromStorage) {
           return todoFromStorage;
@@ -71,42 +59,6 @@ export class MainResolver implements Resolve<any> {
       }
     } catch {
       return { error: "offline" };
-    }
-  }
-
-  private async loadTodoFromApi(todoId: string): Promise<any> {
-    try {
-      const response = await firstValueFrom(
-        this.apiProvider.crud("get", "todos", {
-          id: todoId,
-          load: [],
-        })
-      );
-      const todo = Array.isArray(response) ? response[0] : response;
-      if (todo) {
-        this.storageService.addItem("todos", todo);
-      }
-      return todo;
-    } catch {
-      return null;
-    }
-  }
-
-  private async loadTaskFromApi(taskId: string, todoId: string): Promise<any> {
-    try {
-      const response = await firstValueFrom(
-        this.apiProvider.crud("get", "tasks", {
-          id: taskId,
-          load: [],
-        })
-      );
-      const task = Array.isArray(response) ? response[0] : response;
-      if (task) {
-        this.storageService.addItem("tasks", task);
-      }
-      return task;
-    } catch {
-      return null;
     }
   }
 }

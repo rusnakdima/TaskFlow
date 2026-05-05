@@ -1,13 +1,12 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, Subscriber } from "rxjs";
+import { Observable, from, Subscriber, Subject } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { Chat } from "@models/chat.model";
 
-import { StorageUpdateService } from "@services/core/storage.service";
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
@@ -29,8 +28,7 @@ interface CrudOptions {
 })
 export class ApiProvider {
   private notifyService = inject(NotifyService);
-  private storageService = inject(StorageService);
-  private storageUpdateService = inject(StorageUpdateService);
+  private dataService = inject(DataService);
 
   invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(
@@ -78,13 +76,7 @@ export class ApiProvider {
           (response) => {
             if (response.status === ResponseStatus.SUCCESS) {
               if (operation !== "get" && operation !== "getAll") {
-                this.storageUpdateService.updateAfterOperation(
-                  operation,
-                  table,
-                  response.data,
-                  options.id,
-                  options.parentTodoId
-                );
+                this.emitToDataService(operation, table, response.data);
               }
               if ((operation === "getAll" || operation === "get") && table === "chats") {
                 this.handleChatsResult(response.data as Chat[], options.filter);
@@ -144,13 +136,7 @@ export class ApiProvider {
           const table = payload["table"] as string;
           responses.forEach((response, index) => {
             const item = dataItems[index];
-            this.storageUpdateService.updateAfterOperation(
-              item["id"] ? "update" : "create",
-              table,
-              response.data,
-              item["id"] as string | undefined,
-              undefined
-            );
+            this.emitToDataService(item["id"] ? "update" : "create", table, response.data);
           });
           subscriber.next(responses.map((r) => r.data).filter(Boolean) as T);
           subscriber.complete();
@@ -178,7 +164,88 @@ export class ApiProvider {
         const { todo, ...rest } = chat as any;
         return rest;
       });
-      this.storageService.setChatsByTodo(cleanedChats, todoId);
+      this.dataService.setChatsForTodo(cleanedChats, todoId);
+    }
+  }
+
+  private emitToDataService(operation: Operation, table: string, data: any): void {
+    if (!data || !data.id) return;
+
+    switch (operation) {
+      case "create":
+        this.emitInsert(table, data);
+        break;
+      case "update":
+        this.emitUpdate(table, data);
+        break;
+      case "delete":
+        this.emitDelete(table, data);
+        break;
+    }
+  }
+
+  private emitInsert(table: string, data: any): void {
+    const subject = this.getSubjectForTable(table);
+    if (subject) {
+      const currentData = this.getCurrentDataForTable(table);
+      subject.next([...currentData, data]);
+    }
+  }
+
+  private emitUpdate(table: string, data: any): void {
+    const subject = this.getSubjectForTable(table);
+    if (subject) {
+      const currentData = this.getCurrentDataForTable(table);
+      const updated = currentData.map((item: any) =>
+        item.id === data.id ? { ...item, ...data } : item
+      );
+      subject.next(updated);
+    }
+  }
+
+  private emitDelete(table: string, data: any): void {
+    const subject = this.getSubjectForTable(table);
+    if (subject) {
+      const currentData = this.getCurrentDataForTable(table);
+      subject.next(currentData.filter((item: any) => item.id !== data.id));
+    }
+  }
+
+  private getSubjectForTable(table: string): Subject<any> | null {
+    switch (table) {
+      case "todos":
+        return this.dataService.todos$;
+      case "tasks":
+        return this.dataService.tasks$;
+      case "subtasks":
+        return this.dataService.subtasks$;
+      case "comments":
+        return this.dataService.comments$;
+      case "chats":
+        return this.dataService.chats$;
+      case "categories":
+        return this.dataService.categories$;
+      default:
+        return null;
+    }
+  }
+
+  private getCurrentDataForTable(table: string): any[] {
+    switch (table) {
+      case "todos":
+        return this.dataService.getCurrentTodos();
+      case "tasks":
+        return this.dataService.getCurrentTasks();
+      case "subtasks":
+        return this.dataService.getCurrentSubtasks();
+      case "comments":
+        return this.dataService.getCurrentComments();
+      case "chats":
+        return this.dataService.getCurrentChats();
+      case "categories":
+        return this.dataService.getCurrentCategories();
+      default:
+        return [];
     }
   }
 }
