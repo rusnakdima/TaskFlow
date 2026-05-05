@@ -71,11 +71,11 @@ impl GithubService {
     )
   }
 
-  pub async fn start_device_code_flow(&self, client_id: &str) -> Result<(String, String, String), String> {
-    let params = [
-      ("client_id", client_id),
-      ("scope", "repo"),
-    ];
+  pub async fn start_device_code_flow(
+    &self,
+    client_id: &str,
+  ) -> Result<(String, String, String), String> {
+    let params = [("client_id", client_id), ("scope", "repo")];
 
     let response = self
       .http_client
@@ -92,18 +92,22 @@ impl GithubService {
       device_code: String,
       user_code: String,
       verification_uri: String,
-      interval: u64,
     }
 
-    let code_resp: DeviceCodeResponse = response
-      .json()
-      .await
-      .map_err(|e| e.to_string())?;
+    let code_resp: DeviceCodeResponse = response.json().await.map_err(|e| e.to_string())?;
 
-    Ok((code_resp.device_code, code_resp.user_code, code_resp.verification_uri))
+    Ok((
+      code_resp.device_code,
+      code_resp.user_code,
+      code_resp.verification_uri,
+    ))
   }
 
-  pub async fn check_device_code(&self, client_id: &str, device_code: &str) -> Result<Option<GithubOAuthTokens>, String> {
+  pub async fn check_device_code(
+    &self,
+    client_id: &str,
+    device_code: &str,
+  ) -> Result<Option<GithubOAuthTokens>, String> {
     let params = [
       ("client_id", client_id),
       ("device_code", device_code),
@@ -129,10 +133,7 @@ impl GithubService {
       error_description: Option<String>,
     }
 
-    let token_resp: TokenResponse = response
-      .json()
-      .await
-      .map_err(|e| e.to_string())?;
+    let token_resp: TokenResponse = response.json().await.map_err(|e| e.to_string())?;
 
     if token_resp.error.is_some() {
       let err = token_resp.error.unwrap();
@@ -142,7 +143,11 @@ impl GithubService {
       return Err(token_resp.error_description.unwrap_or(err));
     }
 
-    match (token_resp.access_token, token_resp.refresh_token, token_resp.expires_in) {
+    match (
+      token_resp.access_token,
+      token_resp.refresh_token,
+      token_resp.expires_in,
+    ) {
       (Some(access_token), Some(refresh_token), Some(expires_in)) => Ok(Some(GithubOAuthTokens {
         access_token,
         refresh_token,

@@ -21,7 +21,10 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{err_response, success_response};
+use crate::helpers::{
+  qr_helper,
+  response_helper::{err_response, success_response},
+};
 
 /* services */
 use super::auth_token::AuthTokenService;
@@ -56,17 +59,7 @@ impl AuthTotpService {
       "otpauth://totp/TaskFlow:{}?secret={}&issuer=TaskFlow",
       email, secret
     );
-    let qr = qrcode::QrCode::new(otpauth.as_bytes()).unwrap();
-    let image = qr.render::<image::Luma<u8>>().build();
-    let mut png_data: Vec<u8> = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut png_data);
-    image::DynamicImage::ImageLuma8(image)
-      .write_to(&mut cursor, image::ImageFormat::Png)
-      .unwrap();
-    format!(
-      "data:image/png;base64,{}",
-      data_encoding::BASE64.encode(&png_data)
-    )
+    qr_helper::generate_qr_code_data_url(&otpauth)
   }
 
   fn decode_base32_secret(secret: &str) -> Option<Vec<u8>> {
@@ -294,48 +287,12 @@ impl AuthTotpService {
   }
 
   async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    let table_name = TableModelType::User.table_name();
-    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
-
-    let user_val = match timeout(
-      Duration::from_secs(3),
-      self
-        .json_provider
-        .find_many(table_name, Some(&filter), None, None, None, true),
+    crate::helpers::auth_helper::find_user_by_username(
+      &self.json_provider,
+      self.mongodb_provider.as_ref(),
+      username,
     )
     .await
-    {
-      Ok(Ok(mut users)) => {
-        if users.is_empty() {
-          None
-        } else {
-          Some(users.remove(0))
-        }
-      }
-      Ok(Err(_)) => None,
-      Err(_) => None,
-    };
-
-    let user_val = match user_val {
-      Some(v) => v,
-      None => {
-        let mongo = self
-          .mongodb_provider
-          .as_ref()
-          .ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
-        let mut users = timeout(
-          Duration::from_secs(5),
-          mongo.find_many(table_name, Some(&filter), None, None, None, true),
-        )
-        .await
-        .map_err(|_| err_response("Database timeout"))?
-        .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-        users.pop().ok_or_else(|| err_response("User not found"))?
-      }
-    };
-
-    serde_json::from_value::<UserEntity>(user_val)
-      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))
   }
 
   async fn save_user(&self, user: &UserEntity) -> Result<(), ResponseModel> {

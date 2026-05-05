@@ -12,6 +12,7 @@ use crate::entities::{
 };
 use crate::helpers::{
   profile_helper::check_profile_exists,
+  qr_helper,
   response_helper::{err_response, success_response},
 };
 use nosql_orm::provider::DatabaseProvider;
@@ -289,17 +290,7 @@ impl QrAuthService {
   }
 
   fn generate_qr_code_image(&self, data: &str) -> String {
-    let qr = qrcode::QrCode::new(data.as_bytes()).unwrap();
-    let image = qr.render::<image::Luma<u8>>().build();
-    let mut png_data: Vec<u8> = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut png_data);
-    image::DynamicImage::ImageLuma8(image)
-      .write_to(&mut cursor, image::ImageFormat::Png)
-      .unwrap();
-    format!(
-      "data:image/png;base64,{}",
-      data_encoding::BASE64.encode(&png_data)
-    )
+    qr_helper::generate_qr_code_data_url(data)
   }
 
   async fn find_qr_token(&self, token: &str) -> Result<QrToken, ResponseModel> {

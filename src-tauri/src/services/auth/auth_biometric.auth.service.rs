@@ -17,6 +17,7 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::{
+  auth_helper::find_user_by_username,
   crypto_helper,
   response_helper::{err_response, success_response},
 };
@@ -193,41 +194,12 @@ impl AuthBiometricService {
   }
 
   async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    let table_name = TableModelType::User.table_name();
-    let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
-
-    let user_val = match self
-      .json_provider
-      .find_many(table_name, Some(&filter), None, None, None, true)
-      .await
-    {
-      Ok(mut users) => {
-        if users.is_empty() {
-          None
-        } else {
-          Some(users.remove(0))
-        }
-      }
-      Err(_) => None,
-    };
-
-    let user_val = match user_val {
-      Some(v) => v,
-      None => {
-        let mongo = self
-          .mongodb_provider
-          .as_ref()
-          .ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
-        let mut users = mongo
-          .find_many(table_name, Some(&filter), None, None, None, true)
-          .await
-          .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-        users.pop().ok_or_else(|| err_response("User not found"))?
-      }
-    };
-
-    serde_json::from_value::<UserEntity>(user_val)
-      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))
+    find_user_by_username(
+      &self.json_provider,
+      self.mongodb_provider.as_ref(),
+      username,
+    )
+    .await
   }
 
   async fn find_users(&self, filter: serde_json::Value) -> Result<UserEntity, ResponseModel> {
