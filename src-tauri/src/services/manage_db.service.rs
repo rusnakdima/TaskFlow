@@ -471,4 +471,73 @@ impl ManageDbService {
     }
     Ok(success_response(DataValue::String(category_id)))
   }
+
+  /// Get all tasks that have start_date or end_date within a specific month
+  /// Uses nosql_orm filter to filter at backend level
+  pub async fn get_tasks_by_month(
+    &self,
+    year: i32,
+    month: i32,
+  ) -> Result<ResponseModel, ResponseModel> {
+    use nosql_orm::query::Filter;
+
+    let start_of_month = format!("{:04}-{:02}-01", year, month);
+    let end_of_month = if month == 12 {
+      format!("{:04}-01-01", year + 1)
+    } else {
+      format!("{:04}-{:02}-01", year, month + 1)
+    };
+
+    let filter = Filter::Or(vec![
+      Filter::And(vec![
+        Filter::Gte("start_date".to_string(), json!(&start_of_month)),
+        Filter::Lt("start_date".to_string(), json!(&end_of_month)),
+      ]),
+      Filter::And(vec![
+        Filter::Gte("end_date".to_string(), json!(&start_of_month)),
+        Filter::Lt("end_date".to_string(), json!(&end_of_month)),
+      ]),
+      Filter::And(vec![
+        Filter::Lte("start_date".to_string(), json!(&start_of_month)),
+        Filter::Gte("end_date".to_string(), json!(&end_of_month)),
+      ]),
+    ]);
+
+    let mut all_tasks: Vec<Value> = Vec::new();
+
+    if let Some(mongo) = &self.mongodb_provider {
+      match mongo
+        .find_many("tasks", Some(&filter), None, None, None, true)
+        .await
+      {
+        Ok(tasks) => all_tasks.extend(tasks),
+        Err(e) => {
+          println!("[ManageDbService] Error getting tasks from MongoDB: {}", e);
+        }
+      }
+    }
+
+    match self
+      .json_provider
+      .find_many("tasks", Some(&filter), None, None, None, true)
+      .await
+    {
+      Ok(tasks) => all_tasks.extend(tasks),
+      Err(e) => {
+        println!("[ManageDbService] Error getting tasks from JSON: {}", e);
+      }
+    }
+
+    let result_map = serde_json::json!({ "tasks": all_tasks });
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!(
+        "Retrieved {} tasks for {}-{:02}",
+        all_tasks.len(),
+        year,
+        month
+      ),
+      data: crate::helpers::common::convert_data_to_object(&result_map),
+    })
+  }
 }
