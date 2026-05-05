@@ -320,7 +320,9 @@ export class DataManagementView implements OnInit {
   }
 
   getCurrentData(): any[] {
-    let data = this.dataMap()[this.selectedType()] || [];
+    const dataMap = this.dataMap();
+    if (!dataMap) return [];
+    let data = dataMap[this.selectedType()] || [];
 
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = FilterHelper.filterAdminByStatus(data, this.isCompletedFilter());

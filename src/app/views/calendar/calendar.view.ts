@@ -55,8 +55,8 @@ export class CalendarView extends BaseListView implements OnInit {
   displayMode = signal<"month" | "week">("month");
 
   displayModeOptions: SegmentOption[] = [
-    { id: "month", label: "Month" },
-    { id: "week", label: "Week" },
+    { id: "month", label: "Month", icon: "calendar_view_month" },
+    { id: "week", label: "Week", icon: "view_week" },
   ];
 
   private userId = "";
