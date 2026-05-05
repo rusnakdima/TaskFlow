@@ -93,7 +93,9 @@ export class DataService {
     visibility?: string;
   }): Observable<Todo[]> {
     const { filter, skip, limit, load, visibility } = options || {};
-    console.log(`[DataService] getTodos called | visibility="${visibility}", filter=${filter ? 'present' : 'None'}`);
+    console.log(
+      `[DataService] getTodos called | visibility="${visibility}", filter=${filter ? "present" : "None"}`
+    );
     const key = this.getRequestDeduplicationKey("getAll", "todos", undefined, filter);
     return new Observable<Todo[]>((subscriber) => {
       console.log(`[DataService] invoking manage_data for todos`);
@@ -480,7 +482,9 @@ export class DataService {
     }
     const key = this.getRequestDeduplicationKey("get", "profiles", userId);
     return new Observable<Profile | null>((subscriber) => {
-      console.debug("[DataService] invoking manage_data for profiles with filter:", { user_id: userId });
+      console.debug("[DataService] invoking manage_data for profiles with filter:", {
+        user_id: userId,
+      });
       this.invoke<Profile>("manage_data", {
         operation: "get",
         table: "profiles",
@@ -693,5 +697,21 @@ export class DataService {
   setCurrentCategories(categories: Category[]): void {
     this.cachedCategories = categories;
     this.categories$.next(categories);
+  }
+
+  getTasksByMonth(year: number, month: number): Observable<{ tasks: Task[] }> {
+    return from(
+      invoke<Response<{ tasks: Task[] }>>("get_tasks_by_month", { year, month }).then(
+        (response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            return response.data as { tasks: Task[] };
+          }
+          throw new Error(response.message || "Failed to load tasks by month");
+        },
+        (err) => {
+          throw new Error(err?.message || String(err));
+        }
+      )
+    );
   }
 }
