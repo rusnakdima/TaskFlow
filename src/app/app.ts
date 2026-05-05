@@ -20,7 +20,7 @@ import { AuthService } from "@services/auth/auth.service";
 
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/core/storage.service";
+
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
@@ -100,8 +100,6 @@ export class App implements OnInit {
       this.url.set(this.router.url.slice(0, lastIndex));
       this.updateShowComponents();
     });
-
-    this.dataLoaderService.loadAllData().subscribe();
   }
 
   /**
