@@ -1,18 +1,7 @@
 import { Injectable, Injector, inject } from "@angular/core";
-import { Observable, from, of, firstValueFrom } from "rxjs";
-import { tap, catchError } from "rxjs/operators";
-import { Response, ResponseStatus } from "@models/response.model";
-import { RelationObj } from "@models/relation-obj.model";
-import { SyncMetadata } from "@models/sync-metadata";
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { DataService } from "@services/data/data.service";
-import { SyncProgressService } from "@services/core/sync-progress.service";
+import { firstValueFrom } from "rxjs";
 import { ApiProvider } from "@providers/api.provider";
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY_BASE = 1000;
+import { DataService } from "@services/data/data.service";
 
 @Injectable({
   providedIn: "root",
@@ -20,7 +9,6 @@ const RETRY_DELAY_BASE = 1000;
 export class VisibilitySyncService {
   private injector = inject(Injector);
   private dataService = inject(DataService);
-  private syncProgressService = inject(SyncProgressService);
 
   private get apiProvider(): ApiProvider {
     return this.injector.get(ApiProvider);
@@ -31,115 +19,26 @@ export class VisibilitySyncService {
     todo_id?: string
   ): Promise<void> {
     if (!todo_id) return;
+
     const todo = await firstValueFrom(this.dataService.getTodo(todo_id));
     if (!todo) {
       throw new Error(`Todo with id ${todo_id} not found`);
     }
 
     const currentVisibility = todo.visibility;
-    const isPrivateToShared = currentVisibility === "private" && newVisibility === "shared";
-    const isSharedToPrivate = currentVisibility === "shared" && newVisibility === "private";
-
-    if (!isPrivateToShared && !isSharedToPrivate) {
-      await this.importTodoToLocalDb(todo_id);
+    if (currentVisibility === newVisibility) {
       return;
     }
 
-    this.syncProgressService.startSync(
-      "visibility_change",
-      `Syncing todo to ${newVisibility}...`,
-      10
-    );
-
-    try {
-      await this.syncTodoVisibility(todo, newVisibility);
-      this.syncProgressService.endSync();
-    } catch (error) {
-      this.syncProgressService.reset();
-      throw error;
-    }
-  }
-
-  private async syncTodoVisibility(
-    todo: Todo,
-    targetVisibility: "private" | "shared"
-  ): Promise<void> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        this.syncProgressService.updateProgress(0, `Syncing todo to ${targetVisibility}...`);
-
-        await this.withRetry(
-          () => this.exportTodoToStorage(todo, targetVisibility === "private"),
-          attempt,
-          `Exporting todo to ${targetVisibility === "private" ? "local storage" : "MongoDB"}`
-        );
-
-        const tasks = await firstValueFrom(this.dataService.getTasks(todo.id));
-        this.syncProgressService.updateProgress(tasks.length, "Importing...");
-
-        await this.importTodoToLocalDb(todo.id);
-        return;
-      } catch (e) {
-        lastError = e instanceof Error ? e : new Error(String(e));
-        if (attempt < MAX_RETRIES - 1) {
-          const delay = Math.pow(2, attempt) * RETRY_DELAY_BASE;
-          await this.sleep(delay);
-        }
-      }
-    }
-
-    throw lastError || new Error(`Failed to sync todo after retries`);
-  }
-
-  private async withRetry<T>(
-    operation: () => Promise<T>,
-    attempt: number,
-    operationName: string
-  ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      if (attempt < 2) {
-        const delay = Math.pow(2, attempt) * RETRY_DELAY_BASE;
-        this.syncProgressService.setMessage(`${operationName} failed, retrying...`);
-        await this.sleep(delay);
-        return await operation();
-      }
-      throw error;
-    }
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private async exportTodoToStorage(todo: Todo, isPrivate: boolean): Promise<void> {
-    const visibility = isPrivate ? "private" : "shared";
-    const todoWithoutRelations = this.stripRelations(todo);
+    const source = currentVisibility === "private" ? "Json" : "Mongo";
+    const target = newVisibility === "private" ? "Json" : "Mongo";
 
     await firstValueFrom(
-      this.apiProvider
-        .crud<Todo>("update", "todos", {
-          id: todo.id,
-          data: { ...todoWithoutRelations, visibility },
-          visibility,
-        })
-        .pipe(
-          catchError((error) => {
-            return of(null);
-          })
-        )
+      this.apiProvider.invokeCommand("sync_visibility_to_provider", {
+        todo_id,
+        source_provider: source,
+        target_provider: target,
+      })
     );
-  }
-
-  private stripRelations(todo: Todo): Partial<Todo> {
-    const { user, categories, ...rest } = todo;
-    return rest;
-  }
-
-  private async importTodoToLocalDb(todo_id?: string): Promise<void> {
-    return;
   }
 }

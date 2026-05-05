@@ -149,7 +149,7 @@ export class AuthService {
     return token ? this.jwtTokenService.hasRole(token, role) : false;
   }
 
-  getValueByKey(key: string): string {
+getValueByKey(key: string): string {
     const token = this.getToken();
     if (key === "username") {
       return this.jwtTokenService.getUsername(token) ?? "";

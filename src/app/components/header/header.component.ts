@@ -138,70 +138,33 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const storedProfile = this.storageService.profile();
     const storedUser = this.storageService.user();
 
-    if (storedProfile) {
+    if (storedProfile && storedUser) {
       this.profile.set(storedProfile);
-      if (storedProfile.user) {
-        this.user.set(storedProfile.user);
-        this.userEmail.set(storedProfile.user.email || "");
-        this.role.set(storedProfile.user.role || "");
-      } else if (storedUser) {
-        this.user.set(storedUser);
-        this.userEmail.set(storedUser.email || "");
-        this.role.set(storedUser.role || "");
-      } else if (storedProfile.user_id) {
-        this.dataService
-          .getUser(storedProfile.user_id)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            next: (user) => {
-              this.user.set(user);
-              this.userEmail.set(user.email || "");
-              this.role.set(user.role || "");
-            },
-            error: () => {
-              this.user.set(null);
-              this.userEmail.set("");
-              this.role.set("");
-            },
-          });
-      }
-    } else {
-      this.dataService
-        .getProfile()
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (profile) => {
-            this.profile.set(profile);
-            if (profile?.user) {
-              this.user.set(profile.user);
-              this.userEmail.set(profile.user.email || "");
-              this.role.set(profile.user.role || "");
-            } else if (profile?.user_id) {
-              this.dataService
-                .getUser(profile.user_id)
-                .pipe(takeUntilDestroyed(this.destroyRef))
-                .subscribe({
-                  next: (user) => {
-                    this.user.set(user);
-                    this.userEmail.set(user.email || "");
-                    this.role.set(user.role || "");
-                  },
-                  error: () => {
-                    this.user.set(null);
-                    this.userEmail.set("");
-                    this.role.set("");
-                  },
-                });
-            }
-          },
-          error: () => {
-            this.profile.set(null);
-            this.user.set(null);
-            this.userEmail.set("");
-            this.role.set("");
-          },
-        });
+      this.user.set(storedUser);
+      this.userEmail.set(storedUser.email || "");
+      this.role.set(storedUser.role || "");
+      return;
     }
+
+    this.dataService
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.profile.set(profile);
+          if (profile?.user) {
+            this.user.set(profile.user);
+            this.userEmail.set(profile.user.email || "");
+            this.role.set(profile.user.role || "");
+          }
+        },
+        error: () => {
+          this.profile.set(null);
+          this.user.set(null);
+          this.userEmail.set("");
+          this.role.set("");
+        },
+      });
   }
 
   ngOnDestroy(): void {

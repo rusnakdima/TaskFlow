@@ -47,6 +47,7 @@ export class StorageService extends BaseStorageService {
   private readonly allProfilesSignal = signal<Profile[]>([]);
   private readonly userSignal = signal<any | null>(null); // TODO: type User properly
   private readonly usersSignal = signal<any[]>([]); // TODO: type User properly
+  private readonly dailyActivitiesSignal = signal<any[]>([]);
 
   // Cache for reactive computed signals (prevents infinite loops)
   private readonly chatsCache = new Map<string, ReturnType<typeof computed<Chat[]>>>();
@@ -102,6 +103,7 @@ export class StorageService extends BaseStorageService {
   readonly chats = computed(() => this.chatsSignal().filter((c) => !c.deleted_at));
   readonly user = this.userSignal.asReadonly();
   readonly users = this.usersSignal.asReadonly();
+  readonly dailyActivities = this.dailyActivitiesSignal.asReadonly();
 
   // ==================== ENTITY HANDLERS ====================
   private readonly handlers = {
@@ -434,7 +436,7 @@ export class StorageService extends BaseStorageService {
     });
   }
 
-  clear(): void {
+clear(): void {
     this.privateTodosSignal.set([]);
     this.sharedTodosSignal.set([]);
     this.publicTodosSignal.set([]);
@@ -447,6 +449,7 @@ export class StorageService extends BaseStorageService {
     this.profilesSignal.set([]);
     this.userSignal.set(null);
     this.usersSignal.set([]);
+    this.dailyActivitiesSignal.set([]);
     this.loadedSignal.set(false);
     this.lastLoadedSignal.set(null);
   }
@@ -464,7 +467,8 @@ export class StorageService extends BaseStorageService {
       | "subtasks"
       | "comments"
       | "chats"
-      | "users",
+      | "users"
+      | "dailyActivities",
   >(
     type: T,
     items: T extends "profiles"
@@ -485,15 +489,20 @@ export class StorageService extends BaseStorageService {
                   ? any | null
                   : T extends "users"
                     ? any[]
-                    : Category[]
+                    : T extends "dailyActivities"
+                      ? any[]
+                      : Category[]
   ): void {
     switch (type) {
       case "categories":
+        console.debug("[StorageService] setCollection: categories", items);
         this.categoriesSignal.set(items as Category[]);
         break;
       case "profiles":
+        console.debug("[StorageService] setCollection: profiles", items);
         this.profileSignal.set(items as Profile | null);
         if (items && typeof items === "object" && "user" in items && (items as Profile).user) {
+          console.debug("[StorageService] setCollection: setting user from profile", (items as Profile).user);
           this.userSignal.set((items as Profile).user || null);
         }
         break;
@@ -526,6 +535,9 @@ export class StorageService extends BaseStorageService {
         break;
       case "users":
         this.usersSignal.set(items as any[]);
+        break;
+      case "dailyActivities":
+        this.dailyActivitiesSignal.set(items as any[]);
         break;
     }
   }

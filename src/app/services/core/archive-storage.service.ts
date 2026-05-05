@@ -7,12 +7,14 @@ import { tap, map, catchError } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@services/core/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
+import { StorageService } from "./storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
+  private storageService = inject(StorageService);
 
   /**
    * Load initial paginated data for a specific type
@@ -99,6 +101,14 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.dailyActivitiesSignal.set(data["daily_activities"] || []);
 
         this.extractUsersAndProfiles(data);
+
+        this.storageService.setCollection("privateTodos", data["todos"] || []);
+        this.storageService.setCollection("tasks", data["tasks"] || []);
+        this.storageService.setCollection("subtasks", data["subtasks"] || []);
+        this.storageService.setCollection("comments", data["comments"] || []);
+        this.storageService.setCollection("chats", data["chats"] || []);
+        this.storageService.setCollection("categories", data["categories"] || []);
+        this.storageService.setCollection("dailyActivities", data["daily_activities"] || []);
 
         this.loadingSignal.set(false);
         this.loadedSignal.set(true);

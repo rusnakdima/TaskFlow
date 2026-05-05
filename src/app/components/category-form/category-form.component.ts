@@ -104,7 +104,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     };
 
     this.dataSyncProvider
-      .crud<Category>("create", "categories", { data: categoryData })
+      .crud<Category>("create", "categories", { data: categoryData, visibility: "private" })
       .subscribe({
         next: (createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
@@ -132,6 +132,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       .crud<Category>("update", "categories", {
         id: this.editingCategory.id,
         data: updatedCategory,
+        visibility: "private",
       })
       .subscribe({
         next: () => {
