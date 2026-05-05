@@ -72,6 +72,12 @@ export class SettingsView implements OnInit {
   githubRepos = signal<any[]>([]);
   githubLoading = signal(false);
 
+  githubDeviceFlowActive = signal(false);
+  githubUserCode = signal("");
+  githubVerificationUri = signal("");
+  githubDeviceCode = signal("");
+  githubPollingInterval: any = null;
+
   readonly capabilities = this.authCapabilityService.capabilities;
 
   readonly showPasskeySection = computed(() => this.capabilities().passkeyAvailable);
@@ -125,16 +131,85 @@ export class SettingsView implements OnInit {
   }
 
   async connectGithub(): Promise<void> {
+    if (this.githubDeviceFlowActive()) return;
+
     this.githubLoading.set(true);
-    this.githubService.getOAuthUrl().subscribe({
-      next: async (url) => {
-        window.location.href = url;
+    this.githubService.startDeviceFlow().subscribe({
+      next: (result) => {
+        this.githubDeviceFlowActive.set(true);
+        this.githubUserCode.set(result.user_code);
+        this.githubVerificationUri.set(result.verification_uri);
+        this.githubDeviceCode.set(result.device_code);
+        this.githubLoading.set(false);
+
+        this.startGithubPolling(result.device_code);
       },
       error: () => {
         this.githubLoading.set(false);
-        this.notifyService.showError("Failed to connect GitHub");
+        this.notifyService.showError("Failed to start GitHub connection");
       },
     });
+  }
+
+  private startGithubPolling(deviceCode: string): void {
+    this.githubPollingInterval = setInterval(() => {
+      this.githubService.checkDeviceFlow(deviceCode).subscribe({
+        next: (result) => {
+          if (result.success && result.access_token) {
+            this.completeGithubConnection(result);
+          }
+        },
+        error: (err) => {
+          this.stopGithubPolling();
+          this.notifyService.showError("GitHub connection failed: " + (err.message || err));
+          this.resetGithubDeviceFlow();
+        },
+      });
+    }, 5000);
+  }
+
+  private stopGithubPolling(): void {
+    if (this.githubPollingInterval) {
+      clearInterval(this.githubPollingInterval);
+      this.githubPollingInterval = null;
+    }
+  }
+
+  private completeGithubConnection(result: any): void {
+    this.stopGithubPolling();
+
+    this.githubService.getConnectionStatus().subscribe({
+      next: (status) => {
+        this.githubConnected.set(status.connected);
+        if (status.username) this.githubUsername.set(status.username);
+        if (status.user_id) this.githubUserId.set(status.user_id);
+        if (status.avatar_url) this.githubAvatarUrl.set(status.avatar_url);
+        if (status.connected) {
+          this.loadGithubRepos();
+        }
+        this.resetGithubDeviceFlow();
+        this.notifyService.showSuccess("GitHub connected successfully!");
+      },
+      error: () => {
+        this.resetGithubDeviceFlow();
+      },
+    });
+  }
+
+  private resetGithubDeviceFlow(): void {
+    this.githubDeviceFlowActive.set(false);
+    this.githubUserCode.set("");
+    this.githubVerificationUri.set("");
+    this.githubDeviceCode.set("");
+    this.stopGithubPolling();
+  }
+
+  cancelGithubConnection(): void {
+    this.resetGithubDeviceFlow();
+  }
+
+  openGithubVerification(): void {
+    window.open(this.githubVerificationUri(), "_blank");
   }
 
   disconnectGithub(): void {

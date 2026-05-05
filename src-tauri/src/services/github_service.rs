@@ -71,6 +71,88 @@ impl GithubService {
     )
   }
 
+  pub async fn start_device_code_flow(&self, client_id: &str) -> Result<(String, String, String), String> {
+    let params = [
+      ("client_id", client_id),
+      ("scope", "repo"),
+    ];
+
+    let response = self
+      .http_client
+      .post("https://github.com/login/device/code")
+      .header("Accept", "application/json")
+      .header("Content-Type", "application/x-www-form-urlencoded")
+      .form(&params)
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    #[derive(Deserialize)]
+    struct DeviceCodeResponse {
+      device_code: String,
+      user_code: String,
+      verification_uri: String,
+      interval: u64,
+    }
+
+    let code_resp: DeviceCodeResponse = response
+      .json()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    Ok((code_resp.device_code, code_resp.user_code, code_resp.verification_uri))
+  }
+
+  pub async fn check_device_code(&self, client_id: &str, device_code: &str) -> Result<Option<GithubOAuthTokens>, String> {
+    let params = [
+      ("client_id", client_id),
+      ("device_code", device_code),
+      ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+    ];
+
+    let response = self
+      .http_client
+      .post("https://github.com/login/oauth/access_token")
+      .header("Accept", "application/json")
+      .form(&params)
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    #[derive(Deserialize)]
+    struct TokenResponse {
+      access_token: Option<String>,
+      refresh_token: Option<String>,
+      expires_in: Option<u64>,
+      token_type: Option<String>,
+      error: Option<String>,
+      error_description: Option<String>,
+    }
+
+    let token_resp: TokenResponse = response
+      .json()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if token_resp.error.is_some() {
+      let err = token_resp.error.unwrap();
+      if err == "authorization_pending" {
+        return Ok(None);
+      }
+      return Err(token_resp.error_description.unwrap_or(err));
+    }
+
+    match (token_resp.access_token, token_resp.refresh_token, token_resp.expires_in) {
+      (Some(access_token), Some(refresh_token), Some(expires_in)) => Ok(Some(GithubOAuthTokens {
+        access_token,
+        refresh_token,
+        expires_in: expires_in as i64,
+        token_type: token_resp.token_type.unwrap_or_default(),
+      })),
+      _ => Err("Missing tokens in response".to_string()),
+    }
+  }
+
   pub async fn exchange_code_for_token(
     &self,
     client_id: &str,

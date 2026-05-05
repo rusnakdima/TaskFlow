@@ -31,18 +31,19 @@ use routes::{
     qr_status, qr_toggle, register, request_password_reset, reset_password, setup_totp,
     use_recovery_code, verify_code, verify_login_totp,
   },
-  github_route::{
-    github_create_comment, github_create_issue, github_disconnect, github_get_connection_status,
-    github_get_repos, github_oauth_callback, github_oauth_url,
+github_route::{
+    github_oauth_url, github_oauth_callback, github_get_repos, github_get_connection_status,
+    github_disconnect, github_create_issue, github_create_comment, github_start_device_flow,
+    github_check_device_flow,
   },
   manage_db_route::{
-    check_mongodb_connection, export_to_cloud, get_admin_data_paginated, get_all_data_for_admin,
-    get_all_data_for_archive, get_archive_data_paginated, import_to_local, manage_data,
-    permanently_delete_record, permanently_delete_record_local, sync_visibility_to_provider,
-    toggle_delete_status, toggle_delete_status_local,
+    export_to_cloud, get_all_data_for_admin, get_all_data_for_archive,
+    get_admin_data_paginated, get_archive_data_paginated, check_mongodb_connection,
+    import_to_local, manage_data, permanently_delete_record, permanently_delete_record_local,
+    toggle_delete_status, toggle_delete_status_local, sync_visibility_to_provider,
   },
-  profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
-  statistics_route::statistics_get,
+  profile_route::{profile_sync_to_cloud, profile_sync_all_for_user},
+  statistics_route::{statistics_get},
 };
 
 /* services */
@@ -323,7 +324,9 @@ pub fn run() {
       github_get_connection_status,
       github_disconnect,
       github_create_issue,
-      github_create_comment
+      github_create_comment,
+      github_start_device_flow,
+      github_check_device_flow
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
