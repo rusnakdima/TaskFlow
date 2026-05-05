@@ -194,7 +194,10 @@ export class ManageItemPage implements OnInit {
   visibility = signal<string>("private");
 
   showAssignees = computed(() => {
-    return this.itemType() === "todo" && (this.visibility() === "shared" || this.visibility() === "public");
+    return (
+      this.itemType() === "todo" &&
+      (this.visibility() === "shared" || this.visibility() === "public")
+    );
   });
 
   pageTitle = computed(() => {
@@ -221,7 +224,8 @@ export class ManageItemPage implements OnInit {
   }
 
   private loadProfiles(): void {
-    this.dataService.getPublicProfiles()
+    this.dataService
+      .getPublicProfiles()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (profiles) => this.assignees.set(profiles),
@@ -453,7 +457,11 @@ export class ManageItemPage implements OnInit {
       );
 
       if (config.type === "todo" && this.isEdit()) {
-        await this.syncTodoVisibilityOnChange(formValue.id, this.originalVisibility(), formValue.visibility);
+        await this.syncTodoVisibilityOnChange(
+          formValue.id,
+          this.originalVisibility(),
+          formValue.visibility
+        );
       }
 
       this.location.back();
@@ -539,7 +547,9 @@ export class ManageItemPage implements OnInit {
         this.dataService.getTodos({ visibility: toVisibility }).subscribe();
       }
     } catch (error: any) {
-      this.notifyService.showError("Failed to sync visibility: " + (error.message || "Unknown error"));
+      this.notifyService.showError(
+        "Failed to sync visibility: " + (error.message || "Unknown error")
+      );
     }
   }
 
@@ -574,7 +584,8 @@ export class ManageItemPage implements OnInit {
         next: (category: Category) => {
           this.toggleCategorySelection(category.id);
         },
-        error: (err: Error) => this.notifyService.showError(err.message || "Failed to create category"),
+        error: (err: Error) =>
+          this.notifyService.showError(err.message || "Failed to create category"),
       });
   }
 

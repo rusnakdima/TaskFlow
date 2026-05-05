@@ -86,78 +86,43 @@ export class CalendarView extends BaseListView implements OnInit {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
 
-    this.dataService.getTodos({ visibility: "all" }).subscribe({
-      next: (todos) => {
-        this.todos.set(todos);
-        this.loadTasksForCurrentMonth();
-      },
-      error: (err) => this.handleError(err),
-    });
+    this.loadTasksForCurrentMonth();
   }
 
   private loadTasksForCurrentMonth(): void {
     const monthKey = this.getMonthKey(this.currentMonth());
     if (this.loadedMonths().has(monthKey) && !this.tasksLoading()) {
-      const events = this.buildEventsFromCachedTasks();
-      this.allEvents.set(events);
       return;
     }
 
     this.tasksLoading.set(true);
-    const allTasks: Task[] = [];
-    let completed = 0;
-    const todos = this.todos().filter((t) => !t.deleted_at);
-    const total = todos.length;
-
-    if (total === 0) {
-      this.allEvents.set([]);
-      this.tasksLoading.set(false);
-      return;
-    }
-
-    todos.forEach((todo) => {
-      this.subscriptions.add(
-        this.dataService.getTasks(todo.id).subscribe({
-          next: (tasks) => {
-            allTasks.push(...tasks);
-            completed++;
-            if (completed === total) {
-              this.tasksByTodo.set({ ...this.tasksByTodo(), ...{ [todo.id]: tasks } });
-              this.storageService.setCollection("tasks", allTasks);
-              const events = this.buildEventsFromTasks(allTasks);
-              this.allEvents.set(events);
-              this.loadedMonths.update((set) => {
-                const newSet = new Set(set);
-                newSet.add(monthKey);
-                return newSet;
-              });
-              this.tasksLoading.set(false);
-            }
-          },
-          error: (err) => {
-            this.handleError(err);
-            completed++;
-            if (completed === total) {
-              this.tasksLoading.set(false);
-            }
-          },
-        })
-      );
-    });
+    this.dataService
+      .getTasksByMonth(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1)
+      .subscribe({
+        next: (response: { tasks: Task[] }) => {
+          const tasks: Task[] = response.tasks || [];
+          this.storageService.setCollection("tasks", tasks);
+          const events = this.buildEventsFromTasks(tasks);
+          this.allEvents.set(events);
+          this.loadedMonths.update((set) => {
+            const newSet = new Set(set);
+            newSet.add(monthKey);
+            return newSet;
+          });
+          this.tasksLoading.set(false);
+        },
+        error: (err: any) => {
+          this.handleError(err);
+          this.tasksLoading.set(false);
+        },
+      });
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {
     const events: CalendarEvent[] = [];
-    const todos = this.todos();
-    const userId = this.userId;
 
     tasks.forEach((task) => {
       if (task.deleted_at) return;
-      const todo = todos.find((t) => t.id === task.todo_id);
-      if (!todo) return;
-
-      const isPrivate = todo.visibility === "private";
-      const isOwner = todo.user_id === userId;
 
       if (task.start_date) {
         events.push({
@@ -167,9 +132,9 @@ export class CalendarView extends BaseListView implements OnInit {
           type: "task",
           status: "start",
           description: task.description,
-          todo_id: todo.id,
-          isPrivate,
-          isOwner,
+          todo_id: task.todo_id,
+          isPrivate: false,
+          isOwner: false,
         });
       }
 
@@ -191,23 +156,14 @@ export class CalendarView extends BaseListView implements OnInit {
           type: "task",
           status,
           description: task.description,
-          todo_id: todo.id,
-          isPrivate,
-          isOwner,
+          todo_id: task.todo_id,
+          isPrivate: false,
+          isOwner: false,
         });
       }
     });
 
     return events;
-  }
-
-  private buildEventsFromCachedTasks(): CalendarEvent[] {
-    const allTasks: Task[] = [];
-    const tasksByTodo = this.tasksByTodo();
-    Object.values(tasksByTodo).forEach((tasks) => {
-      allTasks.push(...tasks);
-    });
-    return this.buildEventsFromTasks(allTasks);
   }
 
   private getMonthKey(date: Date): string {
@@ -224,7 +180,11 @@ export class CalendarView extends BaseListView implements OnInit {
 
   previous(): void {
     if (this.displayMode() === "month") {
-      const newMonth = new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1);
+      const newMonth = new Date(
+        this.currentMonth().getFullYear(),
+        this.currentMonth().getMonth() - 1,
+        1
+      );
       this.currentMonth.set(newMonth);
       this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
@@ -237,7 +197,11 @@ export class CalendarView extends BaseListView implements OnInit {
 
   next(): void {
     if (this.displayMode() === "month") {
-      const newMonth = new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1);
+      const newMonth = new Date(
+        this.currentMonth().getFullYear(),
+        this.currentMonth().getMonth() + 1,
+        1
+      );
       this.currentMonth.set(newMonth);
       this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
