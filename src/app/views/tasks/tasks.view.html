@@ -48,10 +48,12 @@
         [showSelection]="true"
         [showCommentToggle]="true"
         [dragEnabled]="true"
+        [actions]="getTaskTableActions()"
         (selectionChange)="toggleTaskSelection({ id: $event.id, selected: $event.selected })"
         (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"
         (dropped)="onTaskDrop($event)"
+        (actionClick)="onTaskTableAction($event)"
       />
     } @else if (viewMode() === "grid") {
       <div

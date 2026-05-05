@@ -66,6 +66,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField } from "@components/table-view/table-field.model";
+import { GithubService } from "@services/github/github.service";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
   PageToolbarComponent,
@@ -115,6 +116,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dataLoaderService = inject(DataLoaderService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
+  private githubService = inject(GithubService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -148,6 +150,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (tid) {
       const reactiveChats = this.storageService.getChatsByTodoReactive(tid)();
       this.chats.set(reactiveChats);
+      const visibility = this.isPrivate() ? "private" : "shared";
+      if (!this.chatLoadingGuard.has(tid)) {
+        this.chatLoadingGuard.add(tid);
+        this.dataLoaderService.loadInitialChatsForTodo(tid, visibility).subscribe({
+          complete: () => this.chatLoadingGuard.delete(tid),
+        });
+      }
     }
   });
 
@@ -157,6 +166,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.loadInitialTasks();
     }
   });
+
+  private chatLoadingGuard = new Set<string>();
 
   todo = computed(() => {
     const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
@@ -191,15 +202,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTasks() {
     const todoId = this.todo()?.id;
+    const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
 
-    // Prevent infinite loading - skip if already loading same todo
     if (this.isLoadingTasks && this.lastLoadedTodoId === todoId) return;
 
     this.isLoadingTasks = true;
     this.lastLoadedTodoId = todoId;
 
-    this.dataLoaderService.loadInitialTasksForTodo(todoId).subscribe({
+    this.dataLoaderService.loadInitialTasksForTodo(todoId, visibility).subscribe({
       next: (tasks: Task[]) => {
         this.todoTasks.set(tasks);
         this.taskPagination.update((p) => ({
@@ -220,9 +231,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
     const todoId = this.todo()?.id;
+    const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
 
-    this.dataLoaderService.loadMoreTasksForTodo(todoId).subscribe({
+    this.dataLoaderService.loadMoreTasksForTodo(todoId, visibility).subscribe({
       next: (tasks: Task[]) => {
         this.todoTasks.update((current) => [...current, ...tasks]);
         this.taskPagination.update((p) => ({
@@ -576,6 +588,70 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onRowClick(task: any): void {
     this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
+  }
+
+  getTaskTableActions() {
+    const actions = [
+      { key: "edit", icon: "edit", label: "Edit" },
+      { key: "delete", icon: "delete", label: "Delete" },
+    ];
+
+    const currentTodo = this.todo();
+    if (currentTodo?.github_repo_name) {
+      actions.unshift({ key: "create_issue", icon: "bug_report", label: "Create GitHub Issue" });
+    }
+
+    return actions;
+  }
+
+  onTaskTableAction(event: { action: string; item: Task }): void {
+    switch (event.action) {
+      case "edit":
+        this.router.navigate([event.item.id, "edit_task"], {
+          relativeTo: this.route,
+          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
+        });
+        break;
+      case "delete":
+        this.deleteTask(event.item.id);
+        break;
+      case "create_issue":
+        this.createGithubIssueFromTask(event.item);
+        break;
+    }
+  }
+
+  private createGithubIssueFromTask(task: Task): void {
+    const currentTodo = this.todo();
+    if (!currentTodo?.github_repo_name) {
+      this.notifyService.showError("Project is not linked to a GitHub repository");
+      return;
+    }
+
+    const [owner, repo] = currentTodo.github_repo_name.split("/");
+    if (!owner || !repo) {
+      this.notifyService.showError("Invalid GitHub repository configuration");
+      return;
+    }
+
+    const issueBody = `**Task Details**
+
+**Description:** ${task.description || "N/A"}
+**Priority:** ${task.priority || "medium"}
+**Due Date:** ${task.end_date || "N/A"}
+**Created in:** TaskFlow
+
+---
+[View in TaskFlow](taskflow://tasks/${task.id})`;
+
+    this.githubService.createIssue(owner, repo, task.title, issueBody).subscribe({
+      next: (result) => {
+        this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
+      },
+      error: (err) => {
+        this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
+      },
+    });
   }
 
   onCommentToggle(taskId: string): void {

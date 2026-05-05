@@ -136,7 +136,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   );
 
   task = computed(() => {
-    const taskId = this.routeTaskId();
+    const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
     if (!taskId) return null;
     return this.storageService.getTaskReactive(taskId)() || null;
   });
@@ -174,6 +174,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   loadInitialSubtasks() {
     const taskId = this.task()?.id;
+    const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
 
     // Prevent infinite loading - skip if already loading same task
@@ -184,7 +185,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataLoaderService.loadInitialSubtasksForTask(taskId).subscribe({
+    this.dataLoaderService.loadInitialSubtasksForTask(taskId, visibility).subscribe({
       next: (subtasks) => {
         this.taskSubtasks.set(subtasks);
         this.subtaskPagination.update((p) => ({
@@ -206,11 +207,12 @@ export class SubtasksView extends BaseListView implements OnInit {
   loadMoreSubtasks() {
     if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
     const taskId = this.task()?.id;
+    const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataLoaderService.loadMoreSubtasksForTask(taskId).subscribe({
+    this.dataLoaderService.loadMoreSubtasksForTask(taskId, visibility).subscribe({
       next: (subtasks) => {
         this.taskSubtasks.update((current) => [...current, ...subtasks]);
         this.subtaskPagination.update((p) => ({
@@ -219,9 +221,6 @@ export class SubtasksView extends BaseListView implements OnInit {
           loading: false,
           hasMore: subtasks.length === p.limit,
         }));
-      },
-      error: () => {
-        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
       },
     });
   }
@@ -338,6 +337,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
       }
+      this.loading.set(false);
       this.cdr.detectChanges();
     } else {
       // Fallback: check storage directly
