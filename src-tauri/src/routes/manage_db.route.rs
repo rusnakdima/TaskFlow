@@ -201,3 +201,15 @@ pub async fn sync_visibility_to_provider(
   )
   .await
 }
+
+#[tauri::command]
+pub async fn get_tasks_by_month(
+  state: State<'_, AppState>,
+  year: i32,
+  month: i32,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .get_tasks_by_month(year, month)
+    .await
+}
