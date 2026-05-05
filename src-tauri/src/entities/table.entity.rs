@@ -215,22 +215,13 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
 fn serialize_for_insert<T: serde::Serialize>(model: &T, label: &str) -> Result<Value, String> {
   let mut value = serde_json::to_value(model)
     .map_err(|e| format!("Failed to serialize {} model: {}", label, e))?;
-  strip_timestamps(&mut value);
   apply_timestamps(&mut value, true);
   Ok(value)
 }
 
 fn with_update_timestamp(mut value: Value) -> Value {
-  strip_timestamps(&mut value);
   apply_timestamps(&mut value, false);
   value
-}
-
-fn strip_timestamps(value: &mut Value) {
-  if let Some(obj) = value.as_object_mut() {
-    obj.remove("created_at");
-    obj.remove("updated_at");
-  }
 }
 
 fn filter_empty_fields(data: Value) -> Value {

@@ -61,4 +61,8 @@ pub struct ChatUpdateModel {
   #[validate(required)]
   #[validate(length(min = 1, max = 5000))]
   pub content: String,
+  #[serde(default)]
+  pub created_at: Option<String>,
+  #[serde(default)]
+  pub updated_at: Option<String>,
 }

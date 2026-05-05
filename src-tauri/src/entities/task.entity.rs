@@ -145,6 +145,8 @@ pub struct TaskUpdateModel {
   #[serde(default)]
   pub deleted_at: Option<bool>,
   #[serde(default)]
+  pub created_at: Option<String>,
+  #[serde(default)]
   pub updated_at: Option<String>,
   #[serde(default)]
   pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
