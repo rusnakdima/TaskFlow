@@ -10,6 +10,7 @@ import {
   computed,
   OnDestroy,
   HostListener,
+  DestroyRef,
 } from "@angular/core";
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
@@ -25,6 +26,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
+import { Chat } from "@models/chat.model";
 
 interface QueryParams {
   fromKanban?: string;
@@ -37,12 +39,12 @@ interface QueryParams {
 import { AuthService } from "@services/auth/auth.service";
 import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { DataService } from "@services/data/data.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -97,13 +99,14 @@ export class SubtasksView extends BaseListView implements OnInit {
   private router = inject(Router);
   private dataSyncProvider = inject(ApiProvider);
   private cdr = inject(ChangeDetectorRef);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
   private dragDropService = inject(DragDropOrderService);
   public bulkService = inject(BulkActionService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private dataLoaderService = inject(DataLoaderService);
   private bulkActionHelper = inject(BulkActionHelper);
+  private destroyRef = inject(DestroyRef);
 
   protected getItems(): { id: string }[] {
     return this.listSubtasks();
@@ -113,48 +116,75 @@ export class SubtasksView extends BaseListView implements OnInit {
     return this.selectedItems;
   }
 
-  // State signals
   showChat = signal(false);
   showMobileInfo = signal(false);
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
   todoId = signal("");
   projectTitle = signal("");
-  chats = signal<any[]>([]);
+  chats = signal<Chat[]>([]);
 
-  private chatEffect = effect(() => {
-    const tid = this.todoId();
-    if (tid) {
-      const reactiveChats = this.storageService.getChatsByTodoReactive(tid)();
-      this.chats.set(reactiveChats);
-    }
-  });
+  private chatSubscription?: Subscription;
 
-  // Reactive route param — re-evaluates when the route changes or data refreshes
   private readonly routeTaskId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get("taskId") ?? null)),
     { initialValue: this.route.snapshot.paramMap.get("taskId") ?? null }
   );
 
-  task = computed(() => {
+  task = signal<Task | null>(null);
+  todo = signal<Todo | null>(null);
+
+  private taskEffect = effect(() => {
     const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
-    if (!taskId) return null;
-    return this.storageService.getTaskReactive(taskId)() || null;
+    if (taskId) {
+      this.loadTask(taskId);
+    }
   });
 
-  todo = computed(() => {
-    const t = this.task();
-    if (!t?.todo_id) return null;
-    return this.storageService.getTodoReactive(t.todo_id)() || null;
-  });
+  private loadTask(taskId: string): void {
+    const sub = this.dataService.getTask(taskId).subscribe({
+      next: (task) => {
+        this.task.set(task);
+        if (task.todo_id) {
+          this.loadTodo(task.todo_id);
+        }
+      },
+      error: () => {
+        this.notifyService.showError("Task not found. Please refresh.");
+      },
+    });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+  }
+
+  private loadTodo(todoId: string): void {
+    const sub = this.dataService.getTodo(todoId).subscribe({
+      next: (todo) => {
+        this.todo.set(todo);
+        this.todoId.set(todo.id);
+        this.projectTitle.set(todo.title);
+      },
+      error: () => {
+        this.notifyService.showError("Todo not found.");
+      },
+    });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+  }
+
+  private loadChats(todoId: string): void {
+    this.chatSubscription?.unsubscribe();
+    const sub = this.dataService.getChats(todoId).subscribe({
+      next: (chats) => {
+        this.chats.set(chats);
+      },
+    });
+    this.chatSubscription = sub;
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+  }
 
   fromKanban = signal(false);
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
-  /** When set, only this subtask should auto-open its comment block */
   openCommentsForSubtaskId = signal<string | null>(null);
   private routeSub?: Subscription;
-
-  // Bulk selection state (like admin page)
 
   commentExpandedSubtasks = signal<Set<string>>(new Set());
 
@@ -168,7 +198,6 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   taskSubtasks = signal<Subtask[]>([]);
 
-  // Prevent infinite requests
   private isLoadingSubtasks = false;
   private lastLoadedTaskId: string | null = null;
 
@@ -177,7 +206,6 @@ export class SubtasksView extends BaseListView implements OnInit {
     const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
 
-    // Prevent infinite loading - skip if already loading same task
     if (this.isLoadingSubtasks && this.lastLoadedTaskId === taskId) return;
 
     this.isLoadingSubtasks = true;
@@ -233,6 +261,13 @@ export class SubtasksView extends BaseListView implements OnInit {
         this.loadInitialSubtasks();
       }
     });
+
+    effect(() => {
+      const todoId = this.todoId();
+      if (todoId) {
+        this.loadChats(todoId);
+      }
+    });
   }
 
   listSubtasks = computed(() => {
@@ -281,14 +316,11 @@ export class SubtasksView extends BaseListView implements OnInit {
     this.userId = this.authService.getValueByKey("id");
     this.pageKey = "subtasks";
 
-    // Load view mode preference
     this.viewMode.set(this.loadViewModePreference());
 
-    // Initialize bulk action service
     this.bulkService.setMode("subtasks");
     this.bulkService.updateTotalCount(0);
 
-    // Clear selection when navigating away from this view
     this.subscriptions.add(
       this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
         this.clearSelection();
@@ -316,7 +348,6 @@ export class SubtasksView extends BaseListView implements OnInit {
         }
         if (queryParams.highlightComment) {
           this.highlightComment.set(queryParams.highlightComment);
-          // Best-effort: when deep-linking to a comment, open all comment blocks
           this.openCommentsForSubtaskId.set("*");
         }
         if (
@@ -340,19 +371,28 @@ export class SubtasksView extends BaseListView implements OnInit {
       this.loading.set(false);
       this.cdr.detectChanges();
     } else {
-      // Fallback: check storage directly
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const task = this.storageService.getById("tasks", taskId);
-        if (task) {
-          const todo = this.storageService.getById("todos", task.todo_id);
-          if (todo) {
-            this.todoId.set(todo.id);
-            this.projectTitle.set(todo.title);
-          }
-        } else {
-          this.notifyService.showError("Task not found. Please refresh.");
-        }
+        const sub = this.dataService.getTask(taskId).subscribe({
+          next: (task) => {
+            this.task.set(task);
+            const todoId = task.todo_id;
+            this.dataService.getTodo(todoId).subscribe({
+              next: (todo) => {
+                this.todo.set(todo);
+                this.todoId.set(todo.id);
+                this.projectTitle.set(todo.title);
+              },
+              error: () => {
+                this.notifyService.showError("Todo not found.");
+              },
+            });
+          },
+          error: () => {
+            this.notifyService.showError("Task not found. Please refresh.");
+          },
+        });
+        this.destroyRef.onDestroy(() => sub.unsubscribe());
         this.loading.set(false);
       } else {
         this.notifyService.showError("Invalid task ID.");
@@ -414,7 +454,9 @@ export class SubtasksView extends BaseListView implements OnInit {
     const todoId = this.todoId();
     if (!todoId) return 0;
     const currentUserId = this.authService.getValueByKey("id");
-    return this.storageService.getUnreadChatCount(todoId, currentUserId);
+    return this.chats().filter(
+      (c) => !c.deleted_at && (!c.read_by || !c.read_by.includes(currentUserId))
+    ).length;
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
@@ -429,9 +471,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         parentTodoId: todoId,
       })
       .subscribe({
-        next: () => {
-          // Storage updated automatically by ApiProvider
-        },
+        next: () => {},
         error: (err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to update subtask";
           this.notifyService.showError(message);
@@ -449,9 +489,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         parentTodoId: todoId,
       })
       .subscribe({
-        next: () => {
-          // Storage updated automatically by ApiProvider
-        },
+        next: () => {},
         error: (err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to update subtask";
           this.notifyService.showError(message);
@@ -497,11 +535,6 @@ export class SubtasksView extends BaseListView implements OnInit {
       });
   }
 
-  // Bulk Actions Methods
-
-  /**
-   * Toggle selection of a single subtask
-   */
   toggleSubtaskSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     this.selectedSubtasks.update((subtaskIds) => {
@@ -511,15 +544,11 @@ export class SubtasksView extends BaseListView implements OnInit {
       } else {
         newSelected.delete(id);
       }
-      // Sync with bulk service for display
       this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
       return newSelected;
     });
   }
 
-  /**
-   * Bulk update status of selected subtasks
-   */
   bulkUpdateStatus(status: string): void {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
@@ -538,7 +567,6 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     Promise.all(updatePromises)
       .then((results) => {
-        // Storage is updated automatically by ApiProvider via Tauri
         this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
         this.clearSelection();
       })
@@ -547,9 +575,6 @@ export class SubtasksView extends BaseListView implements OnInit {
       });
   }
 
-  /**
-   * Bulk delete selected subtasks
-   */
   bulkDelete(): void {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
@@ -582,9 +607,6 @@ export class SubtasksView extends BaseListView implements OnInit {
     }
   }
 
-  /**
-   * Bulk archive selected subtasks (move to archive)
-   */
   bulkArchive(): void {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
@@ -617,9 +639,6 @@ export class SubtasksView extends BaseListView implements OnInit {
     }
   }
 
-  /**
-   * Clear selection
-   */
   override clearSelection(): void {
     super.clearSelection();
     this.bulkService.setSelectionState(0, false);
