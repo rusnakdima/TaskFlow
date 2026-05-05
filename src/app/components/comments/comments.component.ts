@@ -14,8 +14,10 @@ import {
   SimpleChanges,
   OnDestroy,
   AfterViewChecked,
+  DestroyRef,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -29,7 +31,8 @@ import {
 /* models */
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
-import { StorageService } from "@services/core/storage.service";
+import { Profile } from "@models/profile.model";
+import { DataService } from "@services/data/data.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -50,7 +53,8 @@ export class CommentsComponent
   implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private dataService = inject(DataService);
+  private destroyRef = inject(DestroyRef);
 
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
@@ -77,6 +81,7 @@ export class CommentsComponent
 
   newCommentContent = signal("");
   private forceScrollBottom = false;
+  private usernameMap = new Map<string, string>();
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["comments"] && !changes["comments"].isFirstChange()) {
@@ -109,6 +114,25 @@ export class CommentsComponent
         }
       }, 300);
     }
+
+    this.loadProfiles();
+  }
+
+  private loadProfiles(): void {
+    this.dataService
+      .getPublicProfiles()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profiles: Profile[]) => {
+          profiles.forEach((profile) => {
+            const userId = profile.user_id;
+            if (userId) {
+              const name = `${profile.name || ""} ${profile.last_name || ""}`.trim();
+              this.usernameMap.set(userId, name || "Unknown");
+            }
+          });
+        },
+      });
   }
 
   ngAfterViewChecked() {
@@ -157,7 +181,7 @@ export class CommentsComponent
   }
 
   getUsername(userId: string): string {
-    return this.storageService.getUsername(userId);
+    return this.usernameMap.get(userId) || "Unknown";
   }
 
   canEditComment(comment?: Comment): boolean {

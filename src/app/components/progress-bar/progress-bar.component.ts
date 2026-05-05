@@ -3,7 +3,7 @@ import { Component, Input, computed, inject, ChangeDetectionStrategy } from "@an
 import { CommonModule } from "@angular/common";
 
 /* services */
-import { StorageService } from "@services/core/storage.service";
+import { DataService } from "@services/data/data.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -35,14 +35,15 @@ export class ProgressBarComponent {
   // Task ID for count-based progress (uses task's subtasks_count/completed_subtasks_count)
   @Input() taskId?: string;
 
-  private readonly storageService = inject(StorageService);
+  private readonly dataService = inject(DataService);
 
   segments = computed(() => {
     if (this.items && this.items.length > 0) {
       return BaseItemHelper.getProgressSegments(this.items ?? []);
     }
     if (this.taskId) {
-      const task = this.storageService.getById("tasks", this.taskId) as any;
+      const tasks = this.dataService.getCurrentTasks();
+      const task = tasks.find((t) => t.id === this.taskId);
       if (task) {
         const total = task.subtasks_count || 0;
         const completed = task.completed_subtasks_count || 0;
