@@ -493,6 +493,9 @@ export class StorageService extends BaseStorageService {
         break;
       case "profiles":
         this.profileSignal.set(items as Profile | null);
+        if (items && typeof items === "object" && "user" in items && (items as Profile).user) {
+          this.userSignal.set((items as Profile).user || null);
+        }
         break;
       case "tasks":
         this.tasksSignal.set(items as Task[]);
