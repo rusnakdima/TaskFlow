@@ -42,7 +42,7 @@ export class CommentsPanelComponent {
   @Output() deleteCommentEvent = new EventEmitter<string>();
   @Output() markAsReadEvent = new EventEmitter<string[]>();
 
-  isExpanded = signal(false);
+  isExpanded = signal(true);
 
   get filteredComments(): Comment[] {
     return this.comments.filter((c) => !c.deleted_at);
