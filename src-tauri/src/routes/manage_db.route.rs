@@ -4,7 +4,7 @@ use serde_json::Value;
 use tauri::State;
 
 /* models */
-use crate::entities::response_entity::ResponseModel;
+use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
 use crate::helpers::auth_helper::validate_user_owns_data;
@@ -56,6 +56,23 @@ pub async fn export_to_cloud(
 
 // ==================== ADMIN MANAGEMENT ENDPOINTS ====================
 
+/// Check if MongoDB is connected
+#[tauri::command]
+pub async fn check_mongodb_connection(
+  state: State<'_, AppState>,
+) -> Result<ResponseModel, ResponseModel> {
+  let is_connected = state.manage_db_service.is_mongodb_connected();
+  Ok(ResponseModel {
+    status: ResponseStatus::Success,
+    message: if is_connected {
+      "MongoDB is connected".to_string()
+    } else {
+      "MongoDB is not connected".to_string()
+    },
+    data: DataValue::Bool(is_connected),
+  })
+}
+
 /// Get all data from local JSON for Archive page (all users, includes deleted)
 #[tauri::command]
 pub async fn get_all_data_for_archive(
@@ -84,6 +101,20 @@ pub async fn get_all_data_for_admin(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
   state.manage_db_service.get_all_data_for_admin().await
+}
+
+/// Get paginated data from MongoDB for Admin page
+#[tauri::command]
+pub async fn get_admin_data_paginated(
+  state: State<'_, AppState>,
+  data_type: String,
+  skip: u64,
+  limit: u64,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .get_admin_data_paginated(data_type, skip, limit)
+    .await
 }
 
 #[tauri::command]
