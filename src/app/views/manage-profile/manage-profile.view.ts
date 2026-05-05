@@ -51,7 +51,7 @@ export class ManageProfileView implements OnInit {
   private notifyService = inject(NotifyService);
   private dataService = inject(DataService);
   private storageService = inject(StorageService);
-private profileRequiredService = inject(ProfileRequiredService);
+  private profileRequiredService = inject(ProfileRequiredService);
 
   form: FormGroup = this.fb.group({
     _id: [""],
@@ -105,7 +105,7 @@ private profileRequiredService = inject(ProfileRequiredService);
 
     let profile = this.storageService.profile();
     console.debug("[ManageProfileView] ngOnInit, profile from storage:", profile);
-    
+
     if (!profile) {
       this.dataService.getProfile().subscribe({
         next: (p) => {
@@ -118,7 +118,7 @@ private profileRequiredService = inject(ProfileRequiredService);
         },
         error: (err) => {
           console.error("[ManageProfileView] getProfile error:", err);
-        }
+        },
       });
     } else if (profile.user_id === userId) {
       this.isEditMode = true;

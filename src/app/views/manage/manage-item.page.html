@@ -54,14 +54,16 @@
         </mat-form-field>
 
         @if (itemType() === "todo") {
-          <div class="space-y-4 rounded-xl border border-blue-500/30 bg-blue-50/30 p-4 dark:bg-blue-900/10">
+          <div
+            class="space-y-4 rounded-xl border border-blue-500/30 bg-blue-50/30 p-4 dark:bg-blue-900/10"
+          >
             <mat-form-field class="w-full">
               <mat-label>Search or Add Category</mat-label>
               <input
                 matInput
                 [ngModel]="newCategoryTitle()"
                 (ngModelChange)="newCategoryTitle.set($event)"
-                [ngModelOptions]="{standalone: true}"
+                [ngModelOptions]="{ standalone: true }"
                 (keydown.enter)="addCategory()"
                 placeholder="Type to search or press Enter to add"
               />
@@ -119,9 +121,7 @@
                 </div>
               }
               @if (filteredCategories().length === 0) {
-                <div class="px-4 py-3 text-center text-sm text-gray-500">
-                  No categories found
-                </div>
+                <div class="px-4 py-3 text-center text-sm text-gray-500">No categories found</div>
               }
             </div>
           </div>
@@ -338,24 +338,45 @@
             </button>
           </div>
 
-          <div class="rounded-lg border border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800">
-            <div class="border-b border-gray-200 px-3 py-2 dark:border-zinc-600">
+          <div
+            class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800"
+          >
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <mat-icon
+                  class="h-4! w-4! text-gray-400 dark:text-gray-500"
+                  fontIcon="search"
+                ></mat-icon>
+              </div>
               <input
                 type="text"
                 [ngModel]="assigneeSearchQuery()"
                 (ngModelChange)="assigneeSearchQuery.set($event)"
-                [ngModelOptions]="{standalone: true}"
+                [ngModelOptions]="{ standalone: true }"
                 placeholder="Search people..."
-                class="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                class="w-full bg-transparent py-3.5 pr-4 pl-11 text-sm text-gray-700 outline-none placeholder:text-gray-400 dark:text-gray-200"
               />
+              @if (assigneeSearchQuery()) {
+                <button
+                  type="button"
+                  (click)="assigneeSearchQuery.set('')"
+                  class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <mat-icon class="h-4! w-4!" fontIcon="close"></mat-icon>
+                </button>
+              }
             </div>
 
-            <div class="custom-scrollbar max-h-48 overflow-y-auto">
+            @if (filteredAssignees().length > 0) {
+              <div class="border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+
+            <div class="custom-scrollbar max-h-52 overflow-y-auto">
               @for (profile of filteredAssignees(); track profile.id) {
                 <div
                   class="flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700"
                   [ngClass]="{
-                    'bg-blue-50 dark:bg-blue-900/30': isAssigneeSelectedById(profile.user_id)
+                    'bg-blue-50 dark:bg-blue-900/30': isAssigneeSelectedById(profile.user_id),
                   }"
                   (click)="toggleAssigneeSelection(profile.user_id)"
                 >
@@ -373,11 +394,13 @@
                     <div
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm text-gray-600"
                     >
-                      {{ (profile.name || profile.last_name || 'U').charAt(0).toUpperCase() }}
+                      {{ (profile.name || profile.last_name || "U").charAt(0).toUpperCase() }}
                     </div>
                   }
                   <div class="flex flex-col">
-                    <span class="text-sm font-medium">{{ profile.name }} {{ profile.last_name }}</span>
+                    <span class="text-sm font-medium"
+                      >{{ profile.name }} {{ profile.last_name }}</span
+                    >
                     @if (profile.user?.email) {
                       <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
                     }
@@ -385,9 +408,7 @@
                 </div>
               }
               @if (filteredAssignees().length === 0) {
-                <div class="px-4 py-3 text-center text-sm text-gray-500">
-                  No people found
-                </div>
+                <div class="px-4 py-3 text-center text-sm text-gray-500">No people found</div>
               }
             </div>
           </div>
@@ -420,7 +441,7 @@
           <mat-select
             [ngModel]="form.get('github_repo_id')?.value"
             (ngModelChange)="onGithubRepoChange($event)"
-            [ngModelOptions]="{standalone: true}"
+            [ngModelOptions]="{ standalone: true }"
           >
             <mat-option value="">Not linked</mat-option>
             @for (repo of githubRepos(); track repo.id) {

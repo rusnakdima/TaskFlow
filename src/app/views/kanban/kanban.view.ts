@@ -211,7 +211,9 @@ export class KanbanView extends BaseListView implements OnInit {
         this.dataService.getTodos({ visibility: "all" }).subscribe({
           next: (sharedTodos) => {
             const privateIds = new Set(todos.map((t) => t.id));
-            const newSharedTodos = sharedTodos.filter((t) => !privateIds.has(t.id) && t.visibility !== "private");
+            const newSharedTodos = sharedTodos.filter(
+              (t) => !privateIds.has(t.id) && t.visibility !== "private"
+            );
             this.todosList.update((current) => [...current, ...newSharedTodos]);
           },
           error: (err) => console.error("Failed to load shared todos:", err),
@@ -264,8 +266,8 @@ export class KanbanView extends BaseListView implements OnInit {
   private loadSubtasksIfNeeded(taskId: string): void {
     if (this.subtasksLoading().has(taskId)) return;
 
-    const alreadyLoaded = this.subtasksByTask().hasOwnProperty(taskId) &&
-      this.subtasksByTask()[taskId] !== undefined;
+    const alreadyLoaded =
+      this.subtasksByTask().hasOwnProperty(taskId) && this.subtasksByTask()[taskId] !== undefined;
 
     if (alreadyLoaded) return;
 

@@ -124,7 +124,7 @@ export class DataManagementView implements OnInit {
   adminTableFields = TableFieldFactory.createAdminFields();
 
   adminActions = [
-    { key: "toggleDelete", icon: "delete", label: "Soft Delete" },
+    { key: "toggleDelete", icon: "archive", label: "Archive" },
     { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
   ];
 

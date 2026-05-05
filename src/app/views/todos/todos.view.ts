@@ -383,51 +383,24 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const visibility = this.activeVisibility();
+    console.log(`[TodosView] loadInitialTodos called with visibility="${visibility}"`);
 
-    if (visibility === "all" || visibility === "private") {
-      const privateSub = this.dataService.getTodos({ visibility: "private" }).subscribe({
-        next: (privateTodos) => {
-          this.todosList = privateTodos;
-          if (visibility === "all") {
-            this.dataService.getTodos({ visibility: "all" }).subscribe({
-              next: (sharedTodos) => {
-                const privateIds = new Set(privateTodos.map((t) => t.id));
-                const newSharedTodos = sharedTodos.filter((t) => !privateIds.has(t.id) && t.visibility !== "private");
-                this.todosList = [...privateTodos, ...newSharedTodos];
-                this.todoPagination.update((p) => ({
-                  ...p,
-                  skip: this.todosList.length,
-                  hasMore: false,
-                  total: this.todosList.length,
-                }));
-              },
-            });
-          } else {
-            this.todoPagination.update((p) => ({
-              ...p,
-              skip: privateTodos.length,
-              hasMore: false,
-              total: privateTodos.length,
-            }));
-          }
+    const sub = this.dataSyncService
+      .loadInitialTodos(visibility, this.todoPagination().limit)
+      .subscribe({
+        next: (todos: Todo[]) => {
+          console.log(
+            `[TodosView] loadInitialTodos received ${todos?.length ?? 0} todos for visibility="${visibility}"`
+          );
+          this.todoPagination.update((p) => ({
+            ...p,
+            skip: todos.length,
+            hasMore: todos.length === p.limit,
+            total: todos.length,
+          }));
         },
       });
-      this.destroyRef.onDestroy(() => privateSub.unsubscribe());
-    } else {
-      const sub = this.dataSyncService
-        .loadInitialTodos(visibility, this.todoPagination().limit)
-        .subscribe({
-          next: (todos: Todo[]) => {
-            this.todoPagination.update((p) => ({
-              ...p,
-              skip: todos.length,
-              hasMore: todos.length === p.limit,
-              total: todos.length,
-            }));
-          },
-        });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
-    }
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   loadMore() {
@@ -466,9 +439,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     // Load view mode preference
     this.viewMode.set(this.loadViewModePreference());
-
-    // Load filter preferences
-    this.loadFilterPreferences();
 
     // Initialize bulk action service
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
