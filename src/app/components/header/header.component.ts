@@ -24,6 +24,7 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { Profile } from "@models/profile.model";
+import { User } from "@models/user.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
@@ -36,6 +37,7 @@ import { SyncService } from "@services/data/sync.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { StorageService } from "@services/core/storage.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 
 /* helpers */
@@ -67,7 +69,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private location: Location,
     private appStateService: AppStateService,
-    private shortcutEmitters: ShortcutEmittersService
+    private shortcutEmitters: ShortcutEmittersService,
+    private storageService: StorageService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
@@ -80,6 +83,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   userId = signal("");
 
   profile = signal<Profile | null>(null);
+  user = signal<User | null>(null);
   userEmail = signal("");
   role = signal("");
   todo = signal<Todo | null>(null);
@@ -131,21 +135,73 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   private loadProfile(): void {
-    this.dataService
-      .getProfile()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (profile) => {
-          this.profile.set(profile);
-          this.userEmail.set(profile?.user?.email || "");
-          this.role.set(profile?.user?.role || "");
-        },
-        error: () => {
-          this.profile.set(null);
-          this.userEmail.set("");
-          this.role.set("");
-        },
-      });
+    const storedProfile = this.storageService.profile();
+    const storedUser = this.storageService.user();
+
+    if (storedProfile) {
+      this.profile.set(storedProfile);
+      if (storedProfile.user) {
+        this.user.set(storedProfile.user);
+        this.userEmail.set(storedProfile.user.email || "");
+        this.role.set(storedProfile.user.role || "");
+      } else if (storedUser) {
+        this.user.set(storedUser);
+        this.userEmail.set(storedUser.email || "");
+        this.role.set(storedUser.role || "");
+      } else if (storedProfile.user_id) {
+        this.dataService
+          .getUser(storedProfile.user_id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (user) => {
+              this.user.set(user);
+              this.userEmail.set(user.email || "");
+              this.role.set(user.role || "");
+            },
+            error: () => {
+              this.user.set(null);
+              this.userEmail.set("");
+              this.role.set("");
+            },
+          });
+      }
+    } else {
+      this.dataService
+        .getProfile()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (profile) => {
+            this.profile.set(profile);
+            if (profile?.user) {
+              this.user.set(profile.user);
+              this.userEmail.set(profile.user.email || "");
+              this.role.set(profile.user.role || "");
+            } else if (profile?.user_id) {
+              this.dataService
+                .getUser(profile.user_id)
+                .pipe(takeUntilDestroyed(this.destroyRef))
+                .subscribe({
+                  next: (user) => {
+                    this.user.set(user);
+                    this.userEmail.set(user.email || "");
+                    this.role.set(user.role || "");
+                  },
+                  error: () => {
+                    this.user.set(null);
+                    this.userEmail.set("");
+                    this.role.set("");
+                  },
+                });
+            }
+          },
+          error: () => {
+            this.profile.set(null);
+            this.user.set(null);
+            this.userEmail.set("");
+            this.role.set("");
+          },
+        });
+    }
   }
 
   ngOnDestroy(): void {
