@@ -12,7 +12,6 @@ export interface PaginationState {
 export interface PaginationOptions<T> {
   entityName: string;
   paginationSignal: WritableSignal<PaginationState>;
-  currentIdSignal?: WritableSignal<string | null>;
   filterBuilder: (skip: number, limit: number) => Record<string, any>;
   load: string[];
   visibility: string;
