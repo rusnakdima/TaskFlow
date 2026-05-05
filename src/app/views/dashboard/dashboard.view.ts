@@ -116,7 +116,7 @@ export class DashboardView implements OnInit {
     });
     this.destroyRef.onDestroy(() => profileSub.unsubscribe());
 
-    this.dataService.getTodos().subscribe();
+    this.dataService.getTodos({ visibility: "all" }).subscribe();
     this.dataService.getTasks().subscribe();
     this.dataService.getProfile().subscribe();
   }

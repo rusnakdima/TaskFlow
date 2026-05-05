@@ -559,13 +559,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.appStateService.toggleInfoBlock();
   }
 
-  getUnreadCount(): number {
-    const todoId = this.todoId();
-    if (!todoId) return 0;
-    const currentUserId = this.authService.getValueByKey("id");
-    return this.chats().filter(
-      (c) => !c.deleted_at && (!c.read_by || !c.read_by.includes(currentUserId))
-    ).length;
+  override getUnreadCount(): number {
+    return super.getUnreadCount(this.chats);
   }
 
   updateTaskInline(event: { task: Task; field: string; value: any }) {
@@ -786,7 +781,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   override clearSelection() {
     super.clearSelection();
-    this.bulkService.setSelectionState(0, false);
   }
 
   bulkUpdatePriority(priority: string) {

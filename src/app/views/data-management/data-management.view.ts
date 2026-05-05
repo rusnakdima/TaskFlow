@@ -28,6 +28,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 /* services */
 import { AdminStorageService } from "@services/core/admin-storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
+import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
@@ -93,11 +94,14 @@ export class DataManagementView implements OnInit {
 
   protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
+  protected storageService = inject(StorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
   protected dataService = inject(DataService);
+
+  private archiveLoadedSignal = signal<{ [type: string]: boolean }>({});
 
   paginationState = signal<{
     skip: number;
@@ -237,65 +241,134 @@ export class DataManagementView implements OnInit {
   loadData(force: boolean = false) {
     this.loading.set(true);
 
-    const obs =
-      this.mode === "admin"
-        ? this.adminStorageService.loadInitialData(this.selectedType(), 10)
-        : this.archiveStorageService.loadInitialData(this.selectedType(), 10);
+    if (this.mode === "admin") {
+      this.loadAdminData(force);
+    } else {
+      this.loadArchiveData(force);
+    }
+  }
 
-    const sub = obs.subscribe({
-      next: (response) => {
-        const table = this.selectedType();
-        const tableData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.[table] || [];
-        this.dataMap.set({ [table]: tableData });
+  private loadAdminData(force: boolean) {
+    const sub = this.adminStorageService.loadAdminData(force).subscribe({
+      next: (data) => {
         this.paginationState.set({
-          skip: tableData.length,
-          limit: 10,
-          total: response.total || tableData.length,
-          hasMore: response.has_more ?? tableData.length >= 10,
+          skip: 0,
+          limit: 0,
+          total: this.getAdminDataCount(),
+          hasMore: false,
           loading: false,
         });
         this.loading.set(false);
       },
       error: (error) => {
-        this.notifyService.showError(`Failed to load ${this.mode} data: ${error}`);
+        this.notifyService.showError(`Failed to load admin data: ${error}`);
         this.loading.set(false);
       },
     });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
-  loadMore() {
-    if (this.paginationState().loading || !this.paginationState().hasMore) return;
+  private loadArchiveData(force: boolean) {
+    const type = this.selectedType();
+    const alreadyLoaded = !force && this.archiveLoadedSignal()[type];
 
-    this.paginationState.update((s) => ({ ...s, loading: true }));
+    if (alreadyLoaded && this.hasArchiveData(type)) {
+      this.loading.set(false);
+      this.paginationState.set({
+        skip: 0,
+        limit: 0,
+        total: this.getArchiveDataCount(type),
+        hasMore: false,
+        loading: false,
+      });
+      return;
+    }
 
-    const obs =
-      this.mode === "admin"
-        ? this.adminStorageService.loadMoreData(this.selectedType(), this.paginationState().skip)
-        : this.archiveStorageService.loadMoreData(this.selectedType(), this.paginationState().skip);
-
-    const sub = obs.subscribe({
-      next: (response) => {
-        const table = this.selectedType();
-        const newData = Array.isArray(response.data) ? response.data : response.data?.[table] || [];
-        this.dataMap.update((map) => ({
-          ...map,
-          [table]: [...(map[table] || []), ...newData],
-        }));
-        this.paginationState.update((s) => ({
-          ...s,
-          skip: s.skip + newData.length,
+    const sub = this.archiveStorageService.loadArchiveData(force).subscribe({
+      next: (data) => {
+        this.archiveLoadedSignal.update((s) => ({ ...s, [type]: true }));
+        this.paginationState.set({
+          skip: 0,
+          limit: 0,
+          total: this.getArchiveDataCount(type),
+          hasMore: false,
           loading: false,
-          hasMore: response.has_more ?? newData.length >= 10,
-        }));
+        });
+        this.loading.set(false);
       },
-      error: () => {
-        this.paginationState.update((s) => ({ ...s, loading: false }));
+      error: (error) => {
+        this.notifyService.showError(`Failed to load archive data: ${error}`);
+        this.loading.set(false);
       },
     });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
+  }
+
+  private hasArchiveData(type: string): boolean {
+    switch (type) {
+      case "todos":
+        return this.storageService.todos().length > 0;
+      case "tasks":
+        return this.storageService.tasks().length > 0;
+      case "subtasks":
+        return this.storageService.subtasks().length > 0;
+      case "comments":
+        return this.storageService.comments().length > 0;
+      case "chats":
+        return this.storageService.chats().length > 0;
+      case "categories":
+        return this.storageService.categories().length > 0;
+      case "daily_activities":
+        return this.storageService.dailyActivities().length > 0;
+      default:
+        return false;
+    }
+  }
+
+  private getAdminDataCount(): number {
+    switch (this.selectedType()) {
+      case "todos":
+        return this.adminStorageService.todos().length;
+      case "tasks":
+        return this.adminStorageService.tasks().length;
+      case "subtasks":
+        return this.adminStorageService.subtasks().length;
+      case "comments":
+        return this.adminStorageService.comments().length;
+      case "chats":
+        return this.adminStorageService.chats().length;
+      case "categories":
+        return this.adminStorageService.categories().length;
+      case "daily_activities":
+        return this.adminStorageService.dailyActivities().length;
+      default:
+        return 0;
+    }
+  }
+
+  private getArchiveDataCount(type: string): number {
+    switch (type) {
+      case "todos":
+        return this.storageService.todos().length;
+      case "tasks":
+        return this.storageService.tasks().length;
+      case "subtasks":
+        return this.storageService.subtasks().length;
+      case "comments":
+        return this.storageService.comments().length;
+      case "chats":
+        return this.storageService.chats().length;
+      case "categories":
+        return this.storageService.categories().length;
+      case "daily_activities":
+        return this.storageService.dailyActivities().length;
+      default:
+        return 0;
+    }
+  }
+
+  loadMore() {
+    // No longer needed - we load all data at once
   }
 
   getFieldConfig(): AdminFieldConfig[] {
@@ -338,9 +411,15 @@ export class DataManagementView implements OnInit {
   }
 
   getCurrentData(): any[] {
-    const dataMap = this.dataMap();
-    if (!dataMap) return [];
-    let data = dataMap[this.selectedType()] || [];
+    let data: any[];
+
+    if (this.mode === "admin") {
+      data = this.getAdminData();
+    } else {
+      data = this.getArchiveData();
+    }
+
+    if (!data || data.length === 0) return [];
 
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = FilterHelper.filterAdminByStatus(data, this.isCompletedFilter());
@@ -372,6 +451,48 @@ export class DataManagementView implements OnInit {
       field: this.sortBy(),
       order: this.sortOrder(),
     });
+  }
+
+  private getAdminData(): any[] {
+    switch (this.selectedType()) {
+      case "todos":
+        return this.adminStorageService.todos();
+      case "tasks":
+        return this.adminStorageService.tasks();
+      case "subtasks":
+        return this.adminStorageService.subtasks();
+      case "comments":
+        return this.adminStorageService.comments();
+      case "chats":
+        return this.adminStorageService.chats();
+      case "categories":
+        return this.adminStorageService.categories();
+      case "daily_activities":
+        return this.adminStorageService.dailyActivities();
+      default:
+        return [];
+    }
+  }
+
+  private getArchiveData(): any[] {
+    switch (this.selectedType()) {
+      case "todos":
+        return this.storageService.todos();
+      case "tasks":
+        return this.storageService.tasks();
+      case "subtasks":
+        return this.storageService.subtasks();
+      case "comments":
+        return this.storageService.comments();
+      case "chats":
+        return this.storageService.chats();
+      case "categories":
+        return this.storageService.categories();
+      case "daily_activities":
+        return this.storageService.dailyActivities();
+      default:
+        return [];
+    }
   }
 
   getSelectedTypeLabel(): string {

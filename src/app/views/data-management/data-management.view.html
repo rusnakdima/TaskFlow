@@ -39,46 +39,54 @@
       (selectionChange)="onRecordSelect($event)"
       (actionClick)="onAdminAction($event)"
     />
-  } @else if (viewMode() === "grid") {
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      @for (item of getCurrentData(); track item.id) {
-        <div
-          class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
-          [ngClass]="{
-            'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
-          }"
-          (click)="toggleSelect(item.id)"
-        >
-          <div class="mb-3 flex items-start justify-between">
-            <div class="flex items-center gap-2">
-              <app-checkbox
-                class="pointer-events-none"
-                [checked]="selectedRecords().has(item.id)"
-              />
-              <h4 class="font-semibold">
-                {{ item.title || item.content || item.date || item.id | slice: 0 : 20 }}
-              </h4>
-            </div>
-            <div class="flex gap-1">
-              <button
-                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                (click)="$event.stopPropagation(); toggleDeleteStatus(item.id)"
-                [title]="item.deleted_at ? 'Restore' : 'Soft Delete'"
-              >
-                <mat-icon
-                  class="size-4! text-base!"
-                  [fontIcon]="item.deleted_at ? 'restore' : 'delete'"
+    } @else if (viewMode() === "grid") {
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        @for (item of getCurrentData(); track item.id) {
+          <div
+            class="rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-800"
+            [ngClass]="{
+              'border-gray-200 dark:border-zinc-700': !item.deleted_at,
+              'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
+              'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item.deleted_at,
+              'opacity-60': item.deleted_at,
+            }"
+            (click)="toggleSelect(item.id)"
+          >
+            <div class="mb-3 flex items-start justify-between">
+              <div class="flex items-center gap-2">
+                <app-checkbox
+                  class="pointer-events-none"
+                  [checked]="selectedRecords().has(item.id)"
                 />
-              </button>
-              <button
-                class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                (click)="$event.stopPropagation(); deleteRecord(item.id)"
-                title="Permanent Delete"
-              >
-                <mat-icon class="size-4! text-base! text-red-500" fontIcon="delete_forever" />
-              </button>
+                <h4 class="font-semibold" [ngClass]="{ 'line-through': item.deleted_at }">
+                  {{ item.title || item.content || item.date || item.id | slice: 0 : 20 }}
+                </h4>
+              </div>
+              @if (item.deleted_at) {
+                <mat-chip class="h-5 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                  Deleted
+                </mat-chip>
+              }
+              <div class="flex gap-1">
+                <button
+                  class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                  (click)="$event.stopPropagation(); toggleDeleteStatus(item.id)"
+                  [title]="item.deleted_at ? 'Restore' : 'Soft Delete'"
+                >
+                  <mat-icon
+                    class="size-4! text-base!"
+                    [fontIcon]="item.deleted_at ? 'restore' : 'delete'"
+                  />
+                </button>
+                <button
+                  class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                  (click)="$event.stopPropagation(); deleteRecord(item.id)"
+                  title="Permanent Delete"
+                >
+                  <mat-icon class="size-4! text-base! text-red-500" fontIcon="delete_forever" />
+                </button>
+              </div>
             </div>
-          </div>
           <div class="textMuted flex flex-wrap gap-2 text-xs">
             @if (item.priority) {
               <span
@@ -123,9 +131,12 @@
     <div class="flex w-full flex-col gap-y-3">
       @for (item of getCurrentData(); track item.id) {
         <div
-          class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+          class="rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-800"
           [ngClass]="{
+            'border-gray-200 dark:border-zinc-700': !item.deleted_at,
             'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
+            'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item.deleted_at,
+            'opacity-60': item.deleted_at,
           }"
           (click)="toggleSelect(item.id)"
         >
@@ -135,10 +146,15 @@
                 class="pointer-events-none"
                 [checked]="selectedRecords().has(item.id)"
               />
-              <h4 class="font-semibold">
+              <h4 class="font-semibold" [ngClass]="{ 'line-through': item.deleted_at }">
                 {{ item.title || item.content || item.date || item.id | slice: 0 : 20 }}
               </h4>
             </div>
+            @if (item.deleted_at) {
+              <mat-chip class="h-5 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                Deleted
+              </mat-chip>
+            }
             <div class="flex gap-1">
               <button
                 class="rounded p-1 hover:bg-gray-100 dark:hover:bg-zinc-700"

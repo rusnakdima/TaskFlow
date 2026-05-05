@@ -29,7 +29,7 @@
         [showSelection]="true"
         [actions]="[
           { key: 'edit', icon: 'edit', label: 'Edit' },
-          { key: 'delete', icon: 'delete', label: 'Delete' },
+          { key: 'archive', icon: 'archive', label: 'Archive' },
         ]"
         (selectionChange)="toggleCategorySelection($event.id)"
         (selectAll)="onTableSelectAll()"
@@ -43,7 +43,7 @@
             [category]="category"
             [isSelected]="selectedCategories().has(category.id)"
             (edit)="editCategory($event)"
-            (delete)="deleteCategory($event)"
+            (archive)="archiveCategory($event)"
             (selectionChangeEvent)="toggleCategorySelection($event)"
           />
         }
@@ -55,7 +55,7 @@
             [category]="category"
             [isSelected]="selectedCategories().has(category.id)"
             (edit)="editCategory($event)"
-            (delete)="deleteCategory($event)"
+            (archive)="archiveCategory($event)"
             (selectionChangeEvent)="toggleCategorySelection($event)"
           />
         }

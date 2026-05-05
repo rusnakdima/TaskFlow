@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -16,6 +16,7 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -44,8 +45,10 @@ import {
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView extends BaseListView implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private dataService = inject(DataService);
+  private storageService = inject(StorageService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -62,7 +65,10 @@ export class CalendarView extends BaseListView implements OnInit {
 
   private userId = "";
   private todos = signal<Todo[]>([]);
+  private tasksByTodo = signal<{ [todoId: string]: Task[] }>({});
   private allEvents = signal<CalendarEvent[]>([]);
+  private tasksLoading = signal(false);
+  private loadedMonths = signal<Set<string>>(new Set());
 
   filteredEvents = computed(() =>
     this.allEvents().filter((event) => this.isSameDay(event.date, this.selectedDate()))
@@ -80,96 +86,132 @@ export class CalendarView extends BaseListView implements OnInit {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
 
-    this.dataService.todos$.pipe(takeUntilDestroyed()).subscribe((todos) => {
-      this.todos.set(todos);
-      this.loadEventsForTodos(todos);
-    });
-
-    this.dataService.getTodos().subscribe({
+    this.dataService.getTodos({ visibility: "all" }).subscribe({
       next: (todos) => {
         this.todos.set(todos);
-        this.loadEventsForTodos(todos);
+        this.loadTasksForCurrentMonth();
       },
       error: (err) => this.handleError(err),
     });
   }
 
-  private loadEventsForTodos(todos: Todo[]): void {
-    const events: CalendarEvent[] = [];
+  private loadTasksForCurrentMonth(): void {
+    const monthKey = this.getMonthKey(this.currentMonth());
+    if (this.loadedMonths().has(monthKey) && !this.tasksLoading()) {
+      const events = this.buildEventsFromCachedTasks();
+      this.allEvents.set(events);
+      return;
+    }
+
+    this.tasksLoading.set(true);
+    const allTasks: Task[] = [];
     let completed = 0;
-    const total = todos.filter((t) => !t.deleted_at).length;
+    const todos = this.todos().filter((t) => !t.deleted_at);
+    const total = todos.length;
 
     if (total === 0) {
       this.allEvents.set([]);
+      this.tasksLoading.set(false);
       return;
     }
 
     todos.forEach((todo) => {
-      if (todo.deleted_at) return;
-
-      const isPrivate = todo.visibility === "private";
-      const isOwner = todo.user_id === this.userId;
-
       this.subscriptions.add(
         this.dataService.getTasks(todo.id).subscribe({
           next: (tasks) => {
-            tasks.forEach((task) => {
-              if (task.deleted_at) return;
-
-              if (task.start_date) {
-                events.push({
-                  id: task.id!,
-                  title: `Start: ${task.title}`,
-                  date: new Date(task.start_date),
-                  type: "task",
-                  status: "start",
-                  description: task.description,
-                  todo_id: todo.id,
-                  isPrivate,
-                  isOwner,
-                });
-              }
-
-              if (task.end_date) {
-                const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
-                const status =
-                  task.status === TaskStatus.COMPLETED
-                    ? "completed"
-                    : task.status === TaskStatus.SKIPPED
-                      ? "skipped"
-                      : task.status === TaskStatus.FAILED
-                        ? "failed"
-                        : "due";
-
-                events.push({
-                  id: task.id!,
-                  title: statusText,
-                  date: new Date(task.end_date),
-                  type: "task",
-                  status,
-                  description: task.description,
-                  todo_id: todo.id,
-                  isPrivate,
-                  isOwner,
-                });
-              }
-            });
-
+            allTasks.push(...tasks);
             completed++;
             if (completed === total) {
-              this.allEvents.set([...events]);
+              this.tasksByTodo.set({ ...this.tasksByTodo(), ...{ [todo.id]: tasks } });
+              this.storageService.setCollection("tasks", allTasks);
+              const events = this.buildEventsFromTasks(allTasks);
+              this.allEvents.set(events);
+              this.loadedMonths.update((set) => {
+                const newSet = new Set(set);
+                newSet.add(monthKey);
+                return newSet;
+              });
+              this.tasksLoading.set(false);
             }
           },
           error: (err) => {
             this.handleError(err);
             completed++;
             if (completed === total) {
-              this.allEvents.set([...events]);
+              this.tasksLoading.set(false);
             }
           },
         })
       );
     });
+  }
+
+  private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {
+    const events: CalendarEvent[] = [];
+    const todos = this.todos();
+    const userId = this.userId;
+
+    tasks.forEach((task) => {
+      if (task.deleted_at) return;
+      const todo = todos.find((t) => t.id === task.todo_id);
+      if (!todo) return;
+
+      const isPrivate = todo.visibility === "private";
+      const isOwner = todo.user_id === userId;
+
+      if (task.start_date) {
+        events.push({
+          id: task.id!,
+          title: `Start: ${task.title}`,
+          date: new Date(task.start_date),
+          type: "task",
+          status: "start",
+          description: task.description,
+          todo_id: todo.id,
+          isPrivate,
+          isOwner,
+        });
+      }
+
+      if (task.end_date) {
+        const statusText = DateHelper.getTaskEventTitle(task.status, task.title);
+        const status =
+          task.status === TaskStatus.COMPLETED
+            ? "completed"
+            : task.status === TaskStatus.SKIPPED
+              ? "skipped"
+              : task.status === TaskStatus.FAILED
+                ? "failed"
+                : "due";
+
+        events.push({
+          id: task.id!,
+          title: statusText,
+          date: new Date(task.end_date),
+          type: "task",
+          status,
+          description: task.description,
+          todo_id: todo.id,
+          isPrivate,
+          isOwner,
+        });
+      }
+    });
+
+    return events;
+  }
+
+  private buildEventsFromCachedTasks(): CalendarEvent[] {
+    const allTasks: Task[] = [];
+    const tasksByTodo = this.tasksByTodo();
+    Object.values(tasksByTodo).forEach((tasks) => {
+      allTasks.push(...tasks);
+    });
+    return this.buildEventsFromTasks(allTasks);
+  }
+
+  private getMonthKey(date: Date): string {
+    return `${date.getFullYear()}-${date.getMonth()}`;
   }
 
   selectDate(date: Date): void {
@@ -182,9 +224,9 @@ export class CalendarView extends BaseListView implements OnInit {
 
   previous(): void {
     if (this.displayMode() === "month") {
-      this.currentMonth.set(
-        new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1)
-      );
+      const newMonth = new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() - 1, 1);
+      this.currentMonth.set(newMonth);
+      this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() - 7);
@@ -195,9 +237,9 @@ export class CalendarView extends BaseListView implements OnInit {
 
   next(): void {
     if (this.displayMode() === "month") {
-      this.currentMonth.set(
-        new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1)
-      );
+      const newMonth = new Date(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1, 1);
+      this.currentMonth.set(newMonth);
+      this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
       this.selectedDate.update((date) => {
         date.setDate(date.getDate() + 7);
@@ -209,6 +251,7 @@ export class CalendarView extends BaseListView implements OnInit {
   goToToday(): void {
     this.currentMonth.set(new Date());
     this.selectedDate.set(new Date());
+    this.loadTasksForCurrentMonth();
   }
 
   formatMonthYear(): string {

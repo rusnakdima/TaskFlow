@@ -48,6 +48,14 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     return this.authService.getValueByKey("id");
   }
 
+  protected get FILTER_STORAGE_KEY(): string {
+    return `filter-${this.pageKey}`;
+  }
+
+  protected get SHOW_FILTER_STORAGE_KEY(): string {
+    return `show-filter-${this.pageKey}`;
+  }
+
   protected toggleExpandItem(itemId: string): void {
     this.expandedItemIds.update((set) => {
       const newSet = new Set(set);
@@ -89,13 +97,6 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.subscriptions.add(
-      this.shortcutService.refresh$.subscribe(() => {
-        this.dataSyncService.loadAllData(true).subscribe(() => {
-          this.notifyService.showSuccess("Data refreshed");
-        });
-      })
-    );
   }
 
   ngOnDestroy(): void {
@@ -116,7 +117,11 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   }
 
   toggleFilter(): void {
-    this.showFilter.update((v) => !v);
+    this.showFilter.update((v) => {
+      const newVal = !v;
+      localStorage.setItem(this.SHOW_FILTER_STORAGE_KEY, newVal ? "true" : "false");
+      return newVal;
+    });
   }
 
   onSearchChange(query: string): void {
@@ -125,6 +130,19 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   changeFilter(filter: string): void {
     this.activeFilter.set(filter);
+    localStorage.setItem(this.FILTER_STORAGE_KEY, filter);
+  }
+
+  protected loadFilterPreferences(): void {
+    if (typeof window === "undefined") return;
+    const savedShowFilter = localStorage.getItem(this.SHOW_FILTER_STORAGE_KEY);
+    if (savedShowFilter !== null) {
+      this.showFilter.set(savedShowFilter === "true");
+    }
+    const savedActiveFilter = localStorage.getItem(this.FILTER_STORAGE_KEY);
+    if (savedActiveFilter !== null) {
+      this.activeFilter.set(savedActiveFilter);
+    }
   }
 
   setViewMode(mode: ViewMode): void {
@@ -165,6 +183,14 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   clearSelection(): void {
     this.selectedItems.set(new Set());
+    this.bulkActionService.setSelectionState(0, false);
+  }
+
+  getUnreadCount(chats: () => { deleted_at?: string | null; read_by?: string[] }[]): number {
+    const currentUserId = this.authService.getValueByKey("id");
+    return chats().filter(
+      (c) => !c.deleted_at && (!c.read_by || !c.read_by.includes(currentUserId))
+    ).length;
   }
 
   handleHighlightQueryParams(

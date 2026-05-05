@@ -39,6 +39,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { DataService } from "@services/data/data.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 import { GithubService } from "@services/github/github.service";
@@ -47,7 +48,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { ApiProvider } from "@providers/api.provider";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 
 type ItemType = "todo" | "task" | "subtask";
 
@@ -97,6 +98,7 @@ export class ManageItemPage implements OnInit {
   private dataService = inject(DataService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
+  private dataLoaderService = inject(DataLoaderService);
   private shortcutService = inject(ShortcutService);
   private cdr = inject(ChangeDetectorRef);
   private relationLoader = inject(RelationLoadingService);
@@ -109,6 +111,7 @@ export class ManageItemPage implements OnInit {
   isSubmitting = signal(false);
   itemType = signal<ItemType>("todo");
   isOwner = signal(false);
+  originalVisibility = signal<string>("");
 
   todos = signal<Todo[]>([]);
   tasks = signal<Task[]>([]);
@@ -120,7 +123,47 @@ export class ManageItemPage implements OnInit {
   githubConnected = signal(false);
   publishToGithub = signal(false);
 
-  private subscriptions = new Subscription();
+  categorySearchQuery = signal("");
+  newCategoryTitle = signal("");
+  selectedCategoryIds = signal<Set<string>>(new Set());
+  assigneeSearchQuery = signal("");
+  selectedAssigneeIds = signal<Set<string>>(new Set());
+
+  filteredCategories = computed(() => {
+    const query = this.categorySearchQuery().toLowerCase();
+    const selected = this.selectedCategoryIds();
+    let categories = query
+      ? this.categories().filter((c: Category) => c.title.toLowerCase().includes(query))
+      : this.categories();
+
+    return [...categories].sort((a: Category, b: Category) => {
+      const aSelected = selected.has(a.id);
+      const bSelected = selected.has(b.id);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return a.title.localeCompare(b.title);
+    });
+  });
+
+  filteredAssignees = computed(() => {
+    const query = this.assigneeSearchQuery().toLowerCase();
+    if (!query) return this.assignees();
+    return this.assignees().filter(
+      (p: Profile) =>
+        `${p.name} ${p.last_name}`.toLowerCase().includes(query) ||
+        (p.user?.email || "").toLowerCase().includes(query)
+    );
+  });
+
+  isAllCategoriesSelected = computed(() => {
+    const allIds = this.categories().map((c: Category) => c.id);
+    return allIds.length > 0 && this.selectedCategoryIds().size === allIds.length;
+  });
+
+  isAllAssigneesSelected = computed(() => {
+    const allIds = this.assignees().map((a: Profile) => a.user_id);
+    return allIds.length > 0 && this.selectedAssigneeIds().size === allIds.length;
+  });
 
   private configs: Record<ItemType, FormConfig> = {
     todo: {
@@ -148,6 +191,12 @@ export class ManageItemPage implements OnInit {
 
   currentConfig = computed(() => this.configs[this.itemType()]);
 
+  visibility = signal<string>("private");
+
+  showAssignees = computed(() => {
+    return this.itemType() === "todo" && (this.visibility() === "shared" || this.visibility() === "public");
+  });
+
   pageTitle = computed(() => {
     const type = this.itemType();
     const edit = this.isEdit() ? "Edit" : "Create";
@@ -159,6 +208,25 @@ export class ManageItemPage implements OnInit {
     this.subscribeToRoute();
     this.subscriptions.add(bindSaveShortcut(this.shortcutService, () => this.onSubmit()));
     this.loadGithubData();
+    this.loadCategories();
+    this.loadProfiles();
+  }
+
+  private loadCategories(): void {
+    this.dataService.categories$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((categories) => this.categories.set(categories));
+
+    this.dataService.getCategories().subscribe();
+  }
+
+  private loadProfiles(): void {
+    this.dataService.getPublicProfiles()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profiles) => this.assignees.set(profiles),
+        error: () => {},
+      });
   }
 
   private async loadGithubData(): Promise<void> {
@@ -209,6 +277,11 @@ export class ManageItemPage implements OnInit {
     this.form.get("start_date")?.valueChanges.subscribe((startDate) => {
       this.updateDateValidation(startDate);
     });
+
+    this.form.get("visibility")?.valueChanges.subscribe((visibility) => {
+      this.visibility.set(visibility || "private");
+    });
+    this.visibility.set(this.form.get("visibility")?.value || "private");
   }
 
   private async loadData(params: RouteParams): Promise<void> {
@@ -282,15 +355,32 @@ export class ManageItemPage implements OnInit {
       end_date: item.end_date || "",
     });
 
-    if (item.categories && typeof item.categories === "string") {
-      try {
-        this.form.patchValue({ categories: JSON.parse(item.categories) });
-      } catch {}
+    if (item.categories) {
+      let categoryIds: string[] = [];
+      if (typeof item.categories === "string") {
+        try {
+          categoryIds = JSON.parse(item.categories);
+        } catch {}
+      } else if (Array.isArray(item.categories)) {
+        categoryIds = item.categories;
+      }
+      this.form.patchValue({ categories: categoryIds });
+      this.selectedCategoryIds.set(new Set(categoryIds.filter((id: string) => id)));
+    }
+
+    if (item.assignees) {
+      const assigneeIds = Array.isArray(item.assignees)
+        ? item.assignees.map((a: any) => (typeof a === "string" ? a : a.user_id))
+        : [];
+      this.form.patchValue({ assignees: assigneeIds });
+      this.selectedAssigneeIds.set(new Set(assigneeIds.filter((id: string) => id)));
     }
 
     if (item.visibility && !this.form.get("visibility")?.value) {
       this.form.patchValue({ visibility: item.visibility });
     }
+
+    this.originalVisibility.set(item.visibility || "private");
 
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken());
     this.isOwner.set(item.user_id === userId);
@@ -361,6 +451,11 @@ export class ManageItemPage implements OnInit {
       this.notifyService.showSuccess(
         `${config.type} ${this.isEdit() ? "updated" : "created"} successfully`
       );
+
+      if (config.type === "todo" && this.isEdit()) {
+        await this.syncTodoVisibilityOnChange(formValue.id, this.originalVisibility(), formValue.visibility);
+      }
+
       this.location.back();
     } catch (err: any) {
       this.notifyService.showError(err.message || "Failed to save");
@@ -419,6 +514,35 @@ export class ManageItemPage implements OnInit {
     this.location.back();
   }
 
+  private async syncTodoVisibilityOnChange(
+    todoId: string,
+    fromVisibility: string,
+    toVisibility: string
+  ): Promise<void> {
+    if (fromVisibility === toVisibility || toVisibility === "private") {
+      return;
+    }
+
+    try {
+      const source = fromVisibility === "private" ? "Json" : "Mongo";
+      const target = toVisibility === "private" ? "Json" : "Mongo";
+
+      await firstValueFrom(
+        this.dataSyncProvider.invokeCommand("sync_visibility_to_provider", {
+          todo_id: todoId,
+          source_provider: source,
+          target_provider: target,
+        })
+      );
+
+      if (toVisibility === "shared" || toVisibility === "public") {
+        this.dataService.getTodos({ visibility: toVisibility }).subscribe();
+      }
+    } catch (error: any) {
+      this.notifyService.showError("Failed to sync visibility: " + (error.message || "Unknown error"));
+    }
+  }
+
   private getRepoName(repoId: string): string {
     if (!repoId) return "";
     const repo = this.githubRepos().find((r) => r.id === repoId);
@@ -433,4 +557,78 @@ export class ManageItemPage implements OnInit {
   dateClass = (date: Date): MatCalendarCellCssClasses => {
     return DateHelper.createDateClass(this.form)(date);
   };
+
+  addCategory(): void {
+    const title = this.newCategoryTitle().trim();
+    if (!title) return;
+
+    const userId = this.authService.getValueByKey("id");
+    this.newCategoryTitle.set("");
+
+    this.dataSyncProvider
+      .crud<Category>("create", "categories", {
+        data: { title, user_id: userId },
+        visibility: "private",
+      })
+      .subscribe({
+        next: (category: Category) => {
+          this.toggleCategorySelection(category.id);
+        },
+        error: (err: Error) => this.notifyService.showError(err.message || "Failed to create category"),
+      });
+  }
+
+  toggleCategorySelection(categoryId: string): void {
+    const selected = new Set(this.selectedCategoryIds());
+    if (selected.has(categoryId)) {
+      selected.delete(categoryId);
+    } else {
+      selected.add(categoryId);
+    }
+    this.selectedCategoryIds.set(selected);
+    this.form.patchValue({ categories: Array.from(selected) });
+  }
+
+  toggleSelectAllCategories(): void {
+    const allIds = this.categories().map((c: Category) => c.id);
+    const currentSelected = this.selectedCategoryIds();
+    if (currentSelected.size === allIds.length) {
+      this.selectedCategoryIds.set(new Set());
+    } else {
+      this.selectedCategoryIds.set(new Set(allIds));
+    }
+    this.form.patchValue({ categories: Array.from(this.selectedCategoryIds()) });
+  }
+
+  isCategorySelectedById(categoryId: string): boolean {
+    return this.selectedCategoryIds().has(categoryId);
+  }
+
+  toggleAssigneeSelection(assigneeId: string): void {
+    const selected = new Set(this.selectedAssigneeIds());
+    if (selected.has(assigneeId)) {
+      selected.delete(assigneeId);
+    } else {
+      selected.add(assigneeId);
+    }
+    this.selectedAssigneeIds.set(selected);
+    this.form.patchValue({ assignees: Array.from(selected) });
+  }
+
+  toggleSelectAllAssignees(): void {
+    const allIds = this.assignees().map((a: Profile) => a.user_id);
+    const currentSelected = this.selectedAssigneeIds();
+    if (currentSelected.size === allIds.length) {
+      this.selectedAssigneeIds.set(new Set());
+    } else {
+      this.selectedAssigneeIds.set(new Set(allIds));
+    }
+    this.form.patchValue({ assignees: Array.from(this.selectedAssigneeIds()) });
+  }
+
+  isAssigneeSelectedById(assigneeId: string): boolean {
+    return this.selectedAssigneeIds().has(assigneeId);
+  }
+
+  private subscriptions = new Subscription();
 }
