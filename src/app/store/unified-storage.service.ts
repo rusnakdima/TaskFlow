@@ -52,6 +52,7 @@ export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "
 
 // TTL cache expiry: 5 minutes
 const TTL_CACHE_EXPIRY_MS = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 100;
 
 @Injectable({ providedIn: "root" })
 export class UnifiedStorageService extends BaseStorageService {
@@ -124,31 +125,37 @@ export class UnifiedStorageService extends BaseStorageService {
   });
 
   // ==================== PAGINATION SIGNALS ====================
-  private readonly todosPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
+  private readonly _todosPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
     skip: 0,
     limit: 20,
     hasMore: true,
   });
-  private readonly tasksPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
+  private readonly _tasksPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
     skip: 0,
     limit: 20,
     hasMore: true,
   });
-  private readonly subtasksPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
+  private readonly _subtasksPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
     skip: 0,
     limit: 20,
     hasMore: true,
   });
-  private readonly commentsPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
+  private readonly _commentsPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
     skip: 0,
     limit: 20,
     hasMore: true,
   });
-  private readonly chatsPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
+  private readonly _chatsPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
     skip: 0,
     limit: 20,
     hasMore: true,
   });
+
+  readonly todosPagination = this._todosPagination.asReadonly();
+  readonly tasksPagination = this._tasksPagination.asReadonly();
+  readonly subtasksPagination = this._subtasksPagination.asReadonly();
+  readonly commentsPagination = this._commentsPagination.asReadonly();
+  readonly chatsPagination = this._chatsPagination.asReadonly();
 
   // ==================== TTL CACHE FOR REACTIVE COMPUTEDS ====================
   private readonly chatsCache = new Map<string, ReturnType<typeof computed<Chat[]>>>();
@@ -405,6 +412,19 @@ export class UnifiedStorageService extends BaseStorageService {
       return cached;
     }
 
+    if (this.chatsCache.size >= MAX_CACHE_SIZE) {
+      const sortedKeys = Array.from(this.cacheTimestamps.entries())
+        .filter(([key]) => key.startsWith("chats_"))
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.chatsCache.size - MAX_CACHE_SIZE + 1)
+        .map(([key]) => key);
+      for (const key of sortedKeys) {
+        const todoId = key.replace("chats_", "");
+        this.chatsCache.delete(todoId);
+        this.cacheTimestamps.delete(key);
+      }
+    }
+
     const computedSignal = computed(() => {
       return this.chats().filter((chat) => chat.todo_id === todo_id);
     });
@@ -423,6 +443,19 @@ export class UnifiedStorageService extends BaseStorageService {
 
     if (cached && timestamp && now - timestamp < TTL_CACHE_EXPIRY_MS) {
       return cached;
+    }
+
+    if (this.tasksByTodoCache.size >= MAX_CACHE_SIZE) {
+      const sortedKeys = Array.from(this.cacheTimestamps.entries())
+        .filter(([key]) => key.startsWith("tasks_"))
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.tasksByTodoCache.size - MAX_CACHE_SIZE + 1)
+        .map(([key]) => key);
+      for (const key of sortedKeys) {
+        const todoId = key.replace("tasks_", "");
+        this.tasksByTodoCache.delete(todoId);
+        this.cacheTimestamps.delete(key);
+      }
     }
 
     const computedSignal = computed(() => {
@@ -1405,13 +1438,13 @@ export class UnifiedStorageService extends BaseStorageService {
   }
 
   // ==================== PAGINATION HELPERS ====================
-  private updatePagination(
+  updatePagination(
     type: "todos" | "tasks" | "subtasks" | "comments" | "chats",
     skip: number,
     limit: number,
     receivedCount: number
   ): void {
-    const paginationSignal = this[`${type}Pagination`] as WritableSignal<{
+    const paginationSignal = this[`_${type}Pagination`] as WritableSignal<{
       skip: number;
       limit: number;
       hasMore: boolean;
@@ -1425,7 +1458,7 @@ export class UnifiedStorageService extends BaseStorageService {
 
   resetPagination(type: "todos" | "tasks" | "subtasks" | "comments" | "chats"): void {
     const defaults = { skip: 0, limit: 20, hasMore: true };
-    const paginationSignal = this[`${type}Pagination`] as WritableSignal<{
+    const paginationSignal = this[`_${type}Pagination`] as WritableSignal<{
       skip: number;
       limit: number;
       hasMore: boolean;
