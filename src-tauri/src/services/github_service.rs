@@ -87,6 +87,14 @@ impl GithubService {
       .await
       .map_err(|e| e.to_string())?;
 
+    let status = response.status();
+    let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let body_str = String::from_utf8_lossy(&body_bytes);
+    eprintln!(
+      "DEBUG github_start_device_flow - status: {}, body: {}",
+      status, body_str
+    );
+
     #[derive(Deserialize)]
     struct DeviceCodeResponse {
       device_code: String,
@@ -94,7 +102,8 @@ impl GithubService {
       verification_uri: String,
     }
 
-    let code_resp: DeviceCodeResponse = response.json().await.map_err(|e| e.to_string())?;
+    let code_resp: DeviceCodeResponse = serde_json::from_slice(&body_bytes)
+      .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
 
     Ok((
       code_resp.device_code,
@@ -123,6 +132,14 @@ impl GithubService {
       .await
       .map_err(|e| e.to_string())?;
 
+    let status = response.status();
+    let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let body_str = String::from_utf8_lossy(&body_bytes);
+    eprintln!(
+      "DEBUG github_check_device_code - status: {}, body: {}",
+      status, body_str
+    );
+
     #[derive(Deserialize)]
     struct TokenResponse {
       access_token: Option<String>,
@@ -133,7 +150,8 @@ impl GithubService {
       error_description: Option<String>,
     }
 
-    let token_resp: TokenResponse = response.json().await.map_err(|e| e.to_string())?;
+    let token_resp: TokenResponse = serde_json::from_slice(&body_bytes)
+      .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
 
     if token_resp.error.is_some() {
       let err = token_resp.error.unwrap();

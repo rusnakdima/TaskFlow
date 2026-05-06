@@ -323,6 +323,7 @@ pub fn run() {
       github_check_device_flow,
       github_update_issue
     ])
+    .plugin(tauri_plugin_mcp_bridge::init())
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

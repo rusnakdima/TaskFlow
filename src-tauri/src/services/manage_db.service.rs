@@ -1,5 +1,6 @@
 /* sys */
 use std::sync::Arc;
+use std::time::Duration;
 
 /* providers */
 use nosql_orm::prelude::Filter;
@@ -286,9 +287,24 @@ impl ManageDbService {
     })
   }
 
-  /// Check if MongoDB is connected
+  /// Check if MongoDB is connected (with fail-fast timeout)
   pub fn is_mongodb_connected(&self) -> bool {
-    self.mongodb_provider.is_some()
+    match &self.mongodb_provider {
+      Some(provider) => {
+        // Try to execute a simple operation with a short timeout to check connectivity
+        // This ensures we don't block for 30+ seconds when MongoDB is unreachable
+        let rt = tokio::runtime::Runtime::new();
+        if let Ok(rt) = rt {
+          let result = rt.block_on(async {
+            tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await
+          });
+          result.is_ok()
+        } else {
+          false
+        }
+      }
+      None => false,
+    }
   }
 
   /// Get all data for admin view (from MongoDB)
