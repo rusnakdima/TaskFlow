@@ -87,7 +87,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   totalSubtasksCount = signal(0);
   completedSubtasksCount = signal(0);
   private tasksSubscription: Subscription | null = null;
-  private subtasksSubscription: Subscription | null = null;
+  private subtasksSubscriptions: Subscription[] = [];
 
   get menuClass(): string {
     return "todo-menu";
@@ -102,9 +102,8 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     if (this.tasksSubscription) {
       this.tasksSubscription.unsubscribe();
     }
-    if (this.subtasksSubscription) {
-      this.subtasksSubscription.unsubscribe();
-    }
+    this.subtasksSubscriptions.forEach((s) => s.unsubscribe());
+    this.subtasksSubscriptions = [];
   }
 
   private loadSubtasksData(): void {
@@ -118,7 +117,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
         let completed = 0;
 
         tasks.forEach((task) => {
-          this.subtasksSubscription = this.dataService
+          const sub = this.dataService
             .getSubtasks(task.id)
             .pipe(take(1))
             .subscribe((subtasks) => {
@@ -130,6 +129,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
               this.completedSubtasksCount.set(completed);
               this.cdr.markForCheck();
             });
+          this.subtasksSubscriptions.push(sub);
         });
       });
   }

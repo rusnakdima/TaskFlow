@@ -11,12 +11,12 @@ import { Chat } from "@models/chat.model";
 import { Profile } from "@models/profile.model";
 
 import { RequestService } from "@services/core/request.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
   private requestService = inject(RequestService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
 
   isOffline(): boolean {
     return this.requestService.isOffline();

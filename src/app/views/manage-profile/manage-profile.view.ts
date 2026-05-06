@@ -25,7 +25,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
@@ -50,7 +50,7 @@ export class ManageProfileView implements OnInit {
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private profileRequiredService = inject(ProfileRequiredService);
 
   form: FormGroup = this.fb.group({

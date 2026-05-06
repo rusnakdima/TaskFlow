@@ -80,9 +80,7 @@ export class GithubService {
       );
   }
 
-  checkDeviceFlow(
-    device_code: string
-  ): Observable<{
+  checkDeviceFlow(device_code: string): Observable<{
     success: boolean;
     pending?: boolean;
     access_token?: string;
@@ -260,6 +258,40 @@ export class GithubService {
       .pipe(
         catchError((err) => {
           this.notifyService.showError("Failed to create comment: " + (err.message || err));
+          throw err;
+        })
+      );
+  }
+
+  updateIssue(
+    repoOwner: string,
+    repoName: string,
+    issueNumber: number,
+    title: string,
+    body: string
+  ): Observable<GithubIssueResult> {
+    const userId = this.getUserId();
+    if (!userId) {
+      return new Observable((subscriber) => {
+        subscriber.error(new Error("Not authenticated"));
+      });
+    }
+
+    return this.dataSyncProvider
+      .invokeCommand<GithubIssueResult>("github_update_issue", {
+        userId,
+        repoOwner,
+        repoName,
+        issueNumber,
+        title,
+        body,
+      })
+      .pipe(
+        tap((result) => {
+          this.notifyService.showSuccess(`GitHub issue updated: ${result.html_url}`);
+        }),
+        catchError((err) => {
+          this.notifyService.showError("Failed to update issue: " + (err.message || err));
           throw err;
         })
       );

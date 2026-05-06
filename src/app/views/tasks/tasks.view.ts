@@ -44,7 +44,7 @@ import { DataService } from "@services/data/data.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -118,7 +118,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
   private dataLoaderService = inject(DataLoaderService);
-  private _storageService = inject(StorageService);
+  private _storageService = inject(UnifiedStorageService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private githubService = inject(GithubService);
@@ -576,7 +576,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const currentTodo = this.todo();
     if (currentTodo?.github_repo_name) {
-      actions.unshift({ key: "create_issue", icon: "bug_report", label: "Create GitHub Issue" });
+      actions.unshift({ key: "github_issue", icon: "bug_report", label: "GitHub Issue" });
     }
 
     return actions;
@@ -593,13 +593,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       case "delete":
         this.deleteTask(event.item.id);
         break;
-      case "create_issue":
-        this.createGithubIssueFromTask(event.item);
+      case "github_issue":
+        this.createOrUpdateGithubIssueFromTask(event.item);
         break;
     }
   }
 
-  private createGithubIssueFromTask(task: Task): void {
+  private createOrUpdateGithubIssueFromTask(task: Task): void {
     const currentTodo = this.todo();
     if (!currentTodo?.github_repo_name) {
       this.notifyService.showError("Project is not linked to a GitHub repository");
@@ -622,14 +622,39 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 ---
 [View in TaskFlow](taskflow://tasks/${task.id})`;
 
-    this.githubService.createIssue(owner, repo, task.title, issueBody).subscribe({
-      next: (result) => {
-        this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
-      },
-      error: (err) => {
-        this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
-      },
-    });
+    if (task.github_issue_id) {
+      this.githubService
+        .updateIssue(owner, repo, task.github_issue_number!, task.title, issueBody)
+        .subscribe({
+          next: (result) => {
+            this.notifyService.showSuccess("GitHub issue updated");
+            this.dataService
+              .updateTask(task.id, {
+                github_issue_url: result.html_url,
+              })
+              .subscribe();
+          },
+          error: (err) => {
+            this.notifyService.showError("Failed to update GitHub issue: " + (err.message || err));
+          },
+        });
+    } else if (task.publish_to_github) {
+      this.githubService.createIssue(owner, repo, task.title, issueBody).subscribe({
+        next: (result) => {
+          this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
+          this.dataService
+            .updateTask(task.id, {
+              github_issue_id: String(result.id),
+              github_issue_number: result.number,
+              github_issue_url: result.html_url,
+            })
+            .subscribe();
+        },
+        error: (err) => {
+          this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
+        },
+      });
+    }
   }
 
   onCommentToggle(taskId: string): void {

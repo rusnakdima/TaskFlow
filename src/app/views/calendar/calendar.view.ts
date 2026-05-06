@@ -16,7 +16,7 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -48,7 +48,6 @@ export class CalendarView extends BaseListView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
 
   protected getItems(): { id: string }[] {
     return [];

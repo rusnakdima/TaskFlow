@@ -17,7 +17,7 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { AdminService } from "@services/data/admin.service";
@@ -57,7 +57,6 @@ import {
 })
 export class CategoriesView extends BaseListView implements OnInit {
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
   private adminService = inject(AdminService);

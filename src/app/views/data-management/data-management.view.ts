@@ -26,9 +26,8 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { AdminStorageService } from "@services/core/admin-storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
-import { StorageService } from "@services/core/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
@@ -95,9 +94,9 @@ export class DataManagementView implements OnInit {
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
 
-  protected adminStorageService = inject(AdminStorageService);
+  protected adminStorageService = inject(UnifiedStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
-  protected storageService = inject(StorageService);
+  protected storageService = inject(UnifiedStorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
@@ -400,19 +399,19 @@ export class DataManagementView implements OnInit {
   private getArchiveData(): any[] {
     switch (this.selectedType()) {
       case "todos":
-        return this.storageService.todos();
+        return this.archiveStorageService.todos();
       case "tasks":
-        return this.storageService.tasks();
+        return this.archiveStorageService.tasks();
       case "subtasks":
-        return this.storageService.subtasks();
+        return this.archiveStorageService.subtasks();
       case "comments":
-        return this.storageService.comments();
+        return this.archiveStorageService.comments();
       case "chats":
-        return this.storageService.chats();
+        return this.archiveStorageService.chats();
       case "categories":
-        return this.storageService.categories();
+        return this.archiveStorageService.categories();
       case "daily_activities":
-        return this.storageService.dailyActivities();
+        return this.archiveStorageService.dailyActivities();
       default:
         return [];
     }

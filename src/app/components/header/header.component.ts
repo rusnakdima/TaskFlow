@@ -37,7 +37,7 @@ import { SyncService } from "@services/data/sync.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
 import { AppStateService } from "@services/core/app-state.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 
 /* helpers */
@@ -70,7 +70,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private location: Location,
     private appStateService: AppStateService,
     private shortcutEmitters: ShortcutEmittersService,
-    private storageService: StorageService
+    private storageService: UnifiedStorageService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();

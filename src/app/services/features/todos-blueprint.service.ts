@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
@@ -11,7 +11,7 @@ import { Observable, of } from "rxjs";
 })
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private apiProvider = inject(ApiProvider);
 
   showBlueprintDialog = signal(false);

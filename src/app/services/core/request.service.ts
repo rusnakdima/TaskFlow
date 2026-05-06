@@ -11,6 +11,25 @@ export class RequestService {
   private jwtTokenService = inject(JwtTokenService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
+  private readonly REQUEST_TTL = 30000; // 30 seconds
+  private readonly MAX_PENDING_REQUESTS = 100;
+
+  private cleanupPendingRequests(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.pendingRequests.entries()) {
+      if (now - entry.timestamp > this.REQUEST_TTL) {
+        entry.controller.abort();
+        this.pendingRequests.delete(key);
+      }
+    }
+    while (this.pendingRequests.size > this.MAX_PENDING_REQUESTS) {
+      const oldestKey = this.pendingRequests.keys().next().value;
+      if (oldestKey) {
+        this.pendingRequests.get(oldestKey)?.controller.abort();
+        this.pendingRequests.delete(oldestKey);
+      }
+    }
+  }
 
   private getRequestKey(operation: string, table: string, id?: string, filter?: any): string {
     return `${operation}:${table}:${id || ""}:${JSON.stringify(filter || {})}`;
@@ -22,6 +41,8 @@ export class RequestService {
     id?: string,
     filter?: any
   ): string {
+    this.cleanupPendingRequests();
+
     const key = this.getRequestKey(operation, table, id, filter);
     const now = Date.now();
     const existing = this.pendingRequests.get(key);

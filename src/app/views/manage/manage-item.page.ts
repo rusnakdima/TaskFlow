@@ -39,7 +39,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
@@ -97,7 +97,7 @@ export class ManageItemPage implements OnInit {
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
@@ -428,8 +428,11 @@ export class ManageItemPage implements OnInit {
       const formValue = this.form.value;
       const payload = this.buildPayload(formValue, config);
 
+      let savedTaskId: string | null = null;
+
       if (this.isEdit()) {
         const id = formValue._id || formValue.id;
+        savedTaskId = id;
         if (config.type === "todo") {
           await firstValueFrom(this.dataService.updateTodo(id, payload));
         } else if (config.type === "task") {
@@ -438,12 +441,14 @@ export class ManageItemPage implements OnInit {
           await firstValueFrom(this.dataService.updateSubtask(id, payload));
         }
       } else {
+        let result: any;
         if (config.type === "todo") {
-          await firstValueFrom(this.dataService.createTodo(payload));
+          result = await firstValueFrom(this.dataService.createTodo(payload));
         } else if (config.type === "task") {
-          await firstValueFrom(this.dataService.createTask(payload));
+          result = await firstValueFrom(this.dataService.createTask(payload));
+          savedTaskId = result?.id || result?._id || null;
         } else {
-          await firstValueFrom(this.dataService.createSubtask(payload));
+          result = await firstValueFrom(this.dataService.createSubtask(payload));
         }
       }
 
@@ -457,6 +462,10 @@ export class ManageItemPage implements OnInit {
           this.originalVisibility(),
           formValue.visibility
         );
+      }
+
+      if (config.type === "task" && savedTaskId) {
+        await this.handleGithubIssueForTask(savedTaskId, formValue);
       }
 
       this.location.back();
@@ -634,6 +643,45 @@ export class ManageItemPage implements OnInit {
 
   isAssigneeSelectedById(assigneeId: string): boolean {
     return this.selectedAssigneeIds().has(assigneeId);
+  }
+
+  private async handleGithubIssueForTask(taskId: string, formValue: any): Promise<void> {
+    const todo = this.todos().find((t) => t.id === formValue.todo_id);
+    if (!todo?.github_repo_id || !todo?.github_repo_name) return;
+
+    const [owner, repo] = todo.github_repo_name.split("/");
+    const issueBody = this.buildIssueBody(formValue);
+    const existingTask = this.storageService.tasks().find((t) => t.id === taskId);
+
+    if (existingTask?.github_issue_id) {
+      this.githubService
+        .updateIssue(owner, repo, existingTask.github_issue_number!, formValue.title, issueBody)
+        .subscribe();
+    } else if (formValue.publish_to_github) {
+      this.githubService.createIssue(owner, repo, formValue.title, issueBody).subscribe({
+        next: (result) => {
+          this.dataService
+            .updateTask(taskId, {
+              github_issue_id: String(result.id),
+              github_issue_number: result.number,
+              github_issue_url: result.html_url,
+            })
+            .subscribe();
+        },
+      });
+    }
+  }
+
+  private buildIssueBody(formValue: any): string {
+    return `**Task Details**
+
+**Description:** ${formValue.description || "N/A"}
+**Priority:** ${formValue.priority || "medium"}
+**Due Date:** ${formValue.end_date || "N/A"}
+**Created in:** TaskFlow
+
+---
+[View in TaskFlow](taskflow://tasks/${formValue.id || formValue._id})`;
   }
 
   private subscriptions = new Subscription();

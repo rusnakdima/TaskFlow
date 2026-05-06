@@ -7,7 +7,7 @@ import { DataService } from "@services/data/data.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 
@@ -33,7 +33,7 @@ export class InitialDataResolver implements Resolve<unknown> {
   private profileRequiredService = inject(ProfileRequiredService);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);

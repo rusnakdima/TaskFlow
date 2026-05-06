@@ -19,7 +19,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Component({
   selector: "app-profile",
@@ -38,7 +38,7 @@ export class ProfileView implements OnInit, OnDestroy {
     private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private dataService: DataService,
-    private storageService: StorageService
+    private storageService: UnifiedStorageService
   ) {}
 
   userId: string = "";

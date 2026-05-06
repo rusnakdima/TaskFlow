@@ -48,4 +48,5 @@ export interface Task extends BaseEntity {
   publish_to_github: boolean;
   github_issue_id?: string;
   github_issue_url?: string;
+  github_issue_number?: number;
 }

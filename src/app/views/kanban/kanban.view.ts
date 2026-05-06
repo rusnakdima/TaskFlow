@@ -35,7 +35,7 @@ import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
@@ -84,7 +84,6 @@ export class KanbanView extends BaseListView implements OnInit {
   private dataSyncProvider = inject(ApiProvider);
   private dragDropService = inject(KanbanDragDropService);
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
 
