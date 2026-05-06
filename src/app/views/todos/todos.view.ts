@@ -45,6 +45,7 @@ import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
 
 /* providers */
 import { ApiProvider, Operation } from "@providers/api.provider";
@@ -130,10 +131,33 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return [];
   }
 
-  // State - local todos list from DataService subscription
-  private todosList: Todo[] = [];
-  private tasksList: Task[] = [];
-  private commentsList: Comment[] = [];
+  private getTodosList(): Todo[] {
+    return this.storageService.todos();
+  }
+
+  private getTasksList(): Task[] {
+    return this.storageService.tasks();
+  }
+
+  private getCommentsList(): Comment[] {
+    return this.storageService.comments();
+  }
+
+  private getPrivateTodos(): Todo[] {
+    return this.storageService.privateTodos().filter((t) => !t.deleted_at);
+  }
+
+  private getSharedTodos(): Todo[] {
+    return this.storageService.sharedTodos().filter((t) => !t.deleted_at);
+  }
+
+  private getPublicTodos(): Todo[] {
+    return this.storageService.publicTodos().filter((t) => !t.deleted_at);
+  }
+
+  private getTasksByTodoId(todoId: string): Task[] {
+    return this.storageService.getTasksByTodoId(todoId);
+  }
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   showStats = signal(false);
@@ -153,22 +177,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     { id: "shared", label: "Shared", icon: "group" },
     { id: "public", label: "Public", icon: "public" },
   ];
-
-  private getPrivateTodos(): Todo[] {
-    return this.todosList.filter((t) => t.visibility === "private" && !t.deleted_at);
-  }
-
-  private getSharedTodos(): Todo[] {
-    return this.todosList.filter((t) => t.visibility === "shared" && !t.deleted_at);
-  }
-
-  private getPublicTodos(): Todo[] {
-    return this.todosList.filter((t) => t.visibility === "public" && !t.deleted_at);
-  }
-
-  private getTasksByTodoId(todoId: string): Task[] {
-    return this.tasksList.filter((t) => t.todo_id === todoId && !t.deleted_at);
-  }
 
   groupedTodos = computed(() => {
     const privateTodos = this.getPrivateTodos();
@@ -261,7 +269,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     let count = 0;
     for (const task of tasks) {
-      const taskComments = this.commentsList.filter(
+      const taskComments = this.getCommentsList().filter(
         (c: Comment) => c.task_id === task.id && !c.deleted_at
       );
       if (taskComments.length === 0) continue;
@@ -383,15 +391,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const visibility = this.activeVisibility();
-    console.log(`[TodosView] loadInitialTodos called with visibility="${visibility}"`);
 
     const sub = this.dataSyncService
       .loadInitialTodos(visibility, this.todoPagination().limit)
       .subscribe({
         next: (todos: Todo[]) => {
-          console.log(
-            `[TodosView] loadInitialTodos received ${todos?.length ?? 0} todos for visibility="${visibility}"`
-          );
           this.todoPagination.update((p) => ({
             ...p,
             skip: todos.length,
@@ -463,24 +467,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     document.addEventListener("keydown", this.keydownHandler);
     this.userId.set(this.authService.getValueByKey("id"));
-
-    // Subscribe to dataService todos$ for real-time updates
-    const todosSub = this.dataService.todos$.subscribe((todos) => {
-      this.todosList = todos;
-    });
-    this.destroyRef.onDestroy(() => todosSub.unsubscribe());
-
-    // Subscribe to dataService tasks$ for real-time updates
-    const tasksSub = this.dataService.tasks$.subscribe((tasks) => {
-      this.tasksList = tasks;
-    });
-    this.destroyRef.onDestroy(() => tasksSub.unsubscribe());
-
-    // Subscribe to dataService comments$ for real-time updates
-    const commentsSub = this.dataService.comments$.subscribe((comments) => {
-      this.commentsList = comments;
-    });
-    this.destroyRef.onDestroy(() => commentsSub.unsubscribe());
 
     // Subscribe to refresh shortcut (Ctrl+R)
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {

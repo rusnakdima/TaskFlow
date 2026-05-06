@@ -104,13 +104,11 @@ export class ManageProfileView implements OnInit {
     this.form.controls["user_id"].setValue(userId);
 
     let profile = this.storageService.profile();
-    console.debug("[ManageProfileView] ngOnInit, profile from storage:", profile);
 
     if (!profile) {
       this.dataService.getProfile().subscribe({
         next: (p) => {
           profile = p;
-          console.debug("[ManageProfileView] getProfile returned:", profile);
           if (profile && profile.user_id === userId) {
             this.isEditMode = true;
             this.form.patchValue(profile);
@@ -136,7 +134,6 @@ export class ManageProfileView implements OnInit {
 
     if (this.form.valid) {
       const body = this.form.value;
-      console.debug("[ManageProfileView] onSubmit, body:", body, "isEditMode:", this.isEditMode);
 
       if (this.isEditMode) {
         const profile = this.storageService.profile();

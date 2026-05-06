@@ -42,6 +42,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { StorageService } from "@services/core/storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DataService } from "@services/data/data.service";
@@ -105,6 +106,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private dataLoaderService = inject(DataLoaderService);
+  protected storageService = inject(StorageService);
   private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
 
@@ -141,37 +143,34 @@ export class SubtasksView extends BaseListView implements OnInit {
   });
 
   private loadTask(taskId: string): void {
-    const sub = this.dataService.getTask(taskId).subscribe({
-      next: (task) => {
-        this.task.set(task);
-        if (task.todo_id) {
-          this.loadTodo(task.todo_id);
-        }
-      },
-      error: () => {
-        this.notifyService.showError("Task not found. Please refresh.");
-      },
-    });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    const taskReactive = this.storageService.getTaskReactive(taskId);
+    const reactiveTask = taskReactive();
+    if (reactiveTask) {
+      this.task.set(reactiveTask);
+      if (reactiveTask.todo_id) {
+        this.loadTodo(reactiveTask.todo_id);
+      }
+    } else {
+      this.notifyService.showError("Task not found. Please refresh.");
+    }
   }
 
   private loadTodo(todoId: string): void {
-    const sub = this.dataService.getTodo(todoId).subscribe({
-      next: (todo) => {
-        this.todo.set(todo);
-        this.todoId.set(todo.id);
-        this.projectTitle.set(todo.title);
-      },
-      error: () => {
-        this.notifyService.showError("Todo not found.");
-      },
-    });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    const todoReactive = this.storageService.getTodoReactive(todoId);
+    const reactiveTodo = todoReactive();
+    if (reactiveTodo) {
+      this.todo.set(reactiveTodo);
+      this.todoId.set(reactiveTodo.id);
+      this.projectTitle.set(reactiveTodo.title);
+    } else {
+      this.notifyService.showError("Todo not found.");
+    }
   }
 
   private loadChats(todoId: string): void {
     this.chatSubscription?.unsubscribe();
-    const sub = this.dataService.getChats(todoId).subscribe({
+    const visibility = this.todo()?.visibility || "private";
+    const sub = this.dataLoaderService.loadInitialChatsForTodo(todoId, visibility).subscribe({
       next: (chats) => {
         this.chats.set(chats);
       },
@@ -373,26 +372,14 @@ export class SubtasksView extends BaseListView implements OnInit {
     } else {
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const sub = this.dataService.getTask(taskId).subscribe({
-          next: (task) => {
-            this.task.set(task);
-            const todoId = task.todo_id;
-            this.dataService.getTodo(todoId).subscribe({
-              next: (todo) => {
-                this.todo.set(todo);
-                this.todoId.set(todo.id);
-                this.projectTitle.set(todo.title);
-              },
-              error: () => {
-                this.notifyService.showError("Todo not found.");
-              },
-            });
-          },
-          error: () => {
-            this.notifyService.showError("Task not found. Please refresh.");
-          },
-        });
-        this.destroyRef.onDestroy(() => sub.unsubscribe());
+        const taskReactive = this.storageService.getTaskReactive(taskId);
+        const reactiveTask = taskReactive();
+        if (reactiveTask) {
+          this.task.set(reactiveTask);
+          this.loadTodo(reactiveTask.todo_id);
+        } else {
+          this.notifyService.showError("Task not found. Please refresh.");
+        }
         this.loading.set(false);
       } else {
         this.notifyService.showError("Invalid task ID.");
