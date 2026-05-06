@@ -19,11 +19,10 @@ use crate::services::{
   entity_resolution_service::EntityResolutionService,
 };
 
+use crate::helpers::common::filter_deleted;
+
 fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
-  records
-    .into_iter()
-    .filter(|r| r.get("deleted_at").map(|v| v.is_null()).unwrap_or(true))
-    .collect()
+  filter_deleted(records)
 }
 
 pub struct ManageDbService {

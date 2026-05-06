@@ -271,9 +271,8 @@ impl RepositoryService {
     docs
   }
 
-  fn filter_out_deleted(&self, mut docs: Vec<Value>) -> Vec<Value> {
-    docs.retain(|doc| doc.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
-    docs
+  fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
+    crate::helpers::common::filter_deleted(docs)
   }
 
   async fn invalidate_cache(&self, table: &str) {
