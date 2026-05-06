@@ -126,6 +126,18 @@ export function existsById<T extends { id: string }>(entities: T[], id: string):
   return entities.some((entity) => entity.id === id);
 }
 
+export function groupByKey<T, K>(entities: T[], keyFn: (entity: T) => K): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const entity of entities) {
+    const key = keyFn(entity);
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(entity);
+  }
+  return map;
+}
+
 /**
  * Update entity in signal array by ID
  */
