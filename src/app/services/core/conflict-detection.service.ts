@@ -24,6 +24,9 @@ export interface Conflict {
 
 export type ConflictResolution = "local" | "remote" | "merge";
 
+const CONFLICT_TTL_MS = 10 * 60 * 1000;
+const MAX_CONFLICTS_SIZE = 100;
+
 @Injectable({
   providedIn: "root",
 })
@@ -32,6 +35,7 @@ export class ConflictDetectionService {
   private notifyService = inject(NotifyService);
 
   private conflicts = new Map<string, Conflict>();
+  private conflictTimestamps = new Map<string, number>();
   private conflictsSubject = new BehaviorSubject<Conflict[]>([]);
 
   getConflicts$(): Observable<Conflict[]> {
@@ -83,6 +87,7 @@ export class ConflictDetectionService {
     }
 
     if (remoteVersion < localVersion) {
+      this.enforceConflictLimits();
       const conflict: Conflict = {
         entityType,
         entityId,
@@ -95,6 +100,7 @@ export class ConflictDetectionService {
       };
 
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
+      this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
       this.conflictsSubject.next(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
@@ -104,6 +110,7 @@ export class ConflictDetectionService {
     const remoteTime = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
 
     if (Math.abs(localTime - remoteTime) < 2000 && localTime !== remoteTime) {
+      this.enforceConflictLimits();
       const conflict: Conflict = {
         entityType,
         entityId,
@@ -116,12 +123,33 @@ export class ConflictDetectionService {
       };
 
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
+      this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
       this.conflictsSubject.next(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
     }
 
     return false;
+  }
+
+  private enforceConflictLimits(): void {
+    const now = Date.now();
+    for (const [key, timestamp] of this.conflictTimestamps.entries()) {
+      if (now - timestamp > CONFLICT_TTL_MS) {
+        this.conflicts.delete(key);
+        this.conflictTimestamps.delete(key);
+      }
+    }
+    if (this.conflicts.size >= MAX_CONFLICTS_SIZE) {
+      const sortedKeys = Array.from(this.conflictTimestamps.entries())
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.conflicts.size - MAX_CONFLICTS_SIZE + 1)
+        .map(([key]) => key);
+      for (const key of sortedKeys) {
+        this.conflicts.delete(key);
+        this.conflictTimestamps.delete(key);
+      }
+    }
   }
 
   resolveConflict(
@@ -155,6 +183,7 @@ export class ConflictDetectionService {
 
     conflict.resolved = true;
     this.conflicts.delete(`${entityType}:${entityId}`);
+    this.conflictTimestamps.delete(`${entityType}:${entityId}`);
     this.conflictsSubject.next(this.getConflicts());
 
     this.notifyService.showSuccess("Conflict resolved");
@@ -172,6 +201,7 @@ export class ConflictDetectionService {
     conflicts.forEach((conflict) => {
       if (conflict.resolved) {
         this.conflicts.delete(`${conflict.entityType}:${conflict.entityId}`);
+        this.conflictTimestamps.delete(`${conflict.entityType}:${conflict.entityId}`);
       }
     });
     this.conflictsSubject.next(this.getConflicts());

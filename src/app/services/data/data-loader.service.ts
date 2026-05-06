@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, inject, signal, computed } from "@angular/core";
 import { Observable, of, catchError, switchMap } from "rxjs";
 import { Router } from "@angular/router";
 
@@ -22,12 +22,6 @@ import { UserValidationService } from "@services/auth/user-validation.service";
 
 import { DataService } from "@services/data/data.service";
 import { RequestService } from "@services/core/request.service";
-
-interface PaginationState {
-  skip: number;
-  limit: number;
-  hasMore: boolean;
-}
 
 @Injectable({
   providedIn: "root",
@@ -53,11 +47,11 @@ export class DataLoaderService {
   private commentsLoading = signal(false);
   private chatsLoading = signal(false);
 
-  private todosPagination = signal<PaginationState>({ skip: 0, limit: 20, hasMore: true });
-  private tasksPagination = signal<PaginationState>({ skip: 0, limit: 20, hasMore: true });
-  private subtasksPagination = signal<PaginationState>({ skip: 0, limit: 20, hasMore: true });
-  private commentsPagination = signal<PaginationState>({ skip: 0, limit: 20, hasMore: true });
-  private chatsPagination = signal<PaginationState>({ skip: 0, limit: 20, hasMore: true });
+  readonly hasMoreTodos = computed(() => this.storageService.hasMoreTodos);
+  readonly hasMoreTasks = computed(() => this.storageService.hasMoreTasks);
+  readonly hasMoreSubtasks = computed(() => this.storageService.hasMoreSubtasks);
+  readonly hasMoreComments = computed(() => this.storageService.hasMoreComments);
+  readonly hasMoreChats = computed(() => this.storageService.hasMoreChats);
 
   private currentTasksTodoId = signal<string | null>(null);
   private currentSubtasksTaskId = signal<string | null>(null);
@@ -96,7 +90,7 @@ export class DataLoaderService {
   ): Observable<Todo[]> {
     const skip = page * limit;
     this.todosLoading.set(true);
-    this.todosPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("todos");
 
     const userId = this.jwtTokenService.getCurrentUserId() || "";
     let filter: any;
@@ -127,11 +121,7 @@ export class DataLoaderService {
             append: !isFirstPage,
             resetPagination: isFirstPage,
           });
-          this.todosPagination.set({
-            skip: skip + loadedTodos.length,
-            limit,
-            hasMore: loadedTodos.length >= limit,
-          });
+          this.storageService.updatePagination("todos", skip, limit, loadedTodos.length);
           this.todosLoading.set(false);
           return of(loadedTodos);
         }),
@@ -143,11 +133,10 @@ export class DataLoaderService {
   }
 
   loadMoreTodosPage(visibility: string = "private"): Observable<Todo[]> {
-    const current = this.todosPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreTodos) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.todosPagination().skip;
+    const limit = this.storageService.todosPagination().limit;
 
     this.todosLoading.set(true);
 
@@ -172,11 +161,7 @@ export class DataLoaderService {
         switchMap((todos) => {
           const newItems = todos || [];
           this.storageService.setCollection("privateTodos", newItems, { append: true });
-          this.todosPagination.set({
-            skip: skip + newItems.length,
-            limit,
-            hasMore: newItems.length >= limit,
-          });
+          this.storageService.updatePagination("todos", skip, limit, newItems.length);
           this.todosLoading.set(false);
           return of(newItems);
         }),
@@ -204,7 +189,7 @@ export class DataLoaderService {
     this.currentTasksTodoId.set(todoId);
     const skip = page * limit;
     this.tasksLoading.set(true);
-    this.tasksPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("tasks");
 
     return this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
       switchMap((tasks) => {
@@ -214,11 +199,7 @@ export class DataLoaderService {
           append: !isFirstPage,
           resetPagination: isFirstPage,
         });
-        this.tasksPagination.set({
-          skip: skip + loadedTasks.length,
-          limit,
-          hasMore: loadedTasks.length >= limit,
-        });
+        this.storageService.updatePagination("tasks", skip, limit, loadedTasks.length);
         this.tasksLoading.set(false);
         return of(loadedTasks);
       }),
@@ -234,22 +215,17 @@ export class DataLoaderService {
       return this.loadTasksPage(todoId, visibility);
     }
 
-    const current = this.tasksPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreTasks) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.tasksPagination().skip;
+    const limit = this.storageService.tasksPagination().limit;
     this.tasksLoading.set(true);
 
     return this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
       switchMap((tasks) => {
         const newItems = tasks || [];
         this.storageService.setCollection("tasks", newItems, { append: true });
-        this.tasksPagination.set({
-          skip: skip + newItems.length,
-          limit,
-          hasMore: newItems.length >= limit,
-        });
+        this.storageService.updatePagination("tasks", skip, limit, newItems.length);
         this.tasksLoading.set(false);
         return of(newItems);
       }),
@@ -282,17 +258,13 @@ export class DataLoaderService {
 
     const cachedSubtasks = this.storageService.getSubtasksByTaskId(taskId);
     if (cachedSubtasks.length > 0 && page === 0) {
-      this.subtasksPagination.set({
-        skip: cachedSubtasks.length,
-        limit,
-        hasMore: false,
-      });
+      this.storageService.resetPagination("subtasks");
       return of(cachedSubtasks);
     }
 
     const skip = page * limit;
     this.subtasksLoading.set(true);
-    this.subtasksPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("subtasks");
 
     return this.requestService.getSubtasks(taskId, skip, limit).pipe(
       switchMap((subtasks) => {
@@ -302,11 +274,7 @@ export class DataLoaderService {
           append: !isFirstPage,
           resetPagination: isFirstPage,
         });
-        this.subtasksPagination.set({
-          skip: skip + loadedSubtasks.length,
-          limit,
-          hasMore: loadedSubtasks.length >= limit,
-        });
+        this.storageService.updatePagination("subtasks", skip, limit, loadedSubtasks.length);
         this.subtasksLoading.set(false);
         return of(loadedSubtasks);
       }),
@@ -322,22 +290,17 @@ export class DataLoaderService {
       return this.loadSubtasksPage(taskId, visibility);
     }
 
-    const current = this.subtasksPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreSubtasks) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.subtasksPagination().skip;
+    const limit = this.storageService.subtasksPagination().limit;
     this.subtasksLoading.set(true);
 
     return this.requestService.getSubtasks(taskId, skip, limit).pipe(
       switchMap((subtasks) => {
         const newItems = subtasks || [];
         this.storageService.setCollection("subtasks", newItems, { append: true });
-        this.subtasksPagination.set({
-          skip: skip + newItems.length,
-          limit,
-          hasMore: newItems.length >= limit,
-        });
+        this.storageService.updatePagination("subtasks", skip, limit, newItems.length);
         this.subtasksLoading.set(false);
         return of(newItems);
       }),
@@ -368,7 +331,7 @@ export class DataLoaderService {
   ): Observable<Comment[]> {
     const skip = page * limit;
     this.commentsLoading.set(true);
-    this.commentsPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("comments");
 
     return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
       switchMap((comments) => {
@@ -378,11 +341,7 @@ export class DataLoaderService {
           append: !isFirstPage,
           resetPagination: isFirstPage,
         });
-        this.commentsPagination.set({
-          skip: skip + loadedComments.length,
-          limit,
-          hasMore: loadedComments.length >= limit,
-        });
+        this.storageService.updatePagination("comments", skip, limit, loadedComments.length);
         this.commentsLoading.set(false);
         return of(loadedComments);
       }),
@@ -394,22 +353,17 @@ export class DataLoaderService {
   }
 
   loadMoreCommentsPage(taskId: string, visibility: string = "private"): Observable<Comment[]> {
-    const current = this.commentsPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreComments) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.commentsPagination().skip;
+    const limit = this.storageService.commentsPagination().limit;
     this.commentsLoading.set(true);
 
     return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
       switchMap((comments) => {
         const newItems = comments || [];
         this.storageService.setCollection("comments", newItems, { append: true });
-        this.commentsPagination.set({
-          skip: skip + newItems.length,
-          limit,
-          hasMore: newItems.length >= limit,
-        });
+        this.storageService.updatePagination("comments", skip, limit, newItems.length);
         this.commentsLoading.set(false);
         return of(newItems);
       }),
@@ -440,7 +394,7 @@ export class DataLoaderService {
   ): Observable<Comment[]> {
     const skip = page * limit;
     this.commentsLoading.set(true);
-    this.commentsPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("comments");
 
     return this.requestService.getComments(undefined, subtaskId, skip, limit).pipe(
       switchMap((comments) => {
@@ -450,11 +404,7 @@ export class DataLoaderService {
           append: !isFirstPage,
           resetPagination: isFirstPage,
         });
-        this.commentsPagination.set({
-          skip: skip + loadedComments.length,
-          limit,
-          hasMore: loadedComments.length >= limit,
-        });
+        this.storageService.updatePagination("comments", skip, limit, loadedComments.length);
         this.commentsLoading.set(false);
         return of(loadedComments);
       }),
@@ -469,22 +419,17 @@ export class DataLoaderService {
     subtaskId: string,
     visibility: string = "private"
   ): Observable<Comment[]> {
-    const current = this.commentsPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreComments) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.commentsPagination().skip;
+    const limit = this.storageService.commentsPagination().limit;
     this.commentsLoading.set(true);
 
     return this.requestService.getComments(undefined, subtaskId, skip, limit).pipe(
       switchMap((comments) => {
         const newItems = comments || [];
         this.storageService.setCollection("comments", newItems, { append: true });
-        this.commentsPagination.set({
-          skip: skip + newItems.length,
-          limit,
-          hasMore: newItems.length >= limit,
-        });
+        this.storageService.updatePagination("comments", skip, limit, newItems.length);
         this.commentsLoading.set(false);
         return of(newItems);
       }),
@@ -519,7 +464,7 @@ export class DataLoaderService {
     this.currentChatsTodoId.set(todoId);
     const skip = page * limit;
     this.chatsLoading.set(true);
-    this.chatsPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("chats");
 
     return this.requestService.getChats(todoId, skip, limit).pipe(
       switchMap((chats) => {
@@ -529,11 +474,7 @@ export class DataLoaderService {
           append: !isFirstPage,
           resetPagination: isFirstPage,
         });
-        this.chatsPagination.set({
-          skip: skip + loadedChats.length,
-          limit,
-          hasMore: loadedChats.length >= limit,
-        });
+        this.storageService.updatePagination("chats", skip, limit, loadedChats.length);
         this.chatsLoading.set(false);
         return of(loadedChats);
       }),
@@ -549,22 +490,17 @@ export class DataLoaderService {
       return this.loadChatsPage(todoId, visibility);
     }
 
-    const current = this.chatsPagination();
-    if (current.hasMore === false) return of([]);
+    if (!this.storageService.hasMoreChats) return of([]);
 
-    const skip = current.skip;
-    const limit = current.limit;
+    const skip = this.storageService.chatsPagination().skip;
+    const limit = this.storageService.chatsPagination().limit;
     this.chatsLoading.set(true);
 
     return this.requestService.getChats(todoId, skip, limit).pipe(
       switchMap((chats) => {
         const newItems = chats || [];
         this.storageService.setCollection("chats", newItems, { append: true });
-        this.chatsPagination.set({
-          skip: skip + newItems.length,
-          limit,
-          hasMore: newItems.length >= limit,
-        });
+        this.storageService.updatePagination("chats", skip, limit, newItems.length);
         this.chatsLoading.set(false);
         return of(newItems);
       }),

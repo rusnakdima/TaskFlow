@@ -1,6 +1,6 @@
 /* sys lib */
-import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
-import { Subject, filter, take } from "rxjs";
+import { Injectable, inject, signal, computed, OnDestroy, DestroyRef } from "@angular/core";
+import { interval, Subject, filter, take, takeUntil } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 /* services */
@@ -49,9 +49,11 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 })
 export class NotifyService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
+  private destroyRef = inject(DestroyRef);
 
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
+  private destroy$ = new Subject<void>();
 
   // Notification state
   private notificationsSignal = signal<NotificationAction[]>([]);
@@ -62,7 +64,10 @@ export class NotifyService implements OnDestroy {
   private settingsSignal = signal<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Track recent comment events to suppress duplicate task updates
-  private recentCommentEvents = new Map<string, number>();
+  private recentCommentEventsSignal = signal<Map<string, number>>(new Map());
+
+  // Cleanup interval subscription
+  private cleanupSubscription: any = null;
 
   // Audio context for playing notification sounds
   private audioContext: AudioContext | null = null;
@@ -81,15 +86,22 @@ export class NotifyService implements OnDestroy {
 
   constructor() {
     this.loadSettings();
-    // Clean up old comment events every 5 seconds
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, timestamp] of this.recentCommentEvents.entries()) {
-        if (now - timestamp > 2000) {
-          this.recentCommentEvents.delete(key);
+    this.cleanupSubscription = interval(5000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.cleanupOldEvents());
+  }
+
+  private cleanupOldEvents(): void {
+    const now = Date.now();
+    this.recentCommentEventsSignal.update((events) => {
+      const filtered = new Map<string, number>();
+      for (const [key, timestamp] of events.entries()) {
+        if (now - timestamp <= 2000) {
+          filtered.set(key, timestamp);
         }
       }
-    }, 5000);
+      return filtered;
+    });
   }
 
   private async fetchEntityTitle(table: string, id: string): Promise<string> {
@@ -387,8 +399,9 @@ export class NotifyService implements OnDestroy {
 
     // Skip task updates caused by comments
     if (action === "updated" && type === "task" && data.id) {
-      if (this.recentCommentEvents.has(data.id)) {
-        const timestamp = this.recentCommentEvents.get(data.id)!;
+      const events = this.recentCommentEventsSignal();
+      if (events.has(data.id)) {
+        const timestamp = events.get(data.id)!;
         if (Date.now() - timestamp < 2000) {
           return;
         }
@@ -407,7 +420,11 @@ export class NotifyService implements OnDestroy {
   ): void {
     // Track comment events for task update suppression
     if (type === "comment" && action === "created" && data.task_id) {
-      this.recentCommentEvents.set(data.task_id, Date.now());
+      this.recentCommentEventsSignal.update((events) => {
+        const newEvents = new Map(events);
+        newEvents.set(data.task_id, Date.now());
+        return newEvents;
+      });
     }
 
     const todoId = data.todo_id;
@@ -681,6 +698,12 @@ export class NotifyService implements OnDestroy {
   // ==================== CLEANUP ====================
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.cleanupSubscription) {
+      this.cleanupSubscription.unsubscribe();
+      this.cleanupSubscription = null;
+    }
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;
