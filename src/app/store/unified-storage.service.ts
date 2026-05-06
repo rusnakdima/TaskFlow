@@ -1257,13 +1257,34 @@ export class UnifiedStorageService extends BaseStorageService {
         }
         break;
       case "privateTodos":
-        this.privateTodosSignal.set(items as Todo[]);
+        this.privateTodosSignal.update((existing) => {
+          const newItems = items as Todo[];
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of newItems) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         break;
       case "sharedTodos":
-        this.sharedTodosSignal.set(items as Todo[]);
+        this.sharedTodosSignal.update((existing) => {
+          const newItems = items as Todo[];
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of newItems) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         break;
       case "publicTodos":
-        this.publicTodosSignal.set(items as Todo[]);
+        this.publicTodosSignal.update((existing) => {
+          const newItems = items as Todo[];
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of newItems) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         break;
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);
