@@ -1,4 +1,4 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 import { Response } from "@models/response.model";
@@ -15,8 +15,18 @@ import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
-  private requestService = inject(RequestService);
-  private storageService = inject(UnifiedStorageService);
+  private _requestService: RequestService | null = null;
+  private _storageService: UnifiedStorageService | null = null;
+  private _injector = inject(Injector);
+
+  private get requestService(): RequestService {
+    if (!this._requestService) this._requestService = this._injector.get(RequestService);
+    return this._requestService;
+  }
+  private get storageService(): UnifiedStorageService {
+    if (!this._storageService) this._storageService = this._injector.get(UnifiedStorageService);
+    return this._storageService;
+  }
 
   isOffline(): boolean {
     return this.requestService.isOffline();

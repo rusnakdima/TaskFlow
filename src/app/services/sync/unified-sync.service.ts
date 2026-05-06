@@ -374,15 +374,8 @@ export class UnifiedSyncService implements OnDestroy {
     }
   }
 
-  syncAll(): Observable<Response<any>> {
-    return this.exportToCloudObservable().pipe(
-      switchMap((exportResult) => {
-        if (exportResult.status !== ResponseStatus.SUCCESS) {
-          return of(exportResult);
-        }
-        return this.importFromCloudObservable();
-      })
-    );
+  syncAll<R>(): Promise<Response<R>> {
+    return this.syncAllWithProgress<R>();
   }
 
   syncAllWithProgress<R>(): Promise<Response<R>> {
@@ -539,3 +532,7 @@ export class UnifiedSyncService implements OnDestroy {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
+
+// Aliases for backwards compatibility with old imports
+export const DataSyncService = UnifiedSyncService;
+export const SyncService = UnifiedSyncService;
