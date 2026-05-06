@@ -172,17 +172,17 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
             return c;
           });
 
-          this.dataService.updateSubtask(this.subtask.id, {
+          this.storageService.updateItem("subtasks", this.subtask.id, {
             ...this.subtask,
           });
 
           const effectiveTodoId: string | null = this.todo_id;
           if (!effectiveTodoId && this.subtask.task_id) {
-            this.dataService.getTask(this.subtask.task_id).subscribe((task) => {
-              if (task?.todo_id) {
-                this.handleCommentsRead(updatedComments, task.todo_id, userId);
-              }
-            });
+            const taskReactive = this.storageService.getTaskReactive(this.subtask.task_id);
+            const task = taskReactive();
+            if (task?.todo_id) {
+              this.handleCommentsRead(updatedComments, task.todo_id, userId);
+            }
           } else if (effectiveTodoId) {
             this.handleCommentsRead(updatedComments, effectiveTodoId, userId);
           }
@@ -220,12 +220,12 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     let effectiveTodoId: string | null = this.todo_id;
 
     if (!effectiveTodoId && this.subtask.task_id) {
-      this.dataService.getTask(this.subtask.task_id).subscribe((task) => {
-        if (task?.todo_id) {
-          effectiveTodoId = task.todo_id;
-          this.createComment(content, effectiveTodoId);
-        }
-      });
+      const taskReactive = this.storageService.getTaskReactive(this.subtask.task_id);
+      const task = taskReactive();
+      if (task?.todo_id) {
+        effectiveTodoId = task.todo_id;
+        this.createComment(content, effectiveTodoId);
+      }
     } else if (effectiveTodoId) {
       this.createComment(content, effectiveTodoId);
     }
@@ -260,12 +260,12 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     let effectiveTodoId: string | null = this.todo_id;
 
     if (!effectiveTodoId && this.subtask?.task_id) {
-      this.dataService.getTask(this.subtask.task_id).subscribe((task) => {
-        if (task?.todo_id) {
-          effectiveTodoId = task.todo_id;
-          this.deleteComment(commentId, effectiveTodoId);
-        }
-      });
+      const taskReactive = this.storageService.getTaskReactive(this.subtask.task_id);
+      const task = taskReactive();
+      if (task?.todo_id) {
+        effectiveTodoId = task.todo_id;
+        this.deleteComment(commentId, effectiveTodoId);
+      }
     } else if (effectiveTodoId) {
       this.deleteComment(commentId, effectiveTodoId);
     }

@@ -131,13 +131,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   ngOnInit() {
     const todoId = this.todo_id || this.task?.todo_id;
     if (todoId) {
-      this.dataService
-        .getTodo(todoId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (todo) => this.todoSignal.set(todo),
-          error: () => this.todoSignal.set(null),
-        });
+      this.todoSignal = this.storageService.getTodoReactive(todoId);
     }
 
     effect(() => {
