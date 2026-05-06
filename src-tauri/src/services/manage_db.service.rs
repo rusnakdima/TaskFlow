@@ -287,20 +287,20 @@ impl ManageDbService {
     })
   }
 
-  /// Check if MongoDB is connected (with fail-fast timeout)
+  /// Check if MongoDB is connected
+  /// Note: This returns true if provider exists. Actual connectivity is verified
+  /// asynchronously in check_mongodb_connection command.
   pub fn is_mongodb_connected(&self) -> bool {
+    self.mongodb_provider.is_some()
+  }
+
+  /// Async check if MongoDB is connected (uses existing runtime)
+  pub async fn check_mongodb_connection_async(&self) -> bool {
     match &self.mongodb_provider {
       Some(provider) => {
-        // Try to execute a simple operation with a short timeout to check connectivity
-        // This ensures we don't block for 30+ seconds when MongoDB is unreachable
-        let rt = tokio::runtime::Runtime::new();
-        if let Ok(rt) = rt {
-          let result = rt.block_on(async {
-            tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await
-          });
-          result.is_ok()
-        } else {
-          false
+        match tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await {
+          Ok(Ok(_)) => true,
+          _ => false,
         }
       }
       None => false,
