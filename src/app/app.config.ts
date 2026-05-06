@@ -6,9 +6,9 @@ import { provideNativeDateAdapter } from "@angular/material/core";
 
 /* app */
 import { routes } from "@app/app.routes";
-import { DataSyncService } from "@services/data/data-sync.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
-function initializeDataSync(dataSyncService: DataSyncService) {
+function initializeDataSync(dataSyncService: UnifiedSyncService) {
   return () => dataSyncService.initTauriListeners();
 }
 
@@ -17,11 +17,11 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideNativeDateAdapter(),
     provideHttpClient(),
-    DataSyncService,
+    UnifiedSyncService,
     {
       provide: APP_INITIALIZER,
       useFactory: initializeDataSync,
-      deps: [DataSyncService],
+      deps: [UnifiedSyncService],
       multi: true,
     },
   ],

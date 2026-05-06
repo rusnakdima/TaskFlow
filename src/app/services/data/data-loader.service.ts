@@ -19,6 +19,7 @@ import { RelationLoadingService } from "@services/core/relation-loading.service"
 import { NotifyService } from "@services/notifications/notify.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 import { DataService } from "@services/data/data.service";
 import { RequestService } from "@services/core/request.service";
@@ -34,6 +35,7 @@ export class DataLoaderService {
   private notifyService = inject(NotifyService);
   private profileRequiredService = inject(ProfileRequiredService);
   private router = inject(Router);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   private dataService = inject(DataService);
   private requestService = inject(RequestService);
@@ -96,9 +98,15 @@ export class DataLoaderService {
     let filter: any;
 
     if (visibility === "all") {
-      filter = {
-        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
-      };
+      // Check if MongoDB is connected - if not, only load private todos from JSON
+      if (!this.mongoConnectionService.isConnected()) {
+        filter = { user_id: userId };
+        this.notifyService.showWarning("MongoDB unavailable - showing only private todos");
+      } else {
+        filter = {
+          $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
+        };
+      }
     } else if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
@@ -144,6 +152,11 @@ export class DataLoaderService {
     let filter: any;
 
     if (visibility === "all") {
+      // Check if MongoDB is connected - if not, stop loading (only private todos were loaded initially)
+      if (!this.mongoConnectionService.isConnected()) {
+        this.todosLoading.set(false);
+        return of([]);
+      }
       filter = {
         $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
       };

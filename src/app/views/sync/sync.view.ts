@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { SyncService } from "@services/data/sync.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 @Component({
@@ -22,7 +22,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 })
 export class SyncView {
   constructor(
-    private syncService: SyncService,
+    private syncService: UnifiedSyncService,
     private notifyService: NotifyService
   ) {}
 

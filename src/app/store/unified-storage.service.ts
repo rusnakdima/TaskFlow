@@ -1,5 +1,13 @@
 /* sys lib */
-import { Injectable, inject, signal, computed, Signal, WritableSignal } from "@angular/core";
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  Signal,
+  WritableSignal,
+  Injector,
+} from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, map, catchError } from "rxjs/operators";
 
@@ -56,11 +64,6 @@ const MAX_CACHE_SIZE = 100;
 
 @Injectable({ providedIn: "root" })
 export class UnifiedStorageService extends BaseStorageService {
-  private readonly notifyService = inject(NotifyService);
-  private readonly adminService = inject(AdminService);
-  private readonly adminDataService = inject(AdminDataService);
-  private readonly cascadeService = inject(CascadeService);
-
   // ==================== CORE DATA SIGNALS ====================
   protected readonly privateTodosSignal = signal<Todo[]>([]);
   protected readonly sharedTodosSignal = signal<Todo[]>([]);
@@ -76,6 +79,34 @@ export class UnifiedStorageService extends BaseStorageService {
   protected readonly userSignal = signal<User | null>(null);
   protected readonly usersSignal = signal<User[]>([]);
   protected readonly dailyActivitiesSignal = signal<any[]>([]);
+
+  // ==================== DEPENDENCIES (lazy injection to avoid circular DI) ====================
+  private _notifyService: NotifyService | null = null;
+  private _adminService: AdminService | null = null;
+  private _adminDataService: AdminDataService | null = null;
+  private _cascadeService: CascadeService | null = null;
+  private _injector = inject(Injector);
+
+  private get notifyService(): NotifyService {
+    if (!this._notifyService) this._notifyService = this._injector.get(NotifyService);
+    return this._notifyService;
+  }
+  private get adminService(): AdminService {
+    if (!this._adminService) this._adminService = this._injector.get(AdminService);
+    return this._adminService;
+  }
+  private get adminDataService(): AdminDataService {
+    if (!this._adminDataService) this._adminDataService = this._injector.get(AdminDataService);
+    return this._adminDataService;
+  }
+  private get cascadeService(): CascadeService {
+    if (!this._cascadeService) this._cascadeService = this._injector.get(CascadeService);
+    return this._cascadeService;
+  }
+
+  constructor() {
+    super();
+  }
 
   // ==================== MAP-BASED O(1) LOOKUPS ====================
   readonly todoMap = computed(() => new Map(this.allActiveTodos().map((t) => [t.id, t])));
@@ -1480,5 +1511,3 @@ export class UnifiedStorageService extends BaseStorageService {
     );
   }
 }
-
-export const unifiedStorageService = new UnifiedStorageService();

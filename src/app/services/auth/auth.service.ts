@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, Injector } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, take, catchError } from "rxjs/operators";
 
@@ -30,15 +30,53 @@ import { Router } from "@angular/router";
   providedIn: "root",
 })
 export class AuthService {
-  private dataSyncProvider = inject(ApiProvider);
-  private jwtTokenService = inject(JwtTokenService);
+  // ==================== LAZY INJECTION (to avoid circular DI) ====================
+  private _dataSyncProvider: ApiProvider | null = null;
+  private _jwtTokenService: JwtTokenService | null = null;
+  private _dataSyncService: DataLoaderService | null = null;
+  private _profileRequiredService: ProfileRequiredService | null = null;
+  private _dataService: DataService | null = null;
+  private _notifyService: NotifyService | null = null;
+  private _router: Router | null = null;
+  private _userValidationService: UserValidationService | null = null;
+  private _injector = inject(Injector);
 
-  private dataSyncService = inject(DataLoaderService);
-  private profileRequiredService = inject(ProfileRequiredService);
-  private dataService = inject(DataService);
-  private notifyService = inject(NotifyService);
-  private router = inject(Router);
-  private userValidationService = inject(UserValidationService);
+  private get dataSyncProvider(): ApiProvider {
+    if (!this._dataSyncProvider) this._dataSyncProvider = this._injector.get(ApiProvider);
+    return this._dataSyncProvider;
+  }
+  private get jwtTokenService(): JwtTokenService {
+    if (!this._jwtTokenService) this._jwtTokenService = this._injector.get(JwtTokenService);
+    return this._jwtTokenService;
+  }
+  private get dataSyncService(): DataLoaderService {
+    if (!this._dataSyncService) this._dataSyncService = this._injector.get(DataLoaderService);
+    return this._dataSyncService;
+  }
+  private get profileRequiredService(): ProfileRequiredService {
+    if (!this._profileRequiredService)
+      this._profileRequiredService = this._injector.get(ProfileRequiredService);
+    return this._profileRequiredService;
+  }
+  private get dataService(): DataService {
+    if (!this._dataService) this._dataService = this._injector.get(DataService);
+    return this._dataService;
+  }
+  private get notifyService(): NotifyService {
+    if (!this._notifyService) this._notifyService = this._injector.get(NotifyService);
+    return this._notifyService;
+  }
+  private get router(): Router {
+    if (!this._router) this._router = this._injector.get(Router);
+    return this._router;
+  }
+  private get userValidationService(): UserValidationService {
+    if (!this._userValidationService)
+      this._userValidationService = this._injector.get(UserValidationService);
+    return this._userValidationService;
+  }
+
+  constructor() {}
 
   /**
    * Check if token is valid on backend
