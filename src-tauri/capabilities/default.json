@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "core:window:allow-get-all-windows",
-    "core:webview:default"
+    "core:webview:default",
+    "mcp-bridge:default"
   ]
 }
