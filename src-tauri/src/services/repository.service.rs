@@ -62,9 +62,15 @@ impl RepositoryService {
     } else {
       match self.mongodb_provider.as_ref() {
         Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
-        None => Err(err_response(
-          "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
-        )),
+        None => {
+          if visibility == Some("all") {
+            Ok(DataProvider::Json(&self.json_provider))
+          } else {
+            Err(err_response(
+              "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
+            ))
+          }
+        }
       }
     }
   }
@@ -350,21 +356,26 @@ impl RepositoryService {
 
     let load_paths = Self::parse_load_param(load);
 
-    let docs = match provider.find_many(&table, filter_opt.as_ref()).await {
-      Ok(docs) => docs,
+    let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
+      Ok(docs) => (docs, false),
       Err(e) => {
         println!(
           "[RepositoryService] MongoDB find_many failed: {:?}, falling back to JSON provider",
           e
         );
         let json_provider = DataProvider::Json(&self.json_provider);
-        json_provider.find_many(&table, filter_opt.as_ref()).await?
+        let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
+        (docs, true)
       }
     };
-    println!("[RepositoryService] find_many returned {} docs", docs.len());
+    println!(
+      "[RepositoryService] find_many returned {} docs (json_fallback={})",
+      docs.len(),
+      used_json_fallback
+    );
 
     let docs = if !load_paths.is_empty() {
-      if matches!(provider, DataProvider::Mongo(_)) {
+      if matches!(provider, DataProvider::Mongo(_)) && !used_json_fallback {
         if let Some(ref mongo) = self.mongodb_provider {
           self
             .load_relations_for_get_all(docs, &table, &load_paths, mongo.as_ref().clone())
@@ -383,7 +394,14 @@ impl RepositoryService {
       docs
     };
 
-    let docs = self.filter_out_deleted(docs);
+    // Only filter deleted when using MongoDB directly
+    // JSON data (including fallback and direct JSON for "all" visibility) should not be filtered
+    // because JSON provider already filters deleted records internally
+    let docs = if used_json_fallback || use_json {
+      docs
+    } else {
+      self.filter_out_deleted(docs)
+    };
     println!(
       "[RepositoryService] handle_get_all END: returning {} docs",
       docs.len()
