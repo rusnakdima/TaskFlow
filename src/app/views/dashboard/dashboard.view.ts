@@ -1,19 +1,19 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, inject, signal, computed, DestroyRef } from "@angular/core";
+import { Component, OnInit, inject, computed, DestroyRef } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
+import { StorageService } from "@services/core/storage.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -41,17 +41,50 @@ export class DashboardView implements OnInit {
   public TaskStatus = TaskStatus;
 
   private authService = inject(AuthService);
-  private dataService = inject(DataService);
+  private dataLoaderService = inject(DataLoaderService);
+  private storageService = inject(StorageService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
-  profile = signal<Profile | null>(null);
+  profile: () => Profile | null;
   userId = "";
 
-  private allTasksData = signal<DisplayTask[]>([]);
+  private allTasksData = computed<DisplayTask[]>(() => {
+    const userId = this.userId;
+    const currentTodos = this.storageService.todos();
+    const currentTasks = this.storageService.tasks();
 
-  private todos = signal<Todo[]>([]);
-  private tasks = signal<Task[]>([]);
+    const taskData: { task: Task; todo: any }[] = [];
+    currentTodos.forEach((todo) => {
+      if (!todo.deleted_at) {
+        const tasksForTodo = currentTasks.filter((t) => t.todo_id === todo.id);
+        tasksForTodo.forEach((task) => {
+          if (!task.deleted_at) {
+            taskData.push({ task, todo });
+          }
+        });
+      }
+    });
+
+    return taskData
+      .map((item) => ({
+        id: item.task.id,
+        title: item.task.title,
+        description: item.task.description,
+        status: item.task.status,
+        dueDate: item.task.end_date,
+        created_at: item.task.created_at,
+        updated_at: item.task.updated_at,
+        todo_id: item.todo.id,
+        isPrivate: item.todo.visibility === "private",
+        isOwner: item.todo.user_id === userId,
+      }))
+      .sort((a, b) => {
+        const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
+        const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
+        return bTime - aTime;
+      });
+  });
 
   totalTasks = computed(() => this.allTasksData().length);
   completedTasks = computed(
@@ -96,68 +129,13 @@ export class DashboardView implements OnInit {
       });
   });
 
-  ngOnInit(): void {
-    this.userId = this.authService.getValueByKey("id");
-
-    const todoSub = this.dataService.todos$.subscribe((todos) => {
-      this.todos.set(todos);
-      this.updateTasksData();
-    });
-    this.destroyRef.onDestroy(() => todoSub.unsubscribe());
-
-    const taskSub = this.dataService.tasks$.subscribe((tasks) => {
-      this.tasks.set(tasks);
-      this.updateTasksData();
-    });
-    this.destroyRef.onDestroy(() => taskSub.unsubscribe());
-
-    const profileSub = this.dataService.profile$.subscribe((profile) => {
-      this.profile.set(profile);
-    });
-    this.destroyRef.onDestroy(() => profileSub.unsubscribe());
-
-    this.dataService.getTodos({ visibility: "all" }).subscribe();
-    this.dataService.getTasks().subscribe();
-    this.dataService.getProfile().subscribe();
+  constructor() {
+    this.profile = this.storageService.profile;
   }
 
-  private updateTasksData(): void {
-    const userId = this.userId;
-    const currentTodos = this.todos();
-    const currentTasks = this.tasks();
-
-    const taskData: { task: Task; todo: Todo }[] = [];
-    currentTodos.forEach((todo) => {
-      if (!todo.deleted_at) {
-        const tasksForTodo = currentTasks.filter((t) => t.todo_id === todo.id);
-        tasksForTodo.forEach((task) => {
-          if (!task.deleted_at) {
-            taskData.push({ task, todo });
-          }
-        });
-      }
-    });
-
-    const mappedTasks = taskData
-      .map((item) => ({
-        id: item.task.id,
-        title: item.task.title,
-        description: item.task.description,
-        status: item.task.status,
-        dueDate: item.task.end_date,
-        created_at: item.task.created_at,
-        updated_at: item.task.updated_at,
-        todo_id: item.todo.id,
-        isPrivate: item.todo.visibility === "private",
-        isOwner: item.todo.user_id === userId,
-      }))
-      .sort((a, b) => {
-        const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
-        const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
-        return bTime - aTime;
-      });
-
-    this.allTasksData.set(mappedTasks);
+  ngOnInit(): void {
+    this.userId = this.authService.getValueByKey("id");
+    this.dataLoaderService.loadAllData().subscribe();
   }
 
   getCircleColor(status: TaskStatus): string {
