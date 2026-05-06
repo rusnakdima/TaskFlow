@@ -6,6 +6,7 @@ use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("pending_requests")]
+#[allow(dead_code)]
 pub struct PendingRequestEntity {
   pub id: Option<String>,
   pub operation: String,
@@ -21,45 +22,4 @@ pub struct PendingRequestEntity {
   pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl PendingRequestEntity {
-  #[allow(dead_code)]
-  pub fn new(
-    operation: String,
-    table: String,
-    record_id: Option<String>,
-    data: Option<serde_json::Value>,
-    filter: Option<serde_json::Value>,
-    sync_metadata: Option<serde_json::Value>,
-  ) -> Self {
-    let now = chrono::Utc::now();
-    Self {
-      id: None,
-      operation,
-      table,
-      record_id,
-      data,
-      filter,
-      sync_metadata,
-      status: "pending".to_string(),
-      retry_count: 0,
-      error_message: None,
-      created_at: Some(now),
-      updated_at: Some(now),
-    }
-  }
-
-  #[allow(dead_code)]
-  pub fn is_write_operation(&self) -> bool {
-    matches!(
-      self.operation.as_str(),
-      "create"
-        | "update"
-        | "delete"
-        | "permanent-delete"
-        | "soft-delete-cascade"
-        | "restore-cascade"
-        | "restore"
-        | "updateAll"
-    )
-  }
-}
+impl PendingRequestEntity {}
