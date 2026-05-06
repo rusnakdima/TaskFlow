@@ -34,7 +34,7 @@ use routes::{
   github_route::{
     github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
-    github_start_device_flow,
+    github_start_device_flow, github_update_issue,
   },
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_admin_data_paginated, get_all_data_for_admin,
@@ -209,6 +209,7 @@ pub fn run() {
         config_helper.jwt_secret.clone(),
         config_helper.rp_domain.clone(),
         Some(auth_data_sync_service.clone()),
+        profile_sync_unified_service.as_ref().clone(),
       ));
 
       let totp_service = Arc::new(AuthTotpService::new(
@@ -319,7 +320,8 @@ pub fn run() {
       github_create_issue,
       github_create_comment,
       github_start_device_flow,
-      github_check_device_flow
+      github_check_device_flow,
+      github_update_issue
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

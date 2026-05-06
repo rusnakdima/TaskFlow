@@ -8,7 +8,7 @@ use crate::entities::profile_entity::ProfileEntity;
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("users")]
 #[soft_delete]
 #[timestamp]

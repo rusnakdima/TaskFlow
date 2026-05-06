@@ -349,10 +349,20 @@ impl RepositoryService {
     let provider = self.get_provider(&table, visibility.as_deref())?;
     println!("[RepositoryService] provider selected");
 
-    let docs = provider.find_many(&table, filter_opt.as_ref()).await?;
-    println!("[RepositoryService] find_many returned {} docs", docs.len());
-
     let load_paths = Self::parse_load_param(load);
+
+    let docs = match provider.find_many(&table, filter_opt.as_ref()).await {
+      Ok(docs) => docs,
+      Err(e) => {
+        println!(
+          "[RepositoryService] MongoDB find_many failed: {:?}, falling back to JSON provider",
+          e
+        );
+        let json_provider = DataProvider::Json(&self.json_provider);
+        json_provider.find_many(&table, filter_opt.as_ref()).await?
+      }
+    };
+    println!("[RepositoryService] find_many returned {} docs", docs.len());
 
     let docs = if !load_paths.is_empty() {
       if matches!(provider, DataProvider::Mongo(_)) {
@@ -361,7 +371,9 @@ impl RepositoryService {
             .load_relations_for_get_all(docs, &table, &load_paths, mongo.as_ref().clone())
             .await?
         } else {
-          docs
+          self
+            .load_relations_for_get_all(docs, &table, &load_paths, self.json_provider.clone())
+            .await?
         }
       } else {
         self

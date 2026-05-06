@@ -34,6 +34,7 @@ pub struct AuthTokenService {
   pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub jwt_secret: String,
   pub auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
+  pub profile_sync_service: ProfileSyncUnifiedService,
 }
 
 impl AuthTokenService {
@@ -42,12 +43,14 @@ impl AuthTokenService {
     mongodb_provider: Option<Arc<MongoProvider>>,
     jwt_secret: String,
     auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
+    profile_sync_service: ProfileSyncUnifiedService,
   ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
       jwt_secret,
       auth_data_sync_service,
+      profile_sync_service,
     }
   }
 
@@ -100,9 +103,8 @@ impl AuthTokenService {
         let _ = sync_service.on_user_login(&user_id).await;
       }
 
-      let profile_sync_service =
-        ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
-      let profile = profile_sync_service
+      let profile = self
+        .profile_sync_service
         .get_profile(&user_id)
         .await
         .ok()
@@ -154,9 +156,8 @@ impl AuthTokenService {
           let _ = sync_service.on_user_login(&user_id).await;
         }
 
-        let profile_sync_service =
-          ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
-        let profile = profile_sync_service
+        let profile = self
+          .profile_sync_service
           .get_profile(&user_id)
           .await
           .ok()

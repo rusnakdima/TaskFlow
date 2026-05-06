@@ -28,6 +28,7 @@ pub struct AuthLoginService {
   pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub token_service: Arc<AuthTokenService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
+  pub profile_sync_service: ProfileSyncUnifiedService,
 }
 
 impl AuthLoginService {
@@ -36,12 +37,14 @@ impl AuthLoginService {
     mongodb_provider: Option<Arc<MongoProvider>>,
     token_service: Arc<AuthTokenService>,
     auth_data_sync_service: Arc<AuthDataSyncService>,
+    profile_sync_service: ProfileSyncUnifiedService,
   ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
       token_service,
       auth_data_sync_service,
+      profile_sync_service,
     }
   }
 
@@ -69,9 +72,8 @@ impl AuthLoginService {
 
     let _ = self.auth_data_sync_service.on_user_login(&user_id).await;
 
-    let profile_sync_service =
-      ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
-    let profile = profile_sync_service
+    let profile = self
+      .profile_sync_service
       .get_profile(&user_id)
       .await
       .ok()

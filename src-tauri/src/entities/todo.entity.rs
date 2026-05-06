@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use nosql_orm::Model;
 use nosql_orm::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("todos")]
 #[soft_delete]
 #[timestamp]

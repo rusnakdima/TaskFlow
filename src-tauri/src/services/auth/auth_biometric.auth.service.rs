@@ -132,12 +132,14 @@ impl AuthBiometricService {
       return Err(err_response("Biometric already enabled"));
     }
 
-    let mut updated_user = user.clone();
-    updated_user.passkey_credential_id = credential_id.to_string();
-    updated_user.passkey_public_key = public_key.to_string();
-    updated_user.passkey_device = "platform".to_string();
-    updated_user.biometric_enabled = true;
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      passkey_credential_id: credential_id.to_string(),
+      passkey_public_key: public_key.to_string(),
+      passkey_device: "platform".to_string(),
+      biometric_enabled: true,
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 
@@ -184,9 +186,11 @@ impl AuthBiometricService {
       return Err(err_response("Biometric not enabled"));
     }
 
-    let mut updated_user = user.clone();
-    updated_user.biometric_enabled = false;
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      biometric_enabled: false,
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 

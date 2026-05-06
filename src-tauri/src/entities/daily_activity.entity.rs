@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use nosql_orm::Model;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("daily_activities")]
 #[many_to_one("user", "users", "user_id")]
 #[timestamp]

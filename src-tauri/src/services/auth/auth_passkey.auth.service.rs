@@ -128,13 +128,15 @@ impl AuthPasskeyService {
 
     let user = self.find_user(username).await?;
 
-    let mut updated_user = user.clone();
-    updated_user.passkey_credential_id = BASE64URL.encode(passkey.cred_id());
-    updated_user.passkey_public_key = serde_json::to_string(&passkey)
-      .map_err(|e| err_response(&format!("Failed to serialize credential: {}", e)))?;
-    updated_user.passkey_device = "cross-platform".to_string();
-    updated_user.passkey_enabled = true;
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      passkey_credential_id: BASE64URL.encode(passkey.cred_id()),
+      passkey_public_key: serde_json::to_string(&passkey)
+        .map_err(|e| err_response(&format!("Failed to serialize credential: {}", e)))?,
+      passkey_device: "cross-platform".to_string(),
+      passkey_enabled: true,
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 
@@ -235,13 +237,16 @@ impl AuthPasskeyService {
       .map_err(|e| err_response(&format!("Authentication verification failed: {}", e)))?;
 
     let user = self.find_user(username).await?;
+    let user_id = user.id().to_string();
 
-    let mut updated_user = user.clone();
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 
-    let profile = self.check_profile_exists(user.id()).await.ok().flatten();
+    let profile = self.check_profile_exists(&user_id).await.ok().flatten();
     let needs_profile = profile.is_none();
 
     Ok(ResponseModel {
@@ -264,12 +269,14 @@ impl AuthPasskeyService {
       return Err(err_response("Passkey not enabled"));
     }
 
-    let mut updated_user = user.clone();
-    updated_user.passkey_credential_id = String::new();
-    updated_user.passkey_public_key = String::new();
-    updated_user.passkey_device = String::new();
-    updated_user.passkey_enabled = false;
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      passkey_credential_id: String::new(),
+      passkey_public_key: String::new(),
+      passkey_device: String::new(),
+      passkey_enabled: false,
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 
