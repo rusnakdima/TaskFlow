@@ -124,15 +124,11 @@
                     class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                     [class]="
                       field.getChipColor
-                        ? field.getChipColor(formatValue(item, field))
+                        ? field.getChipColor(item)
                         : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     "
                   >
-                    {{
-                      field.getChipText
-                        ? field.getChipText(formatValue(item, field))
-                        : formatValue(item, field)
-                    }}
+                    {{ field.getChipText ? field.getChipText(item) : formatValue(item, field) }}
                   </span>
                 }
                 @case ("priority") {

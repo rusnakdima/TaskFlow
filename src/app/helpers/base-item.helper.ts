@@ -7,6 +7,14 @@ import { Subtask } from "@models/subtask.model";
 /* helpers */
 import { DateHelper } from "./date.helper";
 
+/* constants */
+import {
+  PRIORITY_COLORS,
+  STATUS_COLORS,
+  STATUS_ICONS,
+  STATUS_COLUMN_COLORS,
+} from "../constants/table-field.constants";
+
 /**
  * Base helper for item components (Task, Subtask, Todo)
  * Provides common methods for status/priority handling
@@ -16,35 +24,17 @@ export class BaseItemHelper {
    * Get status color class
    */
   static getStatusColor(status: string): string {
-    switch (status) {
-      case TaskStatus.COMPLETED:
-        return "text-green-600 dark:text-green-400";
-      case TaskStatus.SKIPPED:
-        return "text-orange-600 dark:text-orange-400";
-      case TaskStatus.FAILED:
-        return "text-red-600 dark:text-red-400";
-      case TaskStatus.PENDING:
-      default:
-        return "text-gray-400";
-    }
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS[TaskStatus.PENDING];
   }
 
   /**
    * Get column color class based on status (Kanban specific)
    */
   static getColumnColorClass(status: string): string {
-    switch (status) {
-      case TaskStatus.PENDING:
-        return "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700";
-      case TaskStatus.COMPLETED:
-        return "bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700";
-      case TaskStatus.SKIPPED:
-        return "bg-linear-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700";
-      case TaskStatus.FAILED:
-        return "bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700";
-      default:
-        return "bg-linear-to-r from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700";
-    }
+    return (
+      STATUS_COLUMN_COLORS[status as keyof typeof STATUS_COLUMN_COLORS] ||
+      STATUS_COLUMN_COLORS[TaskStatus.PENDING]
+    );
   }
 
   /**
@@ -99,35 +89,20 @@ export class BaseItemHelper {
    * Get status icon
    */
   static getStatusIcon(status: string): string {
-    switch (status) {
-      case TaskStatus.COMPLETED:
-        return "check_circle";
-      case TaskStatus.SKIPPED:
-        return "cancel";
-      case TaskStatus.FAILED:
-        return "dangerous";
-      case TaskStatus.PENDING:
-      default:
-        return "radio_button_unchecked";
-    }
+    return STATUS_ICONS[status as keyof typeof STATUS_ICONS] || STATUS_ICONS[TaskStatus.PENDING];
   }
 
   /**
    * Get priority color class
    */
   static getPriorityColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case "urgent":
-        return "text-purple-600 dark:text-purple-400";
-      case "high":
-        return "text-red-600 dark:text-red-400";
-      case "medium":
-        return "text-yellow-600 dark:text-yellow-400";
-      case "low":
-        return "text-blue-600 dark:text-blue-400";
-      default:
-        return "text-gray-600 dark:text-gray-400";
-    }
+    const p = priority.toLowerCase();
+    const colorMap: Record<string, string> = {
+      low: "text-blue-600 dark:text-blue-400",
+      medium: "text-yellow-600 dark:text-yellow-400",
+      high: "text-red-600 dark:text-red-400",
+    };
+    return colorMap[p] || colorMap["low"];
   }
 
   /**
@@ -135,18 +110,8 @@ export class BaseItemHelper {
    */
   static getPriorityBadgeClass(priority: string): string {
     if (!priority) return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
-    switch (priority.toLowerCase()) {
-      case "urgent":
-        return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
-      case "high":
-        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
-      case "medium":
-        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
-      case "low":
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
-      default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
-    }
+    const p = priority.toLowerCase();
+    return PRIORITY_COLORS[p as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.low;
   }
 
   /**

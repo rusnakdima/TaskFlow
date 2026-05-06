@@ -38,6 +38,8 @@ import { DataService } from "@services/data/data.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { STATUS_ICONS, STATUS_BG_COLORS } from "@constants/table-field.constants";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -86,6 +88,7 @@ export class KanbanView extends BaseListView implements OnInit {
   private dataService = inject(DataService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -151,10 +154,30 @@ export class KanbanView extends BaseListView implements OnInit {
   });
 
   columns = [
-    { id: TaskStatus.PENDING, label: "To Do", icon: "assignment", iconBgClass: "bg-blue-500" },
-    { id: TaskStatus.COMPLETED, label: "Done", icon: "check_circle", iconBgClass: "bg-green-500" },
-    { id: TaskStatus.SKIPPED, label: "Skipped", icon: "skip_next", iconBgClass: "bg-purple-500" },
-    { id: TaskStatus.FAILED, label: "Failed", icon: "error", iconBgClass: "bg-red-500" },
+    {
+      id: TaskStatus.PENDING,
+      label: "To Do",
+      icon: STATUS_ICONS[TaskStatus.PENDING],
+      iconBgClass: STATUS_BG_COLORS[TaskStatus.PENDING],
+    },
+    {
+      id: TaskStatus.COMPLETED,
+      label: "Done",
+      icon: STATUS_ICONS[TaskStatus.COMPLETED],
+      iconBgClass: STATUS_BG_COLORS[TaskStatus.COMPLETED],
+    },
+    {
+      id: TaskStatus.SKIPPED,
+      label: "Skipped",
+      icon: STATUS_ICONS[TaskStatus.SKIPPED],
+      iconBgClass: STATUS_BG_COLORS[TaskStatus.SKIPPED],
+    },
+    {
+      id: TaskStatus.FAILED,
+      label: "Failed",
+      icon: STATUS_ICONS[TaskStatus.FAILED],
+      iconBgClass: STATUS_BG_COLORS[TaskStatus.FAILED],
+    },
   ];
 
   todoSelectorOptions = computed<SegmentOption[]>(() =>
@@ -207,16 +230,18 @@ export class KanbanView extends BaseListView implements OnInit {
     this.dataService.getTodos({ visibility: "private" }).subscribe({
       next: (todos) => {
         this.todosList.set(todos);
-        this.dataService.getTodos({ visibility: "all" }).subscribe({
-          next: (sharedTodos) => {
-            const privateIds = new Set(todos.map((t) => t.id));
-            const newSharedTodos = sharedTodos.filter(
-              (t) => !privateIds.has(t.id) && t.visibility !== "private"
-            );
-            this.todosList.update((current) => [...current, ...newSharedTodos]);
-          },
-          error: (err) => console.error("Failed to load shared todos:", err),
-        });
+        if (this.mongoConnectionService.isConnected()) {
+          this.dataService.getTodos({ visibility: "all" }).subscribe({
+            next: (sharedTodos) => {
+              const privateIds = new Set(todos.map((t) => t.id));
+              const newSharedTodos = sharedTodos.filter(
+                (t) => !privateIds.has(t.id) && t.visibility !== "private"
+              );
+              this.todosList.update((current) => [...current, ...newSharedTodos]);
+            },
+            error: (err) => console.error("Failed to load shared todos:", err),
+          });
+        }
       },
       error: (err) => console.error("Failed to load private todos:", err),
     });

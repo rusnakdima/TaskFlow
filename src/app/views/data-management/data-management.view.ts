@@ -311,6 +311,9 @@ export class DataManagementView implements OnInit {
   }
 
   getFieldConfig(): TableField[] {
+    if (this.mode === "archive") {
+      return TableFieldFactory.getArchiveColumns(this.selectedType());
+    }
     return TableFieldFactory.getColumns(this.selectedType());
   }
 

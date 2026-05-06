@@ -21,6 +21,10 @@ import { distinctUntilChanged, filter, map } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
+import { MatTooltipModule } from "@angular/material/tooltip";
+
+/* components */
+import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
 
 /* models */
 import { Profile } from "@models/profile.model";
@@ -52,7 +56,15 @@ interface Breadcrumb {
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatMenuModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatMenuModule,
+    MatButtonModule,
+    MatTooltipModule,
+    ConnectionStatusComponent,
+  ],
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
