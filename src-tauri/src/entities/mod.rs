@@ -18,8 +18,6 @@ pub mod pending_request_entity;
 pub mod profile_entity;
 #[path = "provider_type.entity.rs"]
 pub mod provider_type_entity;
-#[path = "relation_obj.entity.rs"]
-pub mod relation_obj;
 #[path = "response.entity.rs"]
 pub mod response_entity;
 #[path = "signup_form.entity.rs"]
