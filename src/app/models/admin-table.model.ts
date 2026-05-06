@@ -1,12 +1,17 @@
 export type AdminFieldType =
   | "text"
   | "date"
+  | "datetime"
   | "chip"
   | "priority"
   | "status"
   | "user"
   | "array-count"
-  | "select";
+  | "select"
+  | "number"
+  | "boolean"
+  | "change"
+  | "expand";
 
 export interface AdminFieldConfig {
   key: string;
