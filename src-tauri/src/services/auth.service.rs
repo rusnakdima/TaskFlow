@@ -12,6 +12,7 @@ use super::auth::auth_password::AuthPasswordService;
 use super::auth::auth_register::AuthRegisterService;
 use super::auth::auth_token::AuthTokenService;
 use super::auth::webauthn_state::WebAuthnState;
+use super::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
 use crate::entities::{
@@ -40,6 +41,7 @@ impl AuthService {
     jwt_secret: String,
     rp_domain: String,
     auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
+    profile_sync_service: ProfileSyncUnifiedService,
   ) -> Self {
     let mongo_provider = mongodb_provider.clone();
 
@@ -48,6 +50,7 @@ impl AuthService {
       mongo_provider.clone(),
       jwt_secret,
       auth_data_sync_service.clone(),
+      profile_sync_service.clone(),
     ));
     let login_service = AuthLoginService::new(
       json_provider.clone(),
@@ -56,11 +59,13 @@ impl AuthService {
       auth_data_sync_service
         .clone()
         .expect("AuthDataSyncService required for login"),
+      profile_sync_service.clone(),
     );
     let register_service = AuthRegisterService::new(
       json_provider.clone(),
       mongo_provider.clone(),
       Arc::clone(&token_service),
+      profile_sync_service.clone(),
     );
     let password_service = AuthPasswordService::new(json_provider.clone(), mongo_provider.clone());
 

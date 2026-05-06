@@ -272,6 +272,39 @@ pub async fn github_create_comment(
 }
 
 #[tauri::command]
+pub async fn github_update_issue(
+  state: State<'_, AppState>,
+  user_id: String,
+  repo_owner: String,
+  repo_name: String,
+  issue_number: i64,
+  title: String,
+  body: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let (access_token, _) = get_user_github_token(&state, &user_id).await?;
+
+  let service = GithubService::new();
+  let issue = service
+    .update_issue(
+      &access_token,
+      &repo_owner,
+      &repo_name,
+      issue_number,
+      &title,
+      &body,
+    )
+    .await
+    .map_err(|e| err_response_formatted("Failed to update issue", &e))?;
+
+  Ok(success_response(DataValue::Object(json!({
+    "id": issue.id,
+    "number": issue.number,
+    "html_url": issue.html_url,
+    "title": issue.title
+  }))))
+}
+
+#[tauri::command]
 pub async fn github_start_device_flow(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {

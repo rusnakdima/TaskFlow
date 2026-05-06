@@ -314,6 +314,45 @@ impl GithubService {
 
     Ok(comment)
   }
+
+  pub async fn update_issue(
+    &self,
+    access_token: &str,
+    repo_owner: &str,
+    repo_name: &str,
+    issue_number: i64,
+    title: &str,
+    body: &str,
+  ) -> Result<GithubIssue, String> {
+    let payload = serde_json::json!({
+      "title": title,
+      "body": body
+    });
+
+    let response = self
+      .http_client
+      .patch(&format!(
+        "https://api.github.com/repos/{}/{}/issues/{}",
+        repo_owner, repo_name, issue_number
+      ))
+      .header("Authorization", format!("Bearer {}", access_token))
+      .header("Accept", "application/vnd.github.v3+json")
+      .header("Content-Type", "application/json")
+      .json(&payload)
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+      let status = response.status();
+      let error_text = response.text().await.unwrap_or_default();
+      return Err(format!("Status: {}, Response: {}", status, error_text));
+    }
+
+    let issue: GithubIssue = response.json().await.map_err(|e| e.to_string())?;
+
+    Ok(issue)
+  }
 }
 
 impl Default for GithubService {

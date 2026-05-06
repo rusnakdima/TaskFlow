@@ -31,6 +31,7 @@ pub struct AuthRegisterService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub token_service: Arc<AuthTokenService>,
+  pub profile_sync_service: ProfileSyncUnifiedService,
 }
 
 impl AuthRegisterService {
@@ -38,11 +39,13 @@ impl AuthRegisterService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     token_service: Arc<AuthTokenService>,
+    profile_sync_service: ProfileSyncUnifiedService,
   ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
       token_service,
+      profile_sync_service,
     }
   }
 
@@ -85,8 +88,7 @@ impl AuthRegisterService {
       updated_at: Some(now),
     };
 
-    let profile_sync_service =
-      ProfileSyncUnifiedService::new(self.json_provider.clone(), self.mongodb_provider.clone());
+    let profile_sync_service = self.profile_sync_service.clone();
 
     println!("[Register] Creating profile for user_id: {}", user_id);
     let create_result = profile_sync_service

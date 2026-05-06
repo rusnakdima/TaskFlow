@@ -248,10 +248,14 @@ impl AuthTotpService {
       return Err(err_response("TOTP is not enabled"));
     }
 
-    let mut updated_user = user.clone();
-    if let Some(pos) = updated_user.recovery_codes.iter().position(|c| c == code) {
-      updated_user.recovery_codes.remove(pos);
-      updated_user.updated_at = Some(chrono::Utc::now());
+    let mut new_recovery_codes = user.recovery_codes.clone();
+    if let Some(pos) = new_recovery_codes.iter().position(|c| c == code) {
+      new_recovery_codes.remove(pos);
+      let updated_user = UserEntity {
+        recovery_codes: new_recovery_codes,
+        updated_at: Some(chrono::Utc::now()),
+        ..user
+      };
       self.save_user(&updated_user).await?;
       Ok(success_response("Recovery code accepted"))
     } else {
@@ -345,11 +349,13 @@ impl AuthTotpService {
   ) -> Result<(), ResponseModel> {
     let user = self.find_user(username).await?;
 
-    let mut updated_user = user.clone();
-    updated_user.totp_enabled = totp_enabled;
-    updated_user.totp_secret = totp_secret.to_string();
-    updated_user.recovery_codes = recovery_codes;
-    updated_user.updated_at = Some(chrono::Utc::now());
+    let updated_user = UserEntity {
+      totp_enabled,
+      totp_secret: totp_secret.to_string(),
+      recovery_codes,
+      updated_at: Some(chrono::Utc::now()),
+      ..user
+    };
 
     self.save_user(&updated_user).await?;
 
