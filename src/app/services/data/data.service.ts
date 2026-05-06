@@ -1,8 +1,7 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, Subject, of } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
+import { Observable } from "rxjs";
 
-import { Response, ResponseStatus } from "@models/response.model";
+import { Response } from "@models/response.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
@@ -11,78 +10,16 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 import { Profile } from "@models/profile.model";
 
-import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { RequestService } from "@services/core/request.service";
 import { StorageService } from "@services/core/storage.service";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
-  private jwtTokenService = inject(JwtTokenService);
+  private requestService = inject(RequestService);
   private storageService = inject(StorageService);
 
-  private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
-
-  private cachedTodos: Todo[] = [];
-  private cachedTasks: Task[] = [];
-  private cachedSubtasks: Subtask[] = [];
-  private cachedComments: Comment[] = [];
-  private cachedChats: Chat[] = [];
-  private cachedCategories: Category[] = [];
-  private cachedProfile: Profile | null = null;
-
-  readonly todos$ = new Subject<Todo[]>();
-  readonly tasks$ = new Subject<Task[]>();
-  readonly subtasks$ = new Subject<Subtask[]>();
-  readonly comments$ = new Subject<Comment[]>();
-  readonly chats$ = new Subject<Chat[]>();
-  readonly categories$ = new Subject<Category[]>();
-  readonly profile$ = new Subject<Profile | null>();
-
-  private getRequestKey(operation: string, table: string, id?: string, filter?: any): string {
-    return `${operation}:${table}:${id || ""}:${JSON.stringify(filter || {})}`;
-  }
-
-  private getRequestDeduplicationKey(
-    operation: string,
-    table: string,
-    id?: string,
-    filter?: any
-  ): string {
-    const key = this.getRequestKey(operation, table, id, filter);
-    const now = Date.now();
-    const existing = this.pendingRequests.get(key);
-
-    if (existing && now - existing.timestamp < 500) {
-      existing.controller.abort();
-    }
-
-    const controller = new AbortController();
-    this.pendingRequests.set(key, { controller, timestamp: now });
-
-    return key;
-  }
-
-  private removeRequest(key: string): void {
-    this.pendingRequests.delete(key);
-  }
-
-  private invoke<T>(command: string, args: Record<string, any>): Observable<T> {
-    return from(
-      invoke<Response<T>>(command, args).then(
-        (response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            return response.data as T;
-          }
-          throw new Error(response?.message || "Unknown error");
-        },
-        (err) => {
-          throw new Error(err?.message || String(err));
-        }
-      )
-    );
-  }
-
   isOffline(): boolean {
-    return !navigator.onLine;
+    return this.requestService.isOffline();
   }
 
   getTodos(options?: {
@@ -92,626 +29,135 @@ export class DataService {
     load?: string[];
     visibility?: string;
   }): Observable<Todo[]> {
-    const { filter, skip, limit, load, visibility } = options || {};
-    console.log(
-      `[DataService] getTodos called | visibility="${visibility}", filter=${filter ? "present" : "None"}`
-    );
-    const key = this.getRequestDeduplicationKey("getAll", "todos", undefined, filter);
-    return new Observable<Todo[]>((subscriber) => {
-      console.log(`[DataService] invoking manage_data for todos`);
-      this.invoke<Todo[]>("manage_data", {
-        operation: "getAll",
-        table: "todos",
-        filter,
-        skip,
-        limit,
-        load: load ? JSON.stringify(load) : undefined,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          console.log(`[DataService] manage_data returned ${data?.length ?? 0} todos`);
-          this.cachedTodos = data || [];
-          this.todos$.next(this.cachedTodos);
-          subscriber.next(this.cachedTodos);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getTodos(options);
   }
 
   getTodo(id: string): Observable<Todo> {
-    const key = this.getRequestDeduplicationKey("get", "todos", id);
-    return new Observable<Todo>((subscriber) => {
-      this.invoke<Todo>("manage_data", { operation: "get", table: "todos", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getTodo(id);
   }
 
   createTodo(data: Partial<Todo>, visibility?: string): Observable<Todo> {
-    return new Observable<Todo>((subscriber) => {
-      this.invoke<Todo>("manage_data", {
-        operation: "create",
-        table: "todos",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
+    return this.requestService.createTodo(data, visibility);
   }
 
   updateTodo(id: string, data: Partial<Todo>, visibility?: string): Observable<Todo> {
-    return new Observable<Todo>((subscriber) => {
-      this.invoke<Todo>("manage_data", {
-        operation: "update",
-        table: "todos",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
+    return this.requestService.updateTodo(id, data, visibility);
   }
 
   deleteTodo(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "todos",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
+    return this.requestService.deleteTodo(id, visibility);
   }
 
   getTasks(todoId?: string, filter?: any): Observable<Task[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "tasks", todoId, filter);
-    const options: any = { filter };
-    if (todoId) options.parentTodoId = todoId;
-    return new Observable<Task[]>((subscriber) => {
-      this.invoke<Task[]>("manage_data", {
-        operation: "getAll",
-        table: "tasks",
-        ...options,
-      }).subscribe({
-        next: (data) => {
-          this.cachedTasks = data || [];
-          this.tasks$.next(this.cachedTasks);
-          subscriber.next(this.cachedTasks);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getTasks(todoId, filter);
   }
 
   getTask(id: string): Observable<Task> {
-    const key = this.getRequestDeduplicationKey("get", "tasks", id);
-    return new Observable<Task>((subscriber) => {
-      this.invoke<Task>("manage_data", { operation: "get", table: "tasks", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getTask(id);
   }
 
   createTask(data: Partial<Task>, visibility?: string): Observable<Task> {
-    return new Observable<Task>((subscriber) => {
-      this.invoke<Task>("manage_data", {
-        operation: "create",
-        table: "tasks",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.createTask(data, visibility);
   }
 
   updateTask(id: string, data: Partial<Task>, visibility?: string): Observable<Task> {
-    return new Observable<Task>((subscriber) => {
-      this.invoke<Task>("manage_data", {
-        operation: "update",
-        table: "tasks",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.updateTask(id, data, visibility);
   }
 
   deleteTask(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "tasks",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.deleteTask(id, visibility);
   }
 
   getSubtasks(taskId?: string): Observable<Subtask[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "subtasks", taskId);
-    return new Observable<Subtask[]>((subscriber) => {
-      this.invoke<Subtask[]>("manage_data", {
-        operation: "getAll",
-        table: "subtasks",
-        parentTodoId: taskId,
-      }).subscribe({
-        next: (data) => {
-          this.cachedSubtasks = data || [];
-          this.subtasks$.next(this.cachedSubtasks);
-          subscriber.next(this.cachedSubtasks);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getSubtasks(taskId);
   }
 
   getSubtask(id: string): Observable<Subtask> {
-    const key = this.getRequestDeduplicationKey("get", "subtasks", id);
-    return new Observable<Subtask>((subscriber) => {
-      this.invoke<Subtask>("manage_data", { operation: "get", table: "subtasks", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getSubtask(id);
   }
 
   createSubtask(data: Partial<Subtask>, visibility?: string): Observable<Subtask> {
-    return new Observable<Subtask>((subscriber) => {
-      this.invoke<Subtask>("manage_data", {
-        operation: "create",
-        table: "subtasks",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.createSubtask(data, visibility);
   }
 
   updateSubtask(id: string, data: Partial<Subtask>, visibility?: string): Observable<Subtask> {
-    return new Observable<Subtask>((subscriber) => {
-      this.invoke<Subtask>("manage_data", {
-        operation: "update",
-        table: "subtasks",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.updateSubtask(id, data, visibility);
   }
 
   deleteSubtask(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "subtasks",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
+    return this.requestService.deleteSubtask(id, visibility);
   }
 
   getCategories(): Observable<Category[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "categories");
-    return new Observable<Category[]>((subscriber) => {
-      this.invoke<Category[]>("manage_data", {
-        operation: "getAll",
-        table: "categories",
-        visibility: "private",
-      }).subscribe({
-        next: (data) => {
-          this.cachedCategories = data || [];
-          this.categories$.next(this.cachedCategories);
-          subscriber.next(this.cachedCategories);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getCategories();
   }
 
   getComments(taskId?: string, subtaskId?: string): Observable<Comment[]> {
-    const filter: any = {};
-    if (taskId) filter["task_id"] = taskId;
-    if (subtaskId) filter["subtask_id"] = subtaskId;
-    const key = this.getRequestDeduplicationKey("getAll", "comments", undefined, filter);
-    return new Observable<Comment[]>((subscriber) => {
-      this.invoke<Comment[]>("manage_data", {
-        operation: "getAll",
-        table: "comments",
-        filter,
-      }).subscribe({
-        next: (data) => {
-          this.cachedComments = data || [];
-          this.comments$.next(this.cachedComments);
-          subscriber.next(this.cachedComments);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getComments(taskId, subtaskId);
   }
 
   getChats(todoId: string): Observable<Chat[]> {
-    const filter = { todo_id: todoId };
-    const key = this.getRequestDeduplicationKey("getAll", "chats", undefined, filter);
-    return new Observable<Chat[]>((subscriber) => {
-      this.invoke<Chat[]>("manage_data", { operation: "getAll", table: "chats", filter }).subscribe(
-        {
-          next: (data) => {
-            this.cachedChats = data || [];
-            this.chats$.next(this.cachedChats);
-            subscriber.next(this.cachedChats);
-            subscriber.complete();
-            this.removeRequest(key);
-          },
-          error: (err) => {
-            subscriber.error(err);
-            this.removeRequest(key);
-          },
-        }
-      );
-    });
+    return this.requestService.getChats(todoId);
   }
 
   getUser(id: string): Observable<any> {
-    const key = this.getRequestDeduplicationKey("get", "users", id);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "get",
-        table: "users",
-        id,
-        visibility: "private",
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getUser(id);
   }
 
   getProfile(): Observable<Profile | null> {
-    const userId = this.jwtTokenService.getCurrentUserId();
-    console.debug("[DataService] getProfile called, userId:", userId);
-    if (!userId) {
-      return new Observable<Profile>((subscriber) => {
-        subscriber.error(new Error("No user logged in"));
-      });
-    }
-    const key = this.getRequestDeduplicationKey("get", "profiles", userId);
-    return new Observable<Profile | null>((subscriber) => {
-      console.debug("[DataService] invoking manage_data for profiles with filter:", {
-        user_id: userId,
-      });
-      this.invoke<Profile>("manage_data", {
-        operation: "get",
-        table: "profiles",
-        filter: { user_id: userId },
-        load: JSON.stringify(["user"]),
-        visibility: "private",
-      }).subscribe({
-        next: (data) => {
-          console.debug("[DataService] getProfile received data:", data);
-          const profile = Array.isArray(data) ? data[0] : data;
-          this.profile$.next(profile);
-          this.setCurrentProfile(profile);
-          subscriber.next(profile);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          console.error("[DataService] getProfile error:", err);
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
+    return this.requestService.getProfile();
   }
 
   getPublicProfiles(): Observable<Profile[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "profiles");
-    return new Observable<Profile[]>((subscriber) => {
-      this.invoke<Profile[]>("manage_data", {
-        operation: "getAll",
-        table: "profiles",
-        visibility: "public",
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  initializeUserData(userId: string): Observable<Response<any>> {
-    return from(invoke<Response<any>>("initialize_user_data", { userId }));
-  }
-
-  getEntitiesByType<T>(entityName: string, options: any): Observable<T[]> {
-    const { filter, skip, limit, load, visibility, ...rest } = options;
-    const key = this.getRequestDeduplicationKey("getAll", entityName, undefined, filter);
-    return new Observable<T[]>((subscriber) => {
-      this.invoke<T[]>("manage_data", {
-        operation: "getAll",
-        table: entityName,
-        filter,
-        skip,
-        limit,
-        load: load ? JSON.stringify(load) : undefined,
-        visibility,
-        ...rest,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  setChatsForTodo(chats: Chat[], todoId: string): void {
-    const existing = this.cachedChats.filter((c) => c.todo_id !== todoId);
-    this.cachedChats = [...existing, ...chats];
-    this.chats$.next(this.cachedChats);
-  }
-
-  getCurrentTodos(): Todo[] {
-    return this.cachedTodos;
-  }
-
-  getCurrentTasks(): Task[] {
-    return this.cachedTasks;
-  }
-
-  getCurrentSubtasks(): Subtask[] {
-    return this.cachedSubtasks;
-  }
-
-  getCurrentComments(): Comment[] {
-    return this.cachedComments;
-  }
-
-  getCurrentChats(): Chat[] {
-    return this.cachedChats;
-  }
-
-  getCurrentCategories(): Category[] {
-    return this.cachedCategories;
-  }
-
-  getCurrentProfile(): Profile | null {
-    return this.cachedProfile;
-  }
-
-  getTasksByTodoId(todoId: string): Task[] {
-    return this.cachedTasks.filter((t) => t.todo_id === todoId);
-  }
-
-  getSubtasksByTaskId(taskId: string): Subtask[] {
-    return this.cachedSubtasks.filter((s) => s.task_id === taskId);
-  }
-
-  getCommentsByTaskId(taskId: string): Comment[] {
-    return this.cachedComments.filter((c) => c.task_id === taskId);
-  }
-
-  getCommentsBySubtaskId(subtaskId: string): Comment[] {
-    return this.cachedComments.filter((c) => c.subtask_id === subtaskId);
+    return this.requestService.getPublicProfiles();
   }
 
   updateComment(id: string, data: Partial<Comment>, visibility?: string): Observable<Comment> {
-    return new Observable<Comment>((subscriber) => {
-      this.invoke<Comment>("manage_data", {
-        operation: "update",
-        table: "comments",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  setCurrentProfile(profile: Profile | null): void {
-    console.debug("[DataService] setCurrentProfile called with:", profile);
-    this.storageService.setCollection("profiles", profile);
+    return this.requestService.updateComment(id, data, visibility);
   }
 
   updateProfile(id: string, data: Partial<Profile>, visibility?: string): Observable<Profile> {
-    return new Observable<Profile>((subscriber) => {
-      this.invoke<Profile>("manage_data", {
-        operation: "update",
-        table: "profiles",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
+    return this.requestService.updateProfile(id, data, visibility);
   }
 
   createProfile(data: Partial<Profile>, visibility?: string): Observable<Profile> {
-    return new Observable<Profile>((subscriber) => {
-      this.invoke<Profile>("manage_data", {
-        operation: "create",
-        table: "profiles",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
+    return this.requestService.createProfile(data, visibility);
   }
 
-  setCurrentUser(user: any | null): void {
-    this.storageService.setCollection("user", user);
+  setChatsForTodo(chats: Chat[], todoId: string): void {
+    const filtered = this.storageService.chats().filter((c: Chat) => c.todo_id !== todoId);
+    this.storageService.setCollection("chats", [...filtered, ...chats]);
   }
 
-  setCurrentTodos(todos: Todo[]): void {
-    this.cachedTodos = todos;
-    this.todos$.next(todos);
+  getTasksByTodoId(todoId: string): Task[] {
+    return this.storageService.getTasksByTodoId(todoId);
   }
 
-  setCurrentTasks(tasks: Task[]): void {
-    this.cachedTasks = tasks;
-    this.tasks$.next(tasks);
+  getSubtasksByTaskId(taskId: string): Subtask[] {
+    return this.storageService.getSubtasksByTaskId(taskId);
   }
 
-  setCurrentSubtasks(subtasks: Subtask[]): void {
-    this.cachedSubtasks = subtasks;
-    this.subtasks$.next(subtasks);
+  getCommentsByTaskId(taskId: string): Comment[] {
+    return this.storageService.comments().filter((c: Comment) => c.task_id === taskId);
   }
 
-  setCurrentComments(comments: Comment[]): void {
-    this.cachedComments = comments;
-    this.comments$.next(comments);
+  getCommentsBySubtaskId(subtaskId: string): Comment[] {
+    return this.storageService.comments().filter((c: Comment) => c.subtask_id === subtaskId);
   }
 
-  setCurrentCategories(categories: Category[]): void {
-    this.cachedCategories = categories;
-    this.categories$.next(categories);
+  initializeUserData(userId: string): Observable<Response<any>> {
+    return this.requestService.initializeUserData(userId);
+  }
+
+  getEntitiesByType<T>(entityName: string, options: any): Observable<T[]> {
+    return this.requestService.getEntitiesByType<T>(entityName, options);
   }
 
   getTasksByMonth(year: number, month: number): Observable<{ tasks: Task[] }> {
-    return from(
-      invoke<Response<{ tasks: Task[] }>>("get_tasks_by_month", { year, month }).then(
-        (response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            return response.data as { tasks: Task[] };
-          }
-          throw new Error(response.message || "Failed to load tasks by month");
-        },
-        (err) => {
-          throw new Error(err?.message || String(err));
-        }
-      )
-    );
+    return this.requestService.getTasksByMonth(year, month);
+  }
+
+  filterTodosByVisibility(todos: Todo[], visibility: string): Todo[] {
+    return this.requestService.filterTodosByVisibility(todos, visibility);
   }
 }

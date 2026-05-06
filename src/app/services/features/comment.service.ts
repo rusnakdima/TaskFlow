@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { Observable } from "rxjs";
 import { Comment } from "@models/comment.model";
@@ -22,7 +22,7 @@ export interface MarkCommentsResult {
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private apiProvider = inject(ApiProvider);
 
   createComment(
@@ -52,7 +52,7 @@ export class CommentService {
     userId: string,
     parentTodoId: string
   ): MarkCommentsResult {
-    const allComments = this.dataService.getCurrentComments();
+    const allComments = this.storageService.comments();
     const comments = allComments.filter((c) => commentIds.includes(c.id));
     const toUpdate = comments.filter((c) => !c.read_by?.includes(userId));
 
@@ -62,11 +62,7 @@ export class CommentService {
     toUpdate.forEach((c) => {
       const updatedReadBy = [...(c.read_by || []), userId];
       updatedComments.push({ ...c, read_by: updatedReadBy });
-      this.dataService
-        .updateComment(c.id, {
-          read_by: updatedReadBy,
-        })
-        .subscribe();
+      this.storageService.updateItem("comments", c.id, { read_by: updatedReadBy });
     });
 
     this.apiProvider
@@ -84,10 +80,10 @@ export class CommentService {
   }
 
   getUnreadCountForTask(taskId: string, userId: string): number {
-    const subtasks = this.dataService.getSubtasksByTaskId(taskId);
+    const subtasks = this.storageService.getSubtasksByTaskId(taskId);
     let count = 0;
     for (const subtask of subtasks) {
-      const allComments = this.dataService.getCurrentComments();
+      const allComments = this.storageService.comments();
       const comments = allComments.filter((c) => c.subtask_id === subtask.id && !c.deleted_at);
       count += comments.filter(
         (c) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
