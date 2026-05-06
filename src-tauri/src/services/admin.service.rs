@@ -229,7 +229,8 @@ impl AdminManager {
 
     let is_deleted = record
       .get("deleted_at")
-      .and_then(|v| v.as_bool())
+      .and_then(|v| v.as_str())
+      .map(|s| !s.is_empty())
       .unwrap_or(false);
 
     if !is_deleted {
@@ -273,7 +274,8 @@ impl AdminManager {
 
     let is_deleted = record
       .get("deleted_at")
-      .and_then(|v| v.as_bool())
+      .and_then(|v| v.as_str())
+      .map(|s| !s.is_empty())
       .unwrap_or(false);
 
     if !is_deleted {

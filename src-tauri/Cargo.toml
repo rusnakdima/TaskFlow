@@ -4,7 +4,7 @@ description = "Task Flow"
 edition = "2021"
 license = "MIT License"
 name = "taskflow"
-repository = "https://github.com/rusnakdima/TaskFlow"
+repository = "https://github.com/TechCraft-Solutions/TaskFlow"
 version = "0.14.2"
 
 [lib]
