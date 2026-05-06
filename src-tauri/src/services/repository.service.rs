@@ -50,8 +50,9 @@ impl RepositoryService {
     &self,
     table: &str,
     visibility: Option<&str>,
+    offline: bool,
   ) -> Result<DataProvider<'_>, ResponseModel> {
-    let use_json = self.use_json_provider(table, visibility);
+    let use_json = self.use_json_provider(table, visibility, offline);
     println!(
       "[RepositoryService] get_provider: table={}, visibility={:?}, use_json={}",
       table, visibility, use_json
@@ -106,7 +107,10 @@ impl RepositoryService {
     visibility == "private"
   }
 
-  fn use_json_provider(&self, table: &str, visibility: Option<&str>) -> bool {
+  fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
+    if offline {
+      return true;
+    }
     if table == "daily_activities" {
       return true;
     }
@@ -297,26 +301,51 @@ impl RepositoryService {
     filter: Option<Value>,
     load: Option<String>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     println!(
       "[RepositoryService] execute: operation={}, table={}, id={:?}, visibility={:?}",
       operation, table, id, visibility
     );
     match operation.as_str() {
-      "getAll" => self.handle_get_all(table, filter, load, visibility).await,
-      "get" => self.handle_get(table, id, load, visibility, filter).await,
-      "create" => self.handle_create(table, data, visibility).await,
-      "update" => self.handle_update(table, id, data, visibility).await,
-      "updateAll" => self.handle_update_all(table, data, visibility).await,
-      "delete" => self.handle_delete(table, id, visibility, false).await,
-      "permanent-delete" => {
+      "getAll" => {
         self
-          .handle_permanent_delete_cascade(table, id, visibility)
+          .handle_get_all(table, filter, load, visibility, offline)
           .await
       }
-      "soft-delete-cascade" => self.handle_soft_delete_cascade(table, id, visibility).await,
+      "get" => {
+        self
+          .handle_get(table, id, load, visibility, filter, offline)
+          .await
+      }
+      "create" => self.handle_create(table, data, visibility, offline).await,
+      "update" => {
+        self
+          .handle_update(table, id, data, visibility, offline)
+          .await
+      }
+      "updateAll" => {
+        self
+          .handle_update_all(table, data, visibility, offline)
+          .await
+      }
+      "delete" => {
+        self
+          .handle_delete(table, id, visibility, false, offline)
+          .await
+      }
+      "permanent-delete" => {
+        self
+          .handle_permanent_delete_cascade(table, id, visibility, offline)
+          .await
+      }
+      "soft-delete-cascade" => {
+        self
+          .handle_soft_delete_cascade(table, id, visibility, offline)
+          .await
+      }
       "sync-to-provider" => {
-        let target = if self.use_json_provider(&table, visibility.as_deref()) {
+        let target = if self.use_json_provider(&table, visibility.as_deref(), offline) {
           ProviderType::Json
         } else {
           ProviderType::Mongo
@@ -336,22 +365,23 @@ impl RepositoryService {
     filter: Option<Value>,
     load: Option<String>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_val = filter.unwrap_or(json!({}));
     println!(
-      "[RepositoryService] handle_get_all START: table={}, visibility={:?}, filter={}",
-      table, visibility, filter_val
+      "[RepositoryService] handle_get_all START: table={}, visibility={:?}, filter={}, offline={}",
+      table, visibility, filter_val, offline
     );
 
     let filter_opt = self.build_filter(&filter_val);
 
-    let use_json = self.use_json_provider(&table, visibility.as_deref());
+    let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
     println!(
       "[RepositoryService] use_json_provider={}, visibility={:?}",
       use_json, visibility
     );
 
-    let provider = self.get_provider(&table, visibility.as_deref())?;
+    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
     println!("[RepositoryService] provider selected");
 
     let load_paths = Self::parse_load_param(load);
@@ -465,12 +495,13 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     filter: Option<Value>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     println!(
-      "[RepositoryService] handle_get: table={}, id={:?}, filter={:?}, visibility={:?}",
-      table, id, filter, visibility
+      "[RepositoryService] handle_get: table={}, id={:?}, filter={:?}, visibility={:?}, offline={}",
+      table, id, filter, visibility, offline
     );
-    let provider = self.get_provider(&table, visibility.as_deref())?;
+    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
       println!("[RepositoryService] find_by_id: {}", id_val);
@@ -530,6 +561,7 @@ impl RepositoryService {
     table: String,
     data: Option<Value>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
@@ -540,7 +572,7 @@ impl RepositoryService {
       })
       .unwrap_or_else(|| "private".to_string());
 
-    let provider = self.get_provider(&table, Some(&visibility_str))?;
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let validated_data = validate_model(&table, &data_val, true)
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
@@ -562,7 +594,7 @@ impl RepositoryService {
 
     let mut final_record = created_record.clone();
 
-    if should_publish_to_github {
+    if should_publish_to_github && !offline {
       if let Ok(updated) = self
         .handle_github_publish_for_task(created_record.clone(), visibility_str.clone())
         .await
@@ -571,7 +603,7 @@ impl RepositoryService {
       }
     }
 
-    if table == "comments" {
+    if table == "comments" && !offline {
       if let Ok(updated) = self
         .handle_github_sync_comment(created_record, visibility_str)
         .await
@@ -595,7 +627,7 @@ impl RepositoryService {
       None => return Ok(comment_record),
     };
 
-    let provider = self.get_provider("tasks", Some(&visibility))?;
+    let provider = self.get_provider("tasks", Some(&visibility), false)?;
     let task = match provider.find_by_id("tasks", task_id).await? {
       Some(t) => t,
       None => return Ok(comment_record),
@@ -687,7 +719,7 @@ impl RepositoryService {
       None => return Ok(task_record),
     };
 
-    let provider = self.get_provider("todos", Some(&visibility))?;
+    let provider = self.get_provider("todos", Some(&visibility), false)?;
     let todo = match provider.find_by_id("todos", todo_id).await? {
       Some(t) => t,
       None => return Ok(task_record),
@@ -821,7 +853,7 @@ impl RepositoryService {
     task_id: &str,
     visibility: &str,
   ) -> Result<Vec<Value>, ResponseModel> {
-    let provider = self.get_provider("subtasks", Some(visibility))?;
+    let provider = self.get_provider("subtasks", Some(visibility), false)?;
     let filter = nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
     provider.find_many("subtasks", Some(&filter)).await
   }
@@ -831,6 +863,7 @@ impl RepositoryService {
     table: String,
     data: Option<Value>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
 
@@ -846,7 +879,7 @@ impl RepositoryService {
       validated_records.push(validated);
     }
 
-    let provider = self.get_provider(&table, visibility.as_deref())?;
+    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
@@ -864,6 +897,7 @@ impl RepositoryService {
     id: Option<String>,
     data: Option<Value>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
@@ -872,7 +906,7 @@ impl RepositoryService {
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
     let visibility_str = visibility.as_deref();
-    let provider = self.get_provider(&table, visibility_str)?;
+    let provider = self.get_provider(&table, visibility_str, offline)?;
     let updated_record = provider
       .update(&table, &id_str, validated_data.clone())
       .await?;
@@ -914,9 +948,10 @@ impl RepositoryService {
     id: Option<String>,
     visibility: Option<String>,
     is_permanent: bool,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-    let use_json = self.use_json_provider(&table, visibility.as_deref());
+    let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
 
     if is_permanent {
       if use_json {
@@ -978,8 +1013,11 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, visibility, false).await
+    self
+      .handle_delete(table, id, visibility, false, offline)
+      .await
   }
 
   async fn handle_permanent_delete_cascade(
@@ -987,8 +1025,11 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
+    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, visibility, true).await
+    self
+      .handle_delete(table, id, visibility, true, offline)
+      .await
   }
 
   async fn handle_sync_to_provider(

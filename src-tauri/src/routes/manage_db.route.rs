@@ -22,14 +22,35 @@ pub async fn manage_data(
   filter: Option<Value>,
   load: Option<String>,
   visibility: Option<String>,
+  offline: Option<bool>,
 ) -> Result<ResponseModel, ResponseModel> {
+  let is_offline = offline.unwrap_or(false);
   println!(
-    "[manage_data] START: operation={}, table={}, id={:?}, filter={:?}, visibility={:?}",
-    operation, table, id, filter, visibility
+    "[manage_data] START: operation={}, table={}, id={:?}, filter={:?}, visibility={:?}, offline={}",
+    operation, table, id, filter, visibility, is_offline
   );
+
+  if is_offline {
+    let read_operations = ["getAll", "get"];
+    if !read_operations.contains(&operation.as_str()) {
+      return Err(err_response(
+        "Operation not available while offline. Please connect to the internet and try again.",
+      ));
+    }
+  }
+
   let result = state
     .repository_service
-    .execute(operation, table.clone(), id, data, filter, load, visibility)
+    .execute(
+      operation,
+      table.clone(),
+      id,
+      data,
+      filter,
+      load,
+      visibility,
+      is_offline,
+    )
     .await;
   println!("[manage_data] END: table={}", table);
   result
@@ -67,7 +88,10 @@ pub async fn export_to_cloud(
 pub async fn check_mongodb_connection(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let is_connected = state.manage_db_service.is_mongodb_connected();
+  let is_connected = state
+    .manage_db_service
+    .check_mongodb_connection_async()
+    .await;
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: if is_connected {
