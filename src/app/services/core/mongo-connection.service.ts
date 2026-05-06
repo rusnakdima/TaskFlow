@@ -32,6 +32,12 @@ export class MongoConnectionService {
   readonly isChecking = () => this.connectionState().checking;
   readonly wasEverConnected = signal<boolean>(false);
 
+  readonly connectionStatus = (): "offline" | "connecting" | "connected" => {
+    if (this.connectionState().checking) return "connecting";
+    if (this.connectionState().isConnected) return "connected";
+    return "offline";
+  };
+
   checkConnection(): Observable<boolean> {
     if (this.connectionState().checking) {
       return of(this.connectionState().isConnected);

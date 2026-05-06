@@ -102,6 +102,7 @@ export class DataLoaderService {
       if (!this.mongoConnectionService.isConnected()) {
         filter = { user_id: userId };
         this.notifyService.showWarning("MongoDB unavailable - showing only private todos");
+        this.storageService.setHasMoreTodos(false);
       } else {
         filter = {
           $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
@@ -120,12 +121,20 @@ export class DataLoaderService {
     }
 
     return this.requestService
-      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
+      .getTodos({ filter, skip, limit, load: ["categories", "assignees"], visibility })
       .pipe(
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
-          this.storageService.setCollection("privateTodos", loadedTodos, {
+
+          const collectionMap: Record<string, "privateTodos" | "sharedTodos" | "publicTodos"> = {
+            private: "privateTodos",
+            shared: "sharedTodos",
+            public: "publicTodos",
+          };
+          const collection = collectionMap[visibility] || "privateTodos";
+
+          this.storageService.setCollection(collection, loadedTodos, {
             append: !isFirstPage,
             resetPagination: isFirstPage,
           });
@@ -169,11 +178,19 @@ export class DataLoaderService {
     }
 
     return this.requestService
-      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
+      .getTodos({ filter, skip, limit, load: ["categories", "assignees"], visibility })
       .pipe(
         switchMap((todos) => {
           const newItems = todos || [];
-          this.storageService.setCollection("privateTodos", newItems, { append: true });
+
+          const collectionMap: Record<string, "privateTodos" | "sharedTodos" | "publicTodos"> = {
+            private: "privateTodos",
+            shared: "sharedTodos",
+            public: "publicTodos",
+          };
+          const collection = collectionMap[visibility] || "privateTodos";
+
+          this.storageService.setCollection(collection, newItems, { append: true });
           this.storageService.updatePagination("todos", skip, limit, newItems.length);
           this.todosLoading.set(false);
           return of(newItems);

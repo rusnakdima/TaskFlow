@@ -48,6 +48,7 @@ import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -122,6 +123,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private githubService = inject(GithubService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -142,6 +144,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private loadingRelations = signal<Set<string>>(new Set());
 
   private chatLoadingGuard = new Set<string>();
+  private loadedChatTodoIds = new Set<string>();
 
   todo = signal<Todo | null>(null);
   todoId = signal<string | null>(null);
@@ -151,11 +154,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private chatEffect = effect(() => {
     const tid = this.todoId();
     if (tid) {
+      if (this.loadedChatTodoIds.has(tid)) return;
       const visibility = this.isPrivate() ? "private" : "shared";
       if (!this.chatLoadingGuard.has(tid)) {
         this.chatLoadingGuard.add(tid);
         this.dataLoaderService.loadChatsPage(tid, visibility, 0).subscribe({
-          complete: () => this.chatLoadingGuard.delete(tid),
+          next: (chats) => {},
+          complete: () => {
+            this.loadedChatTodoIds.add(tid);
+            this.chatLoadingGuard.delete(tid);
+          },
         });
       }
     }
@@ -191,16 +199,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   });
 
   private loadInitialTodo(todoId: string): void {
-    this.dataLoaderService.loadInitialTodos("private", 10).subscribe({
-      next: () => {
-        const todos = this._storageService.todos();
-        const found = todos.find((t) => t.id === todoId);
-        if (found) {
-          this.todo.set(found);
+    this.dataService.getTodo(todoId).subscribe({
+      next: (todo) => {
+        if (todo) {
+          this.todo.set(todo);
+        } else {
+          this.notifyService.showError("Todo not found.");
         }
       },
       error: () => {
-        this.notifyService.showError("Todo not found.");
+        this.notifyService.showError("Failed to load todo.");
       },
     });
   }
@@ -223,6 +231,24 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     if (this.isLoadingTasks && this.lastLoadedTodoId === todoId) return;
 
+    const cachedTasks = this._storageService.getTasksByTodoId(todoId);
+    const isMongoConnected = this.mongoConnectionService.isConnected();
+
+    if (cachedTasks.length > 0) {
+      this.todoTasks.set(cachedTasks);
+      this.taskPagination.update((p) => ({
+        ...p,
+        skip: cachedTasks.length,
+        total: cachedTasks.length,
+        hasMore: false,
+        loading: false,
+      }));
+
+      if (!isMongoConnected) {
+        return;
+      }
+    }
+
     this.isLoadingTasks = true;
     this.lastLoadedTodoId = todoId;
 
@@ -232,11 +258,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         this.taskPagination.update((p) => ({
           ...p,
           skip: tasks.length,
+          total: tasks.length,
           hasMore: tasks.length === p.limit,
         }));
       },
       error: () => {
-        console.error("Failed to load tasks");
+        this.taskPagination.update((p) => ({
+          ...p,
+          loading: false,
+        }));
       },
       complete: () => {
         this.isLoadingTasks = false;
@@ -246,6 +276,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
+
+    if (!this.mongoConnectionService.isConnected()) {
+      this.taskPagination.update((p) => ({
+        ...p,
+        hasMore: false,
+        loading: false,
+      }));
+      return;
+    }
+
     const todoId = this.todoId();
     const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
@@ -258,6 +298,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           skip: p.skip + tasks.length,
           loading: false,
           hasMore: tasks.length === p.limit,
+        }));
+      },
+      error: () => {
+        this.taskPagination.update((p) => ({
+          ...p,
+          loading: false,
+          hasMore: false,
         }));
       },
     });

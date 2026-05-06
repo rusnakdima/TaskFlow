@@ -1497,6 +1497,10 @@ export class UnifiedStorageService extends BaseStorageService {
     paginationSignal.set(defaults);
   }
 
+  setHasMoreTodos(hasMore: boolean): void {
+    this._todosPagination.update((p) => ({ ...p, hasMore }));
+  }
+
   // ==================== PROTECTED HELPERS ====================
   protected override isCacheValid(): boolean {
     return super.isCacheValid(TTL_CACHE_EXPIRY_MS);

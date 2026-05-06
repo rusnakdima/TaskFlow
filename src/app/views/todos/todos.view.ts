@@ -45,6 +45,7 @@ import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 /* providers */
 import { ApiProvider, Operation } from "@providers/api.provider";
@@ -125,6 +126,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dataSyncProvider = inject(ApiProvider);
   private dataService = inject(DataService);
   private destroyRef = inject(DestroyRef);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -152,6 +154,21 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   private getPublicTodos(): Todo[] {
     return this.storageService.publicTodos().filter((t) => !t.deleted_at);
+  }
+
+  private getTodosForVisibility(visibility: string): Todo[] {
+    switch (visibility) {
+      case "all":
+        return this.allTodosFlat();
+      case "private":
+        return this.getPrivateTodos();
+      case "shared":
+        return this.getSharedTodos();
+      case "public":
+        return this.getPublicTodos();
+      default:
+        return this.getPrivateTodos();
+    }
   }
 
   private getTasksByTodoId(todoId: string): Task[] {
@@ -390,6 +407,22 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const visibility = this.activeVisibility();
+    const cachedTodos = this.getTodosForVisibility(visibility);
+    const isMongoConnected = this.mongoConnectionService.isConnected();
+
+    if (cachedTodos.length > 0) {
+      this.todoPagination.update((p) => ({
+        ...p,
+        total: cachedTodos.length,
+        skip: cachedTodos.length,
+        hasMore: false,
+        loading: false,
+      }));
+
+      if (!isMongoConnected) {
+        return;
+      }
+    }
 
     const sub = this.dataSyncService
       .loadInitialTodos(visibility, this.todoPagination().limit)
@@ -402,12 +435,27 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             total: todos.length,
           }));
         },
+        error: () => {
+          this.todoPagination.update((p) => ({
+            ...p,
+            loading: false,
+          }));
+        },
       });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
+
+    if (!this.mongoConnectionService.isConnected()) {
+      this.todoPagination.update((p) => ({
+        ...p,
+        hasMore: false,
+        loading: false,
+      }));
+      return;
+    }
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
 
@@ -419,6 +467,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           loading: false,
           hasMore: todos.length === p.limit,
           total: p.total + todos.length,
+        }));
+      },
+      error: () => {
+        this.todoPagination.update((p) => ({
+          ...p,
+          loading: false,
+          hasMore: false,
         }));
       },
     });

@@ -28,7 +28,7 @@
   } @else if (viewMode() === "table") {
     <app-table-view
       [data]="getCurrentData()"
-      [fields]="adminTableFields"
+      [fields]="getFieldConfig()"
       [selectedIds]="selectedRecords()"
       [showSelection]="true"
       [showActionsColumn]="true"
