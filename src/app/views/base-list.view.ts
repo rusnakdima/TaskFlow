@@ -6,6 +6,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
+import { StorageService } from "@services/core/storage.service";
 
 export type ViewMode = "card" | "grid" | "table" | "list";
 
@@ -35,6 +36,8 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionService);
   protected authService = inject(AuthService);
+  protected storageService = inject(StorageService);
+  protected dataLoader = inject(DataLoaderService);
 
   protected readonly subscriptions = new Subscription();
 
@@ -186,5 +189,48 @@ export abstract class BaseListView implements OnInit, OnDestroy {
         }, 2000);
       }
     }, 500);
+  }
+
+  protected loadEntityPage(
+    entity: "todos" | "tasks" | "subtasks" | "comments" | "chats",
+    options?: any
+  ): void {
+    switch (entity) {
+      case "todos":
+        this.dataLoader
+          .loadTodosPage(options?.visibility, options?.page, options?.limit)
+          .subscribe();
+        break;
+      case "tasks":
+        this.dataLoader
+          .loadTasksPage(options?.todoId, options?.visibility, options?.page)
+          .subscribe();
+        break;
+      case "subtasks":
+        this.dataLoader
+          .loadSubtasksPage(options?.taskId, options?.visibility, options?.page)
+          .subscribe();
+        break;
+      case "comments":
+        if (options?.taskId) {
+          this.dataLoader
+            .loadCommentsPage(options.taskId, options?.visibility, options?.page)
+            .subscribe();
+        } else if (options?.subtaskId) {
+          this.dataLoader
+            .loadSubtaskCommentsPage(options.subtaskId, options?.visibility, options?.page)
+            .subscribe();
+        }
+        break;
+      case "chats":
+        this.dataLoader
+          .loadChatsPage(options?.todoId, options?.visibility, options?.page)
+          .subscribe();
+        break;
+    }
+  }
+
+  protected isLoading(entity: "todos" | "tasks" | "subtasks" | "comments" | "chats"): boolean {
+    return false;
   }
 }

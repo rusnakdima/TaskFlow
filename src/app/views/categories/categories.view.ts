@@ -17,6 +17,7 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { AdminService } from "@services/data/admin.service";
@@ -56,12 +57,11 @@ import {
 })
 export class CategoriesView extends BaseListView implements OnInit {
   private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
-
-  private categoriesList = signal<Category[]>([]);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -72,7 +72,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   searchResults = computed(() => {
-    let cats = this.categoriesList();
+    let cats = this.storageService.categories();
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
       cats = cats.filter((cat) => cat.title.toLowerCase().includes(query));
@@ -131,11 +131,6 @@ export class CategoriesView extends BaseListView implements OnInit {
         this.toggleCreateForm();
       })
     );
-
-    const categoriesSub = this.dataService.categories$.subscribe((categories) => {
-      this.categoriesList.set(categories);
-    });
-    this.destroyRef.onDestroy(() => categoriesSub.unsubscribe());
 
     this.dataLoaderService.loadInitialCategories().subscribe();
   }

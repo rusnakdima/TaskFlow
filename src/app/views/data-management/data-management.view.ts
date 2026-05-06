@@ -43,6 +43,9 @@ import { BulkActionHelper } from "@helpers/bulk-action.helper";
 import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
 import { ResponseStatus } from "@models/response.model";
 
+/* constants */
+import { TableActionColors } from "@constants/table-field.constants";
+
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField } from "@components/table-view/table-field.model";
@@ -126,69 +129,6 @@ export class DataManagementView implements OnInit {
   adminActions = [
     { key: "toggleDelete", icon: "archive", label: "Archive" },
     { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
-  ];
-
-  // Field configurations
-  todoFields: AdminFieldConfig[] = [
-    { key: "description", label: "Description", type: "text" },
-    { key: "priority", label: "Priority", type: "priority" },
-    {
-      key: "visibility",
-      label: "Visibility",
-      type: "select",
-      options: ["private", "shared", "public"],
-    },
-    { key: "startDate", label: "Start Date", type: "date" },
-    { key: "endDate", label: "End Date", type: "date" },
-    { key: "tasks", label: "Tasks", type: "array-count" },
-    { key: "assignees", label: "Assignees", type: "array-count" },
-    { key: "user", label: "Owner", type: "user" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  taskFields: AdminFieldConfig[] = [
-    { key: "description", label: "Description", type: "text" },
-    { key: "priority", label: "Priority", type: "priority" },
-    { key: "status", label: "Status", type: "text" },
-    { key: "startDate", label: "Start Date", type: "date" },
-    { key: "endDate", label: "End Date", type: "date" },
-    { key: "todoId", label: "Todo ID", type: "text" },
-    { key: "subtasks", label: "Subtasks", type: "array-count" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  subtaskFields: AdminFieldConfig[] = [
-    { key: "description", label: "Description", type: "text" },
-    { key: "priority", label: "Priority", type: "priority" },
-    { key: "status", label: "Status", type: "text" },
-    { key: "taskId", label: "Task ID", type: "text" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  categoryFields: AdminFieldConfig[] = [
-    { key: "user", label: "Owner", type: "user" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  dailyActivityFields: AdminFieldConfig[] = [
-    { key: "userId", label: "User ID", type: "text" },
-    { key: "date", label: "Date", type: "date" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  commentFields: AdminFieldConfig[] = [
-    { key: "content", label: "Comment", type: "text" },
-    { key: "authorName", label: "Author", type: "text" },
-    { key: "taskId", label: "Task ID", type: "text" },
-    { key: "subtaskId", label: "Subtask ID", type: "text" },
-    { key: "updatedAt", label: "Last Updated", type: "date" },
-  ];
-
-  chatFields: AdminFieldConfig[] = [
-    { key: "content", label: "Message", type: "text" },
-    { key: "authorName", label: "Author", type: "text" },
-    { key: "todoId", label: "Todo ID", type: "text" },
-    { key: "createdAt", label: "Created", type: "date" },
   ];
 
   // Filter state
@@ -371,25 +311,8 @@ export class DataManagementView implements OnInit {
     // No longer needed - we load all data at once
   }
 
-  getFieldConfig(): AdminFieldConfig[] {
-    switch (this.selectedType()) {
-      case "todos":
-        return this.todoFields;
-      case "tasks":
-        return this.taskFields;
-      case "subtasks":
-        return this.subtaskFields;
-      case "comments":
-        return this.commentFields;
-      case "chats":
-        return this.chatFields;
-      case "categories":
-        return this.categoryFields;
-      case "daily_activities":
-        return this.dailyActivityFields;
-      default:
-        return [];
-    }
+  getFieldConfig(): TableField[] {
+    return TableFieldFactory.getColumns(this.selectedType());
   }
 
   getTitleField(): string {
@@ -767,5 +690,10 @@ export class DataManagementView implements OnInit {
       return `${user.profile.name} ${user.profile.last_name || ""}`.trim();
     }
     return user.username || "-";
+  }
+
+  getActionButtonClass(action: string): string {
+    const colorKey = action as keyof typeof TableActionColors;
+    return TableActionColors[colorKey] || TableActionColors.default;
   }
 }

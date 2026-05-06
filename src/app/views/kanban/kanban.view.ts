@@ -222,10 +222,7 @@ export class KanbanView extends BaseListView implements OnInit {
       error: (err) => console.error("Failed to load private todos:", err),
     });
 
-    const tasksSub = this.dataService.tasks$.subscribe((tasks) => {
-      this.tasksList.set(tasks);
-    });
-    this.destroyRef.onDestroy(() => tasksSub.unsubscribe());
+    this.tasksList.set(this.storageService.tasks());
   }
 
   override ngOnDestroy(): void {
