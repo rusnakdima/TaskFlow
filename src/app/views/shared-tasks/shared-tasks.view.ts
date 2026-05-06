@@ -13,7 +13,7 @@ import { Todo } from "@models/todo.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
-import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 
 /* providers */
@@ -33,7 +33,7 @@ import { TodoComponent } from "@components/todo/todo.component";
 })
 export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
-  private dataService = inject(DataService);
+  protected override storageService = inject(StorageService);
   private dragDropService = inject(DragDropOrderService);
   private apiProvider = inject(ApiProvider);
   private destroyRef = inject(DestroyRef);
@@ -43,16 +43,16 @@ export class SharedTasksView extends BaseListView implements OnInit {
   }
 
   userId = signal("");
-  private sharedTodosList: Todo[] = [];
+  sharedTodosList = computed(() => this.storageService.sharedTodos());
 
   myProjects = computed(() => {
     const userId = this.userId();
-    return this.sharedTodosList.filter((todo) => todo.user_id === userId && !todo.deleted_at);
+    return this.sharedTodosList().filter((todo) => todo.user_id === userId && !todo.deleted_at);
   });
 
   sharedWithMe = computed(() => {
     const userId = this.userId();
-    return this.sharedTodosList.filter((todo) => {
+    return this.sharedTodosList().filter((todo) => {
       const isNotOwner = todo.user_id !== userId;
 
       const isAssignee =
@@ -67,11 +67,6 @@ export class SharedTasksView extends BaseListView implements OnInit {
     super.ngOnInit();
     const userId = this.authService.getValueByKey("id");
     this.userId.set(userId);
-
-    const sharedTodosSub = this.dataService.todos$.subscribe((todos) => {
-      this.sharedTodosList = todos.filter((t) => t.visibility === "shared");
-    });
-    this.destroyRef.onDestroy(() => sharedTodosSub.unsubscribe());
   }
 
   todoIsOwner(todo: Todo): boolean {
@@ -80,15 +75,8 @@ export class SharedTasksView extends BaseListView implements OnInit {
 
   deleteTodoById(todoId: string, isOwner: boolean): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const sub = this.dataService.deleteTodo(todoId).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Project deleted successfully");
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to delete project");
-        },
-      });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
+      this.storageService.removeTodoWithCascade(todoId);
+      this.notifyService.showSuccess("Project deleted successfully");
     }
   }
 

@@ -44,6 +44,7 @@ import { DataService } from "@services/data/data.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { StorageService } from "@services/core/storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -117,6 +118,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
   private dataLoaderService = inject(DataLoaderService);
+  private _storageService = inject(StorageService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private githubService = inject(GithubService);
@@ -152,15 +154,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       const visibility = this.isPrivate() ? "private" : "shared";
       if (!this.chatLoadingGuard.has(tid)) {
         this.chatLoadingGuard.add(tid);
-        this.dataLoaderService.loadInitialChatsForTodo(tid, visibility).subscribe({
+        this.dataLoaderService.loadChatsPage(tid, visibility, 0).subscribe({
           complete: () => this.chatLoadingGuard.delete(tid),
         });
       }
-      const sub = this.dataService.getChats(tid).subscribe({
-        next: (chats) => this.chats.set(chats),
-      });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
+    this.chats.set(this._storageService.chats());
   });
 
   private taskLoadEffect = effect(() => {
@@ -183,39 +182,28 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     { initialValue: this.route.snapshot.paramMap.get("todoId") ?? null }
   );
 
-  private loadTodo(todoId: string): void {
-    this.todoSubscription?.unsubscribe();
-    const sub = this.dataService.getTodo(todoId).subscribe({
-      next: (todo) => {
-        this.todo.set(todo);
-        this.todoId.set(todo.id);
+  private todoEffect = effect(() => {
+    const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
+    if (tid) {
+      this.todoId.set(tid);
+      this.loadInitialTodo(tid);
+    }
+  });
+
+  private loadInitialTodo(todoId: string): void {
+    this.dataLoaderService.loadInitialTodos("private", 10).subscribe({
+      next: () => {
+        const todos = this._storageService.todos();
+        const found = todos.find((t) => t.id === todoId);
+        if (found) {
+          this.todo.set(found);
+        }
       },
       error: () => {
         this.notifyService.showError("Todo not found.");
       },
     });
-    this.todoSubscription = sub;
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
-
-  private loadTasks(todoId: string): void {
-    this.tasksSubscription?.unsubscribe();
-    const sub = this.dataService.getTasks(todoId).subscribe({
-      next: (tasks) => {
-        this.todoTasks.set(tasks);
-      },
-    });
-    this.tasksSubscription = sub;
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
-  }
-
-  private todoEffect = effect(() => {
-    const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
-    if (tid) {
-      this.loadTodo(tid);
-      this.loadTasks(tid);
-    }
-  });
 
   taskPagination = signal<{
     skip: number;

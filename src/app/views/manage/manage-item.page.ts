@@ -39,6 +39,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
@@ -96,6 +97,7 @@ export class ManageItemPage implements OnInit {
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private dataSyncProvider = inject(ApiProvider);
   private dataLoaderService = inject(DataLoaderService);
@@ -216,9 +218,7 @@ export class ManageItemPage implements OnInit {
   }
 
   private loadCategories(): void {
-    this.dataService.categories$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((categories) => this.categories.set(categories));
+    this.categories.set(this.storageService.categories());
 
     this.dataService.getCategories().subscribe();
   }
@@ -315,16 +315,11 @@ export class ManageItemPage implements OnInit {
   }
 
   private async loadParentEntities(): Promise<void> {
+    this.todos.set(this.storageService.todos());
+
     const type = this.itemType();
-
-    this.dataService.todos$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((todos) => this.todos.set(todos));
-
     if (type === "task" || type === "subtask") {
-      this.dataService.tasks$
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((tasks) => this.tasks.set(tasks));
+      this.tasks.set(this.storageService.tasks());
     }
   }
 
