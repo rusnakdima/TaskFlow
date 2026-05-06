@@ -3,7 +3,9 @@ import { Injectable, signal, computed } from "@angular/core";
 
 /* models */
 import { FilterField, FilterFieldOption } from "@models/filter-config.model";
-import { TaskStatus } from "@models/task.model";
+
+/* helpers */
+import { FilterHelper } from "@helpers/filter.helper";
 
 @Injectable({
   providedIn: "root",
@@ -75,41 +77,15 @@ export class FilterService {
       }
 
       if (fieldKey === "status") {
-        if (Array.isArray(value)) {
-          filtered = filtered.filter((item) => value.includes(item.status));
-        } else if (value !== "all") {
-          if (value === "done") {
-            filtered = filtered.filter(
-              (item) =>
-                item.status === TaskStatus.COMPLETED ||
-                item.status === TaskStatus.SKIPPED ||
-                item.status === TaskStatus.FAILED
-            );
-          } else {
-            filtered = filtered.filter((item) => item.status === value);
-          }
-        }
+        filtered = FilterHelper.filterByStatus(filtered, value as string);
       } else if (fieldKey === "priority") {
         if (Array.isArray(value)) {
           filtered = filtered.filter((item) => value.includes(item.priority));
         } else if (value !== "all") {
-          filtered = filtered.filter((item) => item.priority === value);
+          filtered = FilterHelper.filterByPriority(filtered, value);
         }
       } else if (fieldKey === "dateRange") {
-        const range = value as { start?: string; end?: string };
-        if (range.start || range.end) {
-          filtered = filtered.filter((item) => {
-            if (!item.start_date && !item.end_date) return false;
-            const itemStart = item.start_date ? new Date(item.start_date) : null;
-            const itemEnd = item.end_date ? new Date(item.end_date) : null;
-            const filterStart = range.start ? new Date(range.start) : null;
-            const filterEnd = range.end ? new Date(range.end) : null;
-
-            if (filterStart && itemEnd && itemEnd < filterStart) return false;
-            if (filterEnd && itemStart && itemStart > filterEnd) return false;
-            return true;
-          });
-        }
+        filtered = FilterHelper.filterThisWeek(filtered);
       }
     });
 

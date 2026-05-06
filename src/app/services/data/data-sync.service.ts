@@ -7,7 +7,7 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
-import { DataService } from "./data.service";
+import { Todo } from "@models/todo.model";
 
 export interface QueuedOperation {
   id: string;
@@ -69,22 +69,12 @@ export class DataSyncService implements OnDestroy {
     });
   }
 
-  async initTauriListeners(dataService: DataService): Promise<void> {
+  async initTauriListeners(): Promise<void> {
     const collections = ["todos", "tasks", "subtasks", "comments", "chats", "categories"];
-
-    const subjectMap: Record<string, any> = {
-      todos: dataService.todos$,
-      tasks: dataService.tasks$,
-      subtasks: dataService.subtasks$,
-      comments: dataService.comments$,
-      chats: dataService.chats$,
-      categories: dataService.categories$,
-    };
 
     for (const collection of collections) {
       const unlisten = await listen(`db-change-${collection}`, (event: any) => {
         const subject = this.dbChangeSubjects.get(collection);
-        const dataServiceSubject = subjectMap[collection];
         if (subject) {
           const payload = event.payload;
           const operationType = this.mapOperationType(payload.operationType);
@@ -93,12 +83,6 @@ export class DataSyncService implements OnDestroy {
             data: payload.data,
             collection,
           });
-        }
-
-        if (dataServiceSubject) {
-          const payload = event.payload;
-          const fullDocument = payload.fullDocument || payload.data;
-          dataServiceSubject.next(fullDocument);
         }
       });
       this.tauriUnlisteners.push(unlisten);
