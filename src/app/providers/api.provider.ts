@@ -1,12 +1,11 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, Subscriber, Subject } from "rxjs";
+import { Observable, from, Subscriber } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
 import { RelationObj } from "@models/relation-obj.model";
 import { Chat } from "@models/chat.model";
 
-import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
@@ -29,6 +28,7 @@ interface CrudOptions {
 export class ApiProvider {
   private notifyService = inject(NotifyService);
   private dataService = inject(DataService);
+  private storageService = inject(StorageService);
 
   invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(
@@ -164,7 +164,7 @@ export class ApiProvider {
         const { todo, ...rest } = chat as any;
         return rest;
       });
-      this.dataService.setChatsForTodo(cleanedChats, todoId);
+      this.storageService.setChatsByTodo(cleanedChats, todoId);
     }
   }
 
@@ -185,76 +185,71 @@ export class ApiProvider {
   }
 
   private emitInsert(table: string, data: any): void {
-    const subject = this.getSubjectForTable(table);
-    if (subject) {
-      const currentData = this.getCurrentDataForTable(table);
-      subject.next([...currentData, data]);
-    }
+    const currentData = this.getCurrentDataForTable(table);
+    const newData = [...currentData, data];
+    this.updateStorageSignal(table, newData);
   }
 
   private emitUpdate(table: string, data: any): void {
-    const subject = this.getSubjectForTable(table);
-    if (subject) {
-      if (table === "profiles") {
-        subject.next(data);
-        return;
-      }
-      const currentData = this.getCurrentDataForTable(table);
-      const existingIndex = currentData.findIndex((item: any) => item.id === data.id);
-      let updated: any[];
-      if (existingIndex !== -1) {
-        updated = [...currentData];
-        updated[existingIndex] = { ...currentData[existingIndex], ...data };
-      } else {
-        updated = [...currentData, data];
-      }
-      subject.next(updated);
+    if (table === "profiles") {
+      this.storageService.setCollection("profiles", data);
+      return;
     }
+    const currentData = this.getCurrentDataForTable(table);
+    const existingIndex = currentData.findIndex((item: any) => item.id === data.id);
+    let updated: any[];
+    if (existingIndex !== -1) {
+      updated = [...currentData];
+      updated[existingIndex] = { ...currentData[existingIndex], ...data };
+    } else {
+      updated = [...currentData, data];
+    }
+    this.updateStorageSignal(table, updated);
   }
 
   private emitDelete(table: string, data: any): void {
-    const subject = this.getSubjectForTable(table);
-    if (subject) {
-      const currentData = this.getCurrentDataForTable(table);
-      subject.next(currentData.filter((item: any) => item.id !== data.id));
-    }
+    const currentData = this.getCurrentDataForTable(table);
+    const filtered = currentData.filter((item: any) => item.id !== data.id);
+    this.updateStorageSignal(table, filtered);
   }
 
-  private getSubjectForTable(table: string): Subject<any> | null {
+  private updateStorageSignal(table: string, data: any[]): void {
     switch (table) {
       case "todos":
-        return this.dataService.todos$;
+        this.storageService.setCollection("privateTodos", data);
+        break;
       case "tasks":
-        return this.dataService.tasks$;
+        this.storageService.setCollection("tasks", data);
+        break;
       case "subtasks":
-        return this.dataService.subtasks$;
+        this.storageService.setCollection("subtasks", data);
+        break;
       case "comments":
-        return this.dataService.comments$;
+        this.storageService.setCollection("comments", data);
+        break;
       case "chats":
-        return this.dataService.chats$;
+        this.storageService.setCollection("chats", data);
+        break;
       case "categories":
-        return this.dataService.categories$;
-      case "profiles":
-        return this.dataService.profile$;
-      default:
-        return null;
+        this.storageService.setCollection("categories", data);
+        break;
     }
   }
 
   private getCurrentDataForTable(table: string): any[] {
     switch (table) {
       case "todos":
-        return this.dataService.getCurrentTodos();
+        return this.storageService.todos();
       case "tasks":
-        return this.dataService.getCurrentTasks();
+        return this.storageService.tasks();
       case "subtasks":
-        return this.dataService.getCurrentSubtasks();
+        return this.storageService.subtasks();
       case "comments":
-        return this.dataService.getCurrentComments();
+        return this.storageService.comments();
       case "chats":
-        return this.dataService.getCurrentChats();
+        return this.storageService.chats();
       case "categories":
-        return this.dataService.getCurrentCategories();
+        return this.storageService.categories();
       default:
         return [];
     }
@@ -263,7 +258,7 @@ export class ApiProvider {
   private getCurrentDataForTableSingle(table: string): any {
     switch (table) {
       case "profiles":
-        return this.dataService.getCurrentProfile();
+        return this.storageService.profile();
       default:
         return null;
     }
