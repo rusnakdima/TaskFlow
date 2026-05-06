@@ -9,7 +9,6 @@ use nosql_orm::Entity;
 pub mod manage_db_service;
 
 // WebSocket server - REMOVED
-// pub mod websocket;
 
 // Special services (not CRUD)
 pub mod auth;
