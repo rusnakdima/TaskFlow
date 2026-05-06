@@ -14,6 +14,7 @@ import {
   ChangeDetectorRef,
   computed,
   DestroyRef,
+  effect,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -38,7 +39,7 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
@@ -72,7 +73,7 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 })
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
@@ -139,12 +140,12 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
         });
     }
 
-    this.dataService.comments$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (comments) => this.commentsSignal.set(comments),
+    effect(() => {
+      this.commentsSignal.set(this.storageService.comments());
     });
 
-    this.dataService.subtasks$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (subtasks) => this.subtasksSignal.set(subtasks),
+    effect(() => {
+      this.subtasksSignal.set(this.storageService.subtasks());
     });
   }
 

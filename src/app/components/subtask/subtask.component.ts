@@ -12,6 +12,7 @@ import {
   OnChanges,
   SimpleChanges,
   DestroyRef,
+  effect,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -34,7 +35,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { StorageService } from "@services/core/storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CommentService } from "@services/features/comment.service";
@@ -62,7 +63,7 @@ import { Task } from "@models/task.model";
 })
 export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private commentService = inject(CommentService);
@@ -100,8 +101,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
   constructor() {
     super();
-    this.dataService.comments$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((comments) => {
-      this.comments.set(comments);
+    effect(() => {
+      this.comments.set(this.storageService.comments());
     });
   }
 
