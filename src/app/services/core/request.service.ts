@@ -5,10 +5,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { Response, ResponseStatus } from "@models/response.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 @Injectable({ providedIn: "root" })
 export class RequestService {
   private jwtTokenService = inject(JwtTokenService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
   private readonly REQUEST_TTL = 30000; // 30 seconds
@@ -62,8 +64,12 @@ export class RequestService {
   }
 
   private invoke<T>(command: string, args: Record<string, any>): Observable<T> {
+    const offlineArgs = {
+      ...args,
+      offline: !this.mongoConnectionService.isConnected(),
+    };
     return from(
-      invoke<Response<T>>(command, args).then(
+      invoke<Response<T>>(command, offlineArgs).then(
         (response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             return response.data as T;
@@ -210,10 +216,17 @@ export class RequestService {
     });
   }
 
-  getTasks(todoId?: string, filter?: any, skip?: number, limit?: number): Observable<any[]> {
+  getTasks(
+    todoId?: string,
+    filter?: any,
+    skip?: number,
+    limit?: number,
+    visibility?: string
+  ): Observable<any[]> {
     const key = this.getRequestDeduplicationKey("getAll", "tasks", todoId, filter);
     const options: any = { filter, skip, limit };
     if (todoId) options.parentTodoId = todoId;
+    if (visibility) options.visibility = visibility;
     return new Observable<any[]>((subscriber) => {
       this.invoke<any[]>("manage_data", {
         operation: "getAll",
@@ -302,15 +315,20 @@ export class RequestService {
     });
   }
 
-  getSubtasks(taskId?: string, skip?: number, limit?: number): Observable<any[]> {
+  getSubtasks(
+    taskId?: string,
+    skip?: number,
+    limit?: number,
+    visibility?: string
+  ): Observable<any[]> {
     const key = this.getRequestDeduplicationKey("getAll", "subtasks", taskId);
+    const options: any = { parentTodoId: taskId, skip, limit };
+    if (visibility) options.visibility = visibility;
     return new Observable<any[]>((subscriber) => {
       this.invoke<any[]>("manage_data", {
         operation: "getAll",
         table: "subtasks",
-        parentTodoId: taskId,
-        skip,
-        limit,
+        ...options,
       }).subscribe({
         next: (data) => {
           subscriber.next(data || []);
@@ -419,19 +437,20 @@ export class RequestService {
     taskId?: string,
     subtaskId?: string,
     skip?: number,
-    limit?: number
+    limit?: number,
+    visibility?: string
   ): Observable<any[]> {
     const filter: any = {};
     if (taskId) filter["task_id"] = taskId;
     if (subtaskId) filter["subtask_id"] = subtaskId;
     const key = this.getRequestDeduplicationKey("getAll", "comments", undefined, filter);
+    const options: any = { filter, skip, limit };
+    if (visibility) options.visibility = visibility;
     return new Observable<any[]>((subscriber) => {
       this.invoke<any[]>("manage_data", {
         operation: "getAll",
         table: "comments",
-        filter,
-        skip,
-        limit,
+        ...options,
       }).subscribe({
         next: (data) => {
           subscriber.next(data || []);
@@ -446,16 +465,16 @@ export class RequestService {
     });
   }
 
-  getChats(todoId: string, skip?: number, limit?: number): Observable<any[]> {
+  getChats(todoId: string, skip?: number, limit?: number, visibility?: string): Observable<any[]> {
     const filter = { todo_id: todoId };
     const key = this.getRequestDeduplicationKey("getAll", "chats", undefined, filter);
+    const options: any = { filter, skip, limit };
+    if (visibility) options.visibility = visibility;
     return new Observable<any[]>((subscriber) => {
       this.invoke<any[]>("manage_data", {
         operation: "getAll",
         table: "chats",
-        filter,
-        skip,
-        limit,
+        ...options,
       }).subscribe({
         next: (data) => {
           subscriber.next(data || []);

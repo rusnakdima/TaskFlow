@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, ViewChild, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, OnDestroy, ViewChild, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 
@@ -25,6 +25,7 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -53,7 +54,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
   ],
   templateUrl: "./app.html",
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
 
@@ -63,6 +64,7 @@ export class App implements OnInit {
   private appStateService = inject(AppStateService);
   private userValidationService = inject(UserValidationService);
   private dataLoaderService = inject(DataLoaderService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -76,6 +78,7 @@ export class App implements OnInit {
   showInfoBlock = this.appStateService.showInfoBlock;
 
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
+  private connectionCheckInterval: any;
 
   ngOnInit(): void {
     this.shortcutService.help$.subscribe(() => {
@@ -98,6 +101,12 @@ export class App implements OnInit {
     this.authService.initializeSession(this.authRoutes);
 
     this.dataLoaderService.loadProfileAndUser().subscribe();
+
+    this.mongoConnectionService.checkConnection().subscribe();
+
+    this.connectionCheckInterval = setInterval(() => {
+      this.mongoConnectionService.checkConnection().subscribe();
+    }, 30000);
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
       let lastIndex =
@@ -140,5 +149,11 @@ export class App implements OnInit {
   triggerSync(silent: boolean = true): void {
     // Silent by default for background syncs
     this.headerComponent?.syncAll(silent);
+  }
+
+  ngOnDestroy(): void {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+    }
   }
 }

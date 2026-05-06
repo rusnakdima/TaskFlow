@@ -912,11 +912,7 @@ export class UnifiedStorageService extends BaseStorageService {
   }
 
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
-    if (!this.hasData()) {
-      force = true;
-    }
-
-    if (!force && this.isCacheValid()) {
+    if (!force && this.isCacheValid(TTL_CACHE_EXPIRY_MS)) {
       return of(this.getAdminDataWithRelations());
     }
 
@@ -1208,28 +1204,56 @@ export class UnifiedStorageService extends BaseStorageService {
         if (options?.append) {
           this.tasksSignal.update((existing) => [...existing, ...(items as Task[])]);
         } else {
-          this.tasksSignal.set(items as Task[]);
+          this.tasksSignal.update((existing) => {
+            const newItems = items as Task[];
+            const existingById = new Map(existing.map((t) => [t.id, t]));
+            for (const item of newItems) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         break;
       case "subtasks":
         if (options?.append) {
           this.subtasksSignal.update((existing) => [...existing, ...(items as Subtask[])]);
         } else {
-          this.subtasksSignal.set(items as Subtask[]);
+          this.subtasksSignal.update((existing) => {
+            const newItems = items as Subtask[];
+            const existingById = new Map(existing.map((s) => [s.id, s]));
+            for (const item of newItems) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         break;
       case "comments":
         if (options?.append) {
           this.commentsSignal.update((existing) => [...existing, ...(items as Comment[])]);
         } else {
-          this.commentsSignal.set(items as Comment[]);
+          this.commentsSignal.update((existing) => {
+            const newItems = items as Comment[];
+            const existingById = new Map(existing.map((c) => [c.id, c]));
+            for (const item of newItems) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         break;
       case "chats":
         if (options?.append) {
           this.chatsSignal.update((existing) => [...existing, ...(items as Chat[])]);
         } else {
-          this.chatsSignal.set(items as Chat[]);
+          this.chatsSignal.update((existing) => {
+            const newItems = items as Chat[];
+            const existingById = new Map(existing.map((c) => [c.id, c]));
+            for (const item of newItems) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         break;
       case "privateTodos":
@@ -1499,19 +1523,5 @@ export class UnifiedStorageService extends BaseStorageService {
 
   setHasMoreTodos(hasMore: boolean): void {
     this._todosPagination.update((p) => ({ ...p, hasMore }));
-  }
-
-  // ==================== PROTECTED HELPERS ====================
-  protected override isCacheValid(): boolean {
-    return super.isCacheValid(TTL_CACHE_EXPIRY_MS);
-  }
-
-  protected override hasData(): boolean {
-    return (
-      this.privateTodosSignal().length > 0 ||
-      this.sharedTodosSignal().length > 0 ||
-      this.publicTodosSignal().length > 0 ||
-      this.tasksSignal().length > 0
-    );
   }
 }

@@ -73,13 +73,9 @@ export class ArchiveStorageService extends BaseAdminStorageService {
 
   /**
    * Load all archive data from backend
-   * Only fetches if cache is expired or data is empty
+   * Only fetches if cache is expired or force is true
    */
   loadArchiveData(force: boolean = false): Observable<AdminDataWithRelations> {
-    if (!this.hasData()) {
-      force = true;
-    }
-
     if (!force && this.isCacheValid()) {
       return of(this.getArchiveDataWithRelations());
     }
