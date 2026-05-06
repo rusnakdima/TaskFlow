@@ -28,7 +28,6 @@ interface CrudOptions {
 })
 export class ApiProvider {
   private notifyService = inject(NotifyService);
-  private dataService = inject(DataService);
   private storageService = inject(StorageService);
 
   invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
