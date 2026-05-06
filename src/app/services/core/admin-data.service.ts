@@ -4,7 +4,7 @@ import { Observable, of } from "rxjs";
 import { map } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
 import { DataService } from "@services/data/data.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ResponseStatus } from "@models/response.model";
 
 export interface AdminDataWithRelations {
@@ -23,7 +23,7 @@ export interface LoadDataOptions {
 export class AdminDataService {
   private adminService = inject(AdminService);
   private dataService = inject(DataService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
     const { showDeleted = false } = options;

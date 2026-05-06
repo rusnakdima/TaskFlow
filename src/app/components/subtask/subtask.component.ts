@@ -35,11 +35,12 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CommentService } from "@services/features/comment.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
+import { RequestService } from "@services/core/request.service";
 
 /* models */
 import { Subtask } from "@models/subtask.model";
@@ -63,11 +64,12 @@ import { Task } from "@models/task.model";
 })
 export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private commentService = inject(CommentService);
   private dataLoaderService = inject(DataLoaderService);
+  private requestService = inject(RequestService);
   private destroyRef = inject(DestroyRef);
 
   @Input() isOwner: boolean = true;
@@ -286,10 +288,10 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || !userId || commentIds.length === 0) return;
 
     if (!effectiveTodoId && this.subtask.task_id) {
-      this.dataService.getTask(this.subtask.task_id).subscribe((task) => {
+      this.requestService.getTask(this.subtask.task_id).subscribe((task: any) => {
         if (task?.todo_id) {
           effectiveTodoId = task.todo_id;
-          this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId);
+          this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId!);
         }
       });
     } else if (effectiveTodoId) {

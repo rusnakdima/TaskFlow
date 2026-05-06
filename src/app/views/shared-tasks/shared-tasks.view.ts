@@ -13,7 +13,7 @@ import { Todo } from "@models/todo.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 
 /* providers */
@@ -33,7 +33,7 @@ import { TodoComponent } from "@components/todo/todo.component";
 })
 export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
-  protected override storageService = inject(StorageService);
+  protected override storageService = inject(UnifiedStorageService);
   private dragDropService = inject(DragDropOrderService);
   private apiProvider = inject(ApiProvider);
   private destroyRef = inject(DestroyRef);

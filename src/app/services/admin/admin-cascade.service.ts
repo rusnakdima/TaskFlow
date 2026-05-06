@@ -9,13 +9,13 @@ import { Comment } from "@models/comment.model";
 import { Chat } from "@models/chat.model";
 
 /* services */
-import { AdminDataStoreService } from "./admin-data-store.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminCascadeService {
-  private dataStore = inject(AdminDataStoreService);
+  private dataStore = inject(UnifiedStorageService);
 
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;

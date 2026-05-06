@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { Observable } from "rxjs";
 import { Comment } from "@models/comment.model";
@@ -22,7 +22,7 @@ export interface MarkCommentsResult {
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private apiProvider = inject(ApiProvider);
 
   createComment(

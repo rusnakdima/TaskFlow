@@ -7,14 +7,14 @@ import { tap, map, catchError } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@services/core/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
-import { StorageService } from "./storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
 
   /**
    * Load initial paginated data for a specific type

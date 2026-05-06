@@ -30,6 +30,7 @@ export class DataSyncService implements OnDestroy {
   private onlineStatusSubject = new Subject<boolean>();
   private dbChangeSubjects: Map<string, Subject<any>> = new Map();
   private tauriUnlisteners: UnlistenFn[] = [];
+  private networkUnlisteners: (() => void)[] = [];
 
   private readonly QUEUE_STORAGE_KEY = "taskflow_offline_queue";
 
@@ -43,6 +44,8 @@ export class DataSyncService implements OnDestroy {
     this.stopPeriodicSync();
     this.tauriUnlisteners.forEach((unlisten) => unlisten());
     this.tauriUnlisteners = [];
+    this.networkUnlisteners.forEach((unlisten) => unlisten());
+    this.networkUnlisteners = [];
   }
 
   private isOnline(): boolean {
@@ -50,16 +53,22 @@ export class DataSyncService implements OnDestroy {
   }
 
   private initNetworkListeners(): void {
-    window.addEventListener("online", () => {
+    const onlineHandler = () => {
       this.onlineStatusSubject.next(true);
       this.processOfflineQueue();
       this.startPeriodicSync();
-    });
+    };
 
-    window.addEventListener("offline", () => {
+    const offlineHandler = () => {
       this.onlineStatusSubject.next(false);
       this.stopPeriodicSync();
-    });
+    };
+
+    window.addEventListener("online", onlineHandler);
+    window.addEventListener("offline", offlineHandler);
+
+    this.networkUnlisteners.push(() => window.removeEventListener("online", onlineHandler));
+    this.networkUnlisteners.push(() => window.removeEventListener("offline", offlineHandler));
   }
 
   private initDbChangeSubjects(): void {

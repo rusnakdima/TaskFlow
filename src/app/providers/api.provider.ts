@@ -7,7 +7,7 @@ import { RelationObj } from "@models/relation-obj.model";
 import { Chat } from "@models/chat.model";
 
 import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
 
@@ -28,7 +28,7 @@ interface CrudOptions {
 })
 export class ApiProvider {
   private notifyService = inject(NotifyService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
 
   invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(

@@ -14,10 +14,11 @@ import { Comment } from "@models/comment.model";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
 
 import { DataService } from "@services/data/data.service";
 import { RequestService } from "@services/core/request.service";
@@ -33,7 +34,7 @@ interface PaginationState {
 })
 export class DataLoaderService {
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private relationLoader = inject(RelationLoadingService);
   private userValidationService = inject(UserValidationService);
   private notifyService = inject(NotifyService);

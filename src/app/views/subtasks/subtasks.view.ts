@@ -42,7 +42,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DataService } from "@services/data/data.service";
@@ -106,7 +106,6 @@ export class SubtasksView extends BaseListView implements OnInit {
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private dataLoaderService = inject(DataLoaderService);
-  protected storageService = inject(StorageService);
   private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
 

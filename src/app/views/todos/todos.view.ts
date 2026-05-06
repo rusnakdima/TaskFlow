@@ -37,7 +37,7 @@ import { Comment } from "@models/comment.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { AdminStorageService } from "@services/core/admin-storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -45,7 +45,6 @@ import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/core/storage.service";
 
 /* providers */
 import { ApiProvider, Operation } from "@providers/api.provider";
@@ -122,7 +121,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private adminStorageService = inject(AdminStorageService);
+  private adminStorageService = inject(UnifiedStorageService);
   private dataSyncProvider = inject(ApiProvider);
   private dataService = inject(DataService);
   private destroyRef = inject(DestroyRef);

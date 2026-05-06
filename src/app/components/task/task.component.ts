@@ -39,7 +39,7 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { StorageService } from "@services/core/storage.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
@@ -73,7 +73,7 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 })
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private storageService = inject(UnifiedStorageService);
   private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
@@ -124,16 +124,14 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   private taskForComments = signal<Task | null>(null);
 
-  private todoSignal = signal<Todo | null>(null);
-
-  todo = computed(() => this.todoSignal());
+  todo = computed<Todo | null>(() => {
+    const todoId = this.todo_id || this.task?.todo_id;
+    if (!todoId) return null;
+    const found = this.storageService.todos().find((t) => t.id === todoId);
+    return found ?? null;
+  });
 
   ngOnInit() {
-    const todoId = this.todo_id || this.task?.todo_id;
-    if (todoId) {
-      this.todoSignal = this.storageService.getTodoReactive(todoId);
-    }
-
     effect(() => {
       this.commentsSignal.set(this.storageService.comments());
     });
@@ -466,7 +464,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     }
   }
 
-  createGithubIssue() {
+  hasGithubIssue = computed(() => !!this.task?.github_issue_id);
+
+  createOrUpdateGithubIssue() {
     if (!this.task) return;
     const todo = this.todo();
     if (!todo || !todo.github_repo_id || !todo.github_repo_name) {
@@ -492,15 +492,50 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 ---
 [View in TaskFlow](taskflow://tasks/${this.task.id})`;
 
-    this.githubService.createIssue(owner, repo, this.task.title, issueBody).subscribe({
-      next: (result) => {
-        this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
-        this.creatingGithubIssue.set(false);
-      },
-      error: (err) => {
-        this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
-        this.creatingGithubIssue.set(false);
-      },
-    });
+    if (this.hasGithubIssue()) {
+      this.githubService
+        .updateIssue(owner, repo, this.task.github_issue_number!, this.task.title, issueBody)
+        .subscribe({
+          next: (result) => {
+            this.updateTaskEvent.emit({
+              task: this.task!,
+              field: "github_issue_url",
+              value: result.html_url,
+            });
+            this.creatingGithubIssue.set(false);
+          },
+          error: (err) => {
+            this.notifyService.showError("Failed to update GitHub issue: " + (err.message || err));
+            this.creatingGithubIssue.set(false);
+          },
+        });
+    } else if (this.task.publish_to_github) {
+      this.githubService.createIssue(owner, repo, this.task.title, issueBody).subscribe({
+        next: (result) => {
+          this.updateTaskEvent.emit({
+            task: this.task!,
+            field: "github_issue_id",
+            value: String(result.id),
+          });
+          this.updateTaskEvent.emit({
+            task: this.task!,
+            field: "github_issue_number",
+            value: result.number,
+          });
+          this.updateTaskEvent.emit({
+            task: this.task!,
+            field: "github_issue_url",
+            value: result.html_url,
+          });
+          this.creatingGithubIssue.set(false);
+        },
+        error: (err) => {
+          this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
+          this.creatingGithubIssue.set(false);
+        },
+      });
+    } else {
+      this.creatingGithubIssue.set(false);
+    }
   }
 }
