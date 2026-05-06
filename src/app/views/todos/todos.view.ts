@@ -406,26 +406,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   loadInitialTodos() {
-    const visibility = this.activeVisibility();
-    const cachedTodos = this.getTodosForVisibility(visibility);
-    const isMongoConnected = this.mongoConnectionService.isConnected();
-
-    if (cachedTodos.length > 0) {
-      this.todoPagination.update((p) => ({
-        ...p,
-        total: cachedTodos.length,
-        skip: cachedTodos.length,
-        hasMore: false,
-        loading: false,
-      }));
-
-      if (!isMongoConnected) {
-        return;
-      }
-    }
-
     const sub = this.dataSyncService
-      .loadInitialTodos(visibility, this.todoPagination().limit)
+      .loadInitialTodos("all", this.todoPagination().limit)
       .subscribe({
         next: (todos: Todo[]) => {
           this.todoPagination.update((p) => ({
@@ -487,7 +469,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
-    this.loadInitialTodos();
+    this.dataSyncService.loadInitialTodos("all", this.todoPagination().limit).subscribe();
   }
 
   override ngOnInit(): void {

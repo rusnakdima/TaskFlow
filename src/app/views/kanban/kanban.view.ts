@@ -35,6 +35,7 @@ import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { DataService } from "@services/data/data.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
@@ -86,6 +87,7 @@ export class KanbanView extends BaseListView implements OnInit {
   private dataSyncProvider = inject(ApiProvider);
   private dragDropService = inject(KanbanDragDropService);
   private dataService = inject(DataService);
+  private dataLoaderService = inject(DataLoaderService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
@@ -98,13 +100,11 @@ export class KanbanView extends BaseListView implements OnInit {
 
   TaskStatus = TaskStatus;
 
-  private todosList = signal<Todo[]>([]);
-
-  todos = computed(() => this.todosList().filter((todo) => !todo.deleted_at));
+  todos = computed(() => this.storageService.todos());
 
   selectedTodo = computed(() => {
     const todoId = this.selectedTodoId();
-    return this.todosList().find((t) => t.id === todoId) ?? null;
+    return this.todos().find((t) => t.id === todoId) ?? null;
   });
 
   private selectedTodoMeta = computed(() => {
@@ -131,26 +131,10 @@ export class KanbanView extends BaseListView implements OnInit {
     return todo?.title || "No Project Selected";
   });
 
-  private tasksList = signal<Task[]>([]);
-
-  private subtasksByTask = signal<{ [taskId: string]: Subtask[] }>({});
-  private subtasksLoading = signal<Set<string>>(new Set());
-
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    const tasks = this.tasksList();
-
-    const filteredTasks = tasks.filter((task) => !task.deleted_at && task.todo_id === todoId);
-
-    const uniqueTaskMap = new Map<string, Task>();
-    filteredTasks.forEach((task) => {
-      if (!uniqueTaskMap.has(task.id)) {
-        uniqueTaskMap.set(task.id, task);
-      }
-    });
-
-    return Array.from(uniqueTaskMap.values());
+    return this.storageService.getTasksByTodoId(todoId);
   });
 
   columns = [
@@ -227,26 +211,10 @@ export class KanbanView extends BaseListView implements OnInit {
       }
     });
 
-    this.dataService.getTodos({ visibility: "private" }).subscribe({
-      next: (todos) => {
-        this.todosList.set(todos);
-        if (this.mongoConnectionService.isConnected()) {
-          this.dataService.getTodos({ visibility: "all" }).subscribe({
-            next: (sharedTodos) => {
-              const privateIds = new Set(todos.map((t) => t.id));
-              const newSharedTodos = sharedTodos.filter(
-                (t) => !privateIds.has(t.id) && t.visibility !== "private"
-              );
-              this.todosList.update((current) => [...current, ...newSharedTodos]);
-            },
-            error: (err) => console.error("Failed to load shared todos:", err),
-          });
-        }
-      },
-      error: (err) => console.error("Failed to load private todos:", err),
+    this.dataLoaderService.loadInitialTodos("all", 20).subscribe({
+      next: () => {},
+      error: (err) => console.error("Failed to load todos:", err),
     });
-
-    this.tasksList.set(this.storageService.tasks());
   }
 
   override ngOnDestroy(): void {
@@ -285,36 +253,15 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   private loadSubtasksIfNeeded(taskId: string): void {
-    if (this.subtasksLoading().has(taskId)) return;
+    const existingSubtasks = this.storageService.getSubtasksByTaskId(taskId);
+    if (existingSubtasks.length > 0) return;
 
-    const alreadyLoaded =
-      this.subtasksByTask().hasOwnProperty(taskId) && this.subtasksByTask()[taskId] !== undefined;
+    if (this.dataLoaderService.isSubtasksLoading()) return;
 
-    if (alreadyLoaded) return;
-
-    this.subtasksLoading.update((set) => {
-      const newSet = new Set(set);
-      newSet.add(taskId);
-      return newSet;
-    });
-
-    this.dataService.getSubtasks(taskId).subscribe({
-      next: (subtasks) => {
-        this.subtasksByTask.update((map) => ({ ...map, [taskId]: subtasks }));
-        this.storageService.setCollection("subtasks", subtasks);
-        this.subtasksLoading.update((set) => {
-          const newSet = new Set(set);
-          newSet.delete(taskId);
-          return newSet;
-        });
-      },
+    this.dataLoaderService.loadInitialSubtasksForTask(taskId, "private", 20).subscribe({
+      next: () => {},
       error: (err) => {
         console.error("Failed to load subtasks for task", taskId, err);
-        this.subtasksLoading.update((set) => {
-          const newSet = new Set(set);
-          newSet.delete(taskId);
-          return newSet;
-        });
       },
     });
   }
@@ -350,7 +297,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
   getSubtasksForTask(taskId?: string): Subtask[] {
     if (!taskId) return [];
-    return this.subtasksByTask()[taskId] || [];
+    return this.storageService.getSubtasksByTaskId(taskId);
   }
 
   getCompletedSubtasksCount(taskId?: string): number {
@@ -373,8 +320,8 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   private loadTasksForTodo(todoId: string): void {
-    this.dataService.getTasks(todoId).subscribe({
-      next: (tasks) => this.tasksList.set(tasks),
+    this.dataLoaderService.loadInitialTasksForTodo(todoId, "private", 20).subscribe({
+      next: () => {},
       error: (err) => console.error("Failed to load tasks:", err),
     });
   }

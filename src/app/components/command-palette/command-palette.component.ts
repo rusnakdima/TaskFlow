@@ -97,14 +97,7 @@ export class CommandPaletteComponent implements OnInit {
       category: "page",
       route: "/categories",
     },
-    {
-      id: "shared",
-      label: "Shared Tasks",
-      description: "View Shared Tasks",
-      icon: "group_work",
-      category: "page",
-      route: "/shared-tasks",
-    },
+
     {
       id: "profile",
       label: "Profile",

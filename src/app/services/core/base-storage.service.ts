@@ -19,10 +19,6 @@ export abstract class BaseStorageService {
     return new Date().getTime() - lastLoaded.getTime() < cacheExpiryMs;
   }
 
-  protected hasData(): boolean {
-    return false;
-  }
-
   setLoading(isLoading: boolean): void {
     this.loadingSignal.set(isLoading);
   }
