@@ -43,6 +43,7 @@ import { DataLoaderService } from "@services/data/data-loader.service";
 import { RequestService } from "@services/core/request.service";
 
 /* models */
+import { STATUS_BUTTON_COLORS, STATUS_BUTTON_ICONS } from "@constants/table-field.constants";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Task } from "@models/task.model";
@@ -97,6 +98,20 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
   get menuClass(): string {
     return "subtask-menu";
+  }
+
+  getStatusBgColor(status: string): string {
+    return (
+      STATUS_BUTTON_COLORS[status as keyof typeof STATUS_BUTTON_COLORS] ||
+      STATUS_BUTTON_COLORS["pending"]
+    );
+  }
+
+  getStatusIcon(status: string): string {
+    return (
+      STATUS_BUTTON_ICONS[status as keyof typeof STATUS_BUTTON_ICONS] ||
+      STATUS_BUTTON_ICONS["pending"]
+    );
   }
 
   truncateString = Common.truncateString;

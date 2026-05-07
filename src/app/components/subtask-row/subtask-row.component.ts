@@ -22,6 +22,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
 
 /* models */
+import { STATUS_BUTTON_COLORS, STATUS_BUTTON_ICONS } from "@constants/table-field.constants";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 import { Subtask } from "@models/subtask.model";
@@ -95,6 +96,20 @@ export class SubtaskRowComponent extends ItemRowBaseComponent {
     if (this.subtask) {
       this.toggleCompletionEvent.emit(this.subtask);
     }
+  }
+
+  getStatusBgColor(status: string): string {
+    return (
+      STATUS_BUTTON_COLORS[status as keyof typeof STATUS_BUTTON_COLORS] ||
+      STATUS_BUTTON_COLORS["pending"]
+    );
+  }
+
+  getStatusIcon(status: string): string {
+    return (
+      STATUS_BUTTON_ICONS[status as keyof typeof STATUS_BUTTON_ICONS] ||
+      STATUS_BUTTON_ICONS["pending"]
+    );
   }
 
   override onAddComment(content: string): void {
