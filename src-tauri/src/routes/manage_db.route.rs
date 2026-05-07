@@ -265,9 +265,20 @@ pub async fn get_tasks_by_month(
   state: State<'_, AppState>,
   year: i32,
   month: i32,
+  offline: Option<bool>,
+  visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
+  let is_offline = offline.unwrap_or(false);
+  let effective_visibility = visibility.as_deref().unwrap_or("private");
+
+  if is_offline && effective_visibility != "private" {
+    return Err(err_response(
+      "Operation not available while offline. Please connect to the internet and try again.",
+    ));
+  }
+
   state
     .manage_db_service
-    .get_tasks_by_month(year, month)
+    .get_tasks_by_month(year, month, is_offline, effective_visibility)
     .await
 }

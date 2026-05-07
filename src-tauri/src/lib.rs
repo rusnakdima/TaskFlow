@@ -55,7 +55,7 @@ use services::{
     auth_passkey::AuthPasskeyService, auth_qr::QrAuthService, auth_totp::AuthTotpService,
   },
   auth_service::AuthService,
-  cascade::CascadeService,
+  cascade::{CascadeService, CountService},
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
@@ -82,6 +82,7 @@ pub struct AppState {
   pub biometric_service: Arc<AuthBiometricService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
   pub cascade_service: Arc<CascadeService>,
+  pub count_service: Arc<CountService>,
   pub entity_resolution: Arc<EntityResolutionService>,
 }
 
@@ -196,10 +197,16 @@ pub fn run() {
       let ent_for_repo = entity_resolution.clone();
       let act_for_stats = activity_log_helper.clone();
 
+      let count_service = Arc::new(CountService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
+
       let repository_service = Arc::new(RepositoryService::new(
         json_for_repo,
         mongo_for_repo,
         cas_for_repo,
+        count_service.clone(),
         ent_for_repo,
         activity_monitor,
         profile_service.as_ref().clone(),
@@ -261,6 +268,7 @@ pub fn run() {
         biometric_service,
         auth_data_sync_service,
         cascade_service: Arc::new(cascade_service),
+        count_service,
         entity_resolution,
       });
 

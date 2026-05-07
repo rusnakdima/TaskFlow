@@ -27,7 +27,7 @@ use crate::providers::data_provider::DataProvider;
 use crate::providers::json_provider::JsonProvider;
 use crate::providers::mongodb_provider::MongoProvider;
 use crate::services::activity_monitor_service::ActivityMonitorService;
-use crate::services::cascade::CascadeService;
+use crate::services::cascade::{CascadeService, CountService};
 use crate::services::entity_resolution_service::EntityResolutionService;
 use crate::services::profile_service::ProfileService;
 
@@ -38,6 +38,7 @@ pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub cascade_service: CascadeService,
+  pub count_service: Arc<CountService>,
   pub entity_resolution: Arc<EntityResolutionService>,
   pub activity_monitor: ActivityMonitorService,
   pub profile_service: ProfileService,
@@ -80,6 +81,7 @@ impl RepositoryService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     cascade_service: CascadeService,
+    count_service: Arc<CountService>,
     entity_resolution: Arc<EntityResolutionService>,
     activity_monitor: ActivityMonitorService,
     profile_service: ProfileService,
@@ -88,6 +90,7 @@ impl RepositoryService {
       json_provider,
       mongodb_provider,
       cascade_service,
+      count_service,
       entity_resolution,
       activity_monitor,
       profile_service,
@@ -108,13 +111,14 @@ impl RepositoryService {
 
   fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
     if offline {
-      return true;
+      let vis = visibility.unwrap_or("private");
+      vis == "private"
+    } else if table == "daily_activities" {
+      true
+    } else {
+      let vis = visibility.unwrap_or("private");
+      vis == "private"
     }
-    if table == "daily_activities" {
-      return true;
-    }
-    let vis = visibility.unwrap_or("private");
-    vis == "private"
   }
 
   fn get_visibility_from_data(&self, _table: &str, data: &Value) -> Option<String> {
@@ -122,6 +126,21 @@ impl RepositoryService {
       .get("visibility")
       .and_then(|v| v.as_str())
       .map(|s| s.to_string())
+  }
+
+  async fn get_todo_id_from_task(&self, task_id: &str) -> Option<String> {
+    let provider = self.get_provider("tasks", None, true).ok()?;
+    provider
+      .find_by_id("tasks", task_id)
+      .await
+      .ok()
+      .flatten()
+      .and_then(|task| {
+        task
+          .get("todo_id")
+          .and_then(|v| v.as_str())
+          .map(|s| s.to_string())
+      })
   }
 
   async fn resolve_visibility_from_parent(&self, table: &str, data: &Value) -> Option<String> {
@@ -314,10 +333,6 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    println!(
-      "[RepositoryService] execute: operation={}, table={}, id={:?}, visibility={:?}",
-      operation, table, id, visibility
-    );
     match operation.as_str() {
       "getAll" => {
         self
@@ -387,26 +402,14 @@ impl RepositoryService {
 
     let load_paths = Self::parse_load_param(load);
 
-    let (docs, used_json_fallback, source) =
-      match provider.find_many(&table, filter_opt.as_ref()).await {
-        Ok(docs) => {
-          let source = if use_json {
-            "JSON".to_string()
-          } else {
-            "MongoDB".to_string()
-          };
-          (docs, false, source)
-        }
-        Err(e) => {
-          println!(
-            "[Repository] MongoDB failed for table={}: {:?}, using JSON fallback",
-            table, e
-          );
-          let json_provider = DataProvider::Json(&self.json_provider);
-          let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
-          (docs, true, "JSON".to_string())
-        }
-      };
+    let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
+      Ok(docs) => (docs, false),
+      Err(_) => {
+        let json_provider = DataProvider::Json(&self.json_provider);
+        let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
+        (docs, true)
+      }
+    };
 
     let docs = if !load_paths.is_empty() {
       if matches!(provider, DataProvider::Mongo(_)) && !used_json_fallback {
@@ -436,18 +439,6 @@ impl RepositoryService {
     } else {
       self.filter_out_deleted(docs)
     };
-
-    // Targeted logging for main entities
-    if table == "todos" || table == "tasks" || table == "subtasks" {
-      println!(
-        "[Repository] LOADED {} {} from {} (visibility={:?}, filter={})",
-        docs.len(),
-        table,
-        source,
-        visibility,
-        filter_val
-      );
-    }
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -577,6 +568,32 @@ impl RepositoryService {
     let created_record = provider.insert(&table, validated_data).await?;
 
     self.invalidate_cache(&table).await;
+
+    if table == "tasks" {
+      if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
+        let _ = self.count_service.on_task_created(todo_id).await;
+      }
+    } else if table == "subtasks" {
+      if let Some(task_id) = created_record.get("task_id").and_then(|v| v.as_str()) {
+        if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
+          let _ = self
+            .count_service
+            .on_subtask_created(task_id, &todo_id)
+            .await;
+        }
+      }
+    } else if table == "chats" {
+      if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
+        let _ = self.count_service.on_chat_created(todo_id).await;
+      }
+    } else if table == "comments" {
+      let task_id = created_record.get("task_id").and_then(|v| v.as_str());
+      let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
+      let _ = self
+        .count_service
+        .on_comment_created(task_id, subtask_id)
+        .await;
+    }
 
     self
       .activity_monitor
@@ -921,12 +938,51 @@ impl RepositoryService {
       .await?
       .ok_or_else(|| err_response("Document not found"))?;
 
+    let old_status = existing_record.get("status").and_then(|v| v.as_str());
+
     let mut validated_data = validated_data;
     Self::merge_immutable_fields(&existing_record, &mut validated_data);
 
     let updated_record = provider
       .update(&table, &id_str, validated_data.clone())
       .await?;
+
+    let new_status = updated_record.get("status").and_then(|v| v.as_str());
+
+    if (table == "tasks" || table == "subtasks") && old_status != new_status {
+      let todo_id = if table == "tasks" {
+        updated_record
+          .get("todo_id")
+          .and_then(|v| v.as_str())
+          .map(|s| s.to_string())
+      } else {
+        updated_record
+          .get("task_id")
+          .and_then(|v| v.as_str())
+          .and_then(|task_id| tauri::async_runtime::block_on(self.get_todo_id_from_task(task_id)))
+      };
+
+      if let Some(tid) = todo_id {
+        if table == "tasks" {
+          if new_status == Some("completed") && old_status != Some("completed") {
+            let _ = self.count_service.on_task_completed(&tid).await;
+          } else if old_status == Some("completed") && new_status != Some("completed") {
+            let _ = self.count_service.on_task_uncompleted(&tid).await;
+          }
+        } else if table == "subtasks" {
+          if let Some(task_id) = updated_record.get("task_id").and_then(|v| v.as_str()) {
+            if new_status == Some("completed") && old_status != Some("completed") {
+              let _ = self.count_service.on_subtask_completed(task_id, &tid).await;
+            } else if old_status == Some("completed") && new_status != Some("completed") {
+              let _ = self
+                .count_service
+                .on_subtask_uncompleted(task_id, &tid)
+                .await;
+            }
+          }
+        }
+      }
+    }
 
     let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
     let old_visibility = updated_record.get("visibility").and_then(|v| v.as_str());
@@ -969,6 +1025,46 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
     let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
+
+    if table == "tasks" || table == "subtasks" || table == "chats" || table == "comments" {
+      let provider = self
+        .get_provider(&table, visibility.as_deref(), offline)
+        .ok();
+      if let Some(ref p) = provider {
+        if let Ok(Some(existing)) = p.find_by_id(&table, &id_str).await {
+          if table == "tasks" {
+            let was_completed = existing.get("status") == Some(&json!("completed"));
+            if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
+              let _ = self
+                .count_service
+                .on_task_deleted(todo_id, was_completed)
+                .await;
+            }
+          } else if table == "subtasks" {
+            let was_completed = existing.get("status") == Some(&json!("completed"));
+            if let Some(task_id) = existing.get("task_id").and_then(|v| v.as_str()) {
+              if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
+                let _ = self
+                  .count_service
+                  .on_subtask_deleted(task_id, &todo_id, was_completed)
+                  .await;
+              }
+            }
+          } else if table == "chats" {
+            if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
+              let _ = self.count_service.on_chat_deleted(todo_id).await;
+            }
+          } else if table == "comments" {
+            let task_id = existing.get("task_id").and_then(|v| v.as_str());
+            let subtask_id = existing.get("subtask_id").and_then(|v| v.as_str());
+            let _ = self
+              .count_service
+              .on_comment_deleted(task_id, subtask_id)
+              .await;
+          }
+        }
+      }
+    }
 
     if is_permanent {
       if use_json {

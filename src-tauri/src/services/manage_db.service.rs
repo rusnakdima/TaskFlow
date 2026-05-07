@@ -551,6 +551,8 @@ impl ManageDbService {
     &self,
     year: i32,
     month: i32,
+    offline: bool,
+    visibility: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     use nosql_orm::query::Filter;
 
@@ -578,27 +580,31 @@ impl ManageDbService {
 
     let mut all_tasks: Vec<Value> = Vec::new();
 
-    let mongo_option = self.mongodb_provider.lock().unwrap().clone();
-    if let Some(mongo) = mongo_option {
-      match mongo
+    if !offline {
+      let mongo_option = self.mongodb_provider.lock().unwrap().clone();
+      if let Some(mongo) = mongo_option {
+        match mongo
+          .find_many("tasks", Some(&filter), None, None, None, true)
+          .await
+        {
+          Ok(tasks) => all_tasks.extend(tasks),
+          Err(e) => {
+            println!("[ManageDbService] Error getting tasks from MongoDB: {}", e);
+          }
+        }
+      }
+    }
+
+    if visibility == "private" {
+      match self
+        .json_provider
         .find_many("tasks", Some(&filter), None, None, None, true)
         .await
       {
         Ok(tasks) => all_tasks.extend(tasks),
         Err(e) => {
-          println!("[ManageDbService] Error getting tasks from MongoDB: {}", e);
+          println!("[ManageDbService] Error getting tasks from JSON: {}", e);
         }
-      }
-    }
-
-    match self
-      .json_provider
-      .find_many("tasks", Some(&filter), None, None, None, true)
-      .await
-    {
-      Ok(tasks) => all_tasks.extend(tasks),
-      Err(e) => {
-        println!("[ManageDbService] Error getting tasks from JSON: {}", e);
       }
     }
 
