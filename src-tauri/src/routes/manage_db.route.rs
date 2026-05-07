@@ -1,6 +1,7 @@
 /* sys lib */
 use crate::AppState;
 use serde_json::Value;
+use std::sync::Arc;
 use tauri::State;
 
 /* models */
@@ -120,8 +121,8 @@ pub async fn reconnect_mongodb(state: State<'_, AppState>) -> Result<ResponseMod
   state
     .manage_db_service
     .reconnect_mongodb(
-      state.cascade_service.clone(),
-      state.entity_resolution.clone(),
+      Arc::new(state.repository_service.cascade_service.clone()),
+      state.repository_service.entity_resolution.clone(),
     )
     .await
     .map_err(|e| ResponseModel {

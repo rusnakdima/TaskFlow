@@ -55,7 +55,7 @@ use services::{
     auth_passkey::AuthPasskeyService, auth_qr::QrAuthService, auth_totp::AuthTotpService,
   },
   auth_service::AuthService,
-  cascade::CascadeService,
+  cascade::{CascadeService, CountService},
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
@@ -182,11 +182,16 @@ pub fn run() {
       ));
       let activity_monitor =
         ActivityMonitorService::new(activity_log_helper.clone(), entity_resolution.clone());
+      let count_service = Arc::new(CountService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
 
       let repository_service = Arc::new(RepositoryService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
         cascade_service.clone(),
+        count_service.clone(),
         entity_resolution.clone(),
         activity_monitor,
         profile_service.as_ref().clone(),
@@ -231,8 +236,10 @@ pub fn run() {
       let manage_db_service = Arc::new(ManageDbService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
-        cascade_service,
-        entity_resolution,
+        cascade_service.clone(),
+        entity_resolution.clone(),
+        config_helper.mongo_db_uri.clone(),
+        config_helper.mongo_db_name.clone(),
       ));
 
       app.manage(AppState {
