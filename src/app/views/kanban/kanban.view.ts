@@ -199,9 +199,9 @@ export class KanbanView extends BaseListView implements OnInit {
     });
 
     effect(() => {
-      const todos = this.todos();
+      const todosLength = this.todos().length;
       const selectedId = this.selectedTodoId();
-      if (selectedId && todos.length > 0) {
+      if (selectedId && todosLength > 0) {
         this.loadTasksForTodo(selectedId);
       }
     });
@@ -214,14 +214,14 @@ export class KanbanView extends BaseListView implements OnInit {
     this.routeSub = this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
+        this.loadTasksForTodo(params["projectId"]);
       }
     });
 
     this.dataLoaderService.loadInitialTodos("all", 20).subscribe({
       next: () => {
-        const todos = this.todos();
         const selectedId = this.selectedTodoId();
-        if (selectedId && todos.length > 0) {
+        if (selectedId) {
           this.loadTasksForTodo(selectedId);
         }
       },
@@ -446,6 +446,7 @@ export class KanbanView extends BaseListView implements OnInit {
   onTodoSelect(todoId: string): void {
     this.selectedTodoId.set(todoId);
     this.expandedTasks.set(new Set());
+    this.loadTasksForTodo(todoId);
   }
 
   onStatsToggle(): void {

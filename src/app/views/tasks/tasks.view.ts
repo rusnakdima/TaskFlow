@@ -360,7 +360,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskSubtasks(taskId: string): Subtask[] {
-    return [];
+    return this._storageService.getSubtasksByTaskId(taskId);
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -740,6 +740,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.dataService.deleteTask(taskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
+        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
       },
     });
   }

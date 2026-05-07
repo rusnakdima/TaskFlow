@@ -509,7 +509,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
-    this.dataSyncService.loadInitialTodos("all", this.todoPagination().limit).subscribe();
+    this.dataSyncService.loadInitialTodos(visibility, this.todoPagination().limit).subscribe();
   }
 
   override ngOnInit(): void {
