@@ -46,6 +46,7 @@ import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* providers */
 import { ApiProvider, Operation } from "@providers/api.provider";
@@ -136,6 +137,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dataService = inject(DataService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -617,8 +619,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  archiveTodoById(todoId?: string): void {
-    if (confirm("Are you sure you want to archive this project?")) {
+  async archiveTodoById(todoId?: string): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Project",
+      message: "Are you sure you want to archive this project?",
+      confirmText: "Archive",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (confirmed) {
       const sub = this.dataService.deleteTodo(todoId!).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo archived successfully");
@@ -631,16 +639,25 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  restoreTodoById(todoId?: string): void {
-    const sub = this.dataService.updateTodo(todoId!, { deleted_at: null }).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Todo restored successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to restore todo");
-      },
+  async restoreTodoById(todoId?: string): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Restore Project",
+      message:
+        "Are you sure you want to restore this project? It will be returned to its original location.",
+      confirmText: "Restore",
+      confirmClass: "bg-green-600 hover:bg-green-700",
     });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    if (confirmed) {
+      const sub = this.dataService.updateTodo(todoId!, { deleted_at: null }).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo restored successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to restore todo");
+        },
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    }
   }
 
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
@@ -662,7 +679,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.router.navigate(["/todos", todo.id, "tasks"]);
   }
 
-  onTableAction(event: { action: string; item: any }): void {
+  async onTableAction(event: { action: string; item: any }): Promise<void> {
     // TODO: type item properly
     const { action, item } = event;
     switch (action) {
@@ -673,7 +690,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.router.navigate(["/todos", item.id, "edit_todo"]);
         break;
       case "archive":
-        if (confirm(`Are you sure you want to archive this project?`)) {
+        const archiveConfirmed = await this.confirmDialogService.confirm({
+          title: "Archive Project",
+          message: "Are you sure you want to archive this project?",
+          confirmText: "Archive",
+          confirmClass: "bg-orange-600 hover:bg-orange-700",
+        });
+        if (archiveConfirmed) {
           const sub = this.dataService.deleteTodo(item.id).subscribe({
             next: () => this.notifyService.showSuccess("Project archived successfully"),
             error: (err) =>
@@ -840,11 +863,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   /**
    * Bulk archive selected todos (move to archive)
    */
-  bulkArchive(): void {
+  async bulkArchive(): Promise<void> {
     const selected = this.selectedTodos();
     if (selected.size === 0) return;
 
-    if (confirm(`Are you sure you want to archive ${selected.size} project(s)?`)) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Projects",
+      message: `Are you sure you want to archive ${selected.size} project(s)?`,
+      confirmText: "Archive All",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (confirmed) {
       const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
 
       const sub = forkJoin(requests).subscribe({
@@ -863,11 +892,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   /**
    * Bulk delete selected todos
    */
-  bulkDelete(): void {
+  async bulkDelete(): Promise<void> {
     const selected = this.selectedTodos();
     if (selected.size === 0) return;
 
-    if (confirm(`Are you sure you want to delete ${selected.size} project(s)?`)) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Projects",
+      message: `Are you sure you want to delete ${selected.size} project(s)?`,
+      confirmText: "Delete",
+    });
+    if (confirmed) {
       const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
 
       const sub = forkJoin(requests).subscribe({

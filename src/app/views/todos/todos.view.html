@@ -83,18 +83,17 @@
               [fields]="todoTableFields"
               [selectedIds]="selectedTodos()"
               [showSelection]="true"
+              [showCommentToggle]="false"
               [dragEnabled]="true"
               [expandable]="true"
               [actions]="tableActions"
+              [itemType]="'todo'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
-              <ng-template #expandTemplate let-item>
-                <app-item-expand-details [item]="item" type="todo" />
-              </ng-template>
             </app-table-view>
           </div>
         }
@@ -111,18 +110,17 @@
               [fields]="todoTableFields"
               [selectedIds]="selectedTodos()"
               [showSelection]="true"
+              [showCommentToggle]="false"
               [dragEnabled]="true"
               [expandable]="true"
               [actions]="tableActions"
+              [itemType]="'todo'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
-              <ng-template #expandTemplate let-item>
-                <app-item-expand-details [item]="item" type="todo" />
-              </ng-template>
             </app-table-view>
           </div>
         }
@@ -139,18 +137,17 @@
               [fields]="todoTableFields"
               [selectedIds]="selectedTodos()"
               [showSelection]="true"
+              [showCommentToggle]="false"
               [dragEnabled]="true"
               [expandable]="true"
               [actions]="tableActions"
+              [itemType]="'todo'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
-              <ng-template #expandTemplate let-item>
-                <app-item-expand-details [item]="item" type="todo" />
-              </ng-template>
             </app-table-view>
           </div>
         }
@@ -389,18 +386,17 @@
             [fields]="todoTableFields"
             [selectedIds]="selectedTodos()"
             [showSelection]="true"
+            [showCommentToggle]="false"
             [dragEnabled]="true"
             [expandable]="true"
             [actions]="tableActions"
+            [itemType]="'todo'"
             (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
             (selectAll)="toggleSelectAll()"
             (rowClick)="onRowClick($event)"
             (actionClick)="onTableAction($event)"
             (dropped)="onTodoDrop($event)"
           >
-            <ng-template #expandTemplate let-item>
-              <app-item-expand-details [item]="item" type="todo" />
-            </ng-template>
           </app-table-view>
         </div>
       } @else if (viewMode() === "grid") {

@@ -49,6 +49,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -131,6 +132,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private authorizationService = inject(AuthorizationService);
   private githubService = inject(GithubService);
   private mongoConnectionService = inject(MongoConnectionService);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -258,6 +260,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (!isMongoConnected) {
         return;
       }
+    } else if (!isMongoConnected) {
+      this.todoTasks.set([]);
+      this.taskPagination.update((p) => ({
+        ...p,
+        loading: false,
+      }));
+      return;
     }
 
     this.isLoadingTasks = true;
@@ -912,12 +921,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       });
   }
 
-  bulkDelete() {
+  async bulkDelete(): Promise<void> {
     const todoId = this.todoId();
     if (!todoId) return;
 
     const selectedIds: string[] = Array.from(this.selectedTasks());
-    if (!confirm(`Delete ${selectedIds.length} tasks?`)) return;
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Tasks",
+      message: `Are you sure you want to delete ${selectedIds.length} task(s)?`,
+      confirmText: "Delete",
+    });
+    if (!confirmed) return;
 
     this.bulkActionHelper
       .bulkDelete(
@@ -938,32 +954,38 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       });
   }
 
-  bulkArchive() {
+  async bulkArchive(): Promise<void> {
     const todoId = this.todoId();
     if (!todoId) return;
 
     const selectedIds: string[] = Array.from(this.selectedTasks());
     if (selectedIds.length === 0) return;
 
-    if (confirm(`Archive ${selectedIds.length} task(s)?`)) {
-      this.bulkActionHelper
-        .bulkDelete(
-          selectedIds.map((id) => ({ id })),
-          (id) => this.dataService.deleteTask(id)
-        )
-        .subscribe({
-          next: (result) => {
-            this.clearSelection();
-            if (result.errorCount > 0) {
-              this.notifyService.showWarning(
-                `Archived ${result.successCount} tasks, ${result.errorCount} failed.`
-              );
-            } else {
-              this.notifyService.showSuccess(`Archived ${result.successCount} tasks.`);
-            }
-          },
-        });
-    }
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Tasks",
+      message: `Are you sure you want to archive ${selectedIds.length} task(s)?`,
+      confirmText: "Archive All",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (!confirmed) return;
+
+    this.bulkActionHelper
+      .bulkDelete(
+        selectedIds.map((id) => ({ id })),
+        (id) => this.dataService.deleteTask(id)
+      )
+      .subscribe({
+        next: (result) => {
+          this.clearSelection();
+          if (result.errorCount > 0) {
+            this.notifyService.showWarning(
+              `Archived ${result.successCount} tasks, ${result.errorCount} failed.`
+            );
+          } else {
+            this.notifyService.showSuccess(`Archived ${result.successCount} tasks.`);
+          }
+        },
+      });
   }
 
   onBulkAction(actionId: string) {
