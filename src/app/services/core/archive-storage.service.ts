@@ -105,6 +105,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.storageService.setCollection("chats", data["chats"] || []);
         this.storageService.setCollection("categories", data["categories"] || []);
         this.storageService.setCollection("dailyActivities", data["daily_activities"] || []);
+        this.storageService.setCollection("users", data["users"] || []);
 
         this.loadingSignal.set(false);
         this.loadedSignal.set(true);
