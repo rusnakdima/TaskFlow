@@ -1,0 +1,24 @@
+@if (show) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
+      <h3 class="mb-4 text-xl font-bold">Create Project from Blueprint</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="mb-1 block text-sm font-medium">Project Name</label>
+          <input
+            type="text"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
+            [ngModel]="title"
+            (ngModelChange)="titleChange.emit($event)"
+          />
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-2">
+        <button class="px-4 py-2 text-gray-600 dark:text-gray-300" (click)="cancel.emit()">
+          Cancel
+        </button>
+        <button class="styleButSuccess px-4 py-2" (click)="confirm.emit()">Create Project</button>
+      </div>
+    </div>
+  </div>
+}

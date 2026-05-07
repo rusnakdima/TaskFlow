@@ -1,0 +1,57 @@
+@if (show) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      class="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 dark:bg-zinc-800"
+    >
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold">Project Blueprints</h3>
+          <p class="textMuted mt-1 text-sm">Manage your saved project templates</p>
+        </div>
+        <button
+          class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-zinc-700"
+          (click)="closeDialog()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <p class="textMuted mb-4">Select a blueprint to create a new project from</p>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        @for (template of templates; track template.id) {
+          <div
+            class="group relative rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-zinc-700"
+          >
+            <div class="cursor-pointer" (click)="openApplyBlueprint(template)">
+              <h4 class="font-semibold">{{ template.name }}</h4>
+              <p class="textMuted mt-1 text-sm">{{ template.description }}</p>
+              <div class="mt-3 flex gap-4 text-xs text-gray-500">
+                <span>{{ template.tasks.length }} tasks</span>
+                <span>{{ getSubtasksCount(template) }} subtasks</span>
+              </div>
+            </div>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="removeBlueprint(template.id); $event.stopPropagation()"
+              class="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100"
+              title="Remove blueprint"
+            >
+              <mat-icon class="h-5! w-5! min-w-5 text-base! text-red-500">delete</mat-icon>
+            </button>
+          </div>
+        } @empty {
+          <div class="textMuted col-span-full py-8 text-center">
+            <mat-icon
+              class="mx-auto mb-2 h-12! w-12! text-4xl! opacity-50"
+              fontIcon="account_tree"
+            ></mat-icon>
+            <p>No blueprints saved yet</p>
+            <p class="text-sm">
+              Create a project and save it as a blueprint to use it as a template
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
