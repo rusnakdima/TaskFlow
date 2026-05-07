@@ -3,12 +3,95 @@
 }
 <div class="filter-sidebar" [class.open]="isOpen">
   <div class="filter-sidebar-content">
-    <ng-content select="[filter-header]"></ng-content>
-
-    <div class="filter-sidebar-body">
-      <ng-content></ng-content>
+    <!-- Header -->
+    <div class="filter-sidebar-header">
+      <div class="flex w-full items-center justify-between">
+        <div class="flex items-center gap-2">
+          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+            >filter_list</mat-icon
+          >
+          <h3 class="textNormal text-lg font-semibold">{{ title }}</h3>
+        </div>
+        <button
+          mat-icon-button
+          (click)="close()"
+          class="textMuted hover:textNormal"
+          aria-label="Close filters"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
+        </button>
+      </div>
     </div>
 
-    <ng-content select="[filter-actions]"></ng-content>
+    <!-- Dynamic Filter Body -->
+    <div class="filter-sidebar-body">
+      @if (filters && filters.length > 0) {
+        <div class="flex flex-col gap-4">
+          @for (filter of filters; track filter.key) {
+            <div class="flex flex-col gap-2">
+              <label class="textMuted block text-xs font-medium tracking-wide uppercase">
+                {{ filter.label }}
+              </label>
+
+              @switch (filter.controlType) {
+                @case ("text") {
+                  <input
+                    type="text"
+                    [ngModel]="getFilterValue(filter.key)"
+                    (ngModelChange)="onFilterChange(filter.key, $event)"
+                    [placeholder]="filter.placeholder || ''"
+                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+                  />
+                }
+                @case ("select") {
+                  <mat-form-field class="w-full">
+                    <mat-select
+                      [value]="getFilterValue(filter.key)"
+                      (selectionChange)="onFilterChange(filter.key, $event.value)"
+                      [compareWith]="compareFn"
+                    >
+                      @for (option of getFilterOptions(filter); track option.value || $index) {
+                        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                }
+                @case ("date") {
+                  <input
+                    type="date"
+                    [ngModel]="getFilterValue(filter.key)"
+                    (ngModelChange)="onFilterChange(filter.key, $event)"
+                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+                  />
+                }
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <ng-content></ng-content>
+      }
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="filter-sidebar-actions">
+      <button
+        type="button"
+        (click)="close()"
+        class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+      >
+        Done
+      </button>
+      @if (hasActiveFilters) {
+        <button
+          type="button"
+          (click)="clearAll()"
+          class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
+        >
+          <mat-icon class="h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
+          Clear All Filters
+        </button>
+      }
+    </div>
   </div>
 </div>

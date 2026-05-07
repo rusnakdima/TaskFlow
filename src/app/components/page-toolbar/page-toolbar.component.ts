@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from "@angular/core";
+import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
@@ -7,8 +7,8 @@ import { MatMenuModule } from "@angular/material/menu";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { ViewMode } from "@components/view-mode-switcher/view-mode-switcher.component";
-import { FilterBarComponent } from "@components/filter-bar/filter-bar.component";
-import { FilterField } from "@models/filter-config.model";
+import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
+import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
 
 export interface SelectAllConfig {
   onToggle: () => void;
@@ -22,7 +22,7 @@ export interface StatsConfig {
   isActive: boolean;
 }
 
-export interface FilterConfig {
+export interface ToolbarFilterConfig {
   onToggle: () => void;
   isActive: boolean;
 }
@@ -79,7 +79,7 @@ export interface SearchConfig {
 export interface PageToolbarConfig {
   selectAll?: SelectAllConfig;
   stats?: StatsConfig;
-  filter?: FilterConfig;
+  filter?: ToolbarFilterConfig;
   newButton?: NewButtonConfig;
   newButtonWithMenu?: NewButtonWithMenuConfig;
   infoToggle?: InfoToggleConfig;
@@ -109,31 +109,88 @@ export interface PageToolbarConfig {
     MatMenuModule,
     CheckboxComponent,
     ViewModeSwitcherComponent,
-    FilterBarComponent,
+    FilterSidebarComponent,
   ],
   templateUrl: "./page-toolbar.component.html",
 })
 export class PageToolbarComponent {
   @Input() config: PageToolbarConfig | null = null;
   @Input() filterFields: FilterField[] = [];
-  @Input() showFilter: boolean = false;
-  @Input() activeFilters: Record<string, string | string[] | any> = {};
-  @Input() activeFilter: string = "all";
   @Input() searchQuery: string = "";
 
+  showFilter = signal(false);
+
   @Output() filtersChange = new EventEmitter<Record<string, string | string[] | any>>();
-  @Output() filterToggle = new EventEmitter<void>();
   @Output() searchChange = new EventEmitter<string>();
 
   onToggleFilter(): void {
+    this.showFilter.update((v) => !v);
+    if (this.config?.filter) {
+      this.config.filter.onToggle();
+    }
     this.filterToggle.emit();
   }
 
-  onFiltersChange(filters: Record<string, string | string[] | any>): void {
+  @Output() filterToggle = new EventEmitter<void>();
+
+  private activeFilters = signal<Record<string, string>>({});
+
+  onFiltersChange(event: { key: string; value: string }): void {
+    this.activeFilters.update((filters) => ({
+      ...filters,
+      [event.key]: event.value,
+    }));
+    this.filtersChange.emit(this.activeFilters());
+  }
+
+  onClearFilters(): void {
+    this.activeFilters.set({});
+    this.filtersChange.emit({});
+  }
+
+  getFilterConfigs(): FilterConfig[] {
+    return this.filterFields
+      .filter((field) => field.type !== "date-range")
+      .map((field) => {
+        let controlType: "text" | "select" | "date" = "text";
+        if (field.type === "radio" || field.type === "checkbox" || field.type === "select") {
+          controlType = "select";
+        } else if (field.type === "date") {
+          controlType = "date";
+        }
+        return {
+          key: field.key,
+          label: field.label,
+          controlType,
+          options:
+            field.options?.map((opt) => ({
+              value: opt.key,
+              label: opt.label,
+            })) || [],
+        };
+      });
+  }
+
+  getFilterValues(): Record<string, string> {
+    return this.activeFilters();
+  }
+
+  getDynamicOptionsFn = (key: string, filter: any): FilterOption[] => {
+    const field = this.filterFields.find((f) => f.key === key);
+    if (field?.options) {
+      return field.options.map((opt) => ({
+        value: opt.key,
+        label: opt.label,
+      }));
+    }
+    return [];
+  };
+
+  onFiltersChangeEvent(filters: Record<string, string | string[] | any>): void {
     this.filtersChange.emit(filters);
   }
 
-  onSearchChange(query: string): void {
+  onSearchChangeEvent(query: string): void {
     this.searchChange.emit(query);
   }
 

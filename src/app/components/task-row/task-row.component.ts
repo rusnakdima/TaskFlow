@@ -10,8 +10,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from "@angular/core";
-
-/* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -22,7 +20,9 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { DateHelper } from "@helpers/date.helper";
+
+/* base */
+import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
 
 /* models */
 import { Task } from "@models/task.model";
@@ -37,42 +37,71 @@ import { Todo } from "@models/todo.model";
   templateUrl: "./task-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskRowComponent {
-  private cdr = inject(ChangeDetectorRef);
-
+export class TaskRowComponent extends ItemRowBaseComponent {
   @Input() task: Task | null = null;
-  @Input() todo: Todo | null = null;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
+  @Input() override todo: Todo | null = null;
   @Input() isExpanded: boolean = false;
-  @Input() isSelected: boolean = false;
   @Input() highlight: boolean = false;
-  @Input() highlightCommentId: string | null = null;
+  @Input() override highlightCommentId: string | null = null;
 
-  @Output() toggleExpandEvent = new EventEmitter<Task>();
-  @Output() toggleSubtaskCompletionEvent = new EventEmitter<Subtask>();
-  @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() deleteTaskEvent = new EventEmitter<string>();
-  @Output() addCommentEvent = new EventEmitter<{ content: string; task_id: string }>();
-  @Output() deleteCommentEvent = new EventEmitter<string>();
-  @Output() markAsReadEvent = new EventEmitter<string[]>();
-  @Output() actionClickEvent = new EventEmitter<{ action: string; item: any }>();
-  @Output() addSubtaskCommentEvent = new EventEmitter<{ content: string; subtask_id: string }>();
+  @Output() override toggleExpandEvent = new EventEmitter<Task>();
+  @Output() override toggleSubtaskCompletionEvent = new EventEmitter<Subtask>();
+  @Output() override addSubtaskCommentEvent = new EventEmitter<{
+    content: string;
+    subtask_id: string;
+  }>();
 
-  showComments = signal(false);
-
-  getSubtaskStatusIcon = BaseItemHelper.getStatusIcon;
-  getSubtaskStatusColor = BaseItemHelper.getStatusColor;
-  getSubtaskPriorityColor = BaseItemHelper.getPriorityColor;
-  getPriorityColor = BaseItemHelper.getPriorityBadgeClass;
-
-  get totalSubtasks(): number {
-    return this.task?.subtasks?.length ?? 0;
+  override get item(): Task | null {
+    return this.task;
   }
 
-  get taskComments(): Comment[] {
+  override get type(): "task" {
+    return "task";
+  }
+
+  override get itemId(): string {
+    return this.task?.id || "";
+  }
+
+  override get itemTitle(): string {
+    return this.task?.title || "";
+  }
+
+  override get itemDescription(): string | null {
+    return this.task?.description || null;
+  }
+
+  override get itemStatus(): string {
+    return this.task?.status || "";
+  }
+
+  override get itemPriority(): string {
+    return this.task?.priority || "";
+  }
+
+  override get itemComments(): Comment[] {
     if (!this.task?.comments) return [];
     return this.task.comments.filter((c) => !c.deleted_at);
+  }
+
+  override get itemSubtasks(): Subtask[] {
+    return this.task?.subtasks || [];
+  }
+
+  override get subtaskCount(): number {
+    return this.itemSubtasks.length;
+  }
+
+  override get itemDeleteEvent(): EventEmitter<string> {
+    return new EventEmitter<string>();
+  }
+
+  override get addCommentEvent(): EventEmitter<{
+    content: string;
+    task_id?: string;
+    subtask_id?: string;
+  }> {
+    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
   }
 
   get subtaskCommentGroups(): SubtaskCommentGroup[] {
@@ -90,22 +119,11 @@ export class TaskRowComponent {
     }
   }
 
-  toggleComments() {
-    this.showComments.update((v) => !v);
-    this.cdr.markForCheck();
-  }
-
   toggleSubtaskCompletion(subtask: Subtask) {
     this.toggleSubtaskCompletionEvent.emit(subtask);
   }
 
-  onSelectionChange(checked: boolean): void {
-    if (this.task) {
-      this.selectionChangeEvent.emit({ id: this.task.id, selected: checked });
-    }
-  }
-
-  onAddComment(content: string) {
+  override onAddComment(content: string): void {
     if (this.task) {
       this.addCommentEvent.emit({ content, task_id: this.task.id });
     }
@@ -113,25 +131,5 @@ export class TaskRowComponent {
 
   onAddSubtaskComment(event: { content: string; subtask_id: string }) {
     this.addSubtaskCommentEvent.emit(event);
-  }
-
-  onDeleteComment(commentId: string) {
-    this.deleteCommentEvent.emit(commentId);
-  }
-
-  onMarkAsRead(commentIds: string[]) {
-    this.markAsReadEvent.emit(commentIds);
-  }
-
-  deleteTask() {
-    if (this.task) {
-      this.deleteTaskEvent.emit(this.task.id);
-    }
-  }
-
-  onActionClick(action: string) {
-    if (this.task) {
-      this.actionClickEvent.emit({ action, item: this.task });
-    }
   }
 }

@@ -8,6 +8,8 @@ import {
   signal,
   ChangeDetectionStrategy,
   TemplateRef,
+  inject,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -19,6 +21,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { CommentsComponent } from "@components/comments/comments.component";
 import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
+import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -26,6 +29,7 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* models */
 import { TableField, TableFieldActionButton } from "./table-field.model";
+import { Comment } from "@models/comment.model";
 
 /* constants */
 import {
@@ -48,7 +52,9 @@ import {
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TableViewComponent {
+export class TableViewComponent extends ItemRowBaseComponent {
+  private tableCdr = inject(ChangeDetectorRef);
+
   @Input() data: any[] = [];
   @Input() fields: TableField[] = [];
   @Input() selectedIds = new Set<string>();
@@ -64,6 +70,7 @@ export class TableViewComponent {
   @Input() expandable = false;
   @Input() expandTemplate: TemplateRef<any> | null = null;
   @Input() showCommentToggle = false;
+  @Input() itemType: ItemType = "task";
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
@@ -79,12 +86,110 @@ export class TableViewComponent {
     subtask_id: string;
     itemId: string;
   }>();
+  @Output() deleteItemEvent = new EventEmitter<string>();
+
+  currentItem = signal<any>(null);
+
+  override get item(): any {
+    return this.currentItem();
+  }
+
+  override get type(): ItemType {
+    return this.itemType;
+  }
+
+  get itemId(): string {
+    return this.currentItem()?.id || "";
+  }
+
+  get itemTitle(): string {
+    return this.currentItem()?.title || "";
+  }
+
+  get itemDescription(): string | null {
+    return this.currentItem()?.description || null;
+  }
+
+  get itemStatus(): string {
+    return this.currentItem()?.status || "";
+  }
+
+  get itemPriority(): string {
+    return this.currentItem()?.priority || "";
+  }
+
+  get itemComments(): Comment[] {
+    const item = this.currentItem();
+    if (!item?.comments) return [];
+    return item.comments.filter((c: Comment) => !c.deleted_at);
+  }
+
+  get itemSubtasks(): any[] {
+    return this.currentItem()?.subtasks || [];
+  }
+
+  get subtaskCount(): number {
+    return this.itemSubtasks.length;
+  }
+
+  get commentsTitle(): string {
+    return "Comments";
+  }
+
+  get deleteItemTitle(): string {
+    return this.itemType === "subtask" ? "Delete subtask" : "Delete item";
+  }
+
+  get itemDeleteEvent(): EventEmitter<string> {
+    return this.deleteItemEvent;
+  }
+
+  get addCommentEvent(): EventEmitter<
+    { content: string; task_id: string } | { content: string; subtask_id: string }
+  > {
+    return new EventEmitter<
+      { content: string; task_id: string } | { content: string; subtask_id: string }
+    >();
+  }
+
+  override toggleComments(): void {
+    this.showComments.update((v) => !v);
+    this.tableCdr.markForCheck();
+  }
+
+  override onSelectionChange(checked: boolean): void {
+    this.selectionChange.emit({ id: this.itemId, selected: checked });
+  }
+
+  override onAddComment(content: string): void {
+    this.addComment.emit({ content, itemId: this.itemId });
+  }
+
+  override onDeleteComment(commentId: string): void {
+    this.deleteComment.emit(commentId);
+  }
+
+  override onMarkAsRead(commentIds: string[]): void {
+    this.markAsRead.emit(commentIds);
+  }
+
+  override deleteItem(): void {
+    this.deleteItemEvent.emit(this.itemId);
+  }
+
+  override onActionClick(action: string): void {
+    this.actionClick.emit({ action, item: this.item });
+  }
 
   sortField = signal<string>("");
   sortDirection = signal<"asc" | "desc">("asc");
 
   expandedRows = signal<Set<string>>(new Set());
   expandedComments = signal<Set<string>>(new Set());
+
+  setCurrentItem(item: any): void {
+    this.currentItem.set(item);
+  }
 
   toggleSort(field: TableField): void {
     if (!field.sortable) return;
@@ -145,12 +250,8 @@ export class TableViewComponent {
     });
   }
 
-  isSelected(id: string): boolean {
+  isItemSelected(id: string): boolean {
     return this.selectedIds.has(id);
-  }
-
-  onSelectionChange(id: string, checked: boolean): void {
-    this.selectionChange.emit({ id, selected: checked });
   }
 
   onSelectAll(): void {
@@ -171,24 +272,20 @@ export class TableViewComponent {
     return field.width ? `w-${field.width}` : "";
   }
 
-  onRowClick(item: any): void {
-    this.rowClick.emit(item);
-  }
-
-  onActionClick(action: string, item: any): void {
-    this.actionClick.emit({ action, item });
-  }
-
   onDropped(event: CdkDragDrop<any[]>): void {
     if (!this.dragEnabled) return;
     this.dropped.emit(event);
   }
 
-  isCommentExpanded(id: string): boolean {
+  isCommentExpandedById(id: string): boolean {
+    const item = this.data.find((d) => d.id === id);
+    if (item) this.setCurrentItem(item);
     return this.expandedComments().has(id);
   }
 
-  toggleComments(id: string): void {
+  toggleCommentsById(id: string): void {
+    const item = this.data.find((d) => d.id === id);
+    if (item) this.setCurrentItem(item);
     this.expandedComments.update((expanded) => {
       const newExpanded = new Set(expanded);
       if (newExpanded.has(id)) {
@@ -255,6 +352,7 @@ export class TableViewComponent {
   }
 
   onCommentAdd(content: string, item: any): void {
+    this.setCurrentItem(item);
     this.addComment.emit({ content, itemId: item.id });
   }
 
@@ -267,6 +365,23 @@ export class TableViewComponent {
   }
 
   onSubtaskCommentAdd(event: { content: string; subtask_id: string }, item: any): void {
+    this.setCurrentItem(item);
     this.addSubtaskComment.emit({ ...event, itemId: item.id });
+  }
+
+  onRowClick(item: any): void {
+    this.setCurrentItem(item);
+    this.rowClick.emit(item);
+  }
+
+  onActionClickHandler(action: string, item: any): void {
+    this.setCurrentItem(item);
+    this.actionClick.emit({ action, item });
+  }
+
+  onSelectionChangeById(id: string, checked: boolean): void {
+    const item = this.data.find((d) => d.id === id);
+    if (item) this.setCurrentItem(item);
+    this.selectionChange.emit({ id, selected: checked });
   }
 }
