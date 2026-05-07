@@ -1,9 +1,6 @@
 <div class="flex flex-col gap-6">
   @if (loading()) {
-    <div class="flex items-center justify-center py-12">
-      <mat-spinner diameter="40" class="mx-auto" />
-      <span class="textMuted ml-4">Loading tasks...</span>
-    </div>
+    <app-loading-state message="Loading tasks..." />
   }
 
   @if (!loading() && !todo()) {
@@ -17,7 +14,6 @@
   }
 
   @if (!loading() && todo()) {
-    <!-- Toolbar Row -->
     <div class="flex items-center justify-between gap-2">
       <app-page-toolbar
         [config]="getToolbarConfig()"
@@ -29,7 +25,6 @@
       />
     </div>
 
-    <!-- Collapsible Info Block -->
     @if (showInfoBlock()) {
       <app-todo-information [todo]="todo()!" [isOwner]="isOwner()" [isPrivate]="isPrivate()" />
     }
@@ -57,90 +52,7 @@
         (actionClick)="onTaskTableAction($event)"
       >
         <ng-template #expandTemplate let-item>
-          <div class="flex flex-col gap-4 p-2">
-            @if (item.subtasks_count !== undefined) {
-              <div class="flex items-center gap-4 text-sm">
-                <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                  <mat-icon class="h-4! w-4! text-base!" fontIcon="check_box" />
-                  <span
-                    >{{ item.completed_subtasks_count || 0 }}/{{
-                      item.subtasks_count || 0
-                    }}
-                    subtasks</span
-                  >
-                </div>
-                @if (item.comments_count) {
-                  <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
-                    <span>{{ item.comments_count }} comments</span>
-                  </div>
-                }
-              </div>
-            }
-            @if (item.start_date || item.end_date) {
-              <div class="flex items-center gap-4 text-sm">
-                @if (item.start_date) {
-                  <div class="flex items-center gap-1">
-                    <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                    <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                    <span>{{ item.start_date | date: "mediumDate" }}</span>
-                  </div>
-                }
-                @if (item.end_date) {
-                  <div class="flex items-center gap-1">
-                    <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                    <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                    <span>{{ item.end_date | date: "mediumDate" }}</span>
-                  </div>
-                }
-              </div>
-            }
-            @if (item.description) {
-              <div class="text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                <p class="mt-1 text-gray-900 dark:text-gray-100">
-                  {{ item.description | slice: 0 : 150
-                  }}{{ item.description.length > 150 ? "..." : "" }}
-                </p>
-              </div>
-            }
-            @if (item.repeat && item.repeat !== "none") {
-              <div class="flex items-center gap-2 text-sm">
-                <mat-icon class="h-4! w-4! text-base!" fontIcon="repeat" />
-                <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
-                <span class="font-medium">{{ item.repeat }}</span>
-              </div>
-            }
-            @if (item.github_issue_url) {
-              <div class="flex items-center gap-2 text-sm">
-                <mat-icon class="h-4! w-4! text-base!" fontIcon="bug_report" />
-                <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
-                <a
-                  [href]="item.github_issue_url"
-                  target="_blank"
-                  class="text-blue-500 hover:underline"
-                >
-                  #{{ item.github_issue_number }}
-                </a>
-              </div>
-            }
-            @if (item.depends_on?.length) {
-              <div class="flex items-center gap-2 text-sm">
-                <mat-icon class="h-4! w-4! text-base!" fontIcon="account_tree" />
-                <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
-                <span class="font-medium">{{ item.depends_on.length }} tasks</span>
-              </div>
-            }
-            @if (item.created_at) {
-              <div class="flex items-center gap-2 text-xs text-gray-500">
-                <span>Created: {{ item.created_at | date: "short" }}</span>
-                @if (item.todo_id) {
-                  <span class="text-gray-400">|</span>
-                  <span>Project: {{ item.todo_id | slice: 0 : 8 }}...</span>
-                }
-              </div>
-            }
-          </div>
+          <app-item-expand-details [item]="item" type="task" />
         </ng-template>
       </app-table-view>
     } @else if (viewMode() === "grid") {
@@ -222,22 +134,8 @@
     }
   }
 
-  <!-- Floating Chat Button -->
-  <button
-    (click)="toggleChat()"
-    class="fixed right-6 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700"
-  >
-    <mat-icon class="h-8 w-8 min-w-8 text-2xl!" [fontIcon]="openChat() ? 'close' : 'chat'" />
-    @if (getUnreadCount() > 0) {
-      <span
-        class="absolute -top-1 -right-1 rounded-full border-2 border-white bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white dark:border-zinc-800"
-      >
-        {{ getUnreadCount() }}
-      </span>
-    }
-  </button>
+  <app-chat-fab [isOpen]="openChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
 
-  <!-- Chat Window -->
   @if (openChat()) {
     <app-chat-window [todo_id]="todo()?.id || ''" (close)="toggleChat()" />
   }

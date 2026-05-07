@@ -73,6 +73,10 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { FilterField } from "@models/filter-config.model";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { BlueprintCreateDialogComponent } from "@components/blueprint-dialogs/blueprint-create-dialog.component";
+import { BlueprintSelectionDialogComponent } from "@components/blueprint-dialogs/blueprint-selection-dialog.component";
+import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blueprint-apply-dialog.component";
 
 @Component({
   selector: "app-todos",
@@ -93,6 +97,10 @@ import { FilterField } from "@models/filter-config.model";
     EmptyStateComponent,
     SegmentSelectorComponent,
     PageToolbarComponent,
+    ItemExpandDetailsComponent,
+    BlueprintCreateDialogComponent,
+    BlueprintSelectionDialogComponent,
+    BlueprintApplyDialogComponent,
   ],
   templateUrl: "./todos.view.html",
 })
@@ -335,6 +343,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       getValue: (item) => this.computeTodoStatus(item),
     },
     { key: "tasks", label: "Tasks", type: "number", getValue: (item) => item.tasks_count || 0 },
+  ];
+
+  tableActions = [
+    { key: "blueprint", icon: "account_tree", label: "Save as Blueprint" },
+    { key: "edit", icon: "edit", label: "Edit" },
+    { key: "archive", icon: "archive", label: "Archive" },
   ];
 
   computeTodoStatus(todo: Todo): string {

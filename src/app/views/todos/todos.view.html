@@ -45,7 +45,6 @@
     </div>
   }
 
-  <!-- Offline indicator for shared mode -->
   @if (isSharedMode() && isOffline()) {
     <div
       class="flex items-center gap-3 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-700 dark:bg-amber-600/10 dark:text-amber-400"
@@ -75,7 +74,9 @@
       @if (viewMode() === "table") {
         @if (groupedTodos().private.length > 0) {
           <div class="mb-6">
-            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
               <mat-icon class="text-base">lock</mat-icon>
               Private
             </h3>
@@ -86,11 +87,7 @@
               [showSelection]="true"
               [dragEnabled]="true"
               [expandable]="true"
-              [actions]="[
-                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-                { key: 'edit', icon: 'edit', label: 'Edit' },
-                { key: 'archive', icon: 'archive', label: 'Archive' },
-              ]"
+              [actions]="tableActions"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
@@ -98,85 +95,16 @@
               (dropped)="onTodoDrop($event)"
             >
               <ng-template #expandTemplate let-item>
-                <div class="flex flex-col gap-4 p-2">
-                  <div class="flex items-center gap-4 text-sm">
-                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
-                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
-                    </div>
-                    @if (item.chats_count) {
-                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
-                        <span>{{ item.chats_count }} chats</span>
-                      </div>
-                    }
-                  </div>
-                  @if (item.start_date || item.end_date) {
-                    <div class="flex items-center gap-4 text-sm">
-                      @if (item.start_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                          <span>{{ item.start_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                      @if (item.end_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                          <span>{{ item.end_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                  @if (item.description) {
-                    <div class="text-sm">
-                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
-                    </div>
-                  }
-                  @if (item.assignees_profiles?.length) {
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
-                      <div class="flex -space-x-2">
-                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
-                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
-                            {{ profile.name?.charAt(0)?.toUpperCase() }}
-                          </div>
-                        }
-                        @if (item.assignees_profiles.length > 4) {
-                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
-                            +{{ item.assignees_profiles.length - 4 }}
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                  @if (item.categories?.length) {
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
-                      @for (cat of item.categories; track cat.id) {
-                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                          {{ cat.title }}
-                        </span>
-                      }
-                    </div>
-                  }
-                  @if (item.github_repo_name) {
-                    <div class="flex items-center gap-2 text-sm">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
-                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
-                      <span class="font-medium">{{ item.github_repo_name }}</span>
-                    </div>
-                  }
-                </div>
+                <app-item-expand-details [item]="item" type="todo" />
               </ng-template>
             </app-table-view>
           </div>
         }
         @if (groupedTodos().shared.length > 0) {
           <div class="mb-6">
-            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
               <mat-icon class="text-base">group</mat-icon>
               Shared
             </h3>
@@ -187,11 +115,7 @@
               [showSelection]="true"
               [dragEnabled]="true"
               [expandable]="true"
-              [actions]="[
-                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-                { key: 'edit', icon: 'edit', label: 'Edit' },
-                { key: 'archive', icon: 'archive', label: 'Archive' },
-              ]"
+              [actions]="tableActions"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
@@ -199,98 +123,16 @@
               (dropped)="onTodoDrop($event)"
             >
               <ng-template #expandTemplate let-item>
-                <div class="flex flex-col gap-4 p-2">
-                  <div class="flex items-center gap-4 text-sm">
-                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
-                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
-                    </div>
-                    @if (item.chats_count) {
-                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
-                        <span>{{ item.chats_count }} chats</span>
-                      </div>
-                    }
-                  </div>
-                  @if (item.start_date || item.end_date) {
-                    <div class="flex items-center gap-4 text-sm">
-                      @if (item.start_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                          <span>{{ item.start_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                      @if (item.end_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                          <span>{{ item.end_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                  @if (item.description) {
-                    <div class="text-sm">
-                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
-                    </div>
-                  }
-                  @if (item.assignees_profiles?.length) {
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
-                      <div class="flex -space-x-2">
-                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
-                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
-                            {{ profile.name?.charAt(0)?.toUpperCase() }}
-                          </div>
-                        }
-                        @if (item.assignees_profiles.length > 4) {
-                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
-                            +{{ item.assignees_profiles.length - 4 }}
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                  @if (item.categories?.length) {
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
-                      @for (cat of item.categories; track cat.id) {
-                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                          {{ cat.title }}
-                        </span>
-                      }
-                    </div>
-                  }
-                  @if (item.github_repo_name) {
-                    <div class="flex items-center gap-2 text-sm">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
-                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
-                      <span class="font-medium">{{ item.github_repo_name }}</span>
-                    </div>
-                  }
-                  <div class="flex items-center gap-4 text-xs text-gray-500">
-                    @if (item.visibility) {
-                      <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                        {{ item.visibility }}
-                      </span>
-                    }
-                    @if (item.created_at) {
-                      <span>Created: {{ item.created_at | date:'short' }}</span>
-                    }
-                    @if (item.updated_at) {
-                      <span>Updated: {{ item.updated_at | date:'short' }}</span>
-                    }
-                  </div>
-                </div>
+                <app-item-expand-details [item]="item" type="todo" />
               </ng-template>
             </app-table-view>
           </div>
         }
         @if (groupedTodos().public.length > 0) {
           <div class="mb-6">
-            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
               <mat-icon class="text-base">public</mat-icon>
               Public
             </h3>
@@ -301,11 +143,7 @@
               [showSelection]="true"
               [dragEnabled]="true"
               [expandable]="true"
-              [actions]="[
-                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-                { key: 'edit', icon: 'edit', label: 'Edit' },
-                { key: 'archive', icon: 'archive', label: 'Archive' },
-              ]"
+              [actions]="tableActions"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
@@ -313,91 +151,7 @@
               (dropped)="onTodoDrop($event)"
             >
               <ng-template #expandTemplate let-item>
-                <div class="flex flex-col gap-4 p-2">
-                  <div class="flex items-center gap-4 text-sm">
-                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
-                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
-                    </div>
-                    @if (item.chats_count) {
-                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
-                        <span>{{ item.chats_count }} chats</span>
-                      </div>
-                    }
-                  </div>
-                  @if (item.start_date || item.end_date) {
-                    <div class="flex items-center gap-4 text-sm">
-                      @if (item.start_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                          <span>{{ item.start_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                      @if (item.end_date) {
-                        <div class="flex items-center gap-1">
-                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                          <span>{{ item.end_date | date:'mediumDate' }}</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                  @if (item.description) {
-                    <div class="text-sm">
-                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
-                    </div>
-                  }
-                  @if (item.assignees_profiles?.length) {
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
-                      <div class="flex -space-x-2">
-                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
-                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
-                            {{ profile.name?.charAt(0)?.toUpperCase() }}
-                          </div>
-                        }
-                        @if (item.assignees_profiles.length > 4) {
-                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
-                            +{{ item.assignees_profiles.length - 4 }}
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                  @if (item.categories?.length) {
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
-                      @for (cat of item.categories; track cat.id) {
-                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                          {{ cat.title }}
-                        </span>
-                      }
-                    </div>
-                  }
-                  @if (item.github_repo_name) {
-                    <div class="flex items-center gap-2 text-sm">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
-                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
-                      <span class="font-medium">{{ item.github_repo_name }}</span>
-                    </div>
-                  }
-                  <div class="flex items-center gap-4 text-xs text-gray-500">
-                    @if (item.visibility) {
-                      <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                        {{ item.visibility }}
-                      </span>
-                    }
-                    @if (item.created_at) {
-                      <span>Created: {{ item.created_at | date:'short' }}</span>
-                    }
-                    @if (item.updated_at) {
-                      <span>Updated: {{ item.updated_at | date:'short' }}</span>
-                    }
-                  </div>
-                </div>
+                <app-item-expand-details [item]="item" type="todo" />
               </ng-template>
             </app-table-view>
           </div>
@@ -639,11 +393,7 @@
             [showSelection]="true"
             [dragEnabled]="true"
             [expandable]="true"
-            [actions]="[
-              { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-              { key: 'edit', icon: 'edit', label: 'Edit' },
-              { key: 'delete', icon: 'delete', label: 'Delete' },
-            ]"
+            [actions]="tableActions"
             (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
             (selectAll)="toggleSelectAll()"
             (rowClick)="onRowClick($event)"
@@ -651,84 +401,10 @@
             (dropped)="onTodoDrop($event)"
           >
             <ng-template #expandTemplate let-item>
-              <div class="flex flex-col gap-4 p-2">
-                <div class="flex items-center gap-4 text-sm">
-                  <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
-                    <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
-                  </div>
-                  @if (item.chats_count) {
-                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
-                      <span>{{ item.chats_count }} chats</span>
-                    </div>
-                  }
-                </div>
-                @if (item.start_date || item.end_date) {
-                  <div class="flex items-center gap-4 text-sm">
-                    @if (item.start_date) {
-                      <div class="flex items-center gap-1">
-                        <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                        <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                        <span>{{ item.start_date | date:'mediumDate' }}</span>
-                      </div>
-                    }
-                    @if (item.end_date) {
-                      <div class="flex items-center gap-1">
-                        <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                        <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                        <span>{{ item.end_date | date:'mediumDate' }}</span>
-                      </div>
-                    }
-                  </div>
-                }
-                @if (item.description) {
-                  <div class="text-sm">
-                    <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                    <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
-                  </div>
-                }
-                @if (item.assignees_profiles?.length) {
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
-                    <div class="flex -space-x-2">
-                      @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
-                        <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
-                          {{ profile.name?.charAt(0)?.toUpperCase() }}
-                        </div>
-                      }
-                      @if (item.assignees_profiles.length > 4) {
-                        <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
-                          +{{ item.assignees_profiles.length - 4 }}
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-                @if (item.github_repo_name) {
-                  <div class="flex items-center gap-2 text-sm">
-                    <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
-                    <span class="text-gray-600 dark:text-gray-400">Repo:</span>
-                    <span class="font-medium">{{ item.github_repo_name }}</span>
-                  </div>
-                }
-                <div class="flex items-center gap-4 text-xs text-gray-500">
-                  @if (item.visibility) {
-                    <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                      {{ item.visibility }}
-                    </span>
-                  }
-                  @if (item.created_at) {
-                    <span>Created: {{ item.created_at | date:'short' }}</span>
-                  }
-                  @if (item.updated_at) {
-                    <span>Updated: {{ item.updated_at | date:'short' }}</span>
-                  }
-                </div>
-              </ng-template>
-            </app-table-view>
-          </div>
-        }
+              <app-item-expand-details [item]="item" type="todo" />
+            </ng-template>
+          </app-table-view>
+        </div>
       } @else if (viewMode() === "grid") {
         <div>
           <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
@@ -822,136 +498,31 @@
     }
   }
 
-  <!-- Create Blueprint Dialog -->
-  @if (blueprintService.showCreateBlueprintDialog()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
-        <h3 class="mb-4 text-xl font-bold">Save as Blueprint</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="mb-1 block text-sm font-medium">Blueprint Name</label>
-            <input
-              type="text"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
-              [ngModel]="blueprintService.newBlueprintName()"
-              (ngModelChange)="blueprintService.newBlueprintName.set($event)"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium">Description</label>
-            <textarea
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
-              rows="3"
-              [ngModel]="blueprintService.newBlueprintDescription()"
-              (ngModelChange)="blueprintService.newBlueprintDescription.set($event)"
-            ></textarea>
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button
-            class="px-4 py-2 text-gray-600 dark:text-gray-300"
-            (click)="closeCreateBlueprintDialog()"
-          >
-            Cancel
-          </button>
-          <button class="styleButSuccess px-4 py-2" (click)="confirmSaveAsBlueprint()">
-            Save Blueprint
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+  <app-blueprint-create-dialog
+    [show]="blueprintService.showCreateBlueprintDialog()"
+    [name]="blueprintService.newBlueprintName()"
+    [description]="blueprintService.newBlueprintDescription()"
+    (nameChange)="blueprintService.newBlueprintName.set($event)"
+    (descriptionChange)="blueprintService.newBlueprintDescription.set($event)"
+    (confirm)="confirmSaveAsBlueprint()"
+    (cancel)="closeCreateBlueprintDialog()"
+  />
 
-  <!-- Blueprint Selection Dialog -->
-  @if (blueprintService.showBlueprintDialog()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div
-        class="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 dark:bg-zinc-800"
-      >
-        <div class="mb-4 flex items-center justify-between">
-          <div>
-            <h3 class="text-xl font-bold">Project Blueprints</h3>
-            <p class="textMuted mt-1 text-sm">Manage your saved project templates</p>
-          </div>
-          <button
-            class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-zinc-700"
-            (click)="blueprintService.showBlueprintDialog.set(false)"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-        <p class="textMuted mb-4">Select a blueprint to create a new project from</p>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          @for (template of templateService.getTemplates(); track template.id) {
-            <div
-              class="group relative rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-zinc-700"
-            >
-              <div class="cursor-pointer" (click)="openApplyBlueprint(template)">
-                <h4 class="font-semibold">{{ template.name }}</h4>
-                <p class="textMuted mt-1 text-sm">{{ template.description }}</p>
-                <div class="mt-3 flex gap-4 text-xs text-gray-500">
-                  <span>{{ template.tasks.length }} tasks</span>
-                  <span>{{ getSubtasksCount(template) }} subtasks</span>
-                </div>
-              </div>
-              <!-- Remove Button -->
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="removeBlueprint(template.id); $event.stopPropagation()"
-                class="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100"
-                title="Remove blueprint"
-              >
-                <mat-icon class="h-5! w-5! min-w-5 text-base! text-red-500">delete</mat-icon>
-              </button>
-            </div>
-          } @empty {
-            <div class="textMuted col-span-full py-8 text-center">
-              <mat-icon
-                class="mx-auto mb-2 h-12! w-12! text-4xl! opacity-50"
-                fontIcon="account_tree"
-              ></mat-icon>
-              <p>No blueprints saved yet</p>
-              <p class="text-sm">
-                Create a project and save it as a blueprint to use it as a template
-              </p>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  }
+  <app-blueprint-selection-dialog
+    [show]="blueprintService.showBlueprintDialog()"
+    [templates]="templateService.getTemplates()"
+    (templateSelected)="openApplyBlueprint($event)"
+    (templateRemoved)="removeBlueprint($event)"
+    (closed)="blueprintService.showBlueprintDialog.set(false)"
+  />
 
-  <!-- Apply Blueprint Dialog -->
-  @if (blueprintService.showApplyBlueprintDialog()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
-        <h3 class="mb-4 text-xl font-bold">Create Project from Blueprint</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="mb-1 block text-sm font-medium">Project Name</label>
-            <input
-              type="text"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700"
-              [ngModel]="blueprintService.applyBlueprintTitle()"
-              (ngModelChange)="blueprintService.applyBlueprintTitle.set($event)"
-            />
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button
-            class="px-4 py-2 text-gray-600 dark:text-gray-300"
-            (click)="blueprintService.showApplyBlueprintDialog.set(false)"
-          >
-            Cancel
-          </button>
-          <button class="styleButSuccess px-4 py-2" (click)="confirmCreateFromBlueprint()">
-            Create Project
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+  <app-blueprint-apply-dialog
+    [show]="blueprintService.showApplyBlueprintDialog()"
+    [title]="blueprintService.applyBlueprintTitle()"
+    (titleChange)="blueprintService.applyBlueprintTitle.set($event)"
+    (confirm)="confirmCreateFromBlueprint()"
+    (cancel)="blueprintService.showApplyBlueprintDialog.set(false)"
+  />
 
   <app-bulk-actions
     [selectedCount]="selectedTodos().size"
