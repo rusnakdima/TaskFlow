@@ -46,6 +46,7 @@ import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DataService } from "@services/data/data.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* providers */
 import { ApiProvider } from "@providers/api.provider";
@@ -115,6 +116,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private dataLoaderService = inject(DataLoaderService);
   private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   protected getItems(): { id: string }[] {
     return this.listSubtasks();
@@ -378,6 +380,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         const todoData = dataResolve["todo"];
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
+        this.loadInitialSubtasks();
       }
       this.loading.set(false);
       this.cdr.detectChanges();
@@ -389,6 +392,7 @@ export class SubtasksView extends BaseListView implements OnInit {
         if (reactiveTask) {
           this.task.set(reactiveTask);
           this.loadTodo(reactiveTask.todo_id);
+          this.loadInitialSubtasks();
         } else {
           this.notifyService.showError("Task not found. Please refresh.");
         }
@@ -573,68 +577,79 @@ export class SubtasksView extends BaseListView implements OnInit {
       });
   }
 
-  bulkDelete(): void {
+  async bulkDelete(): Promise<void> {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
     const todoId = this.todoId();
 
-    if (confirm(`Are you sure you want to delete ${selected.size} subtask(s)?`)) {
-      this.bulkActionHelper
-        .bulkDelete(
-          Array.from(selected).map((id) => ({ id })),
-          (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
-        )
-        .subscribe({
-          next: (result) => {
-            this.clearSelection();
-            if (result.errorCount > 0) {
-              this.notifyService.showWarning(
-                `Deleted ${result.successCount} subtask(s), ${result.errorCount} failed.`
-              );
-            } else {
-              this.notifyService.showSuccess(
-                `${result.successCount} subtask(s) deleted successfully`
-              );
-            }
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete subtasks");
-          },
-        });
-    }
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Subtasks",
+      message: `Are you sure you want to delete ${selected.size} subtask(s)?`,
+      confirmText: "Delete",
+    });
+    if (!confirmed) return;
+
+    this.bulkActionHelper
+      .bulkDelete(
+        Array.from(selected).map((id) => ({ id })),
+        (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
+      )
+      .subscribe({
+        next: (result) => {
+          this.clearSelection();
+          if (result.errorCount > 0) {
+            this.notifyService.showWarning(
+              `Deleted ${result.successCount} subtask(s), ${result.errorCount} failed.`
+            );
+          } else {
+            this.notifyService.showSuccess(
+              `${result.successCount} subtask(s) deleted successfully`
+            );
+          }
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete subtasks");
+        },
+      });
   }
 
-  bulkArchive(): void {
+  async bulkArchive(): Promise<void> {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
     const todoId = this.todoId();
 
-    if (confirm(`Archive ${selected.size} subtask(s)?`)) {
-      this.bulkActionHelper
-        .bulkDelete(
-          Array.from(selected).map((id) => ({ id })),
-          (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
-        )
-        .subscribe({
-          next: (result) => {
-            this.clearSelection();
-            if (result.errorCount > 0) {
-              this.notifyService.showWarning(
-                `Archived ${result.successCount} subtask(s), ${result.errorCount} failed.`
-              );
-            } else {
-              this.notifyService.showSuccess(
-                `${result.successCount} subtask(s) archived successfully`
-              );
-            }
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to archive subtasks");
-          },
-        });
-    }
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Subtasks",
+      message: `Are you sure you want to archive ${selected.size} subtask(s)?`,
+      confirmText: "Archive All",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (!confirmed) return;
+
+    this.bulkActionHelper
+      .bulkDelete(
+        Array.from(selected).map((id) => ({ id })),
+        (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
+      )
+      .subscribe({
+        next: (result) => {
+          this.clearSelection();
+          if (result.errorCount > 0) {
+            this.notifyService.showWarning(
+              `Archived ${result.successCount} subtask(s), ${result.errorCount} failed.`
+            );
+          } else {
+            this.notifyService.showSuccess(
+              `${result.successCount} subtask(s) archived successfully`
+            );
+          }
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to archive subtasks");
+        },
+      });
   }
 
   getSubtaskTableActions(): TableFieldActionButton[] {

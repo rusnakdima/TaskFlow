@@ -33,6 +33,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { DataService } from "@services/data/data.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -105,6 +106,7 @@ export class DataManagementView implements OnInit {
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
   protected dataService = inject(DataService);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   private archiveLoadedSignal = signal<{ [type: string]: boolean }>({});
 
@@ -569,6 +571,14 @@ export class DataManagementView implements OnInit {
   }
 
   async deleteRecord(record: any) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Permanently Delete",
+      message:
+        "WARNING: This action cannot be undone. This will permanently remove the selected record(s) from the database.",
+      confirmText: "Delete Permanently",
+    });
+    if (!confirmed) return;
+
     const table = this.selectedType();
     try {
       const response =
@@ -628,6 +638,14 @@ export class DataManagementView implements OnInit {
   async onBulkHardDelete(): Promise<void> {
     const table = this.selectedType();
     const selected = Array.from(this.selectedRecords());
+
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Permanently Delete",
+      message:
+        "WARNING: This action cannot be undone. This will permanently remove the selected record(s) from the database.",
+      confirmText: "Delete Permanently",
+    });
+    if (!confirmed) return;
 
     const promises = selected.map((id) =>
       this.mode === "admin"
