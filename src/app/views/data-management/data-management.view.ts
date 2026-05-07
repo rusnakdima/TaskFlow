@@ -6,6 +6,7 @@ import {
   ViewChild,
   TemplateRef,
   DestroyRef,
+  WritableSignal,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -44,6 +45,7 @@ import { ResponseStatus } from "@models/response.model";
 
 /* constants */
 import { TableActionColors } from "@constants/table-field.constants";
+import { FILTER_CONFIGS } from "@constants/filter.constants";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
@@ -61,6 +63,7 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
+import { FilterControlComponent } from "@components/filter-control/filter-control.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -85,6 +88,7 @@ import {
     FilterSidebarComponent,
     SegmentSelectorComponent,
     PageToolbarComponent,
+    FilterControlComponent,
   ],
   templateUrl: "./data-management.view.html",
 })
@@ -234,6 +238,7 @@ export class DataManagementView implements OnInit {
           hasMore: false,
           loading: false,
         });
+        this.populateFilterLists();
         this.loading.set(false);
       },
       error: (error) => {
@@ -758,5 +763,74 @@ export class DataManagementView implements OnInit {
         label: c.title || c.id,
       }))
     );
+  }
+
+  getFiltersForCurrentType(): any[] {
+    const selectedType = this.selectedType();
+    return FILTER_CONFIGS.filter(
+      (f) => !f.dataType || f.dataType.length === 0 || f.dataType.includes(selectedType)
+    );
+  }
+
+  getFilterSignal(key: string): WritableSignal<string> {
+    switch (key) {
+      case "deletedFilter":
+        return this.deletedFilter;
+      case "titleFilter":
+        return this.titleFilter;
+      case "descriptionFilter":
+        return this.descriptionFilter;
+      case "priorityFilter":
+        return this.priorityFilter;
+      case "statusFilter":
+        return this.statusFilter;
+      case "isCompletedFilter":
+        return this.isCompletedFilter;
+      case "userFilter":
+        return this.userFilter;
+      case "categoriesFilter":
+        return this.categoriesFilter;
+      case "todoIdFilter":
+        return this.todoIdFilter;
+      case "taskIdFilter":
+        return this.taskIdFilter;
+      case "subtaskIdFilter":
+        return this.subtaskIdFilter;
+      case "visibilityFilter":
+        return this.visibilityFilter;
+      case "startDateFilter":
+        return this.startDateFilter;
+      case "endDateFilter":
+        return this.endDateFilter;
+      default:
+        return signal("");
+    }
+  }
+
+  getFilterOptions(filterKey: string): any[] {
+    switch (filterKey) {
+      case "userFilter": {
+        const opts = this.userList();
+        return [{ value: "", label: "All Users" }, ...opts];
+      }
+      case "categoriesFilter": {
+        const opts = this.categoryList();
+        return [{ value: "", label: "All Categories" }, ...opts];
+      }
+      case "todoIdFilter": {
+        const opts = this.todoList();
+        return [{ value: "", label: "All Projects" }, ...opts];
+      }
+      case "taskIdFilter": {
+        const opts = this.taskList();
+        return [{ value: "", label: "All Tasks" }, ...opts];
+      }
+      case "subtaskIdFilter": {
+        const opts = this.subtaskList();
+        return [{ value: "", label: "All Subtasks" }, ...opts];
+      }
+      default:
+        return [];
+    }
   }
 }
