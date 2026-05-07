@@ -30,14 +30,24 @@ pub async fn manage_data(
     let read_operations = ["getAll", "get"];
     if read_operations.contains(&operation.as_str()) {
       // Read operations are allowed offline for all visibility levels
-    } else if visibility.as_deref() == Some("private") {
-      // Write operations are allowed offline ONLY for private data (stored in JSON)
-      // Private todos, tasks, subtasks are stored locally and don't need MongoDB
     } else {
-      // Shared and public data requires MongoDB connection for write operations
-      return Err(err_response(
-        "Operation not available while offline. Please connect to the internet and try again.",
-      ));
+      // Check visibility - either from parameter or from data object
+      let mut effective_visibility = visibility.as_deref();
+      if effective_visibility.is_none() {
+        if let Some(ref d) = data {
+          effective_visibility = d.get("visibility").and_then(|v| v.as_str());
+        }
+      }
+
+      if effective_visibility == Some("private") {
+        // Write operations are allowed offline ONLY for private data (stored in JSON)
+        // Private todos, tasks, subtasks are stored locally and don't need MongoDB
+      } else {
+        // Shared and public data requires MongoDB connection for write operations
+        return Err(err_response(
+          "Operation not available while offline. Please connect to the internet and try again.",
+        ));
+      }
     }
   }
 
@@ -101,6 +111,29 @@ pub async fn check_mongodb_connection(
       "MongoDB is not connected".to_string()
     },
     data: DataValue::Bool(is_connected),
+  })
+}
+
+/// Reconnect to MongoDB
+#[tauri::command]
+pub async fn reconnect_mongodb(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .reconnect_mongodb(
+      state.cascade_service.clone(),
+      state.entity_resolution.clone(),
+    )
+    .await
+    .map_err(|e| ResponseModel {
+      status: ResponseStatus::Error,
+      message: e,
+      data: DataValue::Bool(false),
+    })?;
+
+  Ok(ResponseModel {
+    status: ResponseStatus::Success,
+    message: "MongoDB reconnected successfully".to_string(),
+    data: DataValue::Bool(true),
   })
 }
 

@@ -39,7 +39,7 @@ use routes::{
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_admin_data_paginated, get_all_data_for_admin,
     get_all_data_for_archive, get_archive_data_paginated, get_tasks_by_month, import_to_local,
-    manage_data, permanently_delete_record, permanently_delete_record_local,
+    manage_data, permanently_delete_record, permanently_delete_record_local, reconnect_mongodb,
     sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
   },
   profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
@@ -81,6 +81,8 @@ pub struct AppState {
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
+  pub cascade_service: Arc<CascadeService>,
+  pub entity_resolution: Arc<EntityResolutionService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -239,8 +241,10 @@ pub fn run() {
       let manage_db_service = Arc::new(ManageDbService::new(
         json_for_mdb,
         mongo_for_mdb,
-        cascade_service,
-        entity_resolution,
+        cascade_service.clone(),
+        entity_resolution.clone(),
+        config_helper.mongo_db_uri.clone(),
+        config_helper.mongo_db_name.clone(),
       ));
 
       app.manage(AppState {
@@ -256,6 +260,8 @@ pub fn run() {
         passkey_service,
         biometric_service,
         auth_data_sync_service,
+        cascade_service: Arc::new(cascade_service),
+        entity_resolution,
       });
 
       Ok(())
@@ -301,6 +307,7 @@ pub fn run() {
       get_archive_data_paginated,
       get_tasks_by_month,
       check_mongodb_connection,
+      reconnect_mongodb,
       import_to_local,
       manage_data,
       permanently_delete_record,

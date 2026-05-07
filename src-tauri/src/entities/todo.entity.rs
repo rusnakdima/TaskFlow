@@ -19,6 +19,7 @@ use nosql_orm::Validate;
 #[index("status", 1)]
 #[index("priority", 1)]
 #[index("visibility", 1)]
+#[index("github_repo_id", 1)]
 #[frontend_exclude("tasks", "user")]
 pub struct TodoEntity {
   pub id: Option<String>,
@@ -32,6 +33,8 @@ pub struct TodoEntity {
   pub visibility: String,
   pub priority: String,
   pub order: i32,
+  pub github_repo_id: Option<String>,
+  pub github_repo_name: Option<String>,
   pub created_at: Option<DateTime<Utc>>,
   pub updated_at: Option<DateTime<Utc>>,
   pub deleted_at: Option<DateTime<Utc>>,
@@ -52,6 +55,8 @@ pub struct TodoCreateModel {
   pub visibility: String,
   pub priority: String,
   pub order: i32,
+  pub github_repo_id: Option<String>,
+  pub github_repo_name: Option<String>,
 }
 
 impl From<TodoCreateModel> for TodoEntity {
@@ -92,6 +97,8 @@ impl From<TodoCreateModel> for TodoEntity {
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,
+      github_repo_id: value.github_repo_id,
+      github_repo_name: value.github_repo_name,
       deleted_at: None,
       created_at: Some(now),
       updated_at: Some(now),
@@ -123,6 +130,10 @@ pub struct TodoUpdateModel {
   pub priority: Option<String>,
   #[serde(default)]
   pub order: Option<i32>,
+  #[serde(default)]
+  pub github_repo_id: Option<String>,
+  #[serde(default)]
+  pub github_repo_name: Option<String>,
   #[serde(default)]
   pub deleted_at: Option<bool>,
   #[serde(default)]
