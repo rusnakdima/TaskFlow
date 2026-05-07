@@ -22,7 +22,11 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
 
 /* models */
-import { STATUS_BUTTON_COLORS, STATUS_BUTTON_ICONS } from "@constants/table-field.constants";
+import {
+  STATUS_BUTTON_COLORS,
+  STATUS_BUTTON_ICONS,
+  ActionColors,
+} from "@constants/table-field.constants";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 import { Subtask } from "@models/subtask.model";
@@ -110,6 +114,12 @@ export class SubtaskRowComponent extends ItemRowBaseComponent {
       STATUS_BUTTON_ICONS[status as keyof typeof STATUS_BUTTON_ICONS] ||
       STATUS_BUTTON_ICONS["pending"]
     );
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "rounded-lg p-1 transition-all duration-200 hover:scale-110";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
   }
 
   override onAddComment(content: string): void {
