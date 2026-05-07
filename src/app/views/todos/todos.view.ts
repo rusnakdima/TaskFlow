@@ -61,7 +61,7 @@ import { BaseListView } from "@views/base-list.view";
 import { TodoComponent } from "@components/todo/todo.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
@@ -77,6 +77,7 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 import { BlueprintCreateDialogComponent } from "@components/blueprint-dialogs/blueprint-create-dialog.component";
 import { BlueprintSelectionDialogComponent } from "@components/blueprint-dialogs/blueprint-selection-dialog.component";
 import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blueprint-apply-dialog.component";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-todos",
@@ -186,6 +187,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   userId = signal("");
   showStats = signal(false);
   activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
+  statusFilter = signal("all");
+  priorityFilter = signal("all");
 
   todoPagination = signal<{
     skip: number;
@@ -214,28 +217,29 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .map((u) => u.id)
     );
 
-    const activeFilter = this.activeFilter();
+    const statusFilter = this.statusFilter();
+    const priorityFilter = this.priorityFilter();
     const query = this.searchQuery().toLowerCase().trim();
 
     const applyFilters = (todos: Todo[]): Todo[] => {
       let filtered = todos.filter((todo) => !deletedUserIds.has(todo.user_id));
 
-      switch (activeFilter) {
-        case "active":
-          filtered = filtered.filter((todo) => !this.isCompleted(todo));
-          break;
-        case "completed":
-          filtered = filtered.filter((todo) => this.isCompleted(todo));
-          break;
-        case "week":
-          filtered = FilterHelper.filterThisWeek(filtered);
-          break;
-        case "low":
-        case "medium":
-        case "high":
-        case "urgent":
-          filtered = FilterHelper.filterByPriority(filtered, activeFilter);
-          break;
+      if (statusFilter && statusFilter !== "all") {
+        switch (statusFilter) {
+          case "active":
+            filtered = filtered.filter((todo) => !this.isCompleted(todo));
+            break;
+          case "completed":
+            filtered = filtered.filter((todo) => this.isCompleted(todo));
+            break;
+          case "week":
+            filtered = FilterHelper.filterThisWeek(filtered);
+            break;
+        }
+      }
+
+      if (priorityFilter && priorityFilter !== "all") {
+        filtered = FilterHelper.filterByPriority(filtered, priorityFilter);
       }
 
       if (query) {
@@ -345,10 +349,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     { key: "tasks", label: "Tasks", type: "number", getValue: (item) => item.tasks_count || 0 },
   ];
 
-  tableActions = [
-    { key: "blueprint", icon: "account_tree", label: "Save as Blueprint" },
-    { key: "edit", icon: "edit", label: "Edit" },
-    { key: "archive", icon: "archive", label: "Archive" },
+  tableActions: TableFieldActionButton[] = [
+    TABLE_ACTIONS.BLUEPRINT,
+    TABLE_ACTIONS.EDIT,
+    TABLE_ACTIONS.ARCHIVE,
   ];
 
   computeTodoStatus(todo: Todo): string {
@@ -416,6 +420,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onFiltersChange(filters: Record<string, string | string[] | any>): void {
     this._activeFilters.set(filters);
+    if (filters["status"]) {
+      this.statusFilter.set(filters["status"] as string);
+    }
+    if (filters["priority"]) {
+      this.priorityFilter.set(filters["priority"] as string);
+    }
   }
 
   private _activeFilters = signal<Record<string, string | string[] | any>>({});

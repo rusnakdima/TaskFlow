@@ -34,7 +34,7 @@
       [showActionsColumn]="true"
       [expandable]="true"
       [expandTemplate]="expandRowTemplate"
-      [actions]="adminActions"
+      [actions]="getAdminActions()"
       [emptyMessage]="'No ' + getSelectedTypeLabel().toLowerCase() + ' data available'"
       (selectionChange)="onRecordSelect($event)"
       (actionClick)="onAdminAction($event)"
