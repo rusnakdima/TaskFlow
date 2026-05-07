@@ -45,7 +45,7 @@ import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* constants */
-import { TableActionColors } from "@constants/table-field.constants";
+import { ActionColors } from "@constants/table-field.constants";
 import { FILTER_CONFIGS } from "@constants/filter.constants";
 
 /* components */
@@ -717,8 +717,8 @@ export class DataManagementView implements OnInit {
   }
 
   getActionButtonClass(action: string): string {
-    const colorKey = action as keyof typeof TableActionColors;
-    return TableActionColors[colorKey] || TableActionColors.default;
+    const colorKey = action as keyof typeof ActionColors;
+    return ActionColors[colorKey] || ActionColors.default;
   }
 
   resolveUserName(userId: string): string {

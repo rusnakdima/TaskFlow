@@ -288,6 +288,10 @@ export class SubtasksView extends BaseListView implements OnInit {
     });
   });
 
+  override isAllSelected(): boolean {
+    return super.isAllSelected(() => this.listSubtasks());
+  }
+
   userId: string = "";
 
   isOwner = computed(() => this.todo()?.user_id === this.userId);
