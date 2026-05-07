@@ -55,6 +55,7 @@
           [showCommentToggle]="true"
           [dragEnabled]="true"
           [expandable]="true"
+          [expandTemplate]="expandTemplate"
           [actions]="getSubtaskTableActions()"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
@@ -63,7 +64,68 @@
           (actionClick)="onSubtaskTableAction($event)"
         >
           <ng-template #expandTemplate let-item>
-            <app-item-expand-details [item]="item" type="subtask" />
+            <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+              <div
+                class="mb-3 flex items-center gap-2 border-b border-gray-200 pb-2 dark:border-zinc-700"
+              >
+                <mat-icon class="textMuted">info</mat-icon>
+                <span class="text-sm font-semibold">Subtask Details</span>
+              </div>
+              <div class="flex flex-col gap-3">
+                @if (item.description) {
+                  <div class="flex flex-col">
+                    <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase"
+                      >Description</span
+                    >
+                    <span class="textNormal text-sm"
+                      >{{ item.description | slice: 0 : 200
+                      }}{{ item.description.length > 200 ? "..." : "" }}</span
+                    >
+                  </div>
+                }
+                @if (item.task_id) {
+                  <div class="flex items-center gap-2">
+                    <span class="textMuted text-xs font-medium tracking-wide uppercase">Task:</span>
+                    <span class="textNormal text-sm">{{ resolveTaskTitle(item.task_id) }}</span>
+                  </div>
+                }
+                @if (item.start_date || item.end_date) {
+                  <div class="flex items-center gap-4 text-sm">
+                    @if (item.start_date) {
+                      <div class="flex items-center gap-1">
+                        <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                        <span>{{ item.start_date | date: "short" }}</span>
+                      </div>
+                    }
+                    @if (item.end_date) {
+                      <div class="flex items-center gap-1">
+                        <mat-icon
+                          class="h-4! w-4! text-base! text-orange-500"
+                          fontIcon="schedule"
+                        />
+                        <span>{{ item.end_date | date: "short" }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (item.comments_count !== undefined) {
+                  <div class="flex items-center gap-1 text-sm">
+                    <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
+                    <span>{{ item.comments_count || 0 }} comments</span>
+                  </div>
+                }
+                @if (item.created_at) {
+                  <div class="text-xs text-gray-500">
+                    Created: {{ item.created_at | date: "short" }}
+                  </div>
+                }
+                @if (item.updated_at) {
+                  <div class="text-xs text-gray-500">
+                    Updated: {{ item.updated_at | date: "short" }}
+                  </div>
+                }
+              </div>
+            </div>
           </ng-template>
         </app-table-view>
       } @else if (viewMode() === "grid") {

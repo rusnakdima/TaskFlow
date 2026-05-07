@@ -673,4 +673,9 @@ export class SubtasksView extends BaseListView implements OnInit {
   override clearSelection(): void {
     super.clearSelection();
   }
+
+  resolveTaskTitle(taskId: string): string {
+    const task = this.storageService.getTaskById(taskId);
+    return task?.title || "-";
+  }
 }
