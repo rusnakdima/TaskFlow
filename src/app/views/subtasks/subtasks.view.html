@@ -1,9 +1,6 @@
 <div class="flex flex-col gap-6">
   @if (loading()) {
-    <div class="flex items-center justify-center py-12">
-      <mat-spinner diameter="40" class="mx-auto" />
-      <span class="textMuted ml-4">Loading subtasks...</span>
-    </div>
+    <app-loading-state message="Loading subtasks..." />
   }
 
   @if (!loading() && !task()) {
@@ -18,7 +15,6 @@
 
   @if (!loading() && task()) {
     @if (fromKanban()) {
-      <!-- Back button -->
       <div class="flex items-center">
         <button
           class="flex items-center gap-2 rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-800"
@@ -32,12 +28,10 @@
       </div>
     }
 
-    <!-- Toolbar Row -->
     <div class="flex items-center justify-between gap-2">
       <app-page-toolbar [config]="getToolbarConfig()" />
     </div>
 
-    <!-- Collapsible Info Block -->
     @if (showInfoBlock()) {
       <app-task-information
         [task]="task()!"
@@ -67,48 +61,7 @@
           (dropped)="onSubtaskDrop($event)"
         >
           <ng-template #expandTemplate let-item>
-            <div class="flex flex-col gap-4 p-2">
-              @if (item.comments_count) {
-                <div class="flex items-center gap-4 text-sm">
-                  <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
-                    <span>{{ item.comments_count }} comments</span>
-                  </div>
-                </div>
-              }
-              @if (item.start_date || item.end_date) {
-                <div class="flex items-center gap-4 text-sm">
-                  @if (item.start_date) {
-                    <div class="flex items-center gap-1">
-                      <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                      <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                      <span>{{ item.start_date | date: "mediumDate" }}</span>
-                    </div>
-                  }
-                  @if (item.end_date) {
-                    <div class="flex items-center gap-1">
-                      <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                      <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                      <span>{{ item.end_date | date: "mediumDate" }}</span>
-                    </div>
-                  }
-                </div>
-              }
-              @if (item.description) {
-                <div class="text-sm">
-                  <span class="text-gray-600 dark:text-gray-400">Description:</span>
-                  <p class="mt-1 text-gray-900 dark:text-gray-100">
-                    {{ item.description | slice: 0 : 150
-                    }}{{ item.description.length > 150 ? "..." : "" }}
-                  </p>
-                </div>
-              }
-              @if (item.created_at) {
-                <div class="text-xs text-gray-500">
-                  Created: {{ item.created_at | date: "short" }}
-                </div>
-              }
-            </div>
+            <app-item-expand-details [item]="item" type="subtask" />
           </ng-template>
         </app-table-view>
       } @else if (viewMode() === "grid") {
@@ -185,45 +138,31 @@
       }
     }
   }
-</div>
 
-<!-- Floating Chat Button -->
-<button
-  (click)="toggleChat()"
-  class="fixed right-6 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700"
->
-  <mat-icon class="h-8 w-8 min-w-8 text-2xl!" [fontIcon]="showChat() ? 'close' : 'chat'" />
-  @if (getUnreadCount() > 0) {
-    <span
-      class="absolute -top-1 -right-1 rounded-full border-2 border-white bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white dark:border-zinc-800"
-    >
-      {{ getUnreadCount() }}
-    </span>
+  <app-chat-fab [isOpen]="showChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
+
+  @if (showChat() && todoId()) {
+    <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
   }
-</button>
 
-<!-- Chat Window -->
-@if (showChat() && todoId()) {
-  <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
-}
+  <app-filter-bar
+    [filterOptions]="filterOptions"
+    [activeFilter]="activeFilter()"
+    [showFilter]="showFilter()"
+    filterLabel="Status"
+    filterGroupName="subtask-filter"
+    (filterToggle)="toggleFilter()"
+    (filterChange)="changeFilter($any($event))"
+    (searchChange)="onSearchChange($any($event))"
+  />
 
-<app-filter-bar
-  [filterOptions]="filterOptions"
-  [activeFilter]="activeFilter()"
-  [showFilter]="showFilter()"
-  filterLabel="Status"
-  filterGroupName="subtask-filter"
-  (filterToggle)="toggleFilter()"
-  (filterChange)="changeFilter($any($event))"
-  (searchChange)="onSearchChange($any($event))"
-/>
-
-<app-bulk-actions
-  [selectedCount]="selectedSubtasks().size"
-  [isAllSelected]="isAllSelected()"
-  mode="subtasks"
-  (selectAllEvent)="toggleSelectAll()"
-  (setStatusEvent)="bulkUpdateStatus($event)"
-  (softDeleteEvent)="bulkArchive()"
-  (cancelEvent)="clearSelection()"
-/>
+  <app-bulk-actions
+    [selectedCount]="selectedSubtasks().size"
+    [isAllSelected]="isAllSelected()"
+    mode="subtasks"
+    (selectAllEvent)="toggleSelectAll()"
+    (setStatusEvent)="bulkUpdateStatus($event)"
+    (softDeleteEvent)="bulkArchive()"
+    (cancelEvent)="clearSelection()"
+  />
+</div>

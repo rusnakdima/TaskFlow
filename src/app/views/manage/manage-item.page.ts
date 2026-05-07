@@ -199,7 +199,7 @@ export class ManageItemPage implements OnInit {
   startDateForEndDate = signal<Date | null>(null);
 
   hasStartDate = computed(() => {
-    return !!this.form.get("start_date")?.value;
+    return !!this.startDateForEndDate();
   });
 
   minEndDate = computed(() => {

@@ -73,6 +73,9 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
+import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 
 @Component({
   selector: "app-subtasks",
@@ -92,6 +95,9 @@ import {
     TableViewComponent,
     EmptyStateComponent,
     PageToolbarComponent,
+    ItemExpandDetailsComponent,
+    LoadingStateComponent,
+    ChatFabComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -255,7 +261,7 @@ export class SubtasksView extends BaseListView implements OnInit {
     super();
     effect(() => {
       const taskId = this.task()?.id;
-      if (taskId) {
+      if (taskId && taskId !== this.lastLoadedTaskId) {
         this.loadInitialSubtasks();
       }
     });

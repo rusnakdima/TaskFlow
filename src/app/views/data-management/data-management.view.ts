@@ -197,6 +197,7 @@ export class DataManagementView implements OnInit {
           hasMore: false,
           loading: false,
         });
+        this.populateFilterLists();
         this.loading.set(false);
       },
       error: (error) => {
@@ -697,5 +698,65 @@ export class DataManagementView implements OnInit {
   getActionButtonClass(action: string): string {
     const colorKey = action as keyof typeof TableActionColors;
     return TableActionColors[colorKey] || TableActionColors.default;
+  }
+
+  resolveUserName(userId: string): string {
+    return this.storageService.getUsername(userId);
+  }
+
+  resolveTodoTitle(todoId: string): string {
+    const todo = this.storageService.getTodoById(todoId);
+    return todo?.title || "-";
+  }
+
+  resolveTaskTitle(taskId: string): string {
+    const task = this.storageService.getTaskById(taskId);
+    return task?.title || "-";
+  }
+
+  resolveSubtaskTitle(subtaskId: string): string {
+    const subtask = this.storageService.getSubtaskById(subtaskId);
+    return subtask?.title || "-";
+  }
+
+  populateFilterLists(): void {
+    this.userList.set(
+      this.storageService.users().map((u) => ({
+        id: u.id,
+        label: this.storageService.getUsername(u.id),
+      }))
+    );
+
+    const todos = this.storageService.todos();
+    this.todoList.set(
+      todos.map((t) => ({
+        id: t.id,
+        label: t.title || t.id,
+      }))
+    );
+
+    const tasks = this.storageService.tasks();
+    this.taskList.set(
+      tasks.map((t) => ({
+        id: t.id,
+        label: t.title || t.id,
+      }))
+    );
+
+    const subtasks = this.storageService.subtasks();
+    this.subtaskList.set(
+      subtasks.map((s) => ({
+        id: s.id,
+        label: s.title || s.id,
+      }))
+    );
+
+    const categories = this.storageService.categories();
+    this.categoryList.set(
+      categories.map((c) => ({
+        id: c.id,
+        label: c.title || c.id,
+      }))
+    );
   }
 }

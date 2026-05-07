@@ -698,40 +698,318 @@
         </mat-chip>
       }
     </div>
-    <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
-      @for (field of getFieldConfig(); track field.key) {
-        <div class="flex flex-col">
-          <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
-            {{ field.label }}
-          </span>
-          <span class="textNormal text-sm">
-            @switch (field.type) {
-              @case ("date") {
-                {{ formatFieldDate(item[field.key]) || "-" }}
-              }
-              @case ("priority") {
-                <mat-chip class="h-5 text-xs" [ngClass]="getPriorityBadgeClass(item[field.key])">
-                  {{ item[field.key] || "-" }}
-                </mat-chip>
-              }
-              @case ("user") {
-                @if (item[field.key]) {
-                  {{ item[field.key].profile?.name }}
-                  {{ item[field.key].profile?.last_name }}
-                } @else {
-                  -
+
+    @switch (selectedType()) {
+      @case ("todos") {
+        <div class="flex flex-col gap-3">
+          @if (item.description) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Description</span>
+              <span class="textNormal text-sm"
+                >{{ item.description | slice: 0 : 200
+                }}{{ item.description.length > 200 ? "..." : "" }}</span
+              >
+            </div>
+          }
+          @if (item.visibility) {
+            <div class="flex items-center gap-2">
+              <span class="textMuted text-xs font-medium uppercase">Visibility:</span>
+              <span
+                class="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                >{{ item.visibility }}</span
+              >
+            </div>
+          }
+          @if (item.user_id) {
+            <div class="flex items-center gap-2">
+              <span class="textMuted text-xs font-medium uppercase">User:</span>
+              <span class="textNormal text-sm">{{ resolveUserName(item.user_id) }}</span>
+            </div>
+          }
+          @if (item.categories?.length) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Categories</span>
+              <div class="flex flex-wrap gap-1">
+                @for (cat of item.categories; track cat) {
+                  <span
+                    class="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    >{{ cat }}</span
+                  >
                 }
+              </div>
+            </div>
+          }
+          @if (item.start_date || item.end_date) {
+            <div class="flex items-center gap-4 text-sm">
+              @if (item.start_date) {
+                <div class="flex items-center gap-1">
+                  <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                  <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                  <span>{{ item.start_date | date: "short" }}</span>
+                </div>
               }
-              @case ("array-count") {
-                {{ item[field.key]?.length || 0 }}
+              @if (item.end_date) {
+                <div class="flex items-center gap-1">
+                  <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                  <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                  <span>{{ item.end_date | date: "short" }}</span>
+                </div>
               }
-              @default {
-                {{ item[field.key] || "-" }}
-              }
-            }
-          </span>
+            </div>
+          }
+          @if (item.github_repo_name) {
+            <div class="flex items-center gap-2 text-sm">
+              <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+              <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+              <span class="font-medium">{{ item.github_repo_name }}</span>
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
         </div>
       }
-    </div>
+      @case ("tasks") {
+        <div class="flex flex-col gap-3">
+          @if (item.description) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Description</span>
+              <span class="textNormal text-sm"
+                >{{ item.description | slice: 0 : 200
+                }}{{ item.description.length > 200 ? "..." : "" }}</span
+              >
+            </div>
+          }
+          @if (item.todo_id) {
+            <div class="flex items-center gap-2">
+              <span class="textMuted text-xs font-medium uppercase">Project:</span>
+              <span class="textNormal text-sm">{{ resolveTodoTitle(item.todo_id) }}</span>
+            </div>
+          }
+          @if (item.start_date || item.end_date) {
+            <div class="flex items-center gap-4 text-sm">
+              @if (item.start_date) {
+                <div class="flex items-center gap-1">
+                  <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                  <span>{{ item.start_date | date: "short" }}</span>
+                </div>
+              }
+              @if (item.end_date) {
+                <div class="flex items-center gap-1">
+                  <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                  <span>{{ item.end_date | date: "short" }}</span>
+                </div>
+              }
+            </div>
+          }
+          @if (item.subtasks_count !== undefined) {
+            <div class="flex items-center gap-1 text-sm">
+              <mat-icon class="h-4! w-4! text-base!" fontIcon="check_box" />
+              <span
+                >{{ item.completed_subtasks_count || 0 }}/{{
+                  item.subtasks_count || 0
+                }}
+                subtasks</span
+              >
+            </div>
+          }
+          @if (item.repeat && item.repeat !== "none") {
+            <div class="flex items-center gap-2 text-sm">
+              <mat-icon class="h-4! w-4! text-base!" fontIcon="repeat" />
+              <span>Repeat: {{ item.repeat }}</span>
+            </div>
+          }
+          @if (item.github_issue_url) {
+            <div class="flex items-center gap-2 text-sm">
+              <mat-icon class="h-4! w-4! text-base!" fontIcon="bug_report" />
+              <span>GitHub:</span>
+              <a
+                [href]="item.github_issue_url"
+                target="_blank"
+                class="text-blue-500 hover:underline"
+                >#{{ item.github_issue_number }}</a
+              >
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @case ("subtasks") {
+        <div class="flex flex-col gap-3">
+          @if (item.description) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Description</span>
+              <span class="textNormal text-sm"
+                >{{ item.description | slice: 0 : 200
+                }}{{ item.description.length > 200 ? "..." : "" }}</span
+              >
+            </div>
+          }
+          @if (item.task_id) {
+            <div class="flex items-center gap-2">
+              <span class="textMuted text-xs font-medium uppercase">Task:</span>
+              <span class="textNormal text-sm">{{ resolveTaskTitle(item.task_id) }}</span>
+            </div>
+          }
+          @if (item.start_date || item.end_date) {
+            <div class="flex items-center gap-4 text-sm">
+              @if (item.start_date) {
+                <span>{{ item.start_date | date: "short" }}</span>
+              }
+              @if (item.end_date) {
+                <span>{{ item.end_date | date: "short" }}</span>
+              }
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @case ("comments") {
+        <div class="flex flex-col gap-3">
+          @if (item.content) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Content</span>
+              <span class="textNormal text-sm"
+                >{{ item.content | slice: 0 : 300
+                }}{{ item.content.length > 300 ? "..." : "" }}</span
+              >
+            </div>
+          }
+          @if (item.task_id) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Task:</span>
+              <span>{{ resolveTaskTitle(item.task_id) }}</span>
+            </div>
+          }
+          @if (item.subtask_id) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Subtask:</span>
+              <span>{{ resolveSubtaskTitle(item.subtask_id) }}</span>
+            </div>
+          }
+          @if (item.read_by?.length) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Read by:</span>
+              <span>{{ item.read_by.length }} users</span>
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @case ("chats") {
+        <div class="flex flex-col gap-3">
+          @if (item.content) {
+            <div class="flex flex-col">
+              <span class="textMuted mb-1 text-xs font-medium uppercase">Message</span>
+              <span class="textNormal text-sm"
+                >{{ item.content | slice: 0 : 300
+                }}{{ item.content.length > 300 ? "..." : "" }}</span
+              >
+            </div>
+          }
+          @if (item.todo_id) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Project:</span>
+              <span>{{ resolveTodoTitle(item.todo_id) }}</span>
+            </div>
+          }
+          @if (item.read_by?.length) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Read by:</span>
+              <span>{{ item.read_by.length }} users</span>
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @case ("categories") {
+        <div class="flex flex-col gap-3">
+          @if (item.user_id) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">User:</span>
+              <span>{{ resolveUserName(item.user_id) }}</span>
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @case ("daily_activities") {
+        <div class="flex flex-col gap-3">
+          @if (item.user_id) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">User:</span>
+              <span>{{ resolveUserName(item.user_id) }}</span>
+            </div>
+          }
+          @if (item.todos_created !== undefined) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Todos Created:</span>
+              <span class="font-medium">{{ item.todos_created }}</span>
+            </div>
+          }
+          @if (item.tasks_completed !== undefined) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-400">Tasks Completed:</span>
+              <span class="font-medium">{{ item.tasks_completed }}</span>
+            </div>
+          }
+          @if (item.updated_at) {
+            <div class="text-xs text-gray-500">Updated: {{ item.updated_at | date: "short" }}</div>
+          }
+        </div>
+      }
+      @default {
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+          @for (field of getFieldConfig(); track field.key) {
+            @if (field.key !== "expand") {
+              <div class="flex flex-col">
+                <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
+                  {{ field.label }}
+                </span>
+                <span class="textNormal text-sm">
+                  @switch (field.type) {
+                    @case ("date") {
+                      {{ formatFieldDate(item[field.key]) || "-" }}
+                    }
+                    @case ("priority") {
+                      <mat-chip
+                        class="h-5 text-xs"
+                        [ngClass]="getPriorityBadgeClass(item[field.key])"
+                      >
+                        {{ item[field.key] || "-" }}
+                      </mat-chip>
+                    }
+                    @case ("user") {
+                      @if (item[field.key]) {
+                        {{ item[field.key].profile?.name }}
+                        {{ item[field.key].profile?.last_name }}
+                      } @else {
+                        -
+                      }
+                    }
+                    @case ("array-count") {
+                      {{ item[field.key]?.length || 0 }}
+                    }
+                    @default {
+                      {{ item[field.key] || "-" }}
+                    }
+                  }
+                </span>
+              </div>
+            }
+          }
+        </div>
+      }
+    }
   </div>
 </ng-template>

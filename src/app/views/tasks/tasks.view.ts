@@ -77,6 +77,9 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { FilterField } from "@models/filter-config.model";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
+import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 
 @Component({
   selector: "app-tasks",
@@ -97,6 +100,9 @@ import { FilterField } from "@models/filter-config.model";
     TableViewComponent,
     EmptyStateComponent,
     PageToolbarComponent,
+    ItemExpandDetailsComponent,
+    LoadingStateComponent,
+    ChatFabComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
