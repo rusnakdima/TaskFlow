@@ -149,23 +149,25 @@ export class DataLoaderService {
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
+          console.log(
+            `[DataLoader] loadTodosPage visibility=${visibility} page=${page} loadedTodos count=${loadedTodos.length}`
+          );
 
           if (visibility === "all") {
             const privateTodos = loadedTodos.filter((t) => t.visibility === "private");
             const sharedTodos = loadedTodos.filter((t) => t.visibility === "shared");
             const publicTodos = loadedTodos.filter((t) => t.visibility === "public");
+            console.log(
+              `[DataLoader] visibility=all - privateTodos=${privateTodos.length} sharedTodos=${sharedTodos.length} publicTodos=${publicTodos.length}`
+            );
 
             if (isFirstPage) {
-              if (privateTodos.length > 0) {
-                this.storageService.setCollection("privateTodos", privateTodos);
-              }
-              if (sharedTodos.length > 0) {
-                this.storageService.setCollection("sharedTodos", sharedTodos);
-              }
-              if (publicTodos.length > 0) {
-                this.storageService.setCollection("publicTodos", publicTodos);
-              }
+              console.log(`[DataLoader] isFirstPage=true, calling setCollection`);
+              this.storageService.setCollection("privateTodos", privateTodos);
+              this.storageService.setCollection("sharedTodos", sharedTodos);
+              this.storageService.setCollection("publicTodos", publicTodos);
             } else {
+              console.log(`[DataLoader] isFirstPage=false, appending`);
               if (privateTodos.length > 0) {
                 this.storageService.setCollection("privateTodos", privateTodos, { append: true });
               }
@@ -183,6 +185,9 @@ export class DataLoaderService {
               public: "publicTodos",
             };
             const collection = collectionMap[visibility] || "privateTodos";
+            console.log(
+              `[DataLoader] visibility=${visibility} collection=${collection}, calling setCollection`
+            );
 
             this.storageService.setCollection(collection, loadedTodos, {
               append: !isFirstPage,
@@ -194,7 +199,8 @@ export class DataLoaderService {
           this.todosLoading.set(false);
           return of(loadedTodos);
         }),
-        catchError(() => {
+        catchError((err) => {
+          console.error(`[DataLoader] loadTodosPage error:`, err);
           this.todosLoading.set(false);
           return of([]);
         })
@@ -294,23 +300,40 @@ export class DataLoaderService {
     return this.loadMoreTodosPage(visibility);
   }
 
+  loadInitialTasks(visibility: string = "all", limit: number = 10): Observable<Task[]> {
+    return this.loadTasksPage(null, visibility, 0, limit);
+  }
+
+  loadMoreTasks(visibility: string = "all"): Observable<Task[]> {
+    return this.loadMoreTasksPage(null, visibility);
+  }
+
   loadTasksPage(
-    todoId: string,
+    todoId: string | null,
     visibility: string = "private",
     page: number = 0,
     limit: number = 20
   ): Observable<Task[]> {
-    this.currentTasksTodoId.set(todoId);
+    if (todoId !== null) {
+      this.currentTasksTodoId.set(todoId);
+    }
     const skip = page * limit;
     this.tasksLoading.set(true);
     this.storageService.resetPagination("tasks");
 
+    const filter = todoId !== null ? { todo_id: todoId } : undefined;
+    console.log(
+      `[DataLoader] loadTasksPage todoId=${todoId} visibility=${visibility} page=${page} filter=`,
+      filter
+    );
+
     return this.requestService
-      .getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit, visibility)
+      .getTasks(todoId ?? undefined, { filter }, skip, limit, visibility)
       .pipe(
         switchMap((tasks) => {
           const loadedTasks = tasks || [];
           const isFirstPage = page === 0;
+          console.log(`[DataLoader] loadTasksPage result: ${loadedTasks.length} tasks`);
           this.storageService.setCollection("tasks", loadedTasks, {
             append: !isFirstPage,
             resetPagination: isFirstPage,
@@ -319,15 +342,16 @@ export class DataLoaderService {
           this.tasksLoading.set(false);
           return of(loadedTasks);
         }),
-        catchError(() => {
+        catchError((err) => {
+          console.error(`[DataLoader] loadTasksPage error:`, err);
           this.tasksLoading.set(false);
           return of([]);
         })
       );
   }
 
-  loadMoreTasksPage(todoId: string, visibility: string = "private"): Observable<Task[]> {
-    if (this.currentTasksTodoId() !== todoId) {
+  loadMoreTasksPage(todoId: string | null, visibility: string = "private"): Observable<Task[]> {
+    if (todoId !== null && this.currentTasksTodoId() !== todoId) {
       return this.loadTasksPage(todoId, visibility);
     }
 
@@ -337,8 +361,10 @@ export class DataLoaderService {
     const limit = this.storageService.tasksPagination().limit;
     this.tasksLoading.set(true);
 
+    const filter = todoId !== null ? { todo_id: todoId } : undefined;
+
     return this.requestService
-      .getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit, visibility)
+      .getTasks(todoId ?? undefined, { filter }, skip, limit, visibility)
       .pipe(
         switchMap((tasks) => {
           const newItems = tasks || [];

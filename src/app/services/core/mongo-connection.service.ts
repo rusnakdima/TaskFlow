@@ -59,11 +59,6 @@ export class MongoConnectionService {
           if (isConnected) {
             this.wasEverConnected.set(true);
             this.connectionErrorShown.set(false);
-          } else if (!this.connectionErrorShown()) {
-            this.connectionErrorShown.set(true);
-            this.notifyService.showWarning(
-              "MongoDB is not connected. Admin features may be limited."
-            );
           }
 
           subscriber.next(isConnected);
@@ -75,11 +70,6 @@ export class MongoConnectionService {
             lastChecked: new Date(),
             checking: false,
           });
-
-          if (!this.connectionErrorShown()) {
-            this.connectionErrorShown.set(true);
-            this.notifyService.showError("Failed to check MongoDB connection: " + error);
-          }
 
           subscriber.next(false);
           subscriber.complete();
