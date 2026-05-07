@@ -98,13 +98,8 @@ export const TABLE_CARD_COLORS = {
 export const TABLE_COLUMNS = {
   todos: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "user_id", label: "User", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     { key: "visibility", label: "Visibility", type: "chip", sortable: true },
-    { key: "categories", label: "Categories", type: "array-count", sortable: false },
     {
       key: "deleted_at",
       label: "Status",
@@ -118,12 +113,8 @@ export const TABLE_COLUMNS = {
   ],
   tasks: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "todo_id", label: "Todo", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     {
       key: "deleted_at",
       label: "Status",
@@ -137,12 +128,8 @@ export const TABLE_COLUMNS = {
   ],
   subtasks: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "task_id", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     {
       key: "deleted_at",
       label: "Status",
@@ -157,8 +144,6 @@ export const TABLE_COLUMNS = {
   comments: [
     { key: "content", label: "Content", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "task_id", label: "Task", type: "text", sortable: true },
-    { key: "subtask_id", label: "Subtask", type: "text", sortable: true },
     {
       key: "deleted_at",
       label: "Status",
@@ -173,8 +158,6 @@ export const TABLE_COLUMNS = {
   chats: [
     { key: "content", label: "Message", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "todo_id", label: "Todo", type: "text", sortable: true },
-    { key: "read_by", label: "Read By", type: "array-count", sortable: false },
     {
       key: "deleted_at",
       label: "Status",
@@ -188,7 +171,6 @@ export const TABLE_COLUMNS = {
   ],
   categories: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "user_id", label: "User", type: "text", sortable: true },
     {
       key: "deleted_at",
       label: "Status",
@@ -203,8 +185,6 @@ export const TABLE_COLUMNS = {
   daily_activities: [
     { key: "date", label: "Date", type: "date", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "todos_created", label: "Todos Created", type: "number", sortable: true },
-    { key: "tasks_completed", label: "Tasks Done", type: "number", sortable: true },
     { key: "productivity_score", label: "Score", type: "number", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -214,37 +194,24 @@ export const TABLE_COLUMNS = {
 export const ARCHIVE_COLUMNS = {
   todos: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "user_id", label: "User", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     { key: "visibility", label: "Visibility", type: "chip", sortable: true },
-    { key: "categories", label: "Categories", type: "array-count", sortable: false },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   tasks: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "todo_id", label: "Todo", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   subtasks: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "task_id", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "description", label: "Description", type: "text", sortable: true },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "End Date", type: "date", sortable: true },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -252,8 +219,6 @@ export const ARCHIVE_COLUMNS = {
   comments: [
     { key: "content", label: "Content", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "task_id", label: "Task", type: "text", sortable: true },
-    { key: "subtask_id", label: "Subtask", type: "text", sortable: true },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -261,15 +226,12 @@ export const ARCHIVE_COLUMNS = {
   chats: [
     { key: "content", label: "Message", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "todo_id", label: "Todo", type: "text", sortable: true },
-    { key: "read_by", label: "Read By", type: "array-count", sortable: false },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   categories: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "user_id", label: "User", type: "text", sortable: true },
     { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -277,8 +239,6 @@ export const ARCHIVE_COLUMNS = {
   daily_activities: [
     { key: "date", label: "Date", type: "date", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "todos_created", label: "Todos Created", type: "number", sortable: true },
-    { key: "tasks_completed", label: "Tasks Done", type: "number", sortable: true },
     { key: "productivity_score", label: "Score", type: "number", sortable: true },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },

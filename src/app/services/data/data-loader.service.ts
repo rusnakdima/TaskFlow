@@ -1,6 +1,6 @@
 /* sys lib */
 import { Injectable, inject, signal, computed } from "@angular/core";
-import { Observable, of, catchError, switchMap, tap } from "rxjs";
+import { Observable, of, catchError, switchMap, tap, forkJoin, map, take } from "rxjs";
 import { Router } from "@angular/router";
 
 /* models */
@@ -104,18 +104,39 @@ export class DataLoaderService {
 
     if (visibility === "all") {
       if (!this.mongoConnectionService.isConnected()) {
-        this.todosLoading.set(false);
-        this.storageService.setHasMoreTodos(false);
-        return of([]);
+        console.log(
+          `[DataLoader] loadTodosPage visibility=all, OFFLINE - falling back to private only`
+        );
+        return this.loadTodosPage("private", page, limit);
       }
-      filter = {
-        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
-      };
-      requiresMongo = true;
+
+      console.log(`[DataLoader] loadTodosPage visibility=all, ONLINE - loading from 3 sources`);
+
+      const privateRequest = this.loadTodosPage("private", page, limit);
+      const sharedRequest = this.loadTodosPage("shared", page, limit);
+      const publicRequest = this.loadTodosPage("public", page, limit);
+
+      return forkJoin([privateRequest, sharedRequest, publicRequest]).pipe(
+        tap(([privateTodos, sharedTodos, publicTodos]) => {
+          console.log(
+            `[DataLoader] loadTodosPage all results: private=${privateTodos.length} shared=${sharedTodos.length} public=${publicTodos.length}`
+          );
+          this.storageService.setCollection("privateTodos", privateTodos);
+          this.storageService.setCollection("sharedTodos", sharedTodos);
+          this.storageService.setCollection("publicTodos", publicTodos);
+          this.todosLoading.set(false);
+        }),
+        map(([privateTodos, sharedTodos, publicTodos]) => [
+          ...privateTodos,
+          ...sharedTodos,
+          ...publicTodos,
+        ])
+      );
     } else if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
       if (!this.mongoConnectionService.isConnected()) {
+        console.log(`[DataLoader] loadTodosPage visibility=shared but OFFLINE`);
         this.todosLoading.set(false);
         return of([]);
       }
@@ -125,6 +146,7 @@ export class DataLoaderService {
       requiresMongo = true;
     } else if (visibility === "public") {
       if (!this.mongoConnectionService.isConnected()) {
+        console.log(`[DataLoader] loadTodosPage visibility=public but OFFLINE`);
         this.todosLoading.set(false);
         return of([]);
       }
@@ -138,6 +160,7 @@ export class DataLoaderService {
     }
 
     if (requiresMongo && !this.mongoConnectionService.isConnected()) {
+      console.log(`[DataLoader] loadTodosPage visibility=${visibility} requires Mongo but OFFLINE`);
       this.todosLoading.set(false);
       this.storageService.setHasMoreTodos(false);
       return of([]);
@@ -150,57 +173,27 @@ export class DataLoaderService {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
           console.log(
-            `[DataLoader] loadTodosPage visibility=${visibility} page=${page} loadedTodos count=${loadedTodos.length}`
+            `[DataLoader] loadTodosPage visibility=${visibility} page=${page} loaded=${loadedTodos.length}`
           );
 
-          if (visibility === "all") {
-            const privateTodos = loadedTodos.filter((t) => t.visibility === "private");
-            const sharedTodos = loadedTodos.filter((t) => t.visibility === "shared");
-            const publicTodos = loadedTodos.filter((t) => t.visibility === "public");
-            console.log(
-              `[DataLoader] visibility=all - privateTodos=${privateTodos.length} sharedTodos=${sharedTodos.length} publicTodos=${publicTodos.length}`
-            );
+          const collectionMap: Record<string, "privateTodos" | "sharedTodos" | "publicTodos"> = {
+            private: "privateTodos",
+            shared: "sharedTodos",
+            public: "publicTodos",
+          };
+          const collection = collectionMap[visibility] || "privateTodos";
 
-            if (isFirstPage) {
-              console.log(`[DataLoader] isFirstPage=true, calling setCollection`);
-              this.storageService.setCollection("privateTodos", privateTodos);
-              this.storageService.setCollection("sharedTodos", sharedTodos);
-              this.storageService.setCollection("publicTodos", publicTodos);
-            } else {
-              console.log(`[DataLoader] isFirstPage=false, appending`);
-              if (privateTodos.length > 0) {
-                this.storageService.setCollection("privateTodos", privateTodos, { append: true });
-              }
-              if (sharedTodos.length > 0) {
-                this.storageService.setCollection("sharedTodos", sharedTodos, { append: true });
-              }
-              if (publicTodos.length > 0) {
-                this.storageService.setCollection("publicTodos", publicTodos, { append: true });
-              }
-            }
-          } else {
-            const collectionMap: Record<string, "privateTodos" | "sharedTodos" | "publicTodos"> = {
-              private: "privateTodos",
-              shared: "sharedTodos",
-              public: "publicTodos",
-            };
-            const collection = collectionMap[visibility] || "privateTodos";
-            console.log(
-              `[DataLoader] visibility=${visibility} collection=${collection}, calling setCollection`
-            );
-
-            this.storageService.setCollection(collection, loadedTodos, {
-              append: !isFirstPage,
-              resetPagination: isFirstPage,
-            });
-          }
+          this.storageService.setCollection(collection, loadedTodos, {
+            append: !isFirstPage,
+            resetPagination: isFirstPage,
+          });
 
           this.storageService.updatePagination("todos", skip, limit, loadedTodos.length);
           this.todosLoading.set(false);
           return of(loadedTodos);
         }),
         catchError((err) => {
-          console.error(`[DataLoader] loadTodosPage error:`, err);
+          console.error(`[DataLoader] loadTodosPage visibility=${visibility} error:`, err);
           this.todosLoading.set(false);
           return of([]);
         })
@@ -320,6 +313,44 @@ export class DataLoaderService {
     const skip = page * limit;
     this.tasksLoading.set(true);
     this.storageService.resetPagination("tasks");
+
+    const isGlobalLoad = todoId === null;
+
+    if (isGlobalLoad && visibility === "all") {
+      if (!this.mongoConnectionService.isConnected()) {
+        console.log(
+          `[DataLoader] loadTasksPage global all visibility, OFFLINE - falling back to private only`
+        );
+        return this.loadTasksPage(null, "private", page, limit);
+      }
+
+      console.log(
+        `[DataLoader] loadTasksPage global all visibility, ONLINE - loading from 3 sources`
+      );
+
+      const privateRequest = this.loadTasksPage(null, "private", page, limit);
+      const sharedRequest = this.loadTasksPage(null, "shared", page, limit);
+      const publicRequest = this.loadTasksPage(null, "public", page, limit);
+
+      return forkJoin([privateRequest, sharedRequest, publicRequest]).pipe(
+        tap(([privateTasks, sharedTasks, publicTasks]) => {
+          console.log(
+            `[DataLoader] loadTasksPage all results: private=${privateTasks.length} shared=${sharedTasks.length} public=${publicTasks.length}`
+          );
+          this.storageService.setCollection("tasks", [
+            ...privateTasks,
+            ...sharedTasks,
+            ...publicTasks,
+          ]);
+          this.tasksLoading.set(false);
+        }),
+        map(([privateTasks, sharedTasks, publicTasks]) => [
+          ...privateTasks,
+          ...sharedTasks,
+          ...publicTasks,
+        ])
+      );
+    }
 
     const filter = todoId !== null ? { todo_id: todoId } : undefined;
     console.log(
