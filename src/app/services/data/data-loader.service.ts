@@ -49,6 +49,12 @@ export class DataLoaderService {
   private commentsLoading = signal(false);
   private chatsLoading = signal(false);
 
+  private todosLoaded = signal(false);
+  private tasksLoaded = signal(false);
+  private subtasksLoaded = signal(false);
+  private commentsLoaded = signal(false);
+  private chatsLoaded = signal(false);
+
   readonly hasMoreTodos = computed(() => this.storageService.hasMoreTodos);
   readonly hasMoreTasks = computed(() => this.storageService.hasMoreTasks);
   readonly hasMoreSubtasks = computed(() => this.storageService.hasMoreSubtasks);
@@ -364,7 +370,27 @@ export class DataLoaderService {
   }
 
   loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
-    return this.loadTodosPage(visibility, 0, limit);
+    const existingTodos = this.getExistingTodosForVisibility(visibility);
+    if (this.todosLoaded() && existingTodos.length > 0) {
+      return of(existingTodos);
+    }
+
+    return this.loadTodosPage(visibility, 0, limit).pipe(tap(() => this.todosLoaded.set(true)));
+  }
+
+  private getExistingTodosForVisibility(visibility: string): Todo[] {
+    switch (visibility) {
+      case "private":
+        return this.storageService.privateTodos();
+      case "shared":
+        return this.storageService.sharedTodos();
+      case "public":
+        return this.storageService.publicTodos();
+      case "all":
+        return this.storageService.todos();
+      default:
+        return this.storageService.privateTodos();
+    }
   }
 
   loadMoreTodos(visibility: string): Observable<Todo[]> {
@@ -372,7 +398,13 @@ export class DataLoaderService {
   }
 
   loadInitialTasks(visibility: string = "all", limit: number = 10): Observable<Task[]> {
-    return this.loadTasksPage(null, visibility, 0, limit);
+    if (this.tasksLoaded() && this.storageService.tasks().length > 0) {
+      return of(this.storageService.tasks());
+    }
+
+    return this.loadTasksPage(null, visibility, 0, limit).pipe(
+      tap(() => this.tasksLoaded.set(true))
+    );
   }
 
   loadMoreTasks(visibility: string = "all"): Observable<Task[]> {
@@ -626,7 +658,14 @@ export class DataLoaderService {
     visibility: string = "private",
     limit: number = 10
   ): Observable<Subtask[]> {
-    return this.loadSubtasksPage(taskId, visibility, 0, limit);
+    const cached = this.storageService.getSubtasksByTaskId(taskId);
+    if (this.subtasksLoaded() && cached.length > 0) {
+      return of(cached);
+    }
+
+    return this.loadSubtasksPage(taskId, visibility, 0, limit).pipe(
+      tap(() => this.subtasksLoaded.set(true))
+    );
   }
 
   loadMoreSubtasksForTask(taskId: string, visibility: string = "private"): Observable<Subtask[]> {
@@ -826,7 +865,14 @@ export class DataLoaderService {
     visibility: string = "private",
     limit: number = 10
   ): Observable<Chat[]> {
-    return this.loadChatsPage(todoId, visibility, 0, limit);
+    const cached = this.storageService.getChatsByTodo(todoId);
+    if (this.chatsLoaded() && cached.length > 0) {
+      return of(cached);
+    }
+
+    return this.loadChatsPage(todoId, visibility, 0, limit).pipe(
+      tap(() => this.chatsLoaded.set(true))
+    );
   }
 
   loadOlderChatsForTodo(
