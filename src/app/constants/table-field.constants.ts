@@ -66,10 +66,10 @@ export const PRIORITY_ICONS = {
 } as const;
 
 export const STATUS_COLORS = {
-  [TaskStatus.PENDING]: "text-gray-400",
-  [TaskStatus.COMPLETED]: "text-green-600 dark:text-green-400",
-  [TaskStatus.SKIPPED]: "text-orange-600 dark:text-orange-400",
-  [TaskStatus.FAILED]: "text-red-600 dark:text-red-400",
+  [TaskStatus.PENDING]: "text-gray-400!",
+  [TaskStatus.COMPLETED]: "text-green-600! dark:text-green-400!",
+  [TaskStatus.SKIPPED]: "text-orange-600! dark:text-orange-400!",
+  [TaskStatus.FAILED]: "text-red-600! dark:text-red-400!",
 } as const;
 
 export const STATUS_ICONS = {
