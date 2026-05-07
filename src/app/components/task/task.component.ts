@@ -53,6 +53,7 @@ import {
   PRIORITY_ICONS,
   STATUS_BUTTON_COLORS,
   STATUS_BUTTON_ICONS,
+  ActionColors,
 } from "@constants/table-field.constants";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
@@ -150,6 +151,12 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   getPriorityIcon(priority: string): string {
     return PRIORITY_ICONS[priority as keyof typeof PRIORITY_ICONS] || "keyboard_arrow_down";
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "rounded-lg p-2 transition-colors";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
   }
 
   private taskForComments = signal<Task | null>(null);

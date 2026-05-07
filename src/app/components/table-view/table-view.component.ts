@@ -39,11 +39,7 @@ import { TableField, TableFieldActionButton } from "./table-field.model";
 import { Comment } from "@models/comment.model";
 
 /* constants */
-import {
-  TableFieldColors,
-  TableFieldIcons,
-  TableActionColors,
-} from "@constants/table-field.constants";
+import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-table-view",
@@ -350,10 +346,10 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   getActionColor(action: TableFieldActionButton): string {
-    const colorKey = action.key as keyof typeof TableActionColors;
+    const colorKey = action.key as keyof typeof ActionColors;
     const baseClass =
       "flex items-center justify-center rounded-lg transition-all duration-200 hover:scale-110 text-2xl!";
-    const actionColor = TableActionColors[colorKey] || TableActionColors.default;
+    const actionColor = ActionColors[colorKey] || ActionColors.default;
     return `${baseClass} ${actionColor}`;
   }
 

@@ -43,6 +43,9 @@ import { DataService } from "@services/data/data.service";
 import { Todo } from "@models/todo.model";
 import { TaskStatus } from "@models/task.model";
 
+/* constants */
+import { ActionColors } from "@constants/table-field.constants";
+
 @Component({
   selector: "app-todo",
   standalone: true,
@@ -185,6 +188,12 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   }
 
   getPriorityBadgeClass = BaseItemHelper.getPriorityBadgeClass;
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "rounded-lg p-2 transition-all duration-200 hover:scale-110";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+  }
 
   formatDate = DateHelper.formatDateShort;
 

@@ -30,6 +30,9 @@ import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 
+/* constants */
+import { ActionColors } from "@constants/table-field.constants";
+
 @Component({
   selector: "app-task-row",
   standalone: true,
@@ -121,6 +124,12 @@ export class TaskRowComponent extends ItemRowBaseComponent {
 
   toggleSubtaskCompletion(subtask: Subtask) {
     this.toggleSubtaskCompletionEvent.emit(subtask);
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "rounded-lg p-1 transition-all duration-200 hover:scale-110";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
   }
 
   override onAddComment(content: string): void {
