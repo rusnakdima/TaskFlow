@@ -1,6 +1,14 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnChanges, SimpleChanges, signal, inject } from "@angular/core";
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  signal,
+  inject,
+  computed,
+} from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -45,26 +53,26 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   @Input() override isOwner: boolean = true;
   @Input() override isPrivate: boolean = true;
 
+  completedCount = computed(
+    () => this.listSubtasks.filter((s) => s.status === TaskStatus.COMPLETED).length
+  );
+  skippedCount = computed(
+    () => this.listSubtasks.filter((s) => s.status === TaskStatus.SKIPPED).length
+  );
+  failedCount = computed(
+    () => this.listSubtasks.filter((s) => s.status === TaskStatus.FAILED).length
+  );
+  inProgressCount = computed(
+    () => this.listSubtasks.filter((s) => s.status === TaskStatus.PENDING).length
+  );
+
   constructor() {
     super();
     this.colorScheme.set(ItemInfoColorScheme.GREEN);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes["listSubtasks"] && this.listSubtasks) {
-      this._completed.set(
-        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.COMPLETED).length
-      );
-      this._skipped.set(
-        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.SKIPPED).length
-      );
-      this._failed.set(
-        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.FAILED).length
-      );
-      this._inProgress.set(
-        this.listSubtasks.filter((subtask) => subtask.status === TaskStatus.PENDING).length
-      );
-    }
+    // stats are now computed signals
   }
 
   toggleActions() {

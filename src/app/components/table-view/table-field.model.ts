@@ -54,4 +54,5 @@ export interface TableField {
   getSortValue?: (item: any) => any;
   colorConfig?: TableFieldColorConfig;
   iconConfig?: TableFieldIconConfig;
+  onClick?: (item: any, value: any) => void;
 }
