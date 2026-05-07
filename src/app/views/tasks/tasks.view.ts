@@ -995,4 +995,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (val) actionId === "priority" ? this.bulkUpdatePriority(val) : this.bulkUpdateStatus(val);
     }
   }
+
+  resolveTodoTitle(todoId: string): string {
+    const todo = this._storageService.getTodoById(todoId);
+    return todo?.title || "-";
+  }
 }

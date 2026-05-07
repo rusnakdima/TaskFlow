@@ -279,7 +279,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const grouped = this.groupedTodos();
 
     if (visibility === "all") {
-      return [];
+      return this.allTodosFlat();
     } else if (visibility === "private") {
       return grouped.private;
     } else if (visibility === "shared") {
@@ -805,6 +805,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   openApplyBlueprint(template: any) {
     this.blueprintService.openApplyBlueprint(template);
+  }
+
+  resolveUserName(userId: string): string {
+    return this.storageService.getUsername(userId);
   }
 
   removeBlueprint(templateId: string) {
