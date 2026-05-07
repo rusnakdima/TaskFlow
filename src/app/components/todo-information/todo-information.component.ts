@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, computed } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -29,18 +29,20 @@ export class TodoInformationComponent extends ItemInfoBaseComponent implements O
 
   @Input() todo!: Todo;
 
+  completedCount = computed(() => this.todo?.completed_tasks_count || 0);
+  inProgressCount = computed(
+    () => (this.todo?.tasks_count || 0) - (this.todo?.completed_tasks_count || 0)
+  );
+  failedCount = computed(() => 0);
+  skippedCount = computed(() => 0);
+
   constructor() {
     super();
     this.colorScheme.set(ItemInfoColorScheme.BLUE);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes["todo"] && this.todo) {
-      this._completed.set(this.todo.completed_tasks_count || 0);
-      this._skipped.set(0);
-      this._failed.set(0);
-      this._inProgress.set((this.todo.tasks_count || 0) - (this.todo.completed_tasks_count || 0));
-    }
+    // stats are now computed signals
   }
 
   getCategories(): Category[] {

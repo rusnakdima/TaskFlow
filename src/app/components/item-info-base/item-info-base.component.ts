@@ -29,43 +29,9 @@ export abstract class ItemInfoBaseComponent {
   @Input() start_date?: string | null;
   @Input() end_date?: string | null;
 
-  @Input() set completed(value: number) {
-    this._completed.set(value);
-  }
-  @Input() set skipped(value: number) {
-    this._skipped.set(value);
-  }
-  @Input() set failed(value: number) {
-    this._failed.set(value);
-  }
-  @Input() set inProgress(value: number) {
-    this._inProgress.set(value);
-  }
-
-  protected _completed = signal(0);
-  protected _skipped = signal(0);
-  protected _failed = signal(0);
-  protected _inProgress = signal(0);
-
   protected colorScheme = signal<ItemInfoColorScheme>(ItemInfoColorScheme.GREEN);
 
   protected formatDate = DateHelper.formatDateShort;
-
-  completedCount(): number {
-    return this._completed();
-  }
-
-  skippedCount(): number {
-    return this._skipped();
-  }
-
-  failedCount(): number {
-    return this._failed();
-  }
-
-  inProgressCount(): number {
-    return this._inProgress();
-  }
 
   protected headerClass(): string {
     const scheme = this.colorScheme();

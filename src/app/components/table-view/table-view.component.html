@@ -41,7 +41,7 @@
         }
         @if (showActionsColumn) {
           <th
-            class="w-20 px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
+            class="w-24 px-4 py-3 text-center text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400"
           >
             Actions
           </th>
@@ -92,109 +92,115 @@
             </td>
           }
           @for (field of fields; track field.key) {
-            <td
-              class="px-4 py-3 text-sm whitespace-nowrap text-gray-900 dark:text-gray-100"
-              [class]="getFieldClass(field)"
-            >
-              @switch (field.type) {
-                @case ("date") {
-                  {{ formatDate(formatValue(item, field)) }}
-                }
-                @case ("datetime") {
-                  {{ formatDateTime(formatValue(item, field)) }}
-                }
-                @case ("number") {
-                  {{ formatValue(item, field) }}
-                }
-                @case ("boolean") {
-                  @if (formatValue(item, field)) {
-                    <mat-icon
-                      class="text-2xl!"
-                      [class]="getIconColor(field, true)"
-                      fontIcon="check_circle"
-                    />
-                  } @else {
-                    <mat-icon
-                      class="text-2xl!"
-                      [class]="getIconColor(field, false)"
-                      fontIcon="cancel"
-                    />
+            @if (field.label) {
+              <td
+                class="px-4 py-3 text-sm whitespace-nowrap text-gray-900 dark:text-gray-100"
+                [class]="getFieldClass(field)"
+              >
+                @switch (field.type) {
+                  @case ("date") {
+                    {{ formatDate(formatValue(item, field)) }}
                   }
-                }
-                @case ("chip") {
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [class]="
-                      field.getChipColor
-                        ? field.getChipColor(item)
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    "
-                  >
-                    {{ field.getChipText ? field.getChipText(item) : formatValue(item, field) }}
-                  </span>
-                }
-                @case ("priority") {
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [class]="getPriorityClass(formatValue(item, field))"
-                  >
-                    {{ formatValue(item, field) }}
-                  </span>
-                }
-                @case ("status") {
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [class]="getStatusClass(formatValue(item, field))"
-                  >
-                    {{ formatValue(item, field) }}
-                  </span>
-                }
-                @case ("user") {
-                  {{ formatValue(item, field)?.name || formatValue(item, field)?.email || "-" }}
-                }
-                @case ("array-count") {
-                  {{ formatValue(item, field)?.length || 0 }}
-                }
-                @case ("select") {
-                  @if (field.options) {
-                    {{ field.options[formatValue(item, field)]?.label || formatValue(item, field) }}
-                  } @else {
+                  @case ("datetime") {
+                    {{ formatDateTime(formatValue(item, field)) }}
+                  }
+                  @case ("number") {
                     {{ formatValue(item, field) }}
                   }
-                }
-                @case ("change") {
-                  @let changeVal = formatValue(item, field);
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-                    [class]="getChipOrBadgeColor(field, changeVal)"
-                  >
-                    @if (changeVal > 0) {
+                  @case ("boolean") {
+                    @if (formatValue(item, field)) {
                       <mat-icon
-                        class="mr-1 text-xs!"
-                        [class]="getIconColor(field, changeVal)"
-                        fontIcon="trending_up"
-                      />
-                    } @else if (changeVal < 0) {
-                      <mat-icon
-                        class="mr-1 text-xs!"
-                        [class]="getIconColor(field, changeVal)"
-                        fontIcon="trending_down"
+                        class="text-2xl!"
+                        [class]="getIconColor(field, true)"
+                        fontIcon="check_circle"
                       />
                     } @else {
                       <mat-icon
-                        class="mr-1 text-xs!"
-                        [class]="getIconColor(field, changeVal)"
-                        fontIcon="remove"
+                        class="text-2xl!"
+                        [class]="getIconColor(field, false)"
+                        fontIcon="cancel"
                       />
                     }
-                    {{ changeVal > 0 ? "+" : "" }}{{ changeVal }}%
-                  </span>
+                  }
+                  @case ("chip") {
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      [class]="
+                        field.getChipColor
+                          ? field.getChipColor(item)
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      "
+                    >
+                      {{ field.getChipText ? field.getChipText(item) : formatValue(item, field) }}
+                    </span>
+                  }
+                  @case ("priority") {
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      [class]="getPriorityClass(formatValue(item, field))"
+                    >
+                      {{ formatValue(item, field) }}
+                    </span>
+                  }
+                  @case ("status") {
+                    <span
+                      class="inline-flex cursor-pointer items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all hover:scale-105"
+                      [class]="getStatusClass(formatValue(item, field))"
+                      (click)="field.onClick ? field.onClick(item, formatValue(item, field)) : null"
+                      title="Click to change status"
+                    >
+                      {{ formatValue(item, field) }}
+                    </span>
+                  }
+                  @case ("user") {
+                    {{ formatValue(item, field)?.name || formatValue(item, field)?.email || "-" }}
+                  }
+                  @case ("array-count") {
+                    {{ formatValue(item, field)?.length || 0 }}
+                  }
+                  @case ("select") {
+                    @if (field.options) {
+                      {{
+                        field.options[formatValue(item, field)]?.label || formatValue(item, field)
+                      }}
+                    } @else {
+                      {{ formatValue(item, field) }}
+                    }
+                  }
+                  @case ("change") {
+                    @let changeVal = formatValue(item, field);
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
+                      [class]="getChipOrBadgeColor(field, changeVal)"
+                    >
+                      @if (changeVal > 0) {
+                        <mat-icon
+                          class="mr-1 text-xs!"
+                          [class]="getIconColor(field, changeVal)"
+                          fontIcon="trending_up"
+                        />
+                      } @else if (changeVal < 0) {
+                        <mat-icon
+                          class="mr-1 text-xs!"
+                          [class]="getIconColor(field, changeVal)"
+                          fontIcon="trending_down"
+                        />
+                      } @else {
+                        <mat-icon
+                          class="mr-1 text-xs!"
+                          [class]="getIconColor(field, changeVal)"
+                          fontIcon="remove"
+                        />
+                      }
+                      {{ changeVal > 0 ? "+" : "" }}{{ changeVal }}%
+                    </span>
+                  }
+                  @default {
+                    {{ formatValue(item, field) }}
+                  }
                 }
-                @default {
-                  {{ formatValue(item, field) }}
-                }
-              }
-            </td>
+              </td>
+            }
           }
           @if (showActionsColumn) {
             <td class="w-24 px-4 py-3 text-center" (click)="$event.stopPropagation()">
