@@ -140,9 +140,12 @@ export class SubtasksView extends BaseListView implements OnInit {
   task = signal<Task | null>(null);
   todo = signal<Todo | null>(null);
 
+  private lastTaskIdForEffect: string | null = null;
+
   private taskEffect = effect(() => {
     const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
-    if (taskId) {
+    if (taskId && taskId !== this.lastTaskIdForEffect) {
+      this.lastTaskIdForEffect = taskId;
       this.loadTask(taskId);
     }
   });
@@ -261,7 +264,7 @@ export class SubtasksView extends BaseListView implements OnInit {
     super();
     effect(() => {
       const taskId = this.task()?.id;
-      if (taskId && taskId !== this.lastLoadedTaskId) {
+      if (taskId && taskId !== this.lastTaskIdForEffect) {
         this.loadInitialSubtasks();
       }
     });
@@ -308,7 +311,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   subtaskTableFields: TableField[] = [
     { key: "title", label: "Subtask", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "status", label: "Status", type: "status" },
+    { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item) },
     {
       key: "comments",
       label: "Comments",
@@ -467,6 +470,10 @@ export class SubtasksView extends BaseListView implements OnInit {
           this.notifyService.showError(message);
         },
       });
+  }
+
+  cycleStatus(subtask: Subtask) {
+    this.toggleSubtaskCompletion(subtask);
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {

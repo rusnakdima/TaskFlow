@@ -157,6 +157,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private todoSubscription?: Subscription;
 
+  private lastLoadedTaskTodoId: string | null = null;
+
   private chatEffect = effect(() => {
     const tid = this.todoId();
     if (tid) {
@@ -178,7 +180,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private taskLoadEffect = effect(() => {
     const todoId = this.todoId();
-    if (todoId) {
+    if (todoId && todoId !== this.lastLoadedTaskTodoId) {
+      this.lastLoadedTaskTodoId = todoId;
       this.loadInitialTasks();
     }
   });
@@ -198,7 +201,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private todoEffect = effect(() => {
     const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
-    if (tid) {
+    if (tid && tid !== this.lastLoadedTodoId) {
+      this.lastLoadedTodoId = tid;
       this.todoId.set(tid);
       this.loadInitialTodo(tid);
     }
@@ -437,7 +441,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   taskTableFields: TableField[] = [
     { key: "title", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "status", label: "Status", type: "status" },
+    { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item) },
     {
       key: "subtasks",
       label: "Subtasks",
@@ -508,6 +512,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         this.notifyService.showError("Failed to update task status");
       },
     });
+  }
+
+  cycleStatus(task: Task) {
+    this.toggleTaskCompletion(task);
   }
 
   toggleExpandTask(task: Task) {
