@@ -105,7 +105,12 @@ export class DataLoaderService {
     if (visibility === "all") {
       const isFirstPage = page === 0;
       const privateFilter = { user_id: userId };
-      const sharedFilter = { visibility: "shared", assignees: { $in: [userId] } };
+      const sharedFilter = {
+        $or: [
+          { visibility: "shared", user_id: userId },
+          { visibility: "shared", assignees: { $in: [userId] } },
+        ],
+      };
       const publicFilter = { visibility: "public" };
 
       return forkJoin([
@@ -173,7 +178,11 @@ export class DataLoaderService {
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
-          this.storageService.setCollection("privateTodos", loadedTodos, {
+          let collectionName: "privateTodos" | "sharedTodos" | "publicTodos" = "privateTodos";
+          if (visibility === "private") collectionName = "privateTodos";
+          else if (visibility === "shared") collectionName = "sharedTodos";
+          else if (visibility === "public") collectionName = "publicTodos";
+          this.storageService.setCollection(collectionName, loadedTodos, {
             append: !isFirstPage,
             resetPagination: isFirstPage,
           });
@@ -200,7 +209,12 @@ export class DataLoaderService {
 
     if (visibility === "all") {
       const privateFilter = { user_id: userId };
-      const sharedFilter = { visibility: "shared", assignees: { $in: [userId] } };
+      const sharedFilter = {
+        $or: [
+          { visibility: "shared", user_id: userId },
+          { visibility: "shared", assignees: { $in: [userId] } },
+        ],
+      };
       const publicFilter = { visibility: "public" };
 
       return forkJoin([
@@ -254,7 +268,11 @@ export class DataLoaderService {
       .pipe(
         switchMap((todos) => {
           const newItems = todos || [];
-          this.storageService.setCollection("privateTodos", newItems, { append: true });
+          let collectionName: "privateTodos" | "sharedTodos" | "publicTodos" = "privateTodos";
+          if (visibility === "private") collectionName = "privateTodos";
+          else if (visibility === "shared") collectionName = "sharedTodos";
+          else if (visibility === "public") collectionName = "publicTodos";
+          this.storageService.setCollection(collectionName, newItems, { append: true });
           this.storageService.updatePagination("todos", skip, limit, newItems.length);
           this.todosLoading.set(false);
           return of(newItems);
@@ -285,7 +303,14 @@ export class DataLoaderService {
   }
 
   loadInitialTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
-    return this.dataService.getTasksByVisibility(visibility, limit);
+    return this.dataService.getTasksByVisibility(visibility, limit).pipe(
+      switchMap((tasks) => {
+        const loadedTasks = tasks || [];
+        this.storageService.setCollection("tasks", loadedTasks, { resetPagination: true });
+        this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
+        return of(loadedTasks);
+      })
+    );
   }
 
   loadMoreTasks(todoId: string, visibility: string = "private"): Observable<Task[]> {
