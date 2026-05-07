@@ -1,6 +1,8 @@
 #[path = "repository.service.rs"]
 pub mod repository_service;
 
+pub mod repository;
+
 /* global re-export Entity trait for services that use entity types */
 #[allow(unused_imports)]
 use nosql_orm::Entity;
@@ -48,3 +50,6 @@ pub mod crypto_service;
 
 #[path = "github_service.rs"]
 pub mod github_service;
+
+pub mod repository;
+pub mod repository_service;
