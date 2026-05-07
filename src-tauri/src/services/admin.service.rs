@@ -17,6 +17,7 @@ use crate::services::cascade::CascadeService;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */
+#[derive(Clone)]
 pub struct AdminManager {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Arc<MongoProvider>,

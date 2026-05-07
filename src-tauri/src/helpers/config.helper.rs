@@ -1,5 +1,5 @@
 /* sys lib */
-use std::collections::HashMap;
+use std::env;
 
 #[derive(Debug, Clone)]
 
@@ -24,89 +24,60 @@ pub struct ConfigHelper {
 
 impl ConfigHelper {
   pub fn new() -> Self {
-    let dotenv_content = include_str!("../../.env");
-    let env_vars = Self::parse_dotenv(dotenv_content);
+    dotenvy::dotenv().ok();
 
     Self {
-      name_app: env_vars.get("NAME_APP").cloned().unwrap_or_else(|| {
+      name_app: env::var("NAME_APP").unwrap_or_else(|_| {
         eprintln!("WARNING: NAME_APP not set in .env, using default");
         "TaskFlow".to_string()
       }),
-      app_home_folder: env_vars.get("APP_HOME_FOLDER").cloned().unwrap_or_else(|| {
+      app_home_folder: env::var("APP_HOME_FOLDER").unwrap_or_else(|_| {
         eprintln!("WARNING: APP_HOME_FOLDER not set in .env, using default");
         ".taskflow".to_string()
       }),
-      json_db_name: env_vars.get("JSONDB_NAME").cloned().unwrap_or_else(|| {
+      json_db_name: env::var("JSONDB_NAME").unwrap_or_else(|_| {
         eprintln!("WARNING: JSONDB_NAME not set in .env, using default");
-        "taskflow_db.json".to_string()
+        "task_flow_db.json".to_string()
       }),
-      mongo_db_uri: env_vars.get("MONGODB_URI").cloned().unwrap_or_else(|| {
+      mongo_db_uri: env::var("MONGODB_URI").unwrap_or_else(|_| {
         eprintln!("WARNING: MONGODB_URI not set in .env, using default");
         "mongodb://localhost:27017".to_string()
       }),
-      mongo_db_name: env_vars.get("MONGODB_NAME").cloned().unwrap_or_else(|| {
+      mongo_db_name: env::var("MONGODB_NAME").unwrap_or_else(|_| {
         eprintln!("WARNING: MONGODB_NAME not set in .env, using default");
         "taskflow".to_string()
       }),
-      jwt_secret: env_vars.get("JWT_SECRET").cloned().unwrap_or_else(|| {
+      jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| {
         eprintln!("WARNING: JWT_SECRET not set in .env, using default");
         "default_secret_change_in_production".to_string()
       }),
-      smtp_username: env_vars.get("SMTP_USERNAME").cloned().unwrap_or_else(|| {
+      smtp_username: env::var("SMTP_USERNAME").unwrap_or_else(|_| {
         eprintln!("WARNING: SMTP_USERNAME not set in .env, using default");
         "".to_string()
       }),
-      smtp_password: env_vars.get("SMTP_PASSWORD").cloned().unwrap_or_else(|| {
+      smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| {
         eprintln!("WARNING: SMTP_PASSWORD not set in .env, using default");
         "".to_string()
       }),
-      smtp_server: env_vars.get("SMTP_SERVER").cloned().unwrap_or_else(|| {
+      smtp_server: env::var("SMTP_SERVER").unwrap_or_else(|_| {
         eprintln!("WARNING: SMTP_SERVER not set in .env, using default");
         "smtp.example.com".to_string()
       }),
-      smtp_port: env_vars
-        .get("SMTP_PORT")
+      smtp_port: env::var("SMTP_PORT")
+        .ok()
         .and_then(|s| s.parse::<u16>().ok())
         .unwrap_or(587),
-      reset_token_expiry_hours: env_vars
-        .get("RESET_TOKEN_EXPIRY_HOURS")
+      reset_token_expiry_hours: env::var("RESET_TOKEN_EXPIRY_HOURS")
+        .ok()
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(1),
-      rp_domain: env_vars
-        .get("RP_DOMAIN")
-        .cloned()
-        .unwrap_or_else(|| "taskflow.tcs.com".to_string()),
-      enable_query_logging: env_vars
-        .get("ENABLE_QUERY_LOGGING")
+      rp_domain: env::var("RP_DOMAIN").unwrap_or_else(|_| "taskflow.tcs.com".to_string()),
+      enable_query_logging: env::var("ENABLE_QUERY_LOGGING")
         .map(|s| s.to_lowercase() == "true")
         .unwrap_or(false),
-      github_client_id: env_vars
-        .get("GITHUB_CLIENT_ID")
-        .cloned()
-        .unwrap_or_else(|| "".to_string()),
-      github_client_secret: env_vars
-        .get("GITHUB_CLIENT_SECRET")
-        .cloned()
-        .unwrap_or_else(|| "".to_string()),
-      github_callback_url: env_vars
-        .get("GITHUB_CALLBACK_URL")
-        .cloned()
-        .unwrap_or_else(|| "".to_string()),
+      github_client_id: env::var("GITHUB_CLIENT_ID").unwrap_or_else(|_| "".to_string()),
+      github_client_secret: env::var("GITHUB_CLIENT_SECRET").unwrap_or_else(|_| "".to_string()),
+      github_callback_url: env::var("GITHUB_CALLBACK_URL").unwrap_or_else(|_| "".to_string()),
     }
-  }
-
-  fn parse_dotenv(dotenv_content: &str) -> HashMap<String, String> {
-    dotenv_content
-      .lines()
-      .filter_map(|line| {
-        if line.trim().is_empty() || line.starts_with('#') {
-          return None;
-        }
-        let mut parts = line.splitn(2, '=');
-        let key = parts.next()?.trim().to_string();
-        let value = parts.next()?.trim().to_string();
-        Some((key, value))
-      })
-      .collect()
   }
 }

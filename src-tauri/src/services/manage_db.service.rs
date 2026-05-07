@@ -1,5 +1,6 @@
 /* sys */
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 
 /* providers */
@@ -21,6 +22,7 @@ use crate::services::{
 };
 
 use crate::helpers::common::filter_deleted;
+use tracing::{error, info};
 
 fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
   filter_deleted(records)
@@ -28,8 +30,10 @@ fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
 
 pub struct ManageDbService {
   pub json_provider: JsonProvider,
-  pub mongodb_provider: Option<Arc<MongoProvider>>,
-  pub admin_manager: Option<AdminManager>,
+  mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
+  admin_manager: Mutex<Option<AdminManager>>,
+  mongo_uri: String,
+  mongo_db_name: String,
 }
 
 impl ManageDbService {
@@ -38,20 +42,24 @@ impl ManageDbService {
     mongodb_provider: Option<Arc<MongoProvider>>,
     cascade_service: CascadeService,
     entity_resolution: Arc<EntityResolutionService>,
+    mongo_uri: String,
+    mongo_db_name: String,
   ) -> Self {
     let admin_manager = mongodb_provider.clone().map(|mp| {
       AdminManager::new(
         json_provider.clone(),
         mp,
-        cascade_service,
+        cascade_service.clone(),
         entity_resolution.clone(),
       )
     });
 
     Self {
       json_provider,
-      mongodb_provider,
-      admin_manager,
+      mongodb_provider: Mutex::new(mongodb_provider),
+      admin_manager: Mutex::new(admin_manager),
+      mongo_uri,
+      mongo_db_name,
     }
   }
 
@@ -159,24 +167,26 @@ impl ManageDbService {
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .mongodb_provider
-      .as_ref()
+      .lock()
+      .unwrap()
+      .clone()
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
     let mut imported_count = 0;
-    imported_count += self.import_table(mongo, "users", &user_id, false).await;
-    imported_count += self.import_table(mongo, "profiles", &user_id, false).await;
-    imported_count += self.import_table(mongo, "todos", &user_id, true).await;
+    imported_count += self.import_table(&mongo, "users", &user_id, false).await;
+    imported_count += self.import_table(&mongo, "profiles", &user_id, false).await;
+    imported_count += self.import_table(&mongo, "todos", &user_id, true).await;
     imported_count += self
-      .import_table(mongo, "categories", &user_id, false)
+      .import_table(&mongo, "categories", &user_id, false)
       .await;
     imported_count += self
-      .import_table(mongo, "daily_activities", &user_id, false)
+      .import_table(&mongo, "daily_activities", &user_id, false)
       .await;
     imported_count += self
-      .import_children_cascade(mongo, "tasks", "todos", "todo_id", &user_id)
+      .import_children_cascade(&mongo, "tasks", "todos", "todo_id", &user_id)
       .await;
     imported_count += self
-      .import_children_cascade(mongo, "subtasks", "tasks", "task_id", &user_id)
+      .import_children_cascade(&mongo, "subtasks", "tasks", "task_id", &user_id)
       .await;
 
     Ok(ResponseModel {
@@ -260,24 +270,26 @@ impl ManageDbService {
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .mongodb_provider
-      .as_ref()
+      .lock()
+      .unwrap()
+      .clone()
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
     let mut exported_count = 0;
-    exported_count += self.export_table(mongo, "users", &user_id, false).await;
-    exported_count += self.export_table(mongo, "profiles", &user_id, false).await;
-    exported_count += self.export_table(mongo, "todos", &user_id, true).await;
+    exported_count += self.export_table(&mongo, "users", &user_id, false).await;
+    exported_count += self.export_table(&mongo, "profiles", &user_id, false).await;
+    exported_count += self.export_table(&mongo, "todos", &user_id, true).await;
     exported_count += self
-      .export_table(mongo, "categories", &user_id, false)
+      .export_table(&mongo, "categories", &user_id, false)
       .await;
     exported_count += self
-      .export_table(mongo, "daily_activities", &user_id, false)
+      .export_table(&mongo, "daily_activities", &user_id, false)
       .await;
     exported_count += self
-      .export_children_cascade(mongo, "tasks", "todos", "todo_id", &user_id)
+      .export_children_cascade(&mongo, "tasks", "todos", "todo_id", &user_id)
       .await;
     exported_count += self
-      .export_children_cascade(mongo, "subtasks", "tasks", "task_id", &user_id)
+      .export_children_cascade(&mongo, "subtasks", "tasks", "task_id", &user_id)
       .await;
 
     Ok(ResponseModel {
@@ -288,28 +300,62 @@ impl ManageDbService {
   }
 
   /// Check if MongoDB is connected
-  /// Note: This returns true if provider exists. Actual connectivity is verified
-  /// asynchronously in check_mongodb_connection command.
   pub fn is_mongodb_connected(&self) -> bool {
-    self.mongodb_provider.is_some()
+    self.mongodb_provider.lock().unwrap().is_some()
   }
 
   /// Async check if MongoDB is connected (uses existing runtime)
   pub async fn check_mongodb_connection_async(&self) -> bool {
-    match &self.mongodb_provider {
+    let provider = self.mongodb_provider.lock().unwrap().clone();
+    match provider {
       Some(provider) => {
-        match tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await {
-          Ok(Ok(_)) => true,
-          _ => false,
-        }
+        matches!(
+          tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await,
+          Ok(Ok(_))
+        )
       }
       None => false,
     }
   }
 
+  /// Attempt to reconnect to MongoDB
+  pub async fn reconnect_mongodb(
+    &self,
+    cascade_service: Arc<CascadeService>,
+    entity_resolution: Arc<EntityResolutionService>,
+  ) -> Result<(), String> {
+    info!(
+      "Attempting to reconnect to MongoDB at {}:{}",
+      self.mongo_uri, self.mongo_db_name
+    );
+
+    match MongoProvider::connect(&self.mongo_uri, &self.mongo_db_name).await {
+      Ok(new_provider) => {
+        let new_provider = Arc::new(new_provider);
+        let new_admin_manager = AdminManager::new(
+          self.json_provider.clone(),
+          new_provider.clone(),
+          (*cascade_service).clone(),
+          entity_resolution,
+        );
+
+        *self.mongodb_provider.lock().unwrap() = Some(new_provider);
+        *self.admin_manager.lock().unwrap() = Some(new_admin_manager);
+
+        info!("Successfully reconnected to MongoDB");
+        Ok(())
+      }
+      Err(e) => {
+        error!("Failed to reconnect to MongoDB: {:?}", e);
+        Err(format!("Failed to reconnect: {:?}", e))
+      }
+    }
+  }
+
   /// Get all data for admin view (from MongoDB)
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.get_all_data_for_admin().await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -328,7 +374,9 @@ impl ManageDbService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .mongodb_provider
-      .as_ref()
+      .lock()
+      .unwrap()
+      .clone()
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -353,7 +401,8 @@ impl ManageDbService {
 
   /// Get all data for Archive page from local JSON (all users, includes deleted)
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.get_all_data_for_archive().await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -370,7 +419,8 @@ impl ManageDbService {
     skip: u64,
     limit: u64,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => {
         manager
           .get_archive_data_paginated(data_type, skip, limit)
@@ -390,7 +440,8 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.permanently_delete_record(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -406,7 +457,8 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.permanently_delete_record_local(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -422,7 +474,8 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.toggle_delete_status(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -438,7 +491,8 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    match &self.admin_manager {
+    let manager = self.admin_manager.lock().unwrap().clone();
+    match manager {
       Some(manager) => manager.toggle_delete_status_local(table, id).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
@@ -460,8 +514,11 @@ impl ManageDbService {
       .await
     {
       if let Some(cat) = categories.first() {
-        if let Some(mongo) = &self.mongodb_provider {
-          let _ = self.upsert_to_mongo(mongo, "categories", cat.clone()).await;
+        let mongo_opt = self.mongodb_provider.lock().unwrap().clone();
+        if let Some(mongo) = mongo_opt {
+          let _ = self
+            .upsert_to_mongo(&mongo, "categories", cat.clone())
+            .await;
         }
       }
     }
@@ -473,7 +530,8 @@ impl ManageDbService {
     &self,
     category_id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    if let Some(mongo) = &self.mongodb_provider {
+    let mongo_opt = self.mongodb_provider.lock().unwrap().clone();
+    if let Some(mongo) = mongo_opt {
       let filter = Filter::Eq("id".to_string(), json!(category_id));
       if let Ok(categories) = mongo
         .find_many("categories", Some(&filter), None, None, None, true)
@@ -520,7 +578,8 @@ impl ManageDbService {
 
     let mut all_tasks: Vec<Value> = Vec::new();
 
-    if let Some(mongo) = &self.mongodb_provider {
+    let mongo_option = self.mongodb_provider.lock().unwrap().clone();
+    if let Some(mongo) = mongo_option {
       match mongo
         .find_many("tasks", Some(&filter), None, None, None, true)
         .await
