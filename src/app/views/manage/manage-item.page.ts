@@ -45,6 +45,7 @@ import { RelationLoadingService } from "@services/core/relation-loading.service"
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 import { ApiProvider } from "@providers/api.provider";
 import { DateHelper } from "@helpers/date.helper";
@@ -107,6 +108,7 @@ export class ManageItemPage implements OnInit {
   private visibilitySyncService = inject(VisibilitySyncService);
   private githubService = inject(GithubService);
   private destroyRef = inject(DestroyRef);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -194,6 +196,15 @@ export class ManageItemPage implements OnInit {
   currentConfig = computed(() => this.configs[this.itemType()]);
 
   visibility = signal<string>("private");
+  startDateForEndDate = signal<Date | null>(null);
+
+  hasStartDate = computed(() => {
+    return !!this.form.get("start_date")?.value;
+  });
+
+  minEndDate = computed(() => {
+    return this.startDateForEndDate();
+  });
 
   showAssignees = computed(() => {
     return (
@@ -220,16 +231,32 @@ export class ManageItemPage implements OnInit {
   private loadCategories(): void {
     this.categories.set(this.storageService.categories());
 
-    this.dataService.getCategories().subscribe();
+    this.dataLoaderService.loadInitialCategories().subscribe({
+      next: (categories) => {
+        this.categories.set(categories);
+      },
+      error: () => {
+        this.categories.set(this.storageService.categories());
+      },
+    });
   }
 
   private loadProfiles(): void {
+    if (!this.mongoConnectionService.isConnected()) {
+      console.log(`[ManageItem] Profiles require MongoDB, skipping (offline)`);
+      this.assignees.set([]);
+      return;
+    }
+
     this.dataService
       .getPublicProfiles()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (profiles) => this.assignees.set(profiles),
-        error: () => {},
+        error: (err) => {
+          console.error(`[ManageItem] Failed to load profiles:`, err);
+          this.assignees.set([]);
+        },
       });
   }
 
@@ -279,6 +306,7 @@ export class ManageItemPage implements OnInit {
     );
 
     this.form.get("start_date")?.valueChanges.subscribe((startDate) => {
+      this.startDateForEndDate.set(startDate || null);
       this.updateDateValidation(startDate);
     });
 
@@ -411,7 +439,10 @@ export class ManageItemPage implements OnInit {
     const endDateControl = this.form.get("end_date");
     if (startDate && endDateControl) {
       endDateControl.setValidators([]);
+      endDateControl.enable();
       endDateControl.updateValueAndValidity();
+    } else if (endDateControl) {
+      endDateControl.disable();
     }
   }
 

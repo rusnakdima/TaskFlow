@@ -303,9 +303,12 @@ export class SubtasksView extends BaseListView implements OnInit {
     { key: "title", label: "Subtask", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status" },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "Due Date", type: "date", sortable: true },
-    { key: "created_at", label: "Created", type: "datetime", sortable: true },
+    {
+      key: "comments",
+      label: "Comments",
+      type: "number",
+      getValue: (item) => item.comments_count || 0,
+    },
   ];
 
   override ngOnInit(): void {

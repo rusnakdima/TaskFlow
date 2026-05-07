@@ -328,12 +328,26 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   todoTableFields: TableField[] = [
     { key: "title", label: "Project", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "status", label: "Status", type: "status" },
-    { key: "tasks", label: "Tasks", type: "array-count" },
-    { key: "start_date", label: "Start Date", type: "date", sortable: true },
-    { key: "end_date", label: "Due Date", type: "date", sortable: true },
-    { key: "created_at", label: "Created", type: "datetime", sortable: true },
+    {
+      key: "status",
+      label: "Status",
+      type: "status",
+      getValue: (item) => this.computeTodoStatus(item),
+    },
+    { key: "tasks", label: "Tasks", type: "number", getValue: (item) => item.tasks_count || 0 },
   ];
+
+  computeTodoStatus(todo: Todo): string {
+    const tasks = this.getTasksByTodoId(todo.id);
+    if (!tasks || tasks.length === 0) return "Pending";
+    const pending = tasks.filter((t) => t.status === TaskStatus.PENDING).length;
+    const completed = tasks.filter(
+      (t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.SKIPPED
+    ).length;
+    if (completed === tasks.length) return "Completed";
+    if (pending === tasks.length) return "Pending";
+    return "In Progress";
+  }
 
   getVisibilityLabel(): string {
     const option = this.visibilityOptions.find((o) => o.id === this.activeVisibility());

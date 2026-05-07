@@ -73,23 +73,335 @@
       />
     } @else {
       @if (viewMode() === "table") {
-        <app-table-view
-          [data]="allTodosFlat()"
-          [fields]="todoTableFields"
-          [selectedIds]="selectedTodos()"
-          [showSelection]="true"
-          [dragEnabled]="true"
-          [actions]="[
-            { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
-            { key: 'edit', icon: 'edit', label: 'Edit' },
-            { key: 'archive', icon: 'archive', label: 'Archive' },
-          ]"
-          (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-          (selectAll)="toggleSelectAll()"
-          (rowClick)="onRowClick($event)"
-          (actionClick)="onTableAction($event)"
-          (dropped)="onTodoDrop($event)"
-        />
+        @if (groupedTodos().private.length > 0) {
+          <div class="mb-6">
+            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <mat-icon class="text-base">lock</mat-icon>
+              Private
+            </h3>
+            <app-table-view
+              [data]="groupedTodos().private"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [actions]="[
+                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+                { key: 'edit', icon: 'edit', label: 'Edit' },
+                { key: 'archive', icon: 'archive', label: 'Archive' },
+              ]"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="toggleSelectAll()"
+              (rowClick)="onRowClick($event)"
+              (actionClick)="onTableAction($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+              <ng-template #expandTemplate let-item>
+                <div class="flex flex-col gap-4 p-2">
+                  <div class="flex items-center gap-4 text-sm">
+                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
+                    </div>
+                    @if (item.chats_count) {
+                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
+                        <span>{{ item.chats_count }} chats</span>
+                      </div>
+                    }
+                  </div>
+                  @if (item.start_date || item.end_date) {
+                    <div class="flex items-center gap-4 text-sm">
+                      @if (item.start_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                          <span>{{ item.start_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                      @if (item.end_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                          <span>{{ item.end_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (item.description) {
+                    <div class="text-sm">
+                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
+                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
+                    </div>
+                  }
+                  @if (item.assignees_profiles?.length) {
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
+                      <div class="flex -space-x-2">
+                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
+                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
+                            {{ profile.name?.charAt(0)?.toUpperCase() }}
+                          </div>
+                        }
+                        @if (item.assignees_profiles.length > 4) {
+                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
+                            +{{ item.assignees_profiles.length - 4 }}
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (item.categories?.length) {
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
+                      @for (cat of item.categories; track cat.id) {
+                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          {{ cat.title }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  @if (item.github_repo_name) {
+                    <div class="flex items-center gap-2 text-sm">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+                      <span class="font-medium">{{ item.github_repo_name }}</span>
+                    </div>
+                  }
+                </div>
+              </ng-template>
+            </app-table-view>
+          </div>
+        }
+        @if (groupedTodos().shared.length > 0) {
+          <div class="mb-6">
+            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <mat-icon class="text-base">group</mat-icon>
+              Shared
+            </h3>
+            <app-table-view
+              [data]="groupedTodos().shared"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [actions]="[
+                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+                { key: 'edit', icon: 'edit', label: 'Edit' },
+                { key: 'archive', icon: 'archive', label: 'Archive' },
+              ]"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="toggleSelectAll()"
+              (rowClick)="onRowClick($event)"
+              (actionClick)="onTableAction($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+              <ng-template #expandTemplate let-item>
+                <div class="flex flex-col gap-4 p-2">
+                  <div class="flex items-center gap-4 text-sm">
+                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
+                    </div>
+                    @if (item.chats_count) {
+                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
+                        <span>{{ item.chats_count }} chats</span>
+                      </div>
+                    }
+                  </div>
+                  @if (item.start_date || item.end_date) {
+                    <div class="flex items-center gap-4 text-sm">
+                      @if (item.start_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                          <span>{{ item.start_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                      @if (item.end_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                          <span>{{ item.end_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (item.description) {
+                    <div class="text-sm">
+                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
+                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
+                    </div>
+                  }
+                  @if (item.assignees_profiles?.length) {
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
+                      <div class="flex -space-x-2">
+                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
+                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
+                            {{ profile.name?.charAt(0)?.toUpperCase() }}
+                          </div>
+                        }
+                        @if (item.assignees_profiles.length > 4) {
+                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
+                            +{{ item.assignees_profiles.length - 4 }}
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (item.categories?.length) {
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
+                      @for (cat of item.categories; track cat.id) {
+                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          {{ cat.title }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  @if (item.github_repo_name) {
+                    <div class="flex items-center gap-2 text-sm">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+                      <span class="font-medium">{{ item.github_repo_name }}</span>
+                    </div>
+                  }
+                  <div class="flex items-center gap-4 text-xs text-gray-500">
+                    @if (item.visibility) {
+                      <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                        {{ item.visibility }}
+                      </span>
+                    }
+                    @if (item.created_at) {
+                      <span>Created: {{ item.created_at | date:'short' }}</span>
+                    }
+                    @if (item.updated_at) {
+                      <span>Updated: {{ item.updated_at | date:'short' }}</span>
+                    }
+                  </div>
+                </div>
+              </ng-template>
+            </app-table-view>
+          </div>
+        }
+        @if (groupedTodos().public.length > 0) {
+          <div class="mb-6">
+            <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <mat-icon class="text-base">public</mat-icon>
+              Public
+            </h3>
+            <app-table-view
+              [data]="groupedTodos().public"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [actions]="[
+                { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
+                { key: 'edit', icon: 'edit', label: 'Edit' },
+                { key: 'archive', icon: 'archive', label: 'Archive' },
+              ]"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="toggleSelectAll()"
+              (rowClick)="onRowClick($event)"
+              (actionClick)="onTableAction($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+              <ng-template #expandTemplate let-item>
+                <div class="flex flex-col gap-4 p-2">
+                  <div class="flex items-center gap-4 text-sm">
+                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+                      <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
+                    </div>
+                    @if (item.chats_count) {
+                      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                        <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
+                        <span>{{ item.chats_count }} chats</span>
+                      </div>
+                    }
+                  </div>
+                  @if (item.start_date || item.end_date) {
+                    <div class="flex items-center gap-4 text-sm">
+                      @if (item.start_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                          <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                          <span>{{ item.start_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                      @if (item.end_date) {
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                          <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                          <span>{{ item.end_date | date:'mediumDate' }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (item.description) {
+                    <div class="text-sm">
+                      <span class="text-gray-600 dark:text-gray-400">Description:</span>
+                      <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
+                    </div>
+                  }
+                  @if (item.assignees_profiles?.length) {
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
+                      <div class="flex -space-x-2">
+                        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
+                          <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
+                            {{ profile.name?.charAt(0)?.toUpperCase() }}
+                          </div>
+                        }
+                        @if (item.assignees_profiles.length > 4) {
+                          <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
+                            +{{ item.assignees_profiles.length - 4 }}
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (item.categories?.length) {
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
+                      @for (cat of item.categories; track cat.id) {
+                        <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          {{ cat.title }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  @if (item.github_repo_name) {
+                    <div class="flex items-center gap-2 text-sm">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+                      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+                      <span class="font-medium">{{ item.github_repo_name }}</span>
+                    </div>
+                  }
+                  <div class="flex items-center gap-4 text-xs text-gray-500">
+                    @if (item.visibility) {
+                      <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                        {{ item.visibility }}
+                      </span>
+                    }
+                    @if (item.created_at) {
+                      <span>Created: {{ item.created_at | date:'short' }}</span>
+                    }
+                    @if (item.updated_at) {
+                      <span>Updated: {{ item.updated_at | date:'short' }}</span>
+                    }
+                  </div>
+                </div>
+              </ng-template>
+            </app-table-view>
+          </div>
+        }
       } @else if (viewMode() === "grid") {
         <div
           class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -326,6 +638,7 @@
             [selectedIds]="selectedTodos()"
             [showSelection]="true"
             [dragEnabled]="true"
+            [expandable]="true"
             [actions]="[
               { key: 'blueprint', icon: 'account_tree', label: 'Save as Blueprint' },
               { key: 'edit', icon: 'edit', label: 'Edit' },
@@ -336,8 +649,86 @@
             (rowClick)="onRowClick($event)"
             (actionClick)="onTableAction($event)"
             (dropped)="onTodoDrop($event)"
-          />
-        </div>
+          >
+            <ng-template #expandTemplate let-item>
+              <div class="flex flex-col gap-4 p-2">
+                <div class="flex items-center gap-4 text-sm">
+                  <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                    <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+                    <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
+                  </div>
+                  @if (item.chats_count) {
+                    <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
+                      <span>{{ item.chats_count }} chats</span>
+                    </div>
+                  }
+                </div>
+                @if (item.start_date || item.end_date) {
+                  <div class="flex items-center gap-4 text-sm">
+                    @if (item.start_date) {
+                      <div class="flex items-center gap-1">
+                        <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                        <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                        <span>{{ item.start_date | date:'mediumDate' }}</span>
+                      </div>
+                    }
+                    @if (item.end_date) {
+                      <div class="flex items-center gap-1">
+                        <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                        <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                        <span>{{ item.end_date | date:'mediumDate' }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (item.description) {
+                  <div class="text-sm">
+                    <span class="text-gray-600 dark:text-gray-400">Description:</span>
+                    <p class="mt-1 text-gray-900 dark:text-gray-100">{{ item.description | slice:0:150 }}{{ item.description.length > 150 ? '...' : '' }}</p>
+                  </div>
+                }
+                @if (item.assignees_profiles?.length) {
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
+                    <div class="flex -space-x-2">
+                      @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
+                        <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" [title]="profile.name">
+                          {{ profile.name?.charAt(0)?.toUpperCase() }}
+                        </div>
+                      }
+                      @if (item.assignees_profiles.length > 4) {
+                        <div class="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
+                          +{{ item.assignees_profiles.length - 4 }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (item.github_repo_name) {
+                  <div class="flex items-center gap-2 text-sm">
+                    <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+                    <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+                    <span class="font-medium">{{ item.github_repo_name }}</span>
+                  </div>
+                }
+                <div class="flex items-center gap-4 text-xs text-gray-500">
+                  @if (item.visibility) {
+                    <span class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      {{ item.visibility }}
+                    </span>
+                  }
+                  @if (item.created_at) {
+                    <span>Created: {{ item.created_at | date:'short' }}</span>
+                  }
+                  @if (item.updated_at) {
+                    <span>Updated: {{ item.updated_at | date:'short' }}</span>
+                  }
+                </div>
+              </ng-template>
+            </app-table-view>
+          </div>
+        }
       } @else if (viewMode() === "grid") {
         <div>
           <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
