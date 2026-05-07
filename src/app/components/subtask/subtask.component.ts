@@ -43,7 +43,11 @@ import { DataLoaderService } from "@services/data/data-loader.service";
 import { RequestService } from "@services/core/request.service";
 
 /* models */
-import { STATUS_BUTTON_COLORS, STATUS_BUTTON_ICONS } from "@constants/table-field.constants";
+import {
+  STATUS_BUTTON_COLORS,
+  STATUS_BUTTON_ICONS,
+  ActionColors,
+} from "@constants/table-field.constants";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Task } from "@models/task.model";
@@ -112,6 +116,12 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       STATUS_BUTTON_ICONS[status as keyof typeof STATUS_BUTTON_ICONS] ||
       STATUS_BUTTON_ICONS["pending"]
     );
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "rounded p-1 transition-colors";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
   }
 
   truncateString = Common.truncateString;
