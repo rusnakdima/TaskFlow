@@ -40,7 +40,7 @@ impl CountService {
     delta: i32,
   ) -> OrmResult<()>
   where
-    P: Clone,
+    P: Clone + nosql_orm::provider::DatabaseProvider,
   {
     let update = json!({ "$inc": { field: delta } });
     provider.patch(collection, id, update).await?;
@@ -56,20 +56,14 @@ impl CountService {
     delta: i32,
   ) -> OrmResult<()>
   where
-    P: Clone,
+    P: Clone + nosql_orm::provider::DatabaseProvider,
   {
     self
       .increment_count(provider, collection, id, field, -delta)
       .await
   }
 
-  async fn increment_count_both(
-    &self,
-    collection: &str,
-    id: &str,
-    field: &str,
-    delta: i32,
-  ) {
+  async fn increment_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       if let Err(e) = self
         .increment_count(mongo.as_ref(), collection, id, field, delta)
@@ -92,13 +86,7 @@ impl CountService {
     }
   }
 
-  async fn decrement_count_both(
-    &self,
-    collection: &str,
-    id: &str,
-    field: &str,
-    delta: i32,
-  ) {
+  async fn decrement_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       if let Err(e) = self
         .decrement_count(mongo.as_ref(), collection, id, field, delta)
@@ -155,6 +143,12 @@ impl CountService {
     }
   }
 
+  pub async fn on_task_uncompleted(&self, todo_id: &str) {
+    self
+      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .await;
+  }
+
   pub async fn on_subtask_created(&self, task_id: &str, todo_id: &str) {
     self
       .increment_count_both("tasks", task_id, "subtasks_count", 1)
@@ -173,7 +167,7 @@ impl CountService {
       .await;
   }
 
-  pub async fn on_subtask_deleted(&self, task_id: &str, todo_id: &str, was_completed: bool) {
+  pub async fn on_subtask_deleted(&self, task_id: &str, _todo_id: &str, was_completed: bool) {
     self
       .decrement_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
@@ -184,7 +178,7 @@ impl CountService {
     }
   }
 
-  pub async fn on_subtask_restored(&self, task_id: &str, todo_id: &str, is_completed: bool) {
+  pub async fn on_subtask_restored(&self, task_id: &str, _todo_id: &str, is_completed: bool) {
     self
       .increment_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
@@ -193,6 +187,15 @@ impl CountService {
         .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
         .await;
     }
+  }
+
+  pub async fn on_subtask_uncompleted(&self, task_id: &str, todo_id: &str) {
+    self
+      .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1)
+      .await;
+    self
+      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .await;
   }
 
   pub async fn on_comment_created(&self, task_id: Option<&str>, subtask_id: Option<&str>) {
