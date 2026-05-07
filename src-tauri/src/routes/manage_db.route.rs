@@ -25,14 +25,16 @@ pub async fn manage_data(
   offline: Option<bool>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
-  println!(
-    "[manage_data] START: operation={}, table={}, id={:?}, filter={:?}, visibility={:?}, offline={}",
-    operation, table, id, filter, visibility, is_offline
-  );
 
   if is_offline {
     let read_operations = ["getAll", "get"];
-    if !read_operations.contains(&operation.as_str()) {
+    if read_operations.contains(&operation.as_str()) {
+      // Read operations are allowed offline for all visibility levels
+    } else if visibility.as_deref() == Some("private") {
+      // Write operations are allowed offline ONLY for private data (stored in JSON)
+      // Private todos, tasks, subtasks are stored locally and don't need MongoDB
+    } else {
+      // Shared and public data requires MongoDB connection for write operations
       return Err(err_response(
         "Operation not available while offline. Please connect to the internet and try again.",
       ));
@@ -52,7 +54,6 @@ pub async fn manage_data(
       is_offline,
     )
     .await;
-  println!("[manage_data] END: table={}", table);
   result
 }
 

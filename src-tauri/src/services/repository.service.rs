@@ -53,10 +53,6 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<DataProvider<'_>, ResponseModel> {
     let use_json = self.use_json_provider(table, visibility, offline);
-    println!(
-      "[RepositoryService] get_provider: table={}, visibility={:?}, use_json={}",
-      table, visibility, use_json
-    );
 
     if use_json {
       Ok(DataProvider::Json(&self.json_provider))
@@ -368,41 +364,34 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_val = filter.unwrap_or(json!({}));
-    println!(
-      "[RepositoryService] handle_get_all START: table={}, visibility={:?}, filter={}, offline={}",
-      table, visibility, filter_val, offline
-    );
-
     let filter_opt = self.build_filter(&filter_val);
 
     let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
-    println!(
-      "[RepositoryService] use_json_provider={}, visibility={:?}",
-      use_json, visibility
-    );
 
     let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
-    println!("[RepositoryService] provider selected");
 
     let load_paths = Self::parse_load_param(load);
 
-    let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
-      Ok(docs) => (docs, false),
-      Err(e) => {
-        println!(
-          "[RepositoryService] MongoDB find_many failed: {:?}, falling back to JSON provider",
-          e
-        );
-        let json_provider = DataProvider::Json(&self.json_provider);
-        let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
-        (docs, true)
-      }
-    };
-    println!(
-      "[RepositoryService] find_many returned {} docs (json_fallback={})",
-      docs.len(),
-      used_json_fallback
-    );
+    let (docs, used_json_fallback, source) =
+      match provider.find_many(&table, filter_opt.as_ref()).await {
+        Ok(docs) => {
+          let source = if use_json {
+            "JSON".to_string()
+          } else {
+            "MongoDB".to_string()
+          };
+          (docs, false, source)
+        }
+        Err(e) => {
+          println!(
+            "[Repository] MongoDB failed for table={}: {:?}, using JSON fallback",
+            table, e
+          );
+          let json_provider = DataProvider::Json(&self.json_provider);
+          let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
+          (docs, true, "JSON".to_string())
+        }
+      };
 
     let docs = if !load_paths.is_empty() {
       if matches!(provider, DataProvider::Mongo(_)) && !used_json_fallback {
@@ -432,10 +421,18 @@ impl RepositoryService {
     } else {
       self.filter_out_deleted(docs)
     };
-    println!(
-      "[RepositoryService] handle_get_all END: returning {} docs",
-      docs.len()
-    );
+
+    // Targeted logging for main entities
+    if table == "todos" || table == "tasks" || table == "subtasks" {
+      println!(
+        "[Repository] LOADED {} {} from {} (visibility={:?}, filter={})",
+        docs.len(),
+        table,
+        source,
+        visibility,
+        filter_val
+      );
+    }
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -497,20 +494,14 @@ impl RepositoryService {
     filter: Option<Value>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    println!(
-      "[RepositoryService] handle_get: table={}, id={:?}, filter={:?}, visibility={:?}, offline={}",
-      table, id, filter, visibility, offline
-    );
     let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
-      println!("[RepositoryService] find_by_id: {}", id_val);
       match provider.find_by_id(&table, &id_val).await? {
         Some(d) => vec![d],
         None => return Err(err_response("Document not found")),
       }
     } else if let Some(f) = &filter {
-      println!("[RepositoryService] find_many with filter: {:?}", f);
       let filter_obj = nosql_orm::query::Filter::from_json(f)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
       provider.find_many(&table, Some(&filter_obj)).await?
@@ -518,14 +509,9 @@ impl RepositoryService {
       return Err(err_response("ID or filter is required for get operation"));
     };
 
-    println!("[RepositoryService] handle_get found {} docs", docs.len());
     let load_paths = Self::parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
-      println!(
-        "[RepositoryService] loading relations for: {:?}",
-        load_paths
-      );
       self
         .load_relations_via_nosql_orm(
           docs,
@@ -538,10 +524,6 @@ impl RepositoryService {
       docs
     };
 
-    println!(
-      "[RepositoryService] handle_get returning success with {} docs",
-      docs.len()
-    );
     let projected = self.apply_projection_recursive(docs);
     if id.is_some() {
       if !projected.is_empty() {
