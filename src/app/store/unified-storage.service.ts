@@ -35,6 +35,7 @@ import { CategoryHandler } from "@services/core/entity-handlers/category.handler
 import { ProfileHandler } from "@services/core/entity-handlers/profile.handler";
 import { FlatCommentHandler } from "@services/core/entity-handlers/flat-comment.handler";
 import { TaskHandler } from "@services/core/entity-handlers/task.handler";
+import { SubtaskHandler } from "@services/core/entity-handlers/subtask.handler";
 
 /* utils */
 import { groupByKey, existsById } from "@stores/utils/store-helpers";
@@ -290,11 +291,7 @@ export class UnifiedStorageService extends BaseStorageService {
   private readonly handlers = {
     todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
     tasks: new TaskHandler(this.tasksSignal),
-    subtasks: new TodoHandler(
-      this.privateTodosSignal,
-      this.sharedTodosSignal,
-      this.publicTodosSignal
-    ),
+    subtasks: new SubtaskHandler(this.subtasksSignal),
     categories: new CategoryHandler(this.categoriesSignal),
     profiles: new ProfileHandler(this.profileSignal),
     chats: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
