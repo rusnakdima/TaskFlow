@@ -36,6 +36,21 @@ export const TableActionColors = {
   restore:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
   view: "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
+  github_issue: "text-gray-600! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-300!",
+  blueprint: "text-teal-600! hover:text-teal-700! dark:text-teal-400! dark:hover:text-teal-300!",
+  toggleDelete:
+    "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
+} as const;
+
+export const TABLE_ACTIONS = {
+  EDIT: { key: "edit", icon: "edit", label: "Edit" },
+  DELETE: { key: "delete", icon: "delete", label: "Delete" },
+  ARCHIVE: { key: "archive", icon: "archive", label: "Archive" },
+  RESTORE: { key: "restore", icon: "restore", label: "Restore" },
+  BLUEPRINT: { key: "blueprint", icon: "account_tree", label: "Save as Blueprint" },
+  GITHUB_ISSUE: { key: "github_issue", icon: "bug_report", label: "GitHub Issue" },
+  TOGGLE_DELETE: { key: "toggleDelete", icon: "archive", label: "Archive" },
+  DELETE_FOREVER: { key: "delete_forever", icon: "delete_forever", label: "Permanent Delete" },
 } as const;
 
 export const PRIORITY_COLORS = {
@@ -81,9 +96,33 @@ export const STATUS_BG_COLORS = {
   [TaskStatus.FAILED]: "bg-red-500",
 } as const;
 
+export const STATUS_BUTTON_COLORS = {
+  [TaskStatus.PENDING]:
+    "bg-blue-100 text-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60",
+  [TaskStatus.COMPLETED]:
+    "bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900/60",
+  [TaskStatus.SKIPPED]:
+    "bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60",
+  [TaskStatus.FAILED]:
+    "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60",
+} as const;
+
+export const STATUS_BUTTON_ICONS = {
+  [TaskStatus.PENDING]: "radio_button_unchecked",
+  [TaskStatus.COMPLETED]: "check_circle",
+  [TaskStatus.SKIPPED]: "cancel",
+  [TaskStatus.FAILED]: "dangerous",
+} as const;
+
 export const DELETED_CHIP_COLORS = {
   deleted: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+} as const;
+
+export const VISIBILITY_COLORS = {
+  private: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  shared: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+  public: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 } as const;
 
 export const TABLE_CARD_COLORS = {
@@ -93,6 +132,7 @@ export const TABLE_CARD_COLORS = {
   statusIcons: STATUS_ICONS,
   statusColumn: STATUS_COLUMN_COLORS,
   statusBg: STATUS_BG_COLORS,
+  visibility: VISIBILITY_COLORS,
 } as const;
 
 export const TABLE_COLUMNS = {
