@@ -6,7 +6,6 @@ use nosql_orm::Model;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("pending_requests")]
-#[allow(dead_code)]
 pub struct PendingRequestEntity {
   pub id: Option<String>,
   pub operation: String,
@@ -22,4 +21,4 @@ pub struct PendingRequestEntity {
   pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl PendingRequestEntity {}
+impl PendingRequestEntity {

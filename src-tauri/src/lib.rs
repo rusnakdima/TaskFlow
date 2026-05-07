@@ -39,7 +39,7 @@ use routes::{
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_admin_data_paginated, get_all_data_for_admin,
     get_all_data_for_archive, get_archive_data_paginated, get_tasks_by_month, import_to_local,
-    manage_data, permanently_delete_record, permanently_delete_record_local, reconnect_mongodb,
+    manage_data, permanently_delete_record, permanently_delete_record_local,
     sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
   },
   profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
@@ -55,7 +55,7 @@ use services::{
     auth_passkey::AuthPasskeyService, auth_qr::QrAuthService, auth_totp::AuthTotpService,
   },
   auth_service::AuthService,
-  cascade::{CascadeService, CountService},
+  cascade::CascadeService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
@@ -81,9 +81,6 @@ pub struct AppState {
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
-  pub cascade_service: Arc<CascadeService>,
-  pub count_service: Arc<CountService>,
-  pub entity_resolution: Arc<EntityResolutionService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -186,35 +183,18 @@ pub fn run() {
       let activity_monitor =
         ActivityMonitorService::new(activity_log_helper.clone(), entity_resolution.clone());
 
-      let json_for_repo = json_provider.clone();
-      let json_for_auth = json_provider.clone();
-      let json_for_stats = json_provider.clone();
-      let json_for_mdb = json_provider.clone();
-      let mongo_for_repo = mongodb_provider.clone();
-      let mongo_for_auth = mongodb_provider.clone();
-      let mongo_for_mdb = mongodb_provider.clone();
-      let cas_for_repo = cascade_service.clone();
-      let ent_for_repo = entity_resolution.clone();
-      let act_for_stats = activity_log_helper.clone();
-
-      let count_service = Arc::new(CountService::new(
+      let repository_service = Arc::new(RepositoryService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
-      ));
-
-      let repository_service = Arc::new(RepositoryService::new(
-        json_for_repo,
-        mongo_for_repo,
-        cas_for_repo,
-        count_service.clone(),
-        ent_for_repo,
+        cascade_service.clone(),
+        entity_resolution.clone(),
         activity_monitor,
         profile_service.as_ref().clone(),
       ));
 
       let auth_service = Arc::new(AuthService::new(
-        json_for_auth,
-        mongo_for_auth,
+        json_provider.clone(),
+        mongodb_provider.clone(),
         config_helper.jwt_secret.clone(),
         config_helper.rp_domain.clone(),
         Some(auth_data_sync_service.clone()),
@@ -244,14 +224,15 @@ pub fn run() {
         auth_service.token_service.clone(),
       ));
 
-      let statistics_service = Arc::new(StatisticsService::new(json_for_stats, act_for_stats));
+      let statistics_service = Arc::new(StatisticsService::new(
+        json_provider.clone(),
+        activity_log_helper.clone(),
+      ));
       let manage_db_service = Arc::new(ManageDbService::new(
-        json_for_mdb,
-        mongo_for_mdb,
-        cascade_service.clone(),
-        entity_resolution.clone(),
-        config_helper.mongo_db_uri.clone(),
-        config_helper.mongo_db_name.clone(),
+        json_provider.clone(),
+        mongodb_provider.clone(),
+        cascade_service,
+        entity_resolution,
       ));
 
       app.manage(AppState {
@@ -267,9 +248,6 @@ pub fn run() {
         passkey_service,
         biometric_service,
         auth_data_sync_service,
-        cascade_service: Arc::new(cascade_service),
-        count_service,
-        entity_resolution,
       });
 
       Ok(())
@@ -315,7 +293,6 @@ pub fn run() {
       get_archive_data_paginated,
       get_tasks_by_month,
       check_mongodb_connection,
-      reconnect_mongodb,
       import_to_local,
       manage_data,
       permanently_delete_record,
@@ -338,7 +315,6 @@ pub fn run() {
       github_check_device_flow,
       github_update_issue
     ])
-    .plugin(tauri_plugin_mcp_bridge::init())
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
