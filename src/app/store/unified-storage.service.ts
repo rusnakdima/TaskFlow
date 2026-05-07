@@ -910,6 +910,15 @@ export class UnifiedStorageService extends BaseStorageService {
   }
 
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
+    const hasAnyData =
+      this.privateTodosSignal().length > 0 ||
+      this.tasksSignal().length > 0 ||
+      this.subtasksSignal().length > 0;
+
+    if (!force && !hasAnyData) {
+      force = true;
+    }
+
     if (!force && this.isCacheValid(TTL_CACHE_EXPIRY_MS)) {
       return of(this.getAdminDataWithRelations());
     }
