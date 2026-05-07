@@ -104,19 +104,10 @@ export class DataLoaderService {
 
     if (visibility === "all") {
       if (!this.mongoConnectionService.isConnected()) {
-        console.log(`[DataLoader] loadTodosPage visibility=all, checking connection...`);
-        return this.mongoConnectionService.checkConnection().pipe(
-          take(1),
-          switchMap((connected) => {
-            if (connected) {
-              console.log(`[DataLoader] connection established, loading from 3 sources`);
-              return this.loadTodosAllSources(page, limit);
-            } else {
-              console.log(`[DataLoader] still offline after check, falling back to private`);
-              return this.loadTodosPage("private", page, limit);
-            }
-          })
+        console.log(
+          `[DataLoader] loadTodosPage visibility=all but OFFLINE, loading from all sources (private only)`
         );
+        return this.loadTodosAllSources(page, limit);
       }
       return this.loadTodosAllSources(page, limit);
     } else if (visibility === "private") {
