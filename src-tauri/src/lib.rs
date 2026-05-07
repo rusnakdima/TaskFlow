@@ -65,6 +65,15 @@ use services::{
   user::user_sync::UserSyncService,
 };
 
+#[tauri::command]
+async fn process_queued_operation(
+  operation: String,
+  table: String,
+  data: serde_json::Value,
+) -> Result<(), String> {
+  Ok(())
+}
+
 /* nosql_orm */
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
@@ -81,6 +90,11 @@ pub struct AppState {
   pub passkey_service: Arc<AuthPasskeyService>,
   pub biometric_service: Arc<AuthBiometricService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
+}
+
+#[tauri::command]
+async fn sync_data(user_id: String) -> Result<(), String> {
+  Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -311,6 +325,7 @@ pub fn run() {
       profile_sync_all_for_user,
       statistics_get,
       initialize_user_data,
+      process_queued_operation,
       github_oauth_url,
       github_oauth_callback,
       github_get_repos,
@@ -320,7 +335,8 @@ pub fn run() {
       github_create_comment,
       github_start_device_flow,
       github_check_device_flow,
-      github_update_issue
+      github_update_issue,
+      sync_data
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
