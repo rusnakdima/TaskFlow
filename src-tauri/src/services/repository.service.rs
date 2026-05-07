@@ -277,6 +277,18 @@ impl RepositoryService {
     docs
   }
 
+  fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
+    if let (Some(existing_obj), Some(validated_obj)) =
+      (existing.as_object(), validated.as_object_mut())
+    {
+      if let Some(created_at) = existing_obj.get("created_at") {
+        if !validated_obj.contains_key("created_at") {
+          validated_obj.insert("created_at".to_string(), created_at.clone());
+        }
+      }
+    }
+  }
+
   fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
     crate::helpers::common::filter_deleted(docs)
   }
@@ -855,13 +867,24 @@ impl RepositoryService {
       .clone();
 
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
+    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
+
     for record in raw_records {
       let validated = validate_model(&table, &record, false)
         .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
-      validated_records.push(validated);
-    }
 
-    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
+      if let Some(id) = validated.get("id").and_then(|v| v.as_str()) {
+        if let Ok(Some(existing)) = provider.find_by_id(&table, id).await {
+          let mut validated_with_immutable = validated;
+          Self::merge_immutable_fields(&existing, &mut validated_with_immutable);
+          validated_records.push(validated_with_immutable);
+        } else {
+          validated_records.push(validated);
+        }
+      } else {
+        validated_records.push(validated);
+      }
+    }
 
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
@@ -889,6 +912,15 @@ impl RepositoryService {
 
     let visibility_str = visibility.as_deref();
     let provider = self.get_provider(&table, visibility_str, offline)?;
+
+    let existing_record = provider
+      .find_by_id(&table, &id_str)
+      .await?
+      .ok_or_else(|| err_response("Document not found"))?;
+
+    let mut validated_data = validated_data;
+    Self::merge_immutable_fields(&existing_record, &mut validated_data);
+
     let updated_record = provider
       .update(&table, &id_str, validated_data.clone())
       .await?;
