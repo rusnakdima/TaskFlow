@@ -57,6 +57,9 @@ export class DataLoaderService {
 
   private currentTasksTodoId = signal<string | null>(null);
   private currentSubtasksTaskId = signal<string | null>(null);
+  private currentSubtasksRequestId = signal<number>(0);
+  private currentCommentsTaskId = signal<string | null>(null);
+  private currentCommentsRequestId = signal<number>(0);
   private currentChatsTodoId = signal<string | null>(null);
 
   private todosPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
@@ -303,12 +306,18 @@ export class DataLoaderService {
   }
 
   loadInitialTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
+    this.tasksLoading.set(true);
     return this.dataService.getTasksByVisibility(visibility, limit).pipe(
       switchMap((tasks) => {
         const loadedTasks = tasks || [];
         this.storageService.setCollection("tasks", loadedTasks, { resetPagination: true });
         this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
+        this.tasksLoading.set(false);
         return of(loadedTasks);
+      }),
+      catchError(() => {
+        this.tasksLoading.set(false);
+        return of([]);
       })
     );
   }
@@ -323,18 +332,24 @@ export class DataLoaderService {
     page: number = 0,
     limit: number = 20
   ): Observable<Task[]> {
+    const requestId = `${todoId}-${Date.now()}`;
     this.currentTasksTodoId.set(todoId);
     const skip = page * limit;
     this.tasksLoading.set(true);
-    this.storageService.resetPagination("tasks");
 
     return this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
       switchMap((tasks) => {
+        if (this.currentTasksTodoId() !== todoId) {
+          return of([]);
+        }
+
         const loadedTasks = tasks || [];
         const isFirstPage = page === 0;
+        if (isFirstPage) {
+          this.storageService.resetPagination("tasks");
+        }
         this.storageService.setCollection("tasks", loadedTasks, {
           append: !isFirstPage,
-          resetPagination: isFirstPage,
         });
         this.storageService.updatePagination("tasks", skip, limit, loadedTasks.length);
         this.tasksLoading.set(false);
@@ -396,24 +411,24 @@ export class DataLoaderService {
     page: number = 0,
     limit: number = 20
   ): Observable<Subtask[]> {
+    const requestId = this.currentSubtasksRequestId() + 1;
+    this.currentSubtasksRequestId.set(requestId);
     this.currentSubtasksTaskId.set(taskId);
 
     const cachedSubtasks = this.storageService.getSubtasksByTaskId(taskId);
     if (cachedSubtasks.length > 0 && page === 0) {
-      this.subtasksPagination.set({
-        skip: cachedSubtasks.length,
-        limit,
-        hasMore: false,
-      });
       return of(cachedSubtasks);
     }
 
     const skip = page * limit;
     this.subtasksLoading.set(true);
-    this.subtasksPagination.set({ skip, limit, hasMore: true });
 
     return this.requestService.getSubtasks(taskId, skip, limit).pipe(
       switchMap((subtasks) => {
+        if (requestId !== this.currentSubtasksRequestId()) {
+          this.subtasksLoading.set(false);
+          return of([]);
+        }
         const loadedSubtasks = subtasks || [];
         const isFirstPage = page === 0;
         this.storageService.setCollection("subtasks", loadedSubtasks, {
@@ -484,12 +499,16 @@ export class DataLoaderService {
     page: number = 0,
     limit: number = 20
   ): Observable<Comment[]> {
+    this.currentCommentsTaskId.set(taskId);
+    const requestId = this.currentCommentsRequestId() + 1;
+    this.currentCommentsRequestId.set(requestId);
     const skip = page * limit;
     this.commentsLoading.set(true);
-    this.commentsPagination.set({ skip, limit, hasMore: true });
+    this.storageService.resetPagination("comments");
 
     return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
       switchMap((comments) => {
+        if (requestId !== this.currentCommentsRequestId()) return of([]);
         const loadedComments = comments || [];
         const isFirstPage = page === 0;
         this.storageService.setCollection("comments", loadedComments, {
@@ -512,6 +531,10 @@ export class DataLoaderService {
   }
 
   loadMoreCommentsPage(taskId: string, visibility: string = "private"): Observable<Comment[]> {
+    if (this.currentCommentsTaskId() !== taskId) {
+      return this.loadCommentsPage(taskId, visibility);
+    }
+
     const current = this.commentsPagination();
     if (current.hasMore === false) return of([]);
 
@@ -521,6 +544,7 @@ export class DataLoaderService {
 
     return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
       switchMap((comments) => {
+        if (this.currentCommentsTaskId() !== taskId) return of([]);
         const newItems = comments || [];
         this.storageService.setCollection("comments", newItems, { append: true });
         this.commentsPagination.set({
@@ -634,6 +658,7 @@ export class DataLoaderService {
     page: number = 0,
     limit: number = 20
   ): Observable<Chat[]> {
+    const requestId = `${todoId}-${Date.now()}`;
     this.currentChatsTodoId.set(todoId);
     const skip = page * limit;
     this.chatsLoading.set(true);
@@ -641,6 +666,10 @@ export class DataLoaderService {
 
     return this.requestService.getChats(todoId, skip, limit).pipe(
       switchMap((chats) => {
+        if (this.currentChatsTodoId() !== todoId) {
+          return of([]);
+        }
+
         const loadedChats = chats || [];
         const isFirstPage = page === 0;
         this.storageService.setCollection("chats", loadedChats, {
