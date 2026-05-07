@@ -278,22 +278,22 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   isCommentExpandedById(id: string): boolean {
-    const item = this.data.find((d) => d.id === id);
-    if (item) this.setCurrentItem(item);
     return this.expandedComments().has(id);
   }
 
   toggleCommentsById(id: string): void {
     const item = this.data.find((d) => d.id === id);
-    if (item) this.setCurrentItem(item);
-    this.expandedComments.update((expanded) => {
-      const newExpanded = new Set(expanded);
-      if (newExpanded.has(id)) {
-        newExpanded.delete(id);
-      } else {
-        newExpanded.add(id);
-      }
-      return newExpanded;
+    if (item) queueMicrotask(() => this.setCurrentItem(item));
+    queueMicrotask(() => {
+      this.expandedComments.update((expanded) => {
+        const newExpanded = new Set(expanded);
+        if (newExpanded.has(id)) {
+          newExpanded.delete(id);
+        } else {
+          newExpanded.add(id);
+        }
+        return newExpanded;
+      });
     });
   }
 
@@ -352,7 +352,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   onCommentAdd(content: string, item: any): void {
-    this.setCurrentItem(item);
+    queueMicrotask(() => this.setCurrentItem(item));
     this.addComment.emit({ content, itemId: item.id });
   }
 
@@ -365,23 +365,23 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   onSubtaskCommentAdd(event: { content: string; subtask_id: string }, item: any): void {
-    this.setCurrentItem(item);
+    queueMicrotask(() => this.setCurrentItem(item));
     this.addSubtaskComment.emit({ ...event, itemId: item.id });
   }
 
   onRowClick(item: any): void {
-    this.setCurrentItem(item);
+    queueMicrotask(() => this.setCurrentItem(item));
     this.rowClick.emit(item);
   }
 
   onActionClickHandler(action: string, item: any): void {
-    this.setCurrentItem(item);
+    queueMicrotask(() => this.setCurrentItem(item));
     this.actionClick.emit({ action, item });
   }
 
   onSelectionChangeById(id: string, checked: boolean): void {
     const item = this.data.find((d) => d.id === id);
-    if (item) this.setCurrentItem(item);
+    if (item) queueMicrotask(() => this.setCurrentItem(item));
     this.selectionChange.emit({ id, selected: checked });
   }
 }
