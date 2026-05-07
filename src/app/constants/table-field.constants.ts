@@ -102,11 +102,14 @@ export const TABLE_COLUMNS = {
     { key: "visibility", label: "Visibility", type: "chip", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -117,11 +120,14 @@ export const TABLE_COLUMNS = {
     { key: "status", label: "Status", type: "status", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -132,11 +138,14 @@ export const TABLE_COLUMNS = {
     { key: "status", label: "Status", type: "status", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -146,11 +155,14 @@ export const TABLE_COLUMNS = {
     { key: "user_id", label: "User", type: "text", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -160,11 +172,14 @@ export const TABLE_COLUMNS = {
     { key: "user_id", label: "User", type: "text", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -173,11 +188,14 @@ export const TABLE_COLUMNS = {
     { key: "title", label: "Title", type: "text", sortable: true },
     {
       key: "deleted_at",
-      label: "Status",
+      label: "Deleted",
       type: "chip",
       sortable: true,
-      getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      getChipText: (item: any) => (item?.deleted_at ? "DELETED" : ""),
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
@@ -196,7 +214,17 @@ export const ARCHIVE_COLUMNS = {
     { key: "title", label: "Title", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "visibility", label: "Visibility", type: "chip", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
@@ -204,7 +232,17 @@ export const ARCHIVE_COLUMNS = {
     { key: "title", label: "Title", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
@@ -212,27 +250,67 @@ export const ARCHIVE_COLUMNS = {
     { key: "title", label: "Title", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   comments: [
     { key: "content", label: "Content", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   chats: [
     { key: "content", label: "Message", type: "text", sortable: true },
     { key: "user_id", label: "User", type: "text", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],
   categories: [
     { key: "title", label: "Title", type: "text", sortable: true },
-    { key: "deleted_at", label: "Deleted At", type: "datetime", sortable: true },
+    {
+      key: "deleted_at",
+      label: "Deleted",
+      type: "chip",
+      sortable: true,
+      getChipColor: (item: any) =>
+        item?.deleted_at
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+    },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
     { key: "expand", label: "", type: "expand" },
   ],

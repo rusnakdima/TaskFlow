@@ -1,22 +1,16 @@
-export type FilterFieldType = "radio" | "checkbox" | "select" | "date-range";
+export type FilterControlType = "text" | "select" | "date";
 
-export interface FilterFieldOption {
-  key: string;
+export interface FilterOption {
+  value: string;
   label: string;
-  icon?: string;
-  count?: number;
-}
-
-export interface FilterField {
-  key: string;
-  label: string;
-  type: FilterFieldType;
-  options?: FilterFieldOption[];
-  placeholder?: string;
 }
 
 export interface FilterConfig {
-  fields: FilterField[];
-  activeFilters: Record<string, string | string[]>;
-  searchQuery: string;
+  key: string;
+  label: string;
+  controlType: FilterControlType;
+  placeholder?: string;
+  options?: FilterOption[];
+  dynamicListKey?: string;
+  dataType?: string[];
 }
