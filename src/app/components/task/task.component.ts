@@ -121,6 +121,14 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   private commentsSignal = signal<Comment[]>([]);
   private subtasksSignal = signal<Subtask[]>([]);
 
+  private commentsEffect = effect(() => {
+    this.commentsSignal.set(this.storageService.comments());
+  });
+
+  private subtasksEffect = effect(() => {
+    this.subtasksSignal.set(this.storageService.subtasks());
+  });
+
   expandedSubtaskCommentIds = signal<Set<string>>(new Set());
   private highlightedExpandedSubtaskId = signal<string | null>(null);
 
@@ -153,15 +161,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     return found ?? null;
   });
 
-  ngOnInit() {
-    effect(() => {
-      this.commentsSignal.set(this.storageService.comments());
-    });
-
-    effect(() => {
-      this.subtasksSignal.set(this.storageService.subtasks());
-    });
-  }
+  ngOnInit() {}
 
   private comments = computed(() => this.commentsSignal());
   private subtasks = computed(() => this.subtasksSignal());

@@ -27,6 +27,13 @@ import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-r
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
+/* services */
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
+
+/* components */
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+
 /* models */
 import { TableField, TableFieldActionButton } from "./table-field.model";
 import { Comment } from "@models/comment.model";
@@ -48,12 +55,15 @@ import {
     CheckboxComponent,
     DragDropModule,
     CommentsComponent,
+    ItemExpandDetailsComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
+  private storageService = inject(UnifiedStorageService);
+  private dataLoaderService = inject(DataLoaderService);
 
   @Input() data: any[] = [];
   @Input() fields: TableField[] = [];
