@@ -217,12 +217,19 @@
           <mat-datepicker #startPicker [dateClass]="dateClass"></mat-datepicker>
         </mat-form-field>
 
-        <mat-form-field class="w-full">
-          <mat-label>End Date</mat-label>
-          <input matInput [matDatepicker]="endPicker" formControlName="end_date" />
-          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-          <mat-datepicker #endPicker [dateClass]="dateClass"></mat-datepicker>
-        </mat-form-field>
+        @if (hasStartDate()) {
+          <mat-form-field class="w-full">
+            <mat-label>End Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              formControlName="end_date"
+              [min]="minEndDate()"
+            />
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker [dateClass]="dateClass"></mat-datepicker>
+          </mat-form-field>
+        }
 
         <mat-form-field class="w-full" *ngIf="itemType() === 'task'">
           <mat-label>Repeat</mat-label>

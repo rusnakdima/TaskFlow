@@ -60,11 +60,57 @@
           [showSelection]="true"
           [showCommentToggle]="true"
           [dragEnabled]="true"
+          [expandable]="true"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
           (dropped)="onSubtaskDrop($event)"
-        />
+        >
+          <ng-template #expandTemplate let-item>
+            <div class="flex flex-col gap-4 p-2">
+              @if (item.comments_count) {
+                <div class="flex items-center gap-4 text-sm">
+                  <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                    <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
+                    <span>{{ item.comments_count }} comments</span>
+                  </div>
+                </div>
+              }
+              @if (item.start_date || item.end_date) {
+                <div class="flex items-center gap-4 text-sm">
+                  @if (item.start_date) {
+                    <div class="flex items-center gap-1">
+                      <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+                      <span class="text-gray-600 dark:text-gray-400">Start:</span>
+                      <span>{{ item.start_date | date: "mediumDate" }}</span>
+                    </div>
+                  }
+                  @if (item.end_date) {
+                    <div class="flex items-center gap-1">
+                      <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+                      <span class="text-gray-600 dark:text-gray-400">Due:</span>
+                      <span>{{ item.end_date | date: "mediumDate" }}</span>
+                    </div>
+                  }
+                </div>
+              }
+              @if (item.description) {
+                <div class="text-sm">
+                  <span class="text-gray-600 dark:text-gray-400">Description:</span>
+                  <p class="mt-1 text-gray-900 dark:text-gray-100">
+                    {{ item.description | slice: 0 : 150
+                    }}{{ item.description.length > 150 ? "..." : "" }}
+                  </p>
+                </div>
+              }
+              @if (item.created_at) {
+                <div class="text-xs text-gray-500">
+                  Created: {{ item.created_at | date: "short" }}
+                </div>
+              }
+            </div>
+          </ng-template>
+        </app-table-view>
       } @else if (viewMode() === "grid") {
         <div
           class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
