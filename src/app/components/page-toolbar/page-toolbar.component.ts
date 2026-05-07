@@ -172,7 +172,17 @@ export class PageToolbarComponent {
   }
 
   getFilterValues(): Record<string, string> {
-    return this.activeFilters();
+    const values: Record<string, string> = {};
+    for (const field of this.filterFields) {
+      const activeValue = this.activeFilters()[field.key];
+      if (activeValue !== undefined) {
+        values[field.key] = activeValue as string;
+      } else if (field.options && field.options.length > 0) {
+        const firstOption = field.options[0];
+        values[field.key] = firstOption.key ?? "";
+      }
+    }
+    return values;
   }
 
   getDynamicOptionsFn = (key: string, filter: any): FilterOption[] => {
