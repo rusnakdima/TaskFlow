@@ -16,6 +16,7 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 /* helpers */
@@ -48,6 +49,7 @@ export class CalendarView extends BaseListView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private dataService = inject(DataService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -94,6 +96,20 @@ export class CalendarView extends BaseListView implements OnInit {
       return;
     }
 
+    if (!this.mongoConnectionService.isConnected()) {
+      this.tasksLoading.set(true);
+      const privateTasks = this.getPrivateTasksFromCache();
+      const events = this.buildEventsFromTasks(privateTasks);
+      this.allEvents.set(events);
+      this.loadedMonths.update((set) => {
+        const newSet = new Set(set);
+        newSet.add(monthKey);
+        return newSet;
+      });
+      this.tasksLoading.set(false);
+      return;
+    }
+
     this.tasksLoading.set(true);
     this.dataService
       .getTasksByMonth(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1)
@@ -111,10 +127,20 @@ export class CalendarView extends BaseListView implements OnInit {
           this.tasksLoading.set(false);
         },
         error: (err: any) => {
+          const privateTasks = this.getPrivateTasksFromCache();
+          const events = this.buildEventsFromTasks(privateTasks);
+          this.allEvents.set(events);
           this.handleError(err);
           this.tasksLoading.set(false);
         },
       });
+  }
+
+  private getPrivateTasksFromCache(): Task[] {
+    const privateTodoIds = new Set(this.storageService.privateTodos().map((t) => t.id));
+    return this.storageService
+      .tasks()
+      .filter((t) => privateTodoIds.has(t.todo_id) && !t.deleted_at);
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {
