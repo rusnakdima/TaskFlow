@@ -194,26 +194,23 @@ impl StatisticsService {
       return results;
     }
 
-    let filter = json!({
-      "$and": [
-        {"user_id": user_id},
-        {"date": {"$gte": start_date.format("%Y-%m-%d").to_string()}},
-        {"date": {"$lte": end_date.format("%Y-%m-%d").to_string()}}
-      ]
-    });
+    let filter = Filter::And(vec![
+      Filter::Eq("user_id".to_string(), json!(user_id)),
+      Filter::Gte(
+        "date".to_string(),
+        json!(start_date.format("%Y-%m-%d").to_string()),
+      ),
+      Filter::Lte(
+        "date".to_string(),
+        json!(end_date.format("%Y-%m-%d").to_string()),
+      ),
+    ]);
 
-    let activities = self.activity_log_helper.get_all(filter).await;
-
-    let docs = match activities {
-      Ok(resp) => {
-        if let DataValue::Array(arr) = resp.data {
-          arr
-        } else {
-          Vec::new()
-        }
-      }
-      Err(_) => Vec::new(),
-    };
+    let docs = self
+      .json_provider
+      .find_many("daily_activities", Some(&filter), None, None, None, true)
+      .await
+      .unwrap_or_default();
 
     let mut date_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
 

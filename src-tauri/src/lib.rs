@@ -189,13 +189,17 @@ pub fn run() {
         profile_sync_unified_service.clone(),
       ));
 
-      let cascade_service = CascadeService::new(json_provider.clone(), mongodb_provider.clone());
       let entity_resolution = Arc::new(EntityResolutionService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
       ));
       let activity_monitor =
         ActivityMonitorService::new(activity_log_helper.clone(), entity_resolution.clone());
+      let cascade_service = CascadeService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+        Some(activity_monitor.clone()),
+      );
       let count_service = Arc::new(CountService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
