@@ -8,18 +8,10 @@
     <h4 class="textNormal flex-1 truncate font-medium">{{ category.title }}</h4>
 
     <div class="flex shrink-0 gap-1">
-      <button
-        class="p-1 text-gray-500 transition-colors hover:text-blue-500"
-        (click)="onEdit()"
-        title="Edit category"
-      >
+      <button [class]="getActionColor('edit')" (click)="onEdit()" title="Edit category">
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
       </button>
-      <button
-        class="p-1 text-gray-500 transition-colors hover:text-red-500"
-        (click)="onArchive()"
-        title="Archive category"
-      >
+      <button [class]="getActionColor('archive')" (click)="onArchive()" title="Archive category">
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="archive" />
       </button>
     </div>

@@ -8,6 +8,9 @@ import { MatIconModule } from "@angular/material/icon";
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
+/* constants */
+import { ActionColors } from "@constants/table-field.constants";
+
 /* models */
 import { Category } from "@models/category.model";
 
@@ -40,5 +43,11 @@ export class CategoryCardComponent {
 
   toggleSelection(_checked: boolean) {
     this.selectionChangeEvent.emit(this.category.id);
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    const baseClass = "p-1 transition-colors";
+    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
   }
 }
