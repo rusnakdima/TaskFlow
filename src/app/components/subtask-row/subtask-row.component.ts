@@ -5,13 +5,9 @@ import {
   EventEmitter,
   Input,
   Output,
-  signal,
   inject,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
 } from "@angular/core";
-
-/* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -22,10 +18,13 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
+/* base */
+import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
+
 /* models */
-import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
+import { Subtask } from "@models/subtask.model";
 
 @Component({
   selector: "app-subtask-row",
@@ -34,32 +33,62 @@ import { Todo } from "@models/todo.model";
   templateUrl: "./subtask-row.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtaskRowComponent {
-  private cdr = inject(ChangeDetectorRef);
-
+export class SubtaskRowComponent extends ItemRowBaseComponent {
   @Input() subtask: Subtask | null = null;
-  @Input() todo: Todo | null = null;
-  @Input() isOwner: boolean = true;
-  @Input() isPrivate: boolean = true;
-  @Input() isSelected: boolean = false;
+  @Input() override todo: Todo | null = null;
+  @Output() override toggleCompletionEvent = new EventEmitter<Subtask>();
 
-  @Output() toggleCompletionEvent = new EventEmitter<Subtask>();
-  @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() deleteSubtaskEvent = new EventEmitter<string>();
-  @Output() addCommentEvent = new EventEmitter<{ content: string; subtask_id: string }>();
-  @Output() deleteCommentEvent = new EventEmitter<string>();
-  @Output() markAsReadEvent = new EventEmitter<string[]>();
-  @Output() actionClickEvent = new EventEmitter<{ action: string; item: any }>();
+  override get item(): Subtask | null {
+    return this.subtask;
+  }
 
-  showComments = signal(false);
+  override get type(): "subtask" {
+    return "subtask";
+  }
 
-  getSubtaskStatusIcon = BaseItemHelper.getStatusIcon;
-  getSubtaskStatusColor = BaseItemHelper.getStatusColor;
-  getSubtaskPriorityColor = BaseItemHelper.getPriorityColor;
+  override get itemId(): string {
+    return this.subtask?.id || "";
+  }
 
-  get subtaskComments(): Comment[] {
+  override get itemTitle(): string {
+    return this.subtask?.title || "";
+  }
+
+  override get itemDescription(): string | null {
+    return this.subtask?.description || null;
+  }
+
+  override get itemStatus(): string {
+    return this.subtask?.status || "";
+  }
+
+  override get itemPriority(): string {
+    return this.subtask?.priority || "";
+  }
+
+  override get itemComments(): Comment[] {
     if (!this.subtask?.comments) return [];
     return this.subtask.comments.filter((c) => !c.deleted_at);
+  }
+
+  override get itemSubtasks(): any[] {
+    return [];
+  }
+
+  override get subtaskCount(): number {
+    return 0;
+  }
+
+  override get itemDeleteEvent(): EventEmitter<string> {
+    return new EventEmitter<string>();
+  }
+
+  override get addCommentEvent(): EventEmitter<{
+    content: string;
+    task_id?: string;
+    subtask_id?: string;
+  }> {
+    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
   }
 
   toggleCompletion() {
@@ -68,40 +97,9 @@ export class SubtaskRowComponent {
     }
   }
 
-  toggleComments() {
-    this.showComments.update((v) => !v);
-    this.cdr.markForCheck();
-  }
-
-  onSelectionChange(checked: boolean): void {
-    if (this.subtask) {
-      this.selectionChangeEvent.emit({ id: this.subtask.id, selected: checked });
-    }
-  }
-
-  onAddComment(content: string) {
+  override onAddComment(content: string): void {
     if (this.subtask) {
       this.addCommentEvent.emit({ content, subtask_id: this.subtask.id });
-    }
-  }
-
-  onDeleteComment(commentId: string) {
-    this.deleteCommentEvent.emit(commentId);
-  }
-
-  onMarkAsRead(commentIds: string[]) {
-    this.markAsReadEvent.emit(commentIds);
-  }
-
-  deleteSubtask() {
-    if (this.subtask) {
-      this.deleteSubtaskEvent.emit(this.subtask.id);
-    }
-  }
-
-  onActionClick(action: string) {
-    if (this.subtask) {
-      this.actionClickEvent.emit({ action, item: this.subtask });
     }
   }
 }

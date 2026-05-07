@@ -62,9 +62,10 @@
           [cdkDragDisabled]="!dragEnabled"
           cdkDragLockAxis="y"
           class="cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800"
-          [class.bg-blue-50]="isSelected(item.id)"
-          [class.dark:bg-blue-900/20]="isSelected(item.id)"
+          [class.bg-blue-50]="isItemSelected(item.id)"
+          [class.dark:bg-blue-900/20]="isItemSelected(item.id)"
           (click)="onRowClick(item)"
+          (mouseenter)="setCurrentItem(item)"
         >
           @if (dragEnabled) {
             <td class="px-2 py-3 text-center">
@@ -86,8 +87,8 @@
           @if (showSelection) {
             <td class="px-4 py-3 whitespace-nowrap" (click)="$event.stopPropagation()">
               <app-checkbox
-                [checked]="isSelected(item.id)"
-                (checkedChange)="onSelectionChange(item.id, $event)"
+                [checked]="isItemSelected(item.id)"
+                (checkedChange)="onSelectionChangeById(item.id, $event)"
               />
             </td>
           }
@@ -227,11 +228,11 @@
                     mat-icon-button
                     class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                     [class]="
-                      isCommentExpanded(item.id)
+                      isCommentExpandedById(item.id)
                         ? 'bg-purple-100! text-purple-600! hover:bg-purple-50! dark:bg-purple-900/30! dark:text-purple-400! dark:hover:bg-purple-900/50!'
                         : 'text-purple-600! hover:bg-purple-50! dark:text-purple-400! dark:hover:bg-purple-900/30!'
                     "
-                    (click)="toggleComments(item.id)"
+                    (click)="toggleCommentsById(item.id)"
                     title="Toggle comments"
                   >
                     <mat-icon class="text-2xl!">forum</mat-icon>
@@ -250,7 +251,7 @@
                       mat-icon-button
                       class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                       [class]="getActionColor(action)"
-                      (click)="onActionClick(action.key, item)"
+                      (click)="onActionClickHandler(action.key, item)"
                       [title]="action.label"
                     >
                       <mat-icon class="text-2xl!" [fontIcon]="action.icon" />
@@ -296,7 +297,9 @@
           </tr>
         }
         @if (
-          showCommentToggle && isCommentExpanded(item.id) && (!expandable || !isExpanded(item.id))
+          showCommentToggle &&
+          isCommentExpandedById(item.id) &&
+          (!expandable || !isExpanded(item.id))
         ) {
           <tr class="expand-row">
             <td

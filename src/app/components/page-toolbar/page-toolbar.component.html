@@ -41,11 +41,11 @@
   @if (config?.filter) {
     <button
       class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-      (click)="config!.filter!.onToggle()"
+      (click)="onToggleFilter()"
     >
       <mat-icon
         class="h-5! w-5! min-w-5 text-xl!"
-        [fontIcon]="config!.filter!.isActive ? 'filter_list_off' : 'filter_list'"
+        [fontIcon]="showFilter() ? 'filter_list_off' : 'filter_list'"
       />
       <span class="hidden text-sm font-medium lg:inline">Filter</span>
     </button>
@@ -115,7 +115,7 @@
     </button>
   }
 
-  @if (config?.sortMenu) {
+  @if (config?.sortMenu && config?.viewMode?.mode !== "table") {
     <button
       class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="sortMenuDropdown"
@@ -146,7 +146,7 @@
     </mat-menu>
   }
 
-  @if (config?.sortOrder) {
+  @if (config?.sortOrder && config?.viewMode?.mode !== "table") {
     <button
       class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.sortOrder!.onToggle()"
@@ -191,14 +191,15 @@
   }
 </div>
 
-@if (showFilter && filterFields.length > 0) {
-  <app-filter-bar
-    [fields]="filterFields"
-    [activeFilter]="activeFilter"
-    [showFilter]="showFilter"
-    [searchQuery]="searchQuery"
-    (filterToggle)="onToggleFilter()"
-    (filtersChange)="onFiltersChange($event)"
-    (searchChange)="onSearchChange($event)"
+@if (showFilter() && filterFields.length > 0) {
+  <app-filter-sidebar
+    [isOpen]="showFilter()"
+    title="Filters"
+    [filters]="getFilterConfigs()"
+    [filterValues]="getFilterValues()"
+    [getOptionsFn]="getDynamicOptionsFn"
+    (closeEvent)="onToggleFilter()"
+    (clearEvent)="onClearFilters()"
+    (filterChangeEvent)="onFiltersChange($event)"
   />
 }

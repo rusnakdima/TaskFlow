@@ -1,6 +1,7 @@
 import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
+import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
 
 @Component({
   selector: "app-item-expand-details",
@@ -10,6 +11,18 @@ import { MatIconModule } from "@angular/material/icon";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemExpandDetailsComponent {
-  @Input() item: any;
-  @Input() type: "todo" | "task" | "subtask" = "todo";
+  @Input() item: any = null;
+  @Input() type: ItemType = "todo";
+
+  get completedCount(): number {
+    if (this.type === "todo") return this.item?.completed_tasks_count || 0;
+    if (this.type === "task") return this.item?.completed_subtasks_count || 0;
+    return 0;
+  }
+
+  get totalCount(): number {
+    if (this.type === "todo") return this.item?.tasks_count || 0;
+    if (this.type === "task") return this.item?.subtasks_count || 0;
+    return 0;
+  }
 }

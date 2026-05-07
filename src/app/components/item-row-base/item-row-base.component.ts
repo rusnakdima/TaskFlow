@@ -19,8 +19,17 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-import { Comment, Todo } from "@models";
+import { Comment } from "@models/comment.model";
+import { Todo } from "@models/todo.model";
 
+export type ItemType = "todo" | "task" | "subtask";
+
+@Component({
+  selector: "app-item-row-base",
+  standalone: true,
+  imports: [CommonModule],
+  template: "",
+})
 export abstract class ItemRowBaseComponent {
   protected cdr = inject(ChangeDetectorRef);
 
@@ -41,14 +50,13 @@ export abstract class ItemRowBaseComponent {
   getSubtaskPriorityColor = BaseItemHelper.getPriorityColor;
 
   abstract get item(): Task | Subtask | null;
-  abstract get type(): "task" | "subtask";
+  abstract get type(): ItemType;
   abstract get itemComments(): Comment[];
   abstract get itemId(): string;
   abstract get itemTitle(): string;
   abstract get itemDescription(): string | null;
   abstract get itemStatus(): string;
   abstract get itemPriority(): string;
-  abstract get isSubtask(): boolean;
   abstract get itemSubtasks(): Subtask[];
   abstract get subtaskCount(): number;
   abstract get commentsTitle(): string;
@@ -57,6 +65,10 @@ export abstract class ItemRowBaseComponent {
   abstract get addCommentEvent(): EventEmitter<
     { content: string; task_id: string } | { content: string; subtask_id: string }
   >;
+
+  get isSubtask(): boolean {
+    return this.type === "subtask";
+  }
 
   toggleComments() {
     this.showComments.update((v) => !v);
