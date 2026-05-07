@@ -63,7 +63,6 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
-import { FilterControlComponent } from "@components/filter-control/filter-control.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -88,7 +87,6 @@ import { FilterControlComponent } from "@components/filter-control/filter-contro
     FilterSidebarComponent,
     SegmentSelectorComponent,
     PageToolbarComponent,
-    FilterControlComponent,
   ],
   templateUrl: "./data-management.view.html",
 })
@@ -832,5 +830,33 @@ export class DataManagementView implements OnInit {
       default:
         return [];
     }
+  }
+
+  getFilterValuesObject(): Record<string, string> {
+    return {
+      deletedFilter: this.deletedFilter(),
+      titleFilter: this.titleFilter(),
+      descriptionFilter: this.descriptionFilter(),
+      priorityFilter: this.priorityFilter(),
+      statusFilter: this.statusFilter(),
+      isCompletedFilter: this.isCompletedFilter(),
+      userFilter: this.userFilter(),
+      categoriesFilter: this.categoriesFilter(),
+      todoIdFilter: this.todoIdFilter(),
+      taskIdFilter: this.taskIdFilter(),
+      subtaskIdFilter: this.subtaskIdFilter(),
+      visibilityFilter: this.visibilityFilter(),
+      startDateFilter: this.startDateFilter(),
+      endDateFilter: this.endDateFilter(),
+    };
+  }
+
+  getDynamicOptionsFn = (key: string, filter: any): any[] => {
+    return this.getFilterOptions(key);
+  };
+
+  onDynamicFilterChange(event: { key: string; value: string }): void {
+    const signal = this.getFilterSignal(event.key);
+    signal.set(event.value);
   }
 }

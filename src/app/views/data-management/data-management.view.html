@@ -264,39 +264,33 @@
   <app-filter-sidebar
     [isOpen]="showFilters()"
     title="Filters"
+    [filters]="getFiltersForCurrentType()"
+    [filterValues]="getFilterValuesObject()"
+    [getOptionsFn]="getDynamicOptionsFn"
     (closeEvent)="closeFilters()"
     (clearEvent)="clearFilters()"
-    (applyEvent)="closeFilters()"
+    (filterChangeEvent)="onDynamicFilterChange($event)"
   >
-    <div filter-header class="flex w-full items-center justify-between">
-      <h3 class="textNormal flex items-center gap-2 text-lg font-semibold">
-        <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
-          >filter_list</mat-icon
+    <div filter-header class="filter-sidebar-header">
+      <div class="flex w-full items-center justify-between">
+        <div class="flex items-center gap-2">
+          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+            >filter_list</mat-icon
+          >
+          <h3 class="textNormal text-lg font-semibold">Filters</h3>
+        </div>
+        <button
+          mat-icon-button
+          (click)="closeFilters()"
+          class="textMuted hover:textNormal"
+          aria-label="Close filters"
         >
-        Filters
-      </h3>
-      <button
-        mat-icon-button
-        (click)="closeFilters()"
-        class="textMuted hover:textNormal"
-        aria-label="Close filters"
-      >
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
-      </button>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
+        </button>
+      </div>
     </div>
 
-    <div class="flex flex-col gap-y-3">
-      @for (filter of getFiltersForCurrentType(); track filter.key) {
-        <app-filter-control
-          [config]="filter"
-          [options]="getFilterOptions(filter.key)"
-          [value]="getFilterSignal(filter.key)"
-          (valueChange)="getFilterSignal(filter.key).set($event)"
-        />
-      }
-    </div>
-
-    <div filter-actions class="filter-sidebar-actions mt-4 flex flex-col gap-3">
+    <div filter-actions class="filter-sidebar-actions mt-4">
       <button
         type="button"
         (click)="closeFilters()"
@@ -307,7 +301,7 @@
       <button
         type="button"
         (click)="clearFilters()"
-        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
+        class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
       >
         <mat-icon class="h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
         Clear All Filters
