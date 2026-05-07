@@ -65,7 +65,6 @@
           [class.bg-blue-50]="isItemSelected(item.id)"
           [class.dark:bg-blue-900/20]="isItemSelected(item.id)"
           (click)="onRowClick(item)"
-          (mouseenter)="setCurrentItem(item)"
         >
           @if (dragEnabled) {
             <td class="px-2 py-3 text-center">
