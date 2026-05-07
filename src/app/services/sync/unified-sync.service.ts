@@ -64,7 +64,7 @@ export class UnifiedSyncService implements OnDestroy {
     private notifyService: NotifyService,
     private syncProgressService: SyncProgressService
   ) {
-    this.loadQueueFromSession();
+    this.loadQueueFromStorage();
     this.initNetworkListeners();
     this.initDbChangeSubjects();
   }
@@ -97,7 +97,11 @@ export class UnifiedSyncService implements OnDestroy {
     const onlineHandler = () => {
       this.onlineStatusSubject.next(true);
       this.processOfflineQueue();
-      this.startPeriodicSync();
+      const token = TokenStorageHelper.getToken();
+      const userId = token ? this.jwtTokenService.getUserId(token) : null;
+      if (userId) {
+        this.startPeriodicSync(userId);
+      }
     };
 
     const offlineHandler = () => {
@@ -172,7 +176,7 @@ export class UnifiedSyncService implements OnDestroy {
     };
 
     this.offlineQueue.push(queuedOp);
-    this.saveQueueToSession();
+    this.saveQueueToStorage();
 
     return tempId;
   }
@@ -196,7 +200,7 @@ export class UnifiedSyncService implements OnDestroy {
       }
     }
 
-    this.saveQueueToSession();
+    this.saveQueueToStorage();
   }
 
   private async processOperation(op: QueuedOperation): Promise<void> {
@@ -207,22 +211,22 @@ export class UnifiedSyncService implements OnDestroy {
     });
   }
 
-  private saveQueueToSession(): void {
+  private saveQueueToStorage(): void {
     try {
-      sessionStorage.setItem(this.QUEUE_STORAGE_KEY, JSON.stringify(this.offlineQueue));
+      localStorage.setItem(this.QUEUE_STORAGE_KEY, JSON.stringify(this.offlineQueue));
     } catch (error) {
-      console.error("Failed to save offline queue to sessionStorage:", error);
+      console.error("Failed to save offline queue:", error);
     }
   }
 
-  private loadQueueFromSession(): void {
+  private loadQueueFromStorage(): void {
     try {
-      const stored = sessionStorage.getItem(this.QUEUE_STORAGE_KEY);
+      const stored = localStorage.getItem(this.QUEUE_STORAGE_KEY);
       if (stored) {
         this.offlineQueue = JSON.parse(stored);
       }
     } catch (error) {
-      console.error("Failed to load offline queue from sessionStorage:", error);
+      console.error("Failed to load offline queue:", error);
       this.offlineQueue = [];
     }
   }
@@ -233,7 +237,7 @@ export class UnifiedSyncService implements OnDestroy {
 
   clearQueue(): void {
     this.offlineQueue = [];
-    this.saveQueueToSession();
+    this.saveQueueToStorage();
   }
 
   startPeriodicSync(userId?: string): void {
