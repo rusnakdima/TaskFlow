@@ -27,6 +27,7 @@ pub struct SubtaskEntity {
   pub order: i32,
   pub start_date: Option<String>,
   pub end_date: Option<String>,
+  pub comments_count: i32,
   #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
@@ -63,6 +64,7 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       status: crate::entities::task_entity::TaskStatus::Pending,
       priority: value.priority,
       order: value.order,
+      comments_count: 0,
       deleted_at: None,
       created_at: Some(now),
       updated_at: Some(now),
