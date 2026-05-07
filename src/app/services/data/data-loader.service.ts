@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { Router } from "@angular/router";
-import { Observable, switchMap, of, catchError } from "rxjs";
+import { Observable, forkJoin, switchMap, of, catchError } from "rxjs";
 import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
@@ -101,13 +101,61 @@ export class DataLoaderService {
     this.todosPagination.set({ skip, limit, hasMore: true });
 
     const userId = this.jwtTokenService.getCurrentUserId() || "";
-    let filter: any;
 
     if (visibility === "all") {
-      filter = {
-        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
-      };
-    } else if (visibility === "private") {
+      const isFirstPage = page === 0;
+      const privateFilter = { user_id: userId };
+      const sharedFilter = { visibility: "shared", assignees: { $in: [userId] } };
+      const publicFilter = { visibility: "public" };
+
+      return forkJoin([
+        this.requestService.getTodos({
+          filter: privateFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "private",
+        }),
+        this.requestService.getTodos({
+          filter: sharedFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "shared",
+        }),
+        this.requestService.getTodos({
+          filter: publicFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "public",
+        }),
+      ]).pipe(
+        switchMap(([privateTodos, sharedTodos, publicTodos]) => {
+          this.storageService.setCollection("privateTodos", privateTodos || [], {
+            append: !isFirstPage,
+            resetPagination: isFirstPage,
+          });
+          this.storageService.setCollection("sharedTodos", sharedTodos || [], {
+            append: !isFirstPage,
+            resetPagination: isFirstPage,
+          });
+          this.storageService.setCollection("publicTodos", publicTodos || [], {
+            append: !isFirstPage,
+            resetPagination: isFirstPage,
+          });
+          this.todosLoading.set(false);
+          return of([...(privateTodos || []), ...(sharedTodos || []), ...(publicTodos || [])]);
+        }),
+        catchError(() => {
+          this.todosLoading.set(false);
+          return of([]);
+        })
+      );
+    }
+
+    let filter: any;
+    if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
       filter = {
@@ -149,13 +197,51 @@ export class DataLoaderService {
     this.todosLoading.set(true);
 
     const userId = this.jwtTokenService.getCurrentUserId() || "";
-    let filter: any;
 
     if (visibility === "all") {
-      filter = {
-        $or: [{ user_id: userId }, { assignees: { $in: [userId] } }, { visibility: "public" }],
-      };
-    } else if (visibility === "private") {
+      const privateFilter = { user_id: userId };
+      const sharedFilter = { visibility: "shared", assignees: { $in: [userId] } };
+      const publicFilter = { visibility: "public" };
+
+      return forkJoin([
+        this.requestService.getTodos({
+          filter: privateFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "private",
+        }),
+        this.requestService.getTodos({
+          filter: sharedFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "shared",
+        }),
+        this.requestService.getTodos({
+          filter: publicFilter,
+          skip,
+          limit,
+          load: ["categories"],
+          visibility: "public",
+        }),
+      ]).pipe(
+        switchMap(([privateTodos, sharedTodos, publicTodos]) => {
+          this.storageService.setCollection("privateTodos", privateTodos || [], { append: true });
+          this.storageService.setCollection("sharedTodos", sharedTodos || [], { append: true });
+          this.storageService.setCollection("publicTodos", publicTodos || [], { append: true });
+          this.todosLoading.set(false);
+          return of([...(privateTodos || []), ...(sharedTodos || []), ...(publicTodos || [])]);
+        }),
+        catchError(() => {
+          this.todosLoading.set(false);
+          return of([]);
+        })
+      );
+    }
+
+    let filter: any;
+    if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
       filter = { assignees: { $in: [userId] } };
