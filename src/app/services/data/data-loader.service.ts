@@ -1,3 +1,22 @@
+import { Injectable, inject, signal, computed } from "@angular/core";
+import { Router } from "@angular/router";
+import { Observable, switchMap, of, catchError } from "rxjs";
+import { Profile } from "@models/profile.model";
+import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Category } from "@models/category.model";
+import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { RelationLoadingService } from "@services/core/relation-loading.service";
+import { UserValidationService } from "@services/auth/user-validation.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { DataService } from "@services/data/data.service";
+import { RequestService } from "@services/core/request.service";
+
 interface PaginationState {
   skip: number;
   limit: number;
@@ -39,6 +58,12 @@ export class DataLoaderService {
   private currentTasksTodoId = signal<string | null>(null);
   private currentSubtasksTaskId = signal<string | null>(null);
   private currentChatsTodoId = signal<string | null>(null);
+
+  private todosPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
+  private tasksPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
+  private subtasksPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
+  private commentsPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
+  private chatsPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
 
   loadProfile(): Observable<Profile | null> {
     return this.dataService.getProfile().pipe(
@@ -161,6 +186,24 @@ export class DataLoaderService {
 
   loadMoreTodos(visibility: string): Observable<Todo[]> {
     return this.loadMoreTodosPage(visibility);
+  }
+
+  loadInitialTasks(
+    todoId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): Observable<Task[]> {
+    this.currentTasksTodoId.set(todoId);
+    this.storageService.resetPagination("tasks");
+    return this.loadTasksPage(todoId, visibility, 0, limit);
+  }
+
+  loadInitialTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
+    return this.dataService.getTasksByVisibility(visibility, limit);
+  }
+
+  loadMoreTasks(todoId: string, visibility: string = "private"): Observable<Task[]> {
+    return this.loadMoreTasksPage(todoId, visibility);
   }
 
   loadTasksPage(

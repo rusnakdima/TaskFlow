@@ -58,8 +58,18 @@ export class DataService {
     return this.requestService.deleteTodo(id, visibility);
   }
 
-  getTasks(todoId?: string, filter?: any): Observable<Task[]> {
-    return this.requestService.getTasks(todoId, filter);
+  getTasks(
+    todoId?: string,
+    filter?: any,
+    skip?: number,
+    limit?: number,
+    visibility?: string
+  ): Observable<Task[]> {
+    return this.requestService.getTasks(todoId, filter, skip, limit, visibility);
+  }
+
+  getTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
+    return this.requestService.getTasks(undefined, { visibility }, 0, limit, visibility);
   }
 
   getTask(id: string): Observable<Task> {
