@@ -21,4 +21,4 @@ pub struct PendingRequestEntity {
   pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl PendingRequestEntity {
+impl PendingRequestEntity {}

@@ -50,6 +50,3 @@ pub mod crypto_service;
 
 #[path = "github_service.rs"]
 pub mod github_service;
-
-pub mod repository;
-pub mod repository_service;
