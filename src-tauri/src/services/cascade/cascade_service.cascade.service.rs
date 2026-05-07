@@ -13,6 +13,7 @@ use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
 
 use crate::helpers::response_helper::err_response_formatted;
+use crate::services::activity_monitor_service::ActivityMonitorService;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct CascadeResult {
@@ -54,6 +55,7 @@ impl CascadeResult {
 pub struct CascadeService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
+  pub activity_monitor: Option<ActivityMonitorService>,
 }
 
 impl Clone for CascadeService {
@@ -61,15 +63,21 @@ impl Clone for CascadeService {
     CascadeService {
       json_provider: self.json_provider.clone(),
       mongodb_provider: self.mongodb_provider.clone(),
+      activity_monitor: self.activity_monitor.clone(),
     }
   }
 }
 
 impl CascadeService {
-  pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
+  pub fn new(
+    json_provider: JsonProvider,
+    mongodb_provider: Option<Arc<MongoProvider>>,
+    activity_monitor: Option<ActivityMonitorService>,
+  ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
+      activity_monitor,
     }
   }
 
@@ -161,6 +169,17 @@ impl CascadeService {
           "Unknown table for cascade soft delete",
           table,
         ));
+      }
+    }
+
+    if let Some(ref activity_monitor) = self.activity_monitor {
+      let empty_value = serde_json::json!({});
+      for deleted_id in &deleted {
+        if let Some((entity_table, _)) = deleted_id.split_once('_') {
+          let _ = activity_monitor
+            .log_action(entity_table, "delete", &empty_value, None)
+            .await;
+        }
       }
     }
 
@@ -331,6 +350,17 @@ impl CascadeService {
           "Unknown table for cascade delete",
           table,
         ));
+      }
+    }
+
+    if let Some(ref activity_monitor) = self.activity_monitor {
+      let empty_value = serde_json::json!({});
+      for deleted_id in &deleted {
+        if let Some((entity_table, _)) = deleted_id.split_once('_') {
+          let _ = activity_monitor
+            .log_action(entity_table, "delete", &empty_value, None)
+            .await;
+        }
       }
     }
 

@@ -46,14 +46,28 @@ impl TaskAnalytics {
     tasks: &[Value],
     previous_tasks: &[Value],
   ) -> StatisticsModel {
-    let total_tasks = daily_activities
+    let total_tasks: i32 = daily_activities
       .iter()
-      .filter_map(|activity| activity.get("total_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| {
+        let created = activity
+          .get("tasks_created")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let updated = activity
+          .get("tasks_updated")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let completed = activity
+          .get("tasks_completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        Some(created + updated + completed)
+      })
       .sum::<i64>() as i32;
 
     let completed_tasks = daily_activities
       .iter()
-      .filter_map(|activity| activity.get("completed_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let completion_rate = if total_tasks > 0 {
@@ -67,21 +81,73 @@ impl TaskAnalytics {
     let productivity_score = if !daily_activities.is_empty() {
       let total_score: i32 = daily_activities
         .iter()
-        .filter_map(|activity| activity.get("productivity_score").and_then(|v| v.as_i64()))
-        .sum::<i64>() as i32;
+        .filter_map(|activity| {
+          let creates = activity
+            .get("todos_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let updates = activity
+            .get("todos_updated")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let deletes = activity
+            .get("todos_deleted")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_creates = activity
+            .get("tasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_completes = activity
+            .get("tasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_creates = activity
+            .get("subtasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_completes = activity
+            .get("subtasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          Some(
+            (creates
+              + updates
+              + deletes
+              + task_creates
+              + task_completes
+              + subtask_creates
+              + subtask_completes) as i32,
+          )
+        })
+        .sum::<i32>();
       total_score / daily_activities.len() as i32
     } else {
       0
     };
 
-    let previous_total_tasks = previous_daily_activities
+    let previous_total_tasks: i32 = previous_daily_activities
       .iter()
-      .filter_map(|activity| activity.get("total_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| {
+        let created = activity
+          .get("tasks_created")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let updated = activity
+          .get("tasks_updated")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let completed = activity
+          .get("tasks_completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        Some(created + updated + completed)
+      })
       .sum::<i64>() as i32;
 
     let previous_completed_tasks = previous_daily_activities
       .iter()
-      .filter_map(|activity| activity.get("completed_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let previous_completion_rate = if previous_total_tasks > 0 {
@@ -95,8 +161,46 @@ impl TaskAnalytics {
     let previous_productivity_score = if !previous_daily_activities.is_empty() {
       let total_score: i32 = previous_daily_activities
         .iter()
-        .filter_map(|activity| activity.get("productivity_score").and_then(|v| v.as_i64()))
-        .sum::<i64>() as i32;
+        .filter_map(|activity| {
+          let creates = activity
+            .get("todos_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let updates = activity
+            .get("todos_updated")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let deletes = activity
+            .get("todos_deleted")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_creates = activity
+            .get("tasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_completes = activity
+            .get("tasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_creates = activity
+            .get("subtasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_completes = activity
+            .get("subtasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          Some(
+            (creates
+              + updates
+              + deletes
+              + task_creates
+              + task_completes
+              + subtask_creates
+              + subtask_completes) as i32,
+          )
+        })
+        .sum::<i32>();
       total_score / previous_daily_activities.len() as i32
     } else {
       0
@@ -120,7 +224,7 @@ impl TaskAnalytics {
   ) -> Vec<DetailedMetricModel> {
     let current_tasks_created = daily_activities
       .iter()
-      .filter_map(|activity| activity.get("total_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let current_tasks_completed = daily_activities
@@ -141,7 +245,7 @@ impl TaskAnalytics {
 
     let previous_tasks_created = previous_daily_activities
       .iter()
-      .filter_map(|activity| activity.get("total_tasks").and_then(|v| v.as_i64()))
+      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let previous_tasks_completed = previous_daily_activities
