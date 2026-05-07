@@ -21,6 +21,7 @@ import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ApiProvider } from "@providers/api.provider";
 import { DataLoaderService } from "@services/data/data-loader.service";
 import { AdminService } from "@services/data/admin.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -62,6 +63,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   private dataLoaderService = inject(DataLoaderService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -155,11 +157,14 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   async archiveCategory(categoryId: string) {
-    if (
-      confirm(
-        "Are you sure you want to archive this category? This will remove it from all associated todos."
-      )
-    ) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Category",
+      message:
+        "Are you sure you want to archive this category? This will remove it from all associated todos.",
+      confirmText: "Archive",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (confirmed) {
       try {
         const response = await this.adminService.toggleDeleteStatusLocal("categories", categoryId);
         if (response.status === ResponseStatus.SUCCESS) {
@@ -195,11 +200,17 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
   }
 
-  bulkArchive(): void {
+  async bulkArchive(): Promise<void> {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
 
-    if (confirm(`Are you sure you want to archive ${selected.size} categorie(s)?`)) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Categories",
+      message: `Are you sure you want to archive ${selected.size} categorie(s)?`,
+      confirmText: "Archive All",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (confirmed) {
       const archiveRequests = Array.from(selected).map((categoryId) =>
         firstValueFrom(this.dataService.getCategories())
       );

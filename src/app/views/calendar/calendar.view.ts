@@ -88,14 +88,9 @@ export class CalendarView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
-
-    if (this.storageService.tasks().length === 0) {
-      this.dataLoaderService.loadInitialTasks("all", 100).subscribe({
-        complete: () => this.loadTasksForCurrentMonth(),
-      });
-    } else {
-      this.loadTasksForCurrentMonth();
-    }
+    this.dataLoaderService.loadInitialTasksByVisibility("all", 100).subscribe({
+      complete: () => this.loadTasksForCurrentMonth(),
+    });
   }
 
   private loadTasksForCurrentMonth(): void {
