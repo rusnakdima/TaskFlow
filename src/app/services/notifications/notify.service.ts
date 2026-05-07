@@ -1,6 +1,6 @@
 /* sys lib */
-import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
-import { interval, Subject, filter, take } from "rxjs";
+import { Injectable, inject, signal, computed, OnDestroy, DestroyRef } from "@angular/core";
+import { interval, Subject, filter, take, takeUntil } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 
 /* services */
@@ -49,6 +49,8 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 })
 export class NotifyService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
+  private destroyRef = inject(DestroyRef);
+  private destroy$ = new Subject<void>();
 
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
@@ -83,9 +85,10 @@ export class NotifyService implements OnDestroy {
   }
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.destroy$.next());
     this.loadSettings();
     this.cleanupSubscription = interval(5000)
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.cleanupOldEvents());
   }
 
@@ -696,6 +699,8 @@ export class NotifyService implements OnDestroy {
   // ==================== CLEANUP ====================
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.cleanupSubscription) {
       this.cleanupSubscription.unsubscribe();
       this.cleanupSubscription = null;
