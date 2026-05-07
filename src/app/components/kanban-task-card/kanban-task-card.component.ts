@@ -15,7 +15,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
-import { PRIORITY_COLORS } from "@constants/table-field.constants";
+import { PRIORITY_COLORS, STATUS_COLORS } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-kanban-task-card",
@@ -59,6 +59,10 @@ export class KanbanTaskCardComponent {
 
   getCompletedSubtasksCount(): number {
     return BaseItemHelper.countCompleted(this.subtasks);
+  }
+
+  getStatusColorClass(status: string): string {
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS[TaskStatus.PENDING];
   }
 
   formatDate = DateHelper.formatDateShort;
