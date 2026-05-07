@@ -16,6 +16,7 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
+import { DataLoaderService } from "@services/data/data-loader.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
@@ -49,6 +50,7 @@ export class CalendarView extends BaseListView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private dataService = inject(DataService);
+  private dataLoaderService = inject(DataLoaderService);
   private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
@@ -87,7 +89,13 @@ export class CalendarView extends BaseListView implements OnInit {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
 
-    this.loadTasksForCurrentMonth();
+    if (this.storageService.tasks().length === 0) {
+      this.dataLoaderService.loadInitialTasks("all", 100).subscribe({
+        complete: () => this.loadTasksForCurrentMonth(),
+      });
+    } else {
+      this.loadTasksForCurrentMonth();
+    }
   }
 
   private loadTasksForCurrentMonth(): void {
@@ -107,6 +115,18 @@ export class CalendarView extends BaseListView implements OnInit {
         return newSet;
       });
       this.tasksLoading.set(false);
+      return;
+    }
+
+    const cachedTasks = this.storageService.tasks();
+    if (cachedTasks.length > 0) {
+      const events = this.buildEventsFromTasks(cachedTasks);
+      this.allEvents.set(events);
+      this.loadedMonths.update((set) => {
+        const newSet = new Set(set);
+        newSet.add(monthKey);
+        return newSet;
+      });
       return;
     }
 
@@ -213,10 +233,9 @@ export class CalendarView extends BaseListView implements OnInit {
       this.currentMonth.set(newMonth);
       this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
-      this.selectedDate.update((date) => {
-        date.setDate(date.getDate() - 7);
-        return date;
-      });
+      const current = this.selectedDate();
+      const newDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() - 7);
+      this.selectedDate.set(newDate);
     }
   }
 
@@ -230,10 +249,9 @@ export class CalendarView extends BaseListView implements OnInit {
       this.currentMonth.set(newMonth);
       this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
-      this.selectedDate.update((date) => {
-        date.setDate(date.getDate() + 7);
-        return date;
-      });
+      const current = this.selectedDate();
+      const newDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 7);
+      this.selectedDate.set(newDate);
     }
   }
 
