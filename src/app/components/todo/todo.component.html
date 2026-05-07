@@ -214,7 +214,7 @@
 
         <div class="flex flex-row gap-1">
           <button
-            class="cursor-move rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-gray-700"
+            [class]="getActionColor('dragHandle')"
             cdkDragHandle
             title="Drag to reorder"
             (click)="$event.stopPropagation()"
@@ -236,7 +236,8 @@
               >
                 @if (isOwner) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('edit')"
                     [routerLink]="['/todos', todo.id, 'edit_todo']"
                     [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
                     (click)="closeMenu()"
@@ -247,7 +248,8 @@
                 }
                 @if (isOwner && !todo.deleted_at) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('archive')"
                     (click)="$event.stopPropagation(); archiveTodo(); closeMenu()"
                   >
                     <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="archive" />
@@ -256,7 +258,8 @@
                 }
                 @if (isOwner && todo.deleted_at) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('restore')"
                     (click)="$event.stopPropagation(); restoreTodo(); closeMenu()"
                   >
                     <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="restore" />
@@ -265,7 +268,8 @@
                 }
                 @if (isPrivate) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('blueprint')"
                     (click)="onSaveAsBlueprint($event); closeMenu()"
                   >
                     <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="history_edu" />
@@ -274,7 +278,8 @@
                 }
                 @if (isOwner) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('delete')"
                     (click)="$event.stopPropagation(); deleteTodo(); closeMenu()"
                   >
                     <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="delete" />

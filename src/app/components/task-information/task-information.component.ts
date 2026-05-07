@@ -31,6 +31,9 @@ import {
 } from "@components/item-info-base/item-info-base.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
+/* constants */
+import { ActionColors } from "@constants/table-field.constants";
+
 @Component({
   selector: "app-task-information",
   standalone: true,
@@ -127,5 +130,10 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
           this.notifyService.showError(err.message || "Failed to delete task");
         },
       });
+  }
+
+  getActionColor(action: string): string {
+    const colorKey = action as keyof typeof ActionColors;
+    return ActionColors[colorKey] || ActionColors.default;
   }
 }

@@ -223,22 +223,14 @@
         </div>
 
         <div class="flex flex-row gap-2" (click)="$event.stopPropagation()">
-          <button
-            class="cursor-move rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
-            cdkDragHandle
-            title="Drag to reorder"
-          >
+          <button [class]="getActionColor('dragHandle')" cdkDragHandle title="Drag to reorder">
             <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
           </button>
 
           @if (showExpandButton) {
             <button
-              class="rounded-lg p-2 transition-colors"
-              [ngClass]="
-                isExpanded
-                  ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30'
-              "
+              [class]="getActionColor('expand')"
+              [ngClass]="isExpanded ? 'bg-purple-100 dark:bg-purple-900/30' : ''"
               (click)="toggleExpand()"
               [title]="isExpanded ? 'Collapse subtasks' : 'Expand subtasks'"
             >
@@ -250,12 +242,8 @@
           }
 
           <button
-            class="rounded-lg p-2 transition-colors"
-            [ngClass]="
-              showComments()
-                ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                : 'text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30'
-            "
+            [class]="getActionColor('comments')"
+            [ngClass]="showComments() ? 'bg-purple-100 dark:bg-purple-900/30' : ''"
             (click)="toggleComments(); $event.stopPropagation()"
             [title]="showComments() ? 'Hide comments' : 'Show comments'"
           >
@@ -274,7 +262,7 @@
 
           @if (todo()?.github_repo_name && isOwner) {
             <button
-              class="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/30"
+              [class]="getActionColor('github_issue')"
               [disabled]="creatingGithubIssue()"
               (click)="createOrUpdateGithubIssue(); $event.stopPropagation()"
               [title]="hasGithubIssue() ? 'Update GitHub issue' : 'Create GitHub issue'"
@@ -306,7 +294,8 @@
               >
                 @if (isOwner) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('edit')"
                     [routerLink]="task.id + '/edit_task'"
                     [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
                     (click)="closeMenu()"
@@ -317,7 +306,8 @@
                 }
                 @if (isOwner) {
                   <button
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    [class]="getActionColor('delete')"
                     (click)="$event.stopPropagation(); deleteTask(); closeMenu()"
                   >
                     <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="delete" />
