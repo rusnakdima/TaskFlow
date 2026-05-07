@@ -50,34 +50,21 @@ export class DashboardView implements OnInit {
   userId = "";
 
   private allTasksData = computed<DisplayTask[]>(() => {
-    const userId = this.userId;
-    const currentTodos = this.storageService.todos();
     const currentTasks = this.storageService.tasks();
 
-    const taskData: { task: Task; todo: any }[] = [];
-    currentTodos.forEach((todo) => {
-      if (!todo.deleted_at) {
-        const tasksForTodo = currentTasks.filter((t) => t.todo_id === todo.id);
-        tasksForTodo.forEach((task) => {
-          if (!task.deleted_at) {
-            taskData.push({ task, todo });
-          }
-        });
-      }
-    });
-
-    return taskData
-      .map((item) => ({
-        id: item.task.id,
-        title: item.task.title,
-        description: item.task.description,
-        status: item.task.status,
-        dueDate: item.task.end_date,
-        created_at: item.task.created_at,
-        updated_at: item.task.updated_at,
-        todo_id: item.todo.id,
-        isPrivate: item.todo.visibility === "private",
-        isOwner: item.todo.user_id === userId,
+    return currentTasks
+      .filter((t) => !t.deleted_at)
+      .map((task) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        dueDate: task.end_date,
+        created_at: task.created_at,
+        updated_at: task.updated_at,
+        todo_id: task.todo_id,
+        isPrivate: false,
+        isOwner: false,
       }))
       .sort((a, b) => {
         const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
@@ -135,7 +122,7 @@ export class DashboardView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTodos("all", 10).subscribe();
+    this.dataLoaderService.loadInitialTasks("all", 10).subscribe();
   }
 
   getCircleColor(status: TaskStatus): string {

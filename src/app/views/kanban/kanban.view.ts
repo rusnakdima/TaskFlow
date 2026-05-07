@@ -208,6 +208,7 @@ export class KanbanView extends BaseListView implements OnInit {
     this.routeSub = this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
+        this.loadTasksForTodo(params["projectId"]);
       }
     });
 
