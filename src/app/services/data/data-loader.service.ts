@@ -103,18 +103,11 @@ export class DataLoaderService {
     let requiresMongo = false;
 
     if (visibility === "all") {
-      if (!this.mongoConnectionService.isConnected()) {
-        console.log(
-          `[DataLoader] loadTodosPage visibility=all but OFFLINE, loading from all sources (private only)`
-        );
-        return this.loadTodosAllSources(page, limit);
-      }
       return this.loadTodosAllSources(page, limit);
     } else if (visibility === "private") {
       filter = { user_id: userId };
     } else if (visibility === "shared") {
       if (!this.mongoConnectionService.isConnected()) {
-        console.log(`[DataLoader] loadTodosPage visibility=shared but OFFLINE`);
         this.todosLoading.set(false);
         return of([]);
       }
@@ -124,7 +117,6 @@ export class DataLoaderService {
       requiresMongo = true;
     } else if (visibility === "public") {
       if (!this.mongoConnectionService.isConnected()) {
-        console.log(`[DataLoader] loadTodosPage visibility=public but OFFLINE`);
         this.todosLoading.set(false);
         return of([]);
       }
@@ -138,7 +130,6 @@ export class DataLoaderService {
     }
 
     if (requiresMongo && !this.mongoConnectionService.isConnected()) {
-      console.log(`[DataLoader] loadTodosPage visibility=${visibility} requires Mongo but OFFLINE`);
       this.todosLoading.set(false);
       this.storageService.setHasMoreTodos(false);
       return of([]);
@@ -150,9 +141,6 @@ export class DataLoaderService {
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
-          console.log(
-            `[DataLoader] loadTodosPage visibility=${visibility} page=${page} loaded=${loadedTodos.length}`
-          );
 
           const collectionMap: Record<string, "privateTodos" | "sharedTodos" | "publicTodos"> = {
             private: "privateTodos",
@@ -181,10 +169,6 @@ export class DataLoaderService {
   private loadTodosAllSources(page: number, limit: number): Observable<Todo[]> {
     const skip = page * limit;
     const userId = this.jwtTokenService.getCurrentUserId() || "";
-
-    console.log(
-      `[DataLoader] loadTodosAllSources START - isConnected=${this.mongoConnectionService.isConnected()}`
-    );
 
     const privateRequest = this.requestService
       .getTodos({
@@ -233,9 +217,6 @@ export class DataLoaderService {
 
     return forkJoin([privateRequest, sharedRequest, publicRequest]).pipe(
       tap(([privateTodos, sharedTodos, publicTodos]) => {
-        console.log(
-          `[DataLoader] loadTodosAllSources results: private=${privateTodos.length} shared=${sharedTodos.length} public=${publicTodos.length}`
-        );
         this.storageService.updatePagination(
           "todos",
           skip,
