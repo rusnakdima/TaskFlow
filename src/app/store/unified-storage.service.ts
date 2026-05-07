@@ -34,6 +34,7 @@ import { TodoHandler } from "@services/core/entity-handlers/todo.handler";
 import { CategoryHandler } from "@services/core/entity-handlers/category.handler";
 import { ProfileHandler } from "@services/core/entity-handlers/profile.handler";
 import { FlatCommentHandler } from "@services/core/entity-handlers/flat-comment.handler";
+import { FlatChatHandler } from "@services/core/entity-handlers/flat-chat.handler";
 import { TaskHandler } from "@services/core/entity-handlers/task.handler";
 import { SubtaskHandler } from "@services/core/entity-handlers/subtask.handler";
 
@@ -294,7 +295,7 @@ export class UnifiedStorageService extends BaseStorageService {
     subtasks: new SubtaskHandler(this.subtasksSignal),
     categories: new CategoryHandler(this.categoriesSignal),
     profiles: new ProfileHandler(this.profileSignal),
-    chats: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
+    chats: new FlatChatHandler(this.chatsSignal),
     comments: new FlatCommentHandler(this.commentsSignal),
   };
 
@@ -1220,6 +1221,9 @@ export class UnifiedStorageService extends BaseStorageService {
             return Array.from(existingById.values());
           });
         }
+        if (options?.resetPagination) {
+          this.resetPagination("tasks");
+        }
         break;
       case "subtasks":
         if (options?.append) {
@@ -1233,6 +1237,9 @@ export class UnifiedStorageService extends BaseStorageService {
             }
             return Array.from(existingById.values());
           });
+        }
+        if (options?.resetPagination) {
+          this.resetPagination("subtasks");
         }
         break;
       case "comments":
@@ -1248,6 +1255,9 @@ export class UnifiedStorageService extends BaseStorageService {
             return Array.from(existingById.values());
           });
         }
+        if (options?.resetPagination) {
+          this.resetPagination("comments");
+        }
         break;
       case "chats":
         if (options?.append) {
@@ -1262,6 +1272,9 @@ export class UnifiedStorageService extends BaseStorageService {
             return Array.from(existingById.values());
           });
         }
+        if (options?.resetPagination) {
+          this.resetPagination("chats");
+        }
         break;
       case "privateTodos":
         this.privateTodosSignal.update((existing) => {
@@ -1272,6 +1285,9 @@ export class UnifiedStorageService extends BaseStorageService {
           }
           return Array.from(existingById.values());
         });
+        if (options?.resetPagination) {
+          this.resetPagination("todos");
+        }
         break;
       case "sharedTodos":
         this.sharedTodosSignal.update((existing) => {
@@ -1282,6 +1298,9 @@ export class UnifiedStorageService extends BaseStorageService {
           }
           return Array.from(existingById.values());
         });
+        if (options?.resetPagination) {
+          this.resetPagination("todos");
+        }
         break;
       case "publicTodos":
         this.publicTodosSignal.update((existing) => {
@@ -1292,6 +1311,9 @@ export class UnifiedStorageService extends BaseStorageService {
           }
           return Array.from(existingById.values());
         });
+        if (options?.resetPagination) {
+          this.resetPagination("todos");
+        }
         break;
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);
