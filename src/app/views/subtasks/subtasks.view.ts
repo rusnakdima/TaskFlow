@@ -67,7 +67,8 @@ import { FilterBarComponent } from "@components/filter-bar/filter-bar.component"
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
   PageToolbarComponent,
@@ -633,6 +634,24 @@ export class SubtasksView extends BaseListView implements OnInit {
             this.notifyService.showError(err.message || "Failed to archive subtasks");
           },
         });
+    }
+  }
+
+  getSubtaskTableActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.DELETE];
+  }
+
+  onSubtaskTableAction(event: { action: string; item: Subtask }): void {
+    switch (event.action) {
+      case "edit":
+        this.router.navigate([event.item.id, "edit_subtask"], {
+          relativeTo: this.route,
+          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
+        });
+        break;
+      case "delete":
+        this.deleteSubtask(event.item.id);
+        break;
     }
   }
 

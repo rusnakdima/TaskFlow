@@ -55,10 +55,12 @@
           [showCommentToggle]="true"
           [dragEnabled]="true"
           [expandable]="true"
+          [actions]="getSubtaskTableActions()"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
           (dropped)="onSubtaskDrop($event)"
+          (actionClick)="onSubtaskTableAction($event)"
         >
           <ng-template #expandTemplate let-item>
             <app-item-expand-details [item]="item" type="subtask" />

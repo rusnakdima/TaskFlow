@@ -69,7 +69,7 @@ import { TodoInformationComponent } from "@components/todo-information/todo-info
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
 import { GithubService } from "@services/github/github.service";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
@@ -80,6 +80,7 @@ import { FilterField } from "@models/filter-config.model";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-tasks",
@@ -631,15 +632,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
   }
 
-  getTaskTableActions() {
-    const actions = [
-      { key: "edit", icon: "edit", label: "Edit" },
-      { key: "delete", icon: "delete", label: "Delete" },
-    ];
+  getTaskTableActions(): TableFieldActionButton[] {
+    const actions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.DELETE];
 
     const currentTodo = this.todo();
     if (currentTodo?.github_repo_name) {
-      actions.unshift({ key: "github_issue", icon: "bug_report", label: "GitHub Issue" });
+      actions.unshift(TABLE_ACTIONS.GITHUB_ISSUE);
     }
 
     return actions;

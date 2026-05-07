@@ -49,7 +49,8 @@ import { FILTER_CONFIGS } from "@constants/filter.constants";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
@@ -127,10 +128,9 @@ export class DataManagementView implements OnInit {
 
   adminTableFields = TableFieldFactory.createAdminFields();
 
-  adminActions = [
-    { key: "toggleDelete", icon: "archive", label: "Archive" },
-    { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
-  ];
+  getAdminActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
+  }
 
   // Filter state
   titleFilter = signal<string>("");
@@ -858,5 +858,7 @@ export class DataManagementView implements OnInit {
   onDynamicFilterChange(event: { key: string; value: string }): void {
     const signal = this.getFilterSignal(event.key);
     signal.set(event.value);
+    this.showFilters.set(false);
+    this.showFilters.set(true);
   }
 }
