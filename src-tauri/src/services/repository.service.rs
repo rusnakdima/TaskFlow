@@ -60,7 +60,10 @@ impl RepositoryService {
       match self.mongodb_provider.as_ref() {
         Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
         None => {
-          if visibility == Some("all") {
+          if visibility == Some("all")
+            || visibility == Some("shared")
+            || visibility == Some("public")
+          {
             Ok(DataProvider::Json(&self.json_provider))
           } else {
             Err(err_response(
