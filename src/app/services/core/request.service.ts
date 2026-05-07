@@ -134,8 +134,8 @@ export class RequestService {
         load: load ? JSON.stringify(load) : undefined,
         visibility,
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next((data as any)?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -233,8 +233,8 @@ export class RequestService {
         table: "tasks",
         ...options,
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next(data?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -330,8 +330,8 @@ export class RequestService {
         table: "subtasks",
         ...options,
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next(data?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -420,8 +420,8 @@ export class RequestService {
         table: "categories",
         visibility: "private",
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next(data?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -452,8 +452,8 @@ export class RequestService {
         table: "comments",
         ...options,
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next(data?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -476,8 +476,8 @@ export class RequestService {
         table: "chats",
         ...options,
       }).subscribe({
-        next: (data) => {
-          subscriber.next(data || []);
+        next: (data: any) => {
+          subscriber.next(data?.data ?? data ?? []);
           subscriber.complete();
           this.removeRequest(key);
         },
