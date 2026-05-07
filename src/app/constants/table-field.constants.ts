@@ -24,7 +24,7 @@ export const TableFieldIcons = {
   },
 } as const;
 
-export const TableActionColors = {
+export const ActionColors = {
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   edit: "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
   delete: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
@@ -40,6 +40,19 @@ export const TableActionColors = {
   blueprint: "text-teal-600! hover:text-teal-700! dark:text-teal-400! dark:hover:text-teal-300!",
   toggleDelete:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
+  toggleComplete:
+    "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
+  dragHandle: "text-gray-400! hover:text-gray-600! dark:text-gray-500! dark:hover:text-gray-300!",
+  moveColumn: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
+  addSubtask:
+    "text-green-600! hover:text-green-700! dark:text-green-400! dark:hover:text-green-300!",
+  viewAllSubtasks:
+    "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
+  comments: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
+  subtaskToggle:
+    "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
+  toggleDetails:
+    "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
 } as const;
 
 export const TABLE_ACTIONS = {
