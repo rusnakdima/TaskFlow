@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, inject, computed, DestroyRef } from "@angular/core";
+import { Component, OnInit, inject, computed, DestroyRef, signal } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -48,8 +48,12 @@ export class DashboardView implements OnInit {
 
   profile: () => Profile | null;
   userId = "";
+  tasksLoaded = signal(false);
 
   private allTasksData = computed<DisplayTask[]>(() => {
+    if (!this.tasksLoaded()) {
+      return [];
+    }
     const currentTasks = this.storageService.tasks();
 
     return currentTasks
@@ -122,7 +126,11 @@ export class DashboardView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("all", 10).subscribe();
+    this.dataLoaderService.loadInitialTasksByVisibility("all", 10).subscribe({
+      complete: () => {
+        this.tasksLoaded.set(true);
+      },
+    });
   }
 
   getCircleColor(status: TaskStatus): string {
