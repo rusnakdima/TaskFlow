@@ -54,6 +54,9 @@ pub struct TaskEntity {
   pub start_date: Option<String>,
   pub end_date: Option<String>,
   pub order: i32,
+  pub subtasks_count: i32,
+  pub completed_subtasks_count: i32,
+  pub comments_count: i32,
   #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
@@ -115,6 +118,9 @@ impl From<TaskCreateModel> for TaskEntity {
       start_date: formatted_start_date,
       end_date: formatted_end_date,
       order: value.order,
+      subtasks_count: 0,
+      completed_subtasks_count: 0,
+      comments_count: 0,
       deleted_at: None,
       created_at: Some(now),
       updated_at: Some(now),
