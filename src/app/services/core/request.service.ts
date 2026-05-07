@@ -643,8 +643,9 @@ export class RequestService {
   }
 
   getTasksByMonth(year: number, month: number): Observable<{ tasks: any[] }> {
+    const offline = !this.mongoConnectionService.isConnected();
     return from(
-      invoke<Response<{ tasks: any[] }>>("get_tasks_by_month", { year, month }).then(
+      invoke<Response<{ tasks: any[] }>>("get_tasks_by_month", { year, month, offline }).then(
         (response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             return response.data as { tasks: any[] };
