@@ -30,7 +30,8 @@ import { CategoryFormComponent } from "@components/category-form/category-form.c
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import {
   PageToolbarComponent,
   PageToolbarConfig,
@@ -226,6 +227,10 @@ export class CategoriesView extends BaseListView implements OnInit {
     } else if (action === "archive") {
       this.archiveCategory(item.id);
     }
+  }
+
+  getCategoryTableActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
 
   onTableSelectAll(): void {

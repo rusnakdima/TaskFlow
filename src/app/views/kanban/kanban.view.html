@@ -3,7 +3,7 @@
     <app-segment-selector
       [options]="todoSelectorOptions()"
       [active]="selectedTodoId()"
-      (select)="onTodoSelect($event)"
+      (select)="onTodoChange($event)"
     />
 
     <app-page-toolbar [config]="getToolbarConfig()" />

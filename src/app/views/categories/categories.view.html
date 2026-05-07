@@ -27,10 +27,7 @@
         [fields]="categoryTableFields"
         [selectedIds]="selectedCategories()"
         [showSelection]="true"
-        [actions]="[
-          { key: 'edit', icon: 'edit', label: 'Edit' },
-          { key: 'archive', icon: 'archive', label: 'Archive' },
-        ]"
+        [actions]="getCategoryTableActions()"
         (selectionChange)="toggleCategorySelection($event.id)"
         (selectAll)="onTableSelectAll()"
         (rowClick)="onRowClick($event)"
