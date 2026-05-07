@@ -1,0 +1,155 @@
+<div class="flex flex-col gap-4 p-2">
+  @if (type === "todo") {
+    <div class="flex items-center gap-4 text-sm">
+      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+        <span>{{ item.completed_tasks_count || 0 }}/{{ item.tasks_count || 0 }} completed</span>
+      </div>
+      @if (item.chats_count) {
+        <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+          <mat-icon class="h-4! w-4! text-base!" fontIcon="chat" />
+          <span>{{ item.chats_count }} chats</span>
+        </div>
+      }
+    </div>
+  }
+
+  @if (type === "task") {
+    @if (item.subtasks_count !== undefined) {
+      <div class="flex items-center gap-4 text-sm">
+        <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+          <mat-icon class="h-4! w-4! text-base!" fontIcon="check_box" />
+          <span
+            >{{ item.completed_subtasks_count || 0 }}/{{ item.subtasks_count || 0 }} subtasks</span
+          >
+        </div>
+        @if (item.comments_count) {
+          <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+            <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
+            <span>{{ item.comments_count }} comments</span>
+          </div>
+        }
+      </div>
+    }
+    @if (item.repeat && item.repeat !== "none") {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="repeat" />
+        <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
+        <span class="font-medium">{{ item.repeat }}</span>
+      </div>
+    }
+    @if (item.github_issue_url) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="bug_report" />
+        <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
+        <a [href]="item.github_issue_url" target="_blank" class="text-blue-500 hover:underline">
+          #{{ item.github_issue_number }}
+        </a>
+      </div>
+    }
+    @if (item.depends_on?.length) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="account_tree" />
+        <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
+        <span class="font-medium">{{ item.depends_on.length }} tasks</span>
+      </div>
+    }
+  }
+
+  @if (type === "subtask" && item.comments_count) {
+    <div class="flex items-center gap-4 text-sm">
+      <div class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="comment" />
+        <span>{{ item.comments_count }} comments</span>
+      </div>
+    </div>
+  }
+
+  @if (item.start_date || item.end_date) {
+    <div class="flex items-center gap-4 text-sm">
+      @if (item.start_date) {
+        <div class="flex items-center gap-1">
+          <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+          <span class="text-gray-600 dark:text-gray-400">Start:</span>
+          <span>{{ item.start_date | date: "mediumDate" }}</span>
+        </div>
+      }
+      @if (item.end_date) {
+        <div class="flex items-center gap-1">
+          <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
+          <span class="text-gray-600 dark:text-gray-400">Due:</span>
+          <span>{{ item.end_date | date: "mediumDate" }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  @if (item.description) {
+    <div class="text-sm">
+      <span class="text-gray-600 dark:text-gray-400">Description:</span>
+      <p class="mt-1 text-gray-900 dark:text-gray-100">
+        {{ item.description | slice: 0 : 150 }}{{ item.description.length > 150 ? "..." : "" }}
+      </p>
+    </div>
+  }
+
+  @if (type === "todo" && item.assignees_profiles?.length) {
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-600 dark:text-gray-400">Assignees:</span>
+      <div class="flex -space-x-2">
+        @for (profile of item.assignees_profiles.slice(0, 4); track profile.id) {
+          <div
+            class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
+            [title]="profile.name"
+          >
+            {{ profile.name?.charAt(0)?.toUpperCase() }}
+          </div>
+        }
+        @if (item.assignees_profiles.length > 4) {
+          <div
+            class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-400 text-xs text-white"
+          >
+            +{{ item.assignees_profiles.length - 4 }}
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (type === "todo" && item.categories?.length) {
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm text-gray-600 dark:text-gray-400">Categories:</span>
+      @for (cat of item.categories; track cat.id) {
+        <span
+          class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+        >
+          {{ cat.title }}
+        </span>
+      }
+    </div>
+  }
+
+  @if (type === "todo" && item.github_repo_name) {
+    <div class="flex items-center gap-2 text-sm">
+      <mat-icon class="h-4! w-4! text-base!" fontIcon="code" />
+      <span class="text-gray-600 dark:text-gray-400">Repo:</span>
+      <span class="font-medium">{{ item.github_repo_name }}</span>
+    </div>
+  }
+
+  <div class="flex items-center gap-4 text-xs text-gray-500">
+    @if (type === "todo" && item.visibility) {
+      <span
+        class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+      >
+        {{ item.visibility }}
+      </span>
+    }
+    @if (item.created_at) {
+      <span>Created: {{ item.created_at | date: "short" }}</span>
+    }
+    @if (item.updated_at) {
+      <span>Updated: {{ item.updated_at | date: "short" }}</span>
+    }
+  </div>
+</div>
