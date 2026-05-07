@@ -202,9 +202,11 @@ export abstract class BaseListView implements OnInit, OnDestroy {
           .subscribe();
         break;
       case "tasks":
-        this.dataLoader
-          .loadTasksPage(options?.todoId, options?.visibility, options?.page)
-          .subscribe();
+        if (options?.todoId) {
+          this.dataLoader
+            .loadTasksPage(options.todoId, options?.visibility, options?.page)
+            .subscribe();
+        }
         break;
       case "subtasks":
         this.dataLoader

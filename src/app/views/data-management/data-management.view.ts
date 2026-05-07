@@ -827,23 +827,38 @@ export class DataManagementView implements OnInit {
     switch (filterKey) {
       case "userFilter": {
         const opts = this.userList();
-        return [{ value: "", label: "All Users" }, ...opts];
+        return [
+          { value: "", label: "All Users" },
+          ...opts.map((o) => ({ value: o.id, label: o.label })),
+        ];
       }
       case "categoriesFilter": {
         const opts = this.categoryList();
-        return [{ value: "", label: "All Categories" }, ...opts];
+        return [
+          { value: "", label: "All Categories" },
+          ...opts.map((o) => ({ value: o.id, label: o.label })),
+        ];
       }
       case "todoIdFilter": {
         const opts = this.todoList();
-        return [{ value: "", label: "All Projects" }, ...opts];
+        return [
+          { value: "", label: "All Projects" },
+          ...opts.map((o) => ({ value: o.id, label: o.label })),
+        ];
       }
       case "taskIdFilter": {
         const opts = this.taskList();
-        return [{ value: "", label: "All Tasks" }, ...opts];
+        return [
+          { value: "", label: "All Tasks" },
+          ...opts.map((o) => ({ value: o.id, label: o.label })),
+        ];
       }
       case "subtaskIdFilter": {
         const opts = this.subtaskList();
-        return [{ value: "", label: "All Subtasks" }, ...opts];
+        return [
+          { value: "", label: "All Subtasks" },
+          ...opts.map((o) => ({ value: o.id, label: o.label })),
+        ];
       }
       default:
         return [];
