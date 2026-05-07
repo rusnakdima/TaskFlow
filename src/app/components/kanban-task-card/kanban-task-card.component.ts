@@ -15,6 +15,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
+import { PRIORITY_COLORS } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-kanban-task-card",
@@ -35,6 +36,10 @@ export class KanbanTaskCardComponent {
   @Output() toggleSubtaskCompletion = new EventEmitter<Subtask>();
 
   TaskStatus = TaskStatus;
+
+  getPriorityBgColor(priority: string): string {
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.medium;
+  }
 
   toggleExpandTask(): void {
     this.toggleExpand.emit(this.task);

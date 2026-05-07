@@ -48,6 +48,12 @@ import { GithubService } from "@services/github/github.service";
 import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* models */
+import {
+  PRIORITY_COLORS,
+  PRIORITY_ICONS,
+  STATUS_BUTTON_COLORS,
+  STATUS_BUTTON_ICONS,
+} from "@constants/table-field.constants";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
@@ -120,6 +126,22 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
 
   get menuClass(): string {
     return "task-menu";
+  }
+
+  getStatusBgColor(status: string): string {
+    return STATUS_BUTTON_COLORS[status as TaskStatus] || STATUS_BUTTON_COLORS[TaskStatus.PENDING];
+  }
+
+  getStatusIcon(status: string): string {
+    return STATUS_BUTTON_ICONS[status as TaskStatus] || STATUS_BUTTON_ICONS[TaskStatus.PENDING];
+  }
+
+  getPriorityBgColor(priority: string): string {
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.low;
+  }
+
+  getPriorityIcon(priority: string): string {
+    return PRIORITY_ICONS[priority as keyof typeof PRIORITY_ICONS] || "keyboard_arrow_down";
   }
 
   private taskForComments = signal<Task | null>(null);
