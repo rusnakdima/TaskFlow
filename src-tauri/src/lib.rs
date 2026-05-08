@@ -65,9 +65,9 @@ use services::{
 
 #[tauri::command]
 async fn process_queued_operation(
-  operation: String,
-  table: String,
-  data: serde_json::Value,
+  _operation: String,
+  _table: String,
+  _data: serde_json::Value,
 ) -> Result<(), String> {
   Ok(())
 }
@@ -91,7 +91,7 @@ pub struct AppState {
 }
 
 #[tauri::command]
-async fn sync_data(user_id: String) -> Result<(), String> {
+async fn sync_data(_user_id: String) -> Result<(), String> {
   Ok(())
 }
 
@@ -253,7 +253,6 @@ pub fn run() {
         json_provider.clone(),
         mongodb_provider.clone(),
         cascade_service.clone(),
-        entity_resolution.clone(),
         config_helper.mongo_db_uri.clone(),
         config_helper.mongo_db_name.clone(),
       ));
