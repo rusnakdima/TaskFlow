@@ -75,7 +75,7 @@ export abstract class BaseAdminStorageService extends BaseStorageService {
   /**
    * Check if cache is valid (not expired)
    */
-  protected override isCacheValid(): boolean {
+  public override isCacheValid(): boolean {
     return super.isCacheValid(this.CACHE_EXPIRY_MS);
   }
 

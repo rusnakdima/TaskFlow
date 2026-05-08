@@ -3,8 +3,8 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { map } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { StorageService } from "@services/storage.service";
 import { ResponseStatus } from "@models/response.model";
 
 export interface AdminDataWithRelations {
@@ -22,8 +22,8 @@ export interface LoadDataOptions {
 })
 export class AdminDataService {
   private adminService = inject(AdminService);
-  private dataService = inject(DataService);
-  private storageService = inject(UnifiedStorageService);
+  private requestService = inject(REQUEST_SERVICE);
+  private storageService = inject(StorageService);
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
     const { showDeleted = false } = options;

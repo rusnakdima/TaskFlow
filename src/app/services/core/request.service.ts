@@ -12,6 +12,7 @@ export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "
 export interface CrudOptions {
   id?: string;
   data?: unknown;
+  items?: unknown[];
   parentTodoId?: string;
   load?: string[];
   filter?: { [key: string]: any };
@@ -39,6 +40,11 @@ function debugLog(
 }
 
 @Injectable({ providedIn: "root" })
+/**
+ * @deprecated RequestService is deprecated and will be removed in a future release.
+ * Use REQUEST_SERVICE from @services/api.service instead for new code.
+ * This service is still used by DataService and 21 other files, so do not delete.
+ */
 export class RequestService {
   private jwtTokenService = inject(JwtTokenService);
   private mongoConnectionService = inject(MongoConnectionService);
@@ -126,6 +132,7 @@ export class RequestService {
 
     if (options.id) payload["id"] = options.id;
     if (options.data) payload["data"] = options.data;
+    if (options.items) payload["items"] = options.items;
     if (options.filter) payload["filter"] = options.filter;
     if (options.load) payload["load"] = JSON.stringify(options.load);
     if (options.visibility) payload["visibility"] = options.visibility;
