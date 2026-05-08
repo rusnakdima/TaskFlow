@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 use mongodb::bson::Uuid;
 use serde::{Deserialize, Serialize};
 
+/* helpers */
+use crate::helpers::timestamp_helper::get_current_datetime;
+
 use nosql_orm::Model;
 
 #[derive(Debug, Serialize, Deserialize, Model)]
@@ -48,7 +51,7 @@ pub struct DailyActivityCreateModel {
 
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
-    let now = chrono::Utc::now();
+    let now = get_current_datetime();
 
     DailyActivityModel {
       id: Some(Uuid::new().to_string()),
@@ -108,7 +111,7 @@ pub struct DailyActivityUpdateModel {
 
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
-    let now = chrono::Utc::now();
+    let now = get_current_datetime();
 
     DailyActivityModel {
       id: Some(value.id),

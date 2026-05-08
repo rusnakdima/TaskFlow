@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /* crate */
 use crate::entities::profile_entity::ProfileEntity;
+use crate::helpers::timestamp_helper::get_current_datetime;
 
 /* nosql_orm */
 use nosql_orm::Model;
@@ -131,7 +132,7 @@ pub struct UserCreateModel {
 
 impl From<UserCreateModel> for UserEntity {
   fn from(value: UserCreateModel) -> Self {
-    let now = Utc::now();
+    let now = get_current_datetime();
 
     UserEntity {
       id: None,
