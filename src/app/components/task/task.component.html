@@ -138,6 +138,15 @@
 
         @if (isExpanded && getTaskSubtasks(task.id).length > 0) {
           <div class="mt-2 border-t border-gray-200 pt-4 dark:border-zinc-700">
+            @if (task.description) {
+              <div class="mb-4 text-sm">
+                <span class="textMuted">Description:</span>
+                <p class="textNormal mt-1">
+                  {{ task.description | slice: 0 : 200
+                  }}{{ task.description.length > 200 ? "..." : "" }}
+                </p>
+              </div>
+            }
             <h4 class="textMuted mb-3 flex items-center gap-2 text-sm font-medium">
               <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="list" />
               Subtasks
