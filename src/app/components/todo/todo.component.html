@@ -147,6 +147,15 @@
               <span>{{ getTotalSubtasksCount() }} subtasks</span>
             </div>
           </div>
+          @if (todo.description) {
+            <div class="mt-3 text-sm">
+              <span class="textMuted">Description:</span>
+              <p class="textNormal mt-1">
+                {{ todo.description | slice: 0 : 200
+                }}{{ todo.description.length > 200 ? "..." : "" }}
+              </p>
+            </div>
+          }
           <ng-container *ngTemplateOutlet="progressTemplate" />
 
           @if (todo.assignees_profiles && todo.assignees_profiles.length > 0) {

@@ -40,12 +40,11 @@ import { DateHelper } from "@helpers/date.helper";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 import { CommentService } from "@services/features/comment.service";
 import { GithubService } from "@services/github/github.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 
 /* models */
 import {
@@ -81,12 +80,11 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(UnifiedStorageService);
-  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private commentService = inject(CommentService);
   private githubService = inject(GithubService);
-  private dataLoaderService = inject(DataLoaderService);
+  private dataService = inject(DataService);
   private destroyRef = inject(DestroyRef);
 
   @Input() isOwner: boolean = true;
@@ -250,14 +248,18 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       const visibility = this.isPrivate ? "private" : "shared";
       const taskId = this.task.id;
 
-      this.dataLoaderService.loadCommentsForTask(taskId, visibility).subscribe({
-        next: () => {
-          this.dataLoaderService.loadInitialSubtasksForTask(taskId, visibility).subscribe();
-        },
-        error: () => {
-          this.notifyService.showError("Failed to load comments");
-        },
-      });
+      this.dataService
+        .loadPage("comments", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
+        .subscribe({
+          next: () => {
+            this.dataService
+              .loadPage("subtasks", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
+              .subscribe();
+          },
+          error: () => {
+            this.notifyService.showError("Failed to load comments");
+          },
+        });
 
       const userId = this.authService.getValueByKey("id");
       if (userId) {
@@ -282,11 +284,11 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           }));
 
           if (effectiveTodoId) {
-            this.dataSyncProvider
-              .crud("updateAll", "comments", {
-                data: localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by })),
-                parentTodoId: effectiveTodoId,
-              })
+            this.dataService
+              .updateAll(
+                "comments",
+                localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by }))
+              )
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
                 next: () => {},
@@ -390,11 +392,9 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   onDeleteComment(commentId: string) {
     const effectiveTodoId = this.todo_id || this.task?.todo_id;
     if (effectiveTodoId) {
-      this.dataSyncProvider
-        .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
-        .subscribe({
-          error: (err: Error) => {},
-        });
+      this.dataService.delete("comments", commentId).subscribe({
+        error: (err: Error) => {},
+      });
     }
   }
 
@@ -410,7 +410,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (!this.task || this.loadingTaskComments()) return;
     const visibility = this.isPrivate ? "private" : "shared";
     this.loadingTaskComments.set(true);
-    this.dataLoaderService.loadMoreCommentsForTask(this.task.id, visibility).subscribe({
+    this.dataService.loadMore("comments").subscribe({
       next: () => {
         this.loadingTaskComments.set(false);
         this.cdr.markForCheck();

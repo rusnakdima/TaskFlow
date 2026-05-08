@@ -92,6 +92,29 @@
       </p>
     }
 
+    @if (isExpandedDetails()) {
+      <div class="mt-3 flex items-center gap-4 text-sm">
+        @if (subtask.start_date) {
+          <div class="flex items-center gap-1">
+            <mat-icon class="h-4! w-4! min-w-4 text-base! text-blue-500" fontIcon="event" />
+            <span>Start: {{ formatDate(subtask.start_date) }}</span>
+          </div>
+        }
+        @if (subtask.end_date) {
+          <div class="flex items-center gap-1">
+            <mat-icon class="h-4! w-4! min-w-4 text-base! text-orange-500" fontIcon="schedule" />
+            <span>Due: {{ formatDate(subtask.end_date) }}</span>
+          </div>
+        }
+        @if (getSubtaskComments(subtask.id).length > 0) {
+          <div class="flex items-center gap-1">
+            <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="comment" />
+            <span>{{ getSubtaskComments(subtask.id).length }} comments</span>
+          </div>
+        }
+      </div>
+    }
+
     <div class="mt-2 flex flex-row items-center justify-between">
       <div class="flex items-center gap-3">
         @if (subtask.status === "completed") {
@@ -116,6 +139,17 @@
       </div>
 
       <div class="flex flex-row gap-1">
+        <button
+          [class]="getActionColor('expand')"
+          [ngClass]="isExpandedDetails() ? 'bg-purple-100 dark:bg-purple-900/30' : ''"
+          (click)="toggleDetails($event)"
+          title="Show details"
+        >
+          <mat-icon
+            class="h-5! w-5! min-w-5 text-xl!"
+            [fontIcon]="isExpandedDetails() ? 'expand_less' : 'expand_more'"
+          />
+        </button>
         <button
           [class]="getActionColor('comments')"
           [ngClass]="showComments() ? 'bg-purple-100 dark:bg-purple-900/30' : ''"

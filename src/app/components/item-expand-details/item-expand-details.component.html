@@ -65,6 +65,96 @@
     </div>
   }
 
+  @if (type === "comment") {
+    @if (item.content) {
+      <div class="text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Content:</span>
+        <p class="mt-1 text-gray-900 dark:text-gray-100">
+          {{ item.content | slice: 0 : 300 }}{{ item.content.length > 300 ? "..." : "" }}
+        </p>
+      </div>
+    }
+    @if (item.task_id) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="assignment" />
+        <span class="text-gray-600 dark:text-gray-400">Task:</span>
+        <span>{{ item.task_id | slice: 0 : 8 }}...</span>
+      </div>
+    }
+    @if (item.subtask_id) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="check_box" />
+        <span class="text-gray-600 dark:text-gray-400">Subtask:</span>
+        <span>{{ item.subtask_id | slice: 0 : 8 }}...</span>
+      </div>
+    }
+    @if (item.read_by?.length) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="people" />
+        <span class="text-gray-600 dark:text-gray-400">Read by:</span>
+        <span>{{ item.read_by.length }} users</span>
+      </div>
+    }
+  }
+
+  @if (type === "chat") {
+    @if (item.content) {
+      <div class="text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Message:</span>
+        <p class="mt-1 text-gray-900 dark:text-gray-100">
+          {{ item.content | slice: 0 : 300 }}{{ item.content.length > 300 ? "..." : "" }}
+        </p>
+      </div>
+    }
+    @if (item.todo_id) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="folder" />
+        <span class="text-gray-600 dark:text-gray-400">Project:</span>
+        <span>{{ item.todo_id | slice: 0 : 8 }}...</span>
+      </div>
+    }
+    @if (item.read_by?.length) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="people" />
+        <span class="text-gray-600 dark:text-gray-400">Read by:</span>
+        <span>{{ item.read_by.length }} users</span>
+      </div>
+    }
+  }
+
+  @if (type === "category") {
+    @if (item.title) {
+      <div class="text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Title:</span>
+        <span class="mt-1 text-gray-900 dark:text-gray-100">{{ item.title }}</span>
+      </div>
+    }
+    @if (item.user_id) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="person" />
+        <span class="text-gray-600 dark:text-gray-400">User:</span>
+        <span>{{ item.user_id | slice: 0 : 8 }}...</span>
+      </div>
+    }
+  }
+
+  @if (type === "daily_activity") {
+    @if (item.todos_created !== undefined) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="add_task" />
+        <span class="text-gray-600 dark:text-gray-400">Todos Created:</span>
+        <span class="font-medium">{{ item.todos_created }}</span>
+      </div>
+    }
+    @if (item.tasks_completed !== undefined) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base!" fontIcon="task" />
+        <span class="text-gray-600 dark:text-gray-400">Tasks Completed:</span>
+        <span class="font-medium">{{ item.tasks_completed }}</span>
+      </div>
+    }
+  }
+
   @if (item.start_date || item.end_date) {
     <div class="flex items-center gap-4 text-sm">
       @if (item.start_date) {

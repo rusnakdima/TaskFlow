@@ -32,14 +32,14 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 /* helpers */
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CommentService } from "@services/features/comment.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 import { RequestService } from "@services/core/request.service";
 
 /* models */
@@ -70,10 +70,9 @@ import { Task } from "@models/task.model";
 export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
   private storageService = inject(UnifiedStorageService);
-  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private commentService = inject(CommentService);
-  private dataLoaderService = inject(DataLoaderService);
+  private dataService = inject(DataService);
   private requestService = inject(RequestService);
   private destroyRef = inject(DestroyRef);
 
@@ -99,6 +98,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   showComments = signal(false);
   loadingSubtaskComments = signal(false);
   comments = signal<Comment[]>([]);
+  isExpandedDetails = signal(false);
 
   get menuClass(): string {
     return "subtask-menu";
@@ -125,6 +125,14 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   truncateString = Common.truncateString;
+
+  toggleDetails(event: any) {
+    event.stopPropagation();
+    this.isExpandedDetails.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  formatDate = DateHelper.formatDateShort;
 
   constructor() {
     super();
@@ -165,14 +173,21 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
     if (!wasOpen && this.subtask) {
       const visibility = this.isPrivate ? "private" : "shared";
-      this.dataLoaderService.loadCommentsForSubtask(this.subtask.id, visibility).subscribe({
-        next: () => {
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.notifyService.showError("Failed to load comments");
-        },
-      });
+      this.dataService
+        .loadPage("comments", {
+          filter: { subtask_id: this.subtask.id },
+          visibility,
+          skip: 0,
+          limit: 20,
+        })
+        .subscribe({
+          next: () => {
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.notifyService.showError("Failed to load comments");
+          },
+        });
 
       const subtaskId = this.subtask.id;
       const userId = this.authService.getValueByKey("id");
@@ -227,11 +242,11 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     );
 
     if (commentsToUpdate.length > 0) {
-      this.dataSyncProvider
-        .crud("updateAll", "comments", {
-          data: commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
-          parentTodoId: todoId,
-        })
+      this.dataService
+        .updateAll(
+          "comments",
+          commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by }))
+        )
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {},
@@ -299,8 +314,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   private deleteComment(commentId: string, effectiveTodoId: string) {
-    this.dataSyncProvider
-      .crud("delete", "comments", { id: commentId, parentTodoId: effectiveTodoId })
+    this.dataService
+      .delete("comments", commentId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: (err) => {},
@@ -313,7 +328,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || !userId || commentIds.length === 0) return;
 
     if (!effectiveTodoId && this.subtask.task_id) {
-      this.requestService.getTask(this.subtask.task_id).subscribe((task: any) => {
+      const dataService = inject(DataService);
+      dataService.get<Task>("tasks", this.subtask.task_id).subscribe((task) => {
         if (task?.todo_id) {
           effectiveTodoId = task.todo_id;
           this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId!);
@@ -328,8 +344,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || this.loadingSubtaskComments()) return;
     const visibility = this.isPrivate ? "private" : "shared";
     this.loadingSubtaskComments.set(true);
-    this.dataLoaderService
-      .loadMoreCommentsForSubtask(this.subtask.id, visibility)
+    this.dataService
+      .loadMore("comments")
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
