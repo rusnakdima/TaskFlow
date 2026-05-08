@@ -30,7 +30,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
 
 /* utils */
-import { groupByKey, existsById } from "@stores/utils/store-helpers";
+import { groupByKey } from "@stores/utils/store-helpers";
 
 export type StorageEntity = keyof EntityMap;
 export type VisibilityFilter = "all" | "private" | "shared" | "public";
@@ -56,6 +56,13 @@ export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "
 const TTL_CACHE_EXPIRY_MS = 5 * 60 * 1000;
 const MAX_CACHE_SIZE = 100;
 
+/**
+ * @deprecated Use StorageService from @app/services/storage.service.ts instead.
+ * This service is maintained for backward compatibility and will be removed in a future release.
+ * Please migrate all imports and usage to the new StorageService.
+ *
+ * The new StorageService provides the same functionality with an improved signal-based architecture.
+ */
 @Injectable({ providedIn: "root" })
 export class UnifiedStorageService extends BaseStorageService {
   // ==================== CORE DATA SIGNALS ====================

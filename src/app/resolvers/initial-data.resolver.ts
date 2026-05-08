@@ -3,11 +3,11 @@ import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
 
 /* services */
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 
@@ -29,11 +29,10 @@ import { UserValidationService } from "@services/auth/user-validation.service";
   providedIn: "root",
 })
 export class InitialDataResolver implements Resolve<unknown> {
-  private dataService = inject(DataService);
   private profileRequiredService = inject(ProfileRequiredService);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(UnifiedStorageService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);
