@@ -81,7 +81,8 @@ export class ChatWindowComponent
   private forceScrollBottom = false;
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes["todo_id"] && !changes["todo_id"].isFirstChange()) {
+    if (changes["todo_id"]) {
+      this.initialized = false;
       this.isFirstLoad.set(true);
       this.processedIds.set(new Set());
     }
