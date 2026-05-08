@@ -36,11 +36,10 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CommentService } from "@services/features/comment.service";
-import { DataService } from "@services/data/data.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* models */
 import {
@@ -69,11 +68,10 @@ import { Task } from "@models/task.model";
 })
 export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   private authService = inject(AuthService);
-  private storageService = inject(UnifiedStorageService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private commentService = inject(CommentService);
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
 
   @Input() isOwner: boolean = true;
@@ -172,24 +170,30 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     this.showComments.update((v) => !v);
 
     if (!wasOpen && this.subtask) {
-      const visibility = this.isPrivate ? "private" : "shared";
-      this.dataService
-        .loadPage("comments", {
-          filter: { subtask_id: this.subtask.id },
-          visibility,
-          skip: 0,
-          limit: 20,
-        })
-        .subscribe({
-          next: () => {
-            this.cdr.markForCheck();
-          },
-          error: () => {
-            this.notifyService.showError("Failed to load comments");
-          },
-        });
-
       const subtaskId = this.subtask.id;
+      const existingComments = this.storageService
+        .comments()
+        .filter((c: Comment) => c.subtask_id === subtaskId && !c.deleted_at);
+
+      if (existingComments.length === 0) {
+        const visibility = this.isPrivate ? "private" : "shared";
+        this.requestService
+          .loadPage("comments", {
+            filter: { subtask_id: subtaskId },
+            visibility,
+            skip: 0,
+            limit: 20,
+          })
+          .subscribe({
+            next: () => {
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.notifyService.showError("Failed to load comments");
+            },
+          });
+      }
+
       const userId = this.authService.getValueByKey("id");
       const subtaskComments = this.comments().filter(
         (c: Comment) => c.subtask_id === subtaskId && !c.deleted_at
@@ -242,7 +246,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     );
 
     if (commentsToUpdate.length > 0) {
-      this.dataService
+      this.requestService
         .updateAll(
           "comments",
           commentsToUpdate.map((c) => ({ id: c.id, read_by: c.read_by }))
@@ -314,8 +318,8 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   private deleteComment(commentId: string, effectiveTodoId: string) {
-    this.dataService
-      .delete("comments", commentId)
+    this.requestService
+      .delete("comments", commentId, { visibility: this.isPrivate ? "private" : "shared" })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: (err) => {},
@@ -328,8 +332,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || !userId || commentIds.length === 0) return;
 
     if (!effectiveTodoId && this.subtask.task_id) {
-      const dataService = inject(DataService);
-      dataService.get<Task>("tasks", this.subtask.task_id).subscribe((task) => {
+      this.requestService.get<Task>("tasks", this.subtask.task_id).subscribe((task) => {
         if (task?.todo_id) {
           effectiveTodoId = task.todo_id;
           this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId!);
@@ -344,7 +347,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     if (!this.subtask || this.loadingSubtaskComments()) return;
     const visibility = this.isPrivate ? "private" : "shared";
     this.loadingSubtaskComments.set(true);
-    this.dataService
+    this.requestService
       .loadMore("comments")
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
