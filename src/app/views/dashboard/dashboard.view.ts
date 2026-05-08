@@ -12,7 +12,7 @@ import { Profile } from "@models/profile.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 /* helpers */
@@ -41,7 +41,7 @@ export class DashboardView implements OnInit {
   public TaskStatus = TaskStatus;
 
   private authService = inject(AuthService);
-  private dataLoaderService = inject(DataLoaderService);
+  private dataService = inject(DataService);
   private storageService = inject(UnifiedStorageService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
@@ -122,7 +122,7 @@ export class DashboardView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("all", 10).subscribe({});
+    this.dataService.loadPage("tasks", { visibility: "all", limit: 10, skip: 0 }).subscribe({});
   }
 
   getCircleColor(status: TaskStatus): string {

@@ -23,10 +23,10 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { RequestService } from "@services/core/request.service";
 
 @Component({
   selector: "app-manage-profile",
@@ -47,11 +47,11 @@ export class ManageProfileView implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
-  private dataSyncProvider = inject(ApiProvider);
   private notifyService = inject(NotifyService);
   private dataService = inject(DataService);
   private storageService = inject(UnifiedStorageService);
   private profileRequiredService = inject(ProfileRequiredService);
+  private requestService = inject(RequestService);
 
   form: FormGroup = this.fb.group({
     _id: [""],

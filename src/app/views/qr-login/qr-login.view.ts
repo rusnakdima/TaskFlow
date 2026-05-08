@@ -21,7 +21,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { QrLoginService } from "@services/auth/qr-login.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiProvider } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 import { AuthStore } from "@stores/auth.store";
 
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
@@ -43,7 +43,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   private qrLoginService = inject(QrLoginService);
   private authCapabilityService = inject(AuthCapabilityService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private sanitizer = inject(DomSanitizer);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -243,7 +243,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private approveMobileQrLogin(token: string, username: string): void {
-    this.dataSyncProvider
+    this.requestService
       .invokeCommand<{ success: boolean }>("qr_approve", { token, username })
       .subscribe({
         next: () => {
@@ -299,7 +299,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   private async completeQrLogin(token: string): Promise<void> {
     try {
       const authResponse = await firstValueFrom(
-        this.dataSyncProvider.invokeCommand<{
+        this.requestService.invokeCommand<{
           token: string;
           needsProfile: boolean;
           profile: any;

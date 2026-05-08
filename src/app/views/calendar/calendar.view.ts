@@ -16,7 +16,6 @@ import { Task, TaskStatus } from "@models/task.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
@@ -50,7 +49,6 @@ export class CalendarView extends BaseListView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private dataService = inject(DataService);
-  private dataLoaderService = inject(DataLoaderService);
   private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
@@ -91,9 +89,11 @@ export class CalendarView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("private", 100).subscribe({});
-    this.dataLoaderService.loadInitialTasksByVisibility("shared", 100).subscribe({});
-    this.dataLoaderService.loadInitialTasksByVisibility("public", 100).subscribe({});
+    this.dataService
+      .loadPage("tasks", { visibility: "private", limit: 100, skip: 0 })
+      .subscribe({});
+    this.dataService.loadPage("tasks", { visibility: "shared", limit: 100, skip: 0 }).subscribe({});
+    this.dataService.loadPage("tasks", { visibility: "public", limit: 100, skip: 0 }).subscribe({});
   }
 
   private getPrivateTasksFromCache(): Task[] {

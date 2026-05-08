@@ -3,7 +3,7 @@ import { Subscription } from "rxjs";
 
 import { AuthService } from "@services/auth/auth.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
@@ -31,13 +31,14 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   protected selectedItems = signal<Set<string>>(new Set());
 
-  protected dataSyncService = inject(DataLoaderService);
+  protected dataSyncService = inject(DataService);
   protected notifyService = inject(NotifyService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionService);
   protected authService = inject(AuthService);
   protected storageService = inject(UnifiedStorageService);
-  protected dataLoader = inject(DataLoaderService);
+  protected dataLoader = inject(DataService);
+  protected dataService = inject(DataService);
 
   protected readonly subscriptions = new Subscription();
 
@@ -197,37 +198,25 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   ): void {
     switch (entity) {
       case "todos":
-        this.dataLoader
-          .loadTodosPage(options?.visibility, options?.page, options?.limit)
-          .subscribe();
+        this.dataService.loadPage("todos", options).subscribe();
         break;
       case "tasks":
         if (options?.todoId) {
-          this.dataLoader
-            .loadTasksPage(options.todoId, options?.visibility, options?.page)
-            .subscribe();
+          this.dataService.loadPage("tasks", options).subscribe();
         }
         break;
       case "subtasks":
-        this.dataLoader
-          .loadSubtasksPage(options?.taskId, options?.visibility, options?.page)
-          .subscribe();
+        this.dataService.loadPage("subtasks", options).subscribe();
         break;
       case "comments":
         if (options?.taskId) {
-          this.dataLoader
-            .loadCommentsPage(options.taskId, options?.visibility, options?.page)
-            .subscribe();
+          this.dataService.loadPage("comments", options).subscribe();
         } else if (options?.subtaskId) {
-          this.dataLoader
-            .loadSubtaskCommentsPage(options.subtaskId, options?.visibility, options?.page)
-            .subscribe();
+          this.dataService.loadPage("comments", options).subscribe();
         }
         break;
       case "chats":
-        this.dataLoader
-          .loadChatsPage(options?.todoId, options?.visibility, options?.page)
-          .subscribe();
+        this.dataService.loadPage("chats", options).subscribe();
         break;
     }
   }

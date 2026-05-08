@@ -15,9 +15,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { DataService } from "@services/data/data.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -35,7 +33,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
   protected override storageService = inject(UnifiedStorageService);
   private dragDropService = inject(DragDropOrderService);
-  private apiProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
   private destroyRef = inject(DestroyRef);
 
   protected getItems(): { id: string }[] {

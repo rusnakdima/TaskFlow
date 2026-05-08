@@ -28,12 +28,12 @@ import { CheckboxField, TypeField } from "@models/form-field.model";
 import { AuthService } from "@services/auth/auth.service";
 import { SecurityService, UserSecurityStatus } from "@services/auth/security.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiProvider } from "@providers/api.provider";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
 import { AuthStore } from "@stores/auth.store";
 import { DataService } from "@services/data/data.service";
+import { RequestService } from "@services/core/request.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { EncodingHelper } from "@helpers/encoding.helper";
@@ -66,6 +66,7 @@ export class LoginView implements OnDestroy {
   private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);
   private dataService = inject(DataService);
+  private requestService = inject(RequestService);
   private destroyRef = inject(DestroyRef);
 
   rememberField: CheckboxField = {
@@ -117,8 +118,7 @@ export class LoginView implements OnDestroy {
     private fb: FormBuilder,
     private authService: AuthService,
     public securityService: SecurityService,
-    private notifyService: NotifyService,
-    private dataSyncProvider: ApiProvider
+    private notifyService: NotifyService
   ) {
     this.loginForm = this.fb.group({
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
@@ -137,27 +137,25 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    const sub = this.dataSyncProvider
-      .crud<any[]>("getAll", "users", { visibility: "private" })
-      .subscribe({
-        next: (users) => {
-          const activeUsers = (users || []).filter((u) => !u.deleted_at);
-          this.hasLocalUsers.set(activeUsers.length > 0);
-        },
-        error: (err) => {
-          this.hasLocalUsers.set(false);
+    const sub = this.dataService.getAll("users", { visibility: "private" }).subscribe({
+      next: (users) => {
+        const activeUsers = (users || []).filter((u: any) => !u.deleted_at);
+        this.hasLocalUsers.set(activeUsers.length > 0);
+      },
+      error: (err) => {
+        this.hasLocalUsers.set(false);
 
-          if (NetworkErrorHelper.isNetworkError(err)) {
-            this.notifyService.showWarning(
-              "Cannot connect to database. Please check:\n" +
-                "1. MongoDB server is running\n" +
-                "2. Connection string in .env is correct\n" +
-                "3. Network/firewall allows connection\n\n" +
-                "Check terminal for detailed error message."
-            );
-          }
-        },
-      });
+        if (NetworkErrorHelper.isNetworkError(err)) {
+          this.notifyService.showWarning(
+            "Cannot connect to database. Please check:\n" +
+              "1. MongoDB server is running\n" +
+              "2. Connection string in .env is correct\n" +
+              "3. Network/firewall allows connection\n\n" +
+              "Check terminal for detailed error message."
+          );
+        }
+      },
+    });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 

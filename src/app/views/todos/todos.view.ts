@@ -47,9 +47,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-
-/* providers */
-import { ApiProvider, Operation } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -83,7 +81,6 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
 @Component({
   selector: "app-todos",
   standalone: true,
-  providers: [ApiProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -133,8 +130,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private adminStorageService = inject(UnifiedStorageService);
-  private dataSyncProvider = inject(ApiProvider);
   private dataService = inject(DataService);
+  private requestService = inject(RequestService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -446,8 +443,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   loadInitialTodos() {
-    const sub = this.dataSyncService
-      .loadInitialTodos("all", this.todoPagination().limit)
+    const sub = this.dataService
+      .loadPage("todos", { visibility: "all", limit: this.todoPagination().limit, skip: 0 })
       .subscribe({
         next: (todos: Todo[]) => {
           console.log("[TodosView] Loaded todos:", todos.length);
@@ -490,7 +487,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
 
-    const sub = this.dataSyncService.loadMoreTodos(this.visibility).subscribe({
+    this.dataService.loadMore("todos").subscribe({
       next: (todos: Todo[]) => {
         this.todoPagination.update((p) => ({
           ...p,
@@ -518,7 +515,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
-    this.dataSyncService.loadInitialTodos(visibility, this.todoPagination().limit).subscribe();
+    this.dataService
+      .loadPage("todos", { visibility, limit: this.todoPagination().limit, skip: 0 })
+      .subscribe();
   }
 
   override ngOnInit(): void {

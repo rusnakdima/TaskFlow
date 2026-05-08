@@ -41,15 +41,12 @@ import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DataService } from "@services/data/data.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -82,7 +79,6 @@ import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 @Component({
   selector: "app-subtasks",
   standalone: true,
-  providers: [ApiProvider],
   imports: [
     CommonModule,
     RouterModule,
@@ -106,14 +102,13 @@ import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 export class SubtasksView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private dataSyncProvider = inject(ApiProvider);
-  private cdr = inject(ChangeDetectorRef);
   private dataService = inject(DataService);
+  private requestService = inject(RequestService);
+  private cdr = inject(ChangeDetectorRef);
   private dragDropService = inject(DragDropOrderService);
   public bulkService = inject(BulkActionService);
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
-  private dataLoaderService = inject(DataLoaderService);
   private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -181,11 +176,13 @@ export class SubtasksView extends BaseListView implements OnInit {
   private loadChats(todoId: string): void {
     this.chatSubscription?.unsubscribe();
     const visibility = this.todo()?.visibility || "private";
-    const sub = this.dataLoaderService.loadInitialChatsForTodo(todoId, visibility).subscribe({
-      next: (chats) => {
-        this.chats.set(chats);
-      },
-    });
+    const sub = this.dataService
+      .loadPage<Chat>("chats", { filter: { todo_id: todoId }, visibility, skip: 0, limit: 10 })
+      .subscribe({
+        next: (chats: Chat[]) => {
+          this.chats.set(chats);
+        },
+      });
     this.chatSubscription = sub;
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
@@ -223,23 +220,30 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataLoaderService.loadInitialSubtasksForTask(taskId, visibility).subscribe({
-      next: (subtasks) => {
-        this.taskSubtasks.set(subtasks);
-        this.subtaskPagination.update((p) => ({
-          ...p,
-          skip: subtasks.length,
-          loading: false,
-          hasMore: subtasks.length === p.limit,
-        }));
-      },
-      error: () => {
-        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
-      },
-      complete: () => {
-        this.isLoadingSubtasks = false;
-      },
-    });
+    this.dataService
+      .loadPage<Subtask>("subtasks", {
+        filter: { task_id: taskId },
+        visibility,
+        skip: 0,
+        limit: 10,
+      })
+      .subscribe({
+        next: (subtasks: Subtask[]) => {
+          this.taskSubtasks.set(subtasks);
+          this.subtaskPagination.update((p) => ({
+            ...p,
+            skip: subtasks.length,
+            loading: false,
+            hasMore: subtasks.length === p.limit,
+          }));
+        },
+        error: () => {
+          this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+        },
+        complete: () => {
+          this.isLoadingSubtasks = false;
+        },
+      });
   }
 
   loadMoreSubtasks() {
@@ -250,7 +254,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataLoaderService.loadMoreSubtasksForTask(taskId, visibility).subscribe({
+    this.dataService.loadMore("subtasks").subscribe({
       next: (subtasks) => {
         this.taskSubtasks.update((current) => [...current, ...subtasks]);
         this.subtaskPagination.update((p) => ({
@@ -459,16 +463,13 @@ export class SubtasksView extends BaseListView implements OnInit {
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
-    const todoId = this.todoId();
+    const todo = this.todo();
+    const visibility = todo?.visibility || "private";
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", {
-        id: subtask.id,
-        data: { status: newStatus },
-        parentTodoId: todoId,
-      })
+    this.dataService
+      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, visibility)
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -483,14 +484,11 @@ export class SubtasksView extends BaseListView implements OnInit {
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {
-    const todoId = this.todoId();
+    const todo = this.todo();
+    const visibility = todo?.visibility || "private";
 
-    this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", {
-        id: event.subtask.id,
-        data: { [event.field]: event.value },
-        parentTodoId: todoId,
-      })
+    this.dataService
+      .update<Subtask>("subtasks", event.subtask.id, { [event.field]: event.value }, visibility)
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -501,11 +499,12 @@ export class SubtasksView extends BaseListView implements OnInit {
   }
 
   deleteSubtask(id: string) {
-    const todoId = this.todoId();
+    const todo = this.todo();
+    const visibility = todo?.visibility || "private";
 
     if (!confirm("Are you sure?")) return;
 
-    this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId }).subscribe({
+    this.dataService.delete("subtasks", id, visibility).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -556,15 +555,10 @@ export class SubtasksView extends BaseListView implements OnInit {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
-    const todoId = this.todoId();
-
+    const visibility = this.isPrivate() ? "private" : "shared";
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.dataSyncProvider.crud<Subtask>("update", "subtasks", {
-          id: subtaskId,
-          data: { status: status as TaskStatus },
-          parentTodoId: todoId,
-        })
+        this.dataService.update("subtasks", subtaskId, { status: status as any }, visibility)
       );
     });
 
@@ -578,48 +572,11 @@ export class SubtasksView extends BaseListView implements OnInit {
       });
   }
 
-  async bulkDelete(): Promise<void> {
-    const selected = this.selectedSubtasks();
-    if (selected.size === 0) return;
-
-    const todoId = this.todoId();
-
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Delete Subtasks",
-      message: `Are you sure you want to delete ${selected.size} subtask(s)?`,
-      confirmText: "Delete",
-    });
-    if (!confirmed) return;
-
-    this.bulkActionHelper
-      .bulkDelete(
-        Array.from(selected).map((id) => ({ id })),
-        (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
-      )
-      .subscribe({
-        next: (result) => {
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Deleted ${result.successCount} subtask(s), ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(
-              `${result.successCount} subtask(s) deleted successfully`
-            );
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete subtasks");
-        },
-      });
-  }
-
   async bulkArchive(): Promise<void> {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
-    const todoId = this.todoId();
+    const visibility = this.isPrivate() ? "private" : "shared";
 
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Subtasks",
@@ -629,27 +586,17 @@ export class SubtasksView extends BaseListView implements OnInit {
     });
     if (!confirmed) return;
 
-    this.bulkActionHelper
-      .bulkDelete(
-        Array.from(selected).map((id) => ({ id })),
-        (id) => this.dataSyncProvider.crud("delete", "subtasks", { id, parentTodoId: todoId })
-      )
-      .subscribe({
-        next: (result) => {
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Archived ${result.successCount} subtask(s), ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(
-              `${result.successCount} subtask(s) archived successfully`
-            );
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to archive subtasks");
-        },
+    const deletePromises = Array.from(selected).map((id) => {
+      return firstValueFrom(this.dataService.delete("subtasks", id, visibility));
+    });
+
+    Promise.all(deletePromises)
+      .then(() => {
+        this.notifyService.showSuccess(`${selected.size} subtask(s) archived successfully`);
+        this.clearSelection();
+      })
+      .catch((err) => {
+        this.notifyService.showError(err.message || "Failed to archive subtasks");
       });
   }
 

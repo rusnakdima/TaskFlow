@@ -17,8 +17,8 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
+import { RequestService } from "@services/core/request.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 @Component({
@@ -35,9 +35,9 @@ export class ProfileView implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private location: Location,
     private authService: AuthService,
-    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private dataService: DataService,
+    private requestService: RequestService,
     private storageService: UnifiedStorageService
   ) {}
 
@@ -165,7 +165,7 @@ export class ProfileView implements OnInit, OnDestroy {
       return;
     }
 
-    this.dataSyncProvider
+    this.requestService
       .invokeCommand<{ success: boolean }>("qr_approve", {
         token,
         username,
@@ -189,7 +189,7 @@ export class ProfileView implements OnInit, OnDestroy {
       return;
     }
 
-    this.dataSyncProvider.invokeCommand<string>("qr_login_complete", { token }).subscribe({
+    this.requestService.invokeCommand<string>("qr_login_complete", { token }).subscribe({
       next: (jwtToken) => {
         if (jwtToken) {
           localStorage.setItem("token", jwtToken);
@@ -214,7 +214,7 @@ export class ProfileView implements OnInit, OnDestroy {
     }
 
     try {
-      const sub = this.dataSyncProvider
+      const sub = this.requestService
         .invokeCommand<{
           token: string;
           qrCode: string;
