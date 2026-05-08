@@ -334,8 +334,12 @@ export class REQUEST_SERVICE {
     options: CrudOptions = { visibility: "all" }
   ): Observable<T> {
     const isPrivate = options.visibility === "private";
+    console.log("[API] create called", { table, visibility: options.visibility, isPrivate, data });
     return this.invokeCrud<T>("create", table, options, { data }).pipe(
-      tap((created) => this.syncToStorage(table, "add", created, { isPrivate }))
+      tap((created) => {
+        console.log("[API] create success:", table, created);
+        this.syncToStorage(table, "add", created, { isPrivate });
+      })
     );
   }
 
