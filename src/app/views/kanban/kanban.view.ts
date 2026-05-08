@@ -36,6 +36,7 @@ import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
+import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { STATUS_ICONS, STATUS_BG_COLORS } from "@constants/table-field.constants";
 
@@ -342,7 +343,7 @@ export class KanbanView extends BaseListView implements OnInit {
       this.selectedTodoId.set(todoId);
       this.expandedTasks.set(new Set());
       const cachedTasks = this.storageService.getTasksByTodoId(todoId);
-      if (cachedTasks.length === 0 || !this.storageService.isCacheValid(300000)) {
+      if (cachedTasks.length === 0 || !this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
         this.loadTasksForTodo(todoId);
       }
     }
@@ -351,7 +352,7 @@ export class KanbanView extends BaseListView implements OnInit {
   private loadTasksForTodo(todoId: string, forceRefresh = false): void {
     if (!forceRefresh) {
       const cachedTasks = this.storageService.getTasksByTodoId(todoId);
-      if (cachedTasks.length > 0 && this.storageService.isCacheValid(300000)) {
+      if (cachedTasks.length > 0 && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
         return;
       }
     }

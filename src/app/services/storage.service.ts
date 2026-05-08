@@ -30,6 +30,7 @@ import { StorageSignalMap } from "@models/storage-signal-map.model";
 
 /* utils */
 import { groupByKey } from "@stores/utils/store-helpers";
+import { TimestampHelper, VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 export type StorageEntity = keyof EntityMap;
 export type VisibilityFilter = "all" | "private" | "shared" | "public";
@@ -831,7 +832,7 @@ export class StorageService {
   }
 
   private softDeleteTaskInternal(task_id: string): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TimestampHelper.createTimestamp();
     const subtasks = this.getSubtasksByTaskId(task_id);
 
     this._tasks.update((tasks) =>
@@ -844,7 +845,7 @@ export class StorageService {
   }
 
   private softDeleteSubtaskInternal(subtask_id: string): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TimestampHelper.createTimestamp();
     this._subtasks.update((subtasks) =>
       subtasks.map((s) => (s.id === subtask_id ? { ...s, deleted_at: timestamp } : s))
     );
@@ -857,7 +858,7 @@ export class StorageService {
     comments: Comment[];
     chats?: Chat[];
   }): void {
-    const visibility = data.todo.visibility || "private";
+    const visibility = VisibilityHelper.getVisibility(data.todo.visibility);
     const targetArray =
       visibility === "private"
         ? this._privateTodos
@@ -881,7 +882,7 @@ export class StorageService {
   }
 
   restoreRecordWithCascade(table: string, id: string): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TimestampHelper.createTimestamp();
 
     if (table === "todos") {
       this.batchUpdate("todos", [{ id, updates: { deleted_at: null, updated_at: timestamp } }]);
@@ -927,7 +928,7 @@ export class StorageService {
   }
 
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TimestampHelper.createTimestamp();
 
     if (table === "todos") {
       const { taskIds, subtaskIds } = this.cascadeService.computeCascadeForTodo(
@@ -1210,7 +1211,7 @@ export class StorageService {
   }
 
   updateRecordDeleteStatus(table: string, id: string, deletedAt: boolean): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TimestampHelper.createTimestamp();
     this.updateRecord(table, id, {
       deleted_at: deletedAt ? timestamp : null,
       updated_at: timestamp,

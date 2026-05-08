@@ -59,6 +59,7 @@ import { FilterHelper } from "@helpers/filter.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
+import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -166,7 +167,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (tid && todo) {
       const cachedChats = this.storageService.getChatsByTodo(tid);
-      const isCacheValid = this.storageService.isCacheValid(300000);
+      const isCacheValid = this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS);
 
       if (cachedChats.length > 0 && isCacheValid) {
         this.chats.set(cachedChats);
@@ -269,7 +270,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     const cachedTasks = this.storageService.getTasksByTodoId(todoId);
-    const isCacheValid = this.storageService.isCacheValid(300000);
+    const isCacheValid = this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS);
 
     if (cachedTasks.length > 0 && isCacheValid && !forceRefresh) {
       this.todoTasks.set(cachedTasks);
