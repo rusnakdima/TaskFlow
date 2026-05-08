@@ -457,7 +457,7 @@ export class ManageItemPage implements OnInit {
     try {
       const config = this.currentConfig();
       const formValue = this.form.value;
-      const payload = this.buildPayload(formValue, config);
+      const { data: payload, visibility } = this.buildPayload(formValue, config);
 
       let savedTaskId: string | null = null;
 
@@ -465,21 +465,21 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(this.dataService.updateTodo(id, payload));
+          await firstValueFrom(this.dataService.updateTodo(id, payload, visibility));
         } else if (config.type === "task") {
-          await firstValueFrom(this.dataService.updateTask(id, payload));
+          await firstValueFrom(this.dataService.updateTask(id, payload, visibility));
         } else {
-          await firstValueFrom(this.dataService.updateSubtask(id, payload));
+          await firstValueFrom(this.dataService.updateSubtask(id, payload, visibility));
         }
       } else {
         let result: any;
         if (config.type === "todo") {
-          result = await firstValueFrom(this.dataService.createTodo(payload));
+          result = await firstValueFrom(this.dataService.createTodo(payload, visibility));
         } else if (config.type === "task") {
-          result = await firstValueFrom(this.dataService.createTask(payload));
+          result = await firstValueFrom(this.dataService.createTask(payload, visibility));
           savedTaskId = result?.id || result?._id || null;
         } else {
-          result = await firstValueFrom(this.dataService.createSubtask(payload));
+          result = await firstValueFrom(this.dataService.createSubtask(payload, visibility));
         }
       }
 
@@ -507,7 +507,7 @@ export class ManageItemPage implements OnInit {
     }
   }
 
-  private buildPayload(formValue: any, config: FormConfig): any {
+  private buildPayload(formValue: any, config: FormConfig): { data: any; visibility: string } {
     const token = this.jwtTokenService.getToken();
     const userId = this.jwtTokenService.getUserId(token);
 
@@ -526,28 +526,34 @@ export class ManageItemPage implements OnInit {
 
     if (config.type === "todo") {
       return {
-        ...base,
+        data: {
+          ...base,
+          categories: formValue.categories || [],
+          assignees: formValue.assignees || [],
+          github_repo_id: formValue.github_repo_id || "",
+          github_repo_name: this.getRepoName(formValue.github_repo_id),
+        },
         visibility: formValue.visibility || "private",
-        categories: formValue.categories || [],
-        assignees: formValue.assignees || [],
-        github_repo_id: formValue.github_repo_id || "",
-        github_repo_name: this.getRepoName(formValue.github_repo_id),
       };
     } else if (config.type === "task") {
       const parentTodo = this.todos().find((t) => t.id === formValue.todo_id);
       return {
-        ...base,
-        todo_id: formValue.todo_id,
-        repeat: formValue.repeat || "none",
+        data: {
+          ...base,
+          todo_id: formValue.todo_id,
+          repeat: formValue.repeat || "none",
+          publish_to_github: formValue.publish_to_github || false,
+        },
         visibility: parentTodo?.visibility || "private",
-        publish_to_github: formValue.publish_to_github || false,
       };
     } else {
       const parentTask = this.tasks().find((t) => t.id === formValue.task_id);
       const parentTodo = parentTask ? this.todos().find((t) => t.id === parentTask.todo_id) : null;
       return {
-        ...base,
-        task_id: formValue.task_id,
+        data: {
+          ...base,
+          task_id: formValue.task_id,
+        },
         visibility: parentTodo?.visibility || "private",
       };
     }

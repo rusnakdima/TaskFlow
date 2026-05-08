@@ -122,9 +122,7 @@ export class DashboardView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("private", 10).subscribe({});
-    this.dataLoaderService.loadInitialTasksByVisibility("shared", 10).subscribe({});
-    this.dataLoaderService.loadInitialTasksByVisibility("public", 10).subscribe({});
+    this.dataLoaderService.loadInitialTasksByVisibility("all", 10).subscribe({});
   }
 
   getCircleColor(status: TaskStatus): string {
