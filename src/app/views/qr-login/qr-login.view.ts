@@ -62,6 +62,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   mobileQrStream: MediaStream | null = null;
   mobileQrCanvasElement: HTMLCanvasElement | null = null;
   mobileQrAnimationFrameId: number | null = null;
+  private qrApprovalInterval: ReturnType<typeof setInterval> | null = null;
 
   username = signal<string>("");
 
@@ -273,6 +274,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
       this.mobileQrCanvasElement = null;
     }
 
+    this.clearQrApprovalInterval();
     this.isMobileScanning.set(false);
     this.isQrScanningLoading.set(false);
     this.isQrLoginActive.set(false);
@@ -292,8 +294,14 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
       }
     };
 
-    const interval = setInterval(checkApproval, 2000);
-    setTimeout(() => clearInterval(interval), 95000);
+    this.qrApprovalInterval = setInterval(checkApproval, 2000);
+  }
+
+  private clearQrApprovalInterval(): void {
+    if (this.qrApprovalInterval) {
+      clearInterval(this.qrApprovalInterval);
+      this.qrApprovalInterval = null;
+    }
   }
 
   private async completeQrLogin(token: string): Promise<void> {
@@ -328,6 +336,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   cancelQrLogin(): void {
     this.qrLoginService.stopPolling();
     this.qrLoginService.clearQrData();
+    this.clearQrApprovalInterval();
     this.passkeyQrCode.set(null);
     this.isQrLoginActive.set(false);
     this.isQrGenerating.set(false);

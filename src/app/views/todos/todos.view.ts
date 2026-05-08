@@ -53,6 +53,8 @@ import { ResponseStatus } from "@models/response.model";
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
+import { DEFAULT_CACHE_TTL_MS, VisibilityHelper } from "@helpers/index";
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -137,6 +139,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
+  private bulkActionHelper = inject(BulkActionHelper);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -446,7 +449,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const hasTodos = this.storageService.todos().length > 0;
-    if (hasTodos && this.storageService.isCacheValid(300000)) {
+    if (hasTodos && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
       console.log("[TodosView] Using cached todos, skipping API call");
       this.todoPagination.update((p) => ({
         ...p,
@@ -526,7 +529,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
     const cachedTodos = this.getTodosForVisibility(visibility);
-    if (cachedTodos.length > 0 && this.storageService.isCacheValid(300000)) {
+    if (cachedTodos.length > 0 && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
       console.log("[TodosView] Using cached todos for visibility:", visibility);
       return;
     }
@@ -574,7 +577,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     // Subscribe to refresh shortcut (Ctrl+R)
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
-      if (!this.storageService.isCacheValid(300000) || this.storageService.todos().length === 0) {
+      if (
+        !this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS) ||
+        this.storageService.todos().length === 0
+      ) {
         this.loadInitialTodos();
       }
     });
@@ -1029,23 +1035,30 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const requests = Array.from(selected).map((todoId) => {
-        const todo = this.storageService.getTodoById(todoId);
-        const visibility = todo?.visibility || "private";
-        return this.requestService.delete("todos", todoId, {
-          visibility: visibility as Visibility,
+      const selectedArray = Array.from(selected).map((id) => ({ id }));
+      const sub = this.bulkActionHelper
+        .bulkDelete(selectedArray, (id) => {
+          const todo = this.storageService.getTodoById(id);
+          const visibility = VisibilityHelper.getVisibility(todo?.visibility);
+          return this.requestService.delete("todos", id, { visibility });
+        })
+        .subscribe({
+          next: (result) => {
+            this.clearSelection();
+            if (result.errorCount > 0) {
+              this.notifyService.showWarning(
+                `Archived ${result.successCount} project(s), ${result.errorCount} failed.`
+              );
+            } else {
+              this.notifyService.showSuccess(
+                `${result.successCount} project(s) archived successfully`
+              );
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to archive projects");
+          },
         });
-      });
-
-      const sub = forkJoin(requests).subscribe({
-        next: () => {
-          this.notifyService.showSuccess(`${selected.size} project(s) archived successfully`);
-          this.clearSelection();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to archive projects");
-        },
-      });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
@@ -1063,23 +1076,30 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmText: "Delete",
     });
     if (confirmed) {
-      const requests = Array.from(selected).map((todoId) => {
-        const todo = this.storageService.getTodoById(todoId);
-        const visibility = todo?.visibility || "private";
-        return this.requestService.delete("todos", todoId, {
-          visibility: visibility as Visibility,
+      const selectedArray = Array.from(selected).map((id) => ({ id }));
+      const sub = this.bulkActionHelper
+        .bulkDelete(selectedArray, (id) => {
+          const todo = this.storageService.getTodoById(id);
+          const visibility = VisibilityHelper.getVisibility(todo?.visibility);
+          return this.requestService.delete("todos", id, { visibility });
+        })
+        .subscribe({
+          next: (result) => {
+            this.clearSelection();
+            if (result.errorCount > 0) {
+              this.notifyService.showWarning(
+                `Deleted ${result.successCount} project(s), ${result.errorCount} failed.`
+              );
+            } else {
+              this.notifyService.showSuccess(
+                `${result.successCount} project(s) deleted successfully`
+              );
+            }
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete projects");
+          },
         });
-      });
-
-      const sub = forkJoin(requests).subscribe({
-        next: () => {
-          this.notifyService.showSuccess(`${selected.size} project(s) deleted successfully`);
-          this.clearSelection();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete projects");
-        },
-      });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
