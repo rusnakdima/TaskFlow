@@ -562,7 +562,7 @@ impl RepositoryService {
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
-    let validated_data = validate_model(&table, &data_val, true)
+    let validated_data = validate_model(&table, &data_val, true, Some(visibility_str.clone()))
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
     let created_record = provider.insert(&table, validated_data).await?;
@@ -890,7 +890,7 @@ impl RepositoryService {
     let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
 
     for record in raw_records {
-      let validated = validate_model(&table, &record, false)
+      let validated = validate_model(&table, &record, false, visibility.clone())
         .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
 
       if let Some(id) = validated.get("id").and_then(|v| v.as_str()) {
@@ -927,7 +927,7 @@ impl RepositoryService {
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
 
-    let validated_data = validate_model(&table, &data_val, false)
+    let validated_data = validate_model(&table, &data_val, false, visibility.clone())
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
     let visibility_str = visibility.as_deref();
