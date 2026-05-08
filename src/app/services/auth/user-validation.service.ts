@@ -6,13 +6,13 @@ import { Router } from "@angular/router";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class UserValidationService {
-  private dataService = inject(DataService);
+  private dataService = inject(REQUEST_SERVICE);
   private jwtTokenService = inject(JwtTokenService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);

@@ -3,7 +3,7 @@ import { Observable, of } from "rxjs";
 import { tap } from "rxjs/operators";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 export interface PasskeyRegistrationOptions {
   options: any;
@@ -21,7 +21,7 @@ export interface PasskeyAuthOptions {
   providedIn: "root",
 })
 export class PasskeyService {
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private jwtTokenService = inject(JwtTokenService);
 
   isPasskeyEnabledForCurrentUser(): boolean {
@@ -257,7 +257,8 @@ export class PasskeyService {
   }
 
   async registerBiometric(): Promise<{ success: boolean; error?: string }> {
-    return this.initPasskeyRegistration().toPromise()
+    return this.initPasskeyRegistration()
+      .toPromise()
       .then(() => ({ success: true, requiresTotp: false }))
       .catch((err) => ({ success: false, error: err.message || "Biometric registration failed" }));
   }

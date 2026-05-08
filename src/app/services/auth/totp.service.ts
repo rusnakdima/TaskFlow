@@ -2,7 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@models/auth-forms.model";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -14,7 +14,7 @@ export interface TotpSetupResult {
   providedIn: "root",
 })
 export class TotpService {
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private jwtTokenService = inject(JwtTokenService);
 
   isTotpEnabledForCurrentUser(): boolean {
