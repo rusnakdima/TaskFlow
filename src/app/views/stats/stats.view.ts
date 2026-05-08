@@ -61,20 +61,20 @@ export class StatsView implements OnInit {
   ];
 
   statistics = signal<Statistics>({
-    totalTasks: 0,
-    completionRate: 0,
-    averageTaskTime: 0,
-    productivityScore: 0,
-    previousTotalTasks: 0,
-    previousCompletionRate: 0,
-    previousAverageTime: 0,
-    previousProductivityScore: 0,
+    total_tasks: 0,
+    completion_rate: 0,
+    average_task_time: 0,
+    productivity_score: 0,
+    previous_total_tasks: 0,
+    previous_completion_rate: 0,
+    previous_average_time: 0,
+    previous_productivity_score: 0,
   });
 
   chartData = signal<ChartData>({
-    completionTrend: [],
+    completion_trend: [],
     categories: [],
-    dailyActivity: [],
+    daily_activity: [],
   });
 
   achievements = signal<Achievement[]>([]);
@@ -99,26 +99,13 @@ export class StatsView implements OnInit {
     if (userId && userId !== "") {
       this.dataSyncProvider
         .invokeCommand<StatisticsResponse>("statistics_get", {
-          userId: userId,
-          timeRange: this.selectedTimeRange(),
+          user_id: userId,
+          time_range: this.selectedTimeRange(),
         })
         .subscribe({
           next: (response: any) => {
-            this.statistics.set({
-              totalTasks: response.statistics.total_tasks,
-              completionRate: response.statistics.completion_rate,
-              averageTaskTime: response.statistics.average_task_time,
-              productivityScore: response.statistics.productivity_score,
-              previousTotalTasks: response.statistics.previous_total_tasks,
-              previousCompletionRate: response.statistics.previous_completion_rate,
-              previousAverageTime: response.statistics.previous_average_time,
-              previousProductivityScore: response.statistics.previous_productivity_score,
-            });
-            this.chartData.set({
-              completionTrend: response.chart_data.completion_trend,
-              categories: response.chart_data.categories,
-              dailyActivity: response.chart_data.daily_activity,
-            });
+            this.statistics.set(response.statistics);
+            this.chartData.set(response.chart_data);
             this.achievements.set(response.achievements);
             this.detailedMetrics.set(response.detailed_metrics);
           },

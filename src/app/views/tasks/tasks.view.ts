@@ -185,8 +185,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private taskLoadEffect = effect(() => {
     const todoId = this.todoId();
-    const todo = this.todo();
-    if (todoId && todoId !== this.lastLoadedTaskTodoId && todo) {
+    if (todoId && todoId !== this.lastLoadedTaskTodoId) {
       this.lastLoadedTaskTodoId = todoId;
       this.loadInitialTasks();
     }
@@ -220,6 +219,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
+          this.loadInitialTasks();
         } else {
           this.notifyService.showError("Todo not found.");
         }
