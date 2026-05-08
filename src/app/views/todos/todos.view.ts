@@ -450,14 +450,23 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       .loadInitialTodos("all", this.todoPagination().limit)
       .subscribe({
         next: (todos: Todo[]) => {
+          console.log("[TodosView] Loaded todos:", todos.length);
           this.todoPagination.update((p) => ({
             ...p,
             skip: todos.length,
             hasMore: todos.length === p.limit,
             total: todos.length,
+            loading: false,
           }));
         },
-        error: () => {
+        error: (err) => {
+          console.error("[TodosView] Failed to load todos:", err);
+          this.todoPagination.update((p) => ({
+            ...p,
+            loading: false,
+          }));
+        },
+        complete: () => {
           this.todoPagination.update((p) => ({
             ...p,
             loading: false,

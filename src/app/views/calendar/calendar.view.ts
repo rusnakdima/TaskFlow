@@ -69,9 +69,12 @@ export class CalendarView extends BaseListView implements OnInit {
   private userId = "";
   private todos = signal<Todo[]>([]);
   private tasksByTodo = signal<{ [todoId: string]: Task[] }>({});
-  private allEvents = signal<CalendarEvent[]>([]);
   private tasksLoading = signal(false);
-  private loadedMonths = signal<Set<string>>(new Set());
+
+  private allEvents = computed<CalendarEvent[]>(() => {
+    const tasks = this.storageService.tasks();
+    return this.buildEventsFromTasks(tasks);
+  });
 
   filteredEvents = computed(() =>
     this.allEvents().filter((event) => this.isSameDay(event.date, this.selectedDate()))
@@ -88,67 +91,9 @@ export class CalendarView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("all", 100).subscribe({
-      complete: () => this.loadTasksForCurrentMonth(),
-    });
-  }
-
-  private loadTasksForCurrentMonth(): void {
-    const monthKey = this.getMonthKey(this.currentMonth());
-    if (this.loadedMonths().has(monthKey) && !this.tasksLoading()) {
-      return;
-    }
-
-    if (!this.mongoConnectionService.isConnected()) {
-      this.tasksLoading.set(true);
-      const privateTasks = this.getPrivateTasksFromCache();
-      const events = this.buildEventsFromTasks(privateTasks);
-      this.allEvents.set(events);
-      this.loadedMonths.update((set) => {
-        const newSet = new Set(set);
-        newSet.add(monthKey);
-        return newSet;
-      });
-      this.tasksLoading.set(false);
-      return;
-    }
-
-    const cachedTasks = this.storageService.tasks();
-    if (cachedTasks.length > 0) {
-      const events = this.buildEventsFromTasks(cachedTasks);
-      this.allEvents.set(events);
-      this.loadedMonths.update((set) => {
-        const newSet = new Set(set);
-        newSet.add(monthKey);
-        return newSet;
-      });
-      return;
-    }
-
-    this.tasksLoading.set(true);
-    this.dataService
-      .getTasksByMonth(this.currentMonth().getFullYear(), this.currentMonth().getMonth() + 1)
-      .subscribe({
-        next: (response: { tasks: Task[] }) => {
-          const tasks: Task[] = response.tasks || [];
-          this.storageService.setCollection("tasks", tasks);
-          const events = this.buildEventsFromTasks(tasks);
-          this.allEvents.set(events);
-          this.loadedMonths.update((set) => {
-            const newSet = new Set(set);
-            newSet.add(monthKey);
-            return newSet;
-          });
-          this.tasksLoading.set(false);
-        },
-        error: (err: any) => {
-          const privateTasks = this.getPrivateTasksFromCache();
-          const events = this.buildEventsFromTasks(privateTasks);
-          this.allEvents.set(events);
-          this.handleError(err);
-          this.tasksLoading.set(false);
-        },
-      });
+    this.dataLoaderService.loadInitialTasksByVisibility("private", 100).subscribe({});
+    this.dataLoaderService.loadInitialTasksByVisibility("shared", 100).subscribe({});
+    this.dataLoaderService.loadInitialTasksByVisibility("public", 100).subscribe({});
   }
 
   private getPrivateTasksFromCache(): Task[] {
@@ -206,10 +151,6 @@ export class CalendarView extends BaseListView implements OnInit {
     return events;
   }
 
-  private getMonthKey(date: Date): string {
-    return `${date.getFullYear()}-${date.getMonth()}`;
-  }
-
   selectDate(date: Date): void {
     this.selectedDate.set(new Date(date));
   }
@@ -226,7 +167,6 @@ export class CalendarView extends BaseListView implements OnInit {
         1
       );
       this.currentMonth.set(newMonth);
-      this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
       const current = this.selectedDate();
       const newDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() - 7);
@@ -242,7 +182,6 @@ export class CalendarView extends BaseListView implements OnInit {
         1
       );
       this.currentMonth.set(newMonth);
-      this.loadTasksForCurrentMonth();
     } else if (this.displayMode() === "week") {
       const current = this.selectedDate();
       const newDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 7);
@@ -253,7 +192,6 @@ export class CalendarView extends BaseListView implements OnInit {
   goToToday(): void {
     this.currentMonth.set(new Date());
     this.selectedDate.set(new Date());
-    this.loadTasksForCurrentMonth();
   }
 
   formatMonthYear(): string {

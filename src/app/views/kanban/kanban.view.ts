@@ -211,6 +211,17 @@ export class KanbanView extends BaseListView implements OnInit {
     super.ngOnInit();
     this.userId.set(this.authService.getValueByKey("id"));
 
+    const cachedTodos = this.storageService.todos();
+    if (cachedTodos.length > 0 && !this.mongoConnectionService.isConnected()) {
+      const queryProjectId = this.route.snapshot.queryParams["projectId"];
+      if (queryProjectId) {
+        this.selectedTodoId.set(queryProjectId);
+      } else if (cachedTodos.length > 0) {
+        this.selectedTodoId.set(cachedTodos[0].id);
+      }
+      return;
+    }
+
     this.routeSub = this.route.queryParams.subscribe((params) => {
       if (params["projectId"]) {
         this.selectedTodoId.set(params["projectId"]);
@@ -332,6 +343,11 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   private loadTasksForTodo(todoId: string): void {
+    const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+    if (cachedTasks.length > 0 && !this.mongoConnectionService.isConnected()) {
+      return;
+    }
+
     this.dataLoaderService.loadInitialTasksForTodo(todoId, "private", 20).subscribe({
       next: () => {},
       error: (err) => console.error("Failed to load tasks:", err),
