@@ -14,6 +14,7 @@ import { Todo } from "@models/todo.model";
 import { AuthService } from "@services/auth/auth.service";
 import { TemplateService } from "@services/features/template.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -31,6 +32,7 @@ export class SharedTasksView extends BaseListView implements OnInit {
   private templateService = inject(TemplateService);
   private dragDropService = inject(DragDropOrderService);
   private destroyRef = inject(DestroyRef);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -67,11 +69,16 @@ export class SharedTasksView extends BaseListView implements OnInit {
     return todo.user_id === this.userId();
   }
 
-  deleteTodoById(todoId: string, isOwner: boolean): void {
-    if (confirm("Are you sure you want to delete this project?")) {
-      this.storageService.removeTodoWithCascade(todoId);
-      this.notifyService.showSuccess("Project deleted successfully");
-    }
+  async deleteTodoById(todoId: string, isOwner: boolean): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Project",
+      message: "Are you sure you want to delete this project?",
+      confirmText: "Delete",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
+    this.storageService.removeTodoWithCascade(todoId);
+    this.notifyService.showSuccess("Project deleted successfully");
   }
 
   onMyProjectsDrop(event: CdkDragDrop<Todo[]>): void {

@@ -632,22 +632,28 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  deleteTodoById(todoId?: string, isOwner: boolean = true): void {
-    if (confirm("Are you sure you want to delete this project?")) {
-      const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
-      const visibility = todo?.visibility || "private";
-      const sub = this.requestService
-        .delete("todos", todoId!, { visibility: visibility as Visibility })
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Todo deleted successfully");
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to delete todo");
-          },
-        });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
-    }
+  async deleteTodoById(todoId?: string, isOwner: boolean = true): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Project",
+      message: "Are you sure you want to delete this project?",
+      confirmText: "Delete",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
+
+    const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
+    const visibility = todo?.visibility || "private";
+    const sub = this.requestService
+      .delete("todos", todoId!, { visibility: visibility as Visibility })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete todo");
+        },
+      });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   async archiveTodoById(todoId?: string): Promise<void> {
@@ -728,9 +734,47 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
-  onRowClick(todo: any): void {
-    // TODO: type todo properly
-    this.router.navigate(["/todos", todo.id, "tasks"]);
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, event.id, this.listTodos());
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.toggleItemSelection(event.id);
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+  }
+
+  onRangeSelect(event: { anchorId: string; targetId: string }): void {
+    this.selectRange(event.anchorId, event.targetId, this.listTodos());
+  }
+
+  onAdditiveSelect(id: string): void {
+    this.toggleItemSelection(id);
+    this.lastSelectedId.set(id);
+  }
+
+  onRowClick(event: { event: MouseEvent; item: any } | any): void {
+    const item = event.item || event;
+    const mouseEvent = event.event;
+
+    if (mouseEvent?.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, item.id, this.listTodos());
+        return;
+      }
+    } else if (mouseEvent?.ctrlKey || mouseEvent?.metaKey) {
+      this.toggleItemSelection(item.id);
+      this.lastSelectedId.set(item.id);
+      return;
+    }
+
+    this.lastSelectedId.set(item.id);
+    this.router.navigate(["/todos", item.id, "tasks"]);
   }
 
   async onTableAction(event: { action: string; item: any }): Promise<void> {
@@ -895,6 +939,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
    */
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
+    if (selected) {
+      this.lastSelectedId.set(id);
+    }
     this.selectedItems.update((todoIds) => {
       const newSelected = new Set(todoIds);
       if (selected) {

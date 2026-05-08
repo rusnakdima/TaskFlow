@@ -60,6 +60,8 @@
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"
+          (rangeSelect)="onRangeSelect($event)"
+          (additiveSelect)="onAdditiveSelect($event)"
           (dropped)="onSubtaskDrop($event)"
           (actionClick)="onSubtaskTableAction($event)"
         >
@@ -95,6 +97,7 @@
               (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
               (updateSubtaskEvent)="updateSubtaskInline($event)"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
+              (cardClick)="onCardClick($event)"
             >
               <div
                 *cdkDragPlaceholder
@@ -130,6 +133,7 @@
               (toggleCompletionEvent)="toggleSubtaskCompletion($event)"
               (updateSubtaskEvent)="updateSubtaskInline($event)"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
+              (cardClick)="onCardClick($event)"
             >
               <div
                 *cdkDragPlaceholder

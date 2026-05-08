@@ -92,6 +92,8 @@
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
+              (rangeSelect)="onRangeSelect($event)"
+              (additiveSelect)="onAdditiveSelect($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
@@ -120,6 +122,8 @@
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
+              (rangeSelect)="onRangeSelect($event)"
+              (additiveSelect)="onAdditiveSelect($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
@@ -148,6 +152,8 @@
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
               (selectAll)="toggleSelectAll()"
               (rowClick)="onRowClick($event)"
+              (rangeSelect)="onRangeSelect($event)"
+              (additiveSelect)="onAdditiveSelect($event)"
               (actionClick)="onTableAction($event)"
               (dropped)="onTodoDrop($event)"
             >
@@ -184,6 +190,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -217,6 +224,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -250,6 +258,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -288,6 +297,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -321,6 +331,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -354,6 +365,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -439,6 +451,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder
@@ -483,6 +496,7 @@
                 (saveAsBlueprintEvent)="saveAsBlueprint($event)"
                 (selectionChangeEvent)="toggleTodoSelection($event)"
                 (updateTodoEvent)="onUpdateTodo(todo, $event)"
+                (cardClick)="onCardClick($event)"
               >
                 <div
                   *cdkDragPlaceholder

@@ -414,11 +414,50 @@ export class SubtasksView extends BaseListView implements OnInit {
     }
   }
 
-  onRowClick(subtask: any): void {
+  onRowClick(event: { event: MouseEvent; item: any } | any): void {
+    const subtask = event.item || event;
+    const mouseEvent = event.event;
+
+    if (mouseEvent?.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, subtask.id, this.listSubtasks());
+        return;
+      }
+    } else if (mouseEvent?.ctrlKey || mouseEvent?.metaKey) {
+      this.toggleItemSelection(subtask.id);
+      this.lastSelectedId.set(subtask.id);
+      return;
+    }
+
+    this.lastSelectedId.set(subtask.id);
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { highlightSubtask: subtask.id, openComments: "true" },
     });
+  }
+
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, event.id, this.listSubtasks());
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.toggleItemSelection(event.id);
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+  }
+
+  onRangeSelect(event: { anchorId: string; targetId: string }): void {
+    this.selectRange(event.anchorId, event.targetId, this.listSubtasks());
+  }
+
+  onAdditiveSelect(id: string): void {
+    this.toggleItemSelection(id);
+    this.lastSelectedId.set(id);
   }
 
   onCommentToggle(subtaskId: string): void {
@@ -513,11 +552,17 @@ export class SubtasksView extends BaseListView implements OnInit {
       });
   }
 
-  deleteSubtask(id: string) {
+  async deleteSubtask(id: string) {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    if (!confirm("Are you sure?")) return;
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Subtask",
+      message: "Are you sure you want to delete this subtask?",
+      confirmText: "Delete",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
 
     this.requestService.delete("subtasks", id, { visibility: visibility as Visibility }).subscribe({
       next: () => {
@@ -554,6 +599,9 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   toggleSubtaskSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
+    if (selected) {
+      this.lastSelectedId.set(id);
+    }
     this.selectedSubtasks.update((subtaskIds) => {
       const newSelected = new Set(subtaskIds);
       if (selected) {
