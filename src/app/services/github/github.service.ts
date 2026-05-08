@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { GithubRepo, GithubConnection } from "@models/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 interface GithubOAuthResult {
   username: string;
@@ -30,7 +30,7 @@ interface GithubCommentResult {
   providedIn: "root",
 })
 export class GithubService {
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private notifyService = inject(NotifyService);
   private jwtTokenService = inject(JwtTokenService);
 
