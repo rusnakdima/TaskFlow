@@ -1,10 +1,10 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { ApiProvider } from "@providers/api.provider";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Observable, of } from "rxjs";
+import { DataService } from "@services/data/data.service";
 
 @Injectable({
   providedIn: "root",
@@ -12,7 +12,7 @@ import { Observable, of } from "rxjs";
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
   private storageService = inject(UnifiedStorageService);
-  private apiProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
 
   showBlueprintDialog = signal(false);
   showCreateBlueprintDialog = signal(false);
@@ -85,13 +85,15 @@ export class TodosBlueprintService {
     };
 
     return new Observable((subscriber) => {
-      this.apiProvider
-        .crud<Todo>("create", "todos", {
-          data: {
+      this.dataService
+        .create(
+          "todos",
+          {
             ...todoData,
             visibility: "private",
           },
-        })
+          "private"
+        )
         .subscribe({
           next: (createdTodo) => {
             if (createdTodo) {

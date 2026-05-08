@@ -22,13 +22,10 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
+import { DataService } from "@services/data/data.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
 
 /* components */
 import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
@@ -65,7 +62,7 @@ export class App implements OnInit, OnDestroy {
   private profileRequiredService = inject(ProfileRequiredService);
   private appStateService = inject(AppStateService);
   private userValidationService = inject(UserValidationService);
-  private dataLoaderService = inject(DataLoaderService);
+  private dataService = inject(DataService);
   private mongoConnectionService = inject(MongoConnectionService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
@@ -102,7 +99,7 @@ export class App implements OnInit, OnDestroy {
 
     this.authService.initializeSession(this.authRoutes);
 
-    this.dataLoaderService.loadProfileAndUser().subscribe();
+    this.dataService.getProfile().subscribe();
 
     this.mongoConnectionService.checkConnection().subscribe();
 

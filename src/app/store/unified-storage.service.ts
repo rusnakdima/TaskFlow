@@ -29,15 +29,6 @@ import { CascadeService } from "@services/core/cascade.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
 
-/* handlers */
-import { TodoHandler } from "@services/core/entity-handlers/todo.handler";
-import { CategoryHandler } from "@services/core/entity-handlers/category.handler";
-import { ProfileHandler } from "@services/core/entity-handlers/profile.handler";
-import { FlatCommentHandler } from "@services/core/entity-handlers/flat-comment.handler";
-import { FlatChatHandler } from "@services/core/entity-handlers/flat-chat.handler";
-import { TaskHandler } from "@services/core/entity-handlers/task.handler";
-import { SubtaskHandler } from "@services/core/entity-handlers/subtask.handler";
-
 /* utils */
 import { groupByKey, existsById } from "@stores/utils/store-helpers";
 
@@ -288,25 +279,54 @@ export class UnifiedStorageService extends BaseStorageService {
     return this.chatsPagination().hasMore;
   }
 
-  // ==================== ENTITY HANDLERS ====================
-  private readonly handlers = {
-    todos: new TodoHandler(this.privateTodosSignal, this.sharedTodosSignal, this.publicTodosSignal),
-    tasks: new TaskHandler(this.tasksSignal),
-    subtasks: new SubtaskHandler(this.subtasksSignal),
-    categories: new CategoryHandler(this.categoriesSignal),
-    profiles: new ProfileHandler(this.profileSignal),
-    chats: new FlatChatHandler(this.chatsSignal),
-    comments: new FlatCommentHandler(this.commentsSignal),
-  };
-
-  get handlersMap() {
-    return this.handlers;
-  }
-
   // ==================== CRUD OPERATIONS ====================
   addItem(type: StorageEntity, data: any, options?: { isPrivate?: boolean }): void {
     if (type === "users" || !data?.id) return;
-    this.handlers[type]?.add(data);
+    this.addToSignal(type, data, options?.isPrivate);
+  }
+
+  private addToSignal(type: StorageEntity, data: any, isPrivate?: boolean): void {
+    switch (type) {
+      case "todos":
+        if (isPrivate) {
+          if (!this.privateTodosSignal().some((t) => t.id === data.id)) {
+            this.privateTodosSignal.update((todos) => [data, ...todos]);
+          }
+        } else {
+          if (!this.sharedTodosSignal().some((t) => t.id === data.id)) {
+            this.sharedTodosSignal.update((todos) => [data, ...todos]);
+          }
+        }
+        break;
+      case "tasks":
+        if (!this.tasksSignal().some((t) => t.id === data.id)) {
+          this.tasksSignal.update((tasks) => [data, ...tasks]);
+        }
+        break;
+      case "subtasks":
+        if (!this.subtasksSignal().some((s) => s.id === data.id)) {
+          this.subtasksSignal.update((subtasks) => [data, ...subtasks]);
+        }
+        break;
+      case "comments":
+        if (!this.commentsSignal().some((c) => c.id === data.id)) {
+          this.commentsSignal.update((comments) => [data, ...comments]);
+        }
+        break;
+      case "chats":
+        if (!this.chatsSignal().some((c) => c.id === data.id)) {
+          this.chatsSignal.update((chats) => [data, ...chats]);
+        }
+        break;
+      case "categories":
+        if (!this.categoriesSignal().some((c) => c.id === data.id)) {
+          this.categoriesSignal.update((categories) => [data, ...categories]);
+        }
+        break;
+      case "profiles":
+        this.profileSignal.set(data);
+        break;
+    }
   }
 
   updateItem(
@@ -328,27 +348,121 @@ export class UnifiedStorageService extends BaseStorageService {
         const existing: any = this.getById(type, id);
         if (existing?.["deleted_at"]) continue;
       }
+      this.updateInSignal(type, id, updates);
+    }
+  }
 
-      if (type === "todos") {
-        const categoriesSignal = this.categoriesSignal;
-        this.handlers[type]?.update(id, updates, {
-          getCategoryById: (catId: string) => categoriesSignal().find((c) => c.id === catId),
-        });
-      } else if (type !== "users") {
-        this.handlers[type]?.update(id, updates);
-      }
+  private updateInSignal(type: StorageEntity, id: string, updates: any): void {
+    switch (type) {
+      case "todos":
+        this.privateTodosSignal.update((todos) =>
+          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+        this.sharedTodosSignal.update((todos) =>
+          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+        this.publicTodosSignal.update((todos) =>
+          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+        break;
+      case "tasks":
+        this.tasksSignal.update((tasks) =>
+          tasks.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+        break;
+      case "subtasks":
+        this.subtasksSignal.update((subtasks) =>
+          subtasks.map((s) => (s.id === id ? { ...s, ...updates } : s))
+        );
+        break;
+      case "comments":
+        this.commentsSignal.update((comments) =>
+          comments.map((c) => (c.id === id ? { ...c, ...updates } : c))
+        );
+        break;
+      case "chats":
+        this.chatsSignal.update((chats) =>
+          chats.map((c) => (c.id === id ? { ...c, ...updates } : c))
+        );
+        break;
+      case "categories":
+        this.categoriesSignal.update((categories) =>
+          categories.map((c) => (c.id === id ? { ...c, ...updates } : c))
+        );
+        break;
+      case "profiles":
+        const current = this.profileSignal();
+        if (current?.id === id) {
+          this.profileSignal.set({ ...current, ...updates });
+        }
+        break;
     }
   }
 
   removeItem(type: StorageEntity, id: string, parentId?: string, isShared: boolean = false): void {
     if (type === "users") return;
-    this.handlers[type]?.remove(id, parentId);
+    this.removeFromSignal(type, id);
+  }
+
+  private removeFromSignal(type: StorageEntity, id: string): void {
+    switch (type) {
+      case "todos":
+        this.privateTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
+        this.sharedTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
+        this.publicTodosSignal.update((todos) => todos.filter((t) => t.id !== id));
+        break;
+      case "tasks":
+        this.tasksSignal.update((tasks) => tasks.filter((t) => t.id !== id));
+        break;
+      case "subtasks":
+        this.subtasksSignal.update((subtasks) => subtasks.filter((s) => s.id !== id));
+        break;
+      case "comments":
+        this.commentsSignal.update((comments) => comments.filter((c) => c.id !== id));
+        break;
+      case "chats":
+        this.chatsSignal.update((chats) => chats.filter((c) => c.id !== id));
+        break;
+      case "categories":
+        this.categoriesSignal.update((categories) => categories.filter((c) => c.id !== id));
+        break;
+      case "profiles":
+        const current = this.profileSignal();
+        if (current?.id === id) {
+          this.profileSignal.set(null);
+        }
+        break;
+    }
   }
 
   getById<T extends keyof EntityMap>(type: T, id: string): EntityMap[T] | undefined {
     if (type === "users") return undefined;
-    const handler = this.handlers[type as keyof typeof this.handlers];
-    return handler ? (handler.getById(id) as EntityMap[T] | undefined) : undefined;
+    return this.findInSignal(type, id) as EntityMap[T] | undefined;
+  }
+
+  private findInSignal(type: StorageEntity, id: string): any {
+    switch (type) {
+      case "todos":
+        return (
+          this.privateTodosSignal().find((t) => t.id === id) ||
+          this.sharedTodosSignal().find((t) => t.id === id) ||
+          this.publicTodosSignal().find((t) => t.id === id)
+        );
+      case "tasks":
+        return this.tasksSignal().find((t) => t.id === id);
+      case "subtasks":
+        return this.subtasksSignal().find((s) => s.id === id);
+      case "comments":
+        return this.commentsSignal().find((c) => c.id === id);
+      case "chats":
+        return this.chatsSignal().find((c) => c.id === id);
+      case "categories":
+        return this.categoriesSignal().find((c) => c.id === id);
+      case "profiles":
+        return this.profileSignal();
+      default:
+        return undefined;
+    }
   }
 
   // ==================== O(1) LOOKUP METHODS ====================
@@ -564,10 +678,6 @@ export class UnifiedStorageService extends BaseStorageService {
   // ==================== CASCADE OPERATIONS ====================
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
-    const handler = this.handlers.todos as TodoHandler;
-    const allTodos = [...this.privateTodosSignal(), ...this.sharedTodosSignal()];
-    handler.removeWithCascade(todo_id, allTodos);
-
     this.removeTodoWithCascadeInternal(todo_id);
   }
 
@@ -600,7 +710,6 @@ export class UnifiedStorageService extends BaseStorageService {
     if (table === "todos") {
       this.removeTodoWithCascadeInternal(id);
     } else if (table === "tasks") {
-      const taskHandler = this.handlers.tasks;
       const task = this.getById("tasks", id);
       const todoId = task?.todo_id ?? null;
       if (deletedAt) {
@@ -609,7 +718,6 @@ export class UnifiedStorageService extends BaseStorageService {
         this.softDeleteTaskInternal(id);
       }
     } else if (table === "subtasks") {
-      const subtaskHandler = this.handlers.subtasks;
       const subtask = this.getById("subtasks", id);
       const taskId = subtask?.task_id ?? null;
       if (deletedAt) {
@@ -619,14 +727,14 @@ export class UnifiedStorageService extends BaseStorageService {
       }
     } else if (table === "comments") {
       if (deletedAt) {
-        this.handlers.comments?.update(id, { deleted_at: deletedAt });
+        this.updateInSignal("comments", id, { deleted_at: deletedAt });
       } else {
-        this.handlers.comments?.remove(id);
+        this.removeFromSignal("comments", id);
       }
     } else if (table === "chats") {
-      this.handlers.chats?.remove(id);
+      this.removeFromSignal("chats", id);
     } else if (table === "categories") {
-      this.handlers.categories?.remove(id);
+      this.removeFromSignal("categories", id);
     }
   }
 
@@ -1071,18 +1179,16 @@ export class UnifiedStorageService extends BaseStorageService {
   // ==================== COMMENT OPERATIONS ====================
   addCommentToTask(comment: Comment, task_id?: string): void {
     if (!task_id) return;
-    const handler = this.handlers.comments;
-    handler.add({ ...comment, task_id: task_id });
+    this.addToSignal("comments", { ...comment, task_id: task_id });
   }
 
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
     if (!subtask_id) return;
-    const handler = this.handlers.comments;
-    handler.add({ ...comment, subtask_id: subtask_id });
+    this.addToSignal("comments", { ...comment, subtask_id: subtask_id });
   }
 
   removeCommentFromAll(commentId: string): void {
-    this.handlers.comments?.remove(commentId);
+    this.removeFromSignal("comments", commentId);
   }
 
   // ==================== NESTED STRUCTURE HELPERS ====================

@@ -4,9 +4,9 @@ import { catchError, map, tap } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 import { GithubRepo, GithubConnection } from "@models/github.model";
-import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { RequestService } from "@services/core/request.service";
 
 interface GithubOAuthResult {
   username: string;
@@ -30,7 +30,7 @@ interface GithubCommentResult {
   providedIn: "root",
 })
 export class GithubService {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private notifyService = inject(NotifyService);
   private jwtTokenService = inject(JwtTokenService);
 
@@ -50,7 +50,7 @@ export class GithubService {
   }
 
   getOAuthUrl(): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("github_oauth_url", {}).pipe(
+    return this.requestService.invokeCommand<string>("github_oauth_url", {}).pipe(
       map((url) => url),
       catchError((err) => {
         this.notifyService.showError("Failed to get GitHub OAuth URL: " + (err.message || err));
@@ -64,7 +64,7 @@ export class GithubService {
     user_code: string;
     verification_uri: string;
   }> {
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<{
         device_code: string;
         user_code: string;
@@ -90,7 +90,7 @@ export class GithubService {
     user_id?: string;
     avatar_url?: string;
   }> {
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<{
         success: boolean;
         pending?: boolean;
@@ -117,7 +117,7 @@ export class GithubService {
       });
     }
 
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<GithubOAuthResult>("github_oauth_callback", {
         userId,
         code,
@@ -145,7 +145,7 @@ export class GithubService {
       return of({ connected: false });
     }
 
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<GithubConnection>("github_get_connection_status", {
         userId,
       })
@@ -167,7 +167,7 @@ export class GithubService {
     }
 
     this._loading.set(true);
-    return this.dataSyncProvider.invokeCommand<GithubRepo[]>("github_get_repos", { userId }).pipe(
+    return this.requestService.invokeCommand<GithubRepo[]>("github_get_repos", { userId }).pipe(
       tap((repos) => {
         this._repos.set(repos);
         this._loading.set(false);
@@ -188,7 +188,7 @@ export class GithubService {
       });
     }
 
-    return this.dataSyncProvider.invokeCommand<string>("github_disconnect", { userId }).pipe(
+    return this.requestService.invokeCommand<string>("github_disconnect", { userId }).pipe(
       tap(() => {
         this._connectionStatus.set({ connected: false });
         this._repos.set([]);
@@ -215,7 +215,7 @@ export class GithubService {
       });
     }
 
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<GithubIssueResult>("github_create_issue", {
         userId,
         repoOwner,
@@ -247,7 +247,7 @@ export class GithubService {
       });
     }
 
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<GithubCommentResult>("github_create_comment", {
         userId,
         repoOwner,
@@ -277,7 +277,7 @@ export class GithubService {
       });
     }
 
-    return this.dataSyncProvider
+    return this.requestService
       .invokeCommand<GithubIssueResult>("github_update_issue", {
         userId,
         repoOwner,

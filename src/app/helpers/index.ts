@@ -5,7 +5,6 @@ export { FilterHelper } from "./filter.helper";
 export { SortHelper } from "./sort.helper";
 export { BulkActionHelper } from "./bulk-action.helper";
 export { BaseItemHelper } from "./base-item.helper";
-export { RoutingHelper } from "./routing.helper";
 export { KeyboardHelper } from "./keyboard.helper";
 export { NetworkErrorHelper } from "./network-error.helper";
 export { EncodingHelper } from "./encoding.helper";

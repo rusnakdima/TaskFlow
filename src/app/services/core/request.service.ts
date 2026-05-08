@@ -7,13 +7,44 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
+export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
+
+export interface CrudOptions {
+  id?: string;
+  data?: unknown;
+  parentTodoId?: string;
+  load?: string[];
+  filter?: { [key: string]: any };
+  visibility?: string;
+  skip?: number;
+  limit?: number;
+  sort?: { [key: string]: number };
+}
+
+function generateRequestId(): string {
+  return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9);
+}
+
+function debugLog(
+  op: string,
+  table: string,
+  id: string | undefined,
+  offline: boolean,
+  msg: string,
+  extra?: any
+): void {
+  const prefix = `[RequestService]`;
+  const meta = { op, table, id: id ?? "N/A", offline };
+  console.debug(`${prefix} ${msg}`, meta, extra ?? "");
+}
+
 @Injectable({ providedIn: "root" })
 export class RequestService {
   private jwtTokenService = inject(JwtTokenService);
   private mongoConnectionService = inject(MongoConnectionService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
-  private readonly REQUEST_TTL = 30000; // 30 seconds
+  private readonly REQUEST_TTL = 30000;
   private readonly MAX_PENDING_REQUESTS = 100;
 
   private cleanupPendingRequests(): void {
@@ -63,13 +94,9 @@ export class RequestService {
     this.pendingRequests.delete(key);
   }
 
-  private invoke<T>(command: string, args: Record<string, any>): Observable<T> {
-    const offlineArgs = {
-      ...args,
-      offline: !this.mongoConnectionService.isConnected(),
-    };
+  invokeCommand<T>(command: string, args: Record<string, unknown> = {}): Observable<T> {
     return from(
-      invoke<Response<T>>(command, offlineArgs).then(
+      invoke<Response<T>>(command, args).then(
         (response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             return response.data as T;
@@ -77,6 +104,128 @@ export class RequestService {
           throw new Error(response?.message || "Unknown error");
         },
         (err) => {
+          throw new Error(err?.message || String(err));
+        }
+      )
+    );
+  }
+
+  crud<T>(operation: Operation, table: string, options: CrudOptions = {}): Observable<T> {
+    const key =
+      operation === "getAll" || operation === "get"
+        ? this.getRequestDeduplicationKey(operation, table, options.id, options.filter)
+        : generateRequestId();
+    const offline = !this.mongoConnectionService.isConnected();
+
+    const payload: Record<string, any> = {
+      operation,
+      table,
+      offline,
+      request_id: key,
+    };
+
+    if (options.id) payload["id"] = options.id;
+    if (options.data) payload["data"] = options.data;
+    if (options.filter) payload["filter"] = options.filter;
+    if (options.load) payload["load"] = JSON.stringify(options.load);
+    if (options.visibility) payload["visibility"] = options.visibility;
+    if (options.parentTodoId) payload["parentTodoId"] = options.parentTodoId;
+    if (options.skip !== undefined) payload["skip"] = options.skip;
+    if (options.limit !== undefined) payload["limit"] = options.limit;
+    if (options.sort) payload["sort"] = JSON.stringify(options.sort);
+
+    const t0 = performance.now();
+    debugLog(operation, table, options.id, offline, `>>> REQUEST START (${key})`, {
+      requestId: key,
+      payload,
+    });
+
+    return new Observable<T>((subscriber) => {
+      invoke<Response<T>>("manage_data", payload)
+        .then(
+          (response) => {
+            const elapsed = Math.round(performance.now() - t0);
+            debugLog(operation, table, options.id, offline, `<<< REQUEST COMPLETE (${key})`, {
+              requestId: key,
+              elapsedMs: elapsed,
+              status: response.status,
+            });
+
+            if (response.status === ResponseStatus.SUCCESS) {
+              subscriber.next(response.data as T);
+              subscriber.complete();
+            } else {
+              throw new Error(response?.message || "Unknown error");
+            }
+          },
+          (err) => {
+            const elapsed = Math.round(performance.now() - t0);
+            console.error(`[RequestService] !!! REQUEST ERROR (${key})`, {
+              requestId: key,
+              operation,
+              table,
+              id: options.id,
+              elapsedMs: elapsed,
+              error: err?.message || String(err),
+            });
+            throw new Error(err?.message || String(err));
+          }
+        )
+        .catch((err) => subscriber.error(err));
+    });
+  }
+
+  private invoke<T>(
+    operation: string,
+    table: string,
+    id: string | undefined,
+    args: Record<string, any>
+  ): Observable<T> {
+    const requestId = generateRequestId();
+    const offline = !this.mongoConnectionService.isConnected();
+    const t0 = performance.now();
+
+    debugLog(operation, table, id, offline, `>>> REQUEST START (${requestId})`, {
+      requestId,
+      args,
+    });
+
+    const offlineArgs: Record<string, any> = {
+      ...args,
+      operation,
+      table,
+      offline,
+      request_id: requestId,
+    };
+    if (id !== undefined) {
+      offlineArgs["id"] = id;
+    }
+
+    return from(
+      invoke<Response<T>>("manage_data", offlineArgs).then(
+        (response) => {
+          const elapsed = Math.round(performance.now() - t0);
+          debugLog(operation, table, id, offline, `<<< REQUEST COMPLETE (${requestId})`, {
+            requestId,
+            elapsedMs: elapsed,
+            status: response.status,
+          });
+
+          if (response.status === ResponseStatus.SUCCESS) {
+            return response.data as T;
+          }
+          throw new Error(response?.message || "Unknown error");
+        },
+        (err) => {
+          const elapsed = Math.round(performance.now() - t0);
+          console.error(`[RequestService] !!! REQUEST ERROR (${requestId})`, {
+            requestId,
+            operation,
+            table,
+            id,
+            elapsedMs: elapsed,
+            error: err?.message || String(err),
+          });
           throw new Error(err?.message || String(err));
         }
       )
@@ -113,545 +262,6 @@ export class RequestService {
       default:
         return todos.filter((t: any) => t.visibility === visibility);
     }
-  }
-
-  getTodos(options?: {
-    filter?: any;
-    skip?: number;
-    limit?: number;
-    load?: string[];
-    visibility?: string;
-  }): Observable<any[]> {
-    const { filter, skip, limit, load, visibility } = options || {};
-    const key = this.getRequestDeduplicationKey("getAll", "todos", undefined, filter);
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "todos",
-        filter,
-        skip,
-        limit,
-        load: load ? JSON.stringify(load) : undefined,
-        visibility,
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getTodo(id: string): Observable<any> {
-    const key = this.getRequestDeduplicationKey("get", "todos", id);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", { operation: "get", table: "todos", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  createTodo(data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "create",
-        table: "todos",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
-  }
-
-  updateTodo(id: string, data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "update",
-        table: "todos",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
-  }
-
-  deleteTodo(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "todos",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
-  }
-
-  getTasks(
-    todoId?: string,
-    filter?: any,
-    skip?: number,
-    limit?: number,
-    visibility?: string
-  ): Observable<any[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "tasks", todoId, filter);
-    const options: any = { filter, skip, limit };
-    if (todoId) options.parentTodoId = todoId;
-    if (visibility) options.visibility = visibility;
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "tasks",
-        ...options,
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getTask(id: string): Observable<any> {
-    const key = this.getRequestDeduplicationKey("get", "tasks", id);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", { operation: "get", table: "tasks", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  createTask(data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "create",
-        table: "tasks",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  updateTask(id: string, data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "update",
-        table: "tasks",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  deleteTask(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "tasks",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  getSubtasks(
-    taskId?: string,
-    skip?: number,
-    limit?: number,
-    visibility?: string
-  ): Observable<any[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "subtasks", taskId);
-    const options: any = { parentTodoId: taskId, skip, limit };
-    if (visibility) options.visibility = visibility;
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "subtasks",
-        ...options,
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getSubtask(id: string): Observable<any> {
-    const key = this.getRequestDeduplicationKey("get", "subtasks", id);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", { operation: "get", table: "subtasks", id }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  createSubtask(data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "create",
-        table: "subtasks",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  updateSubtask(id: string, data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "update",
-        table: "subtasks",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  deleteSubtask(id: string, visibility?: string): Observable<void> {
-    return new Observable<void>((subscriber) => {
-      this.invoke<void>("manage_data", {
-        operation: "delete",
-        table: "subtasks",
-        id,
-        visibility,
-      }).subscribe({
-        next: () => {
-          subscriber.next();
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  getCategories(): Observable<any[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "categories");
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "categories",
-        visibility: "private",
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getComments(
-    taskId?: string,
-    subtaskId?: string,
-    skip?: number,
-    limit?: number,
-    visibility?: string
-  ): Observable<any[]> {
-    const filter: any = {};
-    if (taskId) filter["task_id"] = taskId;
-    if (subtaskId) filter["subtask_id"] = subtaskId;
-    const key = this.getRequestDeduplicationKey("getAll", "comments", undefined, filter);
-    const options: any = { filter, skip, limit };
-    if (visibility) options.visibility = visibility;
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "comments",
-        ...options,
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getChats(todoId: string, skip?: number, limit?: number, visibility?: string): Observable<any[]> {
-    const filter = { todo_id: todoId };
-    const key = this.getRequestDeduplicationKey("getAll", "chats", undefined, filter);
-    const options: any = { filter, skip, limit };
-    if (visibility) options.visibility = visibility;
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "chats",
-        ...options,
-      }).subscribe({
-        next: (data: any) => {
-          subscriber.next(
-            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
-          );
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getUser(id: string): Observable<any> {
-    const key = this.getRequestDeduplicationKey("get", "users", id);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "get",
-        table: "users",
-        id,
-        visibility: "private",
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getProfile(): Observable<any> {
-    const userId = this.jwtTokenService.getCurrentUserId();
-    if (!userId) {
-      return new Observable<any>((subscriber) => {
-        subscriber.error(new Error("No user logged in"));
-      });
-    }
-    const key = this.getRequestDeduplicationKey("get", "profiles", userId);
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "get",
-        table: "profiles",
-        filter: { user_id: userId },
-        load: JSON.stringify(["user"]),
-        visibility: "private",
-      }).subscribe({
-        next: (data) => {
-          const profile = Array.isArray(data) ? data[0] : data;
-          subscriber.next(profile);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getPublicProfiles(): Observable<any[]> {
-    const key = this.getRequestDeduplicationKey("getAll", "profiles");
-    return new Observable<any[]>((subscriber) => {
-      this.invoke<any[]>("manage_data", {
-        operation: "getAll",
-        table: "profiles",
-        visibility: "public",
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  getEntitiesByType<T>(entityName: string, options: any): Observable<T[]> {
-    const { filter, skip, limit, load, visibility, ...rest } = options;
-    const key = this.getRequestDeduplicationKey("getAll", entityName, undefined, filter);
-    return new Observable<T[]>((subscriber) => {
-      this.invoke<T[]>("manage_data", {
-        operation: "getAll",
-        table: entityName,
-        filter,
-        skip,
-        limit,
-        load: load ? JSON.stringify(load) : undefined,
-        visibility,
-        ...rest,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-          this.removeRequest(key);
-        },
-        error: (err: any) => {
-          subscriber.error(err);
-          this.removeRequest(key);
-        },
-      });
-    });
-  }
-
-  updateComment(id: string, data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "update",
-        table: "comments",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err) => subscriber.error(err),
-      });
-    });
-  }
-
-  updateProfile(id: string, data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "update",
-        table: "profiles",
-        id,
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
-  }
-
-  createProfile(data: any, visibility?: string): Observable<any> {
-    return new Observable<any>((subscriber) => {
-      this.invoke<any>("manage_data", {
-        operation: "create",
-        table: "profiles",
-        data,
-        visibility,
-      }).subscribe({
-        next: (data) => {
-          subscriber.next(data);
-          subscriber.complete();
-        },
-        error: (err: any) => subscriber.error(err),
-      });
-    });
   }
 
   getTasksByMonth(year: number, month: number): Observable<{ tasks: any[] }> {
