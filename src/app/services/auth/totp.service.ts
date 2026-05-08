@@ -1,8 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
-import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@models/auth-forms.model";
+import { RequestService } from "@services/core/request.service";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -14,7 +14,7 @@ export interface TotpSetupResult {
   providedIn: "root",
 })
 export class TotpService {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private jwtTokenService = inject(JwtTokenService);
 
   isTotpEnabledForCurrentUser(): boolean {
@@ -24,41 +24,41 @@ export class TotpService {
   }
 
   setupTotp(): Observable<TotpSetupResult> {
-    return this.dataSyncProvider.invokeCommand<TotpSetupResult>("setupTotp", {
+    return this.requestService.invokeCommand<TotpSetupResult>("setupTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableTotp(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("enableTotp", {
+    return this.requestService.invokeCommand<string>("enableTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   disableTotp(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disableTotp", {
+    return this.requestService.invokeCommand<string>("disableTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   useRecoveryCode(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("useRecoveryCode", {
+    return this.requestService.invokeCommand<string>("useRecoveryCode", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   completeTotpLogin(username: string, code: string): Observable<AuthResponse> {
-    return this.dataSyncProvider.invokeCommand<AuthResponse>("verifyLoginTotp", {
+    return this.requestService.invokeCommand<AuthResponse>("verifyLoginTotp", {
       username,
       code,
     });
   }
 
   initTotpForLogin(username: string): Observable<{ qrCode: string; secret?: string }> {
-    return this.dataSyncProvider.invokeCommand<{ qrCode: string; secret?: string }>(
+    return this.requestService.invokeCommand<{ qrCode: string; secret?: string }>(
       "initTotpQrLogin",
       { username }
     );

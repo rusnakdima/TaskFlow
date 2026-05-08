@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable } from "rxjs";
-import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { RequestService } from "@services/core/request.service";
 
 export type QrStatus = "pending" | "approved" | "expired";
 
@@ -28,7 +28,7 @@ export interface QrStatusResult {
   providedIn: "root",
 })
 export class QrLoginService implements OnDestroy {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private jwtTokenService = inject(JwtTokenService);
 
   private pollSubscription: Subscription | null = null;
@@ -44,7 +44,7 @@ export class QrLoginService implements OnDestroy {
 
   generateQrCode(username?: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
-      this.dataSyncProvider
+      this.requestService
         .invokeCommand<QrGenerationResult>("qr_generate", { username: username || null })
         .subscribe({
           next: (data) => {
@@ -65,7 +65,7 @@ export class QrLoginService implements OnDestroy {
   generateQrCodeForDesktopLogin(username: string): Observable<QrGenerationResult> {
     const userId = this.jwtTokenService.getCurrentUserId() || "";
     return new Observable((observer) => {
-      this.dataSyncProvider
+      this.requestService
         .invokeCommand<QrGenerationResult>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
           next: (data) => {
@@ -102,7 +102,7 @@ export class QrLoginService implements OnDestroy {
   }
 
   private checkStatus(token: string): void {
-    this.dataSyncProvider.invokeCommand<QrStatusResult>("qr_status", { token }).subscribe({
+    this.requestService.invokeCommand<QrStatusResult>("qr_status", { token }).subscribe({
       next: (data) => {
         this.qrStatus.set(data.status);
         this.qrStatusData.set(data);
@@ -120,7 +120,7 @@ export class QrLoginService implements OnDestroy {
 
   approveFromMobile(token: string): Observable<{ success: boolean }> {
     return new Observable((observer) => {
-      this.dataSyncProvider.invokeCommand<{ success: boolean }>("qr_approve", { token }).subscribe({
+      this.requestService.invokeCommand<{ success: boolean }>("qr_approve", { token }).subscribe({
         next: (data) => {
           observer.next(data);
           observer.complete();

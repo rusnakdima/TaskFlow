@@ -3,25 +3,23 @@ import { Injectable, inject } from "@angular/core";
 import { take } from "rxjs/operators";
 import { Router } from "@angular/router";
 
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
-
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { DataService } from "@services/data/data.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class UserValidationService {
-  private dataSyncProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
   private jwtTokenService = inject(JwtTokenService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
 
   validateUserExistsInMongoDb(userId: string): void {
-    this.dataSyncProvider
-      .crud<any>("get", "users", { id: userId, visibility: "private" })
+    this.dataService
+      .get("users", userId, { visibility: "private" })
       .pipe(take(1))
       .subscribe({
         next: (user) => {

@@ -8,20 +8,17 @@ import { LoginForm, SignupForm, AuthResponse } from "@models/auth-forms.model";
 import { PasswordReset } from "@models/password-reset.model";
 import { OfflineAuthResult } from "@models/local-user.model";
 
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
-
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
+import { RequestService } from "@services/core/request.service";
 
 // ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
 // token handling, and profile operations. Future refactoring should split these responsibilities
@@ -30,33 +27,22 @@ import { Router } from "@angular/router";
   providedIn: "root",
 })
 export class AuthService {
-  // ==================== LAZY INJECTION (to avoid circular DI) ====================
-  private _dataSyncProvider: ApiProvider | null = null;
+  private _requestService: RequestService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
-  private _dataSyncService: DataLoaderService | null = null;
-  private _profileRequiredService: ProfileRequiredService | null = null;
   private _dataService: DataService | null = null;
+  private _profileRequiredService: ProfileRequiredService | null = null;
   private _notifyService: NotifyService | null = null;
   private _router: Router | null = null;
   private _userValidationService: UserValidationService | null = null;
   private _injector = inject(Injector);
 
-  private get dataSyncProvider(): ApiProvider {
-    if (!this._dataSyncProvider) this._dataSyncProvider = this._injector.get(ApiProvider);
-    return this._dataSyncProvider;
+  private get requestService(): RequestService {
+    if (!this._requestService) this._requestService = this._injector.get(RequestService);
+    return this._requestService;
   }
   private get jwtTokenService(): JwtTokenService {
     if (!this._jwtTokenService) this._jwtTokenService = this._injector.get(JwtTokenService);
     return this._jwtTokenService;
-  }
-  private get dataSyncService(): DataLoaderService {
-    if (!this._dataSyncService) this._dataSyncService = this._injector.get(DataLoaderService);
-    return this._dataSyncService;
-  }
-  private get profileRequiredService(): ProfileRequiredService {
-    if (!this._profileRequiredService)
-      this._profileRequiredService = this._injector.get(ProfileRequiredService);
-    return this._profileRequiredService;
   }
   private get dataService(): DataService {
     if (!this._dataService) this._dataService = this._injector.get(DataService);
@@ -82,7 +68,7 @@ export class AuthService {
    * Check if token is valid on backend
    */
   checkToken<R>(token: string): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("check_token", { token });
+    return this.requestService.invokeCommand<R>("check_token", { token });
   }
 
   /**
@@ -117,21 +103,19 @@ export class AuthService {
    * Perform online login
    */
   private performOnlineLogin(loginData: LoginForm): Observable<AuthResponse> {
-    return this.dataSyncProvider
-      .invokeCommand<AuthResponse>("login", { loginForm: loginData })
-      .pipe(
-        tap((authResponse: AuthResponse) => {
-          this.loadUserData();
-        })
-      );
+    return this.requestService.invokeCommand<AuthResponse>("login", { loginForm: loginData }).pipe(
+      tap((authResponse: AuthResponse) => {
+        this.loadUserData();
+      })
+    );
   }
 
   login<R>(loginData: LoginForm): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("login", { loginForm: loginData });
+    return this.requestService.invokeCommand<R>("login", { loginForm: loginData });
   }
 
   signup<R>(signupData: SignupForm): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("register", { signupForm: signupData }).pipe(
+    return this.requestService.invokeCommand<R>("register", { signupForm: signupData }).pipe(
       tap((authResponse: R) => {
         const authData = authResponse as unknown as AuthResponse;
         const tokenStr = authData.token;
@@ -147,15 +131,15 @@ export class AuthService {
   }
 
   requestPasswordReset<R>(email: string): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("requestPasswordReset", { email });
+    return this.requestService.invokeCommand<R>("requestPasswordReset", { email });
   }
 
   verifyCode<R>(email: string, code: string): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("verifyCode", { email, code });
+    return this.requestService.invokeCommand<R>("verifyCode", { email, code });
   }
 
   resetPassword<R>(passwordReset: PasswordReset): Observable<R> {
-    return this.dataSyncProvider.invokeCommand<R>("resetPassword", { resetData: passwordReset });
+    return this.requestService.invokeCommand<R>("resetPassword", { resetData: passwordReset });
   }
 
   logout() {
