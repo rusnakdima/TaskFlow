@@ -54,7 +54,7 @@ impl RepositoryService {
     visibility: Option<&str>,
     offline: bool,
   ) -> Result<DataProvider<'_>, ResponseModel> {
-    let vis = visibility.unwrap_or("private");
+    let _vis = visibility.unwrap_or("private");
 
     // IMMEDIATE return for offline - no MongoDB operations allowed
     if offline {
@@ -118,14 +118,12 @@ impl RepositoryService {
   }
 
   fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
-    if offline {
+    // Offline and daily_activities always use JSON provider
+    if offline || table == "daily_activities" {
       return true;
-    } else if table == "daily_activities" {
-      true
-    } else {
-      let vis = visibility.unwrap_or("private");
-      vis == "private"
     }
+    // Other tables check visibility - only private goes to JSON
+    visibility.unwrap_or("private") == "private"
   }
 
   fn resolve_visibility_for_offline(&self, visibility: Option<String>, offline: bool) -> String {
@@ -138,13 +136,6 @@ impl RepositoryService {
     }
 
     "private".to_string()
-  }
-
-  fn get_visibility_from_data(&self, _table: &str, data: &Value) -> Option<String> {
-    data
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .map(|s| s.to_string())
   }
 
   async fn get_todo_id_from_task(&self, task_id: &str) -> Option<String> {
@@ -547,11 +538,11 @@ impl RepositoryService {
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
-      match provider.find_by_id(&table, &id_val).await? {
+      match provider.find_by_id(&table, id_val).await? {
         Some(d) => vec![d],
         None => {
-          if filter.is_some() {
-            let filter_obj = nosql_orm::query::Filter::from_json(filter.as_ref().unwrap())
+          if let Some(f) = &filter {
+            let filter_obj = nosql_orm::query::Filter::from_json(f)
               .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
             provider.find_many(&table, Some(&filter_obj)).await?
           } else {

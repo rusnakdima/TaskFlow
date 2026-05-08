@@ -225,7 +225,7 @@ impl GithubService {
     loop {
       let response = self
         .http_client
-        .get(&format!(
+        .get(format!(
           "https://api.github.com/user/repos?page={}&per_page={}",
           page, per_page
         ))
@@ -273,7 +273,7 @@ impl GithubService {
 
     let response = self
       .http_client
-      .post(&format!(
+      .post(format!(
         "https://api.github.com/repos/{}/{}/issues",
         repo_owner, repo_name
       ))
@@ -310,7 +310,7 @@ impl GithubService {
 
     let response = self
       .http_client
-      .post(&format!(
+      .post(format!(
         "https://api.github.com/repos/{}/{}/issues/{}/comments",
         repo_owner, repo_name, issue_number
       ))
@@ -349,7 +349,7 @@ impl GithubService {
 
     let response = self
       .http_client
-      .patch(&format!(
+      .patch(format!(
         "https://api.github.com/repos/{}/{}/issues/{}",
         repo_owner, repo_name, issue_number
       ))

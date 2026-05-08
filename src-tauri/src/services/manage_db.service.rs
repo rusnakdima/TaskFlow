@@ -16,10 +16,7 @@ use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus}
 use crate::helpers::response_helper::success_response;
 
 /* services */
-use crate::services::{
-  admin_manager::AdminManager, cascade::CascadeService,
-  entity_resolution_service::EntityResolutionService,
-};
+use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
 
 use crate::helpers::common::filter_deleted;
 use tracing::{error, info};
@@ -41,18 +38,12 @@ impl ManageDbService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     cascade_service: CascadeService,
-    entity_resolution: Arc<EntityResolutionService>,
     mongo_uri: String,
     mongo_db_name: String,
   ) -> Self {
-    let admin_manager = mongodb_provider.clone().map(|mp| {
-      AdminManager::new(
-        json_provider.clone(),
-        mp,
-        cascade_service.clone(),
-        entity_resolution.clone(),
-      )
-    });
+    let admin_manager = mongodb_provider
+      .clone()
+      .map(|mp| AdminManager::new(json_provider.clone(), mp, cascade_service.clone()));
 
     Self {
       json_provider,
@@ -322,7 +313,6 @@ impl ManageDbService {
   pub async fn reconnect_mongodb(
     &self,
     cascade_service: Arc<CascadeService>,
-    entity_resolution: Arc<EntityResolutionService>,
   ) -> Result<(), String> {
     info!(
       "Attempting to reconnect to MongoDB at {}:{}",
@@ -336,7 +326,6 @@ impl ManageDbService {
           self.json_provider.clone(),
           new_provider.clone(),
           (*cascade_service).clone(),
-          entity_resolution,
         );
 
         *self.mongodb_provider.lock().unwrap() = Some(new_provider);
