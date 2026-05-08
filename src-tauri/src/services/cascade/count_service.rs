@@ -63,18 +63,30 @@ impl CountService {
       .await
   }
 
-  async fn increment_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(e) = self
-        .increment_count(mongo.as_ref(), collection, id, field, delta)
-        .await
-      {
-        warn!(
-          "Failed to increment count in MongoDB (collection={}, id={}, field={}): {}",
-          collection, id, field, e
-        );
+  async fn increment_count_both(
+    &self,
+    collection: &str,
+    id: &str,
+    field: &str,
+    delta: i32,
+    offline: bool,
+  ) {
+    // Skip MongoDB operations when offline - only use JSON
+    if !offline {
+      if let Some(mongo) = self.mongodb_provider.as_ref() {
+        if let Err(e) = self
+          .increment_count(mongo.as_ref(), collection, id, field, delta)
+          .await
+        {
+          warn!(
+            "Failed to increment count in MongoDB (collection={}, id={}, field={}): {}",
+            collection, id, field, e
+          );
+        }
+        return;
       }
     }
+    // JSON fallback (or primary if offline)
     if let Err(e) = self
       .increment_count(&self.json_provider, collection, id, field, delta)
       .await
@@ -86,18 +98,30 @@ impl CountService {
     }
   }
 
-  async fn decrement_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(e) = self
-        .decrement_count(mongo.as_ref(), collection, id, field, delta)
-        .await
-      {
-        warn!(
-          "Failed to decrement count in MongoDB (collection={}, id={}, field={}): {}",
-          collection, id, field, e
-        );
+  async fn decrement_count_both(
+    &self,
+    collection: &str,
+    id: &str,
+    field: &str,
+    delta: i32,
+    offline: bool,
+  ) {
+    // Skip MongoDB operations when offline - only use JSON
+    if !offline {
+      if let Some(mongo) = self.mongodb_provider.as_ref() {
+        if let Err(e) = self
+          .decrement_count(mongo.as_ref(), collection, id, field, delta)
+          .await
+        {
+          warn!(
+            "Failed to decrement count in MongoDB (collection={}, id={}, field={}): {}",
+            collection, id, field, e
+          );
+        }
+        return;
       }
     }
+    // JSON fallback (or primary if offline)
     if let Err(e) = self
       .decrement_count(&self.json_provider, collection, id, field, delta)
       .await
@@ -109,138 +133,160 @@ impl CountService {
     }
   }
 
-  pub async fn on_task_created(&self, todo_id: &str) {
+  pub async fn on_task_created(&self, todo_id: &str, offline: bool) {
     self
-      .increment_count_both("todos", todo_id, "tasks_count", 1)
+      .increment_count_both("todos", todo_id, "tasks_count", 1, offline)
       .await;
   }
 
-  pub async fn on_task_completed(&self, todo_id: &str) {
+  pub async fn on_task_completed(&self, todo_id: &str, offline: bool) {
     self
-      .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .increment_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
       .await;
   }
 
-  pub async fn on_task_deleted(&self, todo_id: &str, was_completed: bool) {
+  pub async fn on_task_deleted(&self, todo_id: &str, was_completed: bool, offline: bool) {
     self
-      .decrement_count_both("todos", todo_id, "tasks_count", 1)
+      .decrement_count_both("todos", todo_id, "tasks_count", 1, offline)
       .await;
     if was_completed {
       self
-        .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
+        .decrement_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_task_restored(&self, todo_id: &str, is_completed: bool) {
+  pub async fn on_task_restored(&self, todo_id: &str, is_completed: bool, offline: bool) {
     self
-      .increment_count_both("todos", todo_id, "tasks_count", 1)
+      .increment_count_both("todos", todo_id, "tasks_count", 1, offline)
       .await;
     if is_completed {
       self
-        .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
+        .increment_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_task_uncompleted(&self, todo_id: &str) {
+  pub async fn on_task_uncompleted(&self, todo_id: &str, offline: bool) {
     self
-      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
       .await;
   }
 
-  pub async fn on_subtask_created(&self, task_id: &str, todo_id: &str) {
+  pub async fn on_subtask_created(&self, task_id: &str, todo_id: &str, offline: bool) {
     self
-      .increment_count_both("tasks", task_id, "subtasks_count", 1)
+      .increment_count_both("tasks", task_id, "subtasks_count", 1, offline)
       .await;
     self
-      .increment_count_both("todos", todo_id, "tasks_count", 1)
-      .await;
-  }
-
-  pub async fn on_subtask_completed(&self, task_id: &str, todo_id: &str) {
-    self
-      .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
-      .await;
-    self
-      .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .increment_count_both("todos", todo_id, "tasks_count", 1, offline)
       .await;
   }
 
-  pub async fn on_subtask_deleted(&self, task_id: &str, _todo_id: &str, was_completed: bool) {
+  pub async fn on_subtask_completed(&self, task_id: &str, todo_id: &str, offline: bool) {
     self
-      .decrement_count_both("tasks", task_id, "subtasks_count", 1)
+      .increment_count_both("tasks", task_id, "completed_subtasks_count", 1, offline)
+      .await;
+    self
+      .increment_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
+      .await;
+  }
+
+  pub async fn on_subtask_deleted(
+    &self,
+    task_id: &str,
+    _todo_id: &str,
+    was_completed: bool,
+    offline: bool,
+  ) {
+    self
+      .decrement_count_both("tasks", task_id, "subtasks_count", 1, offline)
       .await;
     if was_completed {
       self
-        .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1)
+        .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_subtask_restored(&self, task_id: &str, _todo_id: &str, is_completed: bool) {
+  pub async fn on_subtask_restored(
+    &self,
+    task_id: &str,
+    _todo_id: &str,
+    is_completed: bool,
+    offline: bool,
+  ) {
     self
-      .increment_count_both("tasks", task_id, "subtasks_count", 1)
+      .increment_count_both("tasks", task_id, "subtasks_count", 1, offline)
       .await;
     if is_completed {
       self
-        .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
+        .increment_count_both("tasks", task_id, "completed_subtasks_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_subtask_uncompleted(&self, task_id: &str, todo_id: &str) {
+  pub async fn on_subtask_uncompleted(&self, task_id: &str, todo_id: &str, offline: bool) {
     self
-      .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1)
+      .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1, offline)
       .await;
     self
-      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
+      .decrement_count_both("todos", todo_id, "completed_tasks_count", 1, offline)
       .await;
   }
 
-  pub async fn on_comment_created(&self, task_id: Option<&str>, subtask_id: Option<&str>) {
+  pub async fn on_comment_created(
+    &self,
+    task_id: Option<&str>,
+    subtask_id: Option<&str>,
+    offline: bool,
+  ) {
     if let Some(subtask_id) = subtask_id {
       self
-        .increment_count_both("subtasks", subtask_id, "comments_count", 1)
+        .increment_count_both("subtasks", subtask_id, "comments_count", 1, offline)
         .await;
       if let Some(task_id) = task_id {
         self
-          .increment_count_both("tasks", task_id, "comments_count", 1)
+          .increment_count_both("tasks", task_id, "comments_count", 1, offline)
           .await;
       }
     } else if let Some(task_id) = task_id {
       self
-        .increment_count_both("tasks", task_id, "comments_count", 1)
+        .increment_count_both("tasks", task_id, "comments_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_comment_deleted(&self, task_id: Option<&str>, subtask_id: Option<&str>) {
+  pub async fn on_comment_deleted(
+    &self,
+    task_id: Option<&str>,
+    subtask_id: Option<&str>,
+    offline: bool,
+  ) {
     if let Some(subtask_id) = subtask_id {
       self
-        .decrement_count_both("subtasks", subtask_id, "comments_count", 1)
+        .decrement_count_both("subtasks", subtask_id, "comments_count", 1, offline)
         .await;
       if let Some(task_id) = task_id {
         self
-          .decrement_count_both("tasks", task_id, "comments_count", 1)
+          .decrement_count_both("tasks", task_id, "comments_count", 1, offline)
           .await;
       }
     } else if let Some(task_id) = task_id {
       self
-        .decrement_count_both("tasks", task_id, "comments_count", 1)
+        .decrement_count_both("tasks", task_id, "comments_count", 1, offline)
         .await;
     }
   }
 
-  pub async fn on_chat_created(&self, todo_id: &str) {
+  pub async fn on_chat_created(&self, todo_id: &str, offline: bool) {
     self
-      .increment_count_both("todos", todo_id, "chats_count", 1)
+      .increment_count_both("todos", todo_id, "chats_count", 1, offline)
       .await;
   }
 
-  pub async fn on_chat_deleted(&self, todo_id: &str) {
+  pub async fn on_chat_deleted(&self, todo_id: &str, offline: bool) {
     self
-      .decrement_count_both("todos", todo_id, "chats_count", 1)
+      .decrement_count_both("todos", todo_id, "chats_count", 1, offline)
       .await;
   }
 }
