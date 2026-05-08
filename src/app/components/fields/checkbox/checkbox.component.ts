@@ -24,16 +24,16 @@ export class CheckboxComponent {
   @Input() indeterminate: boolean = false;
   @Input() highlight: boolean = false;
   @Input() tabIndex: number = 0;
-  @Output() checkedChange = new EventEmitter<boolean>();
+  @Output() checkedChange = new EventEmitter<{ checked: boolean; event?: MouseEvent }>();
 
   onToggle(event: any) {
     this.checked = event.checked;
-    this.checkedChange.emit(this.checked);
+    this.checkedChange.emit({ checked: this.checked, event: event.source?.clickEvent });
   }
 
   toggle() {
     this.checked = !this.checked;
-    this.checkedChange.emit(this.checked);
+    this.checkedChange.emit({ checked: this.checked, event: undefined });
   }
 
   toggleField(fieldName: string) {

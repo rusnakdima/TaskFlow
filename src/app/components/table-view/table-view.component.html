@@ -61,10 +61,11 @@
           cdkDrag
           [cdkDragDisabled]="!dragEnabled"
           cdkDragLockAxis="y"
-          class="cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800"
+          [style.cursor]="dragEnabled ? 'default' : 'pointer'"
+          class="hover:bg-gray-50 dark:hover:bg-zinc-800"
           [class.bg-blue-50]="isItemSelected(item.id)"
           [class.dark:bg-blue-900/20]="isItemSelected(item.id)"
-          (click)="onRowClick(item)"
+          (click)="onRowClick($event, item)"
         >
           @if (dragEnabled) {
             <td class="px-2 py-3 text-center">
@@ -84,10 +85,10 @@
             </td>
           }
           @if (showSelection) {
-            <td class="px-4 py-3 whitespace-nowrap" (click)="$event.stopPropagation()">
+            <td class="px-4 py-3 whitespace-nowrap" (click)="onCheckboxTdClick($event, item.id)">
               <app-checkbox
                 [checked]="isItemSelected(item.id)"
-                (checkedChange)="onSelectionChangeById(item.id, $event)"
+                (checkedChange)="onCheckboxChange($event, item.id)"
               />
             </td>
           }
@@ -235,6 +236,25 @@
                     title="Toggle comments"
                   >
                     <mat-icon class="text-2xl!">forum</mat-icon>
+                  </button>
+                }
+@if (showStatusToggle) {
+                  <button
+                    mat-icon-button
+                    class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
+                    [ngClass]="
+                      isItemCompleted(item)
+                        ? 'text-green-600! hover:bg-green-50! dark:text-green-400! dark:hover:bg-green-900/30!'
+                        : isItemSkipped(item)
+                          ? 'text-orange-600! hover:bg-orange-50! dark:text-orange-400! dark:hover:bg-orange-900/30!'
+                          : isItemFailed(item)
+                            ? 'text-red-600! hover:bg-red-50! dark:text-red-400! dark:hover:bg-red-900/30!'
+                            : 'text-gray-400! hover:bg-gray-100! dark:text-gray-500! dark:hover:bg-gray-700!'
+                    "
+                    (click)="onStatusToggle(item); $event.stopPropagation()"
+                    [title]="isItemCompleted(item) ? 'Mark as pending' : 'Mark as completed'"
+                  >
+                    <mat-icon class="text-2xl!" [fontIcon]="isItemCompleted(item) ? 'check_circle' : isItemSkipped(item) ? 'cancel' : isItemFailed(item) ? 'dangerous' : 'radio_button_unchecked'" />
                   </button>
                 }
                 @for (action of actions; track action.key) {

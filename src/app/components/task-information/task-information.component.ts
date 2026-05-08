@@ -21,6 +21,7 @@ import { Subtask } from "@models/subtask.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { REQUEST_SERVICE } from "@services/api.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* components */
 import {
@@ -42,6 +43,7 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private requestService = inject(REQUEST_SERVICE);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   public showActions = signal(false);
 
@@ -98,14 +100,15 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
     }
   }
 
-  confirmDeleteTask() {
-    if (
-      confirm(
-        `Are you sure you want to delete the task "${this.task?.title}"? This will also delete all subtasks.`
-      )
-    ) {
-      this.deleteTask();
-    }
+  async confirmDeleteTask() {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Task",
+      message: `Are you sure you want to delete the task "${this.task?.title}"? This will also delete all subtasks.`,
+      confirmText: "Delete",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
+    this.deleteTask();
   }
 
   deleteTask() {

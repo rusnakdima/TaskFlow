@@ -36,6 +36,7 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 /* models */
 import { TableField, TableFieldActionButton } from "./table-field.model";
 import { Comment } from "@models/comment.model";
+import { TaskStatus } from "@models/task.model";
 
 /* constants */
 import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/table-field.constants";
@@ -74,11 +75,14 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Input() expandable = false;
   @Input() expandTemplate: TemplateRef<any> | null = null;
   @Input() showCommentToggle = false;
+  @Input() showStatusToggle = false;
   @Input() itemType: ItemType = "task";
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() selectAll = new EventEmitter<void>();
+  @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
+  @Output() additiveSelect = new EventEmitter<string>();
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
   @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any[]>>();
@@ -373,9 +377,26 @@ export class TableViewComponent extends ItemRowBaseComponent {
     this.addSubtaskComment.emit({ ...event, itemId: item.id });
   }
 
-  onRowClick(item: any): void {
+  onCheckboxTdClick(event: MouseEvent, id: string): void {
+    event.stopPropagation();
+
+    const anchorId = this.lastSelectedId();
+    if (event.shiftKey && anchorId) {
+      this.rangeSelect.emit({ anchorId, targetId: id });
+    } else if (event.ctrlKey || event.metaKey) {
+      this.additiveSelect.emit(id);
+    }
+  }
+
+  onCheckboxChange(result: { checked: boolean; event?: MouseEvent }, id: string): void {
+    const item = this.data.find((d) => d.id === id);
+    if (item) queueMicrotask(() => this.setCurrentItem(item));
+    this.selectionChange.emit({ id, selected: result.checked });
+  }
+
+  onRowClick(event: MouseEvent, item: any): void {
     queueMicrotask(() => this.setCurrentItem(item));
-    this.rowClick.emit(item);
+    this.rowClick.emit({ event, item });
   }
 
   onActionClickHandler(action: string, item: any): void {
@@ -383,9 +404,32 @@ export class TableViewComponent extends ItemRowBaseComponent {
     this.actionClick.emit({ action, item });
   }
 
+  isItemCompleted(item: any): boolean {
+    return item.status === TaskStatus.COMPLETED || item.status === "completed";
+  }
+
+  isItemPending(item: any): boolean {
+    return item.status === TaskStatus.PENDING || item.status === "pending";
+  }
+
+  isItemSkipped(item: any): boolean {
+    return item.status === TaskStatus.SKIPPED || item.status === "skipped";
+  }
+
+  isItemFailed(item: any): boolean {
+    return item.status === TaskStatus.FAILED || item.status === "failed";
+  }
+
+  onStatusToggle(item: any): void {
+    queueMicrotask(() => this.setCurrentItem(item));
+    this.actionClick.emit({ action: "toggle_status", item });
+  }
+
   onSelectionChangeById(id: string, checked: boolean): void {
     const item = this.data.find((d) => d.id === id);
     if (item) queueMicrotask(() => this.setCurrentItem(item));
     this.selectionChange.emit({ id, selected: checked });
   }
+
+  lastSelectedId = signal<string | null>(null);
 }

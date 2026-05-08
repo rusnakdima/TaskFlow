@@ -5,26 +5,6 @@
   <div class="cursor-pointer p-4" (click)="toggleExpandTask()">
     <div class="mb-3 flex items-start justify-between">
       <div class="flex min-w-0 flex-1 items-start gap-2">
-        <button
-          class="mt-0.5 rounded p-1 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-700"
-          (click)="
-            moveTask(columnId === TaskStatus.PENDING ? TaskStatus.COMPLETED : TaskStatus.PENDING);
-            $event.stopPropagation()
-          "
-          [title]="task.status === TaskStatus.COMPLETED ? 'Mark as pending' : 'Mark as completed'"
-        >
-          <mat-icon
-            class="h-5! w-5! min-w-5 text-lg!"
-            [ngClass]="
-              task.status === TaskStatus.COMPLETED
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-gray-400 hover:text-green-600'
-            "
-            [fontIcon]="
-              task.status === TaskStatus.COMPLETED ? 'check_circle' : 'radio_button_unchecked'
-            "
-          />
-        </button>
         <div class="min-w-0 flex-1">
           <h4
             class="textNormal line-clamp-2 text-sm font-medium"
@@ -110,10 +90,16 @@
       </div>
       <div class="flex items-center gap-1">
         <button
-          [class]="getActionColor('dragHandle')"
           cdkDragHandle
-          (click)="$event.stopPropagation()"
           title="Drag to move"
+          class="cdk-drag-handle rounded p-1.5 text-gray-400! transition-colors hover:text-gray-600! dark:text-gray-500! dark:hover:text-gray-300!"
+          style="
+            touch-action: none;
+            -webkit-user-drag: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+          "
+          (click)="$event.stopPropagation()"
         >
           <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="drag_indicator" />
         </button>
