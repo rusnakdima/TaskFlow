@@ -587,7 +587,10 @@ impl RepositoryService {
     if id.is_some() {
       if !projected.is_empty() {
         Ok(success_response(DataValue::Object(
-          projected.into_iter().next().unwrap(),
+          projected
+            .into_iter()
+            .next()
+            .expect("Empty iterator after non-empty check"),
         )))
       } else {
         Err(err_response("Document not found after projection"))
@@ -1277,18 +1280,16 @@ impl RepositoryService {
           .permanent_delete_cascade_mongo(&table, &id_str)
           .await?;
       }
+    } else if use_json {
+      self
+        .cascade_service
+        .soft_delete_cascade_json(&table, &id_str)
+        .await?;
     } else {
-      if use_json {
-        self
-          .cascade_service
-          .soft_delete_cascade_json(&table, &id_str)
-          .await?;
-      } else {
-        self
-          .cascade_service
-          .soft_delete_cascade_mongo(&table, &id_str)
-          .await?;
-      }
+      self
+        .cascade_service
+        .soft_delete_cascade_mongo(&table, &id_str)
+        .await?;
     }
 
     self.invalidate_cache(&table).await;

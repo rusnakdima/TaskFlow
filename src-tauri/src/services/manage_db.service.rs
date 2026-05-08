@@ -259,12 +259,15 @@ impl ManageDbService {
 
   /// Export data from local JSON to cloud MongoDB
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
-    let mongo = self
-      .mongodb_provider
-      .lock()
-      .unwrap()
-      .clone()
-      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
+    let mongo = {
+      let guard = self
+        .mongodb_provider
+        .lock()
+        .map_err(|_| ResponseModel::from("Lock poisoned".to_string()))?;
+      guard
+        .clone()
+        .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?
+    };
 
     let mut exported_count = 0;
     exported_count += self.export_table(&mongo, "users", &user_id, false).await;
@@ -292,12 +295,19 @@ impl ManageDbService {
 
   /// Check if MongoDB is connected
   pub fn is_mongodb_connected(&self) -> bool {
-    self.mongodb_provider.lock().unwrap().is_some()
+    self
+      .mongodb_provider
+      .lock()
+      .map(|g| g.is_some())
+      .unwrap_or(false)
   }
 
   /// Async check if MongoDB is connected (uses existing runtime)
   pub async fn check_mongodb_connection_async(&self) -> bool {
-    let provider = self.mongodb_provider.lock().unwrap().clone();
+    let provider = match self.mongodb_provider.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => return false,
+    };
     match provider {
       Some(provider) => {
         matches!(
@@ -328,8 +338,8 @@ impl ManageDbService {
           (*cascade_service).clone(),
         );
 
-        *self.mongodb_provider.lock().unwrap() = Some(new_provider);
-        *self.admin_manager.lock().unwrap() = Some(new_admin_manager);
+        *self.mongodb_provider.lock().map_err(|_| "Lock poisoned")? = Some(new_provider);
+        *self.admin_manager.lock().map_err(|_| "Lock poisoned")? = Some(new_admin_manager);
 
         info!("Successfully reconnected to MongoDB");
         Ok(())
@@ -343,7 +353,16 @@ impl ManageDbService {
 
   /// Get all data for admin view (from MongoDB)
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.get_all_data_for_admin().await,
       None => Err(ResponseModel {
@@ -390,7 +409,16 @@ impl ManageDbService {
 
   /// Get all data for Archive page from local JSON (all users, includes deleted)
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.get_all_data_for_archive().await,
       None => Err(ResponseModel {
@@ -408,7 +436,16 @@ impl ManageDbService {
     skip: u64,
     limit: u64,
   ) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => {
         manager
@@ -429,7 +466,16 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.permanently_delete_record(table, id).await,
       None => Err(ResponseModel {
@@ -446,7 +492,16 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.permanently_delete_record_local(table, id).await,
       None => Err(ResponseModel {
@@ -463,7 +518,16 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.toggle_delete_status(table, id).await,
       None => Err(ResponseModel {
@@ -480,7 +544,16 @@ impl ManageDbService {
     table: String,
     id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let manager = self.admin_manager.lock().unwrap().clone();
+    let manager = match self.admin_manager.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => {
+        return Err(ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Lock poisoned".to_string(),
+          data: DataValue::String("".to_string()),
+        })
+      }
+    };
     match manager {
       Some(manager) => manager.toggle_delete_status_local(table, id).await,
       None => Err(ResponseModel {
@@ -503,7 +576,10 @@ impl ManageDbService {
       .await
     {
       if let Some(cat) = categories.first() {
-        let mongo_opt = self.mongodb_provider.lock().unwrap().clone();
+        let mongo_opt = match self.mongodb_provider.lock() {
+          Ok(guard) => guard.clone(),
+          Err(_) => None,
+        };
         if let Some(mongo) = mongo_opt {
           let _ = self
             .upsert_to_mongo(&mongo, "categories", cat.clone())
@@ -519,7 +595,10 @@ impl ManageDbService {
     &self,
     category_id: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let mongo_opt = self.mongodb_provider.lock().unwrap().clone();
+    let mongo_opt = match self.mongodb_provider.lock() {
+      Ok(guard) => guard.clone(),
+      Err(_) => None,
+    };
     if let Some(mongo) = mongo_opt {
       let filter = Filter::Eq("id".to_string(), json!(category_id));
       if let Ok(categories) = mongo
@@ -570,7 +649,10 @@ impl ManageDbService {
     let mut all_tasks: Vec<Value> = Vec::new();
 
     if !offline {
-      let mongo_option = self.mongodb_provider.lock().unwrap().clone();
+      let mongo_option = match self.mongodb_provider.lock() {
+        Ok(guard) => guard.clone(),
+        Err(_) => None,
+      };
       if let Some(mongo) = mongo_option {
         match mongo
           .find_many("tasks", Some(&filter), None, None, None, true)
