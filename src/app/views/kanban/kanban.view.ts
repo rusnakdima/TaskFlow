@@ -33,13 +33,11 @@ import { ResponseStatus } from "@models/response.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { STATUS_ICONS, STATUS_BG_COLORS } from "@constants/table-field.constants";
-import { RequestService } from "@services/core/request.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -82,8 +80,7 @@ import {
 export class KanbanView extends BaseListView implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private dragDropService = inject(KanbanDragDropService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
@@ -218,7 +215,7 @@ export class KanbanView extends BaseListView implements OnInit {
       }
     });
 
-    this.dataService.loadPage("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
+    this.requestService.getAll("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
       next: () => {
         const selectedId = this.selectedTodoId();
         if (selectedId) {
@@ -268,7 +265,7 @@ export class KanbanView extends BaseListView implements OnInit {
     const existingSubtasks = this.storageService.getSubtasksByTaskId(taskId);
     if (existingSubtasks.length > 0) return;
 
-    this.dataService
+    this.requestService
       .getAll("subtasks", {
         filter: { task_id: taskId },
         visibility: "private",
@@ -297,7 +294,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
 
-    this.dataService.updateAll("subtasks", [{ id: subtask.id, status: newStatus }]).subscribe({
+    this.requestService.update("subtasks", subtask.id, { status: newStatus }).subscribe({
       next: () => {},
       error: (err: any) => {
         this.notifyService.showError(err.message || "Failed to update subtask");
@@ -325,17 +322,20 @@ export class KanbanView extends BaseListView implements OnInit {
     if (todoId) {
       this.selectedTodoId.set(todoId);
       this.expandedTasks.set(new Set());
-      this.loadTasksForTodo(todoId);
+      const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+      if (cachedTasks.length === 0 || !this.storageService.isCacheValid(300000)) {
+        this.loadTasksForTodo(todoId);
+      }
     }
   }
 
   private loadTasksForTodo(todoId: string): void {
     const cachedTasks = this.storageService.getTasksByTodoId(todoId);
-    if (cachedTasks.length > 0 && !this.mongoConnectionService.isConnected()) {
+    if (cachedTasks.length > 0 && this.storageService.isCacheValid(300000)) {
       return;
     }
 
-    this.dataService
+    this.requestService
       .getAll("tasks", { filter: { todo_id: todoId }, visibility: "private", limit: 20, skip: 0 })
       .subscribe({
         next: () => {},
@@ -416,7 +416,7 @@ export class KanbanView extends BaseListView implements OnInit {
       return;
     }
 
-    this.dataService.updateAll("tasks", [{ id: taskId, status: newStatus }]).subscribe({
+    this.requestService.update("tasks", taskId, { status: newStatus }).subscribe({
       next: (updatedTask) => {
         this.isUpdatingOrder.set(false);
         setTimeout(() => {

@@ -37,17 +37,16 @@ import { Comment } from "@models/comment.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { DataService } from "@services/data/data.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -129,9 +128,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private adminStorageService = inject(UnifiedStorageService);
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private adminStorageService = inject(StorageService);
+
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -443,8 +442,26 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   loadInitialTodos() {
-    const sub = this.dataService
-      .loadPage("todos", { visibility: "all", limit: this.todoPagination().limit, skip: 0 })
+    const hasTodos = this.storageService.todos().length > 0;
+    if (hasTodos && this.storageService.isCacheValid(300000)) {
+      console.log("[TodosView] Using cached todos, skipping API call");
+      this.todoPagination.update((p) => ({
+        ...p,
+        skip: this.storageService.todos().length,
+        hasMore: this.storageService.hasMoreTodos,
+        total: this.storageService.todos().length,
+        loading: false,
+      }));
+      return;
+    }
+
+    const sub = this.requestService
+      .loadPage<Todo>("todos", {
+        visibility: "all",
+        limit: this.todoPagination().limit,
+        skip: 0,
+        load: ["user", "categories", "assignees"],
+      })
       .subscribe({
         next: (todos: Todo[]) => {
           console.log("[TodosView] Loaded todos:", todos.length);
@@ -476,18 +493,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
 
-    if (!this.mongoConnectionService.isConnected()) {
-      this.todoPagination.update((p) => ({
-        ...p,
-        hasMore: false,
-        loading: false,
-      }));
-      return;
-    }
-
     this.todoPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataService.loadMore("todos").subscribe({
+    this.requestService.loadMore<Todo>("todos").subscribe({
       next: (todos: Todo[]) => {
         this.todoPagination.update((p) => ({
           ...p,
@@ -505,7 +513,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }));
       },
     });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   getCurrentVisibilityIcon(): string {
@@ -515,8 +522,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
-    this.dataService
-      .loadPage("todos", { visibility, limit: this.todoPagination().limit, skip: 0 })
+    const cachedTodos = this.getTodosForVisibility(visibility);
+    if (cachedTodos.length > 0 && this.storageService.isCacheValid(300000)) {
+      console.log("[TodosView] Using cached todos for visibility:", visibility);
+      return;
+    }
+    this.requestService
+      .loadPage<Todo>("todos", {
+        visibility: visibility as Visibility,
+        limit: this.todoPagination().limit,
+        skip: 0,
+        load: ["user", "categories", "assignees"],
+      })
       .subscribe();
   }
 
@@ -554,7 +571,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     // Subscribe to refresh shortcut (Ctrl+R)
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
-      this.loadInitialTodos();
+      if (!this.storageService.isCacheValid(300000) || this.storageService.todos().length === 0) {
+        this.loadInitialTodos();
+      }
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
 
@@ -615,7 +634,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const sub = this.dataService.deleteTodo(todoId!).subscribe({
+      const sub = this.requestService.delete("todos", todoId!).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo deleted successfully");
         },
@@ -635,7 +654,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const sub = this.dataService.deleteTodo(todoId!).subscribe({
+      const sub = this.requestService.delete("todos", todoId!).subscribe({
         next: () => {
           this.notifyService.showSuccess("Todo archived successfully");
         },
@@ -661,8 +680,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.notifyService.showError("Todo not found");
         return;
       }
-      const sub = this.dataService
-        .updateTodo(todoId!, { deleted_at: null }, todo.visibility || "private")
+      const sub = this.requestService
+        .update<Todo>(
+          "todos",
+          todoId!,
+          { deleted_at: null },
+          { visibility: todo.visibility as Visibility }
+        )
         .subscribe({
           next: () => {
             this.notifyService.showSuccess("Todo restored successfully");
@@ -678,8 +702,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
     // TODO: type todo and event properly
     const { field, value } = event;
-    const sub = this.dataService
-      .updateTodo(todo.id, { [field]: value }, todo.visibility || "private")
+    const sub = this.requestService
+      .update<Todo>(
+        "todos",
+        todo.id,
+        { [field]: value },
+        { visibility: todo.visibility as Visibility }
+      )
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Project updated successfully");
@@ -714,7 +743,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           confirmClass: "bg-orange-600 hover:bg-orange-700",
         });
         if (archiveConfirmed) {
-          const sub = this.dataService.deleteTodo(item.id).subscribe({
+          const sub = this.requestService.delete("todos", item.id).subscribe({
             next: () => this.notifyService.showSuccess("Project archived successfully"),
             error: (err) =>
               this.notifyService.showError(err.message || "Failed to archive project"),
@@ -895,7 +924,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
+      const requests = Array.from(selected).map((todoId) =>
+        this.requestService.delete("todos", todoId)
+      );
 
       const sub = forkJoin(requests).subscribe({
         next: () => {
@@ -923,7 +954,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmText: "Delete",
     });
     if (confirmed) {
-      const requests = Array.from(selected).map((todoId) => this.dataService.deleteTodo(todoId));
+      const requests = Array.from(selected).map((todoId) =>
+        this.requestService.delete("todos", todoId)
+      );
 
       const sub = forkJoin(requests).subscribe({
         next: () => {

@@ -40,10 +40,10 @@ import { Chat } from "@models/chat.model";
 import { AuthService } from "@services/auth/auth.service";
 import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataService } from "@services/data/data.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -112,7 +112,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dragSourceIndex = 0;
   private dragRef: DragRef | null = null;
 
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -120,7 +120,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropHandlerService = inject(DragDropHandlerService);
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
-  private _storageService = inject(UnifiedStorageService);
+
   private appStateService = inject(AppStateService);
   private authorizationService = inject(AuthorizationService);
   private githubService = inject(GithubService);
@@ -147,6 +147,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private chatLoadingGuard = new Set<string>();
   private loadedChatTodoIds = new Set<string>();
+  private loadedTaskTodoIds = new Set<string>();
 
   todo = signal<Todo | null>(null);
   todoId = signal<string | null>(null);
@@ -159,13 +160,30 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const tid = this.todoId();
     const todo = this.todo();
     if (tid && todo) {
+      const cachedChats = this.storageService.getChatsByTodo(tid);
+      const isCacheValid = this.storageService.isCacheValid(300000);
+
+      if (cachedChats.length > 0 && isCacheValid) {
+        this.chats.set(cachedChats);
+        return;
+      }
+
+      if (cachedChats.length > 0 && !isCacheValid) {
+        this.chats.set(cachedChats);
+      }
+
       if (!this.loadedChatTodoIds.has(tid)) {
-        this.chats.set(this._storageService.chats());
         const visibility = this.isPrivate() ? "private" : "shared";
         if (!this.chatLoadingGuard.has(tid)) {
           this.chatLoadingGuard.add(tid);
-          this.dataService
-            .loadPage("chats", { filter: { todo_id: tid }, visibility, skip: 0, limit: 10 })
+          this.requestService
+            .loadPage("chats", {
+              filter: { todo_id: tid },
+              visibility,
+              skip: 0,
+              limit: 10,
+              load: ["user"],
+            })
             .subscribe({
               next: (chats) => {},
               complete: () => {
@@ -180,8 +198,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private taskLoadEffect = effect(() => {
     const todoId = this.todoId();
-    if (todoId && todoId !== this.lastLoadedTaskTodoId) {
+    if (todoId && todoId !== this.lastLoadedTaskTodoId && !this.loadedTaskTodoIds.has(todoId)) {
       this.lastLoadedTaskTodoId = todoId;
+      this.loadedTaskTodoIds.add(todoId);
       this.loadInitialTasks();
     }
   });
@@ -210,18 +229,23 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   });
 
   private loadInitialTodo(todoId: string): void {
-    this.dataService.get<Todo>("todos", todoId).subscribe({
-      next: (todo) => {
-        if (todo) {
-          this.todo.set(todo);
-        } else {
-          this.notifyService.showError("Todo not found.");
-        }
-      },
-      error: () => {
-        this.notifyService.showError("Failed to load todo.");
-      },
-    });
+    this.requestService
+      .get<Todo>("todos", todoId, {
+        visibility: "all",
+        load: ["user", "categories", "assignees"],
+      })
+      .subscribe({
+        next: (todo) => {
+          if (todo) {
+            this.todo.set(todo);
+          } else {
+            this.notifyService.showError("Todo not found.");
+          }
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load todo.");
+        },
+      });
   }
 
   taskPagination = signal<{
@@ -235,36 +259,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private isLoadingTasks = false;
   private lastLoadedTodoId: string | null = null;
 
-  loadInitialTasks() {
+  loadInitialTasks(forceRefresh = false) {
     const todoId = this.todoId();
-    const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
 
-    if (this.isLoadingTasks && this.lastLoadedTodoId === todoId) return;
+    const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+    const isCacheValid = this.storageService.isCacheValid(300000);
 
-    const cachedTasks = this._storageService.getTasksByTodoId(todoId);
-    const isMongoConnected = this.mongoConnectionService.isConnected();
-
-    if (cachedTasks.length > 0) {
+    if (cachedTasks.length > 0 && isCacheValid && !forceRefresh) {
       this.todoTasks.set(cachedTasks);
       this.taskPagination.update((p) => ({
         ...p,
         skip: cachedTasks.length,
         total: cachedTasks.length,
-        hasMore: false,
-        loading: false,
-      }));
-
-      if (!isMongoConnected) {
-        return;
-      }
-    } else if (!isMongoConnected) {
-      const storedTasks = this._storageService.getTasksByTodoId(todoId);
-      this.todoTasks.set(storedTasks);
-      this.taskPagination.update((p) => ({
-        ...p,
-        skip: storedTasks.length,
-        total: storedTasks.length,
         hasMore: false,
         loading: false,
       }));
@@ -274,8 +281,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.isLoadingTasks = true;
     this.lastLoadedTodoId = todoId;
 
-    this.dataService
-      .loadPage("tasks", { filter: { todo_id: todoId }, visibility, skip: 0, limit: 10 })
+    this.requestService
+      .loadPage<Task>("tasks", {
+        filter: { todo_id: todoId },
+        visibility: (this.todo()?.visibility || "private") as Visibility,
+        skip: 0,
+        limit: 10,
+      })
       .subscribe({
         next: (tasks: Task[]) => {
           this.todoTasks.set(tasks);
@@ -301,20 +313,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
 
-    if (!this.mongoConnectionService.isConnected()) {
-      this.taskPagination.update((p) => ({
-        ...p,
-        hasMore: false,
-        loading: false,
-      }));
-      return;
-    }
-
     const todoId = this.todoId();
     const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
 
-    this.dataService.loadMore("tasks").subscribe({
+    this.requestService.loadMore<Task>("tasks").subscribe({
       next: (tasks: Task[]) => {
         this.todoTasks.update((current) => [...current, ...tasks]);
         this.taskPagination.update((p) => ({
@@ -364,7 +367,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskSubtasks(taskId: string): Subtask[] {
-    return this._storageService.getSubtasksByTaskId(taskId);
+    return this.storageService.getSubtasksByTaskId(taskId);
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -519,8 +522,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(task.status);
 
-    this.dataService
-      .update<Task>("tasks", task.id, { ...task, status: newStatus }, todo.visibility || "private")
+    this.requestService
+      .update<Task>(
+        "tasks",
+        task.id,
+        { ...task, status: newStatus },
+        { visibility: (todo.visibility || "private") as Visibility }
+      )
       .subscribe({
         next: () => {},
         error: (err) => {
@@ -557,8 +565,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.dataService
-      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, todo.visibility || "private")
+    this.requestService
+      .update<Subtask>(
+        "subtasks",
+        subtask.id,
+        { status: newStatus },
+        { visibility: (todo.visibility || "private") as Visibility }
+      )
       .subscribe({
         next: () => {},
         error: (err) => {
@@ -615,14 +628,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.dataService.create<Task>("tasks", nextTask, todo?.visibility || "private").subscribe({
-      next: (result: Task) => {
-        this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-      },
-      error: () => {
-        this.notifyService.showError("Failed to create recurring task");
-      },
-    });
+    this.requestService
+      .create<Task>("tasks", nextTask, {
+        visibility: (todo?.visibility || "private") as Visibility,
+      })
+      .subscribe({
+        next: (result: Task) => {
+          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+        },
+        error: () => {
+          this.notifyService.showError("Failed to create recurring task");
+        },
+      });
   }
 
   toggleChat() {
@@ -645,12 +662,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.dataService
+    this.requestService
       .update<Task>(
         "tasks",
         event.task.id,
         { [event.field]: event.value },
-        todo.visibility || "private"
+        { visibility: (todo.visibility || "private") as Visibility }
       )
       .subscribe({
         next: () => {},
@@ -722,7 +739,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         .subscribe({
           next: (result) => {
             this.notifyService.showSuccess("GitHub issue updated");
-            this.dataService
+            this.requestService
               .update<Task>("tasks", task.id, {
                 github_issue_url: result.html_url,
               })
@@ -736,7 +753,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.githubService.createIssue(owner, repo, task.title, issueBody).subscribe({
         next: (result) => {
           this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
-          this.dataService
+          this.requestService
             .update<Task>("tasks", task.id, {
               github_issue_id: String(result.id),
               github_issue_number: result.number,
@@ -761,7 +778,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     if (!confirm("Are you sure?")) return;
 
-    this.dataService.delete("tasks", taskId).subscribe({
+    this.requestService.delete("tasks", taskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
         this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
@@ -902,7 +919,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         selectedIds.map((id) => ({ id })),
         "priority",
         priority,
-        (id, data) => this.dataService.update<Task>("tasks", id, data)
+        (id, data) => this.requestService.update<Task>("tasks", id, data)
       )
       .subscribe({
         next: (result: BulkOperationResult) => {
@@ -928,14 +945,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       return;
     }
 
+    const visibility = this.todo()?.visibility || "private";
+
     const updatePromises = Array.from(selectedIds).map((id) => {
       return firstValueFrom(
         this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (id, data) => {
-          return this.dataService.update<Task>(
+          return this.requestService.update<Task>(
             "tasks",
             id,
             { status: status as TaskStatus },
-            visibility
+            { visibility: visibility as string as Visibility }
           );
         })
       );
@@ -968,7 +987,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkActionHelper
       .bulkDelete(
         selectedIds.map((id) => ({ id })),
-        (id) => this.dataService.delete("tasks", id)
+        (id) => this.requestService.delete("tasks", id)
       )
       .subscribe({
         next: (result) => {
@@ -1002,7 +1021,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkActionHelper
       .bulkDelete(
         selectedIds.map((id) => ({ id })),
-        (id) => this.dataService.delete("tasks", id)
+        (id) => this.requestService.delete("tasks", id)
       )
       .subscribe({
         next: (result) => {
@@ -1027,7 +1046,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this._storageService.getTodoById(todoId);
+    const todo = this.storageService.getTodoById(todoId);
     return todo?.title || "-";
   }
 }

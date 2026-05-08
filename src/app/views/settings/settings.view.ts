@@ -20,7 +20,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { GithubService } from "@services/github/github.service";
 import { GithubStore } from "@stores/github.store";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 @Component({
   selector: "app-settings",
@@ -37,7 +37,7 @@ export class SettingsView implements OnInit {
   private githubService = inject(GithubService);
   private githubStore = inject(GithubStore);
   private sanitizer = inject(DomSanitizer);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
 
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);

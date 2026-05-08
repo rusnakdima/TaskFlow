@@ -16,8 +16,8 @@ import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { StorageService } from "@services/storage.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
@@ -56,10 +56,10 @@ import {
   templateUrl: "./categories.view.html",
 })
 export class CategoriesView extends BaseListView implements OnInit {
-  private dataService = inject(DataService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
+  private requestService = inject(REQUEST_SERVICE);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -130,7 +130,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       })
     );
 
-    this.dataService
+    this.requestService
       .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
       .subscribe();
   }
@@ -167,7 +167,7 @@ export class CategoriesView extends BaseListView implements OnInit {
         const response = await this.adminService.toggleDeleteStatusLocal("categories", categoryId);
         if (response.status === ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess("Category archived successfully");
-          this.dataService
+          this.requestService
             .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
             .subscribe();
           this.searchQuery.set("");
@@ -212,7 +212,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       const archiveRequests = Array.from(selected).map((categoryId) =>
-        firstValueFrom(this.dataService.getCategories())
+        firstValueFrom(this.requestService.get<Category>("categories", categoryId))
       );
 
       Promise.all(archiveRequests)

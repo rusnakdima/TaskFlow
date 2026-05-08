@@ -27,12 +27,12 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* helpers */
@@ -100,14 +100,14 @@ export class DataManagementView implements OnInit {
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
 
-  protected adminStorageService = inject(UnifiedStorageService);
+  protected adminStorageService = inject(StorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
-  protected storageService = inject(UnifiedStorageService);
+  protected storageService = inject(StorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
-  protected dataService = inject(DataService);
+  protected requestService = inject(REQUEST_SERVICE);
   private confirmDialogService = inject(ConfirmDialogService);
 
   private archiveLoadedSignal = signal<{ [type: string]: boolean }>({});

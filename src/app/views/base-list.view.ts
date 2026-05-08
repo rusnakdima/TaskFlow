@@ -3,10 +3,10 @@ import { Subscription } from "rxjs";
 
 import { AuthService } from "@services/auth/auth.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 
 export type ViewMode = "card" | "grid" | "table" | "list";
 
@@ -31,14 +31,14 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   protected selectedItems = signal<Set<string>>(new Set());
 
-  protected dataSyncService = inject(DataService);
+  protected dataSyncService = inject(REQUEST_SERVICE);
   protected notifyService = inject(NotifyService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionService);
   protected authService = inject(AuthService);
-  protected storageService = inject(UnifiedStorageService);
-  protected dataLoader = inject(DataService);
-  protected dataService = inject(DataService);
+  protected storageService = inject(StorageService);
+  protected dataLoader = inject(REQUEST_SERVICE);
+  protected dataService = inject(REQUEST_SERVICE);
 
   protected readonly subscriptions = new Subscription();
 
