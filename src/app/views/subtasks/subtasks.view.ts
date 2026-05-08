@@ -41,12 +41,11 @@ import { AuthorizationService } from "@services/features/authorization.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
-import { DataService } from "@services/data/data.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -102,8 +101,7 @@ import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 export class SubtasksView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private cdr = inject(ChangeDetectorRef);
   private dragDropService = inject(DragDropOrderService);
   public bulkService = inject(BulkActionService);
@@ -176,8 +174,14 @@ export class SubtasksView extends BaseListView implements OnInit {
   private loadChats(todoId: string): void {
     this.chatSubscription?.unsubscribe();
     const visibility = this.todo()?.visibility || "private";
-    const sub = this.dataService
-      .loadPage<Chat>("chats", { filter: { todo_id: todoId }, visibility, skip: 0, limit: 10 })
+    const sub = this.requestService
+      .loadPage<Chat>("chats", {
+        filter: { todo_id: todoId },
+        visibility: visibility as Visibility,
+        skip: 0,
+        limit: 10,
+        load: ["user"],
+      })
       .subscribe({
         next: (chats: Chat[]) => {
           this.chats.set(chats);
@@ -220,12 +224,13 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataService
+    this.requestService
       .loadPage<Subtask>("subtasks", {
         filter: { task_id: taskId },
-        visibility,
+        visibility: visibility as Visibility,
         skip: 0,
         limit: 10,
+        load: ["user", "task"],
       })
       .subscribe({
         next: (subtasks: Subtask[]) => {
@@ -254,8 +259,13 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.dataService.loadMore("subtasks").subscribe({
-      next: (subtasks) => {
+    this.requestService.loadPage<Subtask>("subtasks", {
+      filter: { task_id: taskId },
+      visibility: visibility as Visibility,
+      skip: this.subtaskPagination().skip,
+      limit: this.subtaskPagination().limit,
+    }).subscribe({
+      next: (subtasks: Subtask[]) => {
         this.taskSubtasks.update((current) => [...current, ...subtasks]);
         this.subtaskPagination.update((p) => ({
           ...p,
@@ -468,8 +478,13 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.dataService
-      .update<Subtask>("subtasks", subtask.id, { status: newStatus }, visibility)
+    this.requestService
+      .update<Subtask>(
+        "subtasks",
+        subtask.id,
+        { status: newStatus },
+        { visibility: visibility as Visibility }
+      )
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -487,8 +502,13 @@ export class SubtasksView extends BaseListView implements OnInit {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    this.dataService
-      .update<Subtask>("subtasks", event.subtask.id, { [event.field]: event.value }, visibility)
+    this.requestService
+      .update<Subtask>(
+        "subtasks",
+        event.subtask.id,
+        { [event.field]: event.value },
+        { visibility: visibility as Visibility }
+      )
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -504,7 +524,7 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     if (!confirm("Are you sure?")) return;
 
-    this.dataService.delete("subtasks", id, visibility).subscribe({
+    this.requestService.delete("subtasks", id, { visibility: visibility as Visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -558,7 +578,12 @@ export class SubtasksView extends BaseListView implements OnInit {
     const visibility = this.isPrivate() ? "private" : "shared";
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.dataService.update("subtasks", subtaskId, { status: status as any }, visibility)
+        this.requestService.update(
+          "subtasks",
+          subtaskId,
+          { status: status as any },
+          { visibility: visibility as Visibility }
+        )
       );
     });
 
@@ -587,7 +612,9 @@ export class SubtasksView extends BaseListView implements OnInit {
     if (!confirmed) return;
 
     const deletePromises = Array.from(selected).map((id) => {
-      return firstValueFrom(this.dataService.delete("subtasks", id, visibility));
+      return firstValueFrom(
+        this.requestService.delete("subtasks", id, { visibility: visibility as Visibility })
+      );
     });
 
     Promise.all(deletePromises)

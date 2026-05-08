@@ -17,9 +17,8 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataService } from "@services/data/data.service";
-import { RequestService } from "@services/core/request.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { StorageService } from "@services/storage.service";
 
 @Component({
   selector: "app-profile",
@@ -36,9 +35,8 @@ export class ProfileView implements OnInit, OnDestroy {
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService,
-    private dataService: DataService,
-    private requestService: RequestService,
-    private storageService: UnifiedStorageService
+    private requestService: REQUEST_SERVICE,
+    private storageService: StorageService
   ) {}
 
   userId: string = "";

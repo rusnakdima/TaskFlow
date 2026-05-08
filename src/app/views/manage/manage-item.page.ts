@@ -38,14 +38,13 @@ import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
@@ -94,8 +93,7 @@ export class ManageItemPage implements OnInit {
   private location = inject(Location);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private dataService = inject(DataService);
-  private storageService = inject(UnifiedStorageService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private cdr = inject(ChangeDetectorRef);
@@ -104,7 +102,7 @@ export class ManageItemPage implements OnInit {
   private githubService = inject(GithubService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -227,7 +225,7 @@ export class ManageItemPage implements OnInit {
   private loadCategories(): void {
     this.categories.set(this.storageService.categories());
 
-    this.dataService
+    this.requestService
       .loadPage<Category>("categories", { visibility: "private", limit: 50, skip: 0 })
       .subscribe({
         next: (categories: Category[]) => {
@@ -246,12 +244,12 @@ export class ManageItemPage implements OnInit {
       return;
     }
 
-    this.dataService
+    this.requestService
       .getPublicProfiles()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (profiles) => this.assignees.set(profiles),
-        error: (err) => {
+        next: (profiles) => this.assignees.set(profiles as Profile[]),
+        error: (err: Error) => {
           console.error(`[ManageItem] Failed to load profiles:`, err);
           this.assignees.set([]);
         },
@@ -358,11 +356,11 @@ export class ManageItemPage implements OnInit {
     try {
       let item: any;
       if (config.type === "todo") {
-        item = await firstValueFrom(this.dataService.get<Todo>("todos", id));
+        item = await firstValueFrom(this.requestService.get<Todo>("todos", id));
       } else if (config.type === "task") {
-        item = await firstValueFrom(this.dataService.get<Task>("tasks", id));
+        item = await firstValueFrom(this.requestService.get<Task>("tasks", id));
       } else {
-        item = await firstValueFrom(this.dataService.get<Subtask>("subtasks", id));
+        item = await firstValueFrom(this.requestService.get<Subtask>("subtasks", id));
       }
 
       if (item) {
@@ -463,28 +461,44 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(this.dataService.update<Todo>("todos", id, payload, visibility));
+          await firstValueFrom(
+            this.requestService.update<Todo>("todos", id, payload, {
+              visibility: visibility as Visibility,
+            })
+          );
         } else if (config.type === "task") {
-          await firstValueFrom(this.dataService.update<Task>("tasks", id, payload, visibility));
+          await firstValueFrom(
+            this.requestService.update<Task>("tasks", id, payload, {
+              visibility: visibility as Visibility,
+            })
+          );
         } else {
           await firstValueFrom(
-            this.dataService.update<Subtask>("subtasks", id, payload, visibility)
+            this.requestService.update<Subtask>("subtasks", id, payload, {
+              visibility: visibility as Visibility,
+            })
           );
         }
       } else {
         let result: any;
         if (config.type === "todo") {
           result = await firstValueFrom(
-            this.dataService.create<Todo>("todos", payload, visibility)
+            this.requestService.create<Todo>("todos", payload, {
+              visibility: visibility as Visibility,
+            })
           );
         } else if (config.type === "task") {
           result = await firstValueFrom(
-            this.dataService.create<Task>("tasks", payload, visibility)
+            this.requestService.create<Task>("tasks", payload, {
+              visibility: visibility as Visibility,
+            })
           );
           savedTaskId = result?.id || result?._id || null;
         } else {
           result = await firstValueFrom(
-            this.dataService.create<Subtask>("subtasks", payload, visibility)
+            this.requestService.create<Subtask>("subtasks", payload, {
+              visibility: visibility as Visibility,
+            })
           );
         }
       }
@@ -591,7 +605,7 @@ export class ManageItemPage implements OnInit {
       );
 
       if (toVisibility === "shared" || toVisibility === "public") {
-        this.dataService.getAll<Todo>("todos", { visibility: toVisibility }).subscribe();
+        this.requestService.getAll<Todo>("todos", { visibility: toVisibility }).subscribe();
       }
     } catch (error: any) {
       this.notifyService.showError(
@@ -622,14 +636,20 @@ export class ManageItemPage implements OnInit {
     const userId = this.authService.getValueByKey("id");
     this.newCategoryTitle.set("");
 
-    this.dataService.create("categories", { title, user_id: userId }, "private").subscribe({
-      next: (category: Category) => {
-        this.categories.update((cats) => [...cats, category]);
-        this.toggleCategorySelection(category.id);
-      },
-      error: (err: Error) =>
-        this.notifyService.showError(err.message || "Failed to create category"),
-    });
+    this.requestService
+      .create<Category>(
+        "categories",
+        { title, user_id: userId },
+        { visibility: "private" as Visibility }
+      )
+      .subscribe({
+        next: (category: Category) => {
+          this.categories.update((cats) => [...cats, category]);
+          this.toggleCategorySelection(category.id);
+        },
+        error: (err: Error) =>
+          this.notifyService.showError(err.message || "Failed to create category"),
+      });
   }
 
   toggleCategorySelection(categoryId: string): void {
@@ -699,7 +719,7 @@ export class ManageItemPage implements OnInit {
     } else if (formValue.publish_to_github) {
       this.githubService.createIssue(owner, repo, formValue.title, issueBody).subscribe({
         next: (result) => {
-          this.dataService
+          this.requestService
             .update<Task>("tasks", taskId, {
               github_issue_id: String(result.id),
               github_issue_number: result.number,

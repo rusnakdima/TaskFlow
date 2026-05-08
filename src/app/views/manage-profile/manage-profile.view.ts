@@ -23,10 +23,9 @@ import { Profile } from "@models/profile.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { StorageService } from "@services/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { RequestService } from "@services/core/request.service";
 
 @Component({
   selector: "app-manage-profile",
@@ -48,10 +47,9 @@ export class ManageProfileView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private dataService = inject(DataService);
-  private storageService = inject(UnifiedStorageService);
+  private requestService = inject(REQUEST_SERVICE);
+  private storageService = inject(StorageService);
   private profileRequiredService = inject(ProfileRequiredService);
-  private requestService = inject(RequestService);
 
   form: FormGroup = this.fb.group({
     _id: [""],
@@ -106,18 +104,20 @@ export class ManageProfileView implements OnInit {
     let profile = this.storageService.profile();
 
     if (!profile) {
-      this.dataService.getProfile().subscribe({
-        next: (p) => {
-          profile = p;
-          if (profile && profile.user_id === userId) {
-            this.isEditMode = true;
-            this.form.patchValue(profile);
-          }
-        },
-        error: (err) => {
-          console.error("[ManageProfileView] getProfile error:", err);
-        },
-      });
+      this.requestService
+        .getAll<Profile>("profiles", { visibility: "private", filter: { user_id: userId } })
+        .subscribe({
+          next: (profiles) => {
+            profile = profiles[0];
+            if (profile && profile.user_id === userId) {
+              this.isEditMode = true;
+              this.form.patchValue(profile);
+            }
+          },
+          error: (err) => {
+            console.error("[ManageProfileView] getProfile error:", err);
+          },
+        });
     } else if (profile.user_id === userId) {
       this.isEditMode = true;
       this.form.patchValue(profile);
@@ -139,21 +139,23 @@ export class ManageProfileView implements OnInit {
         const profile = this.storageService.profile();
         if (profile) {
           const { _id, ...updateData } = body;
-          const sub = this.dataService.updateProfile(profile.id, updateData).subscribe({
-            next: (updated) => {
-              this.notifyService.showSuccess("Profile updated successfully");
-              this.profileRequiredService.setProfileRequiredMode(false);
-              this.router.navigate(["/profile"]);
-            },
-            error: (err: unknown) => {
-              const message = err instanceof Error ? err.message : "Failed to update profile";
-              this.notifyService.showError(message);
-            },
-          });
+          const sub = this.requestService
+            .update<Profile>("profiles", profile.id, updateData)
+            .subscribe({
+              next: (updated) => {
+                this.notifyService.showSuccess("Profile updated successfully");
+                this.profileRequiredService.setProfileRequiredMode(false);
+                this.router.navigate(["/profile"]);
+              },
+              error: (err: unknown) => {
+                const message = err instanceof Error ? err.message : "Failed to update profile";
+                this.notifyService.showError(message);
+              },
+            });
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
       } else {
-        const sub = this.dataService.createProfile(body).subscribe({
+        const sub = this.requestService.create<Profile>("profiles", body).subscribe({
           next: (created) => {
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);

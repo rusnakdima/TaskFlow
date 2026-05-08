@@ -32,8 +32,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
 import { AuthStore } from "@stores/auth.store";
-import { DataService } from "@services/data/data.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { EncodingHelper } from "@helpers/encoding.helper";
@@ -65,8 +64,7 @@ export class LoginView implements OnDestroy {
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
 
   rememberField: CheckboxField = {
@@ -137,7 +135,7 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    const sub = this.dataService.getAll("users", { visibility: "private" }).subscribe({
+    const sub = this.requestService.getAll("users", { visibility: "private" }).subscribe({
       next: (users) => {
         const activeUsers = (users || []).filter((u: any) => !u.deleted_at);
         this.hasLocalUsers.set(activeUsers.length > 0);

@@ -15,9 +15,9 @@ import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -48,8 +48,8 @@ import {
 export class CalendarView extends BaseListView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
-  private dataService = inject(DataService);
   private mongoConnectionService = inject(MongoConnectionService);
+  private requestService = inject(REQUEST_SERVICE);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -89,11 +89,15 @@ export class CalendarView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
     this.userId = this.authService.getValueByKey("id");
-    this.dataService
+    this.requestService
       .loadPage("tasks", { visibility: "private", limit: 100, skip: 0 })
       .subscribe({});
-    this.dataService.loadPage("tasks", { visibility: "shared", limit: 100, skip: 0 }).subscribe({});
-    this.dataService.loadPage("tasks", { visibility: "public", limit: 100, skip: 0 }).subscribe({});
+    this.requestService
+      .loadPage("tasks", { visibility: "shared", limit: 100, skip: 0 })
+      .subscribe({});
+    this.requestService
+      .loadPage("tasks", { visibility: "public", limit: 100, skip: 0 })
+      .subscribe({});
   }
 
   private getPrivateTasksFromCache(): Task[] {
