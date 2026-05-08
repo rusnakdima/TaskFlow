@@ -30,6 +30,8 @@ interface PaginationState {
   skip: number;
   limit: number;
   hasMore: boolean;
+  visibility?: Visibility;
+  filter?: Record<string, unknown>;
 }
 
 export interface PaginatedResult<T> {
@@ -391,6 +393,8 @@ export class REQUEST_SERVICE {
           this.updatePaginationState(table, {
             skip: data.length,
             hasMore: data.length >= (pageOptions.limit || state.limit),
+            visibility: options.visibility,
+            filter: options.filter,
           });
         }
       })
@@ -407,7 +411,8 @@ export class REQUEST_SERVICE {
     }
 
     return this.invokeCrud<T[]>("getAll", table, {
-      visibility: "all",
+      visibility: state.visibility || "all",
+      filter: state.filter,
       skip: state.skip,
       limit: state.limit,
     }).pipe(

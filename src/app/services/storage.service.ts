@@ -327,17 +327,19 @@ export class StorageService {
 
   private addToSignal(type: StorageEntity, data: any, isPrivate?: boolean): void {
     switch (type) {
-      case "todos":
-        if (isPrivate) {
-          if (!this._privateTodos().some((t) => t.id === data.id)) {
-            this._privateTodos.update((todos) => [data, ...todos]);
-          }
-        } else {
-          if (!this._sharedTodos().some((t) => t.id === data.id)) {
-            this._sharedTodos.update((todos) => [data, ...todos]);
-          }
+      case "todos": {
+        const visibility = data.visibility || (isPrivate ? "private" : "shared");
+        const targetArray =
+          visibility === "private"
+            ? this._privateTodos
+            : visibility === "public"
+              ? this._publicTodos
+              : this._sharedTodos;
+        if (!targetArray().some((t) => t.id === data.id)) {
+          targetArray.update((todos) => [data, ...todos]);
         }
         break;
+      }
       case "tasks":
         if (!this._tasks().some((t) => t.id === data.id)) {
           this._tasks.update((tasks) => [data, ...tasks]);
@@ -855,7 +857,14 @@ export class StorageService {
     comments: Comment[];
     chats?: Chat[];
   }): void {
-    this._privateTodos.set([data.todo, ...this._privateTodos()]);
+    const visibility = data.todo.visibility || "private";
+    const targetArray =
+      visibility === "private"
+        ? this._privateTodos
+        : visibility === "public"
+          ? this._publicTodos
+          : this._sharedTodos;
+    targetArray.set([data.todo, ...targetArray()]);
 
     if (data.tasks?.length) {
       this._tasks.set([...this._tasks(), ...data.tasks]);
@@ -1616,7 +1625,9 @@ export class StorageService {
         this._privateTodos.update((existing) => {
           const existingById = new Map(existing.map((t) => [t.id, t]));
           for (const item of todosToStore) {
-            existingById.set(item.id, item);
+            if (item.visibility === "private") {
+              existingById.set(item.id, item);
+            }
           }
           return Array.from(existingById.values());
         });
@@ -1625,7 +1636,9 @@ export class StorageService {
         this._sharedTodos.update((existing) => {
           const existingById = new Map(existing.map((t) => [t.id, t]));
           for (const item of todosToStore) {
-            existingById.set(item.id, item);
+            if (item.visibility === "shared" || item.visibility === undefined) {
+              existingById.set(item.id, item);
+            }
           }
           return Array.from(existingById.values());
         });
@@ -1634,7 +1647,9 @@ export class StorageService {
         this._publicTodos.update((existing) => {
           const existingById = new Map(existing.map((t) => [t.id, t]));
           for (const item of todosToStore) {
-            existingById.set(item.id, item);
+            if (item.visibility === "public") {
+              existingById.set(item.id, item);
+            }
           }
           return Array.from(existingById.values());
         });
