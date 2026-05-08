@@ -39,6 +39,7 @@
         [fields]="taskTableFields"
         [selectedIds]="selectedTasks()"
         [showSelection]="true"
+        [showStatusToggle]="true"
         [showCommentToggle]="true"
         [dragEnabled]="true"
         [expandable]="true"
@@ -47,6 +48,8 @@
         (selectionChange)="toggleTaskSelection({ id: $event.id, selected: $event.selected })"
         (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"
+        (rangeSelect)="onRangeSelect($event)"
+        (additiveSelect)="onAdditiveSelect($event)"
         (dropped)="onTaskDrop($event)"
         (actionClick)="onTaskTableAction($event)"
       >
@@ -87,6 +90,7 @@
             (toggleSubtasksEvent)="toggleExpandTask($event)"
             (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
             (selectionChangeEvent)="toggleTaskSelection($event)"
+            (cardClick)="onCardClick($event)"
           >
             <div
               *cdkDragPlaceholder
@@ -127,6 +131,7 @@
             (toggleSubtasksEvent)="toggleExpandTask($event)"
             (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
             (selectionChangeEvent)="toggleTaskSelection($event)"
+            (cardClick)="onCardClick($event)"
           />
         }
       </div>

@@ -49,6 +49,7 @@ import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { PromptDialogService } from "@services/core/prompt-dialog.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -126,6 +127,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private githubService = inject(GithubService);
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
+  private promptDialogService = inject(PromptDialogService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -530,7 +532,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         { visibility: (todo.visibility || "private") as Visibility }
       )
       .subscribe({
-        next: () => {},
+        next: () => {
+          this.todoTasks.update((tasks) =>
+            tasks.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+          );
+        },
         error: (err) => {
           console.error("Update task status failed:", err);
           this.notifyService.showError("Failed to update task status");
@@ -678,8 +684,47 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       });
   }
 
-  onRowClick(task: any): void {
+  onRowClick(event: { event: MouseEvent; item: any } | any): void {
+    const task = event.item || event;
+    const mouseEvent = event.event;
+
+    if (mouseEvent?.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, task.id, this.listTasks());
+        return;
+      }
+    } else if (mouseEvent?.ctrlKey || mouseEvent?.metaKey) {
+      this.toggleItemSelection(task.id);
+      this.lastSelectedId.set(task.id);
+      return;
+    }
+
+    this.lastSelectedId.set(task.id);
     this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
+  }
+
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, event.id, this.listTasks());
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.toggleItemSelection(event.id);
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+  }
+
+  onRangeSelect(event: { anchorId: string; targetId: string }): void {
+    this.selectRange(event.anchorId, event.targetId, this.listTasks());
+  }
+
+  onAdditiveSelect(id: string): void {
+    this.toggleItemSelection(id);
+    this.lastSelectedId.set(id);
   }
 
   getTaskTableActions(): TableFieldActionButton[] {
@@ -706,6 +751,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         break;
       case "archive":
         this.archiveTask(event.item.id);
+        break;
+      case "toggle_status":
+        this.toggleTaskCompletion(event.item);
         break;
       case "github_issue":
         this.createOrUpdateGithubIssueFromTask(event.item);
@@ -775,11 +823,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.highlightCommentId.set(null);
   }
 
-  deleteTask(taskId?: string) {
+  async deleteTask(taskId?: string) {
     const todoId = this.todoId();
     if (!todoId || !taskId) return;
 
-    if (!confirm("Are you sure?")) return;
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Delete Task",
+      message: "Are you sure you want to delete this task?",
+      confirmText: "Delete",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
 
     this.requestService.delete("tasks", taskId).subscribe({
       next: () => {
@@ -789,11 +843,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  archiveTask(taskId?: string) {
+  async archiveTask(taskId?: string) {
     const todoId = this.todoId();
     if (!todoId || !taskId) return;
 
-    if (!confirm("Archive this task?")) return;
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Task",
+      message: "Are you sure you want to archive this task?",
+      confirmText: "Archive",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (!confirmed) return;
 
     this.requestService.delete("tasks", taskId).subscribe({
       next: () => {
@@ -909,6 +969,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   toggleTaskSelection(event: { id: string; selected: boolean }) {
     const { id, selected } = event;
+    if (selected) {
+      this.lastSelectedId.set(id);
+    }
     this.selectedTasks.update((selectedIds) => {
       const newSelected = new Set(selectedIds);
       if (selected) {
@@ -1054,10 +1117,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       });
   }
 
-  onBulkAction(actionId: string) {
+  async onBulkAction(actionId: string) {
     if (actionId === "delete") this.bulkDelete();
     else {
-      const val = prompt(`Enter new ${actionId}:`);
+      const val = await this.promptDialogService.prompt({
+        title: `Enter new ${actionId}`,
+        message: `Enter value for ${actionId}:`,
+        required: true,
+        validateFn: (v) => {
+          if (!v.trim()) return "Value is required";
+          return null;
+        },
+      });
       if (val) actionId === "priority" ? this.bulkUpdatePriority(val) : this.bulkUpdateStatus(val);
     }
   }

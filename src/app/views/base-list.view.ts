@@ -30,6 +30,7 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   protected pageKey = "default";
 
   protected selectedItems = signal<Set<string>>(new Set());
+  protected lastSelectedId = signal<string | null>(null);
 
   protected dataSyncService = inject(REQUEST_SERVICE);
   protected notifyService = inject(NotifyService);
@@ -161,7 +162,35 @@ export abstract class BaseListView implements OnInit, OnDestroy {
 
   clearSelection(): void {
     this.selectedItems.set(new Set());
+    this.lastSelectedId.set(null);
     this.bulkActionService.setSelectionState(0, false);
+  }
+
+  protected selectRange(fromId: string, toId: string, items: { id: string }[]): void {
+    const fromIndex = items.findIndex((i) => i.id === fromId);
+    const toIndex = items.findIndex((i) => i.id === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [start, end] = fromIndex < toIndex ? [fromIndex, toIndex] : [toIndex, fromIndex];
+    const idsInRange = items.slice(start, end + 1).map((i) => i.id);
+
+    this.selectedItems.update((selected) => {
+      const newSelected = new Set(selected);
+      idsInRange.forEach((id) => newSelected.add(id));
+      return newSelected;
+    });
+  }
+
+  protected toggleItemSelection(id: string): void {
+    this.selectedItems.update((selected) => {
+      const newSelected = new Set(selected);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
   }
 
   getUnreadCount(chats: () => { deleted_at?: string | null; read_by?: string[] }[]): number {

@@ -301,13 +301,19 @@ export class KanbanView extends BaseListView implements OnInit {
     if (!todoId) return;
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
+    const visibility = (this.selectedTodo()?.visibility ?? "private") as
+      | "private"
+      | "shared"
+      | "public";
 
-    this.requestService.update("subtasks", subtask.id, { status: newStatus }).subscribe({
-      next: () => {},
-      error: (err: any) => {
-        this.notifyService.showError(err.message || "Failed to update subtask");
-      },
-    });
+    this.requestService
+      .update("subtasks", subtask.id, { status: newStatus }, { visibility })
+      .subscribe({
+        next: () => {},
+        error: (err: any) => {
+          this.notifyService.showError(err.message || "Failed to update subtask");
+        },
+      });
   }
 
   getSubtasksForTask(taskId?: string): Subtask[] {
@@ -421,12 +427,16 @@ export class KanbanView extends BaseListView implements OnInit {
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
     const task = this.projectTasks().find((t) => t.id === taskId);
+    const visibility = (this.selectedTodo()?.visibility ?? "private") as
+      | "private"
+      | "shared"
+      | "public";
     if (!task) {
       this.isUpdatingOrder.set(false);
       return;
     }
 
-    this.requestService.update("tasks", taskId, { status: newStatus }).subscribe({
+    this.requestService.update("tasks", taskId, { status: newStatus }, { visibility }).subscribe({
       next: (updatedTask) => {
         this.isUpdatingOrder.set(false);
         setTimeout(() => {

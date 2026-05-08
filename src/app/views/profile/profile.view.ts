@@ -20,6 +20,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 @Component({
   selector: "app-profile",
@@ -39,7 +40,8 @@ export class ProfileView implements OnInit, OnDestroy {
     private authService: AuthService,
     private notifyService: NotifyService,
     private requestService: REQUEST_SERVICE,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private confirmDialogService: ConfirmDialogService
   ) {}
 
   userId: string = "";
@@ -197,10 +199,15 @@ export class ProfileView implements OnInit, OnDestroy {
     this.authService.logout();
   }
 
-  logoutAll() {
-    if (confirm("This will remove all offline login data. Are you sure?")) {
-      this.authService.logoutAll();
-    }
+  async logoutAll() {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Logout All Devices",
+      message: "This will remove all offline login data. Are you sure?",
+      confirmText: "Logout All",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
+    this.authService.logoutAll();
   }
 
   startQrScanning(): void {

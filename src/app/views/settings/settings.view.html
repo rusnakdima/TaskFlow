@@ -72,7 +72,7 @@
           <app-checkbox
             label="Enable Notification Sounds"
             [checked]="enableNotificationSounds()"
-            (checkedChange)="enableNotificationSounds.set($event)"
+            (checkedChange)="enableNotificationSounds.set($event.checked)"
           />
         </div>
 

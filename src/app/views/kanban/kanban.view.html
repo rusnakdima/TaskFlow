@@ -123,6 +123,7 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     opacity: 0.9;
+    cursor: grabbing;
   }
 
   .cdk-drag-placeholder {
@@ -135,5 +136,12 @@
 
   .cdk-drop-list-dragging .cdk-drag {
     transition: none !important;
+  }
+
+  .cdk-drag {
+    cursor: grab;
+  }
+  .cdk-drag:active {
+    cursor: grabbing;
   }
 </style>
