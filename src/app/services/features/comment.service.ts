@@ -1,9 +1,9 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { ApiProvider } from "@providers/api.provider";
 import { Observable } from "rxjs";
 import { Comment } from "@models/comment.model";
+import { DataService } from "@services/data/data.service";
 
 export interface CommentPayload {
   user_id: string;
@@ -23,7 +23,7 @@ export interface MarkCommentsResult {
 export class CommentService {
   private authService = inject(AuthService);
   private storageService = inject(UnifiedStorageService);
-  private apiProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
 
   createComment(
     content: string,
@@ -40,11 +40,7 @@ export class CommentService {
       deleted_at: null,
     };
 
-    return this.apiProvider.crud<Comment>("create", "comments", {
-      data: payload,
-      parentTodoId,
-      visibility: options.visibility || "private",
-    });
+    return this.dataService.create("comments", payload, options.visibility || "private");
   }
 
   markCommentsAsRead(
@@ -65,11 +61,11 @@ export class CommentService {
       this.storageService.updateItem("comments", c.id, { read_by: updatedReadBy });
     });
 
-    this.apiProvider
-      .crud("updateAll", "comments", {
-        data: toUpdate.map((c) => ({ id: c.id, read_by: c.read_by })),
-        parentTodoId,
-      })
+    this.dataService
+      .updateAll(
+        "comments",
+        toUpdate.map((c) => ({ id: c.id, read_by: c.read_by }))
+      )
       .subscribe();
 
     return { updatedComments, hasChanges: true };

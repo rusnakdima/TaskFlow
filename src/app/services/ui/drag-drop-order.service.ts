@@ -1,8 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { DataService } from "@services/data/data.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiProvider } from "@providers/api.provider";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
@@ -22,9 +20,7 @@ export type EntityType =
 })
 export class DragDropOrderService {
   private dataService = inject(DataService);
-  private dataSyncService = inject(DataLoaderService);
   private notifyService = inject(NotifyService);
-  private dataSyncProvider = inject(ApiProvider);
   private orderCalculationService = inject(OrderCalculationService);
 
   private updatingOrders = new Set<string>();
@@ -90,21 +86,17 @@ export class DragDropOrderService {
 
     this.updatingOrders.add(operationKey);
 
-    return this.dataSyncProvider
-      .crud<
-        T[]
-      >("updateAll", table, { data: transformedItems, parentTodoId: parentTodoId, visibility })
-      .pipe(
-        tap(() => {
-          this.updatingOrders.delete(operationKey);
-          this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
-        }),
-        catchError((err) => {
-          this.updatingOrders.delete(operationKey);
-          this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
-          throw err;
-        })
-      );
+    return this.dataService.updateAll(table, transformedItems).pipe(
+      tap(() => {
+        this.updatingOrders.delete(operationKey);
+        this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
+      }),
+      catchError((err) => {
+        this.updatingOrders.delete(operationKey);
+        this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
+        throw err;
+      })
+    );
   }
 
   private capitalize(s: string): string {

@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, fromEvent, merge, of, Subscription } from 
 import { map, distinctUntilChanged } from "rxjs/operators";
 
 /* services */
-import { ApiProvider } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 
 interface QueuedOperation {
   id: string;
@@ -19,7 +19,7 @@ interface QueuedOperation {
   providedIn: "root",
 })
 export class OfflineQueueService implements OnDestroy {
-  private apiProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
 
   private readonly QUEUE_KEY = "offline_queue";
   private readonly MAX_RETRIES = 3;

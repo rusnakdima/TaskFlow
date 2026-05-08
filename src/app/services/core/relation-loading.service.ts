@@ -1,9 +1,9 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
 /* services */
-import { ApiProvider } from "@providers/api.provider";
+import { DataService } from "@services/data/data.service";
 
 export interface RelationLoadingStats {
   totalQueries: number;
@@ -14,6 +14,8 @@ export interface RelationLoadingStats {
   providedIn: "root",
 })
 export class RelationLoadingService {
+  private dataService = inject(DataService);
+
   private stats: RelationLoadingStats = {
     totalQueries: 0,
     loadTimeMs: 0,
@@ -21,32 +23,19 @@ export class RelationLoadingService {
 
   constructor() {}
 
-  load<T>(
-    provider: ApiProvider,
-    table: string,
-    id: string,
-    load: string[],
-    visibility?: string
-  ): Observable<T> {
+  load<T>(table: string, id: string, load: string[], visibility?: string): Observable<T> {
     const startTime = Date.now();
 
-    return provider
-      .crud<T>("get", table, {
-        id,
-        load,
-        visibility,
+    return this.dataService.get<T>(table, id, { load, visibility }).pipe(
+      tap(() => {
+        const elapsed = Date.now() - startTime;
+        this.stats.totalQueries++;
+        this.stats.loadTimeMs += elapsed;
       })
-      .pipe(
-        tap(() => {
-          const elapsed = Date.now() - startTime;
-          this.stats.totalQueries++;
-          this.stats.loadTimeMs += elapsed;
-        })
-      );
+    );
   }
 
   loadMany<T>(
-    provider: ApiProvider,
     table: string,
     filter: { [key: string]: any },
     load: string[],
@@ -54,26 +43,19 @@ export class RelationLoadingService {
   ): Observable<T[]> {
     const startTime = Date.now();
 
-    return provider
-      .crud<T[]>("getAll", table, {
-        filter,
-        load,
-        visibility,
+    return this.dataService.getAll<T>(table, { filter, load, visibility }).pipe(
+      tap((result) => {
+        const elapsed = Date.now() - startTime;
+        this.stats.totalQueries++;
+        this.stats.loadTimeMs += elapsed;
+      }),
+      catchError((err: unknown) => {
+        return of(null as unknown as T[]);
       })
-      .pipe(
-        tap((result) => {
-          const elapsed = Date.now() - startTime;
-          this.stats.totalQueries++;
-          this.stats.loadTimeMs += elapsed;
-        }),
-        catchError((err: unknown) => {
-          return of(null as unknown as T[]);
-        })
-      );
+    );
   }
 
   loadOne<T>(
-    provider: ApiProvider,
     table: string,
     filter: { [key: string]: any },
     load: string[],
@@ -81,19 +63,13 @@ export class RelationLoadingService {
   ): Observable<T | null> {
     const startTime = Date.now();
 
-    return provider
-      .crud<T>("get", table, {
-        filter,
-        load,
-        visibility,
+    return this.dataService.get<T>(table, filter["id"] || "", { filter, load, visibility }).pipe(
+      tap(() => {
+        const elapsed = Date.now() - startTime;
+        this.stats.totalQueries++;
+        this.stats.loadTimeMs += elapsed;
       })
-      .pipe(
-        tap(() => {
-          const elapsed = Date.now() - startTime;
-          this.stats.totalQueries++;
-          this.stats.loadTimeMs += elapsed;
-        })
-      );
+    );
   }
 
   getStats(): RelationLoadingStats {

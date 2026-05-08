@@ -27,7 +27,7 @@ export const TableFieldIcons = {
 export const ActionColors = {
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   edit: "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
-  delete: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
+  delete: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   confirm: "text-green-600! hover:text-green-700! dark:text-green-400! dark:hover:text-green-300!",
   expand:
     "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
