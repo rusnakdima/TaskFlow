@@ -227,6 +227,7 @@ export class DataManagementView implements OnInit {
         hasMore: false,
         loading: false,
       });
+      this.populateFilterLists();
       return;
     }
 
@@ -272,46 +273,35 @@ export class DataManagementView implements OnInit {
     }
   }
 
-  private getAdminDataCount(): number {
-    switch (this.selectedType()) {
+  private getDataCount(source: "admin" | "archive", type?: string): number {
+    const service = source === "admin" ? this.adminStorageService : this.archiveStorageService;
+    const dataType = type || this.selectedType();
+    switch (dataType) {
       case "todos":
-        return this.adminStorageService.todos().length;
+        return service.todos().length;
       case "tasks":
-        return this.adminStorageService.tasks().length;
+        return service.tasks().length;
       case "subtasks":
-        return this.adminStorageService.subtasks().length;
+        return service.subtasks().length;
       case "comments":
-        return this.adminStorageService.comments().length;
+        return service.comments().length;
       case "chats":
-        return this.adminStorageService.chats().length;
+        return service.chats().length;
       case "categories":
-        return this.adminStorageService.categories().length;
+        return service.categories().length;
       case "daily_activities":
-        return this.adminStorageService.dailyActivities().length;
+        return service.dailyActivities().length;
       default:
         return 0;
     }
   }
 
+  private getAdminDataCount(): number {
+    return this.getDataCount("admin");
+  }
+
   private getArchiveDataCount(type: string): number {
-    switch (type) {
-      case "todos":
-        return this.storageService.todos().length;
-      case "tasks":
-        return this.storageService.tasks().length;
-      case "subtasks":
-        return this.storageService.subtasks().length;
-      case "comments":
-        return this.storageService.comments().length;
-      case "chats":
-        return this.storageService.chats().length;
-      case "categories":
-        return this.storageService.categories().length;
-      case "daily_activities":
-        return this.storageService.dailyActivities().length;
-      default:
-        return 0;
-    }
+    return this.getDataCount("archive", type);
   }
 
   loadMore() {
@@ -390,46 +380,34 @@ export class DataManagementView implements OnInit {
     });
   }
 
-  private getAdminData(): any[] {
+  private getData(source: "admin" | "archive"): any[] {
+    const service = source === "admin" ? this.adminStorageService : this.archiveStorageService;
     switch (this.selectedType()) {
       case "todos":
-        return this.adminStorageService.todos();
+        return service.todos();
       case "tasks":
-        return this.adminStorageService.tasks();
+        return service.tasks();
       case "subtasks":
-        return this.adminStorageService.subtasks();
+        return service.subtasks();
       case "comments":
-        return this.adminStorageService.comments();
+        return service.comments();
       case "chats":
-        return this.adminStorageService.chats();
+        return service.chats();
       case "categories":
-        return this.adminStorageService.categories();
+        return service.categories();
       case "daily_activities":
-        return this.adminStorageService.dailyActivities();
+        return service.dailyActivities();
       default:
         return [];
     }
   }
 
+  private getAdminData(): any[] {
+    return this.getData("admin");
+  }
+
   private getArchiveData(): any[] {
-    switch (this.selectedType()) {
-      case "todos":
-        return this.archiveStorageService.todos();
-      case "tasks":
-        return this.archiveStorageService.tasks();
-      case "subtasks":
-        return this.archiveStorageService.subtasks();
-      case "comments":
-        return this.archiveStorageService.comments();
-      case "chats":
-        return this.archiveStorageService.chats();
-      case "categories":
-        return this.archiveStorageService.categories();
-      case "daily_activities":
-        return this.archiveStorageService.dailyActivities();
-      default:
-        return [];
-    }
+    return this.getData("archive");
   }
 
   getSelectedTypeLabel(): string {
@@ -890,7 +868,6 @@ export class DataManagementView implements OnInit {
   onDynamicFilterChange(event: { key: string; value: string }): void {
     const signal = this.getFilterSignal(event.key);
     signal.set(event.value);
-    this.showFilters.set(false);
     this.showFilters.set(true);
   }
 }

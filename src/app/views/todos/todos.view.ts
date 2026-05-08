@@ -47,6 +47,8 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { AdminService } from "@services/data/admin.service";
+import { ResponseStatus } from "@models/response.model";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -131,6 +133,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private adminStorageService = inject(StorageService);
 
   private requestService = inject(REQUEST_SERVICE);
+  private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -666,6 +669,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     if (confirmed) {
       const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
       const visibility = todo?.visibility || "private";
+
+      if (this.isOffline()) {
+        const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showSuccess("Todo archived successfully");
+        } else {
+          this.notifyService.showError(response.message || "Failed to archive todo");
+        }
+        return;
+      }
+
       const sub = this.requestService
         .delete("todos", todoId!, { visibility: visibility as Visibility })
         .subscribe({
@@ -694,6 +708,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.notifyService.showError("Todo not found");
         return;
       }
+
+      if (this.isOffline()) {
+        const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
+        if (response.status === ResponseStatus.SUCCESS) {
+          this.notifyService.showSuccess("Todo restored successfully");
+        } else {
+          this.notifyService.showError(response.message || "Failed to restore todo");
+        }
+        return;
+      }
+
       const sub = this.requestService
         .update<Todo>(
           "todos",
@@ -982,6 +1007,28 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
+      if (this.isOffline()) {
+        let successCount = 0;
+        let errorCount = 0;
+        for (const todoId of selected) {
+          const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId);
+          if (response.status === ResponseStatus.SUCCESS) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        }
+        if (errorCount > 0) {
+          this.notifyService.showWarning(
+            `Archived ${successCount} project(s), ${errorCount} failed.`
+          );
+        } else {
+          this.notifyService.showSuccess(`${successCount} project(s) archived successfully`);
+        }
+        this.clearSelection();
+        return;
+      }
+
       const requests = Array.from(selected).map((todoId) => {
         const todo = this.storageService.getTodoById(todoId);
         const visibility = todo?.visibility || "private";

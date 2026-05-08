@@ -294,6 +294,11 @@ export class KanbanView extends BaseListView implements OnInit {
     }
   }
 
+  onToggleTaskStatus(task: Task): void {
+    const newStatus = BaseItemHelper.getNextStatus(task.status);
+    this.moveTaskToStatus(task.id, newStatus);
+  }
+
   onSubtaskToggleCompletion(subtask: Subtask): void {
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 

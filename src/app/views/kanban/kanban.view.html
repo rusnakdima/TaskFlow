@@ -57,6 +57,7 @@
                     [isExpanded]="isTaskExpanded(task.id)"
                     [todo_id]="selectedTodoId()"
                     (toggleExpand)="onToggleExpand($event)"
+                    (toggleStatus)="onToggleTaskStatus($event)"
                     (moveTaskEvent)="onMoveTask($event)"
                     (toggleSubtaskCompletion)="onSubtaskToggleCompletion($event)"
                   />
