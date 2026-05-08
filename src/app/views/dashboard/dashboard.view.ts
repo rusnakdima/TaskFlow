@@ -176,6 +176,10 @@ export class DashboardView implements OnInit {
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
+            this.storageService.setCollection("profiles", profiles[0]);
+            if (profiles[0].user) {
+              this.storageService.setCollection("user", profiles[0].user);
+            }
             this.profileLoaded = true;
           }
         },
