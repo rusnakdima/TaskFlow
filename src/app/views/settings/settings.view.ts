@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   signal,
   inject,
   ChangeDetectionStrategy,
@@ -19,7 +20,6 @@ import { SecurityService } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { GithubService } from "@services/github/github.service";
-import { GithubStore } from "@stores/github.store";
 import { REQUEST_SERVICE } from "@services/api.service";
 
 @Component({
@@ -29,13 +29,12 @@ import { REQUEST_SERVICE } from "@services/api.service";
   imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent],
   templateUrl: "./settings.view.html",
 })
-export class SettingsView implements OnInit {
+export class SettingsView implements OnInit, OnDestroy {
   private notifyService = inject(NotifyService);
   private securityService = inject(SecurityService);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private githubService = inject(GithubService);
-  private githubStore = inject(GithubStore);
   private sanitizer = inject(DomSanitizer);
   private requestService = inject(REQUEST_SERVICE);
 
@@ -488,5 +487,9 @@ export class SettingsView implements OnInit {
   closeQrModal(): void {
     this.totpQrCode.set(null);
     this.totpSetupInProgress.set(false);
+  }
+
+  ngOnDestroy(): void {
+    this.stopGithubPolling();
   }
 }

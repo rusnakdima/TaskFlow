@@ -284,13 +284,6 @@ export class SubtasksView extends BaseListView implements OnInit {
 
   constructor() {
     super();
-
-    effect(() => {
-      const todoId = this.todoId();
-      if (todoId) {
-        this.loadChats(todoId);
-      }
-    });
   }
 
   listSubtasks = computed(() => {
@@ -654,5 +647,10 @@ export class SubtasksView extends BaseListView implements OnInit {
   resolveTaskTitle(taskId: string): string {
     const task = this.storageService.getTaskById(taskId);
     return task?.title || "-";
+  }
+
+  override ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+    super.ngOnDestroy();
   }
 }
