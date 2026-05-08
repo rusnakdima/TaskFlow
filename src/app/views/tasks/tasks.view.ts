@@ -166,20 +166,21 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const tid = this.todoId();
     const todo = this.todo();
     if (tid && todo) {
-      if (this.loadedChatTodoIds.has(tid)) return;
-      const visibility = this.isPrivate() ? "private" : "shared";
-      if (!this.chatLoadingGuard.has(tid)) {
-        this.chatLoadingGuard.add(tid);
-        this.dataLoaderService.loadChatsPage(tid, visibility, 0).subscribe({
-          next: (chats) => {},
-          complete: () => {
-            this.loadedChatTodoIds.add(tid);
-            this.chatLoadingGuard.delete(tid);
-          },
-        });
+      if (!this.loadedChatTodoIds.has(tid)) {
+        this.chats.set(this._storageService.chats());
+        const visibility = this.isPrivate() ? "private" : "shared";
+        if (!this.chatLoadingGuard.has(tid)) {
+          this.chatLoadingGuard.add(tid);
+          this.dataLoaderService.loadChatsPage(tid, visibility, 0).subscribe({
+            next: (chats) => {},
+            complete: () => {
+              this.loadedChatTodoIds.add(tid);
+              this.chatLoadingGuard.delete(tid);
+            },
+          });
+        }
       }
     }
-    this.chats.set(this._storageService.chats());
   });
 
   private taskLoadEffect = effect(() => {
@@ -208,6 +209,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
     if (tid && tid !== this.lastLoadedTodoId) {
       this.lastLoadedTodoId = tid;
+      this.loadedChatTodoIds.delete(tid);
       this.todoId.set(tid);
       this.loadInitialTodo(tid);
     }
@@ -508,8 +510,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   toggleTaskCompletion(task: Task) {
-    const todoId = this.todoId();
-    if (!todoId) return;
+    const todo = this.todo();
+    if (!todo) return;
 
     if (
       task.status === TaskStatus.PENDING &&
@@ -521,13 +523,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(task.status);
 
-    this.dataService.updateTask(task.id, { ...task, status: newStatus }).subscribe({
-      next: () => {},
-      error: (err) => {
-        console.error("Update task status failed:", err);
-        this.notifyService.showError("Failed to update task status");
-      },
-    });
+    this.dataService
+      .updateTask(task.id, { ...task, status: newStatus }, todo.visibility || "private")
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update task status failed:", err);
+          this.notifyService.showError("Failed to update task status");
+        },
+      });
   }
 
   cycleStatus(task: Task) {
@@ -543,18 +547,29 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
-    const todoId = this.todoId();
-    if (!todoId) return;
+    const parentTask = this.todoTasks().find((t) => t.id === subtask.task_id);
+    if (!parentTask) {
+      this.notifyService.showError("Parent task not found");
+      return;
+    }
+
+    const todo = this.todo();
+    if (!todo) {
+      this.notifyService.showError("Parent todo not found");
+      return;
+    }
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.dataService.updateSubtask(subtask.id, { status: newStatus }).subscribe({
-      next: () => {},
-      error: (err) => {
-        console.error("Update subtask status failed:", err);
-        this.notifyService.showError("Failed to update subtask status");
-      },
-    });
+    this.dataService
+      .updateSubtask(subtask.id, { status: newStatus }, todo.visibility || "private")
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update subtask status failed:", err);
+          this.notifyService.showError("Failed to update subtask status");
+        },
+      });
   }
 
   checkDependenciesCompleted(dependsOn: string[]): boolean {
@@ -604,7 +619,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.dataService.createTask(nextTask).subscribe({
+    this.dataService.createTask(nextTask, todo?.visibility || "private").subscribe({
       next: (result: Task) => {
         this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
       },
@@ -631,16 +646,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   updateTaskInline(event: { task: Task; field: string; value: any }) {
-    const todoId = this.todoId();
-    if (!todoId) return;
+    const todo = this.todo();
+    if (!todo) return;
 
-    this.dataService.updateTask(event.task.id, { [event.field]: event.value }).subscribe({
-      next: () => {},
-      error: (err) => {
-        console.error("Update task failed:", err);
-        this.notifyService.showError("Failed to update task");
-      },
-    });
+    this.dataService
+      .updateTask(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Update task failed:", err);
+          this.notifyService.showError("Failed to update task");
+        },
+      });
   }
 
   onRowClick(task: any): void {
