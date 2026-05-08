@@ -61,6 +61,8 @@ export class DataLoaderService {
   private currentSubtasksRequestId = signal<number>(0);
   private currentCommentsTaskId = signal<string | null>(null);
   private currentCommentsRequestId = signal<number>(0);
+  private currentSubtaskCommentsSubtaskId = signal<string | null>(null);
+  private currentSubtaskCommentsRequestId = signal<number>(0);
   private currentChatsTodoId = signal<string | null>(null);
 
   private todosPagination = signal<PaginationState>({ ...DEFAULT_PAGINATION });
@@ -187,7 +189,10 @@ export class DataLoaderService {
           })
         );
 
-      return concat(of(cachedTodos), private$, shared$, public$);
+      if (cachedTodos.length > 0) {
+        return of(cachedTodos);
+      }
+      return concat(private$, shared$, public$);
     }
 
     let filter: any;
@@ -203,9 +208,13 @@ export class DataLoaderService {
       filter = { visibility: visibility };
     }
 
-    return concat(
-      of(cachedTodos),
-      this.requestService.getTodos({ filter, skip, limit, load: ["categories"], visibility }).pipe(
+    const cachedTodosForSingle = getCachedTodos();
+    if (cachedTodosForSingle.length > 0) {
+      return of(cachedTodosForSingle);
+    }
+    return this.requestService
+      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
+      .pipe(
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
@@ -214,19 +223,18 @@ export class DataLoaderService {
           else if (visibility === "shared") collectionName = "sharedTodos";
           else if (visibility === "public") collectionName = "publicTodos";
           this.storageService.setCollection(collectionName, loadedTodos, {
-            append: !isFirstPage,
-            resetPagination: isFirstPage,
+            append: false,
+            resetPagination: true,
           });
-          this.storageService.updatePagination("todos", skip, limit, loadedTodos.length);
+          this.storageService.updatePagination("todos", 0, limit, loadedTodos.length);
           this.todosLoading.set(false);
           return of(loadedTodos);
         }),
         catchError(() => {
           this.todosLoading.set(false);
-          return of(cachedTodos);
+          return of([]);
         })
-      )
-    );
+      );
   }
 
   loadMoreTodosPage(visibility: string = "private"): Observable<Todo[]> {
@@ -304,19 +312,32 @@ export class DataLoaderService {
           })
         );
 
-      return concat(
-        of(cachedForAppend),
-        merge(private$, shared$, public$).pipe(
-          scan(
-            (acc: Todo[]) => [
-              ...this.storageService.privateTodos(),
-              ...this.storageService.sharedTodos(),
-              ...this.storageService.publicTodos(),
-            ],
-            cachedForAppend
-          ),
-          tap(() => this.todosLoading.set(false))
+      return merge(
+        private$.pipe(
+          tap((privateTodos) =>
+            this.storageService.setCollection("privateTodos", privateTodos, { append: true })
+          )
+        ),
+        shared$.pipe(
+          tap((sharedTodos) =>
+            this.storageService.setCollection("sharedTodos", sharedTodos, { append: true })
+          )
+        ),
+        public$.pipe(
+          tap((publicTodos) =>
+            this.storageService.setCollection("publicTodos", publicTodos, { append: true })
+          )
         )
+      ).pipe(
+        scan(
+          (acc: Todo[]) => [
+            ...this.storageService.privateTodos(),
+            ...this.storageService.sharedTodos(),
+            ...this.storageService.publicTodos(),
+          ],
+          []
+        ),
+        tap(() => this.todosLoading.set(false))
       );
     }
 
@@ -329,27 +350,23 @@ export class DataLoaderService {
       filter = { visibility: visibility };
     }
 
-    return concat(
-      of(cachedForAppend),
-      this.requestService.getTodos({ filter, skip, limit, load: ["categories"], visibility }).pipe(
-        tap((newItems) => {
+    return this.requestService
+      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
+      .pipe(
+        tap((todos) => {
+          const isFirstPage = skip === 0;
           let collectionName: "privateTodos" | "sharedTodos" | "publicTodos" = "privateTodos";
           if (visibility === "private") collectionName = "privateTodos";
           else if (visibility === "shared") collectionName = "sharedTodos";
           else if (visibility === "public") collectionName = "publicTodos";
-          this.storageService.setCollection(collectionName, newItems || [], { append: true });
+          this.storageService.setCollection(collectionName, todos, { append: !isFirstPage });
         }),
-        switchMap((newItems) => {
-          this.storageService.updatePagination("todos", skip, limit, (newItems || []).length);
-          this.todosLoading.set(false);
-          return of(newItems || []);
-        }),
+        tap(() => this.todosLoading.set(false)),
         catchError(() => {
           this.todosLoading.set(false);
-          return of(cachedForAppend);
+          return of([]);
         })
-      )
-    );
+      );
   }
 
   loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
@@ -372,11 +389,14 @@ export class DataLoaderService {
 
   loadInitialTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
     this.tasksLoading.set(true);
-    const cachedTasks = this.storageService.tasks().filter((t) => !t.deleted_at);
 
     if (visibility === "all") {
+      const cachedTasks = this.storageService.tasks().filter((t) => !t.deleted_at);
+      if (cachedTasks.length > 0) {
+        this.tasksLoading.set(false);
+        return of(cachedTasks);
+      }
       return concat(
-        of(cachedTasks),
         this.dataService
           .getTasksByVisibility("private", limit)
           .pipe(
@@ -395,22 +415,26 @@ export class DataLoaderService {
       );
     }
 
-    return concat(
-      of(cachedTasks),
-      this.dataService.getTasksByVisibility(visibility, limit).pipe(
-        switchMap((tasks) => {
-          const loadedTasks = tasks || [];
-          this.storageService.setCollection("tasks", loadedTasks, { resetPagination: true });
-          this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
-          this.tasksLoading.set(false);
-          return of(loadedTasks);
-        }),
-        catchError(() => {
-          this.tasksLoading.set(false);
-          return of(cachedTasks);
-        })
-      )
-    );
+    const cachedTasks = this.storageService.tasks().filter((t) => {
+      if (t.deleted_at) return false;
+      const todo = this.storageService.todos().find((td) => td.id === t.todo_id);
+      if (!todo) return visibility === "private";
+      if (visibility === "private") return !todo.visibility || todo.visibility === "private";
+      if (visibility === "shared") return todo.visibility === "shared";
+      if (visibility === "public") return todo.visibility === "public";
+      return false;
+    });
+
+    if (cachedTasks.length > 0) {
+      this.tasksLoading.set(false);
+      return of(cachedTasks);
+    }
+
+    return this.dataService
+      .getTasksByVisibility(visibility, limit)
+      .pipe(
+        tap((tasks) => this.storageService.setCollection("tasks", tasks, { resetPagination: true }))
+      );
   }
 
   loadMoreTasks(todoId: string, visibility: string = "private"): Observable<Task[]> {
@@ -428,33 +452,32 @@ export class DataLoaderService {
     const skip = page * limit;
     this.tasksLoading.set(true);
 
-    const cachedTasks = page === 0 ? this.storageService.getTasksByTodoId(todoId) : [];
+    if (page === 0) {
+      const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+      if (cachedTasks.length > 0) {
+        this.tasksLoading.set(false);
+        return of(cachedTasks);
+      }
+    }
+    return this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
+      switchMap((tasks) => {
+        if (this.currentTasksTodoId() !== todoId) {
+          return this.loadMoreTasksPage(this.currentTasksTodoId() || todoId, visibility);
+        }
 
-    return concat(
-      of(cachedTasks),
-      this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
-        switchMap((tasks) => {
-          if (this.currentTasksTodoId() !== todoId) {
-            return this.loadMoreTasksPage(this.currentTasksTodoId() || todoId, visibility);
-          }
-
-          const loadedTasks = tasks || [];
-          const isFirstPage = page === 0;
-          if (isFirstPage) {
-            this.storageService.resetPagination("tasks");
-          }
-          this.storageService.setCollection("tasks", loadedTasks, {
-            append: !isFirstPage,
-          });
-          this.storageService.updatePagination("tasks", skip, limit, loadedTasks.length);
-          this.tasksLoading.set(false);
-          return of(loadedTasks);
-        }),
-        catchError(() => {
-          this.tasksLoading.set(false);
-          return of(cachedTasks);
-        })
-      )
+        const loadedTasks = tasks || [];
+        this.storageService.setCollection("tasks", loadedTasks, {
+          append: false,
+          resetPagination: true,
+        });
+        this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
+        this.tasksLoading.set(false);
+        return of(loadedTasks);
+      }),
+      catchError(() => {
+        this.tasksLoading.set(false);
+        return of([]);
+      })
     );
   }
 
@@ -676,12 +699,16 @@ export class DataLoaderService {
     page: number = 0,
     limit: number = 20
   ): Observable<Comment[]> {
+    this.currentSubtaskCommentsSubtaskId.set(subtaskId);
+    const requestId = this.currentSubtaskCommentsRequestId() + 1;
+    this.currentSubtaskCommentsRequestId.set(requestId);
     const skip = page * limit;
     this.commentsLoading.set(true);
     this.commentsPagination.set({ skip, limit, hasMore: true });
 
     return this.requestService.getComments(undefined, subtaskId, skip, limit, visibility).pipe(
       switchMap((comments) => {
+        if (requestId !== this.currentSubtaskCommentsRequestId()) return of([]);
         const loadedComments = comments || [];
         const isFirstPage = page === 0;
         this.storageService.setCollection("comments", loadedComments, {
@@ -707,6 +734,10 @@ export class DataLoaderService {
     subtaskId: string,
     visibility: string = "private"
   ): Observable<Comment[]> {
+    if (this.currentSubtaskCommentsSubtaskId() !== subtaskId) {
+      return this.loadSubtaskCommentsPage(subtaskId, visibility);
+    }
+
     const current = this.commentsPagination();
     if (current.hasMore === false) return of([]);
 
