@@ -36,6 +36,7 @@ export class InitialDataResolver implements Resolve<unknown> {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);
+  private requestService = inject(REQUEST_SERVICE);
 
   private hasCachedData(): boolean {
     return (
@@ -48,6 +49,32 @@ export class InitialDataResolver implements Resolve<unknown> {
   private hasValidProfile(): boolean {
     const profile = this.storageService.profile();
     return !!profile?.user_id;
+  }
+
+  private loadProfileInBackground(): void {
+    if (this.hasValidProfile()) {
+      return;
+    }
+
+    const userId = this.authService.getValueByKey("id");
+    if (!userId) {
+      return;
+    }
+
+    this.requestService
+      .getAll<any>("profiles", {
+        visibility: "private",
+        filter: { user_id: userId },
+        load: ["user"],
+      })
+      .subscribe({
+        next: (profiles) => {
+          if (profiles && profiles.length > 0) {
+            // Profile loaded into storage via setCollection in getAll tap handler
+          }
+        },
+        error: () => {},
+      });
   }
 
   async resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
@@ -63,6 +90,8 @@ export class InitialDataResolver implements Resolve<unknown> {
       this.userValidationService.redirectToLogin();
       return { loaded: false, redirectToLogin: true };
     }
+
+    this.loadProfileInBackground();
 
     const userId = this.authService.getValueByKey("id") ?? "";
 

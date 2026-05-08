@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, inject, computed, DestroyRef, signal } from "@angular/core";
+import { Component, OnInit, inject, computed, DestroyRef, signal, OnDestroy } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -14,6 +14,7 @@ import { Profile } from "@models/profile.model";
 import { AuthService } from "@services/auth/auth.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -46,8 +47,10 @@ export class DashboardView implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
-  profile: () => Profile | null;
+  profile = computed(() => this.storageService.profile());
   userId = "";
+
+  private profileLoaded = false;
 
   private allTasksData = computed<DisplayTask[]>(() => {
     const currentTasks = this.storageService.tasks();
@@ -116,13 +119,68 @@ export class DashboardView implements OnInit {
       });
   });
 
-  constructor() {
-    this.profile = this.storageService.profile;
-  }
+  constructor() {}
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+    this.loadProfile();
     this.requestService.getAll("tasks", { visibility: "all", limit: 10, skip: 0 }).subscribe({});
+  }
+
+  private loadProfile(): void {
+    if (this.profileLoaded && this.profile()) {
+      return;
+    }
+
+    const storedProfile = this.storageService.profile();
+    const storedUser = this.storageService.user();
+
+    if (storedProfile && storedUser) {
+      this.profileLoaded = true;
+      return;
+    }
+
+    if (this.storageService.isLoading()) {
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkStorage = () => {
+        attempts++;
+        const profile = this.storageService.profile();
+        const user = this.storageService.user();
+        if (profile && user) {
+          this.profileLoaded = true;
+          return;
+        }
+        if (attempts < maxAttempts) {
+          setTimeout(checkStorage, 100);
+        } else {
+          this.fetchProfileFromApi();
+        }
+      };
+      setTimeout(checkStorage, 100);
+      return;
+    }
+
+    this.fetchProfileFromApi();
+  }
+
+  private fetchProfileFromApi(): void {
+    const userId = this.authService.getValueByKey("id");
+    this.requestService
+      .getAll<Profile>("profiles", {
+        visibility: "private",
+        filter: { user_id: userId },
+        load: ["user"],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profiles) => {
+          if (profiles && profiles.length > 0) {
+            this.profileLoaded = true;
+          }
+        },
+        error: () => {},
+      });
   }
 
   getCircleColor(status: TaskStatus): string {

@@ -5,7 +5,7 @@ import { firstValueFrom, take } from "rxjs";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
-import { STORAGE_SERVICE, StorageService } from "@services/storage.service";
+import { StorageService } from "@services/storage.service";
 
 /**
  * MainResolver - Storage First with API Fallback
@@ -18,7 +18,7 @@ import { STORAGE_SERVICE, StorageService } from "@services/storage.service";
 })
 export class MainResolver implements Resolve<any> {
   private requestService = inject(REQUEST_SERVICE);
-  private storageService = inject(STORAGE_SERVICE);
+  private storageService = inject(StorageService);
 
   async resolve(
     route: ActivatedRouteSnapshot,

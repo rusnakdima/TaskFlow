@@ -259,25 +259,27 @@ export class SubtasksView extends BaseListView implements OnInit {
 
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
 
-    this.requestService.loadPage<Subtask>("subtasks", {
-      filter: { task_id: taskId },
-      visibility: visibility as Visibility,
-      skip: this.subtaskPagination().skip,
-      limit: this.subtaskPagination().limit,
-    }).subscribe({
-      next: (subtasks: Subtask[]) => {
-        this.taskSubtasks.update((current) => [...current, ...subtasks]);
-        this.subtaskPagination.update((p) => ({
-          ...p,
-          skip: p.skip + subtasks.length,
-          loading: false,
-          hasMore: subtasks.length === p.limit,
-        }));
-      },
-      error: () => {
-        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
-      },
-    });
+    this.requestService
+      .loadPage<Subtask>("subtasks", {
+        filter: { task_id: taskId },
+        visibility: visibility as Visibility,
+        skip: this.subtaskPagination().skip,
+        limit: this.subtaskPagination().limit,
+      })
+      .subscribe({
+        next: (subtasks: Subtask[]) => {
+          this.taskSubtasks.update((current) => [...current, ...subtasks]);
+          this.subtaskPagination.update((p) => ({
+            ...p,
+            skip: p.skip + subtasks.length,
+            loading: false,
+            hasMore: subtasks.length === p.limit,
+          }));
+        },
+        error: () => {
+          this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+        },
+      });
   }
 
   constructor() {
