@@ -16,6 +16,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 export interface QueuedOperation {
   id: string;
@@ -24,6 +25,7 @@ export interface QueuedOperation {
   data?: any;
   timestamp: number;
   retries: number;
+  visibility?: string;
 }
 
 export interface SyncProgress {
@@ -62,7 +64,8 @@ export class UnifiedSyncService implements OnDestroy {
     private jwtTokenService: JwtTokenService,
     private dataService: DataService,
     private notifyService: NotifyService,
-    private syncProgressService: SyncProgressService
+    private syncProgressService: SyncProgressService,
+    private mongoConnectionService: MongoConnectionService
   ) {
     this.loadQueueFromStorage();
     this.initNetworkListeners();
@@ -163,7 +166,17 @@ export class UnifiedSyncService implements OnDestroy {
     return subject ? subject.asObservable() : of();
   }
 
-  queueOperation(operation: "create" | "update" | "delete", table: string, data?: any): string {
+  queueOperation(
+    operation: "create" | "update" | "delete",
+    table: string,
+    data?: any,
+    visibility?: string
+  ): string {
+    if (visibility !== "private" && !this.mongoConnectionService.isConnected()) {
+      console.warn("Cannot queue non-private operation: MongoDB is not connected");
+      return "";
+    }
+
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     const queuedOp: QueuedOperation = {
@@ -173,6 +186,7 @@ export class UnifiedSyncService implements OnDestroy {
       data: operation === "create" ? { ...data, id: tempId } : data,
       timestamp: Date.now(),
       retries: 0,
+      visibility,
     };
 
     this.offlineQueue.push(queuedOp);
@@ -208,6 +222,7 @@ export class UnifiedSyncService implements OnDestroy {
       operation: op.operation,
       table: op.table,
       data: op.data,
+      visibility: op.visibility,
     });
   }
 

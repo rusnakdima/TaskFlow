@@ -1,10 +1,19 @@
 /* sys lib */
-import { Injectable, inject, signal, computed, OnDestroy, DestroyRef } from "@angular/core";
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  OnDestroy,
+  DestroyRef,
+  Injector,
+} from "@angular/core";
 import { interval, Subject, filter, take, takeUntil } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
+import { firstValueFrom } from "rxjs";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
@@ -50,6 +59,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 export class NotifyService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
   private destroyRef = inject(DestroyRef);
+  private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
   // NotifyService subject for toast notifications
@@ -105,15 +115,17 @@ export class NotifyService implements OnDestroy {
     });
   }
 
+  private getRequestService(): REQUEST_SERVICE {
+    return this.injector.get(REQUEST_SERVICE);
+  }
+
   private async fetchEntityTitle(table: string, id: string): Promise<string> {
     try {
-      const result: any = await invoke("manage_data", {
-        operation: "get",
-        table,
-        id,
-      });
-      if (result?.status === ResponseStatus.SUCCESS && result.data?.title) {
-        return result.data.title;
+      const result = await firstValueFrom(
+        this.getRequestService().get<{ title: string }>(table, id, { visibility: "all" } as any)
+      );
+      if (result && (result as any).title) {
+        return (result as any).title;
       }
     } catch {}
     return "";

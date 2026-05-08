@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
@@ -19,7 +19,7 @@ export type EntityType =
   providedIn: "root",
 })
 export class DragDropOrderService {
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
   private notifyService = inject(NotifyService);
   private orderCalculationService = inject(OrderCalculationService);
 
@@ -86,7 +86,7 @@ export class DragDropOrderService {
 
     this.updatingOrders.add(operationKey);
 
-    return this.dataService.updateAll(table, transformedItems).pipe(
+    return this.requestService.updateAll(table, transformedItems).pipe(
       tap(() => {
         this.updatingOrders.delete(operationKey);
         this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
