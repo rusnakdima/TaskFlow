@@ -53,22 +53,7 @@
         >
           {{ (subtask.priority || "medium").toUpperCase() }}
         </span>
-        <button
-          class="flex h-7 w-7 items-center justify-center rounded transition-colors"
-          (click)="toggleCompletion()"
-          [title]="
-            subtask.status === 'completed'
-              ? 'Mark as skipped'
-              : subtask.status === 'skipped'
-                ? 'Mark as failed'
-                : subtask.status === 'failed'
-                  ? 'Mark as pending'
-                  : 'Mark as completed'
-          "
-          [ngClass]="getStatusBgColor(subtask.status)"
-        >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="getStatusIcon(subtask.status)" />
-        </button>
+        <app-status-toggle [status]="subtask.status" size="sm" (toggle)="onStatusToggle($event)" />
       </div>
     </div>
 

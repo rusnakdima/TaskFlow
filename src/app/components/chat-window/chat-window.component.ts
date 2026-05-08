@@ -134,12 +134,13 @@ export class ChatWindowComponent
 
     const cachedChats = this.storageService.getChatsByTodoId(todoId);
     if (cachedChats && cachedChats.length > 0) {
-      const reversed = [...cachedChats].reverse();
+      const nonDeleted = cachedChats.filter((c) => !c.deleted_at);
+      const reversed = [...nonDeleted].reverse();
       this.messages.set(reversed);
-      this.cacheUsernames(cachedChats);
-      if (cachedChats.length > 0) {
-        this.oldestTimestamp.set(cachedChats[cachedChats.length - 1].created_at);
-        this.hasMoreMessages.set(cachedChats.length >= 10);
+      this.cacheUsernames(nonDeleted);
+      if (nonDeleted.length > 0) {
+        this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
+        this.hasMoreMessages.set(nonDeleted.length >= 10);
       }
       this.loadingInitial.set(false);
       return;
@@ -153,12 +154,13 @@ export class ChatWindowComponent
       })
       .subscribe({
         next: (chats) => {
-          const reversed = [...chats].reverse();
+          const nonDeleted = chats.filter((c) => !c.deleted_at);
+          const reversed = [...nonDeleted].reverse();
           this.messages.set(reversed);
-          this.cacheUsernames(chats);
-          if (chats.length > 0) {
-            this.oldestTimestamp.set(chats[chats.length - 1].created_at);
-            this.hasMoreMessages.set(chats.length >= 10);
+          this.cacheUsernames(nonDeleted);
+          if (nonDeleted.length > 0) {
+            this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
+            this.hasMoreMessages.set(nonDeleted.length >= 10);
           }
         },
         complete: () => this.loadingInitial.set(false),
@@ -191,13 +193,14 @@ export class ChatWindowComponent
       })
       .subscribe({
         next: (olderChats) => {
-          this.cacheUsernames(olderChats);
-          if (olderChats.length === 0) {
+          const nonDeleted = olderChats.filter((c) => !c.deleted_at);
+          this.cacheUsernames(nonDeleted);
+          if (nonDeleted.length === 0) {
             this.hasMoreMessages.set(false);
           } else {
-            const reversed = [...olderChats].reverse();
+            const reversed = [...nonDeleted].reverse();
             this.messages.update((current) => [...reversed, ...current]);
-            this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
+            this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
           }
           this.loadingOlder.set(false);
         },

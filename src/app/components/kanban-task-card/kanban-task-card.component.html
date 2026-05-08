@@ -89,6 +89,7 @@
         }
       </div>
       <div class="flex items-center gap-1">
+        <app-status-toggle [status]="task.status" size="sm" (toggle)="onStatusToggle($event)" />
         <button
           cdkDragHandle
           title="Drag to move"

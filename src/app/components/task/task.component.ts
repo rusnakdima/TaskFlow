@@ -248,6 +248,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (!wasOpen && this.task) {
       const visibility = this.isPrivate ? "private" : "shared";
       const taskId = this.task.id;
+      const task = this.task;
 
       this.requestService
         .loadPage("comments", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
@@ -256,50 +257,50 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
             this.requestService
               .loadPage("subtasks", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
               .subscribe();
+
+            const userId = this.authService.getValueByKey("id");
+            if (userId) {
+              const subtaskIds = this.subtasks()
+                .filter((s: Subtask) => s.task_id === taskId && !s.deleted_at)
+                .map((s: Subtask) => s.id);
+
+              const subtaskComments = this.comments().filter(
+                (c: Comment) => c.subtask_id && subtaskIds.includes(c.subtask_id) && !c.deleted_at
+              );
+
+              const commentsToUpdate = subtaskComments.filter(
+                (c: Comment) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
+              );
+
+              if (commentsToUpdate.length > 0) {
+                const effectiveTodoId = this.todo_id || task.todo_id;
+
+                const localUpdates = commentsToUpdate.map((c: Comment) => ({
+                  ...c,
+                  read_by: [...(c.read_by || []), userId],
+                }));
+
+                if (effectiveTodoId) {
+                  this.requestService
+                    .updateAll(
+                      "comments",
+                      localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by }))
+                    )
+                    .pipe(takeUntilDestroyed(this.destroyRef))
+                    .subscribe({
+                      next: () => {},
+                      error: (err: Error) => {
+                        console.error("Mark comments read failed:", err);
+                      },
+                    });
+                }
+              }
+            }
           },
           error: () => {
             this.notifyService.showError("Failed to load comments");
           },
         });
-
-      const userId = this.authService.getValueByKey("id");
-      if (userId) {
-        const subtaskIds = this.subtasks()
-          .filter((s: Subtask) => s.task_id === taskId && !s.deleted_at)
-          .map((s: Subtask) => s.id);
-
-        const subtaskComments = this.comments().filter(
-          (c: Comment) => c.subtask_id && subtaskIds.includes(c.subtask_id) && !c.deleted_at
-        );
-
-        const commentsToUpdate = subtaskComments.filter(
-          (c: Comment) => c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
-        );
-
-        if (commentsToUpdate.length > 0) {
-          const effectiveTodoId = this.todo_id || this.task.todo_id;
-
-          const localUpdates = commentsToUpdate.map((c: Comment) => ({
-            ...c,
-            read_by: [...(c.read_by || []), userId],
-          }));
-
-          if (effectiveTodoId) {
-            this.requestService
-              .updateAll(
-                "comments",
-                localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by }))
-              )
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe({
-                next: () => {},
-                error: (err: Error) => {
-                  console.error("Mark comments read failed:", err);
-                },
-              });
-          }
-        }
-      }
     }
 
     this.cdr.markForCheck();
