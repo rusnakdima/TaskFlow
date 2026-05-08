@@ -70,7 +70,8 @@ export class InitialDataResolver implements Resolve<unknown> {
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
-            // Profile loaded into storage via setCollection in getAll tap handler
+            this.storageService.setCollection("profiles", profiles[0]);
+            this.storageService.setCollection("user", profiles[0].user || null);
           }
         },
         error: () => {},
