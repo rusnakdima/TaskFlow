@@ -680,10 +680,21 @@ impl RepositoryService {
       });
     }
 
-    self
-      .activity_monitor
-      .log_action(&table, "create", &created_record, None)
-      .await;
+    if offline {
+      let monitor = self.activity_monitor.clone();
+      let table_clone = table.to_string();
+      let record_clone = created_record.clone();
+      tokio::spawn(async move {
+        let _ = monitor
+          .log_action(&table_clone, "create", &record_clone, None)
+          .await;
+      });
+    } else {
+      let _ = self
+        .activity_monitor
+        .log_action(&table, "create", &created_record, None)
+        .await;
+    }
 
     let should_publish_to_github = table == "tasks"
       && created_record
@@ -1064,9 +1075,20 @@ impl RepositoryService {
     let mut validated_data = validated_data;
     Self::merge_immutable_fields(&existing_record, &mut validated_data);
 
-    let updated_record = provider
-      .update(&table, &id_str, validated_data.clone())
-      .await?;
+    let merged_data = if let (Some(existing_obj), Some(update_obj)) =
+      (existing_record.as_object(), validated_data.as_object())
+    {
+      let mut merged = existing_obj.clone();
+      for (k, v) in update_obj {
+        merged.insert(k.clone(), v.clone());
+      }
+      serde_json::to_value(merged)
+        .map_err(|e| err_response_formatted("Merge failed", &e.to_string()))?
+    } else {
+      validated_data.clone()
+    };
+
+    let updated_record = provider.update(&table, &id_str, merged_data).await?;
 
     let new_status = updated_record.get("status").and_then(|v| v.as_str());
 
@@ -1129,10 +1151,21 @@ impl RepositoryService {
 
     self.invalidate_cache(&table).await;
 
-    self
-      .activity_monitor
-      .log_action(&table, "update", &updated_record, None)
-      .await;
+    if offline {
+      let monitor = self.activity_monitor.clone();
+      let table_clone = table.to_string();
+      let record_clone = updated_record.clone();
+      tokio::spawn(async move {
+        let _ = monitor
+          .log_action(&table_clone, "update", &record_clone, None)
+          .await;
+      });
+    } else {
+      let _ = self
+        .activity_monitor
+        .log_action(&table, "update", &updated_record, None)
+        .await;
+    }
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
@@ -1260,10 +1293,21 @@ impl RepositoryService {
 
     self.invalidate_cache(&table).await;
 
-    self
-      .activity_monitor
-      .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
-      .await;
+    if offline {
+      let monitor = self.activity_monitor.clone();
+      let table_clone = table.to_string();
+      let id_clone = id_str.clone();
+      tokio::spawn(async move {
+        let _ = monitor
+          .log_action(&table_clone, "delete", &json!({"id": id_clone}), None)
+          .await;
+      });
+    } else {
+      let _ = self
+        .activity_monitor
+        .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
+        .await;
+    }
 
     let elapsed = start.elapsed();
     tracing::debug!(

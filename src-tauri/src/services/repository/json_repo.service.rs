@@ -173,7 +173,30 @@ impl JsonRepoService {
     data: Value,
     _visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let updated = self.json_provider.update(table, id, data).await?;
+    let existing = self
+      .json_provider
+      .find_by_id(table, id)
+      .await
+      .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
+      .ok_or_else(|| err_response("Document not found"))?;
+
+    let merged = if let (Some(existing_obj), Some(new_obj)) =
+      (existing.as_object(), data.as_object())
+    {
+      let mut result = existing_obj.clone();
+      for (k, v) in new_obj {
+        result.insert(k.clone(), v.clone());
+      }
+      serde_json::to_value(result).map_err(|e| err_response(&e.to_string()))?
+    } else {
+      data
+    };
+
+    let updated = self
+      .json_provider
+      .patch(table, id, merged)
+      .await
+      .map_err(|e| err_response_formatted("Update failed", &e.to_string()))?;
 
     self.invalidate_cache(table).await;
 
