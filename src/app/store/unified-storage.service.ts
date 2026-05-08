@@ -1273,40 +1273,13 @@ export class UnifiedStorageService extends BaseStorageService {
         }
         break;
       case "privateTodos":
-        this.privateTodosSignal.update((existing) => {
-          const existingById = new Map(existing.map((t) => [t.id, t]));
-          for (const item of items as Todo[]) {
-            existingById.set(item.id, item);
-          }
-          return Array.from(existingById.values());
-        });
-        if (options?.resetPagination) {
-          this.resetPagination("todos");
-        }
+        this.storeTodosWithRelations("privateTodos", items as Todo[], options);
         break;
       case "sharedTodos":
-        this.sharedTodosSignal.update((existing) => {
-          const existingById = new Map(existing.map((t) => [t.id, t]));
-          for (const item of items as Todo[]) {
-            existingById.set(item.id, item);
-          }
-          return Array.from(existingById.values());
-        });
-        if (options?.resetPagination) {
-          this.resetPagination("todos");
-        }
+        this.storeTodosWithRelations("sharedTodos", items as Todo[], options);
         break;
       case "publicTodos":
-        this.publicTodosSignal.update((existing) => {
-          const existingById = new Map(existing.map((t) => [t.id, t]));
-          for (const item of items as Todo[]) {
-            existingById.set(item.id, item);
-          }
-          return Array.from(existingById.values());
-        });
-        if (options?.resetPagination) {
-          this.resetPagination("todos");
-        }
+        this.storeTodosWithRelations("publicTodos", items as Todo[], options);
         break;
       case "allProfiles":
         this.allProfilesSignal.set(items as Profile[]);
@@ -1566,5 +1539,79 @@ export class UnifiedStorageService extends BaseStorageService {
 
   setHasMoreTodos(hasMore: boolean): void {
     this._todosPagination.update((p) => ({ ...p, hasMore }));
+  }
+
+  private storeTodosWithRelations(
+    type: "privateTodos" | "sharedTodos" | "publicTodos",
+    items: Todo[],
+    options?: { append?: boolean; resetPagination?: boolean }
+  ): void {
+    const nestedTasks: Task[] = [];
+    const nestedChats: Chat[] = [];
+    const nestedUsers: User[] = [];
+    const todosToStore: Todo[] = [];
+
+    for (const todo of items) {
+      const cleanTodo = { ...todo } as any;
+
+      if ((todo as any).tasks && Array.isArray((todo as any).tasks)) {
+        nestedTasks.push(...(todo as any).tasks);
+        delete cleanTodo.tasks;
+      }
+      if ((todo as any).chats && Array.isArray((todo as any).chats)) {
+        nestedChats.push(...(todo as any).chats);
+        delete cleanTodo.chats;
+      }
+      if ((todo as any).user) {
+        nestedUsers.push((todo as any).user);
+        delete cleanTodo.user;
+      }
+
+      todosToStore.push(cleanTodo as Todo);
+    }
+
+    if (nestedTasks.length > 0) {
+      this.setCollection("tasks", nestedTasks, { append: options?.append });
+    }
+    if (nestedChats.length > 0) {
+      this.setCollection("chats", nestedChats, { append: options?.append });
+    }
+    if (nestedUsers.length > 0) {
+      this.setCollection("users", nestedUsers, { append: options?.append });
+    }
+
+    switch (type) {
+      case "privateTodos":
+        this.privateTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of todosToStore) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
+        break;
+      case "sharedTodos":
+        this.sharedTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of todosToStore) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
+        break;
+      case "publicTodos":
+        this.publicTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of todosToStore) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
+        break;
+    }
+
+    if (options?.resetPagination) {
+      this.resetPagination("todos");
+    }
   }
 }
