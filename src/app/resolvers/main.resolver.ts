@@ -4,19 +4,21 @@ import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/r
 import { firstValueFrom, take } from "rxjs";
 
 /* services */
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { STORAGE_SERVICE, StorageService } from "@services/storage.service";
 
 /**
- * MainResolver - DataService First with Fallback Loading
+ * MainResolver - Storage First with API Fallback
  *
- * This resolver returns data from DataService.
- * If data is not found, it triggers a direct API call and waits.
+ * This resolver checks storage first before making API calls.
+ * Only fetches from API if data is not found in storage.
  */
 @Injectable({
   providedIn: "root",
 })
 export class MainResolver implements Resolve<any> {
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
+  private storageService = inject(STORAGE_SERVICE);
 
   async resolve(
     route: ActivatedRouteSnapshot,
@@ -29,28 +31,45 @@ export class MainResolver implements Resolve<any> {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
 
-        let todoFromStorage = await firstValueFrom(
-          this.dataService.getTodo(todoId).pipe(take(1))
-        ).catch(() => null);
+        const todos = this.storageService.todos();
+        const tasks = this.storageService.tasks();
 
-        let taskFromStorage = await firstValueFrom(
-          this.dataService.getTask(taskId).pipe(take(1))
-        ).catch(() => null);
+        let todoFromStorage = todos.find((t) => t.id === todoId) || null;
+        let taskFromStorage = tasks.find((t) => t.id === taskId) || null;
 
         if (todoFromStorage || taskFromStorage) {
-          return { task: taskFromStorage || null, todo: todoFromStorage || null };
+          return { task: taskFromStorage, todo: todoFromStorage };
+        }
+
+        let todoFromApi = await firstValueFrom(
+          this.requestService.getTodo(todoId).pipe(take(1))
+        ).catch(() => null);
+
+        let taskFromApi = await firstValueFrom(
+          this.requestService.getTask(taskId).pipe(take(1))
+        ).catch(() => null);
+
+        if (todoFromApi || taskFromApi) {
+          return { task: taskFromApi || null, todo: todoFromApi || null };
         }
 
         return { task: null, todo: null, error: "not_found" };
       } else if (paramsMap.get("todoId")) {
         const todoId = paramsMap.get("todoId") ?? "";
 
-        let todoFromStorage = await firstValueFrom(
-          this.dataService.getTodo(todoId).pipe(take(1))
-        ).catch(() => null);
+        const todos = this.storageService.todos();
+        let todoFromStorage = todos.find((t) => t.id === todoId) || null;
 
         if (todoFromStorage) {
           return todoFromStorage;
+        }
+
+        let todoFromApi = await firstValueFrom(
+          this.requestService.getTodo(todoId).pipe(take(1))
+        ).catch(() => null);
+
+        if (todoFromApi) {
+          return todoFromApi;
         }
 
         return { id: todoId, error: "not_found" };

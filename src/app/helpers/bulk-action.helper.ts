@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /**
  * Bulk operation result interface
@@ -21,7 +21,7 @@ export interface BulkOperationResult {
  */
 @Injectable({ providedIn: "root" })
 export class BulkActionHelper {
-  constructor(private dataService: DataService) {}
+  private requestService = inject(REQUEST_SERVICE);
 
   /**
    * Bulk update field for multiple items
