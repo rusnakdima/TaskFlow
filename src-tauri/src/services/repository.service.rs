@@ -153,6 +153,7 @@ impl RepositoryService {
       })
   }
 
+  #[allow(dead_code)]
   async fn resolve_visibility_from_parent(&self, table: &str, data: &Value) -> Option<String> {
     let parent_id: String = match table {
       "tasks" => data.get("todo_id")?.as_str()?.to_string(),
@@ -1254,21 +1255,6 @@ impl RepositoryService {
           .cascade_service
           .soft_delete_cascade_mongo(&table, &id_str)
           .await?;
-      }
-      if visibility_str == "private" {
-        if use_json {
-          self
-            .cascade_service
-            .soft_delete_cascade_mongo(&table, &id_str)
-            .await
-            .ok();
-        } else {
-          self
-            .cascade_service
-            .soft_delete_cascade_json(&table, &id_str)
-            .await
-            .ok();
-        }
       }
     }
 

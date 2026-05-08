@@ -43,33 +43,37 @@ async fn get_user_github_token(
   Ok((user.github_access_token.clone(), user))
 }
 
+struct GithubTokenUpdate {
+  user_id: String,
+  access_token: String,
+  refresh_token: String,
+  expires_in: i64,
+  github_user_id: String,
+  github_username: String,
+}
+
 async fn update_user_github_tokens(
   json_provider: &nosql_orm::providers::JsonProvider,
   mongo_provider: Option<&Arc<MongoProvider>>,
-  user_id: &str,
-  access_token: &str,
-  refresh_token: &str,
-  expires_in: i64,
-  github_user_id: &str,
-  github_username: &str,
+  update: GithubTokenUpdate,
 ) -> Result<(), ResponseModel> {
   let table_name = "users";
 
   let update_data = json!({
-    "github_access_token": access_token,
-    "github_refresh_token": refresh_token,
-    "github_token_expiry": (chrono::Utc::now().timestamp() + expires_in).to_string(),
-    "github_user_id": github_user_id,
-    "github_username": github_username
+    "github_access_token": update.access_token,
+    "github_refresh_token": update.refresh_token,
+    "github_token_expiry": (chrono::Utc::now().timestamp() + update.expires_in).to_string(),
+    "github_user_id": update.github_user_id,
+    "github_username": update.github_username
   });
 
   json_provider
-    .update(table_name, user_id, update_data.clone())
+    .update(table_name, &update.user_id, update_data.clone())
     .await
     .map_err(|e| err_response_formatted("Failed to update user", &e.to_string()))?;
 
   if let Some(mongo) = mongo_provider {
-    let _ = mongo.update(table_name, user_id, update_data).await;
+    let _ = mongo.update(table_name, &update.user_id, update_data).await;
   }
 
   Ok(())
@@ -125,15 +129,18 @@ pub async fn github_oauth_callback(
     .await
     .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
 
+  let github_username = github_user.login.clone();
   let _ = update_user_github_tokens(
     &state.repository_service.json_provider,
     state.repository_service.mongodb_provider.as_ref(),
-    &user_id,
-    &tokens.access_token,
-    &tokens.refresh_token,
-    tokens.expires_in,
-    &github_user.id.to_string(),
-    &github_user.login,
+    GithubTokenUpdate {
+      user_id,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_in: tokens.expires_in,
+      github_user_id: github_user.id.to_string(),
+      github_username,
+    },
   )
   .await;
 
