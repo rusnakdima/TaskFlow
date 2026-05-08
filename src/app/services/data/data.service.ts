@@ -3,7 +3,7 @@ import { Observable } from "rxjs";
 import { tap, map } from "rxjs/operators";
 
 import { RequestService } from "@services/core/request.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
@@ -34,7 +34,7 @@ interface PaginationState {
 @Injectable({ providedIn: "root" })
 export class DataService {
   private request = inject(RequestService);
-  private storage = inject(UnifiedStorageService);
+  private storage = inject(StorageService);
   private jwt = inject(JwtTokenService);
 
   private readonly _paginationState = signal<Map<string, PaginationState>>(new Map());

@@ -29,7 +29,13 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
 
 /* utils */
-import { groupByKey } from "@stores/utils/store-helpers";
+import {
+  updateEntityInSignal,
+  removeEntityFromSignal,
+  createGroupedMap,
+  addEntityToSignal,
+  groupByKey,
+} from "@stores/utils/store-helpers";
 import { TimestampHelper, VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 export type StorageEntity = keyof EntityMap;
@@ -128,56 +134,45 @@ export class StorageService {
   readonly commentMap = computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
 
   // ==================== GROUPED LOOKUP MAPS ====================
-  readonly tasksByTodoId = computed(() => {
-    const map = new Map<string, Task[]>();
-    for (const task of this.activeTasks()) {
-      if (!map.has(task.todo_id)) map.set(task.todo_id, []);
-      map.get(task.todo_id)!.push(task);
-    }
-    return map;
-  });
+  private createGroupedLookup<K extends string, T>(
+    entities: T[],
+    getKey: (e: T) => K | undefined,
+    filterFn?: (e: T) => boolean
+  ): Map<K, T[]> {
+    return createGroupedMap(entities, getKey, filterFn);
+  }
 
-  readonly subtasksByTaskId = computed(() => {
-    const map = new Map<string, Subtask[]>();
-    for (const subtask of this.activeSubtasks()) {
-      if (!map.has(subtask.task_id)) map.set(subtask.task_id, []);
-      map.get(subtask.task_id)!.push(subtask);
-    }
-    return map;
-  });
+  readonly tasksByTodoId = computed(() =>
+    this.createGroupedLookup(this.activeTasks(), (t) => t.todo_id)
+  );
 
-  readonly commentsByTaskId = computed(() => {
-    const map = new Map<string, Comment[]>();
-    for (const comment of this.activeComments()) {
-      if (comment.task_id) {
-        if (!map.has(comment.task_id)) map.set(comment.task_id, []);
-        map.get(comment.task_id)!.push(comment);
-      }
-    }
-    return map;
-  });
+  readonly subtasksByTaskId = computed(() =>
+    this.createGroupedLookup(this.activeSubtasks(), (s) => s.task_id)
+  );
 
-  readonly commentsBySubtaskId = computed(() => {
-    const map = new Map<string, Comment[]>();
-    for (const comment of this.activeComments()) {
-      if (comment.subtask_id) {
-        if (!map.has(comment.subtask_id)) map.set(comment.subtask_id, []);
-        map.get(comment.subtask_id)!.push(comment);
-      }
-    }
-    return map;
-  });
+  readonly commentsByTaskId = computed(() =>
+    this.createGroupedLookup(
+      this.activeComments(),
+      (c) => c.task_id,
+      (c) => !!c.task_id
+    )
+  );
 
-  readonly chatsByTodoId = computed(() => {
-    const map = new Map<string, Chat[]>();
-    for (const chat of this.activeChats()) {
-      if (chat.todo_id) {
-        if (!map.has(chat.todo_id)) map.set(chat.todo_id, []);
-        map.get(chat.todo_id)!.push(chat);
-      }
-    }
-    return map;
-  });
+  readonly commentsBySubtaskId = computed(() =>
+    this.createGroupedLookup(
+      this.activeComments(),
+      (c) => c.subtask_id,
+      (c) => !!c.subtask_id
+    )
+  );
+
+  readonly chatsByTodoId = computed(() =>
+    this.createGroupedLookup(
+      this.activeChats(),
+      (c) => c.todo_id,
+      (c) => !!c.todo_id
+    )
+  );
 
   // ==================== PAGINATION SIGNALS ====================
   private readonly _todosPagination = signal<{ skip: number; limit: number; hasMore: boolean }>({
@@ -336,35 +331,23 @@ export class StorageService {
             : visibility === "public"
               ? this._publicTodos
               : this._sharedTodos;
-        if (!targetArray().some((t) => t.id === data.id)) {
-          targetArray.update((todos) => [data, ...todos]);
-        }
+        addEntityToSignal(targetArray, data);
         break;
       }
       case "tasks":
-        if (!this._tasks().some((t) => t.id === data.id)) {
-          this._tasks.update((tasks) => [data, ...tasks]);
-        }
+        addEntityToSignal(this._tasks, data);
         break;
       case "subtasks":
-        if (!this._subtasks().some((s) => s.id === data.id)) {
-          this._subtasks.update((subtasks) => [data, ...subtasks]);
-        }
+        addEntityToSignal(this._subtasks, data);
         break;
       case "comments":
-        if (!this._comments().some((c) => c.id === data.id)) {
-          this._comments.update((comments) => [data, ...comments]);
-        }
+        addEntityToSignal(this._comments, data);
         break;
       case "chats":
-        if (!this._chats().some((c) => c.id === data.id)) {
-          this._chats.update((chats) => [data, ...chats]);
-        }
+        addEntityToSignal(this._chats, data);
         break;
       case "categories":
-        if (!this._categories().some((c) => c.id === data.id)) {
-          this._categories.update((categories) => [data, ...categories]);
-        }
+        addEntityToSignal(this._categories, data);
         break;
       case "profiles":
         this._profile.set(data);
@@ -398,36 +381,24 @@ export class StorageService {
   private updateInSignal(type: StorageEntity, id: string, updates: any): void {
     switch (type) {
       case "todos":
-        this._privateTodos.update((todos) =>
-          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
-        );
-        this._sharedTodos.update((todos) =>
-          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
-        );
-        this._publicTodos.update((todos) =>
-          todos.map((t) => (t.id === id ? { ...t, ...updates } : t))
-        );
+        updateEntityInSignal(this._privateTodos, id, updates);
+        updateEntityInSignal(this._sharedTodos, id, updates);
+        updateEntityInSignal(this._publicTodos, id, updates);
         break;
       case "tasks":
-        this._tasks.update((tasks) => tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+        updateEntityInSignal(this._tasks, id, updates);
         break;
       case "subtasks":
-        this._subtasks.update((subtasks) =>
-          subtasks.map((s) => (s.id === id ? { ...s, ...updates } : s))
-        );
+        updateEntityInSignal(this._subtasks, id, updates);
         break;
       case "comments":
-        this._comments.update((comments) =>
-          comments.map((c) => (c.id === id ? { ...c, ...updates } : c))
-        );
+        updateEntityInSignal(this._comments, id, updates);
         break;
       case "chats":
-        this._chats.update((chats) => chats.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+        updateEntityInSignal(this._chats, id, updates);
         break;
       case "categories":
-        this._categories.update((categories) =>
-          categories.map((c) => (c.id === id ? { ...c, ...updates } : c))
-        );
+        updateEntityInSignal(this._categories, id, updates);
         break;
       case "profiles":
         const current = this._profile();
@@ -446,24 +417,24 @@ export class StorageService {
   private removeFromSignal(type: StorageEntity, id: string): void {
     switch (type) {
       case "todos":
-        this._privateTodos.update((todos) => todos.filter((t) => t.id !== id));
-        this._sharedTodos.update((todos) => todos.filter((t) => t.id !== id));
-        this._publicTodos.update((todos) => todos.filter((t) => t.id !== id));
+        removeEntityFromSignal(this._privateTodos, id);
+        removeEntityFromSignal(this._sharedTodos, id);
+        removeEntityFromSignal(this._publicTodos, id);
         break;
       case "tasks":
-        this._tasks.update((tasks) => tasks.filter((t) => t.id !== id));
+        removeEntityFromSignal(this._tasks, id);
         break;
       case "subtasks":
-        this._subtasks.update((subtasks) => subtasks.filter((s) => s.id !== id));
+        removeEntityFromSignal(this._subtasks, id);
         break;
       case "comments":
-        this._comments.update((comments) => comments.filter((c) => c.id !== id));
+        removeEntityFromSignal(this._comments, id);
         break;
       case "chats":
-        this._chats.update((chats) => chats.filter((c) => c.id !== id));
+        removeEntityFromSignal(this._chats, id);
         break;
       case "categories":
-        this._categories.update((categories) => categories.filter((c) => c.id !== id));
+        removeEntityFromSignal(this._categories, id);
         break;
       case "profiles":
         const current = this._profile();
