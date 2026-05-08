@@ -260,17 +260,14 @@ export class SubtasksView extends BaseListView implements OnInit {
           hasMore: subtasks.length === p.limit,
         }));
       },
+      error: () => {
+        this.subtaskPagination.update((p) => ({ ...p, loading: false }));
+      },
     });
   }
 
   constructor() {
     super();
-    effect(() => {
-      const taskId = this.task()?.id;
-      if (taskId && taskId !== this.lastTaskIdForEffect) {
-        this.loadInitialSubtasks();
-      }
-    });
 
     effect(() => {
       const todoId = this.todoId();

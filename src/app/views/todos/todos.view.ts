@@ -657,14 +657,21 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-green-600 hover:bg-green-700",
     });
     if (confirmed) {
-      const sub = this.dataService.updateTodo(todoId!, { deleted_at: null }).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo restored successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to restore todo");
-        },
-      });
+      const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
+      if (!todo) {
+        this.notifyService.showError("Todo not found");
+        return;
+      }
+      const sub = this.dataService
+        .updateTodo(todoId!, { deleted_at: null }, todo.visibility || "private")
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Todo restored successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to restore todo");
+          },
+        });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
@@ -672,14 +679,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   onUpdateTodo(todo: any, event: { field: string; value: any }): void {
     // TODO: type todo and event properly
     const { field, value } = event;
-    const sub = this.dataService.updateTodo(todo.id, { [field]: value }).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Project updated successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to update project");
-      },
-    });
+    const sub = this.dataService
+      .updateTodo(todo.id, { [field]: value }, todo.visibility || "private")
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Project updated successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update project");
+        },
+      });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
