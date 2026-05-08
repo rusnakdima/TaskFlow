@@ -161,57 +161,55 @@ impl StatisticsService {
     start_date: &NaiveDate,
     end_date: &NaiveDate,
   ) -> Vec<Value> {
-    let pipeline = vec![
-      serde_json::json!({
-        "$match": {
-          "user_id": user_id,
-          "date": {
-            "$gte": start_date.format("%Y-%m-%d").to_string(),
-            "$lte": end_date.format("%Y-%m-%d").to_string()
-          }
-        }
-      }),
-      serde_json::json!({
-        "$sort": { "updated_at": -1 }
-      }),
-      serde_json::json!({
-        "$group": {
-          "_id": "$date",
-          "doc": { "$first": "$$ROOT" }
-        }
-      }),
-      serde_json::json!({
-        "$replaceRoot": { "newRoot": "$doc" }
-      }),
-    ];
+    let start_str = start_date.format("%Y-%m-%d").to_string();
+    let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    let agg_result = self
-      .json_provider
-      .aggregate("daily_activities", pipeline)
-      .await;
-
-    if let Ok(results) = agg_result {
-      return results;
-    }
-
-    let filter = Filter::And(vec![
+    let filter_snake = Filter::And(vec![
       Filter::Eq("user_id".to_string(), json!(user_id)),
-      Filter::Gte(
-        "date".to_string(),
-        json!(start_date.format("%Y-%m-%d").to_string()),
-      ),
-      Filter::Lte(
-        "date".to_string(),
-        json!(end_date.format("%Y-%m-%d").to_string()),
-      ),
+      Filter::Gte("date".to_string(), json!(start_str.clone())),
+      Filter::Lte("date".to_string(), json!(end_str.clone())),
     ]);
 
-    let docs = self
+    let filter_camel = Filter::And(vec![
+      Filter::Eq("userId".to_string(), json!(user_id)),
+      Filter::Gte("date".to_string(), json!(start_str)),
+      Filter::Lte("date".to_string(), json!(end_str)),
+    ]);
+
+    let docs: Vec<Value> = self
       .json_provider
-      .find_many("daily_activities", Some(&filter), None, None, None, true)
+      .find_many(
+        "daily_activities",
+        Some(&filter_snake),
+        None,
+        None,
+        None,
+        true,
+      )
       .await
       .unwrap_or_default();
 
+    if !docs.is_empty() {
+      return Self::deduplicate_by_date(docs);
+    }
+
+    let docs_camel: Vec<Value> = self
+      .json_provider
+      .find_many(
+        "daily_activities",
+        Some(&filter_camel),
+        None,
+        None,
+        None,
+        true,
+      )
+      .await
+      .unwrap_or_default();
+
+    Self::deduplicate_by_date(docs_camel)
+  }
+
+  fn deduplicate_by_date(docs: Vec<Value>) -> Vec<Value> {
     let mut date_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
 
     for activity in docs {
