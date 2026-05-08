@@ -56,8 +56,8 @@ impl RepositoryService {
   ) -> Result<DataProvider<'_>, ResponseModel> {
     let vis = visibility.unwrap_or("private");
 
-    // IMMEDIATE return for offline + private - no MongoDB operations allowed
-    if offline && vis == "private" {
+    // IMMEDIATE return for offline - no MongoDB operations allowed
+    if offline {
       return Ok(DataProvider::Json(&self.json_provider));
     }
 
@@ -119,8 +119,7 @@ impl RepositoryService {
 
   fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
     if offline {
-      let vis = visibility.unwrap_or("private");
-      vis == "private"
+      return true;
     } else if table == "daily_activities" {
       true
     } else {
