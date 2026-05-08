@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, OnInit, Output } from "@angular/core";
-import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { Component, EventEmitter, Input, OnInit, OnDestroy, Output } from "@angular/core";
+import { FormsModule, ReactiveFormsModule } from "@angular/forms';
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -12,7 +12,7 @@ import { MatIconModule } from "@angular/material/icon";
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule],
   templateUrl: "./search.component.html",
 })
-export class SearchComponent implements OnInit {
+export class SearchComponent implements OnInit, OnDestroy {
   @Input() tempArray: Array<any> = [];
   @Input() searchByFields: Array<any> = [];
   @Input() isShowSearchField: boolean = false;
@@ -20,9 +20,10 @@ export class SearchComponent implements OnInit {
   @Output() searchChange: EventEmitter<string> = new EventEmitter<string>();
 
   searchField: string = "";
+  private keydownHandler: ((event: KeyboardEvent) => void) | null = null;
 
   ngOnInit() {
-    document.addEventListener("keydown", (event: KeyboardEvent) => {
+    this.keydownHandler = (event: KeyboardEvent) => {
       if (
         event.key === "Escape" &&
         document.getElementById("searchField") == document.activeElement
@@ -33,7 +34,15 @@ export class SearchComponent implements OnInit {
         event.preventDefault();
         this.setFocusField();
       }
-    });
+    };
+    document.addEventListener("keydown", this.keydownHandler);
+  }
+
+  ngOnDestroy(): void {
+    if (this.keydownHandler) {
+      document.removeEventListener("keydown", this.keydownHandler);
+      this.keydownHandler = null;
+    }
   }
 
   setFocusField() {
