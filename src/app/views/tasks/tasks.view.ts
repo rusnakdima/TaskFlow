@@ -44,6 +44,8 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { StorageService } from "@services/storage.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { AdminService } from "@services/data/admin.service";
+import { ResponseStatus } from "@models/response.model";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -128,6 +130,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private mongoConnectionService = inject(MongoConnectionService);
   private confirmDialogService = inject(ConfirmDialogService);
   private promptDialogService = inject(PromptDialogService);
+  private adminService = inject(AdminService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -529,7 +532,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         "tasks",
         task.id,
         { ...task, status: newStatus },
-        { visibility: (todo.visibility || "private") as Visibility }
+        { visibility: (todo.visibility || "private") as Visibility, offline: true }
       )
       .subscribe({
         next: () => {
@@ -855,6 +858,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
     if (!confirmed) return;
 
+    if (this.isOffline()) {
+      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Task archived successfully");
+        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
+      } else {
+        this.notifyService.showError(response.message || "Failed to archive task");
+      }
+      return;
+    }
+
     this.requestService.delete("tasks", taskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task archived successfully");
@@ -1097,6 +1111,26 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (!confirmed) return;
+
+    if (this.isOffline()) {
+      let successCount = 0;
+      let errorCount = 0;
+      for (const taskId of selectedIds) {
+        const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
+        if (response.status === ResponseStatus.SUCCESS) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
+      this.clearSelection();
+      if (errorCount > 0) {
+        this.notifyService.showWarning(`Archived ${successCount} tasks, ${errorCount} failed.`);
+      } else {
+        this.notifyService.showSuccess(`Archived ${successCount} tasks.`);
+      }
+      return;
+    }
 
     this.bulkActionHelper
       .bulkDelete(

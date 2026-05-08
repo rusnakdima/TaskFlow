@@ -46,6 +46,8 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { AdminService } from "@services/data/admin.service";
+import { ResponseStatus } from "@models/response.model";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -110,6 +112,7 @@ export class SubtasksView extends BaseListView implements OnInit {
   private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
+  private adminService = inject(AdminService);
 
   protected getItems(): { id: string }[] {
     return this.listSubtasks();
@@ -154,6 +157,7 @@ export class SubtasksView extends BaseListView implements OnInit {
       if (reactiveTask.todo_id) {
         this.loadTodo(reactiveTask.todo_id);
       }
+      this.loadInitialSubtasks();
     } else {
       this.notifyService.showError("Task not found. Please refresh.");
     }
@@ -230,7 +234,6 @@ export class SubtasksView extends BaseListView implements OnInit {
         visibility: visibility as Visibility,
         skip: 0,
         limit: 10,
-        load: ["user", "task"],
       })
       .subscribe({
         next: (subtasks: Subtask[]) => {
@@ -390,7 +393,10 @@ export class SubtasksView extends BaseListView implements OnInit {
         const todoData = dataResolve["todo"];
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
-        this.loadInitialSubtasks();
+        if (dataResolve["task"]) {
+          this.task.set(dataResolve["task"]);
+          this.loadInitialSubtasks();
+        }
       }
       this.loading.set(false);
       this.cdr.detectChanges();
@@ -517,10 +523,14 @@ export class SubtasksView extends BaseListView implements OnInit {
         "subtasks",
         subtask.id,
         { status: newStatus },
-        { visibility: visibility as Visibility }
+        { visibility: visibility as Visibility, offline: true }
       )
       .subscribe({
-        next: () => {},
+        next: () => {
+          this.taskSubtasks.update((subtasks: Subtask[]) =>
+            subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
+          );
+        },
         error: (err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to update subtask";
           this.notifyService.showError(message);
@@ -654,6 +664,28 @@ export class SubtasksView extends BaseListView implements OnInit {
     });
     if (!confirmed) return;
 
+    if (this.isOffline()) {
+      let successCount = 0;
+      let errorCount = 0;
+      for (const id of selected) {
+        const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
+        if (response.status === ResponseStatus.SUCCESS) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
+      if (errorCount > 0) {
+        this.notifyService.showWarning(
+          `Archived ${successCount} subtask(s), ${errorCount} failed.`
+        );
+      } else {
+        this.notifyService.showSuccess(`${successCount} subtask(s) archived successfully`);
+      }
+      this.clearSelection();
+      return;
+    }
+
     const deletePromises = Array.from(selected).map((id) => {
       return firstValueFrom(
         this.requestService.delete("subtasks", id, { visibility: visibility as Visibility })
@@ -684,6 +716,9 @@ export class SubtasksView extends BaseListView implements OnInit {
         break;
       case "delete":
         this.deleteSubtask(event.item.id);
+        break;
+      case "toggle_status":
+        this.toggleSubtaskCompletion(event.item);
         break;
     }
   }
