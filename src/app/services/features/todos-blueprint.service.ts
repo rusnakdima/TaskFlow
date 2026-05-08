@@ -1,18 +1,18 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService } from "./template.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Observable, of } from "rxjs";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
-  private storageService = inject(UnifiedStorageService);
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
+  private requestService = inject(REQUEST_SERVICE);
 
   showBlueprintDialog = signal(false);
   showCreateBlueprintDialog = signal(false);
@@ -85,14 +85,14 @@ export class TodosBlueprintService {
     };
 
     return new Observable((subscriber) => {
-      this.dataService
+      this.requestService
         .create(
           "todos",
           {
             ...todoData,
             visibility: "private",
           },
-          "private"
+          { visibility: "private" as Visibility }
         )
         .subscribe({
           next: (createdTodo) => {

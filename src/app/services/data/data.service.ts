@@ -28,6 +28,9 @@ interface PaginationState {
   hasMore: boolean;
 }
 
+/**
+ * @deprecated DataService is deprecated. Use REQUEST_SERVICE from @services/api.service and StorageService from @services/storage.service instead.
+ */
 @Injectable({ providedIn: "root" })
 export class DataService {
   private request = inject(RequestService);
@@ -200,7 +203,18 @@ export class DataService {
 
   getProfile(): Observable<any> {
     const userId = this.jwt.getCurrentUserId();
-    return this.request.crud<any>("get", "profiles", { filter: { user_id: userId } });
+    return this.request
+      .crud<
+        any[]
+      >("getAll", "profiles", { visibility: "all", filter: { user_id: userId }, load: ["user"] })
+      .pipe(
+        map((profiles: any[]) => {
+          if (profiles.length > 0) {
+            this.storage.addItem("profiles", profiles[0]);
+          }
+          return profiles[0] || null;
+        })
+      );
   }
 
   getPublicProfiles(): Observable<any[]> {

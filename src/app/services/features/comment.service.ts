@@ -1,9 +1,9 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { Observable } from "rxjs";
+import { StorageService } from "@services/storage.service";
+import { Observable, map } from "rxjs";
 import { Comment } from "@models/comment.model";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
 export interface CommentPayload {
   user_id: string;
@@ -22,8 +22,8 @@ export interface MarkCommentsResult {
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);
-  private storageService = inject(UnifiedStorageService);
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
+  private requestService = inject(REQUEST_SERVICE);
 
   createComment(
     content: string,
@@ -40,7 +40,22 @@ export class CommentService {
       deleted_at: null,
     };
 
-    return this.dataService.create("comments", payload, options.visibility || "private");
+    return this.requestService
+      .create<
+        CommentPayload & { id?: string; created_at?: string; updated_at?: string }
+      >("comments", payload, { visibility: (options.visibility || "private") as Visibility })
+      .pipe(
+        map(
+          (response) =>
+            ({
+              ...response,
+              id: response.id || crypto.randomUUID(),
+              created_at: response.created_at || new Date().toISOString(),
+              updated_at: response.updated_at || new Date().toISOString(),
+              deleted_at: response.deleted_at ?? null,
+            }) as Comment
+        )
+      );
   }
 
   markCommentsAsRead(
@@ -61,7 +76,7 @@ export class CommentService {
       this.storageService.updateItem("comments", c.id, { read_by: updatedReadBy });
     });
 
-    this.dataService
+    this.requestService
       .updateAll(
         "comments",
         toUpdate.map((c) => ({ id: c.id, read_by: c.read_by }))

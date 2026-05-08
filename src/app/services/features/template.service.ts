@@ -1,7 +1,6 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/todo.model";
-import { DataService } from "@services/data/data.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { take } from "rxjs/operators";
 
 export interface ProjectTemplate {
@@ -25,8 +24,7 @@ export interface TemplateTask {
 })
 export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
-  private dataService = inject(DataService);
-  private storageService = inject(UnifiedStorageService);
+  private storageService = inject(StorageService);
 
   templates = signal<ProjectTemplate[]>([]);
 
