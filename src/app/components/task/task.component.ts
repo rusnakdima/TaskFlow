@@ -341,9 +341,18 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   }
 
   onAddComment(content: string) {
-    if (!this.task) return;
+    if (!this.task) {
+      console.warn("onAddComment: this.task is null, returning early. taskId:", this.todo_id);
+      return;
+    }
     const effectiveTodoId = this.todo_id || this.task.todo_id;
     if (!effectiveTodoId) {
+      console.warn(
+        "onAddComment: effectiveTodoId is null. todo_id:",
+        this.todo_id,
+        "task.todo_id:",
+        this.task?.todo_id
+      );
       this.notifyService.showError("Cannot add comment: User or Project not found");
       return;
     }
@@ -359,6 +368,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
+          console.error("onAddComment: createComment error:", err);
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });

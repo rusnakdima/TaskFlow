@@ -32,6 +32,21 @@ interface PaginationState {
   hasMore: boolean;
 }
 
+export interface PaginatedResult<T> {
+  items: T[];
+  hasMore: boolean;
+}
+
+interface HasVisibility {
+  visibility?: string;
+  user_id?: string;
+  assignees?: string[];
+}
+
+export interface HasId {
+  id?: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -147,6 +162,38 @@ export class REQUEST_SERVICE {
     });
   }
 
+  private syncToStorage<T extends HasId>(
+    table: string,
+    operation: "add" | "update" | "remove" | "set",
+    data: T | T[] | null,
+    extra?: { append?: boolean }
+  ): void {
+    switch (operation) {
+      case "add":
+        if (data && (data as HasId).id) {
+          this.storageService.addItem(table as any, data as any);
+        }
+        break;
+      case "update":
+        if (data && (data as HasId).id) {
+          this.storageService.updateItem(table as any, (data as HasId).id!, data as any);
+        }
+        break;
+      case "remove":
+        if (data && (data as HasId).id) {
+          this.storageService.removeItem(table as any, (data as HasId).id!);
+        }
+        break;
+      case "set":
+        if (Array.isArray(data)) {
+          this.storageService.setCollection(table as any, data as any, extra);
+        } else if (data) {
+          this.storageService.setCollection(table as any, data as any);
+        }
+        break;
+    }
+  }
+
   private invokeCrud<T>(
     operation: Operation,
     table: string,
@@ -226,49 +273,47 @@ export class REQUEST_SERVICE {
     return this.jwtTokenService.getCurrentUserId() || "";
   }
 
-  filterByVisibility<T>(items: T[], visibility: Visibility): T[] {
+  filterByVisibility<T extends HasVisibility>(items: T[], visibility: Visibility): T[] {
     const userId = this.currentUserId();
     if (!userId) return [];
 
-    return items.filter((item: unknown) => {
-      const it = item as Record<string, unknown>;
+    return items.filter((item) => {
       switch (visibility) {
         case "all":
           return (
-            it["user_id"] === userId ||
-            (Array.isArray(it["assignees"]) && (it["assignees"] as unknown[]).includes(userId)) ||
-            it["visibility"] === "public"
+            item.user_id === userId ||
+            (Array.isArray(item.assignees) && item.assignees.includes(userId)) ||
+            item.visibility === "public"
           );
         case "private":
-          return it["user_id"] === userId;
+          return item.user_id === userId;
         case "shared":
           return (
-            (Array.isArray(it["assignees"]) && (it["assignees"] as unknown[]).includes(userId)) ||
-            (it["visibility"] === "shared" && it["user_id"] === userId)
+            (Array.isArray(item.assignees) && item.assignees.includes(userId)) ||
+            (item.visibility === "shared" && item.user_id === userId)
           );
         case "public":
-          return it["visibility"] === "public";
+          return item.visibility === "public";
         default:
-          return it["visibility"] === visibility;
+          return item.visibility === visibility;
       }
     });
   }
 
   get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
     return this.invokeCrud<T>("get", table, options, { id }).pipe(
-      tap((data) => {
-        if (data && (data as Record<string, unknown>)["id"]) {
-          this.storageService.addItem(table as any, data);
-        }
-      })
+      tap((data) => this.syncToStorage(table, "add", data as HasId))
     );
   }
 
-  getAll<T>(table: string, options: PaginatedOptions = { visibility: "all" }): Observable<T[]> {
+  getAll<T extends HasId>(
+    table: string,
+    options: PaginatedOptions = { visibility: "all" }
+  ): Observable<T[]> {
     return this.invokeCrud<T[]>("getAll", table, options).pipe(
       tap((data) => {
         if (Array.isArray(data)) {
-          this.storageService.setCollection(table as any, data as any);
+          this.syncToStorage(table, "set", data);
           this.updatePaginationState(table, {
             skip: (options.skip || 0) + data.length,
             hasMore: data.length >= (options.limit || this.DEFAULT_PAGE_SIZE),
@@ -278,17 +323,13 @@ export class REQUEST_SERVICE {
     );
   }
 
-  create<T>(
+  create<T extends HasId>(
     table: string,
     data: Partial<T>,
     options: CrudOptions = { visibility: "all" }
   ): Observable<T> {
     return this.invokeCrud<T>("create", table, options, { data }).pipe(
-      tap((created) => {
-        if (created && (created as Record<string, unknown>)["id"]) {
-          this.storageService.addItem(table as any, created as any);
-        }
-      })
+      tap((created) => this.syncToStorage(table, "add", created))
     );
   }
 
@@ -299,31 +340,21 @@ export class REQUEST_SERVICE {
     options: CrudOptions = { visibility: "all" }
   ): Observable<T> {
     return this.invokeCrud<T>("update", table, options, { id, data }).pipe(
-      tap((updated) => {
-        if (updated && (updated as Record<string, unknown>)["id"]) {
-          this.storageService.updateItem(
-            table as any,
-            (updated as Record<string, unknown>)["id"] as string,
-            updated as any
-          );
-        }
-      })
+      tap((updated) => this.syncToStorage(table, "update", updated as HasId))
     );
   }
 
-  delete<T>(
+  delete<T extends HasId>(
     table: string,
     id: string,
     options: CrudOptions = { visibility: "all" }
   ): Observable<void> {
     return this.invokeCrud<void>("delete", table, options, { id }).pipe(
-      tap(() => {
-        this.storageService.removeItem(table as any, id);
-      })
+      tap(() => this.syncToStorage(table, "remove", { id } as T))
     );
   }
 
-  updateAll<T>(
+  updateAll<T extends HasId>(
     table: string,
     items: Partial<T>[],
     options: CrudOptions = { visibility: "all" }
@@ -332,28 +363,21 @@ export class REQUEST_SERVICE {
       tap((updatedItems) => {
         if (Array.isArray(updatedItems)) {
           for (const item of updatedItems) {
-            const itemWithId = item as Record<string, unknown>;
-            if (itemWithId["id"]) {
-              this.storageService.updateItem(
-                table as any,
-                itemWithId["id"] as string,
-                item as Partial<any>
-              );
-            }
+            this.syncToStorage(table, "update", item);
           }
         }
       })
     );
   }
 
-  loadPage<T>(table: string, options: PaginatedOptions): Observable<T[]> {
+  loadPage<T extends HasId>(table: string, options: PaginatedOptions): Observable<T[]> {
     const state = this.getPaginationState(table);
     const pageOptions = { ...options, skip: 0, limit: options.limit || state.limit };
 
     return this.invokeCrud<T[]>("getAll", table, pageOptions).pipe(
       tap((data) => {
         if (Array.isArray(data)) {
-          this.storageService.setCollection(table as any, data as any);
+          this.syncToStorage(table, "set", data);
           this.updatePaginationState(table, {
             skip: data.length,
             hasMore: data.length >= (pageOptions.limit || state.limit),
@@ -363,7 +387,7 @@ export class REQUEST_SERVICE {
     );
   }
 
-  loadMore<T>(table: string): Observable<T[]> {
+  loadMore<T extends HasId>(table: string): Observable<T[]> {
     const state = this.getPaginationState(table);
     if (!state.hasMore) {
       return new Observable((observer) => {
@@ -379,7 +403,7 @@ export class REQUEST_SERVICE {
     }).pipe(
       tap((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          this.storageService.setCollection(table as any, data as any, { append: true });
+          this.syncToStorage(table, "set", data, { append: true });
           this.updatePaginationState(table, {
             skip: state.skip + data.length,
             hasMore: data.length >= state.limit,
@@ -388,6 +412,29 @@ export class REQUEST_SERVICE {
           this.updatePaginationState(table, { hasMore: false });
         }
       })
+    );
+  }
+
+  paginate<T extends HasId>(
+    table: string,
+    options: PaginatedOptions,
+    reset = false
+  ): Observable<PaginatedResult<T>> {
+    const state = this.getPaginationState(table);
+    const limit = options.limit || state.limit;
+    const skip = reset ? 0 : state.skip;
+
+    return this.invokeCrud<T[]>("getAll", table, { ...options, skip, limit }).pipe(
+      tap((data) => {
+        if (Array.isArray(data)) {
+          this.syncToStorage(table, "set", data, reset ? undefined : { append: !reset });
+          this.updatePaginationState(table, {
+            skip: skip + data.length,
+            hasMore: data.length >= limit,
+          });
+        }
+      }),
+      map((data) => ({ items: data, hasMore: data.length >= limit }))
     );
   }
 
@@ -434,18 +481,6 @@ export class REQUEST_SERVICE {
       }),
       map((profiles: unknown[]) => profiles[0] || null)
     );
-  }
-
-  getTodo(id: string, options?: CrudOptions): Observable<unknown> {
-    return this.get("todos", id, options || { visibility: "all" });
-  }
-
-  getTask(id: string, options?: CrudOptions): Observable<unknown> {
-    return this.get("tasks", id, options || { visibility: "all" });
-  }
-
-  getSubtask(id: string, options?: CrudOptions): Observable<unknown> {
-    return this.get("subtasks", id, options || { visibility: "all" });
   }
 
   getPublicProfiles(): Observable<unknown[]> {

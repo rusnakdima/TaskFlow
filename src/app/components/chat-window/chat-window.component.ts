@@ -270,16 +270,24 @@ export class ChatWindowComponent
     const todo = this.currentTodo();
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
 
-    this.apiService.create<Chat>("chats", chatForBackend, { visibility }).subscribe(() => {
-      this.newMessage = "";
-      this.shouldScroll.set(true);
-      this.forceScrollBottom = true;
-      setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
+    this.apiService.create<Chat>("chats", chatForBackend, { visibility }).subscribe({
+      next: (newChat) => {
+        this.newMessage = "";
+        this.shouldScroll.set(true);
+        this.forceScrollBottom = true;
+        this.messages.update((current) => [...current, newChat]);
+        setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
+      },
+      error: (err) => {
+        console.error("Failed to send message:", err);
+      },
     });
   }
 
   deleteMessage(chatId: string) {
-    this.apiService.delete("chats", chatId).subscribe({
+    const todo = this.currentTodo();
+    const visibility = todo?.visibility === "shared" ? "shared" : "private";
+    this.apiService.delete("chats", chatId, { visibility }).subscribe({
       error: (err) => {},
     });
   }

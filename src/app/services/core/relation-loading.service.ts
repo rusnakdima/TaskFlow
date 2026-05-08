@@ -3,7 +3,7 @@ import { Observable, of } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
 /* services */
-import { REQUEST_SERVICE } from "@services/api.service";
+import { REQUEST_SERVICE, HasId } from "@services/api.service";
 
 export interface RelationLoadingStats {
   totalQueries: number;
@@ -23,7 +23,12 @@ export class RelationLoadingService {
 
   constructor() {}
 
-  load<T>(table: string, id: string, load: string[], visibility?: string): Observable<T> {
+  load<T extends HasId>(
+    table: string,
+    id: string,
+    load: string[],
+    visibility?: string
+  ): Observable<T> {
     const startTime = Date.now();
 
     return this.requestService.get<T>(table, id, { load, visibility: visibility as any }).pipe(
@@ -35,7 +40,7 @@ export class RelationLoadingService {
     );
   }
 
-  loadMany<T>(
+  loadMany<T extends HasId>(
     table: string,
     filter: { [key: string]: any },
     load: string[],
