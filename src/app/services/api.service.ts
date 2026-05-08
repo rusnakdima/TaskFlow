@@ -124,6 +124,11 @@ export class REQUEST_SERVICE {
 
   private determineOfflineFlag(visibility: Visibility): boolean {
     const isMongoConnected = this.mongoConnectionService.isConnected();
+    const isBrowserOffline = !navigator.onLine;
+
+    if (isBrowserOffline || !isMongoConnected) {
+      return true;
+    }
 
     if (visibility === "private") {
       return false;
@@ -166,12 +171,12 @@ export class REQUEST_SERVICE {
     table: string,
     operation: "add" | "update" | "remove" | "set",
     data: T | T[] | null,
-    extra?: { append?: boolean }
+    extra?: { append?: boolean; isPrivate?: boolean }
   ): void {
     switch (operation) {
       case "add":
         if (data && (data as HasId).id) {
-          this.storageService.addItem(table as any, data as any);
+          this.storageService.addItem(table as any, data as any, { isPrivate: extra?.isPrivate });
         }
         break;
       case "update":
@@ -328,8 +333,9 @@ export class REQUEST_SERVICE {
     data: Partial<T>,
     options: CrudOptions = { visibility: "all" }
   ): Observable<T> {
+    const isPrivate = options.visibility === "private";
     return this.invokeCrud<T>("create", table, options, { data }).pipe(
-      tap((created) => this.syncToStorage(table, "add", created))
+      tap((created) => this.syncToStorage(table, "add", created, { isPrivate }))
     );
   }
 
