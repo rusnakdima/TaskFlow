@@ -111,39 +111,3 @@ impl From<TodoCreateModel> for TodoEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct TodoUpdateModel {
-  #[serde(default)]
-  pub id: Option<String>,
-  #[serde(default)]
-  pub user_id: Option<String>,
-  #[validate(length(min = 1, max = 200))]
-  pub title: Option<String>,
-  #[serde(default)]
-  pub description: Option<String>,
-  #[serde(default)]
-  pub start_date: Option<String>,
-  #[serde(default)]
-  pub end_date: Option<String>,
-  #[serde(default)]
-  pub categories: Option<Vec<String>>,
-  #[serde(default)]
-  pub assignees: Option<Vec<String>>,
-  #[validate(not_empty)]
-  pub visibility: Option<String>,
-  #[serde(default)]
-  pub priority: Option<String>,
-  #[serde(default)]
-  pub order: Option<i32>,
-  #[serde(default)]
-  pub github_repo_id: Option<String>,
-  #[serde(default)]
-  pub github_repo_name: Option<String>,
-  #[serde(default)]
-  pub deleted_at: Option<bool>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-}

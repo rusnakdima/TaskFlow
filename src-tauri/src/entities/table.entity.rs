@@ -3,15 +3,15 @@ use serde_json::{Map, Value};
 
 // Import all model types
 use crate::entities::{
-  category_entity::{CategoryCreateModel, CategoryEntity, CategoryUpdateModel},
-  chat_entity::{ChatCreateModel, ChatEntity, ChatUpdateModel},
-  comment_entity::{CommentCreateModel, CommentEntity, CommentUpdateModel},
+  category_entity::{CategoryCreateModel, CategoryEntity},
+  chat_entity::{ChatCreateModel, ChatEntity},
+  comment_entity::{CommentCreateModel, CommentEntity},
   daily_activity_entity::{DailyActivityCreateModel, DailyActivityModel},
-  profile_entity::{ProfileCreateModel, ProfileEntity, ProfileUpdateModel},
-  subtask_entity::{SubtaskCreateModel, SubtaskEntity, SubtaskUpdateModel},
-  task_entity::{TaskCreateModel, TaskEntity, TaskUpdateModel},
-  todo_entity::{TodoCreateModel, TodoEntity, TodoUpdateModel},
-  user_entity::{UserCreateModel, UserEntity, UserUpdateModel},
+  profile_entity::{ProfileCreateModel, ProfileEntity},
+  subtask_entity::{SubtaskCreateModel, SubtaskEntity},
+  task_entity::{TaskCreateModel, TaskEntity},
+  todo_entity::{TodoCreateModel, TodoEntity},
+  user_entity::{UserCreateModel, UserEntity},
 };
 use nosql_orm::prelude::apply_timestamps;
 use nosql_orm::validators::Validate as OrmValidate;

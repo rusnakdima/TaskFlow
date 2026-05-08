@@ -127,33 +127,3 @@ impl From<TaskCreateModel> for TaskEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct TaskUpdateModel {
-  #[serde(default)]
-  pub id: Option<String>,
-  #[serde(default)]
-  pub task_id: Option<String>,
-  #[validate(length(min = 1, max = 200))]
-  pub title: Option<String>,
-  #[serde(default)]
-  pub description: Option<String>,
-  #[serde(default)]
-  pub status: Option<TaskStatus>,
-  #[validate(not_empty)]
-  pub priority: Option<String>,
-  #[serde(default)]
-  pub start_date: Option<String>,
-  #[serde(default)]
-  pub end_date: Option<String>,
-  #[serde(default)]
-  pub order: Option<i32>,
-  #[serde(default)]
-  pub deleted_at: Option<bool>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-  #[serde(default)]
-  pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
-}

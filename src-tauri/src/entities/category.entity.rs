@@ -46,12 +46,3 @@ impl From<CategoryCreateModel> for CategoryEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct CategoryUpdateModel {
-  #[validate(length(max = 100))]
-  pub title: Option<String>,
-  pub user_id: Option<String>,
-  pub deleted_at: Option<bool>,
-  pub created_at: Option<String>,
-}
