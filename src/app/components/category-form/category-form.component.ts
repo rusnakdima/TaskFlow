@@ -21,7 +21,7 @@ import { Category } from "@models/category.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { ApiProvider } from "@providers/api.provider";
+import { DataService } from "@services/data/data.service";
 
 @Component({
   selector: "app-category-form",
@@ -32,7 +32,7 @@ import { ApiProvider } from "@providers/api.provider";
 export class CategoryFormComponent implements OnInit, OnChanges {
   constructor(
     private authService: AuthService,
-    private dataSyncProvider: ApiProvider,
+    private dataService: DataService,
     private notifyService: NotifyService
   ) {}
 
@@ -103,8 +103,8 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       user_id: this.userId,
     };
 
-    this.dataSyncProvider
-      .crud<Category>("create", "categories", { data: categoryData, visibility: "private" })
+    this.dataService
+      .create("categories", categoryData, "private")
       .subscribe({
         next: (createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
@@ -128,12 +128,8 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       title: this.categoryTitle.trim(),
     };
 
-    this.dataSyncProvider
-      .crud<Category>("update", "categories", {
-        id: this.editingCategory.id,
-        data: updatedCategory,
-        visibility: "private",
-      })
+    this.dataService
+      .update("categories", this.editingCategory.id, updatedCategory, "private")
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");

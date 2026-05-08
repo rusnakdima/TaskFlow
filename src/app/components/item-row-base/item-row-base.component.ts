@@ -22,7 +22,14 @@ import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 
-export type ItemType = "todo" | "task" | "subtask";
+export type ItemType =
+  | "todo"
+  | "task"
+  | "subtask"
+  | "comment"
+  | "chat"
+  | "category"
+  | "daily_activity";
 
 @Component({
   selector: "app-item-row-base",

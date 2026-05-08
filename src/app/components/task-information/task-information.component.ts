@@ -20,9 +20,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { DataService } from "@services/data/data.service";
 
 /* components */
 import {
@@ -37,14 +35,13 @@ import { ActionColors } from "@constants/table-field.constants";
 @Component({
   selector: "app-task-information",
   standalone: true,
-  providers: [ApiProvider],
   imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./task-information.component.html",
 })
 export class TaskInformationComponent extends ItemInfoBaseComponent implements OnChanges {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
-  private dataSyncProvider = inject(ApiProvider);
+  private dataService = inject(DataService);
 
   public showActions = signal(false);
 
@@ -85,13 +82,8 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   markTaskComplete() {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
-      this.dataSyncProvider
-        .crud<Task>("update", "tasks", {
-          id: this.task.id,
-          data: updatedTask,
-          parentTodoId: this.todo_id,
-          visibility: this.isPrivate ? "private" : "shared",
-        })
+      this.dataService
+        .update("tasks", this.task.id, updatedTask, this.isPrivate ? "private" : "shared")
         .subscribe({
           next: (result: Task) => {
             this.task.status = TaskStatus.COMPLETED;
@@ -115,12 +107,8 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   }
 
   deleteTask() {
-    this.dataSyncProvider
-      .crud("delete", "tasks", {
-        id: this.task?.id ?? "",
-        parentTodoId: this.todo_id,
-        visibility: this.isPrivate ? "private" : "shared",
-      })
+    this.dataService
+      .delete("tasks", this.task?.id ?? "", this.isPrivate ? "private" : "shared")
       .subscribe({
         next: (result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");

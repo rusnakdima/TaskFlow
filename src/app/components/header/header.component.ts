@@ -38,11 +38,11 @@ import { NotificationAction } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-import { ApiProvider } from "@providers/api.provider";
 import { DataService } from "@services/data/data.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
+import { RequestService } from "@services/core/request.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -69,13 +69,13 @@ interface Breadcrumb {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   private dataService = inject(DataService);
+  private requestService = inject(RequestService);
   private destroyRef = inject(DestroyRef);
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private dataSyncProvider: ApiProvider,
     private notifyService: NotifyService,
     private syncService: UnifiedSyncService,
     private cdr: ChangeDetectorRef,
