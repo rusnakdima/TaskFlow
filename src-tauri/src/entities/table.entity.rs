@@ -76,7 +76,12 @@ pub fn validate_table(table_name: &str) -> Result<TableModelType, String> {
 
 /// Validate data for create or update operation
 /// Returns validated data ready for database operation
-pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result<Value, String> {
+pub fn validate_model(
+  table_name: &str,
+  data: &Value,
+  is_create: bool,
+  visibility: Option<String>,
+) -> Result<Value, String> {
   let model_type = validate_table(table_name)?;
 
   if !data.is_object() {
@@ -90,12 +95,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: ChatEntity = create_model.into();
-        serialize_for_insert(&model, "chat")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "chat")?,
+          visibility,
+        ))
       } else {
-        let update_model: ChatUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid chat update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Todo => {
@@ -104,12 +112,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid todo data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: TodoEntity = create_model.into();
-        serialize_for_insert(&model, "todo")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "todo")?,
+          visibility,
+        ))
       } else {
-        let update_model: TodoUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid todo update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Task => {
@@ -118,12 +129,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid task data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: TaskEntity = create_model.into();
-        serialize_for_insert(&model, "task")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "task")?,
+          visibility,
+        ))
       } else {
-        let update_model: TaskUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid task update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Subtask => {
@@ -132,12 +146,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           .map_err(|e| format!("Invalid subtask data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: SubtaskEntity = create_model.into();
-        serialize_for_insert(&model, "subtask")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "subtask")?,
+          visibility,
+        ))
       } else {
-        let update_model: SubtaskUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid subtask update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Category => {
@@ -147,12 +164,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           .map_err(|e| format!("Invalid category data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: CategoryEntity = create_model.into();
-        serialize_for_insert(&model, "category")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "category")?,
+          visibility,
+        ))
       } else {
-        let update_model: CategoryUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid category update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::User => {
@@ -161,12 +181,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           serde_json::from_value(data.clone()).map_err(|e| format!("Invalid user data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: UserEntity = create_model.into();
-        serialize_for_insert(&model, "user")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "user")?,
+          visibility,
+        ))
       } else {
-        let update_model: UserUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid user update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Profile => {
@@ -176,12 +199,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           .map_err(|e| format!("Invalid profile data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: ProfileEntity = create_model.into();
-        serialize_for_insert(&model, "profile")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "profile")?,
+          visibility,
+        ))
       } else {
-        let update_model: ProfileUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid profile update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::DailyActivity => {
@@ -190,9 +216,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           .map_err(|e| format!("Invalid daily activity data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: DailyActivityModel = create_model.into();
-        serialize_for_insert(&model, "daily activity")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "daily activity")?,
+          visibility,
+        ))
       } else {
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
     TableModelType::Comment => {
@@ -201,12 +233,15 @@ pub fn validate_model(table_name: &str, data: &Value, is_create: bool) -> Result
           .map_err(|e| format!("Invalid comment data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
         let model: CommentEntity = create_model.into();
-        serialize_for_insert(&model, "comment")
+        Ok(inject_visibility(
+          serialize_for_insert(&model, "comment")?,
+          visibility,
+        ))
       } else {
-        let update_model: CommentUpdateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid comment update data: {}", e))?;
-        update_model.validate().map_err(|e| e.to_string())?;
-        Ok(with_update_timestamp(data.clone()))
+        Ok(inject_visibility(
+          with_update_timestamp(data.clone()),
+          visibility,
+        ))
       }
     }
   }
@@ -222,6 +257,19 @@ fn serialize_for_insert<T: serde::Serialize>(model: &T, label: &str) -> Result<V
 fn with_update_timestamp(mut value: Value) -> Value {
   apply_timestamps(&mut value, false);
   value
+}
+
+fn inject_visibility(value: Value, visibility: Option<String>) -> Value {
+  if let Some(vis) = visibility {
+    if let Value::Object(mut obj) = value {
+      obj.insert("visibility".to_string(), Value::String(vis));
+      Value::Object(obj)
+    } else {
+      value
+    }
+  } else {
+    value
+  }
 }
 
 fn filter_empty_fields(data: Value) -> Value {

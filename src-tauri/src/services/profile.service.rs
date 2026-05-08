@@ -158,7 +158,7 @@ impl ProfileService {
     use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
     use crate::helpers::user_sync_helper;
 
-    let validated_profile = validate_model("profiles", &profile_data, true)
+    let validated_profile = validate_model("profiles", &profile_data, true, None)
       .map_err(|e| err_response_formatted("Profile validation failed", &e))?;
 
     let user_id = validated_profile
