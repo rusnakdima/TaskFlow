@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::profile_entity::ProfileEntity;
 
 /* nosql_orm */
-use nosql_orm::{Model, Validate};
+use nosql_orm::Model;
 
 #[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("users")]
@@ -162,56 +162,4 @@ impl From<UserCreateModel> for UserEntity {
       recovery_codes: value.recovery_codes,
     }
   }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct UserUpdateModel {
-  #[serde(default)]
-  pub id: Option<String>,
-  #[validate(email)]
-  pub email: Option<String>,
-  #[validate(length(min = 1, max = 30))]
-  pub username: Option<String>,
-  #[serde(default)]
-  pub password: Option<String>,
-  #[serde(default)]
-  pub role: Option<String>,
-  #[serde(default)]
-  pub temporary_code: Option<String>,
-  #[serde(default)]
-  pub code_expires_at: Option<String>,
-  #[serde(default)]
-  pub profile_id: Option<String>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-  #[serde(default)]
-  pub totp_enabled: Option<bool>,
-  #[serde(default)]
-  pub totp_secret: Option<String>,
-  #[serde(default)]
-  pub passkey_credential_id: Option<String>,
-  #[serde(default)]
-  pub passkey_public_key: Option<String>,
-  #[serde(default)]
-  pub passkey_device: Option<String>,
-  #[serde(default)]
-  pub passkey_enabled: Option<bool>,
-  #[serde(default)]
-  pub biometric_enabled: Option<bool>,
-  #[serde(default)]
-  pub qr_login_enabled: Option<bool>,
-  #[serde(default)]
-  pub github_access_token: Option<String>,
-  #[serde(default)]
-  pub github_refresh_token: Option<String>,
-  #[serde(default)]
-  pub github_token_expiry: Option<String>,
-  #[serde(default)]
-  pub github_user_id: Option<String>,
-  #[serde(default)]
-  pub github_username: Option<String>,
-  #[serde(default)]
-  pub recovery_codes: Option<Vec<String>>,
 }

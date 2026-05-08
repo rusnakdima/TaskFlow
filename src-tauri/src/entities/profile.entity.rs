@@ -54,24 +54,3 @@ impl From<ProfileCreateModel> for ProfileEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct ProfileUpdateModel {
-  #[serde(default)]
-  pub id: Option<String>,
-  #[serde(default)]
-  pub name: Option<String>,
-  #[serde(default)]
-  pub last_name: Option<String>,
-  #[serde(default)]
-  #[validate(length(max = 500))]
-  pub bio: Option<String>,
-  #[serde(default)]
-  pub image_url: Option<String>,
-  #[serde(default)]
-  pub user_id: Option<String>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-}

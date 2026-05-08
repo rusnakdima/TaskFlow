@@ -62,16 +62,3 @@ impl From<CommentCreateModel> for CommentEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct CommentUpdateModel {
-  #[serde(default)]
-  #[validate(length(max = 5000))]
-  pub content: Option<String>,
-  #[serde(default)]
-  pub read_by: Option<Vec<String>>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-}

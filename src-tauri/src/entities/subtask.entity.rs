@@ -73,29 +73,3 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-pub struct SubtaskUpdateModel {
-  #[serde(default)]
-  pub id: Option<String>,
-  #[serde(default)]
-  pub task_id: Option<String>,
-  #[validate(length(min = 1, max = 200))]
-  pub title: Option<String>,
-  #[serde(default)]
-  pub description: Option<String>,
-  #[serde(default)]
-  pub status: Option<crate::entities::task_entity::TaskStatus>,
-  #[validate(not_empty)]
-  pub priority: Option<String>,
-  #[serde(default)]
-  pub order: Option<i32>,
-  #[serde(default)]
-  pub deleted_at: Option<bool>,
-  #[serde(default)]
-  pub created_at: Option<String>,
-  #[serde(default)]
-  pub updated_at: Option<String>,
-  #[serde(default)]
-  pub comments: Option<Vec<crate::entities::comment_entity::CommentEntity>>,
-}
