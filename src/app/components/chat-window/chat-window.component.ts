@@ -68,13 +68,13 @@ export class ChatWindowComponent
   private currentTodo = signal<any>(null);
   private usernameCache = new Map<string, string>();
 
-  private chatReactiveEffect = effect(() => {
-    this.subscriptions.add(
-      this.dataService.getChats(this.todo_id).subscribe({
-        next: (chats) => this.chats.set(chats),
-        error: () => this.chats.set([]),
-      })
-    );
+  private loadChatsEffect = effect(() => {
+    const todoId = this.todo_id;
+    const todo = this.currentTodo();
+    if (!todoId) return;
+    if (this.loadingInitial()) return;
+    const visibility = todo?.visibility === "shared" ? "shared" : "private";
+    this.loadInitialChats(todoId, visibility);
   });
 
   newMessage = "";
@@ -125,12 +125,12 @@ export class ChatWindowComponent
     );
   }
 
-  private loadInitialChats(todoId: string) {
+  private loadInitialChats(todoId: string, visibility: string = "private") {
     if (this.loadingInitial()) return;
     this.loadingInitial.set(true);
 
     this.dataSync
-      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId }, load: ["user"] })
+      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId }, load: ["user"], visibility })
       .subscribe({
         next: (chats) => {
           const reversed = [...chats].reverse();
