@@ -521,6 +521,14 @@ div.mdc-checkbox {
   @apply flex h-6 w-6 cursor-grab items-center justify-center text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-zinc-600 active:cursor-grabbing dark:text-zinc-500 dark:hover:text-zinc-400;
 }
 
+/* Draggable elements - show grab cursor */
+.cdk-drag {
+  cursor: grab;
+}
+.cdk-drag:active {
+  cursor: grabbing;
+}
+
 /* ── Custom Checkbox ── */
 .checkbox {
   @apply relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded border-2 border-gray-400 bg-transparent transition-colors duration-150 dark:border-gray-600;

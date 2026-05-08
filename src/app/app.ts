@@ -35,6 +35,7 @@ import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component"
 import { CommandPaletteComponent } from "@components/command-palette/command-palette.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { ConfirmDialogComponent } from "@components/confirm-dialog/confirm-dialog.component";
+import { PromptDialogComponent } from "@components/prompt-dialog/prompt-dialog.component";
 
 @Component({
   selector: "app-root",
@@ -50,6 +51,7 @@ import { ConfirmDialogComponent } from "@components/confirm-dialog/confirm-dialo
     CommandPaletteComponent,
     BulkActionsComponent,
     ConfirmDialogComponent,
+    PromptDialogComponent,
   ],
   templateUrl: "./app.html",
 })
