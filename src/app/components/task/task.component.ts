@@ -39,12 +39,12 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Router } from "@angular/router";
 import { CommentService } from "@services/features/comment.service";
 import { GithubService } from "@services/github/github.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* models */
 import {
@@ -79,12 +79,12 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 })
 export class TaskComponent extends BaseItemComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
-  private storageService = inject(UnifiedStorageService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private commentService = inject(CommentService);
   private githubService = inject(GithubService);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
 
   @Input() isOwner: boolean = true;
@@ -248,11 +248,11 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
       const visibility = this.isPrivate ? "private" : "shared";
       const taskId = this.task.id;
 
-      this.dataService
+      this.requestService
         .loadPage("comments", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
         .subscribe({
           next: () => {
-            this.dataService
+            this.requestService
               .loadPage("subtasks", { filter: { task_id: taskId }, visibility, skip: 0, limit: 20 })
               .subscribe();
           },
@@ -284,7 +284,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
           }));
 
           if (effectiveTodoId) {
-            this.dataService
+            this.requestService
               .updateAll(
                 "comments",
                 localUpdates.map((c: Comment) => ({ id: c.id, read_by: c.read_by }))
@@ -392,9 +392,11 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
   onDeleteComment(commentId: string) {
     const effectiveTodoId = this.todo_id || this.task?.todo_id;
     if (effectiveTodoId) {
-      this.dataService.delete("comments", commentId).subscribe({
-        error: (err: Error) => {},
-      });
+      this.requestService
+        .delete("comments", commentId, { visibility: this.isPrivate ? "private" : "shared" })
+        .subscribe({
+          error: (err: Error) => {},
+        });
     }
   }
 
@@ -410,7 +412,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     if (!this.task || this.loadingTaskComments()) return;
     const visibility = this.isPrivate ? "private" : "shared";
     this.loadingTaskComments.set(true);
-    this.dataService.loadMore("comments").subscribe({
+    this.requestService.loadMore("comments").subscribe({
       next: () => {
         this.loadingTaskComments.set(false);
         this.cdr.markForCheck();

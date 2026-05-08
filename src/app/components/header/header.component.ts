@@ -38,11 +38,10 @@ import { NotificationAction } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-import { DataService } from "@services/data/data.service";
 import { AppStateService } from "@services/core/app-state.service";
-import { UnifiedStorageService } from "@app/store/unified-storage.service";
+import { StorageService } from "@services/storage.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -68,8 +67,8 @@ interface Breadcrumb {
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  private dataService = inject(DataService);
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
+  private storageService = inject(StorageService);
   private destroyRef = inject(DestroyRef);
 
   constructor(
@@ -81,8 +80,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private location: Location,
     private appStateService: AppStateService,
-    private shortcutEmitters: ShortcutEmittersService,
-    private storageService: UnifiedStorageService
+    private shortcutEmitters: ShortcutEmittersService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
@@ -105,6 +103,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isSyncing = signal(false);
 
   showInfoBlock = this.appStateService.showInfoBlock;
+
+  private profileLoaded = false;
 
   notifications = this.notifyService.notifications;
   unreadCount = this.notifyService.unreadCount;
@@ -147,6 +147,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   private loadProfile(): void {
+    if (this.profileLoaded && this.profile() && this.user()) {
+      return;
+    }
+
     const storedProfile = this.storageService.profile();
     const storedUser = this.storageService.user();
 
@@ -155,19 +159,60 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.user.set(storedUser);
       this.userEmail.set(storedUser.email || "");
       this.role.set(storedUser.role || "");
+      this.profileLoaded = true;
       return;
     }
 
-    this.dataService
-      .getProfile()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    if (this.storageService.isLoading()) {
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkStorage = () => {
+        attempts++;
+        const profile = this.storageService.profile();
+        const user = this.storageService.user();
+        if (profile && user) {
+          this.profile.set(profile);
+          this.user.set(user);
+          this.userEmail.set(user.email || "");
+          this.role.set(user.role || "");
+          this.profileLoaded = true;
+          return;
+        }
+        if (attempts < maxAttempts) {
+          setTimeout(checkStorage, 100);
+        } else {
+          this.fetchProfileFromApi();
+        }
+      };
+      setTimeout(checkStorage, 100);
+      return;
+    }
+
+    this.fetchProfileFromApi();
+  }
+
+  private fetchProfileFromApi(): void {
+    const userId = this.authService.getValueByKey("id");
+    this.requestService
+      .getAll<any>("profiles", {
+        visibility: "private",
+        filter: { user_id: userId },
+        load: ["user"],
+      })
+      .pipe(
+        map((profiles: any[]) => profiles[0]),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (profile) => {
-          this.profile.set(profile);
-          if (profile?.user) {
-            this.user.set(profile.user);
-            this.userEmail.set(profile.user.email || "");
-            this.role.set(profile.user.role || "");
+          if (profile) {
+            this.profile.set(profile);
+            if (profile.user) {
+              this.user.set(profile.user);
+              this.userEmail.set(profile.user.email || "");
+              this.role.set(profile.user.role || "");
+            }
+            this.profileLoaded = true;
           }
         },
         error: () => {

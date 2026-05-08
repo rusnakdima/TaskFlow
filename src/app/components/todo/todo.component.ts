@@ -37,11 +37,12 @@ import { DateHelper } from "@helpers/date.helper";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { TemplateService } from "@services/features/template.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* models */
 import { Todo } from "@models/todo.model";
-import { TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
 
 /* constants */
 import { ActionColors } from "@constants/table-field.constants";
@@ -66,7 +67,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private templateService = inject(TemplateService);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
 
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
@@ -112,16 +113,22 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   private loadSubtasksData(): void {
     if (!this.todo?.id) return;
 
-    this.tasksSubscription = this.dataService
-      .getTasks(this.todo.id)
+    this.tasksSubscription = this.requestService
+      .getAll<Task>("tasks", {
+        visibility: this.isPrivate ? "private" : "shared",
+        filter: { todo_id: this.todo.id },
+      })
       .pipe(take(1))
       .subscribe((tasks) => {
         let total = 0;
         let completed = 0;
 
         tasks.forEach((task) => {
-          const sub = this.dataService
-            .getSubtasks(task.id)
+          const sub = this.requestService
+            .getAll<Subtask>("subtasks", {
+              visibility: this.isPrivate ? "private" : "shared",
+              filter: { task_id: task.id },
+            })
             .pipe(take(1))
             .subscribe((subtasks) => {
               total += subtasks.length;

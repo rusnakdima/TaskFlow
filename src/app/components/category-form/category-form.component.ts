@@ -9,6 +9,7 @@ import {
   OnDestroy,
   OnChanges,
   SimpleChanges,
+  inject,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
@@ -21,7 +22,7 @@ import { Category } from "@models/category.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 @Component({
   selector: "app-category-form",
@@ -30,11 +31,9 @@ import { DataService } from "@services/data/data.service";
   templateUrl: "./category-form.component.html",
 })
 export class CategoryFormComponent implements OnInit, OnChanges {
-  constructor(
-    private authService: AuthService,
-    private dataService: DataService,
-    private notifyService: NotifyService
-  ) {}
+  private authService = inject(AuthService);
+  private notifyService = inject(NotifyService);
+  private requestService = inject(REQUEST_SERVICE);
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;
@@ -103,8 +102,8 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       user_id: this.userId,
     };
 
-    this.dataService
-      .create("categories", categoryData, "private")
+    this.requestService
+      .create<Category>("categories", categoryData, { visibility: "private" })
       .subscribe({
         next: (createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
@@ -128,8 +127,8 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       title: this.categoryTitle.trim(),
     };
 
-    this.dataService
-      .update("categories", this.editingCategory.id, updatedCategory, "private")
+    this.requestService
+      .update("categories", this.editingCategory.id, updatedCategory, { visibility: "private" })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");

@@ -24,11 +24,12 @@ import { of, Subscription } from "rxjs";
 
 /* models */
 import { Chat, ChatCreate } from "@models/chat.model";
+import { Todo } from "@models/todo.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { DataService } from "@services/data/data.service";
-import { RequestService } from "@services/core/request.service";
+import { StorageService } from "@services/storage.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* mixins */
 import { ScrollingMixin } from "@mixins/scrolling.mixin";
@@ -48,9 +49,9 @@ export class ChatWindowComponent
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
   @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
 
-  dataService = inject(DataService);
-  requestService = inject(RequestService);
   authService = inject(AuthService);
+  storageService = inject(StorageService);
+  apiService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
 
   chats = signal<Chat[]>([]);
@@ -117,7 +118,7 @@ export class ChatWindowComponent
 
   private loadTodo() {
     this.subscriptions.add(
-      this.dataService.getTodo(this.todo_id).subscribe({
+      this.apiService.get<Todo>("todos", this.todo_id).subscribe({
         next: (todo) => this.currentTodo.set(todo),
         error: () => this.currentTodo.set(null),
       })
@@ -128,8 +129,25 @@ export class ChatWindowComponent
     if (this.loadingInitial()) return;
     this.loadingInitial.set(true);
 
-    this.dataService
-      .getAll("chats", { filter: { todo_id: todoId }, load: ["user"], visibility })
+    const cachedChats = this.storageService.getChatsByTodoId(todoId);
+    if (cachedChats && cachedChats.length > 0) {
+      const reversed = [...cachedChats].reverse();
+      this.messages.set(reversed);
+      this.cacheUsernames(cachedChats);
+      if (cachedChats.length > 0) {
+        this.oldestTimestamp.set(cachedChats[cachedChats.length - 1].created_at);
+        this.hasMoreMessages.set(cachedChats.length >= 10);
+      }
+      this.loadingInitial.set(false);
+      return;
+    }
+
+    this.apiService
+      .getAll<Chat>("chats", {
+        filter: { todo_id: todoId },
+        load: ["user"],
+        visibility: visibility as any,
+      })
       .subscribe({
         next: (chats) => {
           const reversed = [...chats].reverse();
@@ -163,22 +181,27 @@ export class ChatWindowComponent
 
     this.loadingOlder.set(true);
 
-    this.dataService.getAll("chats", { filter: { todo_id: todoId, before: timestamp } }).subscribe({
-      next: (olderChats) => {
-        this.cacheUsernames(olderChats);
-        if (olderChats.length === 0) {
-          this.hasMoreMessages.set(false);
-        } else {
-          const reversed = [...olderChats].reverse();
-          this.messages.update((current) => [...reversed, ...current]);
-          this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
-        }
-        this.loadingOlder.set(false);
-      },
-      error: () => {
-        this.loadingOlder.set(false);
-      },
-    });
+    this.apiService
+      .getAll<Chat>("chats", {
+        filter: { todo_id: todoId, before: timestamp },
+        visibility: "private",
+      })
+      .subscribe({
+        next: (olderChats) => {
+          this.cacheUsernames(olderChats);
+          if (olderChats.length === 0) {
+            this.hasMoreMessages.set(false);
+          } else {
+            const reversed = [...olderChats].reverse();
+            this.messages.update((current) => [...reversed, ...current]);
+            this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
+          }
+          this.loadingOlder.set(false);
+        },
+        error: () => {
+          this.loadingOlder.set(false);
+        },
+      });
   }
 
   onChatScroll(event: Event) {
@@ -247,7 +270,7 @@ export class ChatWindowComponent
     const todo = this.currentTodo();
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
 
-    this.dataService.create("chats", chatForBackend, visibility).subscribe(() => {
+    this.apiService.create<Chat>("chats", chatForBackend, { visibility }).subscribe(() => {
       this.newMessage = "";
       this.shouldScroll.set(true);
       this.forceScrollBottom = true;
@@ -256,7 +279,7 @@ export class ChatWindowComponent
   }
 
   deleteMessage(chatId: string) {
-    this.dataService.delete("chats", chatId).subscribe({
+    this.apiService.delete("chats", chatId).subscribe({
       error: (err) => {},
     });
   }
@@ -278,7 +301,10 @@ export class ChatWindowComponent
 
     if (unreadChats.length === 0) return of([]);
 
-    return this.dataService.updateAll("chats", unreadChats, { parentTodoId: todo_id });
+    return this.apiService.updateAll<Chat>("chats", unreadChats, {
+      visibility: "private",
+      parentTodoId: todo_id,
+    } as any);
   }
 
   clearChat() {
@@ -288,7 +314,7 @@ export class ChatWindowComponent
     if (!chats || chats.length === 0) return;
 
     const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
-    this.dataService.updateAll("chats", chatsToDelete).subscribe();
+    this.apiService.updateAll("chats", chatsToDelete, { visibility: "private" }).subscribe();
   }
 
   getUsername(userId: string): string {

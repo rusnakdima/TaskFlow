@@ -20,7 +20,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* components */
 import {
@@ -41,7 +41,7 @@ import { ActionColors } from "@constants/table-field.constants";
 export class TaskInformationComponent extends ItemInfoBaseComponent implements OnChanges {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
 
   public showActions = signal(false);
 
@@ -82,8 +82,10 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   markTaskComplete() {
     if (this.task) {
       const updatedTask = { ...this.task, status: TaskStatus.COMPLETED };
-      this.dataService
-        .update("tasks", this.task.id, updatedTask, this.isPrivate ? "private" : "shared")
+      this.requestService
+        .update("tasks", this.task.id, updatedTask, {
+          visibility: this.isPrivate ? "private" : "shared",
+        })
         .subscribe({
           next: (result: Task) => {
             this.task.status = TaskStatus.COMPLETED;
@@ -107,8 +109,8 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   }
 
   deleteTask() {
-    this.dataService
-      .delete("tasks", this.task?.id ?? "", this.isPrivate ? "private" : "shared")
+    this.requestService
+      .delete("tasks", this.task?.id ?? "", { visibility: this.isPrivate ? "private" : "shared" })
       .subscribe({
         next: (result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");

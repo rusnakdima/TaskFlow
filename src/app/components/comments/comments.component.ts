@@ -32,7 +32,7 @@ import {
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 import { Profile } from "@models/profile.model";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -53,7 +53,7 @@ export class CommentsComponent
   implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private authService = inject(AuthService);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
 
   @Input() title: string = "Comments";
@@ -119,8 +119,8 @@ export class CommentsComponent
   }
 
   private loadProfiles(): void {
-    this.dataService
-      .getPublicProfiles()
+    this.requestService
+      .getAll<Profile>("profiles", { visibility: "public" })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (profiles: Profile[]) => {
